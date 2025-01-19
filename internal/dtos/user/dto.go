@@ -8,7 +8,7 @@ import (
 
 type UpdateUserEmailRequest struct {
 	Id    uuid.UUID `json:"id" validate:"required"`
-	Email string    `json:"email" validate:"required,email"`
+	Email string    `json:"email" validate:"email"`
 }
 
 func (r *UpdateUserEmailRequest) ToDBParams() *db.UpdateUserEmailParams {

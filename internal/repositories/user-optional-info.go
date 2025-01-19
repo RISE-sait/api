@@ -4,6 +4,7 @@ import (
 	"api/internal/utils"
 	db "api/sqlc"
 	"context"
+	"database/sql"
 	"net/http"
 )
 
@@ -56,6 +57,23 @@ func (r *UserOptionalInfoRepository) UpdateUserPassword(c context.Context, param
 
 	if row == 0 {
 		return utils.CreateHTTPError("No password updated", http.StatusNotFound)
+	}
+
+	return nil
+}
+
+func (r *UserOptionalInfoRepository) CreateUserOptionalInfoTx(ctx context.Context, tx *sql.Tx, params db.CreateUserOptionalInfoParams) *utils.HTTPError {
+	// Create a new Queries instance bound to the transaction.
+	txQueries := r.Queries.WithTx(tx)
+
+	row, err := txQueries.CreateUserOptionalInfo(ctx, params)
+
+	if err != nil {
+		return utils.MapDatabaseError(err)
+	}
+
+	if row == 0 {
+		return utils.CreateHTTPError("Error creating user optional info", 500)
 	}
 
 	return nil

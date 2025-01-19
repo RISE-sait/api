@@ -48,6 +48,7 @@ func initDependencies() *types.Dependencies {
 	hubSpotService := services.GetHubSpotService()
 
 	return &types.Dependencies{
+		DB:             dbConn,
 		Queries:        queries,
 		HubSpotService: hubSpotService,
 	}

@@ -16,5 +16,4 @@ type Controllers struct {
 	Waivers          *WaiversController
 	Customers        *CustomersController
 	TraditionalLogin *traditional_login.TraditionalLoginController
-	// Registration     *AccountRegistrationController
 }

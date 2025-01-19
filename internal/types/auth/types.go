@@ -1,22 +1,22 @@
 package auth
 
 type UserInfo struct {
-	Name      string     `json:"name"`
-	Email     string     `json:"email"`
-	StaffInfo *StaffInfo `json:"staff_info,omitempty"`
+	Name      string
+	Email     string
+	StaffInfo *StaffInfo
 }
 
 type StaffInfo struct {
-	Role     string `json:"role"`
-	IsActive bool   `json:"is_active"`
+	Role     string
+	IsActive bool
 }
 
 type JWTClaims struct {
-	Name          string `json:"name"`
-	Email         string `json:"email"`
-	Role          string `json:"role"`
-	IsActiveStaff bool   `json:"is_active_staff"`
-	IssuedAt      int64  `json:"iat"`
-	ExpiresAt     int64  `json:"exp"`
-	Issuer        string `json:"iss"`
+	Name          string
+	Email         string
+	Role          string
+	IsActiveStaff bool
+	IssuedAt      int64
+	ExpiresAt     int64
+	Issuer        string
 }

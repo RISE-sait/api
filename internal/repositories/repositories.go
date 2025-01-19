@@ -13,6 +13,7 @@ type Repositories struct {
 	Waivers         *WaiverRepository
 	UserAccounts    *UserOptionalInfoRepository
 	Staff           *StaffRepository
+	Users           *UsersRepository
 }
 
 func NewRepositories(deps *types.Dependencies) *Repositories {
@@ -30,5 +31,6 @@ func NewRepositories(deps *types.Dependencies) *Repositories {
 		Waivers:         &WaiverRepository{Queries: deps.Queries},
 		UserAccounts:    &UserOptionalInfoRepository{Queries: deps.Queries},
 		Staff:           &StaffRepository{Queries: deps.Queries},
+		Users:           &UsersRepository{Queries: deps.Queries},
 	}
 }

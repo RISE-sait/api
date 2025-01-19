@@ -21,7 +21,15 @@ type RouteConfig struct {
 func RegisterRoutes(router *chi.Mux, dependencies *types.Dependencies) {
 
 	repositories := repositories.NewRepositories(dependencies)
-	ctrls := setupControllers(repositories)
+
+	registrationController := controllers.AccountRegistrationController{
+		UsersRespository:           repositories.Users,
+		StaffRepository:            repositories.Staff,
+		UserOptionalInfoRepository: repositories.UserAccounts,
+		DB:                         dependencies.DB,
+	}
+
+	ctrls := initiateControllers(repositories)
 
 	router.Route("/api", func(r chi.Router) {
 		routes := []RouteConfig{
@@ -41,21 +49,16 @@ func RegisterRoutes(router *chi.Mux, dependencies *types.Dependencies) {
 
 		configureAuthRoutes(r, repositories, ctrls)
 
-		// r.Route("/auth/traditional/register", func(r chi.Router) {
+		r.Route("/auth/traditional/register", func(r chi.Router) {
 
-		// 	registrationController := controllers.AccountRegistrationController{
-		// 		UserAccountsRepository: repositories.UserAccounts,
-		// 		StaffRepository:        repositories.Staff,
-		// 	}
-
-		// 	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-		// 		registrationController.CreateTraditionalAccount(w, r)
-		// 	})
-		// })
+			r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+				registrationController.CreateTraditionalAccount(w, r)
+			})
+		})
 	})
 }
 
-func setupControllers(repos *repositories.Repositories) *controllers.Controllers {
+func initiateControllers(repos *repositories.Repositories) *controllers.Controllers {
 	return &controllers.Controllers{
 		Facilities:    facilities.NewFacilitiesController(repos.Facility),
 		FacilityTypes: facilities.NewFacilityTypesController(repos.FacilityTypes),

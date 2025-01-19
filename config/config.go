@@ -84,10 +84,10 @@ func getEnv(key string, defaultValue string) string {
 }
 
 func getConnectionString() string {
-	// if os.Getenv("ENV") == "production" {
-	return "postgresql://" + Envs.dbConfig.user + ":" + Envs.dbConfig.password + "@" + Envs.dbConfig.host + ":" + Envs.dbConfig.port + "/" + Envs.dbConfig.name + "?sslmode=require"
-	// }
-	// return "postgresql://postgres:root@localhost:5432/mydatabase?sslmode=disable"
+	if os.Getenv("ENV") == "production" {
+		return "postgresql://" + Envs.dbConfig.user + ":" + Envs.dbConfig.password + "@" + Envs.dbConfig.host + ":" + Envs.dbConfig.port + "/" + Envs.dbConfig.name + "?sslmode=require"
+	}
+	return "postgresql://postgres:root@localhost:5432/mydatabase?sslmode=disable"
 }
 
 func GetDBConnection() *sql.DB {

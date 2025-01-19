@@ -24,7 +24,7 @@ func (r *GetUserOptionalInfoRequest) ToDBParams() *db.GetUserOptionalInfoParams 
 type CreateUserOptionalInfoRequest struct {
 	Name           string `json:"name" validate:"omitempty,notwhitespace"`
 	Email          string `json:"email" validate:"email"`
-	HashedPassword string `json:"hashed_password" validate:"omitempty,notwhitespace"`
+	HashedPassword string `json:"password" validate:"omitempty,notwhitespace"`
 }
 
 func (r *CreateUserOptionalInfoRequest) ToDBParams() *db.CreateUserOptionalInfoParams {

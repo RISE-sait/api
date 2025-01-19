@@ -4,6 +4,7 @@ import (
 	"api/internal/utils"
 	db "api/sqlc"
 	"context"
+	"database/sql"
 	"net/http"
 )
 
@@ -44,6 +45,21 @@ func (r *UsersRepository) UpdateUserEmail(c context.Context, params db.UpdateUse
 
 	if row == 0 {
 		return utils.CreateHTTPError("No user found with the associated id", http.StatusNotFound)
+	}
+
+	return nil
+}
+
+func (r *UsersRepository) CreateUserTx(ctx context.Context, tx *sql.Tx, email string) *utils.HTTPError {
+	txQueries := r.Queries.WithTx(tx)
+	row, err := txQueries.CreateUser(ctx, email)
+
+	if err != nil {
+		return utils.MapDatabaseError(err)
+	}
+
+	if row == 0 {
+		return utils.CreateHTTPError("No row inserted", http.StatusInternalServerError)
 	}
 
 	return nil

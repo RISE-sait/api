@@ -2,7 +2,7 @@ package dependencies
 
 import (
 	"api/config"
-	"api/internal/services/hubspot"
+	"api/internal/domains/customers/services/hubspot"
 	db "api/sqlc"
 	"database/sql"
 )

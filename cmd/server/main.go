@@ -1,8 +1,6 @@
 package main
 
 import (
-	routes "api/internal"
-	"api/internal/dependencies"
 	"api/internal/middlewares"
 	"log"
 	"net/http"
@@ -17,7 +15,7 @@ import (
 func main() {
 
 	// Build the connection string
-	dependencies := dependencies.InitDependencies()
+	// dependencies := dependencies.InitDependencies()
 
 	router := chi.NewRouter()
 
@@ -29,7 +27,7 @@ func main() {
 	})
 
 	// Auth routes
-	routes.RegisterRoutes(router, dependencies)
+	// routes.RegisterRoutes(router, dependencies)
 
 	// Start the server
 	log.Println("Server started at :8080")

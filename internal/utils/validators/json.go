@@ -69,7 +69,7 @@ func init() {
 	validate.RegisterValidation("day", DayValidator)
 }
 
-func DecodeRequestBody(body io.Reader, target interface{}) *types.HTTPError {
+func ParseReqBodyToJSON(body io.Reader, target interface{}) *types.HTTPError {
 	if err := json.NewDecoder(body).Decode(target); err != nil {
 		return utils.CreateHTTPError(fmt.Sprintf("Bad request: %v", err), http.StatusUnprocessableEntity)
 	}
@@ -82,19 +82,6 @@ func ValidateDto(dto interface{}) *types.HTTPError {
 
 	if err := validate.Struct(dto); err != nil {
 		return parseValidationErrors(err, dtoType)
-	}
-
-	return nil
-
-}
-
-func DecodeAndValidateRequestBody(body io.Reader, target interface{}) *types.HTTPError {
-	if err := DecodeRequestBody(body, target); err != nil {
-		return err
-	}
-
-	if err := ValidateDto(target); err != nil {
-		return err
 	}
 
 	return nil

@@ -3,6 +3,7 @@ package controllers
 import (
 	userOptionalInfo "api/internal/dtos/user/optionalInfo"
 	"api/internal/repositories"
+	"api/internal/services/hubspot"
 	"api/internal/types"
 	"api/internal/utils"
 	"api/internal/utils/validators"
@@ -15,6 +16,7 @@ type AccountRegistrationController struct {
 	UserOptionalInfoRepository *repositories.UserOptionalInfoRepository
 	StaffRepository            *repositories.StaffRepository
 	DB                         *sql.DB
+	HubSpotService             *hubspot.HubSpotService
 }
 
 func (c *AccountRegistrationController) CreateTraditionalAccount(w http.ResponseWriter, r *http.Request) {

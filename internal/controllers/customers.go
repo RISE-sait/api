@@ -11,16 +11,16 @@ import (
 )
 
 type CustomersController struct {
-	CustomerService *hubspot.CustomerService
+	HubSpotService *hubspot.HubSpotService
 }
 
-func NewCustomersController(customerService *hubspot.CustomerService) *CustomersController {
-	return &CustomersController{CustomerService: customerService}
+func NewCustomersController(hubspotService *hubspot.HubSpotService) *CustomersController {
+	return &CustomersController{HubSpotService: hubspotService}
 }
 
 func (c *CustomersController) GetCustomerById(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	customer, err := c.CustomerService.GetCustomerById(id)
+	customer, err := c.HubSpotService.GetCustomerById(id)
 	if err != nil {
 		utils.RespondWithError(w, err)
 	} else {
@@ -30,7 +30,7 @@ func (c *CustomersController) GetCustomerById(w http.ResponseWriter, r *http.Req
 
 func (c *CustomersController) GetCustomerByEmail(w http.ResponseWriter, r *http.Request) {
 	email := chi.URLParam(r, "email")
-	customer, err := c.CustomerService.GetCustomerByEmail(email)
+	customer, err := c.HubSpotService.GetCustomerByEmail(email)
 
 	if err != nil {
 		fmt.Println("Error: ", *err)
@@ -41,7 +41,7 @@ func (c *CustomersController) GetCustomerByEmail(w http.ResponseWriter, r *http.
 }
 
 func (c *CustomersController) GetCustomers(w http.ResponseWriter, _ *http.Request) {
-	customers, err := c.CustomerService.GetCustomers("")
+	customers, err := c.HubSpotService.GetCustomers("")
 	if err != nil {
 		utils.RespondWithError(w, err)
 		return
@@ -56,7 +56,7 @@ func (c *CustomersController) CreateCustomer(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	createdCustomer, err := c.CustomerService.CreateCustomer(customer)
+	createdCustomer, err := c.HubSpotService.CreateCustomer(customer)
 	if err != nil {
 		utils.RespondWithError(w, err)
 		return

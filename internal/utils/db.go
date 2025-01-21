@@ -2,6 +2,7 @@ package utils
 
 import (
 	"api/internal/constants"
+	"api/internal/types"
 	"database/sql"
 	"errors"
 	"log"
@@ -10,7 +11,7 @@ import (
 	"github.com/lib/pq"
 )
 
-func MapDatabaseError(err error) *HTTPError {
+func MapDatabaseError(err error) *types.HTTPError {
 
 	if errors.Is(err, sql.ErrNoRows) {
 		return CreateHTTPError("Resource not found", http.StatusNotFound)

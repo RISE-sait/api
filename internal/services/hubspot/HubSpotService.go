@@ -1,4 +1,4 @@
-package services
+package hubspot
 
 import (
 	"api/config"

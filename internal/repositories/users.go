@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"api/internal/types"
 	"api/internal/utils"
 	db "api/sqlc"
 	"context"
@@ -12,7 +13,7 @@ type UsersRepository struct {
 	Queries *db.Queries
 }
 
-func (r *UsersRepository) CreateUser(c context.Context, email string) *utils.HTTPError {
+func (r *UsersRepository) CreateUser(c context.Context, email string) *types.HTTPError {
 	row, err := r.Queries.CreateUser(c, email)
 
 	if err != nil {
@@ -26,7 +27,7 @@ func (r *UsersRepository) CreateUser(c context.Context, email string) *utils.HTT
 	return nil
 }
 
-func (r *UsersRepository) GetUser(c context.Context, email string) (*db.User, *utils.HTTPError) {
+func (r *UsersRepository) GetUser(c context.Context, email string) (*db.User, *types.HTTPError) {
 
 	user, err := r.Queries.GetUserByEmail(c, email)
 
@@ -36,7 +37,7 @@ func (r *UsersRepository) GetUser(c context.Context, email string) (*db.User, *u
 	return &user, nil
 }
 
-func (r *UsersRepository) UpdateUserEmail(c context.Context, params db.UpdateUserEmailParams) *utils.HTTPError {
+func (r *UsersRepository) UpdateUserEmail(c context.Context, params db.UpdateUserEmailParams) *types.HTTPError {
 	row, err := r.Queries.UpdateUserEmail(c, params)
 
 	if err != nil {
@@ -50,7 +51,7 @@ func (r *UsersRepository) UpdateUserEmail(c context.Context, params db.UpdateUse
 	return nil
 }
 
-func (r *UsersRepository) CreateUserTx(ctx context.Context, tx *sql.Tx, email string) *utils.HTTPError {
+func (r *UsersRepository) CreateUserTx(ctx context.Context, tx *sql.Tx, email string) *types.HTTPError {
 	txQueries := r.Queries.WithTx(tx)
 	row, err := txQueries.CreateUser(ctx, email)
 

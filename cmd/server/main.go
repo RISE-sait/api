@@ -3,9 +3,9 @@ package main
 import (
 	"api/config"
 	routes "api/internal"
+	"api/internal/dependencies"
 	"api/internal/middlewares"
-	"api/internal/services"
-	"api/internal/types"
+	"api/internal/services/hubspot"
 	db "api/sqlc"
 	"log"
 	"net/http"
@@ -39,15 +39,15 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
-func initDependencies() *types.Dependencies {
+func initDependencies() *dependencies.Dependencies {
 	// Database connection
 	dbConn := config.GetDBConnection()
 	queries := db.New(dbConn)
 
 	// HubSpot service
-	hubSpotService := services.GetHubSpotService()
+	hubSpotService := hubspot.GetHubSpotService()
 
-	return &types.Dependencies{
+	return &dependencies.Dependencies{
 		DB:             dbConn,
 		Queries:        queries,
 		HubSpotService: hubSpotService,

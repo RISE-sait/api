@@ -1,6 +1,7 @@
 package validators
 
 import (
+	"api/internal/types"
 	"api/internal/utils"
 	"fmt"
 	"net/http"
@@ -9,7 +10,7 @@ import (
 )
 
 // ParseUUID attempts to parse a UUID
-func ParseUUID(str string) (uuid.UUID, *utils.HTTPError) {
+func ParseUUID(str string) (uuid.UUID, *types.HTTPError) {
 
 	// Now try to parse the UUID using the uuid library
 	parsedID, err := uuid.Parse(str)

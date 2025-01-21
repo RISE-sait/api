@@ -1,9 +1,10 @@
 package repositories
 
-import "api/internal/types"
+import (
+	"api/internal/dependencies"
+)
 
 type Repositories struct {
-	Customer        *CustomerRepository
 	Course          *CourseRepository
 	Facility        *FacilityRepository
 	FacilityTypes   *FacilityTypesRepository
@@ -16,12 +17,8 @@ type Repositories struct {
 	Users           *UsersRepository
 }
 
-func NewRepositories(deps *types.Dependencies) *Repositories {
+func NewRepositories(deps *dependencies.Dependencies) *Repositories {
 	return &Repositories{
-		Customer: &CustomerRepository{
-			HubSpotService: deps.HubSpotService,
-			Queries:        deps.Queries,
-		},
 		Course:          &CourseRepository{Queries: deps.Queries},
 		Facility:        &FacilityRepository{Queries: deps.Queries},
 		FacilityTypes:   &FacilityTypesRepository{Queries: deps.Queries},

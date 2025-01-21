@@ -1,8 +1,7 @@
 package controllers
 
 import (
-	"api/internal/repositories"
-	"api/internal/types/hubspot"
+	"api/internal/services/hubspot"
 	"api/internal/utils"
 	"encoding/json"
 	"fmt"
@@ -12,16 +11,16 @@ import (
 )
 
 type CustomersController struct {
-	CustomerRepository *repositories.CustomerRepository
+	CustomerService *hubspot.CustomerService
 }
 
-func NewCustomersController(customerRepository *repositories.CustomerRepository) *CustomersController {
-	return &CustomersController{CustomerRepository: customerRepository}
+func NewCustomersController(customerService *hubspot.CustomerService) *CustomersController {
+	return &CustomersController{CustomerService: customerService}
 }
 
 func (c *CustomersController) GetCustomerById(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	customer, err := c.CustomerRepository.GetCustomerById(id)
+	customer, err := c.CustomerService.GetCustomerById(id)
 	if err != nil {
 		utils.RespondWithError(w, err)
 	} else {
@@ -31,7 +30,7 @@ func (c *CustomersController) GetCustomerById(w http.ResponseWriter, r *http.Req
 
 func (c *CustomersController) GetCustomerByEmail(w http.ResponseWriter, r *http.Request) {
 	email := chi.URLParam(r, "email")
-	customer, err := c.CustomerRepository.GetCustomerByEmail(email)
+	customer, err := c.CustomerService.GetCustomerByEmail(email)
 
 	if err != nil {
 		fmt.Println("Error: ", *err)
@@ -42,7 +41,7 @@ func (c *CustomersController) GetCustomerByEmail(w http.ResponseWriter, r *http.
 }
 
 func (c *CustomersController) GetCustomers(w http.ResponseWriter, _ *http.Request) {
-	customers, err := c.CustomerRepository.GetCustomers("")
+	customers, err := c.CustomerService.GetCustomers("")
 	if err != nil {
 		utils.RespondWithError(w, err)
 		return
@@ -57,7 +56,7 @@ func (c *CustomersController) CreateCustomer(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	createdCustomer, err := c.CustomerRepository.CreateCustomer(customer)
+	createdCustomer, err := c.CustomerService.CreateCustomer(customer)
 	if err != nil {
 		utils.RespondWithError(w, err)
 		return

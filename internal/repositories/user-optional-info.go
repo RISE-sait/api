@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"api/internal/types"
 	"api/internal/utils"
 	db "api/sqlc"
 	"context"
@@ -12,7 +13,7 @@ type UserOptionalInfoRepository struct {
 	Queries *db.Queries
 }
 
-func (r *UserOptionalInfoRepository) CreateUserOptionalInfo(c context.Context, params *db.CreateUserOptionalInfoParams) *utils.HTTPError {
+func (r *UserOptionalInfoRepository) CreateUserOptionalInfo(c context.Context, params *db.CreateUserOptionalInfoParams) *types.HTTPError {
 	row, err := r.Queries.CreateUserOptionalInfo(c, *params)
 
 	if err != nil {
@@ -34,7 +35,7 @@ func (r *UserOptionalInfoRepository) IsUserOptionalInfoExist(c context.Context, 
 	return true
 }
 
-func (r *UserOptionalInfoRepository) UpdateUsername(c context.Context, param *db.UpdateUsernameParams) *utils.HTTPError {
+func (r *UserOptionalInfoRepository) UpdateUsername(c context.Context, param *db.UpdateUsernameParams) *types.HTTPError {
 	row, err := r.Queries.UpdateUsername(c, *param)
 
 	if err != nil {
@@ -48,7 +49,7 @@ func (r *UserOptionalInfoRepository) UpdateUsername(c context.Context, param *db
 	return nil
 }
 
-func (r *UserOptionalInfoRepository) UpdateUserPassword(c context.Context, param *db.UpdateUserPasswordParams) *utils.HTTPError {
+func (r *UserOptionalInfoRepository) UpdateUserPassword(c context.Context, param *db.UpdateUserPasswordParams) *types.HTTPError {
 	row, err := r.Queries.UpdateUserPassword(c, *param)
 
 	if err != nil {
@@ -62,7 +63,7 @@ func (r *UserOptionalInfoRepository) UpdateUserPassword(c context.Context, param
 	return nil
 }
 
-func (r *UserOptionalInfoRepository) CreateUserOptionalInfoTx(ctx context.Context, tx *sql.Tx, params db.CreateUserOptionalInfoParams) *utils.HTTPError {
+func (r *UserOptionalInfoRepository) CreateUserOptionalInfoTx(ctx context.Context, tx *sql.Tx, params db.CreateUserOptionalInfoParams) *types.HTTPError {
 	// Create a new Queries instance bound to the transaction.
 	txQueries := r.Queries.WithTx(tx)
 

@@ -2,14 +2,14 @@ package utils
 
 import (
 	"api/config"
-	"api/internal/types/auth"
+	"api/internal/types"
 	"fmt"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 )
 
-func SignJWT(userInfo auth.UserInfo) (string, *HTTPError) {
+func SignJWT(userInfo types.UserInfo) (string, *types.HTTPError) {
 
 	role := "Athlete"
 

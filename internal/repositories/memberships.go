@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"api/internal/types"
 	"api/internal/utils"
 	db "api/sqlc"
 	"context"
@@ -14,7 +15,7 @@ type MembershipsRepository struct {
 	Queries *db.Queries
 }
 
-func (r *MembershipsRepository) CreateMembership(c context.Context, membership *db.CreateMembershipParams) *utils.HTTPError {
+func (r *MembershipsRepository) CreateMembership(c context.Context, membership *db.CreateMembershipParams) *types.HTTPError {
 	row, err := r.Queries.CreateMembership(c, *membership)
 
 	if err != nil {
@@ -29,7 +30,7 @@ func (r *MembershipsRepository) CreateMembership(c context.Context, membership *
 	return nil
 }
 
-func (r *MembershipsRepository) GetMembershipById(c context.Context, id uuid.UUID) (*db.Membership, *utils.HTTPError) {
+func (r *MembershipsRepository) GetMembershipById(c context.Context, id uuid.UUID) (*db.Membership, *types.HTTPError) {
 	membership, err := r.Queries.GetMembershipById(c, id)
 
 	if err != nil {
@@ -40,7 +41,7 @@ func (r *MembershipsRepository) GetMembershipById(c context.Context, id uuid.UUI
 	return &membership, nil
 }
 
-func (r *MembershipsRepository) GetAllMemberships(c context.Context) (*[]db.Membership, *utils.HTTPError) {
+func (r *MembershipsRepository) GetAllMemberships(c context.Context) (*[]db.Membership, *types.HTTPError) {
 	memberships, err := r.Queries.GetAllMemberships(c)
 
 	if err != nil {
@@ -50,7 +51,7 @@ func (r *MembershipsRepository) GetAllMemberships(c context.Context) (*[]db.Memb
 	return &memberships, nil
 }
 
-func (r *MembershipsRepository) UpdateMembership(c context.Context, membership *db.UpdateMembershipParams) *utils.HTTPError {
+func (r *MembershipsRepository) UpdateMembership(c context.Context, membership *db.UpdateMembershipParams) *types.HTTPError {
 	row, err := r.Queries.UpdateMembership(c, *membership)
 
 	if err != nil {
@@ -65,7 +66,7 @@ func (r *MembershipsRepository) UpdateMembership(c context.Context, membership *
 	return nil
 }
 
-func (r *MembershipsRepository) DeleteMembership(c context.Context, id uuid.UUID) *utils.HTTPError {
+func (r *MembershipsRepository) DeleteMembership(c context.Context, id uuid.UUID) *types.HTTPError {
 	row, err := r.Queries.DeleteFacilityType(c, id)
 
 	if err != nil {

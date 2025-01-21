@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"api/internal/types"
 	"encoding/json"
 	"net/http"
 )
@@ -23,7 +24,7 @@ func RespondWithSuccess(w http.ResponseWriter, payload interface{}, status int) 
 	}
 }
 
-func RespondWithError(w http.ResponseWriter, err *HTTPError) {
+func RespondWithError(w http.ResponseWriter, err *types.HTTPError) {
 
 	w.WriteHeader(err.StatusCode)
 	http.Error(w, err.Message, err.StatusCode)

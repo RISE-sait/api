@@ -3,7 +3,8 @@ package oauth
 import (
 	"api/config"
 	"api/internal/repositories"
-	"api/internal/types/auth"
+	"api/internal/types"
+	auth "api/internal/types"
 	"api/internal/utils"
 	"api/internal/utils/validators"
 	db "api/sqlc"
@@ -26,7 +27,7 @@ type OAuthTokenResponse struct {
 
 func HandleOAuthCallback(w http.ResponseWriter, r *http.Request, staffRepo *repositories.StaffRepository) {
 	var targetBody struct {
-		Code string `json:"code" validate:"required_and_notwhitespace"`
+		Code string `json:"code" validate:"notwhitespace"`
 	}
 
 	if err := validators.DecodeAndValidateRequestBody(r.Body, &targetBody); err != nil {
@@ -56,7 +57,7 @@ func HandleOAuthCallback(w http.ResponseWriter, r *http.Request, staffRepo *repo
 	utils.RespondWithSuccess(w, nil, http.StatusOK)
 }
 
-func getUserInfo(accessToken string, staffRepo *repositories.StaffRepository, c context.Context) (*auth.UserInfo, *utils.HTTPError) {
+func getUserInfo(accessToken string, staffRepo *repositories.StaffRepository, c context.Context) (*auth.UserInfo, *types.HTTPError) {
 	userInfoEndpoint := "https://www.googleapis.com/oauth2/v2/userinfo"
 	resp, err := http.Get(fmt.Sprintf("%s?access_token=%s", userInfoEndpoint, accessToken))
 	if err != nil {
@@ -65,23 +66,23 @@ func getUserInfo(accessToken string, staffRepo *repositories.StaffRepository, c 
 	}
 	defer resp.Body.Close()
 
-	var userInfo auth.UserInfo
+	var userInfo types.UserInfo
 	if err := validators.DecodeAndValidateRequestBody(resp.Body, &userInfo); err != nil {
 		return nil, err
 	}
 
 	staff, getStaffErr := staffRepo.GetStaffByEmail(c, userInfo.Email)
 
-	var staffInfo *auth.StaffInfo = nil
+	var staffInfo *types.StaffInfo = nil
 
 	if getStaffErr != nil {
-		staffInfo = &auth.StaffInfo{
+		staffInfo = &types.StaffInfo{
 			Role:     string(db.StaffRoleEnum(staff.Role)),
 			IsActive: staff.IsActive,
 		}
 	}
 
-	userInfo = auth.UserInfo{
+	userInfo = types.UserInfo{
 		Email:     userInfo.Email,
 		Name:      userInfo.Name,
 		StaffInfo: staffInfo,
@@ -90,7 +91,7 @@ func getUserInfo(accessToken string, staffRepo *repositories.StaffRepository, c 
 	return &userInfo, nil
 }
 
-func exchangeCodeForToken(c context.Context, code string) (*oauth2.Token, *utils.HTTPError) {
+func exchangeCodeForToken(c context.Context, code string) (*oauth2.Token, *types.HTTPError) {
 	googleOauthConfig := &oauth2.Config{
 		ClientID:     config.Envs.GoogleAuthConfig.ClientId,
 		ClientSecret: config.Envs.GoogleAuthConfig.ClientSecret,

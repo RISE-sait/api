@@ -3,7 +3,7 @@ package traditional_login
 import (
 	userOptionalInfo "api/internal/dtos/user/optionalInfo"
 	"api/internal/repositories"
-	"api/internal/types/auth"
+	"api/internal/types"
 	"api/internal/utils"
 	"api/internal/utils/validators"
 	"net/http"
@@ -41,7 +41,7 @@ func (c *TraditionalLoginController) GetUser(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	staffInfo := auth.StaffInfo{
+	staffInfo := types.StaffInfo{
 		Role:     "Athlete",
 		IsActive: false,
 	}
@@ -62,7 +62,7 @@ func (c *TraditionalLoginController) GetUser(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Create user info for JWT
-	userInfo := auth.UserInfo{
+	userInfo := types.UserInfo{
 		Email:     params.Email,
 		Name:      name,
 		StaffInfo: &staffInfo,

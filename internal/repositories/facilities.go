@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"api/internal/types"
 	"api/internal/utils"
 	db "api/sqlc"
 	"context"
@@ -14,7 +15,7 @@ type FacilityRepository struct {
 	Queries *db.Queries
 }
 
-func (r *FacilityRepository) CreateFacility(c context.Context, params *db.CreateFacilityParams) *utils.HTTPError {
+func (r *FacilityRepository) CreateFacility(c context.Context, params *db.CreateFacilityParams) *types.HTTPError {
 	row, err := r.Queries.CreateFacility(c, *params)
 
 	if err != nil {
@@ -28,7 +29,7 @@ func (r *FacilityRepository) CreateFacility(c context.Context, params *db.Create
 	return nil
 }
 
-func (r *FacilityRepository) GetFacility(c context.Context, id uuid.UUID) (*db.Facility, *utils.HTTPError) {
+func (r *FacilityRepository) GetFacility(c context.Context, id uuid.UUID) (*db.Facility, *types.HTTPError) {
 	facility, err := r.Queries.GetFacilityById(c, id)
 
 	if err != nil {
@@ -39,7 +40,7 @@ func (r *FacilityRepository) GetFacility(c context.Context, id uuid.UUID) (*db.F
 	return &facility, nil
 }
 
-func (r *FacilityRepository) GetAllFacilities(c context.Context) (*[]db.Facility, *utils.HTTPError) {
+func (r *FacilityRepository) GetAllFacilities(c context.Context) (*[]db.Facility, *types.HTTPError) {
 	facilities, err := r.Queries.GetAllFacilities(c)
 
 	if err != nil {
@@ -49,7 +50,7 @@ func (r *FacilityRepository) GetAllFacilities(c context.Context) (*[]db.Facility
 	return &facilities, nil
 }
 
-func (r *FacilityRepository) UpdateFacility(c context.Context, facility *db.UpdateFacilityParams) *utils.HTTPError {
+func (r *FacilityRepository) UpdateFacility(c context.Context, facility *db.UpdateFacilityParams) *types.HTTPError {
 	row, err := r.Queries.UpdateFacility(c, *facility)
 
 	if err != nil {
@@ -63,7 +64,7 @@ func (r *FacilityRepository) UpdateFacility(c context.Context, facility *db.Upda
 	return nil
 }
 
-func (r *FacilityRepository) DeleteFacility(c context.Context, id uuid.UUID) *utils.HTTPError {
+func (r *FacilityRepository) DeleteFacility(c context.Context, id uuid.UUID) *types.HTTPError {
 	row, err := r.Queries.DeleteFacility(c, id)
 
 	if err != nil {

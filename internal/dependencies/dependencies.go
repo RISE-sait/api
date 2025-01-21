@@ -1,13 +1,13 @@
-package types
+package dependencies
 
 import (
-	"api/internal/services"
+	"api/internal/services/hubspot"
 	db "api/sqlc"
 	"database/sql"
 )
 
 type Dependencies struct {
 	Queries        *db.Queries
-	HubSpotService *services.HubSpotService
+	HubSpotService *hubspot.HubSpotService
 	DB             *sql.DB
 }

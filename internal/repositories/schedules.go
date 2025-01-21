@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"api/internal/types"
 	"api/internal/utils"
 	db "api/sqlc"
 	"context"
@@ -14,7 +15,7 @@ type SchedulesRepository struct {
 	Queries *db.Queries
 }
 
-func (r *SchedulesRepository) CreateSchedule(c context.Context, schedule *db.CreateScheduleParams) *utils.HTTPError {
+func (r *SchedulesRepository) CreateSchedule(c context.Context, schedule *db.CreateScheduleParams) *types.HTTPError {
 	row, err := r.Queries.CreateSchedule(c, *schedule)
 
 	if err != nil {
@@ -29,7 +30,7 @@ func (r *SchedulesRepository) CreateSchedule(c context.Context, schedule *db.Cre
 	return nil
 }
 
-func (r *SchedulesRepository) GetSchedule(c context.Context, id uuid.NullUUID) (*db.Schedule, *utils.HTTPError) {
+func (r *SchedulesRepository) GetSchedule(c context.Context, id uuid.NullUUID) (*db.Schedule, *types.HTTPError) {
 	schedule, err := r.Queries.GetScheduleByCourseID(c, id)
 
 	if err != nil {
@@ -41,7 +42,7 @@ func (r *SchedulesRepository) GetSchedule(c context.Context, id uuid.NullUUID) (
 	return &schedule, nil
 }
 
-func (r *SchedulesRepository) GetAllSchedules(c context.Context) (*[]db.Schedule, *utils.HTTPError) {
+func (r *SchedulesRepository) GetAllSchedules(c context.Context) (*[]db.Schedule, *types.HTTPError) {
 	schedules, err := r.Queries.GetAllSchedules(c)
 
 	if err != nil {
@@ -51,7 +52,7 @@ func (r *SchedulesRepository) GetAllSchedules(c context.Context) (*[]db.Schedule
 	return &schedules, nil
 }
 
-func (r *SchedulesRepository) UpdateSchedule(c context.Context, schedule *db.UpdateScheduleParams) *utils.HTTPError {
+func (r *SchedulesRepository) UpdateSchedule(c context.Context, schedule *db.UpdateScheduleParams) *types.HTTPError {
 	row, err := r.Queries.UpdateSchedule(c, *schedule)
 
 	if err != nil {
@@ -66,7 +67,7 @@ func (r *SchedulesRepository) UpdateSchedule(c context.Context, schedule *db.Upd
 	return nil
 }
 
-func (r *SchedulesRepository) DeleteSchedule(c context.Context, id uuid.NullUUID) *utils.HTTPError {
+func (r *SchedulesRepository) DeleteSchedule(c context.Context, id uuid.NullUUID) *types.HTTPError {
 	row, err := r.Queries.DeleteSchedule(c, id)
 
 	if err != nil {

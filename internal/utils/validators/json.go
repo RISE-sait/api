@@ -1,6 +1,7 @@
 package validators
 
 import (
+	"api/internal/types"
 	"api/internal/utils"
 	db "api/sqlc"
 	"encoding/json"
@@ -68,14 +69,14 @@ func init() {
 	validate.RegisterValidation("day", DayValidator)
 }
 
-func DecodeRequestBody(body io.Reader, target interface{}) *utils.HTTPError {
+func DecodeRequestBody(body io.Reader, target interface{}) *types.HTTPError {
 	if err := json.NewDecoder(body).Decode(target); err != nil {
 		return utils.CreateHTTPError(fmt.Sprintf("Bad request: %v", err), http.StatusUnprocessableEntity)
 	}
 	return nil
 }
 
-func ValidateDto(dto interface{}) *utils.HTTPError {
+func ValidateDto(dto interface{}) *types.HTTPError {
 
 	dtoType := reflect.TypeOf(dto).Elem()
 
@@ -87,7 +88,7 @@ func ValidateDto(dto interface{}) *utils.HTTPError {
 
 }
 
-func DecodeAndValidateRequestBody(body io.Reader, target interface{}) *utils.HTTPError {
+func DecodeAndValidateRequestBody(body io.Reader, target interface{}) *types.HTTPError {
 	if err := DecodeRequestBody(body, target); err != nil {
 		return err
 	}
@@ -99,7 +100,7 @@ func DecodeAndValidateRequestBody(body io.Reader, target interface{}) *utils.HTT
 	return nil
 }
 
-func parseValidationErrors(err error, structType reflect.Type) *utils.HTTPError {
+func parseValidationErrors(err error, structType reflect.Type) *types.HTTPError {
 	var validationErrors validator.ValidationErrors
 	if errors.As(err, &validationErrors) {
 

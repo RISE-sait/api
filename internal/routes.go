@@ -6,8 +6,8 @@ import (
 	traditional_login "api/internal/controllers/auth/traditional"
 	"api/internal/controllers/facilities"
 	"api/internal/controllers/memberships"
+	"api/internal/dependencies"
 	"api/internal/repositories"
-	"api/internal/types"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -18,7 +18,7 @@ type RouteConfig struct {
 	Configure func(chi.Router)
 }
 
-func RegisterRoutes(router *chi.Mux, dependencies *types.Dependencies) {
+func RegisterRoutes(router *chi.Mux, dependencies *dependencies.Dependencies) {
 
 	repositories := repositories.NewRepositories(dependencies)
 
@@ -67,7 +67,7 @@ func initiateControllers(repos *repositories.Repositories) *controllers.Controll
 		Courses:         controllers.NewCoursesController(repos.Course),
 		MembershipPlans: memberships.NewMembershipPlansController(repos.MembershipPlans),
 		Waivers:         controllers.NewWaiversController(repos.Waivers),
-		Customers:       controllers.NewCustomersController(repos.Customer),
+		// Customers:       controllers.NewCustomersController(repos.Customer),
 		TraditionalLogin: traditional_login.NewTraditionalLoginController(
 			repos.UserAccounts,
 			repos.Staff,

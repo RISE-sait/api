@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"api/internal/types"
 	"api/internal/utils"
 	db "api/sqlc"
 	"context"
@@ -14,7 +15,7 @@ type MembershipPlansRepository struct {
 	Queries *db.Queries
 }
 
-func (r *MembershipPlansRepository) CreateMembershipPlan(c context.Context, membershipPlan *db.CreateMembershipPlanParams) *utils.HTTPError {
+func (r *MembershipPlansRepository) CreateMembershipPlan(c context.Context, membershipPlan *db.CreateMembershipPlanParams) *types.HTTPError {
 	row, err := r.Queries.CreateMembershipPlan(c, *membershipPlan)
 
 	if err != nil {
@@ -29,7 +30,7 @@ func (r *MembershipPlansRepository) CreateMembershipPlan(c context.Context, memb
 	return nil
 }
 
-func (r *MembershipPlansRepository) GetMembershipById(c context.Context, id uuid.UUID) (*db.Membership, *utils.HTTPError) {
+func (r *MembershipPlansRepository) GetMembershipById(c context.Context, id uuid.UUID) (*db.Membership, *types.HTTPError) {
 	membership, err := r.Queries.GetMembershipById(c, id)
 
 	if err != nil {
@@ -39,7 +40,7 @@ func (r *MembershipPlansRepository) GetMembershipById(c context.Context, id uuid
 	return &membership, nil
 }
 
-func (r *MembershipPlansRepository) GetMembershipPlanDetails(c context.Context, membershipId uuid.UUID, planId uuid.UUID) (*[]db.MembershipPlan, *utils.HTTPError) {
+func (r *MembershipPlansRepository) GetMembershipPlanDetails(c context.Context, membershipId uuid.UUID, planId uuid.UUID) (*[]db.MembershipPlan, *types.HTTPError) {
 
 	plan := db.GetMembershipPlansParams{
 		Column1: membershipId,
@@ -55,7 +56,7 @@ func (r *MembershipPlansRepository) GetMembershipPlanDetails(c context.Context, 
 	return &memberships, nil
 }
 
-func (r *MembershipPlansRepository) UpdateMembershipPlan(c context.Context, plan *db.UpdateMembershipPlanParams) *utils.HTTPError {
+func (r *MembershipPlansRepository) UpdateMembershipPlan(c context.Context, plan *db.UpdateMembershipPlanParams) *types.HTTPError {
 
 	if isExist, _ := r.Queries.IsMembershipIDExist(c, plan.MembershipID); !isExist {
 		return utils.CreateHTTPError("Membership ID not found", http.StatusNotFound)
@@ -75,7 +76,7 @@ func (r *MembershipPlansRepository) UpdateMembershipPlan(c context.Context, plan
 	return nil
 }
 
-func (r *MembershipPlansRepository) DeleteMembershipPlan(c context.Context, plan *db.DeleteMembershipPlanParams) *utils.HTTPError {
+func (r *MembershipPlansRepository) DeleteMembershipPlan(c context.Context, plan *db.DeleteMembershipPlanParams) *types.HTTPError {
 	row, err := r.Queries.DeleteMembershipPlan(c, *plan)
 
 	if err != nil {

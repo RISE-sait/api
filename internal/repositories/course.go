@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"api/internal/types"
 	"api/internal/utils"
 	db "api/sqlc"
 	"context"
@@ -14,7 +15,7 @@ type CourseRepository struct {
 	Queries *db.Queries
 }
 
-func (r *CourseRepository) GetCourseById(c context.Context, id uuid.UUID) (*db.Course, *utils.HTTPError) {
+func (r *CourseRepository) GetCourseById(c context.Context, id uuid.UUID) (*db.Course, *types.HTTPError) {
 	course, err := r.Queries.GetCourseById(c, id)
 
 	if err != nil {
@@ -26,7 +27,7 @@ func (r *CourseRepository) GetCourseById(c context.Context, id uuid.UUID) (*db.C
 	return &course, nil
 }
 
-func (r *CourseRepository) UpdateCourse(c context.Context, course *db.UpdateCourseParams) *utils.HTTPError {
+func (r *CourseRepository) UpdateCourse(c context.Context, course *db.UpdateCourseParams) *types.HTTPError {
 	row, err := r.Queries.UpdateCourse(c, *course)
 
 	if err != nil {
@@ -40,7 +41,7 @@ func (r *CourseRepository) UpdateCourse(c context.Context, course *db.UpdateCour
 	return nil
 }
 
-func (r *CourseRepository) GetAllCourses(c context.Context, after string) (*[]db.Course, *utils.HTTPError) {
+func (r *CourseRepository) GetAllCourses(c context.Context, after string) (*[]db.Course, *types.HTTPError) {
 	courses, err := r.Queries.GetAllCourses(c)
 
 	if err != nil {
@@ -49,7 +50,7 @@ func (r *CourseRepository) GetAllCourses(c context.Context, after string) (*[]db
 	return &courses, nil
 }
 
-func (r *CourseRepository) DeleteCourse(c context.Context, id uuid.UUID) *utils.HTTPError {
+func (r *CourseRepository) DeleteCourse(c context.Context, id uuid.UUID) *types.HTTPError {
 	row, err := r.Queries.DeleteCourse(c, id)
 
 	if err != nil {
@@ -63,7 +64,7 @@ func (r *CourseRepository) DeleteCourse(c context.Context, id uuid.UUID) *utils.
 	return nil
 }
 
-func (r *CourseRepository) CreateCourse(c context.Context, course *db.CreateCourseParams) *utils.HTTPError {
+func (r *CourseRepository) CreateCourse(c context.Context, course *db.CreateCourseParams) *types.HTTPError {
 	row, err := r.Queries.CreateCourse(c, *course)
 
 	if err != nil || row == 0 {

@@ -8,14 +8,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type dbConfig struct {
-	host     string
-	port     string
-	user     string
-	password string
-	name     string
-}
-
 type googleAuthConfig struct {
 	ClientId          string
 	ClientSecret      string
@@ -28,7 +20,7 @@ type jwtConfig struct {
 }
 
 type config struct {
-	dbConfig          dbConfig
+	dbConnUrl         string
 	GoogleAuthConfig  googleAuthConfig
 	JwtConfig         jwtConfig
 	HubSpotApiKey     string
@@ -39,29 +31,16 @@ var Envs = initConfig()
 
 func initConfig() *config {
 
-	cwd, err := os.Getwd()
-	if err != nil {
-		log.Printf("Error getting current working directory: %v\n", err)
-		return nil
-	}
-
-	// Print the current working directory
-	log.Printf("Current working directory: %s\n", cwd)
-
-	err = godotenv.Load("C:\\Coding\\Rise\\api\\.env")
+	err := godotenv.Load(".env")
 	if err != nil {
 		log.Printf("Error loading .env file: %v\n", err)
 		return nil
 	}
 
+	log.Println("db url: ", getEnv("DATABASE_URL", ""))
+
 	return &config{
-		dbConfig: dbConfig{
-			host:     getEnv("DB_HOST", "localhost"),
-			port:     getEnv("DB_PORT", "5432"),
-			user:     getEnv("DB_USER", "postgres"),
-			password: getEnv("DB_PASSWORD", "root"),
-			name:     getEnv("DB_NAME", "mydatabase"),
-		},
+		dbConnUrl:     getEnv("DATABASE_URL", ""),
 		HubSpotApiKey: getEnv("HUBSPOT_API_KEY", ""),
 		GoogleAuthConfig: googleAuthConfig{
 			ClientId:          getEnv("GOOGLE_AUTH_CLIENT_ID", ""),
@@ -83,15 +62,8 @@ func getEnv(key string, defaultValue string) string {
 	return defaultValue
 }
 
-func getConnectionString() string {
-	if os.Getenv("ENV") == "production" {
-		return "postgresql://" + Envs.dbConfig.user + ":" + Envs.dbConfig.password + "@" + Envs.dbConfig.host + ":" + Envs.dbConfig.port + "/" + Envs.dbConfig.name + "?sslmode=require"
-	}
-	return "postgresql://postgres:root@localhost:5432/mydatabase?sslmode=disable"
-}
-
 func GetDBConnection() *sql.DB {
-	connStr := getConnectionString()
+	connStr := Envs.dbConnUrl
 	dbConn, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal(err)

@@ -1,13 +1,12 @@
 package main
 
 import (
-	routes "api/internal"
-	"api/internal/dependencies"
-	"api/internal/middlewares"
+	"api/cmd/server/router"
+	"api/configs"
+	db "api/internal/domains/identity/authentication/infra/sqlc/generated"
+	"github.com/go-chi/cors"
 	"log"
 	"net/http"
-
-	"github.com/go-chi/cors"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -17,27 +16,30 @@ import (
 func main() {
 
 	// Build the connection string
-	dependencies := dependencies.InitDependencies()
+	dbConn := configs.GetDBConnection()
+	defer dbConn.Close()
 
-	router := chi.NewRouter()
+	queries := db.New(dbConn)
 
-	setupMiddlewares(router)
+	// Create the cRouter and apply middlewares first
+	cRouter := chi.NewRouter()
 
-	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
+	setupMiddlewares(cRouter)
+	router.RegisterRoutes(cRouter, queries)
+
+	// Define routes
+	cRouter.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("helloererererererererererern"))
 	})
 
-	// Auth routes
-	routes.RegisterRoutes(router, dependencies)
-
 	// Start the server
 	log.Println("Server started at :8080")
-	log.Fatal(http.ListenAndServe(":8080", router))
+	log.Fatal(http.ListenAndServe(":8080", cRouter))
 }
 
 func setupMiddlewares(router *chi.Mux) {
-	cors := cors.New(cors.Options{
+	corsHandler := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:3000"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
@@ -45,7 +47,7 @@ func setupMiddlewares(router *chi.Mux) {
 		AllowCredentials: true,
 		MaxAge:           300,
 	})
-	router.Use(cors.Handler)
+	router.Use(corsHandler.Handler)
 	router.Use(middleware.Logger)
-	router.Use(middlewares.SetJSONContentType)
+	router.Use(middleware.Recoverer)
 }

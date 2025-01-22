@@ -1,7 +1,7 @@
 package main
 
 import (
-	"api/config"
+	"api/configs"
 	"database/sql"
 	"fmt"
 	"log"
@@ -20,7 +20,7 @@ func main() {
 	fmt.Println("Current directory:", dir)
 
 	// Get the database connection
-	dbConn := config.GetDBConnection()
+	dbConn := configs.GetDBConnection()
 
 	// Define the migrations path
 	migrationsPath := "db/migrations"

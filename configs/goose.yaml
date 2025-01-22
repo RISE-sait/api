@@ -1,0 +1,2 @@
+driver: postgres
+open: user=postgres password=root dbname=mydatabase sslmode=disable

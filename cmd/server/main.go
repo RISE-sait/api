@@ -1,9 +1,12 @@
 package main
 
 import (
+	_interface "api/cmd/server/interface"
 	"api/cmd/server/router"
 	"api/configs"
-	db "api/internal/domains/identity/authentication/infra/sqlc/generated"
+	courseDb "api/internal/domains/course/infra/sqlc"
+	identityDb "api/internal/domains/identity/authentication/infra/sqlc/generated"
+	"database/sql"
 	"github.com/go-chi/cors"
 	"log"
 	"net/http"
@@ -17,12 +20,23 @@ func main() {
 
 	// Build the connection string
 	dbConn := configs.GetDBConnection()
-	defer dbConn.Close()
+	defer func(dbConn *sql.DB) {
+		err := dbConn.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(dbConn)
 
-	queries := db.New(dbConn)
+	identityQueries := identityDb.New(dbConn)
+	courseQueries := courseDb.New(dbConn)
 
 	// Create the cRouter and apply middlewares first
 	cRouter := chi.NewRouter()
+
+	queries := _interface.QueriesType{
+		IdentityDb: identityQueries,
+		CoursesDb:  courseQueries,
+	}
 
 	setupMiddlewares(cRouter)
 	router.RegisterRoutes(cRouter, queries)
@@ -30,7 +44,11 @@ func main() {
 	// Define routes
 	cRouter.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("helloererererererererererern"))
+		_, err := w.Write([]byte("helloererererererererererern"))
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	})
 
 	// Start the server

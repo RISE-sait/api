@@ -1,4 +1,4 @@
-package errors
+package errLib
 
 import (
 	"database/sql"

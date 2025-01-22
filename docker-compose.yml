@@ -39,6 +39,8 @@ services:
         - action: rebuild
           path: ./internal
     entrypoint: go run cmd/server/main.go
+    env_file:
+      - ./configs/.env
 
 #  migrate:
 #    build:

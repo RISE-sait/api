@@ -4,7 +4,7 @@ import (
 	"api/internal/domains/identity/entities"
 	"api/internal/domains/identity/lib"
 	"api/internal/libs/errors"
-	handlers "api/internal/libs/responses"
+	"api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"log"
 	"net/http"
@@ -31,28 +31,28 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	code := r.URL.Query().Get("code")
 
 	if code == "" {
-		handlers.RespondWithError(w, errors.New("Authorization code is missing", http.StatusBadRequest))
+		response_handlers.RespondWithError(w, errLib.New("Authorization code is missing", http.StatusBadRequest))
 		return
 	}
 
 	token, err := ExchangeCodeForToken(r.Context(), code)
 	if err != nil {
-		handlers.RespondWithError(w, errors.New("Invalid request body", http.StatusBadRequest))
+		response_handlers.RespondWithError(w, errLib.New("Invalid request body", http.StatusBadRequest))
 		return
 	}
 
 	userInfoRespBody, err := h.AuthService.GetUserInfoRespBodyFromGoogleAPI(token.AccessToken)
 
 	if err != nil {
-		handlers.RespondWithError(w, err)
+		response_handlers.RespondWithError(w, err)
 		return
 	}
 
 	var userInfo *entities.UserInfo
 
-	if err := validators.DecodeRequestBody(userInfoRespBody, &userInfo); err != nil {
+	if err := validators.ParseRequestBodyToJSON(userInfoRespBody, &userInfo); err != nil {
 		log.Println("Error getting user info", err)
-		handlers.RespondWithError(w, errors.New("Failed to parse user info from Google", http.StatusInternalServerError))
+		response_handlers.RespondWithError(w, errLib.New("Failed to parse user info from Google", http.StatusInternalServerError))
 		return
 	}
 
@@ -60,7 +60,7 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 
 	signedToken, err := lib.SignJWT(*userInfo)
 	if err != nil {
-		handlers.RespondWithError(w, err)
+		response_handlers.RespondWithError(w, err)
 		return
 	}
 

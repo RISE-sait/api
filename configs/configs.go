@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"log"
 	"os"
-
-	"github.com/joho/godotenv"
 )
 
 type googleAuthConfig struct {
@@ -30,12 +28,6 @@ type config struct {
 var Envs = initConfig()
 
 func initConfig() *config {
-
-	err := godotenv.Load("configs/.env")
-	if err != nil {
-		log.Printf("Error loading .env file: %v\n", err)
-		return nil
-	}
 
 	return &config{
 		dbConnUrl:     getEnv("DATABASE_URL", ""),

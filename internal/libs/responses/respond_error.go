@@ -1,4 +1,4 @@
-package handlers
+package response_handlers
 
 import (
 	"api/internal/libs/errors"
@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func RespondWithError(w http.ResponseWriter, err *errors.CommonError) {
+func RespondWithError(w http.ResponseWriter, err *errLib.CommonError) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(err.HTTPCode)
 	response := map[string]interface{}{
@@ -14,5 +14,7 @@ func RespondWithError(w http.ResponseWriter, err *errors.CommonError) {
 			"message": err.Message,
 		},
 	}
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		panic(err)
+	}
 }

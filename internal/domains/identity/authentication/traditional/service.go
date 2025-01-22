@@ -1,21 +1,21 @@
 package traditional
 
 import (
-	repository2 "api/internal/domains/identity/authentication/infra/repository"
+	"api/internal/domains/identity/authentication/infra/repository"
 	"api/internal/domains/identity/entities"
 	"api/internal/domains/identity/lib"
-	"api/internal/libs/errors"
+	errors "api/internal/libs/errors"
 	"context"
 	"net/http"
 	"strings"
 )
 
 type Service struct {
-	UserRepo  *repository2.UserRepository
-	StaffRepo *repository2.StaffRepository
+	UserRepo  *repository.UserRepository
+	StaffRepo *repository.StaffRepository
 }
 
-func NewService(userRepo *repository2.UserRepository, staffRepo *repository2.StaffRepository) *Service {
+func NewService(userRepo *repository.UserRepository, staffRepo *repository.StaffRepository) *Service {
 	return &Service{
 		UserRepo:  userRepo,
 		StaffRepo: staffRepo,

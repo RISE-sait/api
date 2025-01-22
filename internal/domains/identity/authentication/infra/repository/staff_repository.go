@@ -1,26 +1,26 @@
 package repository
 
 import (
-	db2 "api/internal/domains/identity/authentication/infra/sqlc/generated"
+	db "api/internal/domains/identity/authentication/infra/sqlc/generated"
 	"api/internal/libs/errors"
 	"context"
 )
 
 type StaffRepository struct {
-	Queries *db2.Queries
+	Queries *db.Queries
 }
 
-func NewStaffRepository(q *db2.Queries) *StaffRepository {
+func NewStaffRepository(q *db.Queries) *StaffRepository {
 	return &StaffRepository{
 		Queries: q,
 	}
 }
 
-func (r *StaffRepository) GetStaffByEmail(ctx context.Context, email string) (*db2.GetStaffByEmailRow, *errors.CommonError) {
+func (r *StaffRepository) GetStaffByEmail(ctx context.Context, email string) (*db.GetStaffByEmailRow, *errLib.CommonError) {
 	staff, err := r.Queries.GetStaffByEmail(ctx, email)
 
 	if err != nil {
-		return nil, errors.TranslateDBErrorToCommonError(err)
+		return nil, errLib.TranslateDBErrorToCommonError(err)
 	}
 
 	return &staff, nil

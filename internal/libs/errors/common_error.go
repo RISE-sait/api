@@ -1,4 +1,4 @@
-package errors
+package errLib
 
 type CommonError struct {
 	Message  string

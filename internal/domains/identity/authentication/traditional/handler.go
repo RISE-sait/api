@@ -17,8 +17,10 @@ func NewHandler(authService *Service) *Handler {
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var targetBody GetUserRequest
-	if err := validators.DecodeRequestBody(r.Body, &targetBody); err != nil {
-		handlers.RespondWithError(w, errors.New("Invalid request body", http.StatusBadRequest))
+	if err := validators.ParseRequestBodyToJSON(r.Body, &targetBody); err != nil {
+
+		newErr := errLib.New("Invalid request body", http.StatusBadRequest)
+		handlers.RespondWithError(w, newErr)
 		return
 	}
 

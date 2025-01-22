@@ -4,7 +4,7 @@ import (
 	"api/configs"
 	"api/internal/domains/identity/authentication/infra/repository"
 	"api/internal/domains/identity/entities"
-	"api/internal/libs/errors"
+	errors "api/internal/libs/errors"
 	"context"
 	"fmt"
 	"golang.org/x/oauth2"

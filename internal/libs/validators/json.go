@@ -1,11 +1,13 @@
 package validators
 
 import (
+	errLib "api/internal/libs/errors"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"io"
+	"net/http"
 	"reflect"
 	"strings"
 )
@@ -21,15 +23,14 @@ func init() {
 	validate.RegisterValidation("notwhitespace", notWhiteSpace)
 }
 
-func DecodeRequestBody(body io.Reader, target interface{}) error {
+func ParseRequestBodyToJSON(body io.Reader, target interface{}) *errLib.CommonError {
 	if err := json.NewDecoder(body).Decode(target); err != nil {
-		return err
-		//return utils.CreateHTTPError(fmt.Sprintf("Bad request: %v", err), http.StatusUnprocessableEntity)
+		return errLib.New(err.Error(), http.StatusBadRequest)
 	}
 	return nil
 }
 
-func ValidateDto(dto interface{}) error {
+func ValidateDto(dto interface{}) *errLib.CommonError {
 
 	dtoType := reflect.TypeOf(dto).Elem()
 
@@ -41,7 +42,7 @@ func ValidateDto(dto interface{}) error {
 
 }
 
-func parseValidationErrors(err error, structType reflect.Type) error {
+func parseValidationErrors(err error, structType reflect.Type) *errLib.CommonError {
 	var validationErrors validator.ValidationErrors
 	if errors.As(err, &validationErrors) {
 
@@ -66,14 +67,12 @@ func parseValidationErrors(err error, structType reflect.Type) error {
 
 		}
 
-		//return utils.CreateHTTPError(strings.Join(errorMessages, ", "), http.StatusBadRequest)
+		return errLib.New(strings.Join(errorMessages, ", "), http.StatusBadRequest)
 	}
 
 	// Handle other validation errors
 	fmt.Printf("Unhandled validation error: %v\n", err)
-	//return utils.CreateHTTPError("Internal server error", http.StatusInternalServerError)
-
-	return err
+	return errLib.New("Internal server error", http.StatusInternalServerError)
 }
 
 func getJSONFieldName(e validator.FieldError, structType reflect.Type) string {

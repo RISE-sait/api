@@ -8,7 +8,7 @@
 /dataSources.local.xml
 
 tmp/
-.env
+*.env
 .idea/
 
 *.test

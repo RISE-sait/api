@@ -25,7 +25,7 @@ func main() {
 
 	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Hello"))
+		w.Write([]byte("helloererererererererererern"))
 	})
 
 	// Auth routes

@@ -9,21 +9,43 @@ services:
       POSTGRES_PASSWORD: 'root'
       POSTGRES_DB: 'mydatabase'
 
-  pgadmin:
-    image: 'dpage/pgadmin4'
-    container_name: 'my_pgadmin'
-    ports:
-      - '5050:80'
-    environment:
-      PGADMIN_DEFAULT_EMAIL: 'admin@admin.com'
-      PGADMIN_DEFAULT_PASSWORD: 'admin'
+#  pgadmin:
+#    image: 'dpage/pgadmin4'
+#    container_name: 'my_pgadmin'
+#    ports:
+#      - '5050:80'
+#    environment:
+#      PGADMIN_DEFAULT_EMAIL: 'admin@admin.com'
+#      PGADMIN_DEFAULT_PASSWORD: 'admin'
 
   go-server:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: server.Dockerfile
     container_name: '${COMPOSE_PROJECT_NAME}_go_server'
     ports:
       - '8080:8080'
     depends_on:
       - db
+    command: go run cmd/server/main.go
+    develop:
+      watch:
+        - action: rebuild
+          path: ./cmd/server
+        - action: rebuild
+          path: ./configs
+        - action: rebuild
+          path: ./sqlc
+        - action: rebuild
+          path: ./internal
+    entrypoint: go run cmd/server/main.go
+
+  migrate:
+    build:
+      context: .
+      dockerfile: migrate.Dockerfile
+    container_name: '${COMPOSE_PROJECT_NAME}_migrate'
+    depends_on:
+      - db
+    env_file:
+      - ./configs/.env

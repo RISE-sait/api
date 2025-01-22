@@ -31,13 +31,11 @@ var Envs = initConfig()
 
 func initConfig() *config {
 
-	err := godotenv.Load(".env")
+	err := godotenv.Load("configs/.env")
 	if err != nil {
 		log.Printf("Error loading .env file: %v\n", err)
 		return nil
 	}
-
-	log.Println("db url: ", getEnv("DATABASE_URL", ""))
 
 	return &config{
 		dbConnUrl:     getEnv("DATABASE_URL", ""),

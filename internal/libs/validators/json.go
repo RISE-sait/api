@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-playground/validator/v10"
 	"io"
+	"log"
 	"net/http"
 	"reflect"
 	"strings"
+
+	"github.com/go-playground/validator/v10"
 )
 
 var validate *validator.Validate
@@ -30,12 +32,20 @@ func ParseRequestBodyToJSON(body io.Reader, target interface{}) *errLib.CommonEr
 	return nil
 }
 
+// dto must be a pointer
 func ValidateDto(dto interface{}) *errLib.CommonError {
 
-	dtoType := reflect.TypeOf(dto).Elem()
+	dtoType := reflect.TypeOf(dto)
+
+	if dtoType.Kind() != reflect.Ptr || dtoType.Elem().Kind() != reflect.Struct {
+		log.Println("DTO must be a pointer to a struct")
+		return errLib.New("Internal server error when parsing request", http.StatusInternalServerError)
+	}
+
+	structType := dtoType.Elem()
 
 	if err := validate.Struct(dto); err != nil {
-		return parseValidationErrors(err, dtoType)
+		return parseValidationErrors(err, structType)
 	}
 
 	return nil

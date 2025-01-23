@@ -3,9 +3,10 @@ package course
 import (
 	"api/internal/domains/course/dto"
 	infra "api/internal/domains/course/infra"
-	"api/internal/libs/errors"
+	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
 	"context"
+
 	"github.com/google/uuid"
 )
 
@@ -19,9 +20,10 @@ func NewService(repo *infra.Repository) *Service {
 
 func (s *Service) CreateCourse(ctx context.Context, body dto.CreateCourseRequestBody) *errLib.CommonError {
 
-	if err := validators.ValidateDto(body); err != nil {
+	if err := validators.ValidateDto(&body); err != nil {
 		return err
 	}
+
 	if err := s.Repo.CreateCourse(ctx, &body); err != nil {
 		return err
 	}
@@ -47,7 +49,7 @@ func (s *Service) GetAllCourses(ctx context.Context) (*[]dto.CourseResponse, *er
 		return nil, err
 	}
 
-	var result []dto.CourseResponse
+	result := []dto.CourseResponse{}
 	for _, course := range courses {
 		result = append(result, dto.CourseResponse{
 			ID:   course.ID,
@@ -60,7 +62,7 @@ func (s *Service) GetAllCourses(ctx context.Context) (*[]dto.CourseResponse, *er
 
 func (s *Service) UpdateCourse(ctx context.Context, body dto.UpdateCourseRequest) *errLib.CommonError {
 
-	if err := validators.ValidateDto(body); err != nil {
+	if err := validators.ValidateDto(&body); err != nil {
 		return err
 	}
 

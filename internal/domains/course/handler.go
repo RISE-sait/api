@@ -2,10 +2,11 @@ package course
 
 import (
 	"api/internal/domains/course/dto"
-	"api/internal/libs/responses"
+	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
-	"github.com/go-chi/chi"
 	"net/http"
+
+	"github.com/go-chi/chi"
 )
 
 type Handler struct {

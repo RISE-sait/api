@@ -6,10 +6,15 @@ import (
 	"api/configs"
 	courseDb "api/internal/domains/course/infra/sqlc"
 	identityDb "api/internal/domains/identity/authentication/infra/sqlc/generated"
+	membershipDb "api/internal/domains/membership/infra/sqlc/generated"
+	membershipPlanDb "api/internal/domains/membership/plans/infra/sqlc/generated"
+
+	"api/internal/middlewares"
 	"database/sql"
-	"github.com/go-chi/cors"
 	"log"
 	"net/http"
+
+	"github.com/go-chi/cors"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -29,13 +34,17 @@ func main() {
 
 	identityQueries := identityDb.New(dbConn)
 	courseQueries := courseDb.New(dbConn)
+	membershipQueries := membershipDb.New(dbConn)
+	membershipPlanQueries := membershipPlanDb.New(dbConn)
 
 	// Create the cRouter and apply middlewares first
 	cRouter := chi.NewRouter()
 
 	queries := _interface.QueriesType{
-		IdentityDb: identityQueries,
-		CoursesDb:  courseQueries,
+		IdentityDb:       identityQueries,
+		CoursesDb:        courseQueries,
+		MembershipDb:     membershipQueries,
+		MembershipPlanDb: membershipPlanQueries,
 	}
 
 	setupMiddlewares(cRouter)
@@ -68,4 +77,5 @@ func setupMiddlewares(router *chi.Mux) {
 	router.Use(corsHandler.Handler)
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
+	router.Use(middlewares.SetJSONContentType)
 }

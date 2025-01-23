@@ -3,14 +3,14 @@ package lib
 import (
 	"api/configs"
 	"api/internal/domains/identity/entities"
-	"api/internal/libs/errors"
+	errLib "api/internal/libs/errors"
 	"fmt"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 )
 
-func SignJWT(userInfo entities.UserInfo) (string, *errors.CommonError) {
+func SignJWT(userInfo entities.UserInfo) (string, *errLib.CommonError) {
 
 	role := "Athlete"
 
@@ -34,7 +34,7 @@ func SignJWT(userInfo entities.UserInfo) (string, *errors.CommonError) {
 	signedToken, err := token.SignedString([]byte(configs.Envs.JwtConfig.Secret))
 	if err != nil {
 		fmt.Println("Error signing token: ", err)
-		return "", errors.New("Error signing token. Check Azure for logs", 500)
+		return "", errLib.New("Error signing token. Check Azure for logs", 500)
 	}
 
 	return signedToken, nil

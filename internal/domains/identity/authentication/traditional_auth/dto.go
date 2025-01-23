@@ -1,7 +1,7 @@
-package traditional
+package traditional_auth
 
 import (
-	"api/internal/domains/identity/authentication/infra/sqlc/generated"
+	db "api/internal/domains/identity/authentication/infra/sqlc/generated"
 	"database/sql"
 )
 

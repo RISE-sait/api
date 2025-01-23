@@ -2,10 +2,10 @@ package router
 
 import (
 	_interface "api/cmd/server/interface"
-	"api/internal/domains/course"
+	course "api/internal/domains/course/infra/http"
+	facility "api/internal/domains/facility/infra/http"
 	"api/internal/domains/identity"
-	"api/internal/domains/membership"
-	membership_plan "api/internal/domains/membership/plans"
+	membership "api/internal/domains/membership/infra/http"
 
 	"github.com/go-chi/chi"
 )
@@ -14,6 +14,6 @@ func RegisterRoutes(r *chi.Mux, queries _interface.QueriesType) {
 
 	identity.RegisterIdentityRoutes(r, queries.IdentityDb)
 	course.RegisterCourseRoutes(r, queries.CoursesDb)
-	membership.RegisterMembershipRoutes(r, queries.MembershipDb)
-	membership_plan.RegisterMembershipRoutes(r, queries.MembershipPlanDb)
+	membership.RegisterMembershipRoutes(r, queries.MembershipDb, queries.MembershipPlanDb)
+	facility.RegisterFacilityRoutes(r, queries.FacilityDb)
 }

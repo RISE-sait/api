@@ -2,7 +2,7 @@ package membership_plan
 
 import (
 	"api/internal/domains/membership/plans/dto"
-	db "api/internal/domains/membership/plans/infra/sqlc/generated"
+	db "api/internal/domains/membership/plans/infra/persistence/sqlc/generated"
 	errLib "api/internal/libs/errors"
 	"context"
 	"net/http"

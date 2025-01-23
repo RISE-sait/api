@@ -1,7 +1,7 @@
-package traditional
+package traditional_auth
 
 import (
-	"api/internal/libs/errors"
+	errLib "api/internal/libs/errors"
 	handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"

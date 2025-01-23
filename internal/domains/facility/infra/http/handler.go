@@ -1,7 +1,8 @@
-package course
+package facility
 
 import (
-	"api/internal/domains/course/dto"
+	"api/internal/domains/facility"
+	"api/internal/domains/facility/dto"
 	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -10,22 +11,22 @@ import (
 )
 
 type Handler struct {
-	CourseService *Service
+	FacilityService *facility.Service
 }
 
-func NewHandler(courseService *Service) *Handler {
-	return &Handler{CourseService: courseService}
+func NewHandler(courseService *facility.Service) *Handler {
+	return &Handler{FacilityService: courseService}
 }
 
-func (h *Handler) CreateCourse(w http.ResponseWriter, r *http.Request) {
-	var targetBody dto.CreateCourseRequestBody
+func (h *Handler) CreateFacility(w http.ResponseWriter, r *http.Request) {
+	var targetBody dto.CreateFacilityRequest
 
 	if err := validators.ParseRequestBodyToJSON(r.Body, &targetBody); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	if err := h.CourseService.CreateCourse(r.Context(), targetBody); err != nil {
+	if err := h.FacilityService.CreateFacility(r.Context(), targetBody); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
@@ -33,7 +34,7 @@ func (h *Handler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 	response_handlers.RespondWithSuccess(w, nil, http.StatusCreated)
 }
 
-func (h *Handler) GetCourseById(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetFacilityById(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := validators.ParseUUID(idStr)
 
@@ -42,7 +43,7 @@ func (h *Handler) GetCourseById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	course, err := h.CourseService.GetCourseById(r.Context(), id)
+	course, err := h.FacilityService.GetFacilityById(r.Context(), id)
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
@@ -51,8 +52,8 @@ func (h *Handler) GetCourseById(w http.ResponseWriter, r *http.Request) {
 	response_handlers.RespondWithSuccess(w, *course, http.StatusOK)
 }
 
-func (h *Handler) GetAllCourses(w http.ResponseWriter, r *http.Request) {
-	courses, err := h.CourseService.GetAllCourses(r.Context())
+func (h *Handler) GetAllFacilities(w http.ResponseWriter, r *http.Request) {
+	courses, err := h.FacilityService.GetAllFacilities(r.Context())
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
@@ -61,15 +62,15 @@ func (h *Handler) GetAllCourses(w http.ResponseWriter, r *http.Request) {
 	response_handlers.RespondWithSuccess(w, *courses, http.StatusOK)
 }
 
-func (h *Handler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
-	var targetBody dto.UpdateCourseRequest
+func (h *Handler) UpdateFacility(w http.ResponseWriter, r *http.Request) {
+	var targetBody dto.UpdateFacilityRequest
 
 	if err := validators.ParseRequestBodyToJSON(r.Body, &targetBody); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	if err := h.CourseService.UpdateCourse(r.Context(), targetBody); err != nil {
+	if err := h.FacilityService.UpdateFacility(r.Context(), targetBody); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
@@ -77,7 +78,7 @@ func (h *Handler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
 	response_handlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-func (h *Handler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) DeleteFacility(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := validators.ParseUUID(idStr)
 
@@ -86,7 +87,7 @@ func (h *Handler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.CourseService.DeleteCourse(r.Context(), id); err != nil {
+	if err = h.FacilityService.DeleteFacility(r.Context(), id); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}

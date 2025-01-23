@@ -1,4 +1,4 @@
-package traditional
+package traditional_auth
 
 import (
 	"api/internal/domains/identity/authentication/infra/repository"

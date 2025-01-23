@@ -4,10 +4,11 @@ import (
 	_interface "api/cmd/server/interface"
 	"api/cmd/server/router"
 	"api/configs"
-	courseDb "api/internal/domains/course/infra/sqlc"
+	courseDb "api/internal/domains/course/infra/persistence/sqlc/generated"
+	facilityDb "api/internal/domains/facility/infra/persistence/sqlc/generated"
 	identityDb "api/internal/domains/identity/authentication/infra/sqlc/generated"
-	membershipDb "api/internal/domains/membership/infra/sqlc/generated"
-	membershipPlanDb "api/internal/domains/membership/plans/infra/sqlc/generated"
+	membershipDb "api/internal/domains/membership/infra/persistence/sqlc/generated"
+	membershipPlanDb "api/internal/domains/membership/plans/infra/persistence/sqlc/generated"
 
 	"api/internal/middlewares"
 	"database/sql"
@@ -36,6 +37,7 @@ func main() {
 	courseQueries := courseDb.New(dbConn)
 	membershipQueries := membershipDb.New(dbConn)
 	membershipPlanQueries := membershipPlanDb.New(dbConn)
+	facilityQueries := facilityDb.New(dbConn)
 
 	// Create the cRouter and apply middlewares first
 	cRouter := chi.NewRouter()
@@ -45,6 +47,7 @@ func main() {
 		CoursesDb:        courseQueries,
 		MembershipDb:     membershipQueries,
 		MembershipPlanDb: membershipPlanQueries,
+		FacilityDb:       facilityQueries,
 	}
 
 	setupMiddlewares(cRouter)

@@ -6,13 +6,17 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"reflect"
 	"strings"
 
 	"github.com/go-playground/validator/v10"
 )
+
+type validationError struct {
+	Field   string
+	Message string
+}
 
 var validate *validator.Validate
 
@@ -25,64 +29,74 @@ func init() {
 	validate.RegisterValidation("notwhitespace", notWhiteSpace)
 }
 
-func ParseRequestBodyToJSON(body io.Reader, target interface{}) *errLib.CommonError {
+func ParseAndValidateJSON(body io.Reader, target interface{}) *errLib.CommonError {
+	if err := validatePointerToStruct(target); err != nil {
+		return err
+	}
+
 	if err := json.NewDecoder(body).Decode(target); err != nil {
-		return errLib.New(err.Error(), http.StatusBadRequest)
+		return errLib.New("Invalid JSON format", http.StatusBadRequest)
+	}
+
+	if err := validate.Struct(target); err != nil {
+		return handleValidationErrors(err, reflect.TypeOf(target).Elem())
+	}
+
+	return nil
+}
+
+func validatePointerToStruct(v interface{}) *errLib.CommonError {
+	t := reflect.TypeOf(v)
+	if t.Kind() != reflect.Ptr || t.Elem().Kind() != reflect.Struct {
+		return errLib.New("Internal error: invalid target type", http.StatusInternalServerError)
 	}
 	return nil
 }
 
-// dto must be a pointer
-func ValidateDto(dto interface{}) *errLib.CommonError {
-
-	dtoType := reflect.TypeOf(dto)
-
-	if dtoType.Kind() != reflect.Ptr || dtoType.Elem().Kind() != reflect.Struct {
-		log.Println("DTO must be a pointer to a struct")
-		return errLib.New("Internal server error when parsing request", http.StatusInternalServerError)
-	}
-
-	structType := dtoType.Elem()
-
-	if err := validate.Struct(dto); err != nil {
-		return parseValidationErrors(err, structType)
-	}
-
-	return nil
-
-}
-
-func parseValidationErrors(err error, structType reflect.Type) *errLib.CommonError {
+func handleValidationErrors(err error, structType reflect.Type) *errLib.CommonError {
 	var validationErrors validator.ValidationErrors
-	if errors.As(err, &validationErrors) {
-
-		var errorMessages []string
-
-		for _, e := range validationErrors {
-
-			fieldName := getJSONFieldName(e, structType)
-			var customMessage string
-
-			switch e.Tag() {
-
-			case "email":
-				customMessage = fmt.Sprintf("%s: must be a valid email address", fieldName)
-			case "notwhitespace":
-				customMessage = fmt.Sprintf("%s: cannot be empty or whitespace", fieldName)
-			default:
-				customMessage = fmt.Sprintf("%s: validation failed on '%s'", fieldName, e.Tag())
-			}
-
-			errorMessages = append(errorMessages, customMessage)
-
-		}
-
-		return errLib.New(strings.Join(errorMessages, ", "), http.StatusBadRequest)
+	if !errors.As(err, &validationErrors) {
+		return errLib.New("Internal validation error", http.StatusInternalServerError)
 	}
 
-	// Handle other validation errors
-	fmt.Printf("Unhandled validation error: %v\n", err)
-	return errLib.New("Internal server error", http.StatusInternalServerError)
+	messages := make([]validationError, 0, len(validationErrors))
+	for _, e := range validationErrors {
+		messages = append(messages, createValidationError(e, structType))
+	}
+
+	return formatValidationError(messages)
+}
+
+func createValidationError(e validator.FieldError, structType reflect.Type) validationError {
+	field := getJSONFieldName(e, structType)
+	message := getErrorMessage(e.Tag(), field)
+	return validationError{Field: field, Message: message}
+}
+
+func getErrorMessage(tag, field string) string {
+	messages := map[string]string{
+		"required":      "is required",
+		"email":         "must be a valid email address",
+		"notwhitespace": "cannot be empty or whitespace",
+	}
+
+	if msg, ok := messages[tag]; ok {
+		return fmt.Sprintf("%s %s", field, msg)
+	}
+	return fmt.Sprintf("%s: validation failed on '%s'", field, tag)
+}
+
+func formatValidationError(errors []validationError) *errLib.CommonError {
+	if len(errors) == 0 {
+		return errLib.New("Validation failed", http.StatusBadRequest)
+	}
+
+	messages := make([]string, 0, len(errors))
+	for _, e := range errors {
+		messages = append(messages, fmt.Sprintf("%s: %s", e.Field, e.Message))
+	}
+
+	return errLib.New(strings.Join(messages, ", "), http.StatusBadRequest)
 }
 
 func getJSONFieldName(e validator.FieldError, structType reflect.Type) string {

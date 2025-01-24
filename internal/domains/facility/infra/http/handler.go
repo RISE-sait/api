@@ -1,8 +1,9 @@
 package facility
 
 import (
-	"api/internal/domains/facility"
+	facility "api/internal/domains/facility/application"
 	"api/internal/domains/facility/dto"
+	"api/internal/domains/facility/mapper"
 	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -11,22 +12,24 @@ import (
 )
 
 type Handler struct {
-	FacilityService *facility.Service
+	FacilityService *facility.FacilityService
 }
 
-func NewHandler(courseService *facility.Service) *Handler {
+func NewHandler(courseService *facility.FacilityService) *Handler {
 	return &Handler{FacilityService: courseService}
 }
 
 func (h *Handler) CreateFacility(w http.ResponseWriter, r *http.Request) {
-	var targetBody dto.CreateFacilityRequest
+	var requestDto dto.CreateFacilityRequest
 
-	if err := validators.ParseRequestBodyToJSON(r.Body, &targetBody); err != nil {
+	if err := validators.ParseAndValidateJSON(r.Body, &requestDto); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	if err := h.FacilityService.CreateFacility(r.Context(), targetBody); err != nil {
+	facility := mapper.MapCreateRequestToEntity(requestDto)
+
+	if err := h.FacilityService.CreateFacility(r.Context(), &facility); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
@@ -53,24 +56,31 @@ func (h *Handler) GetFacilityById(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetAllFacilities(w http.ResponseWriter, r *http.Request) {
-	courses, err := h.FacilityService.GetAllFacilities(r.Context())
+	facilities, err := h.FacilityService.GetAllFacilities(r.Context())
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	response_handlers.RespondWithSuccess(w, *courses, http.StatusOK)
+	result := []dto.FacilityResponse{}
+	for i, facility := range facilities {
+		result[i] = mapper.MapEntityToResponse(&facility)
+	}
+
+	response_handlers.RespondWithSuccess(w, result, http.StatusOK)
 }
 
 func (h *Handler) UpdateFacility(w http.ResponseWriter, r *http.Request) {
-	var targetBody dto.UpdateFacilityRequest
+	var requestDto dto.UpdateFacilityRequest
 
-	if err := validators.ParseRequestBodyToJSON(r.Body, &targetBody); err != nil {
+	if err := validators.ParseAndValidateJSON(r.Body, &requestDto); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	if err := h.FacilityService.UpdateFacility(r.Context(), targetBody); err != nil {
+	facility := mapper.MapUpdateRequestToEntity(requestDto)
+
+	if err := h.FacilityService.UpdateFacility(r.Context(), &facility); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}

@@ -1,7 +1,7 @@
 package facility
 
 import (
-	"api/internal/domains/facility"
+	facility "api/internal/domains/facility/application"
 	repository "api/internal/domains/facility/infra/persistence"
 	db "api/internal/domains/facility/infra/persistence/sqlc/generated"
 
@@ -9,7 +9,7 @@ import (
 )
 
 func RegisterFacilityRoutes(r chi.Router, queries *db.Queries) {
-	facilitiesHandler := NewHandler(facility.NewService(
+	facilitiesHandler := NewHandler(facility.NewFacilityManager(
 		&repository.FacilityRepository{
 			Queries: queries,
 		},

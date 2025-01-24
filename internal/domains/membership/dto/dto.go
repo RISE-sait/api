@@ -1,7 +1,7 @@
 package dto
 
 import (
-	db "api/internal/domains/membership/infra/sqlc/generated"
+	db "api/internal/domains/membership/infra/persistence/sqlc/generated"
 	"database/sql"
 	"time"
 

@@ -1,24 +1,36 @@
-package membership_plan
+package persistence
 
 import (
-	"api/internal/domains/membership/plans/dto"
+	entity "api/internal/domains/membership/plans/entities"
 	db "api/internal/domains/membership/plans/infra/persistence/sqlc/generated"
 	errLib "api/internal/libs/errors"
 	"context"
+	"database/sql"
 	"net/http"
 
 	"github.com/google/uuid"
 )
 
-type Repo struct {
+type MembershipPlansRepository struct {
 	Queries *db.Queries
 }
 
-func (r *Repo) CreateMembershipPlan(c context.Context, membershipPlan *dto.CreateMembershipPlanRequest) *errLib.CommonError {
+func (r *MembershipPlansRepository) CreateMembershipPlan(c context.Context, membershipPlan *entity.MembershipPlan) *errLib.CommonError {
 
-	dbParams := membershipPlan.ToDBParams()
-
-	row, err := r.Queries.CreateMembershipPlan(c, *dbParams)
+	dbParams := db.CreateMembershipPlanParams{
+		Name:  membershipPlan.Name,
+		Price: membershipPlan.Price,
+		PaymentFrequency: db.NullPaymentFrequency{
+			PaymentFrequency: db.PaymentFrequency(membershipPlan.PaymentFrequency),
+			Valid:            true,
+		},
+		AmtPeriods: sql.NullInt32{
+			Int32: int32(membershipPlan.AmtPeriods),
+			Valid: true,
+		},
+		MembershipID: membershipPlan.MembershipID,
+	}
+	row, err := r.Queries.CreateMembershipPlan(c, dbParams)
 
 	if err != nil {
 		return errLib.TranslateDBErrorToCommonError(err)
@@ -31,21 +43,46 @@ func (r *Repo) CreateMembershipPlan(c context.Context, membershipPlan *dto.Creat
 	return nil
 }
 
-func (r *Repo) GetMembershipPlansByMembershipId(ctx context.Context, id uuid.UUID) ([]db.MembershipPlan, *errLib.CommonError) {
-	plans, err := r.Queries.GetMembershipPlansByMembershipId(ctx, id)
+func (r *MembershipPlansRepository) GetMembershipPlansByMembershipId(ctx context.Context, id uuid.UUID) ([]entity.MembershipPlan, *errLib.CommonError) {
+	dbPlans, err := r.Queries.GetMembershipPlansByMembershipId(ctx, id)
 
 	if err != nil {
 		return nil, errLib.TranslateDBErrorToCommonError(err)
 	}
 
+	plans := make([]entity.MembershipPlan, len(dbPlans))
+	for i, dbPlan := range dbPlans {
+		plans[i] = entity.MembershipPlan{
+			ID:               dbPlan.ID,
+			Name:             dbPlan.Name,
+			MembershipID:     dbPlan.MembershipID,
+			Price:            dbPlan.Price,
+			PaymentFrequency: string(dbPlan.PaymentFrequency.PaymentFrequency),
+			AmtPeriods:       int(dbPlan.AmtPeriods.Int32),
+		}
+	}
+
 	return plans, nil
 }
 
-func (r *Repo) UpdateMembershipPlan(c context.Context, plan *dto.UpdateMembershipPlanRequest) *errLib.CommonError {
+func (r *MembershipPlansRepository) UpdateMembershipPlan(c context.Context, plan *entity.MembershipPlan) *errLib.CommonError {
 
-	dbMembershipParams := plan.ToDBParams()
+	dbMembershipParams := db.UpdateMembershipPlanParams{
+		Name:  plan.Name,
+		Price: plan.Price,
+		PaymentFrequency: db.NullPaymentFrequency{
+			PaymentFrequency: db.PaymentFrequency(plan.PaymentFrequency),
+			Valid:            true,
+		},
+		AmtPeriods: sql.NullInt32{
+			Int32: int32(plan.AmtPeriods),
+			Valid: true,
+		},
+		MembershipID: plan.MembershipID,
+		ID:           plan.ID,
+	}
 
-	row, err := r.Queries.UpdateMembershipPlan(c, *dbMembershipParams)
+	row, err := r.Queries.UpdateMembershipPlan(c, dbMembershipParams)
 
 	if err != nil {
 		return errLib.TranslateDBErrorToCommonError(err)
@@ -57,8 +94,14 @@ func (r *Repo) UpdateMembershipPlan(c context.Context, plan *dto.UpdateMembershi
 	return nil
 }
 
-func (r *Repo) DeleteMembershipPlan(c context.Context, plan *db.DeleteMembershipPlanParams) *errLib.CommonError {
-	row, err := r.Queries.DeleteMembershipPlan(c, *plan)
+func (r *MembershipPlansRepository) DeleteMembershipPlan(c context.Context, membershipId, planId uuid.UUID) *errLib.CommonError {
+
+	plan := db.DeleteMembershipPlanParams{
+		MembershipID: membershipId,
+		ID:           planId,
+	}
+
+	row, err := r.Queries.DeleteMembershipPlan(c, plan)
 
 	if err != nil {
 		return errLib.TranslateDBErrorToCommonError(err)

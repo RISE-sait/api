@@ -30,17 +30,6 @@ type UpdateFacilityRequest struct {
 	FacilityTypeID uuid.UUID `json:"facility_type_id" validate:"required"`
 }
 
-func (r *UpdateFacilityRequest) ToDBParams() *db.UpdateFacilityParams {
-
-	dbParams := db.UpdateFacilityParams{
-		Name:           r.Name,
-		Location:       r.Location,
-		FacilityTypeID: r.FacilityTypeID,
-	}
-
-	return &dbParams
-}
-
 type FacilityResponse struct {
 	ID             uuid.UUID `json:"id"`
 	Name           string    `json:"name"`

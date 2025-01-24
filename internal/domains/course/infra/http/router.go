@@ -1,14 +1,16 @@
 package course
 
 import (
-	"api/internal/domains/course/infra"
-	db "api/internal/domains/course/infra/sqlc"
+	course "api/internal/domains/course/application"
+	"api/internal/domains/course/infra/persistence"
+	db "api/internal/domains/course/infra/persistence/sqlc/generated"
+
 	"github.com/go-chi/chi"
 )
 
 func RegisterCourseRoutes(r chi.Router, queries *db.Queries) {
-	coursesHandler := NewHandler(NewService(
-		&course.Repository{
+	coursesHandler := NewHandler(course.NewCourseService(
+		&persistence.CourseRepository{
 			Queries: queries,
 		},
 	))
@@ -17,7 +19,7 @@ func RegisterCourseRoutes(r chi.Router, queries *db.Queries) {
 		auth.Get("/", coursesHandler.GetAllCourses)
 		auth.Get("/{id}", coursesHandler.GetCourseById)
 		auth.Post("/", coursesHandler.CreateCourse)
-		auth.Put("/{id}", coursesHandler.UpdateCourse)
+		auth.Put("/", coursesHandler.UpdateCourse)
 		auth.Delete("/{id}", coursesHandler.DeleteCourse)
 	})
 }

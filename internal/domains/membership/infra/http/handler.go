@@ -1,7 +1,9 @@
 package membership
 
 import (
+	membership "api/internal/domains/membership/application"
 	"api/internal/domains/membership/dto"
+	"api/internal/domains/membership/mapper"
 	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -10,22 +12,24 @@ import (
 )
 
 type Handler struct {
-	Service *Service
+	Service *membership.MembershipService
 }
 
-func NewHandler(service *Service) *Handler {
+func NewHandler(service *membership.MembershipService) *Handler {
 	return &Handler{Service: service}
 }
 
 func (h *Handler) CreateMembership(w http.ResponseWriter, r *http.Request) {
-	var targetBody dto.CreateMembershipRequest
+	var requestDto dto.CreateMembershipRequest
 
-	if err := validators.ParseRequestBodyToJSON(r.Body, &targetBody); err != nil {
+	if err := validators.ParseAndValidateJSON(r.Body, &requestDto); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	if err := h.Service.CreateMembership(r.Context(), targetBody); err != nil {
+	membership := mapper.MapCreateRequestToEntity(requestDto)
+
+	if err := h.Service.Create(r.Context(), &membership); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
@@ -42,7 +46,7 @@ func (h *Handler) GetMembershipById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	membership, err := h.Service.GetMembershipById(r.Context(), id)
+	membership, err := h.Service.GetById(r.Context(), id)
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
@@ -52,24 +56,31 @@ func (h *Handler) GetMembershipById(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetAllMemberships(w http.ResponseWriter, r *http.Request) {
-	memberships, err := h.Service.GetAllMemberships(r.Context())
+	memberships, err := h.Service.GetAll(r.Context())
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	response_handlers.RespondWithSuccess(w, memberships, http.StatusOK)
+	result := []dto.MembershipResponse{}
+	for i, membership := range memberships {
+		result[i] = mapper.MapEntityToResponse(&membership)
+	}
+
+	response_handlers.RespondWithSuccess(w, result, http.StatusOK)
 }
 
 func (h *Handler) UpdateMembership(w http.ResponseWriter, r *http.Request) {
-	var targetBody dto.UpdateMembershipRequest
+	var requestDto dto.UpdateMembershipRequest
 
-	if err := validators.ParseRequestBodyToJSON(r.Body, &targetBody); err != nil {
+	if err := validators.ParseAndValidateJSON(r.Body, &requestDto); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	if err := h.Service.UpdateMembership(r.Context(), targetBody); err != nil {
+	membership := mapper.MapUpdateRequestToEntity(requestDto)
+
+	if err := h.Service.Update(r.Context(), &membership); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
@@ -86,7 +97,7 @@ func (h *Handler) DeleteMembership(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Service.DeleteMembership(r.Context(), id); err != nil {
+	if err := h.Service.Delete(r.Context(), id); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}

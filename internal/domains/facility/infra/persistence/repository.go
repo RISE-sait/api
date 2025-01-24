@@ -1,7 +1,6 @@
-package repository
+package persistence
 
 import (
-	"api/internal/domains/facility/dto"
 	entity "api/internal/domains/facility/entities"
 	db "api/internal/domains/facility/infra/persistence/sqlc/generated"
 	errLib "api/internal/libs/errors"
@@ -16,11 +15,15 @@ type FacilityRepository struct {
 	Queries *db.Queries
 }
 
-func (r *FacilityRepository) CreateFacility(c context.Context, facility *dto.CreateFacilityRequest) *errLib.CommonError {
+func (r *FacilityRepository) CreateFacility(c context.Context, facility *entity.Facility) *errLib.CommonError {
 
-	dbFacilityParams := facility.ToDBParams()
+	dbParams := db.CreateFacilityParams{
+		Name:           facility.Name,
+		Location:       facility.Location,
+		FacilityTypeID: facility.FacilityTypeID,
+	}
 
-	row, err := r.Queries.CreateFacility(c, *dbFacilityParams)
+	row, err := r.Queries.CreateFacility(c, dbParams)
 
 	if err != nil {
 		return errLib.TranslateDBErrorToCommonError(err)
@@ -49,7 +52,7 @@ func (r *FacilityRepository) GetFacility(c context.Context, id uuid.UUID) (*enti
 	}, nil
 }
 
-func (r *FacilityRepository) GetAllFacilities(c context.Context) ([]entity.Facility, *errLib.CommonError) {
+func (r *FacilityRepository) GetAllFacilities(c context.Context, filter string) ([]entity.Facility, *errLib.CommonError) {
 	dbFacilities, err := r.Queries.GetAllFacilities(c)
 
 	if err != nil {
@@ -70,11 +73,16 @@ func (r *FacilityRepository) GetAllFacilities(c context.Context) ([]entity.Facil
 	return courses, nil
 }
 
-func (r *FacilityRepository) UpdateFacility(c context.Context, facility *dto.UpdateFacilityRequest) *errLib.CommonError {
+func (r *FacilityRepository) UpdateFacility(c context.Context, facility *entity.Facility) *errLib.CommonError {
 
-	dbFacilityParams := facility.ToDBParams()
+	dbParams := db.UpdateFacilityParams{
+		ID:             facility.ID,
+		Name:           facility.Name,
+		Location:       facility.Location,
+		FacilityTypeID: facility.FacilityTypeID,
+	}
 
-	row, err := r.Queries.UpdateFacility(c, *dbFacilityParams)
+	row, err := r.Queries.UpdateFacility(c, dbParams)
 
 	if err != nil {
 		return errLib.TranslateDBErrorToCommonError(err)

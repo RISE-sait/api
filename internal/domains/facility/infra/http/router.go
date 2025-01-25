@@ -9,7 +9,7 @@ import (
 )
 
 func RegisterFacilityRoutes(r chi.Router, queries *db.Queries) {
-	facilitiesHandler := NewHandler(facility.NewFacilityManager(
+	facilitiesHandler := NewHandler(facility.NewFacilityService(
 		&repository.FacilityRepository{
 			Queries: queries,
 		},

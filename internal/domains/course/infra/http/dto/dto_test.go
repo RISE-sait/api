@@ -70,7 +70,7 @@ func TestDecodeRequestBody(t *testing.T) {
 			reqBody := bytes.NewReader([]byte(tc.jsonBody))
 			var target CreateCourseRequestBody
 
-			err := validators.ParseRequestBodyToJSON(reqBody, &target)
+			err := validators.ParseJSON(reqBody, &target)
 			if tc.expectError {
 				assert.NotNil(t, err)
 			} else {
@@ -81,67 +81,6 @@ func TestDecodeRequestBody(t *testing.T) {
 					assert.Equal(t, tc.expectedValues.Name, target.Name)
 					assert.Equal(t, tc.expectedValues.Description, target.Description)
 				}
-			}
-		})
-	}
-}
-
-func TestValidateDto(t *testing.T) {
-	tests := []struct {
-		name          string
-		dto           *CreateCourseRequestBody
-		expectError   bool
-		expectedError string
-	}{
-		{
-			name: "Valid Input",
-			dto: &CreateCourseRequestBody{
-				Name:        "Valid Course",
-				Description: "A description of the dto",
-				StartDate:   time.Now(),
-				EndDate:     time.Now().Add(24 * time.Hour),
-			},
-			expectError: false,
-		},
-		{
-			name: "Blank Name",
-			dto: &CreateCourseRequestBody{
-				Name:        "  ",
-				Description: "A description of the dto",
-				StartDate:   time.Now(),
-				EndDate:     time.Now().Add(24 * time.Hour),
-			},
-			expectError:   true,
-			expectedError: "name: cannot be empty or whitespace",
-		},
-		{
-			name: "Missing date",
-			dto: &CreateCourseRequestBody{
-				Name:        "wefewfwef",
-				Description: "A description of the dto",
-				EndDate:     time.Now().Add(24 * time.Hour),
-			},
-			expectError:   true,
-			expectedError: "",
-		},
-		{
-			name: "Missing description",
-			dto: &CreateCourseRequestBody{
-				Name:      "wefewfwef",
-				StartDate: time.Now(),
-				EndDate:   time.Now().Add(24 * time.Hour),
-			},
-			expectError: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := validators.ValidateDto(tt.dto)
-			if tt.expectError {
-				assert.NotNil(t, err)
-			} else {
-				assert.Nil(t, err)
 			}
 		})
 	}

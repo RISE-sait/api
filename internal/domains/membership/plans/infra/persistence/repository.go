@@ -3,6 +3,7 @@ package persistence
 import (
 	entity "api/internal/domains/membership/plans/entities"
 	db "api/internal/domains/membership/plans/infra/persistence/sqlc/generated"
+	"api/internal/domains/membership/plans/values"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
@@ -15,7 +16,7 @@ type MembershipPlansRepository struct {
 	Queries *db.Queries
 }
 
-func (r *MembershipPlansRepository) CreateMembershipPlan(c context.Context, membershipPlan *entity.MembershipPlan) *errLib.CommonError {
+func (r *MembershipPlansRepository) CreateMembershipPlan(c context.Context, membershipPlan *values.MembershipPlanCreate) *errLib.CommonError {
 
 	dbParams := db.CreateMembershipPlanParams{
 		Name:  membershipPlan.Name,
@@ -65,7 +66,7 @@ func (r *MembershipPlansRepository) GetMembershipPlansByMembershipId(ctx context
 	return plans, nil
 }
 
-func (r *MembershipPlansRepository) UpdateMembershipPlan(c context.Context, plan *entity.MembershipPlan) *errLib.CommonError {
+func (r *MembershipPlansRepository) UpdateMembershipPlan(c context.Context, plan *values.MembershipPlanUpdate) *errLib.CommonError {
 
 	dbMembershipParams := db.UpdateMembershipPlanParams{
 		Name:  plan.Name,

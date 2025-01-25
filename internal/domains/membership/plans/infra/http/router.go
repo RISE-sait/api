@@ -16,10 +16,10 @@ func RegisterMembershipPlansRoutes(r chi.Router, queries *db.Queries) {
 		},
 	))
 
-	r.Route("/plans", func(auth chi.Router) {
-		auth.Get("/", membershipPlansHandler.GetMembershipPlansByMembershipId)
-		auth.Post("/", membershipPlansHandler.CreateMembershipPlan)
-		auth.Put("/", membershipPlansHandler.UpdateMembershipPlan)
-		auth.Delete("/", membershipPlansHandler.DeleteMembershipPlan)
+	r.Route("/plans", func(router chi.Router) {
+		router.Get("/", membershipPlansHandler.GetMembershipPlansByMembershipId)
+		router.Post("/", membershipPlansHandler.CreateMembershipPlan)
+		router.Put("/", membershipPlansHandler.UpdateMembershipPlan)
+		router.Delete("/", membershipPlansHandler.DeleteMembershipPlan)
 	})
 }

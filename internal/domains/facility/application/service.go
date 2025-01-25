@@ -3,6 +3,7 @@ package facility
 import (
 	entity "api/internal/domains/facility/entities"
 	"api/internal/domains/facility/infra/persistence"
+	"api/internal/domains/facility/values"
 	errLib "api/internal/libs/errors"
 	"context"
 
@@ -13,11 +14,15 @@ type FacilityService struct {
 	Repo *persistence.FacilityRepository
 }
 
-func NewFacilityManager(service *persistence.FacilityRepository) *FacilityService {
+func NewFacilityService(service *persistence.FacilityRepository) *FacilityService {
 	return &FacilityService{Repo: service}
 }
 
-func (s *FacilityService) CreateFacility(ctx context.Context, facility *entity.Facility) *errLib.CommonError {
+func (s *FacilityService) CreateFacility(ctx context.Context, facility *values.FacilityCreate) *errLib.CommonError {
+
+	if err := facility.Validate(); err != nil {
+		return err
+	}
 
 	return s.Repo.CreateFacility(ctx, facility)
 
@@ -33,7 +38,11 @@ func (s *FacilityService) GetAllFacilities(ctx context.Context) ([]entity.Facili
 
 }
 
-func (s *FacilityService) UpdateFacility(ctx context.Context, facility *entity.Facility) *errLib.CommonError {
+func (s *FacilityService) UpdateFacility(ctx context.Context, facility *values.FacilityUpdate) *errLib.CommonError {
+
+	if err := facility.Validate(); err != nil {
+		return err
+	}
 
 	return s.Repo.UpdateFacility(ctx, facility)
 

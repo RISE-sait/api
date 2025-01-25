@@ -3,7 +3,8 @@ package course
 import (
 	course "api/internal/domains/course/application"
 	"api/internal/domains/course/infra/http/dto"
-	"api/internal/domains/course/mapper"
+	"api/internal/domains/course/infra/http/mapper"
+	"api/internal/domains/course/values"
 	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -20,16 +21,16 @@ func NewHandler(courseService *course.CourseService) *Handler {
 }
 
 func (h *Handler) CreateCourse(w http.ResponseWriter, r *http.Request) {
-	var requestDto dto.CreateCourseRequestBody
+	var dto dto.CreateCourseRequestBody
 
-	if err := validators.ParseAndValidateJSON(r.Body, &requestDto); err != nil {
+	if err := validators.ParseJSON(r.Body, &dto); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	course := mapper.MapCreateRequestToEntity(requestDto)
+	courseCreate := values.NewCourseCreate(dto.Name, dto.Description, dto.StartDate, dto.EndDate)
 
-	if err := h.CourseService.CreateCourse(r.Context(), &course); err != nil {
+	if err := h.CourseService.CreateCourse(r.Context(), courseCreate); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
@@ -65,7 +66,8 @@ func (h *Handler) GetAllCourses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := []dto.CourseResponse{}
+	result := make([]dto.CourseResponse, len(courses))
+
 	for i, course := range courses {
 		result[i] = mapper.MapEntityToResponse(&course)
 	}
@@ -74,16 +76,16 @@ func (h *Handler) GetAllCourses(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
-	var requestDto dto.UpdateCourseRequest
+	var dto dto.UpdateCourseRequest
 
-	if err := validators.ParseAndValidateJSON(r.Body, &requestDto); err != nil {
+	if err := validators.ParseJSON(r.Body, &dto); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	course := mapper.MapUpdateRequestToEntity(requestDto)
+	courseUpdate := values.NewCourseUpdate(dto.ID, dto.Name, dto.Description, dto.StartDate, dto.EndDate)
 
-	if err := h.CourseService.UpdateCourse(r.Context(), &course); err != nil {
+	if err := h.CourseService.UpdateCourse(r.Context(), courseUpdate); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}

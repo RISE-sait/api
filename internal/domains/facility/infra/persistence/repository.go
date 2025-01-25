@@ -3,6 +3,7 @@ package persistence
 import (
 	entity "api/internal/domains/facility/entities"
 	db "api/internal/domains/facility/infra/persistence/sqlc/generated"
+	"api/internal/domains/facility/values"
 	errLib "api/internal/libs/errors"
 	"context"
 	"log"
@@ -15,7 +16,7 @@ type FacilityRepository struct {
 	Queries *db.Queries
 }
 
-func (r *FacilityRepository) CreateFacility(c context.Context, facility *entity.Facility) *errLib.CommonError {
+func (r *FacilityRepository) CreateFacility(c context.Context, facility *values.FacilityCreate) *errLib.CommonError {
 
 	dbParams := db.CreateFacilityParams{
 		Name:           facility.Name,
@@ -73,7 +74,7 @@ func (r *FacilityRepository) GetAllFacilities(c context.Context, filter string) 
 	return courses, nil
 }
 
-func (r *FacilityRepository) UpdateFacility(c context.Context, facility *entity.Facility) *errLib.CommonError {
+func (r *FacilityRepository) UpdateFacility(c context.Context, facility *values.FacilityUpdate) *errLib.CommonError {
 
 	dbParams := db.UpdateFacilityParams{
 		ID:             facility.ID,

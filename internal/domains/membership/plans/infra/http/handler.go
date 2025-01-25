@@ -2,8 +2,8 @@ package membershipPlan
 
 import (
 	membershipPlan "api/internal/domains/membership/plans/application"
-	"api/internal/domains/membership/plans/dto"
-	"api/internal/domains/membership/plans/mapper"
+	"api/internal/domains/membership/plans/infra/http/dto"
+	"api/internal/domains/membership/plans/values"
 	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -21,14 +21,20 @@ func (c *Handler) CreateMembershipPlan(w http.ResponseWriter, r *http.Request) {
 
 	var requestDto dto.CreateMembershipPlanRequest
 
-	if err := validators.ParseAndValidateJSON(r.Body, &requestDto); err != nil {
+	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	plan := mapper.MapCreateRequestToEntity(requestDto)
+	plan := values.NewMembershipPlanCreate(
+		requestDto.MembershipID,
+		requestDto.Name,
+		requestDto.PaymentFrequency,
+		requestDto.Price,
+		requestDto.AmtPeriods,
+	)
 
-	if err := c.MembershipPlansService.CreateMembershipPlan(r.Context(), &plan); err != nil {
+	if err := c.MembershipPlansService.CreateMembershipPlan(r.Context(), plan); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
@@ -60,14 +66,21 @@ func (c *Handler) UpdateMembershipPlan(w http.ResponseWriter, r *http.Request) {
 
 	var requestDto dto.UpdateMembershipPlanRequest
 
-	if err := validators.ParseAndValidateJSON(r.Body, &requestDto); err != nil {
+	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	plan := mapper.MapUpdateRequestToEntity(requestDto)
+	plan := values.NewMembershipPlanUpdate(
+		requestDto.ID,
+		requestDto.MembershipID,
+		requestDto.Name,
+		requestDto.PaymentFrequency,
+		requestDto.Price,
+		requestDto.AmtPeriods,
+	)
 
-	if err := c.MembershipPlansService.UpdateMembershipPlan(r.Context(), &plan); err != nil {
+	if err := c.MembershipPlansService.UpdateMembershipPlan(r.Context(), plan); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}

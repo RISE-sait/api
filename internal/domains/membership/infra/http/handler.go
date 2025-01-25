@@ -2,8 +2,9 @@ package membership
 
 import (
 	membership "api/internal/domains/membership/application"
-	"api/internal/domains/membership/dto"
-	"api/internal/domains/membership/mapper"
+	"api/internal/domains/membership/infra/http/dto"
+	"api/internal/domains/membership/infra/http/mapper"
+	"api/internal/domains/membership/values"
 	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -22,14 +23,14 @@ func NewHandler(service *membership.MembershipService) *Handler {
 func (h *Handler) CreateMembership(w http.ResponseWriter, r *http.Request) {
 	var requestDto dto.CreateMembershipRequest
 
-	if err := validators.ParseAndValidateJSON(r.Body, &requestDto); err != nil {
+	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	membership := mapper.MapCreateRequestToEntity(requestDto)
+	membershipCreate := values.NewMembershipCreate(requestDto.Name, requestDto.Description, requestDto.StartDate, requestDto.EndDate)
 
-	if err := h.Service.Create(r.Context(), &membership); err != nil {
+	if err := h.Service.Create(r.Context(), membershipCreate); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
@@ -62,7 +63,7 @@ func (h *Handler) GetAllMemberships(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := []dto.MembershipResponse{}
+	result := make([]dto.MembershipResponse, len(memberships))
 	for i, membership := range memberships {
 		result[i] = mapper.MapEntityToResponse(&membership)
 	}
@@ -71,16 +72,16 @@ func (h *Handler) GetAllMemberships(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateMembership(w http.ResponseWriter, r *http.Request) {
-	var requestDto dto.UpdateMembershipRequest
+	var dto dto.UpdateMembershipRequest
 
-	if err := validators.ParseAndValidateJSON(r.Body, &requestDto); err != nil {
+	if err := validators.ParseJSON(r.Body, &dto); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	membership := mapper.MapUpdateRequestToEntity(requestDto)
+	membershipUpdate := values.NewMembershipUpdate(dto.ID, dto.Name, dto.Description, dto.StartDate, dto.EndDate)
 
-	if err := h.Service.Update(r.Context(), &membership); err != nil {
+	if err := h.Service.Update(r.Context(), membershipUpdate); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}

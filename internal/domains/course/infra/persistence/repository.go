@@ -3,6 +3,7 @@ package persistence
 import (
 	entity "api/internal/domains/course/entities"
 	db "api/internal/domains/course/infra/persistence/sqlc/generated"
+	"api/internal/domains/course/values"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
@@ -30,7 +31,7 @@ func (r *CourseRepository) GetCourseById(c context.Context, id uuid.UUID) (*enti
 	}, nil
 }
 
-func (r *CourseRepository) UpdateCourse(c context.Context, course *entity.Course) *errLib.CommonError {
+func (r *CourseRepository) UpdateCourse(c context.Context, course *values.CourseUpdate) *errLib.CommonError {
 
 	dbCourseParams := db.UpdateCourseParams{
 		ID:   course.ID,
@@ -66,6 +67,7 @@ func (r *CourseRepository) GetAllCourses(c context.Context, after string) ([]ent
 	}
 
 	courses := make([]entity.Course, len(dbCourses))
+
 	for i, dbCourse := range dbCourses {
 		courses[i] = entity.Course{
 			ID:          dbCourse.ID,
@@ -93,7 +95,7 @@ func (r *CourseRepository) DeleteCourse(c context.Context, id uuid.UUID) *errLib
 	return nil
 }
 
-func (r *CourseRepository) CreateCourse(c context.Context, course *entity.Course) *errLib.CommonError {
+func (r *CourseRepository) CreateCourse(c context.Context, course *values.CourseCreate) *errLib.CommonError {
 
 	dbCourseParams := db.CreateCourseParams{
 		Name: course.Name, Description: sql.NullString{

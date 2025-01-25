@@ -3,7 +3,7 @@ package main
 import (
 	_interface "api/cmd/server/interface"
 	"api/cmd/server/router"
-	"api/configs"
+	"api/config"
 	courseDb "api/internal/domains/course/infra/persistence/sqlc/generated"
 	facilityDb "api/internal/domains/facility/infra/persistence/sqlc/generated"
 	identityDb "api/internal/domains/identity/authentication/infra/sqlc/generated"
@@ -25,7 +25,7 @@ import (
 func main() {
 
 	// Build the connection string
-	dbConn := configs.GetDBConnection()
+	dbConn := config.GetDBConnection()
 	defer func(dbConn *sql.DB) {
 		err := dbConn.Close()
 		if err != nil {

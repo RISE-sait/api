@@ -1,7 +1,7 @@
 package lib
 
 import (
-	"api/configs"
+	"api/config"
 	"api/internal/domains/identity/entities"
 	errLib "api/internal/libs/errors"
 	"fmt"
@@ -24,14 +24,14 @@ func SignJWT(userInfo entities.UserInfo) (string, *errLib.CommonError) {
 	claims := jwt.MapClaims{
 		"name":          userInfo.Name,
 		"email":         userInfo.Email,
-		"iss":           configs.Envs.JwtConfig.Issuer,
+		"iss":           config.Envs.JwtConfig.Issuer,
 		"exp":           time.Now().Add(time.Hour * 24 * 15).Unix(), // 15 days
 		"role":          role,
 		"isActiveStaff": isActiveStaff,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err := token.SignedString([]byte(configs.Envs.JwtConfig.Secret))
+	signedToken, err := token.SignedString([]byte(config.Envs.JwtConfig.Secret))
 	if err != nil {
 		fmt.Println("Error signing token: ", err)
 		return "", errLib.New("Error signing token. Check Azure for logs", 500)

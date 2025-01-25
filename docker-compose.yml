@@ -1,13 +1,13 @@
 services:
-#  db:
-#    image: 'postgres'
-#    container_name: '${COMPOSE_PROJECT_NAME}_db'
-#    ports:
-#      - '5432:5432'
-#    environment:
-#      POSTGRES_USER: 'postgres'
-#      POSTGRES_PASSWORD: 'root'
-#      POSTGRES_DB: 'mydatabase'
+  # db:
+  #  image: 'postgres'
+  #  container_name: '${COMPOSE_PROJECT_NAME}_db'
+  #  ports:
+  #    - '5432:5432'
+  #  environment:
+  #    POSTGRES_USER: 'postgres'
+  #    POSTGRES_PASSWORD: 'root'
+  #    POSTGRES_DB: 'mydatabase'
 
 #  pgadmin:
 #    image: 'dpage/pgadmin4'
@@ -40,7 +40,7 @@ services:
           path: ./internal
     entrypoint: go run cmd/server/main.go
     env_file:
-      - ./configs/.env
+      - ./config/.env
 
 #  migrate:
 #    build:

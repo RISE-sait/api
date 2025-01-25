@@ -13,11 +13,15 @@ import (
 
 func main() {
 	// Print the current working directory
+
+	fmt.Println("Remember to delete the migration containers as docker creates a new container for each migration.")
+
+	fmt.Println("Starting migration...")
+
 	dir, err := os.Getwd()
 	if err != nil {
 		log.Fatal(fmt.Errorf("failed to get current working directory: %v", err))
 	}
-	fmt.Println("Current directory:", dir)
 
 	// Get the database connection
 	dbConn := config.GetDBConnection()
@@ -54,7 +58,7 @@ func main() {
 			log.Fatal(fmt.Errorf("failed to roll back all migrations: %v", err))
 		}
 
-		log.Println("All migrations rolled back successfully.")
+		fmt.Println("All migrations rolled back successfully.")
 		migrateUp(dbConn, migrationsPath)
 
 		fmt.Println("All migrations applied successfully.")
@@ -66,7 +70,7 @@ func main() {
 
 func migrateUp(dbConn *sql.DB, migrationsPath string) {
 	if err := goose.Up(dbConn, migrationsPath); err != nil {
-		log.Fatal(fmt.Errorf("failed to apply migrations: %v", err))
+		fmt.Println(fmt.Errorf("failed to apply migrations: %v", err))
 	}
 	fmt.Println("Migrations applied successfully.")
 }

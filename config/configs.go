@@ -54,6 +54,8 @@ func getEnv(key string, defaultValue string) string {
 
 func GetDBConnection() *sql.DB {
 	connStr := Envs.dbConnUrl
+
+	log.Println(connStr)
 	dbConn, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal(err)

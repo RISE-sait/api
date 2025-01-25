@@ -3,8 +3,8 @@ package oauth
 import (
 	"api/internal/domains/identity/entities"
 	"api/internal/domains/identity/lib"
-	"api/internal/libs/errors"
-	"api/internal/libs/responses"
+	errLib "api/internal/libs/errors"
+	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"log"
 	"net/http"
@@ -50,7 +50,7 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 
 	var userInfo *entities.UserInfo
 
-	if err := validators.ParseRequestBodyToJSON(userInfoRespBody, &userInfo); err != nil {
+	if err := validators.ParseJSON(userInfoRespBody, &userInfo); err != nil {
 		log.Println("Error getting user info", err)
 		response_handlers.RespondWithError(w, errLib.New("Failed to parse user info from Google", http.StatusInternalServerError))
 		return

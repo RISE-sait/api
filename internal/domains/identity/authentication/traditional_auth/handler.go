@@ -17,8 +17,7 @@ func NewHandler(authService *Service) *Handler {
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var targetBody GetUserRequest
-	if err := validators.ParseRequestBodyToJSON(r.Body, &targetBody); err != nil {
-
+	if err := validators.ParseJSON(r.Body, &targetBody); err != nil {
 		newErr := errLib.New("Invalid request body", http.StatusBadRequest)
 		handlers.RespondWithError(w, newErr)
 		return
@@ -31,5 +30,5 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Authorization", "Bearer "+token)
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 }

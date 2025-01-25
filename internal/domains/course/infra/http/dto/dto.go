@@ -7,18 +7,18 @@ import (
 )
 
 type CreateCourseRequestBody struct {
-	Name        string    `json:"name" validate:"notwhitespace"`
+	Name        string    `json:"name"`
 	Description string    `json:"description"`
-	StartDate   time.Time `json:"start_date" validate:"required"`
-	EndDate     time.Time `json:"end_date" validate:"required"`
+	StartDate   time.Time `json:"start_date"`
+	EndDate     time.Time `json:"end_date"`
 }
 
 type UpdateCourseRequest struct {
-	Name        string    `json:"name" validate:"notwhitespace"`
+	Name        string    `json:"name"`
 	Description string    `json:"description"`
-	StartDate   time.Time `json:"start_date" validate:"required"`
-	EndDate     time.Time `json:"end_date" validate:"required"`
-	ID          uuid.UUID `json:"id" validate:"required"`
+	StartDate   time.Time `json:"start_date"`
+	EndDate     time.Time `json:"end_date"`
+	ID          uuid.UUID `json:"id"`
 }
 
 type CourseResponse struct {

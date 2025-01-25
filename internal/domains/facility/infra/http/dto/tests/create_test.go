@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"api/internal/domains/facility/dto"
+	"api/internal/domains/facility/infra/http/dto"
 	"api/internal/libs/validators"
 
 	"github.com/google/uuid"
@@ -86,7 +86,7 @@ func TestDecodeCreateFacilityRequestBody(t *testing.T) {
 			reqBody := bytes.NewReader([]byte(tt.jsonInput))
 			var target dto.CreateFacilityRequest
 
-			err := validators.ParseRequestBodyToJSON(reqBody, &target)
+			err := validators.ParseJSON(reqBody, &target)
 			if tt.expectError {
 				assert.NotNil(t, err)
 				if tt.expectedError != "" {
@@ -104,87 +104,6 @@ func TestDecodeCreateFacilityRequestBody(t *testing.T) {
 				if target.FacilityTypeID != uuid.Nil {
 					assert.Equal(t, uuid.MustParse("b2f6ae19-62ff-4e64-aecc-08b432a8b593"), target.FacilityTypeID)
 				}
-			}
-		})
-	}
-}
-
-func TestValidateCreateFacilityDto(t *testing.T) {
-	tests := []struct {
-		name          string
-		dto           dto.CreateFacilityRequest
-		expectError   bool
-		expectedError string
-	}{
-		{
-			name: "Valid Input",
-			dto: dto.CreateFacilityRequest{
-				Name:           "Facility A",
-				Location:       "Location A",
-				FacilityTypeID: uuid.MustParse("b2f6ae19-62ff-4e64-aecc-08b432a8b593"),
-			},
-			expectError: false,
-		},
-		{
-			name: "Missing Name",
-			dto: dto.CreateFacilityRequest{
-				Location:       "Location A",
-				FacilityTypeID: uuid.MustParse("b2f6ae19-62ff-4e64-aecc-08b432a8b593"),
-			},
-			expectError:   true,
-			expectedError: "name: required and cannot be empty or whitespace",
-		},
-		{
-			name: "Empty Location",
-			dto: dto.CreateFacilityRequest{
-				Name:           "Location A",
-				Location:       "  ",
-				FacilityTypeID: uuid.MustParse("b2f6ae19-62ff-4e64-aecc-08b432a8b593"),
-			},
-			expectError:   true,
-			expectedError: "location: required and cannot be empty or whitespace",
-		},
-		{
-			name: "Empty FacilityTypeID",
-			dto: dto.CreateFacilityRequest{
-				Name:           "Facility A",
-				Location:       "Location A",
-				FacilityTypeID: uuid.UUID{},
-			},
-			expectError: true,
-		},
-		{
-			name: "Whitespace Name",
-			dto: dto.CreateFacilityRequest{
-				Name:           " ",
-				Location:       "Location A",
-				FacilityTypeID: uuid.MustParse("b2f6ae19-62ff-4e64-aecc-08b432a8b593"),
-			},
-			expectError:   true,
-			expectedError: "name: required and cannot be empty or whitespace",
-		},
-		{
-			name: "Empty JSON Fields",
-			dto: dto.CreateFacilityRequest{
-				Name:           " ",
-				Location:       " ",
-				FacilityTypeID: uuid.UUID{},
-			},
-			expectError:   true,
-			expectedError: "name: required and cannot be empty or whitespace",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := validators.ValidateDto(&tt.dto)
-			if tt.expectError {
-				assert.NotNil(t, err)
-				if tt.expectedError != "" {
-					assert.Contains(t, err.Message, tt.expectedError)
-				}
-			} else {
-				assert.Nil(t, err)
 			}
 		})
 	}

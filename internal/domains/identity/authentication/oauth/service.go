@@ -1,17 +1,18 @@
 package oauth
 
 import (
-	"api/configs"
+	"api/config"
 	"api/internal/domains/identity/authentication/infra/repository"
 	"api/internal/domains/identity/entities"
 	errors "api/internal/libs/errors"
 	"context"
 	"fmt"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
 	"io"
 	"log"
 	"net/http"
+
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 )
 
 type Service struct {
@@ -62,9 +63,9 @@ func (s *Service) SetUserInfoWithStaffDetails(c context.Context, userInfo entiti
 
 func ExchangeCodeForToken(c context.Context, code string) (*oauth2.Token, *errors.CommonError) {
 	googleOauthConfig := &oauth2.Config{
-		ClientID:     configs.Envs.GoogleAuthConfig.ClientId,
-		ClientSecret: configs.Envs.GoogleAuthConfig.ClientSecret,
-		RedirectURL:  configs.Envs.GoogleAuthConfig.GoogleRedirectUrl,
+		ClientID:     config.Envs.GoogleAuthConfig.ClientId,
+		ClientSecret: config.Envs.GoogleAuthConfig.ClientSecret,
+		RedirectURL:  config.Envs.GoogleAuthConfig.GoogleRedirectUrl,
 		Scopes:       []string{"profile", "email"}, // Adjust scopes as needed
 		Endpoint:     google.Endpoint,
 	}

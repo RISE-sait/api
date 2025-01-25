@@ -2,8 +2,9 @@ package facility
 
 import (
 	facility "api/internal/domains/facility/application"
-	"api/internal/domains/facility/dto"
-	"api/internal/domains/facility/mapper"
+	"api/internal/domains/facility/infra/http/dto"
+	"api/internal/domains/facility/infra/http/mapper"
+	"api/internal/domains/facility/values"
 	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -22,14 +23,14 @@ func NewHandler(courseService *facility.FacilityService) *Handler {
 func (h *Handler) CreateFacility(w http.ResponseWriter, r *http.Request) {
 	var requestDto dto.CreateFacilityRequest
 
-	if err := validators.ParseAndValidateJSON(r.Body, &requestDto); err != nil {
+	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	facility := mapper.MapCreateRequestToEntity(requestDto)
+	facilityCreate := values.NewFacilityCreate(requestDto.Name, requestDto.Location, requestDto.FacilityTypeID)
 
-	if err := h.FacilityService.CreateFacility(r.Context(), &facility); err != nil {
+	if err := h.FacilityService.CreateFacility(r.Context(), facilityCreate); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
@@ -62,7 +63,7 @@ func (h *Handler) GetAllFacilities(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := []dto.FacilityResponse{}
+	result := make([]dto.FacilityResponse, len(facilities))
 	for i, facility := range facilities {
 		result[i] = mapper.MapEntityToResponse(&facility)
 	}
@@ -71,16 +72,16 @@ func (h *Handler) GetAllFacilities(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateFacility(w http.ResponseWriter, r *http.Request) {
-	var requestDto dto.UpdateFacilityRequest
+	var dto dto.UpdateFacilityRequest
 
-	if err := validators.ParseAndValidateJSON(r.Body, &requestDto); err != nil {
+	if err := validators.ParseJSON(r.Body, &dto); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	facility := mapper.MapUpdateRequestToEntity(requestDto)
+	facilityUpdate := values.NewFacilityUpdate(dto.ID, dto.Name, dto.Location, dto.FacilityTypeID)
 
-	if err := h.FacilityService.UpdateFacility(r.Context(), &facility); err != nil {
+	if err := h.FacilityService.UpdateFacility(r.Context(), facilityUpdate); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}

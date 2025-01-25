@@ -3,6 +3,7 @@ package persistence
 import (
 	entity "api/internal/domains/membership/entities"
 	db "api/internal/domains/membership/infra/persistence/sqlc/generated"
+	"api/internal/domains/membership/values"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
@@ -77,7 +78,7 @@ func (r *MembershipsRepository) List(c context.Context, after string) ([]entity.
 	return memebrships, nil
 }
 
-func (r *MembershipsRepository) Update(c context.Context, membership *entity.Membership) *errLib.CommonError {
+func (r *MembershipsRepository) Update(c context.Context, membership *values.MembershipUpdate) *errLib.CommonError {
 
 	dbMembershipParams := db.UpdateMembershipParams{
 		ID:   membership.ID,

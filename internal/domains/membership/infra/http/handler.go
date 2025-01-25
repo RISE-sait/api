@@ -72,6 +72,15 @@ func (h *Handler) GetAllMemberships(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateMembership(w http.ResponseWriter, r *http.Request) {
+
+	idStr := chi.URLParam(r, "id")
+
+	id, err := validators.ParseUUID(idStr)
+	if err != nil {
+		response_handlers.RespondWithError(w, err)
+		return
+	}
+
 	var dto dto.UpdateMembershipRequest
 
 	if err := validators.ParseJSON(r.Body, &dto); err != nil {
@@ -79,7 +88,7 @@ func (h *Handler) UpdateMembership(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	membershipUpdate := values.NewMembershipUpdate(dto.ID, dto.Name, dto.Description, dto.StartDate, dto.EndDate)
+	membershipUpdate := values.NewMembershipUpdate(id, dto.Name, dto.Description, dto.StartDate, dto.EndDate)
 
 	if err := h.Service.Update(r.Context(), membershipUpdate); err != nil {
 		response_handlers.RespondWithError(w, err)

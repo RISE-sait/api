@@ -11,7 +11,6 @@ type CreateFacilityRequest struct {
 }
 
 type UpdateFacilityRequest struct {
-	ID             uuid.UUID `json:"id" validate:"required"`
 	Name           string    `json:"name" validate:"required_and_notwhitespace"`
 	Location       string    `json:"location" validate:"required_and_notwhitespace"`
 	FacilityTypeID uuid.UUID `json:"facility_type_id" validate:"required"`

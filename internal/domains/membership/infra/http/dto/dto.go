@@ -36,7 +36,6 @@ type UpdateMembershipRequest struct {
 	Description string    `json:"description" validate:"notwhitespace"`
 	StartDate   time.Time `json:"start_date" validate:"required"`
 	EndDate     time.Time `json:"end_date" validate:"required,enddate"`
-	ID          uuid.UUID `json:"id" validate:"required"`
 }
 
 func (r *UpdateMembershipRequest) ToDBParams() *db.UpdateMembershipParams {

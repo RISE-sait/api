@@ -1,8 +1,9 @@
 package traditional_auth
 
 import (
-	errLib "api/internal/libs/errors"
+	"api/internal/domains/identity/values"
 	handlers "api/internal/libs/responses"
+	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
 )
@@ -16,14 +17,15 @@ func NewHandler(authService *Service) *Handler {
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
-	var targetBody GetUserRequest
-	if err := validators.ParseJSON(r.Body, &targetBody); err != nil {
-		newErr := errLib.New("Invalid request body", http.StatusBadRequest)
-		handlers.RespondWithError(w, newErr)
+	var dto GetUserRequest
+	if err := validators.ParseJSON(r.Body, &dto); err != nil {
+		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	token, err := h.AuthService.AuthenticateUser(r.Context(), targetBody.Email, targetBody.Password)
+	credentials := values.NewCredentials(dto.Email, dto.Password)
+
+	token, err := h.AuthService.AuthenticateUser(r.Context(), credentials)
 	if err != nil {
 		handlers.RespondWithError(w, err)
 		return

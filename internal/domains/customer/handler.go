@@ -1,9 +1,9 @@
 package customer
 
 import (
-	"api/internal/domains/customer/hubspot"
 	errLib "api/internal/libs/errors"
 	response_handlers "api/internal/libs/responses"
+	"api/internal/services/hubspot"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,10 +12,10 @@ import (
 )
 
 type Handler struct {
-	HubSpotService *hubspot.HubSpotCustomersService
+	HubSpotService *hubspot.HubSpotService
 }
 
-func NewHandler(HubSpotService *hubspot.HubSpotCustomersService) *Handler {
+func NewHandler(HubSpotService *hubspot.HubSpotService) *Handler {
 	return &Handler{HubSpotService: HubSpotService}
 }
 
@@ -59,11 +59,10 @@ func (h *Handler) CreateCustomer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	createdCustomer, err := h.HubSpotService.CreateCustomer(customer)
-	if err != nil {
+	if err := h.HubSpotService.CreateCustomer(customer); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	response_handlers.RespondWithSuccess(w, createdCustomer, http.StatusCreated)
+	response_handlers.RespondWithSuccess(w, nil, http.StatusCreated)
 }

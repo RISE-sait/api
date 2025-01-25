@@ -76,6 +76,15 @@ func (h *Handler) GetAllCourses(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
+
+	idStr := chi.URLParam(r, "id")
+	id, err := validators.ParseUUID(idStr)
+
+	if err != nil {
+		response_handlers.RespondWithError(w, err)
+		return
+	}
+
 	var dto dto.UpdateCourseRequest
 
 	if err := validators.ParseJSON(r.Body, &dto); err != nil {
@@ -83,7 +92,7 @@ func (h *Handler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	courseUpdate := values.NewCourseUpdate(dto.ID, dto.Name, dto.Description, dto.StartDate, dto.EndDate)
+	courseUpdate := values.NewCourseUpdate(id, dto.Name, dto.Description, dto.StartDate, dto.EndDate)
 
 	if err := h.CourseService.UpdateCourse(r.Context(), courseUpdate); err != nil {
 		response_handlers.RespondWithError(w, err)

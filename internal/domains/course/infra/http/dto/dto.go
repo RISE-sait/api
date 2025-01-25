@@ -18,7 +18,6 @@ type UpdateCourseRequest struct {
 	Description string    `json:"description"`
 	StartDate   time.Time `json:"start_date"`
 	EndDate     time.Time `json:"end_date"`
-	ID          uuid.UUID `json:"id"`
 }
 
 type CourseResponse struct {

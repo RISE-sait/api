@@ -28,10 +28,6 @@ func NewCourseUpdate(id uuid.UUID, name, description string, startDate, endDate 
 }
 
 func (cu *CourseUpdate) Validate() *errLib.CommonError {
-	// Validate ID
-	if cu.ID == uuid.Nil {
-		return errLib.New("invalid course ID", http.StatusBadRequest)
-	}
 
 	// Validate Name
 	if cu.Name == "" {

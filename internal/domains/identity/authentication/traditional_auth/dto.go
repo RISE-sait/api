@@ -6,8 +6,8 @@ import (
 )
 
 type GetUserRequest struct {
-	Email    string `json:"email" validate:"email"`
-	Password string `json:"password" validate:"notwhitespace"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 func (r *GetUserRequest) ToDBParams() *db.GetUserByEmailPasswordParams {

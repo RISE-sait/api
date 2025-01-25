@@ -4,8 +4,8 @@ import (
 	"api/internal/domains/identity/authentication/infra/repository"
 	"api/internal/domains/identity/entities"
 	"api/internal/domains/identity/lib"
-	valueobjects "api/internal/domains/identity/valueObjects"
-	errors "api/internal/libs/errors"
+	"api/internal/domains/identity/values"
+	errLib "api/internal/libs/errors"
 	"context"
 	"net/http"
 	"strings"
@@ -23,19 +23,17 @@ func NewService(userRepo *repository.UserRepository, staffRepo *repository.Staff
 	}
 }
 
-func (s *Service) AuthenticateUser(ctx context.Context, email, password string) (string, *errors.CommonError) {
+func (s *Service) AuthenticateUser(ctx context.Context, input *values.Credentials) (string, *errLib.CommonError) {
 
-	credentials, err := valueobjects.NewCredentials(email, password)
-
-	if err != nil {
+	if err := input.Validate(); err != nil {
 		return "", err
 	}
 
-	email = credentials.Email()
-	password = credentials.Password()
+	email := (*input).Email
+	password := (*input).Password
 
 	if !s.UserRepo.IsValidUser(ctx, email, password) {
-		return "", errors.New("Invalid credentials", http.StatusUnauthorized)
+		return "", errLib.New("Invalid credentials", http.StatusUnauthorized)
 	}
 
 	name := s.getNameFromEmail(email)

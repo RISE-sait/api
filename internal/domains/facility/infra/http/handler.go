@@ -72,6 +72,15 @@ func (h *Handler) GetAllFacilities(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateFacility(w http.ResponseWriter, r *http.Request) {
+
+	idStr := chi.URLParam(r, "id")
+	id, err := validators.ParseUUID(idStr)
+
+	if err != nil {
+		response_handlers.RespondWithError(w, err)
+		return
+	}
+
 	var dto dto.UpdateFacilityRequest
 
 	if err := validators.ParseJSON(r.Body, &dto); err != nil {
@@ -79,7 +88,7 @@ func (h *Handler) UpdateFacility(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	facilityUpdate := values.NewFacilityUpdate(dto.ID, dto.Name, dto.Location, dto.FacilityTypeID)
+	facilityUpdate := values.NewFacilityUpdate(id, dto.Name, dto.Location, dto.FacilityTypeID)
 
 	if err := h.FacilityService.UpdateFacility(r.Context(), facilityUpdate); err != nil {
 		response_handlers.RespondWithError(w, err)

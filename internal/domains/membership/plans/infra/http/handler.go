@@ -7,6 +7,8 @@ import (
 	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
+
+	"github.com/go-chi/chi"
 )
 
 type Handler struct {
@@ -43,7 +45,7 @@ func (c *Handler) CreateMembershipPlan(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Handler) GetMembershipPlansByMembershipId(w http.ResponseWriter, r *http.Request) {
-	membershipIDStr := r.URL.Query().Get("membership_id")
+	membershipIDStr := chi.URLParam(r, "membershipId")
 
 	membershipID, err := validators.ParseUUID(membershipIDStr)
 
@@ -64,6 +66,21 @@ func (c *Handler) GetMembershipPlansByMembershipId(w http.ResponseWriter, r *htt
 
 func (c *Handler) UpdateMembershipPlan(w http.ResponseWriter, r *http.Request) {
 
+	membershipIdStr := chi.URLParam(r, "membershipId")
+	planIdStr := chi.URLParam(r, "planId")
+
+	membershipId, err := validators.ParseUUID(membershipIdStr)
+	if err != nil {
+		response_handlers.RespondWithError(w, err)
+		return
+	}
+
+	planId, err := validators.ParseUUID(planIdStr)
+	if err != nil {
+		response_handlers.RespondWithError(w, err)
+		return
+	}
+
 	var requestDto dto.UpdateMembershipPlanRequest
 
 	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
@@ -72,8 +89,8 @@ func (c *Handler) UpdateMembershipPlan(w http.ResponseWriter, r *http.Request) {
 	}
 
 	plan := values.NewMembershipPlanUpdate(
-		requestDto.ID,
-		requestDto.MembershipID,
+		planId,
+		membershipId,
 		requestDto.Name,
 		requestDto.PaymentFrequency,
 		requestDto.Price,
@@ -89,8 +106,8 @@ func (c *Handler) UpdateMembershipPlan(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Handler) DeleteMembershipPlan(w http.ResponseWriter, r *http.Request) {
-	membershipIDStr := r.URL.Query().Get("membership_id")
-	planIDStr := r.URL.Query().Get("id")
+	membershipIDStr := chi.URLParam(r, "membershipId")
+	planIDStr := chi.URLParam(r, "planId")
 
 	membershipID, membershipErr := validators.ParseUUID(membershipIDStr)
 	planId, planErr := validators.ParseUUID(planIDStr)

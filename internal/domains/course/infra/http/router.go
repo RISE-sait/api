@@ -19,7 +19,7 @@ func RegisterCourseRoutes(r chi.Router, queries *db.Queries) {
 		auth.Get("/", coursesHandler.GetAllCourses)
 		auth.Get("/{id}", coursesHandler.GetCourseById)
 		auth.Post("/", coursesHandler.CreateCourse)
-		auth.Put("/", coursesHandler.UpdateCourse)
+		auth.Put("/{id}", coursesHandler.UpdateCourse)
 		auth.Delete("/{id}", coursesHandler.DeleteCourse)
 	})
 }

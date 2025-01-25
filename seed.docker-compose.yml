@@ -1,8 +1,0 @@
-services:
-  seed:
-   build:
-     context: .
-     dockerfile: seed.Dockerfile
-   container_name: '${COMPOSE_PROJECT_NAME}_seed'
-   env_file:
-     - ./config/.env

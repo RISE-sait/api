@@ -1,0 +1,8 @@
+services:
+  migrate:
+   build:
+     context: .
+     dockerfile: migrate.Dockerfile
+   container_name: '${COMPOSE_PROJECT_NAME}_migrate'
+   env_file:
+     - ./config/.env

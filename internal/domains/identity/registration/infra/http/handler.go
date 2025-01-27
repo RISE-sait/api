@@ -31,9 +31,10 @@ func (c *AccountRegistrationController) CreateTraditionalAccount(w http.Response
 
 	userPasswordCreate := values.NewUserPasswordCreate(dto.Email, dto.Password)
 	staffCreate := values.NewStaffCreate(dto.Role, dto.IsActiveStaff)
+	waiverCreate := values.NewWaiverCreate(dto.Email, dto.WaiverUrl, dto.IsSignedWaiver)
 
 	// Step 2: Call the service to create the account
-	userInfo, err := c.AccountRegistrationService.CreateAccount(r.Context(), userPasswordCreate, staffCreate)
+	userInfo, err := c.AccountRegistrationService.CreateAccount(r.Context(), userPasswordCreate, staffCreate, waiverCreate)
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return

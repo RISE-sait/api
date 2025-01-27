@@ -3,6 +3,7 @@ package registration
 import (
 	"api/internal/domains/identity/entities"
 	"api/internal/domains/identity/infra/persistence/repository"
+	waiver_repository "api/internal/domains/identity/registration/infra/persistence"
 	"api/internal/domains/identity/registration/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/services/hubspot"
@@ -18,6 +19,7 @@ type AccountRegistrationService struct {
 	UserPasswordRepository *repository.UserCredentialsRepository
 	HubSpotService         *hubspot.HubSpotService
 	StaffRepository        *repository.StaffRepository
+	WaiverRepository       *waiver_repository.WaiverRepository
 	DB                     *sql.DB
 }
 
@@ -25,10 +27,12 @@ func NewAccountRegistrationService(
 	UsersRepository *repository.UserRepository,
 	UserPasswordRepository *repository.UserCredentialsRepository,
 	StaffRepository *repository.StaffRepository,
+	WaiverRepository *waiver_repository.WaiverRepository,
 	db *sql.DB,
 	HubSpotService *hubspot.HubSpotService,
 ) *AccountRegistrationService {
 	return &AccountRegistrationService{
+		WaiverRepository:       WaiverRepository,
 		UsersRepository:        UsersRepository,
 		UserPasswordRepository: UserPasswordRepository,
 		StaffRepository:        StaffRepository,
@@ -41,6 +45,7 @@ func (s *AccountRegistrationService) CreateAccount(
 	ctx context.Context,
 	userPasswordCreate *values.UserPasswordCreate,
 	staffCreate *values.StaffCreate,
+	waiverCreate *values.WaiverCreate,
 ) (*entities.UserInfo, *errLib.CommonError) {
 
 	// Begin transaction
@@ -83,30 +88,44 @@ func (s *AccountRegistrationService) CreateAccount(
 	role := staffCreate.Role
 	isActive := staffCreate.IsActive
 
-	// // Insert into staff table if role is not ""
+	// Insert into staff table if role is not ""
+
+	log.Println("Role: ", role)
+	log.Println(role == "")
 
 	if role != "" {
 		if err := s.StaffRepository.CreateStaffTx(ctx, tx, email, role, isActive); err != nil {
-			log.Println("failededed")
 			_ = tx.Rollback()
 			return nil, err
 		}
-	}
 
-	// Create customer in hubspot if role is ""
+	} else {
+		// User is Customer
 
-	customer := hubspot.HubSpotCustomerCreateBody{
-		Properties: hubspot.HubSpotCustomerProps{
-			FirstName: strings.Split(email, "@")[0],
-			Email:     email,
-			LastName:  "",
-		},
-	}
+		if !waiverCreate.IsSigned {
+			tx.Rollback()
+			return nil, errLib.New("Waiver is not signed", http.StatusBadRequest)
+		}
 
-	// Insert into customers via hubspot
-	if err := s.HubSpotService.CreateCustomer(customer); err != nil {
-		tx.Rollback()
-		return nil, err
+		if err := s.WaiverRepository.CreateWaiverRecordTx(ctx, tx, email, waiverCreate.WaiverUrl, waiverCreate.IsSigned); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		customer := hubspot.HubSpotCustomerCreateBody{
+			Properties: hubspot.HubSpotCustomerProps{
+				FirstName: strings.Split(email, "@")[0],
+				Email:     email,
+				LastName:  "",
+			},
+		}
+
+		// Insert into customers via hubspot
+
+		if err := s.HubSpotService.CreateCustomer(customer); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
 	}
 
 	// // Commit the transaction

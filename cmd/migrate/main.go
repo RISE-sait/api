@@ -38,13 +38,11 @@ func main() {
 	switch command {
 	case "up":
 		migrateUp(dbConn, migrationsPath)
-
-		fmt.Println("Migrations applied successfully.")
-
 	case "down":
 		// Rollback migration (Down)
 		if err := goose.Down(dbConn, migrationsPath); err != nil {
 			log.Fatal(fmt.Errorf("failed to roll back migration: %v", err))
+			return
 		}
 		fmt.Println("Migrate down successfully.")
 
@@ -67,6 +65,7 @@ func main() {
 func migrateUp(dbConn *sql.DB, migrationsPath string) {
 	if err := goose.Up(dbConn, migrationsPath); err != nil {
 		log.Fatal(fmt.Errorf("failed to apply migrations: %v", err))
+		return
 	}
 	fmt.Println("Migrations applied successfully.")
 }

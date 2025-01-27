@@ -5,6 +5,7 @@ import (
 	courseDb "api/internal/domains/course/infra/persistence/sqlc/generated"
 	facilityDb "api/internal/domains/facility/infra/persistence/sqlc/generated"
 	identityDb "api/internal/domains/identity/infra/persistence/sqlc/generated"
+	waiverDb "api/internal/domains/identity/registration/infra/persistence/sqlc"
 	membershipDb "api/internal/domains/membership/infra/persistence/sqlc/generated"
 	membershipPlanDb "api/internal/domains/membership/plans/infra/persistence/sqlc/generated"
 	"api/internal/services/hubspot"
@@ -23,6 +24,7 @@ type QueriesType struct {
 	MembershipDb     *membershipDb.Queries
 	MembershipPlanDb *membershipPlanDb.Queries
 	FacilityDb       *facilityDb.Queries
+	WaiversDb        *waiverDb.Queries
 }
 
 func NewContainer() *Container {

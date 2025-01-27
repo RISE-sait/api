@@ -7,7 +7,6 @@ services:
    env_file:
      - ./config/.env
 
-
   seed:
    build:
      context: .
@@ -17,9 +16,10 @@ services:
      - ./config/.env
 
   migrate:
-   build:
-     context: .
-     dockerfile: migrate.Dockerfile
-   container_name: '${COMPOSE_PROJECT_NAME}_migrate'
-   env_file:
-     - ./config/.env
+    build:
+      context: .
+      dockerfile: migrate.Dockerfile
+    container_name: '${COMPOSE_PROJECT_NAME}_migrate'
+    env_file:
+      - ./config/.env
+    command: ${MIGRATE_CMD:-up}  # Default to 'up' if not specified

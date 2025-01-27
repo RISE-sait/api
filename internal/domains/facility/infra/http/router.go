@@ -1,17 +1,17 @@
 package facility
 
 import (
+	"api/cmd/server/di"
 	facility "api/internal/domains/facility/application"
 	repository "api/internal/domains/facility/infra/persistence"
-	db "api/internal/domains/facility/infra/persistence/sqlc/generated"
 
 	"github.com/go-chi/chi"
 )
 
-func RegisterFacilityRoutes(r chi.Router, queries *db.Queries) {
+func RegisterFacilityRoutes(r chi.Router, container *di.Container) {
 	facilitiesHandler := NewHandler(facility.NewFacilityService(
 		&repository.FacilityRepository{
-			Queries: queries,
+			Queries: container.Queries.FacilityDb,
 		},
 	))
 

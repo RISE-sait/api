@@ -4,6 +4,7 @@ import (
 	"api/internal/domains/identity/lib"
 	"api/internal/domains/identity/registration"
 	"api/internal/domains/identity/registration/infra/http/dto"
+	"api/internal/domains/identity/registration/values"
 	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -28,8 +29,11 @@ func (c *AccountRegistrationController) CreateTraditionalAccount(w http.Response
 		return
 	}
 
+	userPasswordCreate := values.NewUserPasswordCreate(dto.Email, dto.Password)
+	staffCreate := values.NewStaffCreate(dto.Role, dto.IsActiveStaff)
+
 	// Step 2: Call the service to create the account
-	userInfo, err := c.AccountRegistrationService.CreateTraditionalAccount(r.Context(), dto.Email, dto.Password, dto.Role, dto.IsActiveStaff)
+	userInfo, err := c.AccountRegistrationService.CreateAccount(r.Context(), userPasswordCreate, staffCreate)
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return

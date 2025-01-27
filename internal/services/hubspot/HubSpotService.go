@@ -19,6 +19,7 @@ type HubSpotService struct {
 }
 
 func GetHubSpotService() *HubSpotService {
+
 	apiKey := config.Envs.HubSpotApiKey
 
 	httpClient := &http.Client{

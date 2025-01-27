@@ -1,17 +1,17 @@
 package course
 
 import (
+	"api/cmd/server/di"
 	course "api/internal/domains/course/application"
 	"api/internal/domains/course/infra/persistence"
-	db "api/internal/domains/course/infra/persistence/sqlc/generated"
 
 	"github.com/go-chi/chi"
 )
 
-func RegisterCourseRoutes(r chi.Router, queries *db.Queries) {
+func RegisterCourseRoutes(r chi.Router, container *di.Container) {
 	coursesHandler := NewHandler(course.NewCourseService(
 		&persistence.CourseRepository{
-			Queries: queries,
+			Queries: container.Queries.CoursesDb,
 		},
 	))
 

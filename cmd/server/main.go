@@ -1,17 +1,16 @@
 package main
 
 import (
-	_interface "api/cmd/server/interface"
+	"api/cmd/server/di"
 	"api/cmd/server/router"
-	"api/config"
-	courseDb "api/internal/domains/course/infra/persistence/sqlc/generated"
-	facilityDb "api/internal/domains/facility/infra/persistence/sqlc/generated"
-	identityDb "api/internal/domains/identity/authentication/infra/sqlc/generated"
-	membershipDb "api/internal/domains/membership/infra/persistence/sqlc/generated"
-	membershipPlanDb "api/internal/domains/membership/plans/infra/persistence/sqlc/generated"
+	"context"
+	"encoding/json"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"api/internal/middlewares"
-	"database/sql"
 	"log"
 	"net/http"
 
@@ -24,48 +23,50 @@ import (
 
 func main() {
 
-	// Build the connection string
-	dbConn := config.GetDBConnection()
-	defer func(dbConn *sql.DB) {
-		err := dbConn.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}(dbConn)
+	diContainer := di.NewContainer()
+	defer diContainer.Cleanup()
 
-	identityQueries := identityDb.New(dbConn)
-	courseQueries := courseDb.New(dbConn)
-	membershipQueries := membershipDb.New(dbConn)
-	membershipPlanQueries := membershipPlanDb.New(dbConn)
-	facilityQueries := facilityDb.New(dbConn)
-
-	// Create the cRouter and apply middlewares first
-	cRouter := chi.NewRouter()
-
-	queries := _interface.QueriesType{
-		IdentityDb:       identityQueries,
-		CoursesDb:        courseQueries,
-		MembershipDb:     membershipQueries,
-		MembershipPlanDb: membershipPlanQueries,
-		FacilityDb:       facilityQueries,
+	server := &http.Server{
+		Addr:         ":8080",
+		Handler:      setupServer(diContainer),
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
 	}
 
-	setupMiddlewares(cRouter)
-	router.RegisterRoutes(cRouter, queries)
+	// Graceful shutdown
+	go func() {
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+		<-sigChan
 
-	// Define routes
-	cRouter.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, err := w.Write([]byte("helloererererererererererern"))
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if err := server.Shutdown(ctx); err != nil {
+			log.Printf("HTTP server shutdown error: %v", err)
 		}
+	}()
+
+	log.Printf("Server starting on %s", server.Addr)
+	if err := server.ListenAndServe(); err != http.ErrServerClosed {
+		log.Fatalf("HTTP server error: %v", err)
+	}
+}
+
+func setupServer(container *di.Container) http.Handler {
+	r := chi.NewRouter()
+	setupMiddlewares(r)
+
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Hello, welcome to Rise API",
+			"version": "1.0.0",
+		})
 	})
 
-	// Start the server
-	log.Println("Server started at :8080")
-	log.Fatal(http.ListenAndServe(":8080", cRouter))
+	router.RegisterRoutes(r, container)
+	return r
 }
 
 func setupMiddlewares(router *chi.Mux) {

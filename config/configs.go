@@ -29,6 +29,8 @@ var Envs = initConfig()
 
 func initConfig() *config {
 
+	log.Println("Initializing config")
+
 	return &config{
 		dbConnUrl:     getEnv("DATABASE_URL", ""),
 		HubSpotApiKey: getEnv("HUBSPOT_API_KEY", ""),
@@ -46,6 +48,7 @@ func initConfig() *config {
 }
 
 func getEnv(key string, defaultValue string) string {
+
 	if value, exists := os.LookupEnv(key); exists {
 		return value
 	}

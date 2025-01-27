@@ -1,0 +1,25 @@
+services:
+  test:
+   build:
+     context: .
+     dockerfile: tests.Dockerfile
+   container_name: '${COMPOSE_PROJECT_NAME}_tests'
+   env_file:
+     - ./config/.env
+
+
+  seed:
+   build:
+     context: .
+     dockerfile: seed.Dockerfile
+   container_name: '${COMPOSE_PROJECT_NAME}_seed'
+   env_file:
+     - ./config/.env
+
+  migrate:
+   build:
+     context: .
+     dockerfile: migrate.Dockerfile
+   container_name: '${COMPOSE_PROJECT_NAME}_migrate'
+   env_file:
+     - ./config/.env

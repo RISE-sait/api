@@ -3,9 +3,15 @@ package errLib
 import (
 	"database/sql"
 	"errors"
-	"github.com/lib/pq"
 	"log"
 	"net/http"
+	"strings"
+
+	"github.com/lib/pq"
+)
+
+const (
+	PGEnumInvalidInput = "22P02" // Postgres error code for invalid enum
 )
 
 func TranslateDBErrorToCommonError(err error) *CommonError {
@@ -17,6 +23,12 @@ func TranslateDBErrorToCommonError(err error) *CommonError {
 	if errors.As(err, &pqErr) {
 		if pqErr.Code.Class() == "23" {
 			return New(pqErr.Code.Name(), http.StatusBadRequest)
+		}
+
+		if string(pqErr.Code) == PGEnumInvalidInput {
+			if strings.Contains(pqErr.Message, "enum") {
+				return New("Invalid enum value provided. Error: "+pqErr.Message, http.StatusBadRequest)
+			}
 		}
 	}
 

@@ -1,9 +1,8 @@
 package membership
 
 import (
+	"api/cmd/server/di"
 	membership "api/internal/domains/membership/application"
-	membershipDb "api/internal/domains/membership/infra/persistence/sqlc/generated"
-	plansDb "api/internal/domains/membership/plans/infra/persistence/sqlc/generated"
 
 	membershipRepo "api/internal/domains/membership/infra/persistence"
 	membershipPlan "api/internal/domains/membership/plans/infra/http"
@@ -11,10 +10,10 @@ import (
 	"github.com/go-chi/chi"
 )
 
-func RegisterMembershipRoutes(r chi.Router, membershipQueries *membershipDb.Queries, planQueries *plansDb.Queries) {
+func RegisterMembershipRoutes(r chi.Router, container *di.Container) {
 	membershipsHandler := NewHandler(membership.NewMembershipService(
 		&membershipRepo.MembershipsRepository{
-			Queries: membershipQueries,
+			Queries: container.Queries.MembershipDb,
 		},
 	))
 
@@ -25,6 +24,6 @@ func RegisterMembershipRoutes(r chi.Router, membershipQueries *membershipDb.Quer
 		r.Put("/{id}", membershipsHandler.UpdateMembership)
 		r.Delete("/{id}", membershipsHandler.DeleteMembership)
 
-		membershipPlan.RegisterMembershipPlansRoutes(r, planQueries)
+		membershipPlan.RegisterMembershipPlansRoutes(r, container.Queries.MembershipPlanDb)
 	})
 }

@@ -58,6 +58,11 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 
 	userInfo, err = h.AuthService.SetUserInfoWithStaffDetails(r.Context(), *userInfo)
 
+	if err != nil {
+		response_handlers.RespondWithError(w, err)
+		return
+	}
+
 	signedToken, err := lib.SignJWT(*userInfo)
 	if err != nil {
 		response_handlers.RespondWithError(w, err)

@@ -2,8 +2,8 @@ package oauth
 
 import (
 	"api/config"
-	"api/internal/domains/identity/authentication/infra/repository"
 	"api/internal/domains/identity/entities"
+	"api/internal/domains/identity/infra/persistence/repository"
 	errors "api/internal/libs/errors"
 	"context"
 	"fmt"

@@ -1,24 +1,21 @@
 package router
 
 import (
-	_interface "api/cmd/server/interface"
+	di "api/cmd/server/di"
 	course "api/internal/domains/course/infra/http"
 	"api/internal/domains/customer"
 	facility "api/internal/domains/facility/infra/http"
-	"api/internal/domains/identity"
+	identity "api/internal/domains/identity/infra"
 	membership "api/internal/domains/membership/infra/http"
-	"api/internal/services/hubspot"
 
 	"github.com/go-chi/chi"
 )
 
-func RegisterRoutes(r *chi.Mux, queries _interface.QueriesType) {
+func RegisterRoutes(r *chi.Mux, container *di.Container) {
 
-	hubspotService := hubspot.GetHubSpotService()
-
-	identity.RegisterIdentityRoutes(r, queries.IdentityDb)
-	course.RegisterCourseRoutes(r, queries.CoursesDb)
-	membership.RegisterMembershipRoutes(r, queries.MembershipDb, queries.MembershipPlanDb)
-	facility.RegisterFacilityRoutes(r, queries.FacilityDb)
-	customer.RegisterCustomerRoutes(r, hubspotService)
+	identity.RegisterIdentityRoutes(r, container)
+	course.RegisterCourseRoutes(r, container)
+	membership.RegisterMembershipRoutes(r, container)
+	facility.RegisterFacilityRoutes(r, container)
+	customer.RegisterCustomerRoutes(r, container.HubspotService)
 }

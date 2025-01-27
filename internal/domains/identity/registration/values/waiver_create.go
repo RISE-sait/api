@@ -1,5 +1,10 @@
 package values
 
+import (
+	errLib "api/internal/libs/errors"
+	"net/http"
+)
+
 type WaiverCreate struct {
 	Email     string
 	WaiverUrl string
@@ -12,4 +17,11 @@ func NewWaiverCreate(email string, waiverUrl string, isSigned bool) *WaiverCreat
 		WaiverUrl: waiverUrl,
 		IsSigned:  isSigned,
 	}
+}
+
+func (w *WaiverCreate) Validate() *errLib.CommonError {
+	if w.WaiverUrl == "" {
+		return errLib.New("Waiver URL cannot be empty", http.StatusBadRequest)
+	}
+	return nil
 }

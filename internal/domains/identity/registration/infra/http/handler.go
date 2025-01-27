@@ -10,17 +10,17 @@ import (
 	"net/http"
 )
 
-type AccountRegistrationController struct {
+type Handler struct {
 	AccountRegistrationService *registration.AccountRegistrationService
 }
 
-func NewAccountRegistrationController(accountRegistrationService *registration.AccountRegistrationService) *AccountRegistrationController {
-	return &AccountRegistrationController{
+func NewHandler(accountRegistrationService *registration.AccountRegistrationService) *Handler {
+	return &Handler{
 		AccountRegistrationService: accountRegistrationService,
 	}
 }
 
-func (c *AccountRegistrationController) CreateTraditionalAccount(w http.ResponseWriter, r *http.Request) {
+func (c *Handler) CreateTraditionalAccount(w http.ResponseWriter, r *http.Request) {
 	var dto dto.CreateUserRequest
 
 	// Step 1: Decode and validate the request body.

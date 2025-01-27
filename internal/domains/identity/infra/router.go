@@ -6,6 +6,7 @@ import (
 	"api/internal/domains/identity/infra/persistence/repository"
 	"api/internal/domains/identity/oauth"
 	"api/internal/domains/identity/registration"
+	registration_handler "api/internal/domains/identity/registration/infra/http"
 	waiver_repository "api/internal/domains/identity/registration/infra/persistence"
 
 	"github.com/go-chi/chi"
@@ -26,7 +27,7 @@ func RegisterIdentityRoutes(r chi.Router, container *di.Container) {
 
 	registrationService := registration.NewAccountRegistrationService(usersRepository, usersCredentialsRepository, staffRepository, waiverRepository, container.DB, container.HubspotService)
 
-	registrationHandler := registration.NewHandler(registrationService)
+	registrationHandler := registration_handler.NewHandler(registrationService)
 
 	oauthHandler := oauth.NewHandler(oauthService)
 
@@ -36,6 +37,6 @@ func RegisterIdentityRoutes(r chi.Router, container *di.Container) {
 	})
 
 	r.Route("/register", func(registration chi.Router) {
-		registration.Post("/", registrationHandler.Register)
+		registration.Post("/", registrationHandler.CreateTraditionalAccount)
 	})
 }

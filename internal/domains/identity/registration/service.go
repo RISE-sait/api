@@ -9,7 +9,6 @@ import (
 	"api/internal/services/hubspot"
 	"context"
 	"database/sql"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -90,9 +89,6 @@ func (s *AccountRegistrationService) CreateAccount(
 
 	// Insert into staff table if role is not ""
 
-	log.Println("Role: ", role)
-	log.Println(role == "")
-
 	if role != "" {
 		if err := s.StaffRepository.CreateStaffTx(ctx, tx, email, role, isActive); err != nil {
 			_ = tx.Rollback()
@@ -101,6 +97,10 @@ func (s *AccountRegistrationService) CreateAccount(
 
 	} else {
 		// User is Customer
+
+		if err := waiverCreate.Validate(); err != nil {
+			return nil, err
+		}
 
 		if !waiverCreate.IsSigned {
 			tx.Rollback()

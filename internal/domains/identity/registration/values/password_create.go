@@ -3,6 +3,7 @@ package values
 import (
 	errLib "api/internal/libs/errors"
 	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -24,9 +25,11 @@ func (upc *UserPasswordCreate) Validate() *errLib.CommonError {
 		return errLib.New("Email cannot be empty or whitespace", http.StatusBadRequest)
 	}
 
-	if !strings.Contains(upc.Email, "@") {
-		return errLib.New("Invalid email", http.StatusBadRequest)
+	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+	if !emailRegex.MatchString(upc.Email) {
+		return errLib.New("Invalid email format", http.StatusBadRequest)
 	}
+
 	if len(upc.Password) < 8 {
 		return errLib.New("Password must be at least 8 characters", http.StatusBadRequest)
 	}

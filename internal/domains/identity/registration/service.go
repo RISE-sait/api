@@ -1,6 +1,7 @@
 package registration
 
 import (
+	"api/cmd/server/di"
 	"api/internal/domains/identity/entities"
 	"api/internal/domains/identity/infra/persistence/repository"
 	waiver_repository "api/internal/domains/identity/registration/infra/persistence"
@@ -23,20 +24,15 @@ type AccountRegistrationService struct {
 }
 
 func NewAccountRegistrationService(
-	UsersRepository *repository.UserRepository,
-	UserPasswordRepository *repository.UserCredentialsRepository,
-	StaffRepository *repository.StaffRepository,
-	WaiverRepository *waiver_repository.WaiverRepository,
-	db *sql.DB,
-	HubSpotService *hubspot.HubSpotService,
+	container *di.Container,
 ) *AccountRegistrationService {
 	return &AccountRegistrationService{
-		WaiverRepository:       WaiverRepository,
-		UsersRepository:        UsersRepository,
-		UserPasswordRepository: UserPasswordRepository,
-		StaffRepository:        StaffRepository,
-		DB:                     db,
-		HubSpotService:         HubSpotService,
+		UsersRepository:        repository.NewUserRepository(container.Queries.IdentityDb),
+		UserPasswordRepository: repository.NewUserCredentialsRepository(container.Queries.IdentityDb),
+		StaffRepository:        repository.NewStaffRepository(container.Queries.IdentityDb),
+		WaiverRepository:       waiver_repository.NewWaiverRepository(container.Queries.WaiversDb),
+		DB:                     container.DB,
+		HubSpotService:         container.HubspotService,
 	}
 }
 

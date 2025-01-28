@@ -7,6 +7,7 @@ import (
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
+	"errors"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -30,7 +31,7 @@ func (r *MembershipsRepository) Create(c context.Context, membership *entity.Mem
 	row, err := r.Queries.CreateMembership(c, dbParams)
 
 	if err != nil {
-		return errLib.TranslateDBErrorToCommonError(err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
 	if row == 0 {
@@ -44,8 +45,12 @@ func (r *MembershipsRepository) GetByID(c context.Context, id uuid.UUID) (*entit
 	membership, err := r.Queries.GetMembershipById(c, id)
 
 	if err != nil {
-		return nil, errLib.TranslateDBErrorToCommonError(err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errLib.New("Membership not found", http.StatusNotFound)
+		}
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
+
 	return &entity.Membership{
 		ID:          membership.ID,
 		Name:        membership.Name,
@@ -59,11 +64,8 @@ func (r *MembershipsRepository) List(c context.Context, after string) ([]entity.
 	dbMemberships, err := r.Queries.GetAllMemberships(c)
 
 	if err != nil {
-
-		dbErr := errLib.TranslateDBErrorToCommonError(err)
-		return []entity.Membership{}, dbErr
+		return []entity.Membership{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
-
 	memebrships := make([]entity.Membership, len(dbMemberships))
 	for i, dbCourse := range dbMemberships {
 		memebrships[i] = entity.Membership{
@@ -94,7 +96,7 @@ func (r *MembershipsRepository) Update(c context.Context, membership *values.Mem
 	row, err := r.Queries.UpdateMembership(c, dbMembershipParams)
 
 	if err != nil {
-		return errLib.TranslateDBErrorToCommonError(err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
 	if row == 0 {
@@ -108,7 +110,7 @@ func (r *MembershipsRepository) Delete(c context.Context, id uuid.UUID) *errLib.
 	row, err := r.Queries.DeleteMembership(c, id)
 
 	if err != nil {
-		return errLib.TranslateDBErrorToCommonError(err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
 	if row == 0 {

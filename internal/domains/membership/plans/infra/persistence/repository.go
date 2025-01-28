@@ -7,6 +7,7 @@ import (
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
+	"errors"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -34,7 +35,7 @@ func (r *MembershipPlansRepository) CreateMembershipPlan(c context.Context, memb
 	row, err := r.Queries.CreateMembershipPlan(c, dbParams)
 
 	if err != nil {
-		return errLib.TranslateDBErrorToCommonError(err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
 	if row == 0 {
@@ -48,7 +49,10 @@ func (r *MembershipPlansRepository) GetMembershipPlansByMembershipId(ctx context
 	dbPlans, err := r.Queries.GetMembershipPlansByMembershipId(ctx, id)
 
 	if err != nil {
-		return nil, errLib.TranslateDBErrorToCommonError(err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errLib.New("No membership plans found", http.StatusNotFound)
+		}
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
 	plans := make([]entity.MembershipPlan, len(dbPlans))
@@ -86,7 +90,7 @@ func (r *MembershipPlansRepository) UpdateMembershipPlan(c context.Context, plan
 	row, err := r.Queries.UpdateMembershipPlan(c, dbMembershipParams)
 
 	if err != nil {
-		return errLib.TranslateDBErrorToCommonError(err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
 	if row == 0 {
@@ -105,7 +109,7 @@ func (r *MembershipPlansRepository) DeleteMembershipPlan(c context.Context, memb
 	row, err := r.Queries.DeleteMembershipPlan(c, plan)
 
 	if err != nil {
-		return errLib.TranslateDBErrorToCommonError(err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
 	if row == 0 {

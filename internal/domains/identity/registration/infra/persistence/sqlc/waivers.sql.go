@@ -7,22 +7,40 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const createWaiverSignedStatus = `-- name: CreateWaiverSignedStatus :execrows
-INSERT INTO waiver_signing (user_id, waiver_id, is_signed) VALUES ((SELECT id from users where email = $1), (SELECT id from waiver WHERE waiver_url = $2), $3)
+INSERT INTO waiver_signing (user_id, waiver_id, is_signed) VALUES ($1, (SELECT id from waiver WHERE waiver_url = $2), $3)
 `
 
 type CreateWaiverSignedStatusParams struct {
-	Email     string `json:"email"`
-	WaiverUrl string `json:"waiver_url"`
-	IsSigned  bool   `json:"is_signed"`
+	UserID    uuid.UUID `json:"user_id"`
+	WaiverUrl string    `json:"waiver_url"`
+	IsSigned  bool      `json:"is_signed"`
 }
 
 func (q *Queries) CreateWaiverSignedStatus(ctx context.Context, arg CreateWaiverSignedStatusParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, createWaiverSignedStatus, arg.Email, arg.WaiverUrl, arg.IsSigned)
+	result, err := q.db.ExecContext(ctx, createWaiverSignedStatus, arg.UserID, arg.WaiverUrl, arg.IsSigned)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const getWaiver = `-- name: GetWaiver :one
+SELECT id, waiver_url, created_at, updated_at FROM waiver WHERE waiver_url = $1 LIMIT 1
+`
+
+func (q *Queries) GetWaiver(ctx context.Context, waiverUrl string) (Waiver, error) {
+	row := q.db.QueryRowContext(ctx, getWaiver, waiverUrl)
+	var i Waiver
+	err := row.Scan(
+		&i.ID,
+		&i.WaiverUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

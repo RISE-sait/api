@@ -54,7 +54,7 @@ func (s *Service) getStaffInfo(ctx context.Context, email string) entities.Staff
 
 	staff, err := s.StaffRepo.GetStaffByEmail(ctx, email)
 	if err == nil {
-		staffInfo.Role = string(staff.Role)
+		staffInfo.Role = staff.RoleName
 		staffInfo.IsActive = staff.IsActive
 	}
 

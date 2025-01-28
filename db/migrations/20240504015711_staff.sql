@@ -1,15 +1,18 @@
 -- +goose Up
-CREATE TYPE staff_role_enum AS ENUM ('ADMIN', 'INSTRUCTOR', 'SUPERADMIN','COACH');
+CREATE TABLE staff_roles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    role_name TEXT NOT NULL UNIQUE
+);
 
 CREATE Table Staff (
     id UUID PRIMARY KEY REFERENCES users(id),
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    role staff_role_enum NOT NULL
+    role_id UUID NOT NULL REFERENCES staff_roles(id)
 );
 
 -- +goose Down
 DROP TABLE IF EXISTS Staff;
 
-DROP TYPE IF EXISTS staff_role_enum;
+DROP TABLE IF EXISTS staff_roles;

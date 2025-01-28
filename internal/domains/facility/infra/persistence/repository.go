@@ -1,15 +1,19 @@
 package persistence
 
 import (
+	database_errors "api/internal/constants"
 	entity "api/internal/domains/facility/entities"
 	db "api/internal/domains/facility/infra/persistence/sqlc/generated"
 	"api/internal/domains/facility/values"
 	errLib "api/internal/libs/errors"
 	"context"
+	"database/sql"
+	"errors"
 	"log"
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 type FacilityRepository struct {
@@ -27,9 +31,19 @@ func (r *FacilityRepository) CreateFacility(c context.Context, facility *values.
 	row, err := r.Queries.CreateFacility(c, dbParams)
 
 	if err != nil {
-		return errLib.TranslateDBErrorToCommonError(err)
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			// Handle specific Postgres errors
+			switch pqErr.Code {
+			case database_errors.ForeignKeyViolation:
+				return errLib.New("Invalid facility type ID", http.StatusBadRequest)
+			case database_errors.UniqueViolation:
+				return errLib.New("Facility with the given name already exists", http.StatusConflict)
+			}
+		}
+		log.Printf("Error creating facility: %v", err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
-
 	if row == 0 {
 		return errLib.New("Facility not created", http.StatusInternalServerError)
 	}
@@ -41,8 +55,11 @@ func (r *FacilityRepository) GetFacility(c context.Context, id uuid.UUID) (*enti
 	facility, err := r.Queries.GetFacilityById(c, id)
 
 	if err != nil {
-		log.Printf("Failed to retrieve facility with ID: %s", id)
-		return nil, errLib.New("Facility not found", http.StatusNotFound)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errLib.New("Facility not found", http.StatusNotFound)
+		}
+		log.Printf("Failed to retrieve facility with ID: %s, error: %v", id, err)
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
 	return &entity.Facility{
@@ -57,8 +74,8 @@ func (r *FacilityRepository) GetAllFacilities(c context.Context, filter string) 
 	dbFacilities, err := r.Queries.GetAllFacilities(c)
 
 	if err != nil {
-		dbErr := errLib.TranslateDBErrorToCommonError(err)
-		return []entity.Facility{}, dbErr
+		log.Printf("Error retrieving facilities: %v", err)
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
 	courses := make([]entity.Facility, len(dbFacilities))
@@ -86,10 +103,22 @@ func (r *FacilityRepository) UpdateFacility(c context.Context, facility *values.
 	row, err := r.Queries.UpdateFacility(c, dbParams)
 
 	if err != nil {
-		return errLib.TranslateDBErrorToCommonError(err)
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			// Handle specific Postgres errors
+			switch pqErr.Code {
+			case database_errors.ForeignKeyViolation:
+				return errLib.New("Facility type ID not found", http.StatusBadRequest)
+			case database_errors.UniqueViolation:
+				return errLib.New("Facility with the given name already exists", http.StatusConflict)
+			}
+		}
+		log.Printf("Error updating facility with ID: %s, error: %v", facility.ID, err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
 	if row == 0 {
+		log.Printf("Facility not found with ID: %s", facility.ID)
 		return errLib.New("Facility not found", http.StatusNotFound)
 	}
 
@@ -100,7 +129,11 @@ func (r *FacilityRepository) DeleteFacility(c context.Context, id uuid.UUID) *er
 	row, err := r.Queries.DeleteFacility(c, id)
 
 	if err != nil {
-		return errLib.TranslateDBErrorToCommonError(err)
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			log.Printf("Error deleting facility with ID: %s, error: %v", id, err)
+			return errLib.New("Internal server error", http.StatusInternalServerError)
+		}
 	}
 
 	if row == 0 {

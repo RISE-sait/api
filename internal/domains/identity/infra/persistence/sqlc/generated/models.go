@@ -103,50 +103,6 @@ func (ns NullPaymentFrequency) Value() (driver.Value, error) {
 	return string(ns.PaymentFrequency), nil
 }
 
-type StaffRoleEnum string
-
-const (
-	StaffRoleEnumADMIN      StaffRoleEnum = "ADMIN"
-	StaffRoleEnumINSTRUCTOR StaffRoleEnum = "INSTRUCTOR"
-	StaffRoleEnumSUPERADMIN StaffRoleEnum = "SUPERADMIN"
-	StaffRoleEnumCOACH      StaffRoleEnum = "COACH"
-)
-
-func (e *StaffRoleEnum) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = StaffRoleEnum(s)
-	case string:
-		*e = StaffRoleEnum(s)
-	default:
-		return fmt.Errorf("unsupported scan type for StaffRoleEnum: %T", src)
-	}
-	return nil
-}
-
-type NullStaffRoleEnum struct {
-	StaffRoleEnum StaffRoleEnum `json:"staff_role_enum"`
-	Valid         bool          `json:"valid"` // Valid is true if StaffRoleEnum is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullStaffRoleEnum) Scan(value interface{}) error {
-	if value == nil {
-		ns.StaffRoleEnum, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.StaffRoleEnum.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullStaffRoleEnum) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.StaffRoleEnum), nil
-}
-
 type Course struct {
 	ID          uuid.UUID      `json:"id"`
 	Name        string         `json:"name"`
@@ -214,11 +170,11 @@ type Schedule struct {
 }
 
 type Staff struct {
-	ID        uuid.UUID     `json:"id"`
-	IsActive  bool          `json:"is_active"`
-	CreatedAt time.Time     `json:"created_at"`
-	UpdatedAt time.Time     `json:"updated_at"`
-	Role      StaffRoleEnum `json:"role"`
+	ID        uuid.UUID `json:"id"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	RoleID    uuid.UUID `json:"role_id"`
 }
 
 type StaffActivityLog struct {
@@ -226,6 +182,11 @@ type StaffActivityLog struct {
 	UserID     uuid.UUID    `json:"user_id"`
 	Activity   string       `json:"activity"`
 	OccurredAt sql.NullTime `json:"occurred_at"`
+}
+
+type StaffRole struct {
+	ID       uuid.UUID `json:"id"`
+	RoleName string    `json:"role_name"`
 }
 
 type User struct {
@@ -240,10 +201,15 @@ type UserOptionalInfo struct {
 }
 
 type Waiver struct {
-	ID           uuid.UUID `json:"id"`
-	Email        string    `json:"email"`
-	DocumentLink string    `json:"document_link"`
-	IsSigned     bool      `json:"is_signed"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID        uuid.UUID `json:"id"`
+	WaiverUrl string    `json:"waiver_url"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type WaiverSigning struct {
+	UserID    uuid.UUID `json:"user_id"`
+	WaiverID  uuid.UUID `json:"waiver_id"`
+	IsSigned  bool      `json:"is_signed"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

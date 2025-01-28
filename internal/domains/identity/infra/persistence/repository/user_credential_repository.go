@@ -1,10 +1,16 @@
 package repository
 
 import (
+	database_errors "api/internal/constants"
 	db "api/internal/domains/identity/infra/persistence/sqlc/generated"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
+	"errors"
+	"log"
+	"net/http"
+
+	"github.com/lib/pq"
 )
 
 type UserCredentialsRepository struct {
@@ -28,6 +34,7 @@ func (r *UserRepository) IsValidUser(ctx context.Context, email, password string
 	}
 
 	if _, err := r.Queries.GetUserByEmailPassword(ctx, params); err != nil {
+		log.Printf("Failed to validate user: %v", err)
 		return false
 	}
 	return true
@@ -46,7 +53,12 @@ func (r *UserCredentialsRepository) CreatePasswordTx(ctx context.Context, tx *sq
 	rows, err := r.Queries.WithTx(tx).CreatePassword(ctx, params)
 
 	if err != nil {
-		return errLib.TranslateDBErrorToCommonError(err)
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			if pqErr.Code == database_errors.ForeignKeyViolation {
+				return errLib.New("User does not exist for the provided email", http.StatusBadRequest)
+			}
+		}
 	}
 
 	if rows != 1 {

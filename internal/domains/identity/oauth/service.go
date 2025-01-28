@@ -48,7 +48,7 @@ func (s *Service) SetUserInfoWithStaffDetails(c context.Context, userInfo entiti
 	}
 
 	staffInfo = &entities.StaffInfo{
-		Role:     string(staff.Role),
+		Role:     staff.RoleName,
 		IsActive: staff.IsActive,
 	}
 

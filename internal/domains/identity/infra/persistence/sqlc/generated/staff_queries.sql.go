@@ -12,17 +12,18 @@ import (
 )
 
 const createStaff = `-- name: CreateStaff :execrows
-INSERT INTO staff (id, role, is_active) VALUES ((SELECT id from users WHERE email = $1), $2, $3)
+INSERT INTO staff (id, role_id, is_active) VALUES ((SELECT id from users WHERE email = $1), 
+(SELECT id from staff_roles where role_name = $2), $3)
 `
 
 type CreateStaffParams struct {
-	Email    string        `json:"email"`
-	Role     StaffRoleEnum `json:"role"`
-	IsActive bool          `json:"is_active"`
+	Email    string `json:"email"`
+	RoleName string `json:"role_name"`
+	IsActive bool   `json:"is_active"`
 }
 
 func (q *Queries) CreateStaff(ctx context.Context, arg CreateStaffParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, createStaff, arg.Email, arg.Role, arg.IsActive)
+	result, err := q.db.ExecContext(ctx, createStaff, arg.Email, arg.RoleName, arg.IsActive)
 	if err != nil {
 		return 0, err
 	}
@@ -30,9 +31,11 @@ func (q *Queries) CreateStaff(ctx context.Context, arg CreateStaffParams) (int64
 }
 
 const getStaffByEmail = `-- name: GetStaffByEmail :one
-SELECT oi.name, u.email, s.is_active, s.created_at, s.updated_at, s.role FROM staff s
+SELECT oi.name, u.email, s.is_active, s.created_at, s.updated_at, sr.role_name FROM staff s
 JOIN users u ON s.id = u.id
-JOIN user_optional_info oi ON oi.id = u.id WHERE u.email = $1
+JOIN user_optional_info oi ON oi.id = u.id
+JOIN staff_roles sr ON s.role_id = sr.id
+WHERE u.email = $1
 `
 
 type GetStaffByEmailRow struct {
@@ -41,7 +44,7 @@ type GetStaffByEmailRow struct {
 	IsActive  bool           `json:"is_active"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
-	Role      StaffRoleEnum  `json:"role"`
+	RoleName  string         `json:"role_name"`
 }
 
 func (q *Queries) GetStaffByEmail(ctx context.Context, email string) (GetStaffByEmailRow, error) {
@@ -53,7 +56,34 @@ func (q *Queries) GetStaffByEmail(ctx context.Context, email string) (GetStaffBy
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Role,
+		&i.RoleName,
 	)
 	return i, err
+}
+
+const getStaffRoles = `-- name: GetStaffRoles :many
+SELECT id, role_name FROM staff_roles
+`
+
+func (q *Queries) GetStaffRoles(ctx context.Context) ([]StaffRole, error) {
+	rows, err := q.db.QueryContext(ctx, getStaffRoles)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []StaffRole
+	for rows.Next() {
+		var i StaffRole
+		if err := rows.Scan(&i.ID, &i.RoleName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

@@ -7,6 +7,7 @@ import (
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
+	"errors"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -20,8 +21,12 @@ func (r *CourseRepository) GetCourseById(c context.Context, id uuid.UUID) (*enti
 	course, err := r.Queries.GetCourseById(c, id)
 
 	if err != nil {
-		return nil, errLib.TranslateDBErrorToCommonError(err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errLib.New("Course not found", http.StatusNotFound)
+		}
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
+
 	return &entity.Course{
 		ID:          course.ID,
 		Name:        course.Name,
@@ -47,7 +52,7 @@ func (r *CourseRepository) UpdateCourse(c context.Context, course *values.Course
 	row, err := r.Queries.UpdateCourse(c, dbCourseParams)
 
 	if err != nil {
-		return errLib.TranslateDBErrorToCommonError(err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
 	if row == 0 {
@@ -61,7 +66,7 @@ func (r *CourseRepository) GetAllCourses(c context.Context, after string) ([]ent
 	dbCourses, err := r.Queries.GetAllCourses(c)
 
 	if err != nil {
-		dbErr := errLib.TranslateDBErrorToCommonError(err)
+		dbErr := errLib.New("Internal server error", http.StatusInternalServerError)
 
 		return []entity.Course{}, dbErr
 	}
@@ -85,7 +90,7 @@ func (r *CourseRepository) DeleteCourse(c context.Context, id uuid.UUID) *errLib
 	row, err := r.Queries.DeleteCourse(c, id)
 
 	if err != nil {
-		return errLib.TranslateDBErrorToCommonError(err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
 	if row == 0 {
@@ -109,7 +114,7 @@ func (r *CourseRepository) CreateCourse(c context.Context, course *values.Course
 	row, err := r.Queries.CreateCourse(c, dbCourseParams)
 
 	if err != nil {
-		return errLib.TranslateDBErrorToCommonError(err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
 	if row == 0 {

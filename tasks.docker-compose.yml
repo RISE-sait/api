@@ -22,4 +22,5 @@ services:
     container_name: '${COMPOSE_PROJECT_NAME}_migrate'
     env_file:
       - ./config/.env
-    command: ${MIGRATE_CMD:-up}  # Default to 'up' if not specified
+
+# docker compose -f tasks.docker-compose.yml run --rm --build migrate up

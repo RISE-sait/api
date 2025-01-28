@@ -48,8 +48,8 @@ func (s *AccountRegistrationService) CreateAccount(
 ) (*entities.UserInfo, *errLib.CommonError) {
 
 	// Begin transaction
-	tx, err := s.DB.BeginTx(ctx, &sql.TxOptions{})
-	if err != nil {
+	tx, txErr := s.DB.BeginTx(ctx, &sql.TxOptions{})
+	if txErr != nil {
 		return nil, errLib.New("Failed to begin transaction", http.StatusInternalServerError)
 	}
 
@@ -68,7 +68,9 @@ func (s *AccountRegistrationService) CreateAccount(
 	password := userPasswordCreate.Password
 
 	// Insert into users table
-	if err := s.UsersRepository.CreateUserTx(ctx, tx, email); err != nil {
+	userId, err := s.UsersRepository.CreateUserTx(ctx, tx, email)
+
+	if err != nil {
 		tx.Rollback()
 		return nil, err
 	}
@@ -90,6 +92,29 @@ func (s *AccountRegistrationService) CreateAccount(
 	// Insert into staff table if role is not ""
 
 	if role != "" {
+
+		roleExists := false
+
+		dbStaffRoles, err := s.StaffRepository.GetStaffRolesTx(ctx, tx)
+		staffRoles := []string{}
+
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		for _, staffRole := range dbStaffRoles {
+			staffRoles = append(staffRoles, staffRole.RoleName)
+			if staffRole.RoleName == role {
+				roleExists = true
+			}
+		}
+
+		if !roleExists {
+			tx.Rollback()
+			return nil, errLib.New("Role does not exist. Available roles: "+strings.Join(staffRoles, ", "), http.StatusBadRequest)
+		}
+
 		if err := s.StaffRepository.CreateStaffTx(ctx, tx, email, role, isActive); err != nil {
 			_ = tx.Rollback()
 			return nil, err
@@ -102,12 +127,19 @@ func (s *AccountRegistrationService) CreateAccount(
 			return nil, err
 		}
 
+		_, err := s.WaiverRepository.GetWaiver(ctx, waiverCreate.WaiverUrl)
+
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
 		if !waiverCreate.IsSigned {
 			tx.Rollback()
 			return nil, errLib.New("Waiver is not signed", http.StatusBadRequest)
 		}
 
-		if err := s.WaiverRepository.CreateWaiverRecordTx(ctx, tx, email, waiverCreate.WaiverUrl, waiverCreate.IsSigned); err != nil {
+		if err := s.WaiverRepository.CreateWaiverRecordTx(ctx, tx, userId, waiverCreate.WaiverUrl, waiverCreate.IsSigned); err != nil {
 			tx.Rollback()
 			return nil, err
 		}
@@ -133,7 +165,7 @@ func (s *AccountRegistrationService) CreateAccount(
 		return nil, errLib.New("Failed to commit transaction", http.StatusInternalServerError)
 	}
 
-	// // Generate JWT for the new user
+	// Generate JWT for the new user
 	userInfo := entities.UserInfo{
 		Name:  strings.Split(email, "@")[0],
 		Email: email,

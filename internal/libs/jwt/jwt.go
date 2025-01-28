@@ -1,4 +1,4 @@
-package lib
+package jwt
 
 import (
 	"api/config"
@@ -12,22 +12,16 @@ import (
 
 func SignJWT(userInfo entities.UserInfo) (string, *errLib.CommonError) {
 
-	role := "Athlete"
-
-	isActiveStaff := false
-
-	if userInfo.StaffInfo != nil {
-		role = userInfo.StaffInfo.Role
-		isActiveStaff = userInfo.StaffInfo.IsActive
+	claims := jwt.MapClaims{
+		"name":  userInfo.Name,
+		"email": userInfo.Email,
+		"iss":   config.Envs.JwtConfig.Issuer,
+		"exp":   time.Now().Add(time.Hour * 24 * 15).Unix(), // 15 days
 	}
 
-	claims := jwt.MapClaims{
-		"name":          userInfo.Name,
-		"email":         userInfo.Email,
-		"iss":           config.Envs.JwtConfig.Issuer,
-		"exp":           time.Now().Add(time.Hour * 24 * 15).Unix(), // 15 days
-		"role":          role,
-		"isActiveStaff": isActiveStaff,
+	if userInfo.StaffInfo != nil {
+		claims["role"] = userInfo.StaffInfo.Role
+		claims["isActive"] = userInfo.StaffInfo.IsActive
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

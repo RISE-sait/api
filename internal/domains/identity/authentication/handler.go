@@ -3,8 +3,7 @@ package authentication
 import (
 	"api/internal/domains/identity/authentication/dto"
 	"api/internal/domains/identity/authentication/values"
-	"api/internal/domains/identity/lib"
-	handlers "api/internal/libs/responses"
+	"api/internal/libs/jwt"
 	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -29,11 +28,11 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	userInfo, err := h.AuthService.AuthenticateUser(r.Context(), credentials)
 	if err != nil {
-		handlers.RespondWithError(w, err)
+		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	token, err := lib.SignJWT(*userInfo)
+	token, err := jwt.SignJWT(*userInfo)
 
 	if err != nil {
 		response_handlers.RespondWithError(w, err)

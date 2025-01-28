@@ -3,10 +3,10 @@ package identity
 import (
 	"api/cmd/server/di"
 	"api/internal/domains/identity/authentication"
+	"api/internal/domains/identity/customer_registration"
+	registration_handler "api/internal/domains/identity/customer_registration/infra/http"
 	"api/internal/domains/identity/infra/persistence/repository"
 	"api/internal/domains/identity/oauth"
-	"api/internal/domains/identity/registration"
-	registration_handler "api/internal/domains/identity/registration/infra/http"
 
 	"github.com/go-chi/chi"
 )
@@ -22,7 +22,7 @@ func RegisterIdentityRoutes(r chi.Router, container *di.Container) {
 		usersRepository, staffRepository,
 	))
 
-	registrationService := registration.NewAccountRegistrationService(container)
+	registrationService := customer_registration.NewAccountRegistrationService(container)
 
 	registrationHandler := registration_handler.NewHandler(registrationService)
 

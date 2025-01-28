@@ -1,20 +1,20 @@
-package registration
+package customer_registration
 
 import (
-	"api/internal/domains/identity/lib"
-	"api/internal/domains/identity/registration"
-	"api/internal/domains/identity/registration/infra/http/dto"
-	"api/internal/domains/identity/registration/values"
+	"api/internal/domains/identity/customer_registration"
+	"api/internal/domains/identity/customer_registration/infra/http/dto"
+	"api/internal/domains/identity/customer_registration/values"
+	lib "api/internal/libs/jwt"
 	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
 )
 
 type Handler struct {
-	AccountRegistrationService *registration.AccountRegistrationService
+	AccountRegistrationService *customer_registration.AccountRegistrationService
 }
 
-func NewHandler(accountRegistrationService *registration.AccountRegistrationService) *Handler {
+func NewHandler(accountRegistrationService *customer_registration.AccountRegistrationService) *Handler {
 	return &Handler{
 		AccountRegistrationService: accountRegistrationService,
 	}
@@ -30,11 +30,10 @@ func (c *Handler) CreateTraditionalAccount(w http.ResponseWriter, r *http.Reques
 	}
 
 	userPasswordCreate := values.NewUserPasswordCreate(dto.Email, dto.Password)
-	staffCreate := values.NewStaffCreate(dto.Role, dto.IsActiveStaff)
 	waiverCreate := values.NewWaiverCreate(dto.Email, dto.WaiverUrl, dto.IsSignedWaiver)
 
 	// Step 2: Call the service to create the account
-	userInfo, err := c.AccountRegistrationService.CreateAccount(r.Context(), userPasswordCreate, staffCreate, waiverCreate)
+	userInfo, err := c.AccountRegistrationService.CreateCustomer(r.Context(), userPasswordCreate, waiverCreate)
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return

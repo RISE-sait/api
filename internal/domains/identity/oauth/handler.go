@@ -2,8 +2,8 @@ package oauth
 
 import (
 	"api/internal/domains/identity/entities"
-	"api/internal/domains/identity/lib"
 	errLib "api/internal/libs/errors"
+	"api/internal/libs/jwt"
 	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"log"
@@ -63,7 +63,7 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	signedToken, err := lib.SignJWT(*userInfo)
+	signedToken, err := jwt.SignJWT(*userInfo)
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return

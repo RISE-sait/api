@@ -2,7 +2,7 @@ package waiver_repository
 
 import (
 	database_errors "api/internal/constants"
-	db "api/internal/domains/identity/registration/infra/persistence/sqlc"
+	db "api/internal/domains/identity/customer_registration/infra/persistence/sqlc"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"

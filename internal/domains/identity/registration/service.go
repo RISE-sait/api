@@ -64,7 +64,7 @@ func (s *AccountRegistrationService) CreateAccount(
 	password := userPasswordCreate.Password
 
 	// Insert into users table
-	userId, err := s.UsersRepository.CreateUserTx(ctx, tx, email)
+	_, err := s.UsersRepository.CreateUserTx(ctx, tx, email)
 
 	if err != nil {
 		tx.Rollback()
@@ -119,26 +119,26 @@ func (s *AccountRegistrationService) CreateAccount(
 	} else {
 		// User is Customer
 
-		if err := waiverCreate.Validate(); err != nil {
-			return nil, err
-		}
+		// if err := waiverCreate.Validate(); err != nil {
+		// 	return nil, err
+		// }
 
-		_, err := s.WaiverRepository.GetWaiver(ctx, waiverCreate.WaiverUrl)
+		// _, err := s.WaiverRepository.GetWaiver(ctx, waiverCreate.WaiverUrl)
 
-		if err != nil {
-			tx.Rollback()
-			return nil, err
-		}
+		// if err != nil {
+		// 	tx.Rollback()
+		// 	return nil, err
+		// }
 
-		if !waiverCreate.IsSigned {
-			tx.Rollback()
-			return nil, errLib.New("Waiver is not signed", http.StatusBadRequest)
-		}
+		// if !waiverCreate.IsSigned {
+		// 	tx.Rollback()
+		// 	return nil, errLib.New("Waiver is not signed", http.StatusBadRequest)
+		// }
 
-		if err := s.WaiverRepository.CreateWaiverRecordTx(ctx, tx, userId, waiverCreate.WaiverUrl, waiverCreate.IsSigned); err != nil {
-			tx.Rollback()
-			return nil, err
-		}
+		// if err := s.WaiverRepository.CreateWaiverRecordTx(ctx, tx, userId, waiverCreate.WaiverUrl, waiverCreate.IsSigned); err != nil {
+		// 	tx.Rollback()
+		// 	return nil, err
+		// }
 
 		customer := hubspot.HubSpotCustomerCreateBody{
 			Properties: hubspot.HubSpotCustomerProps{

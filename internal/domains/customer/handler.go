@@ -59,10 +59,10 @@ func (h *Handler) CreateCustomer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.HubSpotService.CreateCustomer(customer); err != nil {
-		response_handlers.RespondWithError(w, err)
-		return
-	}
+	// if err := h.HubSpotService.CreateCustomer(customer); err != nil {
+	// 	response_handlers.RespondWithError(w, err)
+	// 	return
+	// }
 
 	response_handlers.RespondWithSuccess(w, nil, http.StatusCreated)
 }

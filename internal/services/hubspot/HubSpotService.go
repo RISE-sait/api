@@ -53,6 +53,24 @@ func (s *HubSpotService) CreateCustomer(customer HubSpotCustomerCreateBody) *err
 	return nil
 }
 
+func (s *HubSpotService) AssociateChildAndParent(childId, parentId string) *errLib.CommonError {
+	url := fmt.Sprintf("%scrm/v4/objects/contacts/%s/associations/contacts/%s",
+		s.BaseURL,
+		childId,
+		parentId,
+	)
+
+	request := []AssociationInput{
+		{
+			AssociationCategory: "USER_DEFINED",
+			AssociationTypeId:   5,
+		},
+	}
+
+	_, err := executeHubSpotRequest[any](s, http.MethodPut, url, request)
+	return err
+}
+
 func (s *HubSpotService) GetCustomers(after string) ([]HubSpotCustomerResponse, *errLib.CommonError) {
 	url := fmt.Sprintf("%scrm/v3/objects/contacts?limit=10", s.BaseURL)
 	if after != "" {

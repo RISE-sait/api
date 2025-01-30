@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
 )
@@ -48,7 +49,12 @@ func (s *HubSpotService) GetCustomerByEmail(email string) (*HubSpotCustomerRespo
 func (s *HubSpotService) CreateCustomer(customer HubSpotCustomerCreateBody) *errLib.CommonError {
 	url := fmt.Sprintf("%scrm/v3/objects/contacts", s.BaseURL)
 	if _, err := executeHubSpotRequest[HubSpotCustomerCreateBody](s, http.MethodPost, url, customer); err != nil {
-		return err
+		if err.HTTPCode == http.StatusConflict {
+			return errLib.New("Customer already exists", http.StatusConflict)
+		}
+
+		log.Println("error creating customer on hubspot: ", err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 	return nil
 }

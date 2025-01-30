@@ -1,4 +1,4 @@
-package persistence
+package membership
 
 import (
 	entity "api/internal/domains/membership/entities"

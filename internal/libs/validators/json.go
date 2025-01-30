@@ -4,6 +4,7 @@ import (
 	errLib "api/internal/libs/errors"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"reflect"
 )
@@ -14,6 +15,7 @@ func ParseJSON(body io.Reader, target interface{}) *errLib.CommonError {
 	}
 
 	if err := json.NewDecoder(body).Decode(target); err != nil {
+		log.Println(err)
 		return errLib.New("Invalid JSON format", http.StatusBadRequest)
 	}
 	return nil

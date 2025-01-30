@@ -2,7 +2,7 @@ package main
 
 import (
 	"api/cmd/server/di"
-	"api/cmd/server/router"
+	routes "api/cmd/server/router"
 	"context"
 	"encoding/json"
 	"os"
@@ -65,7 +65,7 @@ func setupServer(container *di.Container) http.Handler {
 		})
 	})
 
-	router.RegisterRoutes(r, container)
+	routes.RegisterRoutes(r, container)
 	return r
 }
 

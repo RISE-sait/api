@@ -2,7 +2,7 @@ package membership
 
 import (
 	entity "api/internal/domains/membership/entities"
-	"api/internal/domains/membership/infra/persistence"
+	membership "api/internal/domains/membership/infra/persistence"
 	"api/internal/domains/membership/values"
 	errLib "api/internal/libs/errors"
 	"context"
@@ -11,10 +11,10 @@ import (
 )
 
 type MembershipService struct {
-	Repo *persistence.MembershipsRepository
+	Repo *membership.MembershipsRepository
 }
 
-func NewMembershipService(repo *persistence.MembershipsRepository) *MembershipService {
+func NewMembershipService(repo *membership.MembershipsRepository) *MembershipService {
 	return &MembershipService{Repo: repo}
 }
 

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"api/cmd/server/di"
 	database_errors "api/internal/constants"
 	db "api/internal/domains/identity/persistence/sqlc/generated"
 	errLib "api/internal/libs/errors"
@@ -17,9 +18,9 @@ type UserCredentialsRepository struct {
 	Queries *db.Queries
 }
 
-func NewUserCredentialsRepository(q *db.Queries) *UserCredentialsRepository {
+func NewUserCredentialsRepository(container *di.Container) *UserCredentialsRepository {
 	return &UserCredentialsRepository{
-		Queries: q,
+		Queries: container.Queries.IdentityDb,
 	}
 }
 
@@ -46,7 +47,7 @@ func (r *UserCredentialsRepository) CreatePasswordTx(ctx context.Context, tx *sq
 		Email: email,
 		HashedPassword: sql.NullString{
 			String: password,
-			Valid:  password != "",
+			Valid:  true,
 		},
 	}
 

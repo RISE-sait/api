@@ -1,4 +1,4 @@
-package service
+package identity
 
 import (
 	"api/cmd/server/di"
@@ -18,7 +18,7 @@ type AuthenticationService struct {
 
 func NewAuthenticationService(container *di.Container) *AuthenticationService {
 
-	userRepo := repo.NewUserRepository(container.Queries.IdentityDb)
+	userRepo := repo.NewUserRepository(container)
 	staffRepo := repo.NewStaffRepository(container.Queries.IdentityDb)
 
 	return &AuthenticationService{
@@ -27,14 +27,14 @@ func NewAuthenticationService(container *di.Container) *AuthenticationService {
 	}
 }
 
-func (s *AuthenticationService) AuthenticateUser(ctx context.Context, input *identity.Credentials) (*entities.UserInfo, *errLib.CommonError) {
+func (s *AuthenticationService) AuthenticateUser(ctx context.Context, credentials identity.Credentials) (*entities.UserInfo, *errLib.CommonError) {
 
-	if err := input.Validate(); err != nil {
+	if err := credentials.Validate(); err != nil {
 		return nil, err
 	}
 
-	email := (*input).Email
-	password := (*input).Password
+	email := credentials.Email
+	password := credentials.Password
 
 	if !s.UserRepo.IsValidUser(ctx, email, password) {
 		return nil, errLib.New("Person with the credentials not found", http.StatusUnauthorized)

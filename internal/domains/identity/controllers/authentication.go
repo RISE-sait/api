@@ -4,9 +4,11 @@ import (
 	"api/cmd/server/di"
 	identity "api/internal/domains/identity/dto"
 	service "api/internal/domains/identity/services"
+	errLib "api/internal/libs/errors"
 	"api/internal/libs/jwt"
 	response_handlers "api/internal/libs/responses"
-	"api/internal/libs/validators"
+	"encoding/json"
+	"io"
 	"net/http"
 )
 
@@ -22,13 +24,20 @@ func NewAuthenticationController(container *di.Container) *AuthenticationControl
 }
 
 func (h *AuthenticationController) Login(w http.ResponseWriter, r *http.Request) {
-	var dto identity.Credentials
-	if err := validators.ParseJSON(r.Body, &dto); err != nil {
-		response_handlers.RespondWithError(w, err)
+
+	body, ioErr := io.ReadAll(r.Body)
+
+	if ioErr != nil {
+		response_handlers.RespondWithError(w, errLib.New("Failed to read request body", http.StatusBadRequest))
 		return
 	}
 
-	credentials := identity.NewCredentials(dto.Email, dto.Password)
+	var credentials identity.Credentials
+
+	if ioErr := json.Unmarshal(body, &credentials); ioErr != nil {
+		response_handlers.RespondWithError(w, errLib.New("Invalid JSON format for credentials", http.StatusBadRequest))
+		return
+	}
 
 	userInfo, err := h.AuthService.AuthenticateUser(r.Context(), credentials)
 	if err != nil {

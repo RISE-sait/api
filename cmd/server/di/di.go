@@ -4,7 +4,6 @@ import (
 	"api/config"
 	courseDb "api/internal/domains/course/infra/persistence/sqlc/generated"
 	facilityDb "api/internal/domains/facility/infra/persistence/sqlc/generated"
-	familyDb "api/internal/domains/family/infra/persistence/sqlc/generated"
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
 	membershipDb "api/internal/domains/membership/infra/persistence/sqlc/generated"
 	membershipPlanDb "api/internal/domains/membership/plans/infra/persistence/sqlc/generated"
@@ -25,7 +24,6 @@ type QueriesType struct {
 	MembershipDb     *membershipDb.Queries
 	MembershipPlanDb *membershipPlanDb.Queries
 	FacilityDb       *facilityDb.Queries
-	ConfirmChildDb   *familyDb.Queries
 }
 
 func NewContainer() *Container {
@@ -47,7 +45,6 @@ func initializeQueries(db *sql.DB) *QueriesType {
 		MembershipDb:     membershipDb.New(db),
 		MembershipPlanDb: membershipPlanDb.New(db),
 		FacilityDb:       facilityDb.New(db),
-		ConfirmChildDb:   familyDb.New(db),
 	}
 }
 

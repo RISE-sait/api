@@ -7,26 +7,112 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
 
-const createWaiverSignedStatus = `-- name: CreateWaiverSignedStatus :execrows
-INSERT INTO waiver_signing (user_id, waiver_id, is_signed) VALUES ($1, (SELECT id from waiver WHERE waiver_url = $2), $3)
+const createPendingChildAccountWaiverSigning = `-- name: CreatePendingChildAccountWaiverSigning :execrows
+INSERT INTO pending_accounts_waiver_signing (user_id, waiver_id, is_signed) 
+VALUES ((SELECT id from pending_child_accounts WHERE user_email = $1),
+(SELECT id from waiver WHERE waiver_url = $2), $3)
 `
 
-type CreateWaiverSignedStatusParams struct {
-	UserID    uuid.UUID `json:"user_id"`
-	WaiverUrl string    `json:"waiver_url"`
-	IsSigned  bool      `json:"is_signed"`
+type CreatePendingChildAccountWaiverSigningParams struct {
+	UserEmail string `json:"user_email"`
+	WaiverUrl string `json:"waiver_url"`
+	IsSigned  bool   `json:"is_signed"`
 }
 
-func (q *Queries) CreateWaiverSignedStatus(ctx context.Context, arg CreateWaiverSignedStatusParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, createWaiverSignedStatus, arg.UserID, arg.WaiverUrl, arg.IsSigned)
+func (q *Queries) CreatePendingChildAccountWaiverSigning(ctx context.Context, arg CreatePendingChildAccountWaiverSigningParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, createPendingChildAccountWaiverSigning, arg.UserEmail, arg.WaiverUrl, arg.IsSigned)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const createWaiverSignedStatus = `-- name: CreateWaiverSignedStatus :execrows
+INSERT INTO waiver_signing (user_id, waiver_id, is_signed) 
+VALUES ((SELECT id FROM waiver_signing where user_id 
+= (SELECT id from users WHERE email = $1)), (SELECT id from waiver WHERE waiver_url = $2), $3)
+`
+
+type CreateWaiverSignedStatusParams struct {
+	Email     string `json:"email"`
+	WaiverUrl string `json:"waiver_url"`
+	IsSigned  bool   `json:"is_signed"`
+}
+
+func (q *Queries) CreateWaiverSignedStatus(ctx context.Context, arg CreateWaiverSignedStatusParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, createWaiverSignedStatus, arg.Email, arg.WaiverUrl, arg.IsSigned)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const deletePendingChildAccountWaiverSigning = `-- name: DeletePendingChildAccountWaiverSigning :execrows
+DELETE FROM pending_accounts_waiver_signing WHERE user_id = (SELECT id from pending_child_accounts WHERE user_email = $1)
+`
+
+func (q *Queries) DeletePendingChildAccountWaiverSigning(ctx context.Context, userEmail string) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deletePendingChildAccountWaiverSigning, userEmail)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const getPendingChildAccountWaiverSigning = `-- name: GetPendingChildAccountWaiverSigning :many
+SELECT user_id, waiver_id, is_signed, ws.updated_at, id, waiver_url, created_at, w.updated_at, w.waiver_url FROM pending_accounts_waiver_signing ws 
+JOIN waiver w ON w.id = ws.waiver_id
+WHERE user_id = (SELECT id from pending_child_accounts WHERE user_email = $1)
+`
+
+type GetPendingChildAccountWaiverSigningRow struct {
+	UserID      uuid.UUID `json:"user_id"`
+	WaiverID    uuid.UUID `json:"waiver_id"`
+	IsSigned    bool      `json:"is_signed"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	ID          uuid.UUID `json:"id"`
+	WaiverUrl   string    `json:"waiver_url"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt_2 time.Time `json:"updated_at_2"`
+	WaiverUrl_2 string    `json:"waiver_url_2"`
+}
+
+func (q *Queries) GetPendingChildAccountWaiverSigning(ctx context.Context, userEmail string) ([]GetPendingChildAccountWaiverSigningRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPendingChildAccountWaiverSigning, userEmail)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPendingChildAccountWaiverSigningRow
+	for rows.Next() {
+		var i GetPendingChildAccountWaiverSigningRow
+		if err := rows.Scan(
+			&i.UserID,
+			&i.WaiverID,
+			&i.IsSigned,
+			&i.UpdatedAt,
+			&i.ID,
+			&i.WaiverUrl,
+			&i.CreatedAt,
+			&i.UpdatedAt_2,
+			&i.WaiverUrl_2,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getWaiver = `-- name: GetWaiver :one

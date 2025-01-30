@@ -1,8 +1,7 @@
-package confirm_child
+package identity
 
 import (
 	"api/cmd/server/di"
-	confirmChildRepo "api/internal/domains/family/infra/persistence/repository"
 	identity "api/internal/domains/identity/persistence/repository"
 	"strings"
 
@@ -16,8 +15,8 @@ import (
 type ConfirmChildService struct {
 	UsersRepository                                *identity.UserRepository
 	CredentialsRepository                          *identity.UserCredentialsRepository
-	WaiverRepository                               *identity.WaiverRepository
-	PendingChildrenAccountWaiversSigningRepository *confirmChildRepo.WaiverSigningRepository
+	WaiverRepository                               *identity.WaiverSigningRepository
+	PendingChildrenAccountWaiversSigningRepository *identity.PendingChildAccountWaiverSigningRepository
 	PendingChildAccountRepository                  *identity.PendingChildAccountRepository
 	DB                                             *sql.DB
 	HubspotService                                 *hubspot.HubSpotService
@@ -27,13 +26,13 @@ func NewConfirmChildService(
 	container *di.Container,
 ) *ConfirmChildService {
 	return &ConfirmChildService{
-		UsersRepository:               identity.NewUserRepository(container.Queries.IdentityDb),
-		PendingChildAccountRepository: identity.NewPendingChildAcountRepository(container.Queries.IdentityDb),
+		UsersRepository:               identity.NewUserRepository(container),
+		PendingChildAccountRepository: identity.NewPendingChildAcountRepository(container),
 		DB:                            container.DB,
 		HubspotService:                container.HubspotService,
-		CredentialsRepository:         identity.NewUserCredentialsRepository(container.Queries.IdentityDb),
-		WaiverRepository:              identity.NewWaiverRepository(container.Queries.IdentityDb),
-		PendingChildrenAccountWaiversSigningRepository: confirmChildRepo.NewWaiverSigningRepository(container.Queries.ConfirmChildDb),
+		CredentialsRepository:         identity.NewUserCredentialsRepository(container),
+		WaiverRepository:              identity.NewWaiverSigningRepository(container),
+		PendingChildrenAccountWaiversSigningRepository: identity.NewPendingChildAccountWaiverSigningRepository(container),
 	}
 }
 
@@ -56,9 +55,7 @@ func (s *ConfirmChildService) ConfirmChild(
 		return err
 	}
 
-	userId, err := s.UsersRepository.CreateUserTx(ctx, tx, childEmail)
-
-	if err != nil {
+	if err := s.UsersRepository.CreateUserTx(ctx, tx, childEmail); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -83,7 +80,10 @@ func (s *ConfirmChildService) ConfirmChild(
 			tx.Rollback()
 			return errLib.New("Waiver not signed", http.StatusConflict)
 		}
-		s.WaiverRepository.CreateWaiverRecordTx(ctx, tx, userId, waiverSignStatus.WaiverUrl, waiverSignStatus.IsSigned)
+		if err := s.WaiverRepository.CreateWaiverSigningRecordTx(ctx, tx, childEmail, waiverSignStatus.WaiverUrl, waiverSignStatus.IsSigned); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	hubspotCustomer := hubspot.HubSpotCustomerCreateBody{
@@ -118,15 +118,20 @@ func (s *ConfirmChildService) ConfirmChild(
 		return err
 	}
 
-	// remove pending child account stuff
+	// remove pending child account stuff. Delete waiver, account, and password if necessary
 
-	if err := s.PendingChildAccountRepository.DeletePendingChildAccountTx(ctx, tx, childEmail); err != nil {
+	if err := s.PendingChildAccountRepository.DeleteAccount(ctx, tx, childEmail); err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
 		return errLib.New("Failed to commit transaction", http.StatusInternalServerError)
+	}
+
+	if err := s.PendingChildrenAccountWaiversSigningRepository.DeletePendingWaiverSigningRecordByChildEmailTx(ctx, tx, childEmail); err != nil {
+		tx.Rollback()
+		return err
 	}
 
 	return nil

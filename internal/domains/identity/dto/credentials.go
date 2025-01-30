@@ -30,7 +30,8 @@ func (upc *Credentials) Validate() *errLib.CommonError {
 		return errLib.New("Invalid email format", http.StatusBadRequest)
 	}
 
-	if len(upc.Password) < 8 {
+	// user entered a password
+	if len(upc.Password) > 0 && len(upc.Password) < 8 {
 		return errLib.New("Password must be at least 8 characters", http.StatusBadRequest)
 	}
 

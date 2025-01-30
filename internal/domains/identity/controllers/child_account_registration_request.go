@@ -32,14 +32,9 @@ func (c *CreatePendingChildAccountController) CreatePendingChildAccount(w http.R
 		return
 	}
 
-	var credentials identity.Credentials
 	var customerWaiverDto identity.CustomerWaiverCreateDto
 	var childAccountDto identity.CreateChildAccountDto
-
-	if ioErr := json.Unmarshal(body, &credentials); ioErr != nil {
-		response_handlers.RespondWithError(w, errLib.New("Invalid JSON format for credentials", http.StatusBadRequest))
-		return
-	}
+	var credentialsDto identity.Credentials
 
 	if ioErr := json.Unmarshal(body, &customerWaiverDto); ioErr != nil {
 		response_handlers.RespondWithError(w, errLib.New("Invalid JSON format for waiver data", http.StatusBadRequest))
@@ -51,12 +46,13 @@ func (c *CreatePendingChildAccountController) CreatePendingChildAccount(w http.R
 		return
 	}
 
-	credentialsCreate := identity.NewCredentials(credentials.Email, credentials.Password)
-	waiverCreate := identity.NewCustomerWaiverCreateDto(customerWaiverDto.WaiverUrl, customerWaiverDto.IsWaiverSigned)
-	childAccountCreate := identity.NewChildAccountCreateDto(childAccountDto.ParentEmail)
+	if ioErr := json.Unmarshal(body, &credentialsDto); ioErr != nil {
+		response_handlers.RespondWithError(w, errLib.New("Invalid format for parent email", http.StatusBadRequest))
+		return
+	}
 
 	// Step 2: Call the service to create the account
-	err := c.ChildAccountRegistrationService.CreatePendingAccount(r.Context(), credentialsCreate, waiverCreate, childAccountCreate)
+	err := c.ChildAccountRegistrationService.CreatePendingAccount(r.Context(), &credentialsDto, &customerWaiverDto, &childAccountDto)
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return

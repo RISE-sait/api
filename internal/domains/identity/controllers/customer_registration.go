@@ -46,11 +46,8 @@ func (c *CustomerRegistrationController) CreateCustomer(w http.ResponseWriter, r
 		return
 	}
 
-	userPasswordCreate := identity.NewCredentials(credentials.Email, credentials.Password)
-	waiverCreate := identity.NewCustomerWaiverCreateDto(customerDto.WaiverUrl, customerDto.IsWaiverSigned)
-
 	// Step 2: Call the service to create the account
-	userInfo, err := c.AccountRegistrationService.CreateCustomer(r.Context(), userPasswordCreate, waiverCreate)
+	userInfo, err := c.AccountRegistrationService.CreateCustomer(r.Context(), &customerDto, &credentials)
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return

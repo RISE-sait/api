@@ -21,8 +21,8 @@ func NewStaffService(
 	container *di.Container,
 ) *StaffService {
 	return &StaffService{
-		UsersRepository:        repository.NewUserRepository(container.Queries.IdentityDb),
-		UserPasswordRepository: repository.NewUserCredentialsRepository(container.Queries.IdentityDb),
+		UsersRepository:        repository.NewUserRepository(container),
+		UserPasswordRepository: repository.NewUserCredentialsRepository(container),
 		StaffRepository:        repository.NewStaffRepository(container.Queries.IdentityDb),
 		DB:                     container.DB,
 	}
@@ -49,9 +49,7 @@ func (s *StaffService) CreateAccount(
 	email := staffCreate.Email
 
 	// Insert into users table
-	_, err := s.UsersRepository.CreateUserTx(ctx, tx, email)
-
-	if err != nil {
+	if err := s.UsersRepository.CreateUserTx(ctx, tx, email); err != nil {
 		tx.Rollback()
 		return err
 	}

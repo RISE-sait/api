@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"api/cmd/server/di"
 	database_errors "api/internal/constants"
 	db "api/internal/domains/identity/persistence/sqlc/generated"
 	errLib "api/internal/libs/errors"
@@ -10,26 +11,41 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
 
-type WaiverRepository struct {
+type WaiverSigningRepository struct {
 	Queries *db.Queries
 }
 
-func NewWaiverRepository(q *db.Queries) *WaiverRepository {
-	return &WaiverRepository{
-		Queries: q,
+func NewWaiverSigningRepository(container *di.Container) *WaiverSigningRepository {
+	return &WaiverSigningRepository{
+		Queries: container.Queries.IdentityDb,
 	}
 }
 
-func (r *WaiverRepository) CreateWaiverRecordTx(ctx context.Context, tx *sql.Tx, userId uuid.UUID, waiverUrl string, isSigned bool) *errLib.CommonError {
+func (r *WaiverSigningRepository) GetWaiver(ctx context.Context, url string) (*db.Waiver, *errLib.CommonError) {
+	waiver, err := r.Queries.GetWaiver(ctx, url)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			log.Printf("Waiver not found for URL: %s", url)
+			return nil, errLib.New("Waiver not found", http.StatusNotFound)
+		}
+
+		log.Printf("Error fetching waiver for URL %s: %v", url, err)
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	return &waiver, nil
+}
+
+func (r *WaiverSigningRepository) CreateWaiverSigningRecordTx(ctx context.Context, tx *sql.Tx, email string, waiverUrl string, isSigned bool) *errLib.CommonError {
 
 	txQueries := r.Queries.WithTx(tx)
 
 	params := db.CreateWaiverSignedStatusParams{
-		UserID:    userId,
+		Email:     email,
 		WaiverUrl: waiverUrl,
 		IsSigned:  isSigned,
 	}
@@ -44,10 +60,10 @@ func (r *WaiverRepository) CreateWaiverRecordTx(ctx context.Context, tx *sql.Tx,
 			switch pqErr.Code {
 			case database_errors.ForeignKeyViolation:
 				log.Printf("Foreign key violation: %v", pqErr.Message)
-				return errLib.New("User not found for the provided userId", http.StatusBadRequest)
+				return errLib.New("User not found for the provided email. Or waiver not found", http.StatusBadRequest)
 			case database_errors.UniqueViolation:
 				log.Printf("Unique violation: %v", pqErr.Message)
-				return errLib.New("Waiver for this user already exists", http.StatusConflict)
+				return errLib.New("Waiver for this email already exists", http.StatusConflict)
 			default:
 				log.Printf("Unhandled database error: %v", pqErr)
 				return errLib.New("Internal server error", http.StatusInternalServerError)
@@ -60,20 +76,4 @@ func (r *WaiverRepository) CreateWaiverRecordTx(ctx context.Context, tx *sql.Tx,
 	}
 
 	return nil
-}
-
-func (r *WaiverRepository) GetWaiver(ctx context.Context, url string) (*db.Waiver, *errLib.CommonError) {
-	waiver, err := r.Queries.GetWaiver(ctx, url)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			log.Printf("Waiver not found for URL: %s", url)
-			return nil, errLib.New("Waiver not found", http.StatusNotFound)
-		}
-
-		log.Printf("Error fetching waiver for URL %s: %v", url, err)
-		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-
-	return &waiver, nil
 }

@@ -1,4 +1,4 @@
-package service
+package identity
 
 import (
 	"api/cmd/server/di"
@@ -13,6 +13,7 @@ import (
 
 type ChildAccountRequestService struct {
 	PendingChildAccountRepository *repo.PendingChildAccountRepository
+	WaiverSigningRepository       *repo.PendingChildAccountWaiverSigningRepository
 	DB                            *sql.DB
 }
 
@@ -20,7 +21,8 @@ func NewChildAccountRegistrationRequestService(
 	container *di.Container,
 ) *ChildAccountRequestService {
 	return &ChildAccountRequestService{
-		PendingChildAccountRepository: repo.NewPendingChildAcountRepository(container.Queries.IdentityDb),
+		PendingChildAccountRepository: repo.NewPendingChildAcountRepository(container),
+		WaiverSigningRepository:       repo.NewPendingChildAccountWaiverSigningRepository(container),
 		DB:                            container.DB,
 	}
 }
@@ -54,6 +56,12 @@ func (s *ChildAccountRequestService) CreatePendingAccount(
 	}
 
 	if err := s.PendingChildAccountRepository.CreatePendingChildAccountTx(ctx, tx, credentialsCreate.Email, childAccountCreate.ParentEmail, credentialsCreate.Password); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := s.WaiverSigningRepository.CreateWaiverSigningRecordTx(ctx, tx, credentialsCreate.Email, customerWaiverCreate.WaiverUrl, customerWaiverCreate.IsWaiverSigned); err != nil {
+
 		tx.Rollback()
 		return err
 	}

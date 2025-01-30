@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"api/cmd/server/di"
 	database_errors "api/internal/constants"
 	"api/internal/domains/identity/entities"
 	db "api/internal/domains/identity/persistence/sqlc/generated"
@@ -18,9 +19,9 @@ type PendingChildAccountRepository struct {
 	Queries *db.Queries
 }
 
-func NewPendingChildAcountRepository(q *db.Queries) *PendingChildAccountRepository {
+func NewPendingChildAcountRepository(container *di.Container) *PendingChildAccountRepository {
 	return &PendingChildAccountRepository{
-		Queries: q,
+		Queries: container.Queries.IdentityDb,
 	}
 }
 
@@ -76,25 +77,18 @@ func (r *PendingChildAccountRepository) CreatePendingChildAccountTx(ctx context.
 	return nil
 }
 
-func (r *PendingChildAccountRepository) DeletePendingChildAccountTx(ctx context.Context, tx *sql.Tx, email string) *errLib.CommonError {
+func (r *PendingChildAccountRepository) DeleteAccount(ctx context.Context, tx *sql.Tx, email string) *errLib.CommonError {
 
 	rows, err := r.Queries.WithTx(tx).DeletePendingChildAccount(ctx, email)
 
 	if err != nil {
-		var pqErr *pq.Error
-		if errors.As(err, &pqErr) {
-			// Handle PostgreSQL unique violation errors (e.g., duplicate staff emails)
-			if pqErr.Code == database_errors.UniqueViolation { // Unique violation
-				return errLib.New("Account with this email already exists", http.StatusConflict)
-			}
-		}
-		log.Printf("Error creating account: %v", err)
+		log.Printf("Error deleting account: %v", err)
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
 	if rows != 1 {
-		log.Println("Error creating account ", err)
-		return errLib.New("Failed to create account", 500)
+		log.Println("Error deleting account ", err)
+		return errLib.New("Failed to delete account", 500)
 	}
 
 	return nil

@@ -1,4 +1,4 @@
-package service
+package identity
 
 import (
 	"api/cmd/server/di"

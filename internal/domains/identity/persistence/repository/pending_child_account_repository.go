@@ -71,7 +71,7 @@ func (r *PendingChildAccountRepository) CreatePendingChildAccountTx(ctx context.
 
 	if rows != 1 {
 		log.Println("Error creating account ", err)
-		return errLib.New("Failed to create account", 500)
+		return errLib.New("Failed to create account", http.StatusInternalServerError)
 	}
 
 	return nil

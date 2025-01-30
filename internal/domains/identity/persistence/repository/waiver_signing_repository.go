@@ -40,18 +40,38 @@ func (r *WaiverSigningRepository) GetWaiver(ctx context.Context, url string) (*d
 	return &waiver, nil
 }
 
-func (r *WaiverSigningRepository) CreateWaiverSigningRecordTx(ctx context.Context, tx *sql.Tx, email string, waiverUrl string, isSigned bool) *errLib.CommonError {
+func (r *WaiverSigningRepository) CreateWaiverSigningRecordTx(ctx context.Context, tx *sql.Tx, email, waiverUrl string, isSigned bool) *errLib.CommonError {
 
 	txQueries := r.Queries.WithTx(tx)
 
+	// Get waiver
+	waiver, err := txQueries.GetWaiver(ctx, waiverUrl)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			log.Printf("Waiver not found for URL: %s", waiverUrl)
+			return errLib.New("Waiver not found", http.StatusNotFound)
+		}
+	}
+
+	// Get user ID
+	user, err := txQueries.GetUserByEmail(ctx, email)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			log.Printf("User not found for email: %s", email)
+			return errLib.New("User not found for the provided email", http.StatusNotFound)
+		}
+	}
+
 	params := db.CreateWaiverSignedStatusParams{
-		Email:     email,
-		WaiverUrl: waiverUrl,
-		IsSigned:  isSigned,
+		UserID:   user.ID,
+		WaiverID: waiver.ID,
+		IsSigned: isSigned,
 	}
 
 	// Insert the waiver record
-	_, err := txQueries.CreateWaiverSignedStatus(ctx, params)
+	_, err = txQueries.CreateWaiverSignedStatus(ctx, params)
 
 	if err != nil {
 		// Check if error is pq.Error (PostgreSQL specific errors)

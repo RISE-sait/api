@@ -22,7 +22,7 @@ func NewCredentials(email, password string) *Credentials {
 func (upc *Credentials) Validate() *errLib.CommonError {
 
 	if upc.Email == "" {
-		return errLib.New("\"Email\" cannot be empty or whitespace", http.StatusBadRequest)
+		return errLib.New("'Email' cannot be empty or whitespace", http.StatusBadRequest)
 	}
 
 	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)

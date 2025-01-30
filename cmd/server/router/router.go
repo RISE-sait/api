@@ -49,6 +49,8 @@ func RegisterIdentityRoutes(r chi.Router, container *di.Container) func(chi.Rout
 
 	childRegistrationCtrl := identity.NewCreatePendingChildAccountController(container)
 
+	confirmChildCtrl := identity.NewChildAccountConfirmationController(container)
+
 	return func(r chi.Router) {
 
 		r.Route("/auth", func(auth chi.Router) {
@@ -60,5 +62,7 @@ func RegisterIdentityRoutes(r chi.Router, container *di.Container) func(chi.Rout
 			registration.Post("/", customerRegistrationCtrl.CreateCustomer)
 			registration.Post("/child", childRegistrationCtrl.CreatePendingChildAccount)
 		})
+
+		r.Get("/confirm-child", confirmChildCtrl.ConfirmChild)
 	}
 }

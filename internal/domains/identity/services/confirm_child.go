@@ -3,6 +3,7 @@ package identity
 import (
 	"api/cmd/server/di"
 	identity "api/internal/domains/identity/persistence/repository"
+	"fmt"
 	"strings"
 
 	errLib "api/internal/libs/errors"
@@ -86,39 +87,10 @@ func (s *ConfirmChildService) ConfirmChild(
 		}
 	}
 
-	hubspotCustomer := hubspot.HubSpotCustomerCreateBody{
-		Properties: hubspot.HubSpotCustomerProps{
-			FirstName: strings.Split(child.UserEmail, "@")[0],
-			LastName:  strings.Split(child.UserEmail, "@")[0],
-			Email:     child.UserEmail,
-		},
-	}
-
-	if err := s.HubspotService.CreateCustomer(hubspotCustomer); err != nil {
+	if err := s.PendingChildrenAccountWaiversSigningRepository.DeletePendingWaiverSigningRecordByChildEmailTx(ctx, tx, childEmail); err != nil {
 		tx.Rollback()
 		return err
 	}
-
-	associatedParent, err := s.HubspotService.GetCustomerByEmail(parentEmail)
-
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	associatedChild, err := s.HubspotService.GetCustomerByEmail(childEmail)
-
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	if err := s.HubspotService.AssociateChildAndParent(associatedChild.ID, associatedParent.ID); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// remove pending child account stuff. Delete waiver, account, and password if necessary
 
 	if err := s.PendingChildAccountRepository.DeleteAccount(ctx, tx, childEmail); err != nil {
 		tx.Rollback()
@@ -129,8 +101,37 @@ func (s *ConfirmChildService) ConfirmChild(
 		return errLib.New("Failed to commit transaction", http.StatusInternalServerError)
 	}
 
-	if err := s.PendingChildrenAccountWaiversSigningRepository.DeletePendingWaiverSigningRecordByChildEmailTx(ctx, tx, childEmail); err != nil {
-		tx.Rollback()
+	// create hubspot customer
+
+	hubspotCustomer := hubspot.HubSpotCustomerCreateBody{
+		Properties: hubspot.HubSpotCustomerProps{
+			FirstName: strings.Split(child.UserEmail, "@")[0],
+			LastName:  strings.Split(child.UserEmail, "@")[0],
+			Email:     child.UserEmail,
+		},
+	}
+
+	if err := s.HubspotService.CreateCustomer(hubspotCustomer); err != nil {
+		err.Message = fmt.Sprintf("Created user account in database but failed to create customer on hubspot: %s", err.Message)
+		return err
+	}
+
+	associatedParent, err := s.HubspotService.GetCustomerByEmail(parentEmail)
+
+	if err != nil {
+		err.Message = fmt.Sprintf("Created user account in database but failed to create customer on hubspot: %s", err.Message)
+		return err
+	}
+
+	associatedChild, err := s.HubspotService.GetCustomerByEmail(childEmail)
+
+	if err != nil {
+		err.Message = fmt.Sprintf("Created user account in database but failed to create customer on hubspot: %s", err.Message)
+		return err
+	}
+
+	if err := s.HubspotService.AssociateChildAndParent(associatedChild.ID, associatedParent.ID); err != nil {
+		err.Message = fmt.Sprintf("Created user account in database and hubspot but failed to associate customer with family on hubspot: %s", err.Message)
 		return err
 	}
 

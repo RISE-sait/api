@@ -55,18 +55,42 @@ func (r *PendingChildAccountWaiverSigningRepository) GetWaiverSignings(ctx conte
 
 }
 
-func (r *PendingChildAccountWaiverSigningRepository) CreateWaiverSigningRecordTx(ctx context.Context, tx *sql.Tx, email string, waiverUrl string, isSigned bool) *errLib.CommonError {
+func (r *PendingChildAccountWaiverSigningRepository) CreateWaiverSigningRecordTx(ctx context.Context, tx *sql.Tx, email, waiverUrl string, isSigned bool) *errLib.CommonError {
 
 	txQueries := r.Queries.WithTx(tx)
 
+	// Get waiver
+	waiver, err := txQueries.GetWaiver(ctx, waiverUrl)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			log.Printf("Waiver not found for URL: %s", waiverUrl)
+			return errLib.New("Waiver not found", http.StatusNotFound)
+		}
+		log.Printf("Error fetching waiver for URL %s: %v", waiverUrl, err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	// Get user ID
+	user, err := txQueries.GetPendingChildAccountByChildEmail(ctx, email)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			log.Printf("User not found for email: %s", email)
+			return errLib.New("User not found for the provided email", http.StatusNotFound)
+		}
+		log.Printf("Error fetching user for email %s: %v", email, err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
 	params := db.CreatePendingChildAccountWaiverSigningParams{
-		UserEmail: email,
-		WaiverUrl: waiverUrl,
-		IsSigned:  isSigned,
+		UserID:   user.ID,
+		WaiverID: waiver.ID,
+		IsSigned: isSigned,
 	}
 
 	// Insert the waiver record
-	_, err := txQueries.CreatePendingChildAccountWaiverSigning(ctx, params)
+	rows, err := txQueries.CreatePendingChildAccountWaiverSigning(ctx, params)
 
 	if err != nil {
 		// Check if error is pq.Error (PostgreSQL specific errors)
@@ -88,6 +112,10 @@ func (r *PendingChildAccountWaiverSigningRepository) CreateWaiverSigningRecordTx
 		// Log and handle any other database error
 		log.Printf("Unhandled database error: %v", err)
 		return errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	if rows != 1 {
+		return errLib.New("Failed to create waiver signing record", http.StatusInternalServerError)
 	}
 
 	return nil

@@ -14,18 +14,17 @@ import (
 
 const createPendingChildAccountWaiverSigning = `-- name: CreatePendingChildAccountWaiverSigning :execrows
 INSERT INTO pending_accounts_waiver_signing (user_id, waiver_id, is_signed) 
-VALUES ((SELECT id from pending_child_accounts WHERE user_email = $1),
-(SELECT id from waiver WHERE waiver_url = $2), $3)
+VALUES ($1, $2, $3)
 `
 
 type CreatePendingChildAccountWaiverSigningParams struct {
-	UserEmail string `json:"user_email"`
-	WaiverUrl string `json:"waiver_url"`
-	IsSigned  bool   `json:"is_signed"`
+	UserID   uuid.UUID `json:"user_id"`
+	WaiverID uuid.UUID `json:"waiver_id"`
+	IsSigned bool      `json:"is_signed"`
 }
 
 func (q *Queries) CreatePendingChildAccountWaiverSigning(ctx context.Context, arg CreatePendingChildAccountWaiverSigningParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, createPendingChildAccountWaiverSigning, arg.UserEmail, arg.WaiverUrl, arg.IsSigned)
+	result, err := q.db.ExecContext(ctx, createPendingChildAccountWaiverSigning, arg.UserID, arg.WaiverID, arg.IsSigned)
 	if err != nil {
 		return 0, err
 	}
@@ -34,18 +33,17 @@ func (q *Queries) CreatePendingChildAccountWaiverSigning(ctx context.Context, ar
 
 const createWaiverSignedStatus = `-- name: CreateWaiverSignedStatus :execrows
 INSERT INTO waiver_signing (user_id, waiver_id, is_signed) 
-VALUES ((SELECT id FROM waiver_signing where user_id 
-= (SELECT id from users WHERE email = $1)), (SELECT id from waiver WHERE waiver_url = $2), $3)
+VALUES ($1, $2, $3)
 `
 
 type CreateWaiverSignedStatusParams struct {
-	Email     string `json:"email"`
-	WaiverUrl string `json:"waiver_url"`
-	IsSigned  bool   `json:"is_signed"`
+	UserID   uuid.UUID `json:"user_id"`
+	WaiverID uuid.UUID `json:"waiver_id"`
+	IsSigned bool      `json:"is_signed"`
 }
 
 func (q *Queries) CreateWaiverSignedStatus(ctx context.Context, arg CreateWaiverSignedStatusParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, createWaiverSignedStatus, arg.Email, arg.WaiverUrl, arg.IsSigned)
+	result, err := q.db.ExecContext(ctx, createWaiverSignedStatus, arg.UserID, arg.WaiverID, arg.IsSigned)
 	if err != nil {
 		return 0, err
 	}

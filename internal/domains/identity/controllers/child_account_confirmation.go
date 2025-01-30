@@ -4,11 +4,8 @@ import (
 	"api/cmd/server/di"
 	errLib "api/internal/libs/errors"
 	response_handlers "api/internal/libs/responses"
-	"encoding/json"
-	"io"
 	"net/http"
 
-	dto "api/internal/domains/identity/dto"
 	service "api/internal/domains/identity/services"
 )
 
@@ -24,22 +21,16 @@ func NewChildAccountConfirmationController(container *di.Container) *ChildAccoun
 
 func (c *ChildAccountConfirmationController) ConfirmChild(w http.ResponseWriter, r *http.Request) {
 
-	body, ioErr := io.ReadAll(r.Body)
+	childEmail := r.URL.Query().Get("child")
+	parentEmail := r.URL.Query().Get("parent")
 
-	if ioErr != nil {
-		response_handlers.RespondWithError(w, errLib.New("Failed to read request body", http.StatusBadRequest))
-		return
-	}
-
-	var dto dto.ConfirmChildDto
-
-	if ioErr := json.Unmarshal(body, &dto); ioErr != nil {
-		response_handlers.RespondWithError(w, errLib.New("Invalid JSON format for credentials", http.StatusBadRequest))
+	if childEmail == "" || parentEmail == "" {
+		response_handlers.RespondWithError(w, errLib.New("Missing required query parameters: child and parent", http.StatusBadRequest))
 		return
 	}
 
 	// Step 2: Call the service to create the account
-	err := c.ConfirmChildService.ConfirmChild(r.Context(), dto.ChildEmail, dto.ParentEmail)
+	err := c.ConfirmChildService.ConfirmChild(r.Context(), childEmail, parentEmail)
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return

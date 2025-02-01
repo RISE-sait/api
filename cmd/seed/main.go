@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"api/config"
-	courseSQLC "api/internal/domains/course/infra/persistence/sqlc/generated"
-	facilitySQLC "api/internal/domains/facility/infra/persistence/sqlc/generated"
-	membershipSQLC "api/internal/domains/membership/infra/persistence/sqlc/generated"
+	courseSQLC "api/internal/domains/course/persistence/sqlc/generated"
+	facilitySQLC "api/internal/domains/facility/persistence/sqlc/generated"
+	membershipSQLC "api/internal/domains/membership/persistence/sqlc/generated"
 	"database/sql"
 
 	"github.com/google/uuid"

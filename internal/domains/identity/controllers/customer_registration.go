@@ -4,11 +4,9 @@ import (
 	"api/cmd/server/di"
 	identity "api/internal/domains/identity/dto"
 	service "api/internal/domains/identity/services"
-	errLib "api/internal/libs/errors"
 	lib "api/internal/libs/jwt"
 	response_handlers "api/internal/libs/responses"
-	"encoding/json"
-	"io"
+	"api/internal/libs/validators"
 	"net/http"
 )
 
@@ -26,28 +24,22 @@ func NewCustomerRegistrationController(container *di.Container) *CustomerRegistr
 
 func (c *CustomerRegistrationController) CreateCustomer(w http.ResponseWriter, r *http.Request) {
 
-	body, ioErr := io.ReadAll(r.Body)
+	var dto identity.CustomerRegistrationDto
 
-	if ioErr != nil {
-		response_handlers.RespondWithError(w, errLib.New("Failed to read request body", http.StatusBadRequest))
+	if err := validators.ParseJSON(r.Body, &dto); err != nil {
+		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	var credentials identity.Credentials
-	var customerDto identity.CustomerWaiverCreateDto
+	valueObject, err := dto.ToValueObjects()
 
-	if ioErr := json.Unmarshal(body, &credentials); ioErr != nil {
-		response_handlers.RespondWithError(w, errLib.New("Invalid JSON format for credentials", http.StatusBadRequest))
-		return
-	}
-
-	if ioErr := json.Unmarshal(body, &customerDto); ioErr != nil {
-		response_handlers.RespondWithError(w, errLib.New("Invalid JSON format for customer data", http.StatusBadRequest))
+	if err != nil {
+		response_handlers.RespondWithError(w, err)
 		return
 	}
 
 	// Step 2: Call the service to create the account
-	userInfo, err := c.AccountRegistrationService.CreateCustomer(r.Context(), &customerDto, &credentials)
+	userInfo, err := c.AccountRegistrationService.CreateCustomer(r.Context(), valueObject)
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return

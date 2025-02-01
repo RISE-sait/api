@@ -1,8 +1,13 @@
 package values
 
-import "time"
+import (
+	"time"
 
-type CourseCreate struct {
+	"github.com/google/uuid"
+)
+
+type MembershipUpdate struct {
+	ID          uuid.UUID
 	Name        string
 	Description string
 	StartDate   time.Time

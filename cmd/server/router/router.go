@@ -2,8 +2,9 @@ package routes
 
 import (
 	"api/cmd/server/di"
+	"api/internal/domains/course"
 	identity "api/internal/domains/identity/controllers"
-	membership "api/internal/domains/membership/controllers"
+	membership "api/internal/domains/membership"
 
 	"github.com/go-chi/chi"
 )
@@ -19,6 +20,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		routes := []RouteConfig{
 			{Path: "/memberships", Configure: RegisterMembershipRoutes(r, container)},
 			{Path: "/identity", Configure: RegisterIdentityRoutes(r, container)},
+			{Path: "/courses", Configure: RegisterCourseRoutes(r, container)},
 		}
 
 		for _, route := range routes {
@@ -36,6 +38,18 @@ func RegisterMembershipRoutes(r chi.Router, container *di.Container) func(chi.Ro
 		r.Post("/", ctrl.CreateMembership)
 		r.Put("/{id}", ctrl.UpdateMembership)
 		r.Delete("/{id}", ctrl.DeleteMembership)
+	}
+}
+
+func RegisterCourseRoutes(r chi.Router, container *di.Container) func(chi.Router) {
+	ctrl := course.NewCourseController(container)
+
+	return func(r chi.Router) {
+		r.Get("/", ctrl.GetAllCourses)
+		r.Get("/{id}", ctrl.GetCourseById)
+		r.Post("/", ctrl.CreateCourse)
+		r.Put("/{id}", ctrl.UpdateCourse)
+		r.Delete("/{id}", ctrl.DeleteCourse)
 	}
 }
 

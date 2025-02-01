@@ -2,9 +2,9 @@ package identity
 
 import (
 	"api/cmd/server/di"
-	identity "api/internal/domains/identity/dto"
 	"api/internal/domains/identity/entities"
 	repo "api/internal/domains/identity/persistence/repository"
+	"api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
 	"context"
 	"net/http"
@@ -27,16 +27,12 @@ func NewAuthenticationService(container *di.Container) *AuthenticationService {
 	}
 }
 
-func (s *AuthenticationService) AuthenticateUser(ctx context.Context, credentials identity.Credentials) (*entities.UserInfo, *errLib.CommonError) {
-
-	if err := credentials.Validate(); err != nil {
-		return nil, err
-	}
+func (s *AuthenticationService) AuthenticateUser(ctx context.Context, credentials values.LoginCredentials) (*entities.UserInfo, *errLib.CommonError) {
 
 	email := credentials.Email
-	password := credentials.Password
+	passwordStr := credentials.Password
 
-	if !s.UserRepo.IsValidUser(ctx, email, password) {
+	if !s.UserRepo.IsValidUser(ctx, email, passwordStr) {
 		return nil, errLib.New("Person with the credentials not found", http.StatusUnauthorized)
 	}
 

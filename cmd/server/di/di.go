@@ -2,11 +2,11 @@ package di
 
 import (
 	"api/config"
-	courseDb "api/internal/domains/course/infra/persistence/sqlc/generated"
-	facilityDb "api/internal/domains/facility/infra/persistence/sqlc/generated"
+	courseDb "api/internal/domains/course/persistence/sqlc/generated"
+	facilityDb "api/internal/domains/facility/persistence/sqlc/generated"
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
-	membershipDb "api/internal/domains/membership/infra/persistence/sqlc/generated"
-	membershipPlanDb "api/internal/domains/membership/plans/infra/persistence/sqlc/generated"
+	membershipDb "api/internal/domains/membership/persistence/sqlc/generated"
+	membershipPlanDb "api/internal/domains/membership/plans/persistence/sqlc/generated"
 
 	"api/internal/services/hubspot"
 	"database/sql"

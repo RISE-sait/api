@@ -4,10 +4,8 @@ import (
 	"api/cmd/server/di"
 	identity "api/internal/domains/identity/dto"
 	service "api/internal/domains/identity/services"
-	errLib "api/internal/libs/errors"
 	response_handlers "api/internal/libs/responses"
-	"encoding/json"
-	"io"
+	"api/internal/libs/validators"
 	"net/http"
 )
 
@@ -25,34 +23,22 @@ func NewCreatePendingChildAccountController(container *di.Container) *CreatePend
 
 func (c *CreatePendingChildAccountController) CreatePendingChildAccount(w http.ResponseWriter, r *http.Request) {
 
-	body, ioErr := io.ReadAll(r.Body)
+	var dto identity.CreatePendingChildAccountDto
 
-	if ioErr != nil {
-		response_handlers.RespondWithError(w, errLib.New("Failed to read request body", http.StatusBadRequest))
+	if err := validators.ParseJSON(r.Body, &dto); err != nil {
+		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	var customerWaiverDto identity.CustomerWaiverCreateDto
-	var childAccountDto identity.CreateChildAccountDto
-	var credentialsDto identity.Credentials
+	valueObject, err := dto.ToValueObjects()
 
-	if ioErr := json.Unmarshal(body, &customerWaiverDto); ioErr != nil {
-		response_handlers.RespondWithError(w, errLib.New("Invalid JSON format for waiver data", http.StatusBadRequest))
-		return
-	}
-
-	if ioErr := json.Unmarshal(body, &childAccountDto); ioErr != nil {
-		response_handlers.RespondWithError(w, errLib.New("Invalid format for parent email", http.StatusBadRequest))
-		return
-	}
-
-	if ioErr := json.Unmarshal(body, &credentialsDto); ioErr != nil {
-		response_handlers.RespondWithError(w, errLib.New("Invalid format for parent email", http.StatusBadRequest))
+	if err != nil {
+		response_handlers.RespondWithError(w, err)
 		return
 	}
 
 	// Step 2: Call the service to create the account
-	err := c.ChildAccountRegistrationService.CreatePendingAccount(r.Context(), &credentialsDto, &customerWaiverDto, &childAccountDto)
+	err = c.ChildAccountRegistrationService.CreatePendingAccount(r.Context(), valueObject)
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return

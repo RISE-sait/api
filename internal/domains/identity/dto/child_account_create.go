@@ -1,27 +1,46 @@
-package identity
+package dto
 
 import (
+	"api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
-	"net/http"
-	"regexp"
+	"api/internal/libs/validators"
 )
 
-type CreateChildAccountDto struct {
-	ParentEmail string `json:"parent_email"`
+type CreatePendingChildAccountDto struct {
+	Child       CustomerRegistrationDto `json:"child" validate:"required,structonly"`
+	ParentEmail string                  `json:"parent_email" validate:"required,email"`
 }
 
-func NewChildAccountCreateDto(parentEmail string) *CreateChildAccountDto {
-	return &CreateChildAccountDto{
-		ParentEmail: parentEmail,
-	}
-}
+func (dto *CreatePendingChildAccountDto) ToValueObjects() (*values.CreatePendingChildAccountValueObject, *errLib.CommonError) {
 
-func (vu *CreateChildAccountDto) Validate() *errLib.CommonError {
-
-	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-	if !emailRegex.MatchString(vu.ParentEmail) {
-		return errLib.New("Invalid email format for field 'parent_email'", http.StatusBadRequest)
+	if err := validators.ValidateDto(dto); err != nil {
+		return nil, err
 	}
 
-	return nil
+	if err := validators.ValidateDto(&dto.Child); err != nil {
+		return nil, err
+	}
+
+	child := dto.Child
+
+	var waiversVo []values.CustomerWaiverSigning
+	for _, waiver := range child.CustomerWaiverSigningDtos {
+		vo, err := waiver.ToValueObjects()
+		if err != nil {
+			return nil, err
+		}
+		waiversVo = append(waiversVo, *vo)
+	}
+
+	pendingChildAccountCreateVo := values.CreatePendingChildAccountValueObject{
+		ChildEmail:  child.Email,
+		ParentEmail: dto.ParentEmail,
+		Waivers:     waiversVo,
+	}
+
+	if child.Password != "" {
+		pendingChildAccountCreateVo.Password = &child.Password
+	}
+
+	return &pendingChildAccountCreateVo, nil
 }

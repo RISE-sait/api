@@ -2,8 +2,8 @@ package identity
 
 import (
 	"api/cmd/server/di"
-	dto "api/internal/domains/identity/dto"
 	repo "api/internal/domains/identity/persistence/repository"
+	"api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
 	"api/utils/email"
 	"context"
@@ -29,25 +29,17 @@ func NewChildAccountRegistrationRequestService(
 
 func (s *ChildAccountRequestService) CreatePendingAccount(
 	ctx context.Context,
-	credentialsCreate *dto.Credentials,
-	customerWaiverCreate *dto.CustomerWaiverCreateDto,
-	childAccountCreate *dto.CreateChildAccountDto,
+	childAccountCreate *values.CreatePendingChildAccountValueObject,
 ) *errLib.CommonError {
 
-	if err := credentialsCreate.Validate(); err != nil {
-		return err
-	}
+	childEmail := childAccountCreate.ChildEmail
+	parentEmail := childAccountCreate.ParentEmail
+	password := childAccountCreate.Password
 
-	if err := childAccountCreate.Validate(); err != nil {
-		return err
-	}
-
-	if err := customerWaiverCreate.Validate(); err != nil {
-		return err
-	}
-
-	if !customerWaiverCreate.IsWaiverSigned {
-		return errLib.New("Waiver is not signed", http.StatusBadRequest)
+	for _, waiver := range childAccountCreate.Waivers {
+		if !waiver.IsWaiverSigned {
+			return errLib.New("Waiver is not signed", http.StatusBadRequest)
+		}
 	}
 
 	tx, err := s.DB.BeginTx(ctx, nil)
@@ -55,18 +47,21 @@ func (s *ChildAccountRequestService) CreatePendingAccount(
 		return errLib.New("Failed to start transaction", http.StatusInternalServerError)
 	}
 
-	if err := s.PendingChildAccountRepository.CreatePendingChildAccountTx(ctx, tx, credentialsCreate.Email, childAccountCreate.ParentEmail, credentialsCreate.Password); err != nil {
+	if err := s.PendingChildAccountRepository.CreatePendingChildAccountTx(ctx, tx, childEmail, parentEmail, password); err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	if err := s.WaiverSigningRepository.CreateWaiverSigningRecordTx(ctx, tx, credentialsCreate.Email, customerWaiverCreate.WaiverUrl, customerWaiverCreate.IsWaiverSigned); err != nil {
+	for _, waiver := range childAccountCreate.Waivers {
+		if err := s.WaiverSigningRepository.CreateWaiverSigningRecordTx(ctx, tx, childEmail, waiver.WaiverUrl, waiver.IsWaiverSigned); err != nil {
 
-		tx.Rollback()
-		return err
+			tx.Rollback()
+			return err
+		}
+
 	}
 
-	if err := email.SendConfirmChildEmail(childAccountCreate.ParentEmail, credentialsCreate.Email); err != nil {
+	if err := email.SendConfirmChildEmail(parentEmail, childEmail); err != nil {
 		tx.Rollback()
 		return errLib.New("Failed to send email", http.StatusInternalServerError)
 	}

@@ -2,9 +2,9 @@ package identity
 
 import (
 	"api/cmd/server/di"
-	dto "api/internal/domains/identity/dto"
 	"api/internal/domains/identity/entities"
 	repo "api/internal/domains/identity/persistence/repository"
+	"api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/services/hubspot"
 	"context"
@@ -35,9 +35,11 @@ func NewAccountRegistrationService(
 
 func (s *AccountRegistrationService) CreateCustomer(
 	ctx context.Context,
-	customerCreate *dto.CustomerWaiverCreateDto,
-	credentialsDto *dto.Credentials,
+	customerCreate *values.CustomerRegistrationValueObject,
 ) (*entities.UserInfo, *errLib.CommonError) {
+
+	emailStr := customerCreate.Email
+	password := customerCreate.Password
 
 	// Begin transaction
 	tx, txErr := s.DB.BeginTx(ctx, &sql.TxOptions{})
@@ -52,46 +54,40 @@ func (s *AccountRegistrationService) CreateCustomer(
 		}
 	}()
 
-	if err := credentialsDto.Validate(); err != nil {
-		return nil, err
-	}
-
-	email := credentialsDto.Email
-	password := credentialsDto.Password
-
 	// Insert into users table
-	if err := s.UsersRepository.CreateUserTx(ctx, tx, email); err != nil {
+	if err := s.UsersRepository.CreateUserTx(ctx, tx, emailStr); err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 
 	// Insert into credentials (password).
 
-	if err := s.CredentialsRepository.CreatePasswordTx(ctx, tx, email, password); err != nil {
-		tx.Rollback()
-		return nil, err
+	if password != nil {
+
+		if err := s.CredentialsRepository.CreatePasswordTx(ctx, tx, emailStr, *password); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
 	}
 
-	// User is Customer
-
-	if err := customerCreate.Validate(); err != nil {
-		return nil, err
+	for _, waiver := range customerCreate.Waivers {
+		if !waiver.IsWaiverSigned {
+			return nil, errLib.New("Waiver is not signed", http.StatusBadRequest)
+		}
 	}
 
-	if !customerCreate.IsWaiverSigned {
-		tx.Rollback()
-		return nil, errLib.New("Waiver is not signed", http.StatusBadRequest)
-	}
+	for _, waiver := range customerCreate.Waivers {
 
-	if err := s.WaiverSigningRepository.CreateWaiverSigningRecordTx(ctx, tx, credentialsDto.Email, customerCreate.WaiverUrl, customerCreate.IsWaiverSigned); err != nil {
-		tx.Rollback()
-		return nil, err
+		if err := s.WaiverSigningRepository.CreateWaiverSigningRecordTx(ctx, tx, emailStr, waiver.WaiverUrl, waiver.IsWaiverSigned); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
 	}
 
 	customer := hubspot.HubSpotCustomerCreateBody{
 		Properties: hubspot.HubSpotCustomerProps{
-			FirstName: strings.Split(email, "@")[0],
-			Email:     email,
+			FirstName: strings.Split(emailStr, "@")[0],
+			Email:     emailStr,
 			LastName:  "",
 		},
 	}
@@ -110,8 +106,8 @@ func (s *AccountRegistrationService) CreateCustomer(
 
 	// Generate JWT for the new user
 	userInfo := entities.UserInfo{
-		Name:      strings.Split(email, "@")[0],
-		Email:     email,
+		Name:      strings.Split(emailStr, "@")[0],
+		Email:     emailStr,
 		StaffInfo: nil,
 	}
 

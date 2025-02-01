@@ -35,6 +35,7 @@ require (
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-chi/cors v1.2.1
+	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/go-playground/validator/v10 v10.24.0
 	github.com/jinzhu/copier v0.4.0
 	github.com/pressly/goose v2.7.0+incompatible

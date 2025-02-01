@@ -2,7 +2,7 @@ package identity
 
 import (
 	"api/cmd/server/di"
-	identity "api/internal/domains/identity/dto"
+	dto "api/internal/domains/identity/dto"
 	service "api/internal/domains/identity/services"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/jwt"
@@ -32,14 +32,21 @@ func (h *AuthenticationController) Login(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var credentials identity.Credentials
+	var credentialsDto dto.LoginCredentialsDto
 
-	if ioErr := json.Unmarshal(body, &credentials); ioErr != nil {
+	if ioErr := json.Unmarshal(body, &credentialsDto); ioErr != nil {
 		response_handlers.RespondWithError(w, errLib.New("Invalid JSON format for credentials", http.StatusBadRequest))
 		return
 	}
 
-	userInfo, err := h.AuthService.AuthenticateUser(r.Context(), credentials)
+	credentials, err := credentialsDto.ToValueObjects()
+
+	if err != nil {
+		response_handlers.RespondWithError(w, err)
+		return
+	}
+
+	userInfo, err := h.AuthService.AuthenticateUser(r.Context(), *credentials)
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
@@ -53,5 +60,6 @@ func (h *AuthenticationController) Login(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Authorization", "Bearer "+token)
-	w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"token":"` + token + `"}`))
 }

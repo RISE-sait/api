@@ -1,8 +1,10 @@
 package values
 
-import "time"
+import (
+	"time"
+)
 
-type CourseCreate struct {
+type MembershipCreate struct {
 	Name        string
 	Description string
 	StartDate   time.Time

@@ -2,6 +2,7 @@ package facility
 
 import (
 	"api/cmd/server/di"
+	entity "api/internal/domains/facility/entities"
 	"api/internal/domains/facility/persistence"
 	"api/internal/domains/facility/values"
 	errLib "api/internal/libs/errors"
@@ -24,12 +25,12 @@ func (s *FacilityService) CreateFacility(ctx context.Context, facility *values.F
 
 }
 
-func (s *FacilityService) GetFacilityById(ctx context.Context, id uuid.UUID) (*values.FacilityAllFields, *errLib.CommonError) {
+func (s *FacilityService) GetFacilityById(ctx context.Context, id uuid.UUID) (*entity.Facility, *errLib.CommonError) {
 	return s.Repo.GetFacility(ctx, id)
 
 }
 
-func (s *FacilityService) GetAllFacilities(ctx context.Context) ([]values.FacilityAllFields, *errLib.CommonError) {
+func (s *FacilityService) GetAllFacilities(ctx context.Context) ([]entity.Facility, *errLib.CommonError) {
 	return s.Repo.GetAllFacilities(ctx, "")
 
 }

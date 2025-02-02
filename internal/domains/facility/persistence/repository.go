@@ -3,6 +3,7 @@ package persistence
 import (
 	"api/cmd/server/di"
 	database_errors "api/internal/constants"
+	entity "api/internal/domains/facility/entities"
 	db "api/internal/domains/facility/persistence/sqlc/generated"
 	"api/internal/domains/facility/values"
 	errLib "api/internal/libs/errors"
@@ -57,7 +58,7 @@ func (r *FacilityRepository) CreateFacility(c context.Context, facility *values.
 	return nil
 }
 
-func (r *FacilityRepository) GetFacility(c context.Context, id uuid.UUID) (*values.FacilityAllFields, *errLib.CommonError) {
+func (r *FacilityRepository) GetFacility(c context.Context, id uuid.UUID) (*entity.Facility, *errLib.CommonError) {
 	facility, err := r.Queries.GetFacilityById(c, id)
 
 	if err != nil {
@@ -68,17 +69,16 @@ func (r *FacilityRepository) GetFacility(c context.Context, id uuid.UUID) (*valu
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return &values.FacilityAllFields{
-		ID: facility.ID,
-		FacilityDetails: values.FacilityDetails{
-			Name:           facility.Name,
-			Location:       facility.Location,
-			FacilityTypeID: facility.FacilityTypeID,
-		},
+	return &entity.Facility{
+		ID:             facility.ID,
+		Name:           facility.Name,
+		Location:       facility.Location,
+		FacilityType:   facility.FacilityType,
+		FacilityTypeID: &uuid.Nil,
 	}, nil
 }
 
-func (r *FacilityRepository) GetAllFacilities(c context.Context, filter string) ([]values.FacilityAllFields, *errLib.CommonError) {
+func (r *FacilityRepository) GetAllFacilities(c context.Context, filter string) ([]entity.Facility, *errLib.CommonError) {
 	dbFacilities, err := r.Queries.GetAllFacilities(c)
 
 	if err != nil {
@@ -86,15 +86,14 @@ func (r *FacilityRepository) GetAllFacilities(c context.Context, filter string) 
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	courses := make([]values.FacilityAllFields, len(dbFacilities))
+	courses := make([]entity.Facility, len(dbFacilities))
 	for i, dbFacility := range dbFacilities {
-		courses[i] = values.FacilityAllFields{
-			ID: dbFacility.ID,
-			FacilityDetails: values.FacilityDetails{
-				Name:           dbFacility.Name,
-				Location:       dbFacility.Location,
-				FacilityTypeID: dbFacility.FacilityTypeID,
-			},
+		courses[i] = entity.Facility{
+			ID:             dbFacility.ID,
+			Name:           dbFacility.Name,
+			Location:       dbFacility.Location,
+			FacilityType:   dbFacility.FacilityType,
+			FacilityTypeID: &uuid.Nil,
 		}
 	}
 

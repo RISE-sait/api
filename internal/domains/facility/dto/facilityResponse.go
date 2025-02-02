@@ -5,8 +5,8 @@ import (
 )
 
 type FacilityResponse struct {
-	ID             uuid.UUID `json:"id"`
-	Name           string    `json:"name"`
-	Location       string    `json:"location"`
-	FacilityTypeID uuid.UUID `json:"facility_type_id"`
+	ID           uuid.UUID `json:"id"`
+	Name         string    `json:"name"`
+	Location     string    `json:"location"`
+	FacilityType string    `json:"facility_type"`
 }

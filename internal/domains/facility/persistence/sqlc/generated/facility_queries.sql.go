@@ -43,23 +43,30 @@ func (q *Queries) DeleteFacility(ctx context.Context, id uuid.UUID) (int64, erro
 }
 
 const getAllFacilities = `-- name: GetAllFacilities :many
-SELECT id, name, location, facility_type_id FROM facilities
+SELECT f.id, f.name, f.location, ft.name  as facility_type FROM facilities f JOIN facility_types ft ON f.facility_type_id = ft.id
 `
 
-func (q *Queries) GetAllFacilities(ctx context.Context) ([]Facility, error) {
+type GetAllFacilitiesRow struct {
+	ID           uuid.UUID `json:"id"`
+	Name         string    `json:"name"`
+	Location     string    `json:"location"`
+	FacilityType string    `json:"facility_type"`
+}
+
+func (q *Queries) GetAllFacilities(ctx context.Context) ([]GetAllFacilitiesRow, error) {
 	rows, err := q.db.QueryContext(ctx, getAllFacilities)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Facility
+	var items []GetAllFacilitiesRow
 	for rows.Next() {
-		var i Facility
+		var i GetAllFacilitiesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
 			&i.Location,
-			&i.FacilityTypeID,
+			&i.FacilityType,
 		); err != nil {
 			return nil, err
 		}
@@ -75,17 +82,24 @@ func (q *Queries) GetAllFacilities(ctx context.Context) ([]Facility, error) {
 }
 
 const getFacilityById = `-- name: GetFacilityById :one
-SELECT id, name, location, facility_type_id FROM facilities WHERE id = $1
+SELECT f.id, f.name, f.location, ft.name as facility_type FROM facilities f JOIN facility_types ft ON f.facility_type_id = ft.id WHERE f.id = $1
 `
 
-func (q *Queries) GetFacilityById(ctx context.Context, id uuid.UUID) (Facility, error) {
+type GetFacilityByIdRow struct {
+	ID           uuid.UUID `json:"id"`
+	Name         string    `json:"name"`
+	Location     string    `json:"location"`
+	FacilityType string    `json:"facility_type"`
+}
+
+func (q *Queries) GetFacilityById(ctx context.Context, id uuid.UUID) (GetFacilityByIdRow, error) {
 	row := q.db.QueryRowContext(ctx, getFacilityById, id)
-	var i Facility
+	var i GetFacilityByIdRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Location,
-		&i.FacilityTypeID,
+		&i.FacilityType,
 	)
 	return i, err
 }

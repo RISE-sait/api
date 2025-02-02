@@ -3,7 +3,7 @@ package facility
 import (
 	"api/cmd/server/di"
 	"api/internal/domains/facility/dto"
-	"api/internal/domains/facility/values"
+	entity "api/internal/domains/facility/entities"
 	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -117,11 +117,11 @@ func (h *Controller) DeleteFacility(w http.ResponseWriter, r *http.Request) {
 	response_handlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-func mapEntityToResponse(facility *values.FacilityAllFields) dto.FacilityResponse {
+func mapEntityToResponse(facility *entity.Facility) dto.FacilityResponse {
 	return dto.FacilityResponse{
-		ID:             facility.ID,
-		Name:           facility.Name,
-		Location:       facility.Location,
-		FacilityTypeID: facility.FacilityTypeID,
+		ID:           facility.ID,
+		Name:         facility.Name,
+		Location:     facility.Location,
+		FacilityType: facility.FacilityType,
 	}
 }

@@ -23,11 +23,13 @@ func (dto *MembershipPlanRequestDto) ToCreateValueObjects() (*values.MembershipP
 	}
 
 	return &values.MembershipPlanCreate{
-		Name:             dto.Name,
-		Price:            dto.Price,
-		MembershipID:     dto.MembershipID,
-		PaymentFrequency: dto.PaymentFrequency,
-		AmtPeriods:       dto.AmtPeriods,
+		MembershipPlanRequest: values.MembershipPlanRequest{
+			Name:             dto.Name,
+			Price:            dto.Price,
+			MembershipID:     dto.MembershipID,
+			PaymentFrequency: dto.PaymentFrequency,
+			AmtPeriods:       dto.AmtPeriods,
+		},
 	}, nil
 }
 
@@ -51,11 +53,13 @@ func (dto *MembershipPlanRequestDto) ToUpdateValueObjects(membershipIdStr, planI
 	}
 
 	return &values.MembershipPlanUpdate{
-		ID:               planId,
-		Name:             dto.Name,
-		Price:            dto.Price,
-		MembershipID:     membershipId,
-		PaymentFrequency: dto.PaymentFrequency,
-		AmtPeriods:       dto.AmtPeriods,
+		ID: planId,
+		MembershipPlanRequest: values.MembershipPlanRequest{
+			Name:             dto.Name,
+			Price:            dto.Price,
+			MembershipID:     membershipId,
+			PaymentFrequency: dto.PaymentFrequency,
+			AmtPeriods:       dto.AmtPeriods,
+		},
 	}, nil
 }

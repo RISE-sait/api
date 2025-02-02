@@ -7,6 +7,7 @@ import (
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
 	membershipDb "api/internal/domains/membership/persistence/sqlc/generated"
 	membershipPlanDb "api/internal/domains/membership/plans/persistence/sqlc/generated"
+	scheduleDb "api/internal/domains/schedule/persistence/sqlc/generated"
 
 	"api/internal/services/hubspot"
 	"database/sql"
@@ -24,6 +25,7 @@ type QueriesType struct {
 	MembershipDb     *membershipDb.Queries
 	MembershipPlanDb *membershipPlanDb.Queries
 	FacilityDb       *facilityDb.Queries
+	ScheduleDb       *scheduleDb.Queries
 }
 
 func NewContainer() *Container {
@@ -45,6 +47,7 @@ func initializeQueries(db *sql.DB) *QueriesType {
 		MembershipDb:     membershipDb.New(db),
 		MembershipPlanDb: membershipPlanDb.New(db),
 		FacilityDb:       facilityDb.New(db),
+		ScheduleDb:       scheduleDb.New(db),
 	}
 }
 

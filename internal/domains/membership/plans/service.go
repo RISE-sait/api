@@ -1,7 +1,7 @@
 package membership_plan
 
 import (
-	dto "api/internal/domains/membership/plans/dto"
+	"api/cmd/server/di"
 	entity "api/internal/domains/membership/plans/entities"
 	"api/internal/domains/membership/plans/persistence"
 	"api/internal/domains/membership/plans/values"
@@ -15,8 +15,8 @@ type MembershipPlansService struct {
 	Repo *persistence.MembershipPlansRepository
 }
 
-func NewFacilityManager(repo *persistence.MembershipPlansRepository) *MembershipPlansService {
-	return &MembershipPlansService{Repo: repo}
+func NewMembershipPlansService(container *di.Container) *MembershipPlansService {
+	return &MembershipPlansService{Repo: persistence.NewMembershipPlansRepository(container)}
 }
 
 func (s *MembershipPlansService) CreateMembershipPlan(ctx context.Context, plan *values.MembershipPlanCreate) *errLib.CommonError {
@@ -36,15 +36,4 @@ func (s *MembershipPlansService) UpdateMembershipPlan(ctx context.Context, plan 
 
 func (s *MembershipPlansService) DeleteMembershipPlan(ctx context.Context, membershipId, planId uuid.UUID) *errLib.CommonError {
 	return s.Repo.DeleteMembershipPlan(ctx, membershipId, planId)
-}
-
-func mapEntityToResponse(membership *entity.MembershipPlan) *dto.MembershipPlanResponse {
-	return &dto.MembershipPlanResponse{
-		ID:               membership.ID,
-		Name:             membership.Name,
-		MembershipID:     membership.MembershipID,
-		Price:            membership.Price,
-		PaymentFrequency: membership.PaymentFrequency,
-		AmtPeriods:       membership.AmtPeriods,
-	}
 }

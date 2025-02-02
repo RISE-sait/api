@@ -1,6 +1,7 @@
 package membership_plan
 
 import (
+	"api/cmd/server/di"
 	dto "api/internal/domains/membership/plans/dto"
 	entity "api/internal/domains/membership/plans/entities"
 
@@ -15,8 +16,8 @@ type MembershipPlansController struct {
 	MembershipPlansService *MembershipPlansService
 }
 
-func NewMembershipPlansController(membershipPlansRepository *MembershipPlansService) *MembershipPlansController {
-	return &MembershipPlansController{MembershipPlansService: membershipPlansRepository}
+func NewMembershipPlansController(container *di.Container) *MembershipPlansController {
+	return &MembershipPlansController{MembershipPlansService: NewMembershipPlansService(container)}
 }
 
 func (c *MembershipPlansController) CreateMembershipPlan(w http.ResponseWriter, r *http.Request) {

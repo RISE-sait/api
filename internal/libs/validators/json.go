@@ -53,14 +53,6 @@ func validatePointerToStruct(v interface{}) *errLib.CommonError {
 	return nil
 }
 
-func DayValidator(fl validator.FieldLevel) bool {
-	// Extract the value from the field
-	val := fl.Field().Int()
-
-	// Check if the value is between 0 and 6
-	return val >= 0 && val <= 6
-}
-
 func notWhiteSpace(fl validator.FieldLevel) bool {
 	return strings.TrimSpace(fl.Field().String()) != ""
 }
@@ -68,7 +60,6 @@ func notWhiteSpace(fl validator.FieldLevel) bool {
 func init() {
 	validate = validator.New()
 	validate.RegisterValidation("notwhitespace", notWhiteSpace)
-	validate.RegisterValidation("day", DayValidator)
 }
 
 // ValidateDto validates the given DTO using the go-playground/validator library.
@@ -109,8 +100,6 @@ func parseValidationErrors(err error, structType reflect.Type) *errLib.CommonErr
 				customMessage = fmt.Sprintf("%s: required", fieldName)
 			case "notwhitespace":
 				customMessage = fmt.Sprintf("%s: cannot be empty or whitespace", fieldName)
-			case "day":
-				customMessage = fmt.Sprintf("%s: must be between 0 and 6 (inclusive)", fieldName)
 			case "url":
 				customMessage = fmt.Sprintf("%s: must be a valid URL", fieldName)
 			case "gtcsfield":

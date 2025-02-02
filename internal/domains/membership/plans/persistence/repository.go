@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"api/cmd/server/di"
 	entity "api/internal/domains/membership/plans/entities"
 	db "api/internal/domains/membership/plans/persistence/sqlc/generated"
 	"api/internal/domains/membership/plans/values"
@@ -8,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -15,6 +17,12 @@ import (
 
 type MembershipPlansRepository struct {
 	Queries *db.Queries
+}
+
+func NewMembershipPlansRepository(container *di.Container) *MembershipPlansRepository {
+	return &MembershipPlansRepository{
+		Queries: container.Queries.MembershipPlanDb,
+	}
 }
 
 func (r *MembershipPlansRepository) CreateMembershipPlan(c context.Context, membershipPlan *values.MembershipPlanCreate) *errLib.CommonError {
@@ -35,11 +43,12 @@ func (r *MembershipPlansRepository) CreateMembershipPlan(c context.Context, memb
 	row, err := r.Queries.CreateMembershipPlan(c, dbParams)
 
 	if err != nil {
+		log.Printf("Failed to create plan: %+v. Error: %v", membershipPlan, err.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
 	if row == 0 {
-		return errLib.New("Membership plan not created", http.StatusInternalServerError)
+		return errLib.New("Membership not found", http.StatusNotFound)
 	}
 
 	return nil
@@ -90,11 +99,12 @@ func (r *MembershipPlansRepository) UpdateMembershipPlan(c context.Context, plan
 	row, err := r.Queries.UpdateMembershipPlan(c, dbMembershipParams)
 
 	if err != nil {
+		log.Printf("Failed to update plan: %+v. Error: %v", plan, err.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
 	if row == 0 {
-		return errLib.New("Membership plan not found", http.StatusNotFound)
+		return errLib.New("Membership not found", http.StatusNotFound)
 	}
 	return nil
 }
@@ -109,6 +119,7 @@ func (r *MembershipPlansRepository) DeleteMembershipPlan(c context.Context, memb
 	row, err := r.Queries.DeleteMembershipPlan(c, plan)
 
 	if err != nil {
+		log.Printf("Failed to delete plan with membership ID: %s and plan ID: %s. Error: %v", membershipId, planId, err.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 

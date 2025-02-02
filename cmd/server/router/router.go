@@ -5,6 +5,8 @@ import (
 	"api/internal/domains/course"
 	identity "api/internal/domains/identity/controllers"
 	membership "api/internal/domains/membership"
+	membership_plan "api/internal/domains/membership/plans"
+	"api/internal/domains/schedule"
 
 	"github.com/go-chi/chi"
 )
@@ -21,6 +23,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 			{Path: "/memberships", Configure: RegisterMembershipRoutes(r, container)},
 			{Path: "/identity", Configure: RegisterIdentityRoutes(r, container)},
 			{Path: "/courses", Configure: RegisterCourseRoutes(r, container)},
+			{Path: "/schedules", Configure: RegisterScheduleRoutes(r, container)},
 		}
 
 		for _, route := range routes {
@@ -38,6 +41,20 @@ func RegisterMembershipRoutes(r chi.Router, container *di.Container) func(chi.Ro
 		r.Post("/", ctrl.CreateMembership)
 		r.Put("/{id}", ctrl.UpdateMembership)
 		r.Delete("/{id}", ctrl.DeleteMembership)
+
+		// plans as subroute
+		r.Route("/{membershipId}/plans", RegisterMembershipPlansRoutes(r, container))
+	}
+}
+
+func RegisterMembershipPlansRoutes(r chi.Router, container *di.Container) func(chi.Router) {
+	ctrl := membership_plan.NewMembershipPlansController(container)
+
+	return func(r chi.Router) {
+		r.Get("/{planId}", ctrl.GetMembershipPlansByMembershipId)
+		r.Post("/", ctrl.CreateMembershipPlan)
+		r.Put("/{planId}", ctrl.UpdateMembershipPlan)
+		r.Delete("/{planId}", ctrl.DeleteMembershipPlan)
 	}
 }
 
@@ -50,6 +67,17 @@ func RegisterCourseRoutes(r chi.Router, container *di.Container) func(chi.Router
 		r.Post("/", ctrl.CreateCourse)
 		r.Put("/{id}", ctrl.UpdateCourse)
 		r.Delete("/{id}", ctrl.DeleteCourse)
+	}
+}
+
+func RegisterScheduleRoutes(r chi.Router, container *di.Container) func(chi.Router) {
+	ctrl := schedule.NewSchedulesController(container)
+
+	return func(r chi.Router) {
+		r.Get("/", ctrl.GetSchedules)
+		r.Post("/", ctrl.CreateSchedule)
+		r.Put("/{id}", ctrl.UpdateSchedule)
+		r.Delete("/{id}", ctrl.DeleteSchedule)
 	}
 }
 

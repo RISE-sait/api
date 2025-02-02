@@ -97,6 +97,7 @@ func parseValidationErrors(err error, structType reflect.Type) *errLib.CommonErr
 			case "min":
 				customMessage = fmt.Sprintf("%s: must be at least %s characters long", fieldName, e.Param())
 			case "required":
+				log.Println("Field: ", e.Field())
 				customMessage = fmt.Sprintf("%s: required", fieldName)
 			case "notwhitespace":
 				customMessage = fmt.Sprintf("%s: cannot be empty or whitespace", fieldName)

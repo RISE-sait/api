@@ -21,23 +21,21 @@ func (dto *MembershipRequestDto) validate() *errLib.CommonError {
 	return nil
 }
 
-func (dto *MembershipRequestDto) ToMembershipCreateValueObject() (*values.MembershipCreate, *errLib.CommonError) {
+func (dto *MembershipRequestDto) ToMembershipCreateValueObject() (*values.MembershipDetails, *errLib.CommonError) {
 
 	if err := dto.validate(); err != nil {
 		return nil, err
 	}
 
-	return &values.MembershipCreate{
-		Membership: values.Membership{
-			Name:        dto.Name,
-			Description: dto.Description,
-			StartDate:   dto.StartDate,
-			EndDate:     dto.EndDate,
-		},
+	return &values.MembershipDetails{
+		Name:        dto.Name,
+		Description: dto.Description,
+		StartDate:   dto.StartDate,
+		EndDate:     dto.EndDate,
 	}, nil
 }
 
-func (dto *MembershipRequestDto) ToMembershipUpdateValueObject(idStr string) (*values.MembershipUpdate, *errLib.CommonError) {
+func (dto *MembershipRequestDto) ToMembershipUpdateValueObject(idStr string) (*values.MembershipAllFields, *errLib.CommonError) {
 
 	id, err := validators.ParseUUID(idStr)
 
@@ -49,9 +47,9 @@ func (dto *MembershipRequestDto) ToMembershipUpdateValueObject(idStr string) (*v
 		return nil, err
 	}
 
-	return &values.MembershipUpdate{
+	return &values.MembershipAllFields{
 		ID: id,
-		Membership: values.Membership{
+		MembershipDetails: values.MembershipDetails{
 			Name:        dto.Name,
 			Description: dto.Description,
 			StartDate:   dto.StartDate,

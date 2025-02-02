@@ -3,7 +3,7 @@ package membership
 import (
 	"api/cmd/server/di"
 	dto "api/internal/domains/membership/dto"
-	entity "api/internal/domains/membership/entities"
+	"api/internal/domains/membership/values"
 	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -120,7 +120,7 @@ func (h *MembershipController) DeleteMembership(w http.ResponseWriter, r *http.R
 	response_handlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-func mapEntityToResponse(membership *entity.Membership) dto.MembershipResponse {
+func mapEntityToResponse(membership *values.MembershipAllFields) dto.MembershipResponse {
 	return dto.MembershipResponse{
 		ID:          membership.ID,
 		Name:        membership.Name,

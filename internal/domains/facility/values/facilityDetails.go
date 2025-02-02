@@ -1,11 +1,10 @@
-package entity
+package values
 
 import (
 	"github.com/google/uuid"
 )
 
-type Facility struct {
-	ID             uuid.UUID
+type FacilityDetails struct {
 	Name           string
 	Location       string
 	FacilityTypeID uuid.UUID

@@ -2,7 +2,6 @@ package membership
 
 import (
 	"api/cmd/server/di"
-	entity "api/internal/domains/membership/entities"
 	db "api/internal/domains/membership/persistence/sqlc/generated"
 	"api/internal/domains/membership/values"
 	errLib "api/internal/libs/errors"
@@ -24,7 +23,7 @@ func NewMembershipsRepository(container *di.Container) *MembershipsRepository {
 	}
 }
 
-func (r *MembershipsRepository) Create(c context.Context, membership *entity.Membership) *errLib.CommonError {
+func (r *MembershipsRepository) Create(c context.Context, membership *values.MembershipDetails) *errLib.CommonError {
 
 	dbParams := db.CreateMembershipParams{
 		Name: membership.Name, Description: sql.NullString{
@@ -48,7 +47,7 @@ func (r *MembershipsRepository) Create(c context.Context, membership *entity.Mem
 	return nil
 }
 
-func (r *MembershipsRepository) GetByID(c context.Context, id uuid.UUID) (*entity.Membership, *errLib.CommonError) {
+func (r *MembershipsRepository) GetByID(c context.Context, id uuid.UUID) (*values.MembershipAllFields, *errLib.CommonError) {
 	membership, err := r.Queries.GetMembershipById(c, id)
 
 	if err != nil {
@@ -58,36 +57,40 @@ func (r *MembershipsRepository) GetByID(c context.Context, id uuid.UUID) (*entit
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return &entity.Membership{
-		ID:          membership.ID,
-		Name:        membership.Name,
-		Description: membership.Description.String,
-		StartDate:   membership.StartDate,
-		EndDate:     membership.EndDate,
+	return &values.MembershipAllFields{
+		ID: membership.ID,
+		MembershipDetails: values.MembershipDetails{
+			Name:        membership.Name,
+			Description: membership.Description.String,
+			StartDate:   membership.StartDate,
+			EndDate:     membership.EndDate,
+		},
 	}, nil
 }
 
-func (r *MembershipsRepository) List(c context.Context, after string) ([]entity.Membership, *errLib.CommonError) {
+func (r *MembershipsRepository) List(c context.Context, after string) ([]values.MembershipAllFields, *errLib.CommonError) {
 	dbMemberships, err := r.Queries.GetAllMemberships(c)
 
 	if err != nil {
-		return []entity.Membership{}, errLib.New("Internal server error", http.StatusInternalServerError)
+		return []values.MembershipAllFields{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
-	memebrships := make([]entity.Membership, len(dbMemberships))
+	memebrships := make([]values.MembershipAllFields, len(dbMemberships))
 	for i, dbCourse := range dbMemberships {
-		memebrships[i] = entity.Membership{
-			ID:          dbCourse.ID,
-			Name:        dbCourse.Name,
-			Description: dbCourse.Description.String,
-			StartDate:   dbCourse.StartDate,
-			EndDate:     dbCourse.EndDate,
+		memebrships[i] = values.MembershipAllFields{
+			ID: dbCourse.ID,
+			MembershipDetails: values.MembershipDetails{
+				Name:        dbCourse.Name,
+				Description: dbCourse.Description.String,
+				StartDate:   dbCourse.StartDate,
+				EndDate:     dbCourse.EndDate,
+			},
 		}
 	}
 
 	return memebrships, nil
 }
 
-func (r *MembershipsRepository) Update(c context.Context, membership *values.MembershipUpdate) *errLib.CommonError {
+func (r *MembershipsRepository) Update(c context.Context, membership *values.MembershipAllFields) *errLib.CommonError {
 
 	dbMembershipParams := db.UpdateMembershipParams{
 		ID:   membership.ID,

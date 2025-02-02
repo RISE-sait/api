@@ -52,14 +52,14 @@ func (s *ChildAccountRequestService) CreatePendingAccount(
 		return err
 	}
 
-	for _, waiver := range childAccountCreate.Waivers {
-		if err := s.WaiverSigningRepository.CreateWaiverSigningRecordTx(ctx, tx, childEmail, waiver.WaiverUrl, waiver.IsWaiverSigned); err != nil {
+	// for _, waiver := range childAccountCreate.Waivers {
+	// 	if err := s.WaiverSigningRepository.CreateWaiverSigningRecordTx(ctx, tx, childEmail, waiver.WaiverUrl, waiver.IsWaiverSigned); err != nil {
 
-			tx.Rollback()
-			return err
-		}
+	// 		tx.Rollback()
+	// 		return err
+	// 	}
 
-	}
+	// }
 
 	if err := email.SendConfirmChildEmail(parentEmail, childEmail); err != nil {
 		tx.Rollback()

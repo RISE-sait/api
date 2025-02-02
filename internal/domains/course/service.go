@@ -2,7 +2,6 @@ package course
 
 import (
 	"api/cmd/server/di"
-	entity "api/internal/domains/course/entities"
 	"api/internal/domains/course/persistence"
 	"api/internal/domains/course/values"
 	errLib "api/internal/libs/errors"
@@ -19,22 +18,22 @@ func NewCourseService(container *di.Container) *CourseService {
 	return &CourseService{Repo: persistence.NewCourseRepository(container)}
 }
 
-func (s *CourseService) CreateCourse(ctx context.Context, input *values.CourseCreate) *errLib.CommonError {
+func (s *CourseService) CreateCourse(ctx context.Context, input *values.CourseDetails) *errLib.CommonError {
 
 	return s.Repo.CreateCourse(ctx, input)
 }
 
-func (s *CourseService) GetCourseById(ctx context.Context, id uuid.UUID) (*entity.Course, *errLib.CommonError) {
+func (s *CourseService) GetCourseById(ctx context.Context, id uuid.UUID) (*values.CourseAllFields, *errLib.CommonError) {
 	return s.Repo.GetCourseById(ctx, id)
 }
 
-func (s *CourseService) GetAllCourses(ctx context.Context) ([]entity.Course, *errLib.CommonError) {
+func (s *CourseService) GetAllCourses(ctx context.Context) ([]values.CourseAllFields, *errLib.CommonError) {
 
 	return s.Repo.GetAllCourses(ctx, "")
 
 }
 
-func (s *CourseService) UpdateCourse(ctx context.Context, input *values.CourseUpdate) *errLib.CommonError {
+func (s *CourseService) UpdateCourse(ctx context.Context, input *values.CourseAllFields) *errLib.CommonError {
 
 	return s.Repo.UpdateCourse(ctx, input)
 }

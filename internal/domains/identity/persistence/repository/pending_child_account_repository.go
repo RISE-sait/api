@@ -46,17 +46,24 @@ func (r *PendingChildAccountRepository) GetPendingChildAccountByChildEmail(ctx c
 
 func (r *PendingChildAccountRepository) CreatePendingChildAccountTx(ctx context.Context, tx *sql.Tx, email, parentEmail string, password *string) *errLib.CommonError {
 
+	passwordStr := ""
+
+	if password != nil {
+		passwordStr = *password
+	}
+
 	params := db.CreatePendingChildAccountParams{
 		UserEmail:   email,
 		ParentEmail: parentEmail,
 		Password: sql.NullString{
-			String: *password,
-			Valid:  *password != "",
+			String: passwordStr,
+			Valid:  passwordStr != "",
 		},
 	}
 
 	rows, err := r.Queries.WithTx(tx).CreatePendingChildAccount(ctx, params)
 
+	log.Println(params)
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {

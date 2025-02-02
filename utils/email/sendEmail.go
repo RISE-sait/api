@@ -31,7 +31,7 @@ func SendConfirmChildEmail(to, child string) *errLib.CommonError {
 				<p>Click on the link below to confirm the following email: %s, as your child.</p>
 				<p><b>Child:</b> %s</p>
 				<p><b>Parent:</b> %s</p>
-				<a href="http://localhost:8080/api/confirm-child?child=%s&parent=%s">Confirm Child</a>
+				<a href="http://localhost:8080/api/identity/confirm-child?child=%s&parent=%s">Confirm Child</a>
 			</body>
 		</html>`, child, child, to, child, to)
 

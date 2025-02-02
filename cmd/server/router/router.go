@@ -3,6 +3,7 @@ package routes
 import (
 	"api/cmd/server/di"
 	"api/internal/domains/course"
+	"api/internal/domains/facility"
 	identity "api/internal/domains/identity/controllers"
 	membership "api/internal/domains/membership"
 	membership_plan "api/internal/domains/membership/plans"
@@ -24,6 +25,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 			{Path: "/identity", Configure: RegisterIdentityRoutes(r, container)},
 			{Path: "/courses", Configure: RegisterCourseRoutes(r, container)},
 			{Path: "/schedules", Configure: RegisterScheduleRoutes(r, container)},
+			{Path: "/facilities", Configure: RegisterFacilityRoutes(r, container)},
 		}
 
 		for _, route := range routes {
@@ -51,10 +53,22 @@ func RegisterMembershipPlansRoutes(r chi.Router, container *di.Container) func(c
 	ctrl := membership_plan.NewMembershipPlansController(container)
 
 	return func(r chi.Router) {
-		r.Get("/{planId}", ctrl.GetMembershipPlansByMembershipId)
+		r.Get("/", ctrl.GetMembershipPlansByMembershipId)
 		r.Post("/", ctrl.CreateMembershipPlan)
 		r.Put("/{planId}", ctrl.UpdateMembershipPlan)
 		r.Delete("/{planId}", ctrl.DeleteMembershipPlan)
+	}
+}
+
+func RegisterFacilityRoutes(r chi.Router, container *di.Container) func(chi.Router) {
+	ctrl := facility.NewController(container)
+
+	return func(r chi.Router) {
+		r.Get("/", ctrl.GetAllFacilities)
+		r.Get("/{id}", ctrl.GetFacilityById)
+		r.Post("/", ctrl.CreateFacility)
+		r.Put("/{id}", ctrl.UpdateFacility)
+		r.Delete("/{id}", ctrl.DeleteFacility)
 	}
 }
 

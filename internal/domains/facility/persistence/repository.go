@@ -1,8 +1,8 @@
 package persistence
 
 import (
+	"api/cmd/server/di"
 	database_errors "api/internal/constants"
-	entity "api/internal/domains/facility/entities"
 	db "api/internal/domains/facility/persistence/sqlc/generated"
 	"api/internal/domains/facility/values"
 	errLib "api/internal/libs/errors"
@@ -20,7 +20,13 @@ type FacilityRepository struct {
 	Queries *db.Queries
 }
 
-func (r *FacilityRepository) CreateFacility(c context.Context, facility *values.FacilityCreate) *errLib.CommonError {
+func NewFacilityRepository(container *di.Container) *FacilityRepository {
+	return &FacilityRepository{
+		Queries: container.Queries.FacilityDb,
+	}
+}
+
+func (r *FacilityRepository) CreateFacility(c context.Context, facility *values.FacilityDetails) *errLib.CommonError {
 
 	dbParams := db.CreateFacilityParams{
 		Name:           facility.Name,
@@ -51,7 +57,7 @@ func (r *FacilityRepository) CreateFacility(c context.Context, facility *values.
 	return nil
 }
 
-func (r *FacilityRepository) GetFacility(c context.Context, id uuid.UUID) (*entity.Facility, *errLib.CommonError) {
+func (r *FacilityRepository) GetFacility(c context.Context, id uuid.UUID) (*values.FacilityAllFields, *errLib.CommonError) {
 	facility, err := r.Queries.GetFacilityById(c, id)
 
 	if err != nil {
@@ -62,15 +68,17 @@ func (r *FacilityRepository) GetFacility(c context.Context, id uuid.UUID) (*enti
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return &entity.Facility{
-		ID:             facility.ID,
-		Name:           facility.Name,
-		Location:       facility.Location,
-		FacilityTypeID: facility.FacilityTypeID,
+	return &values.FacilityAllFields{
+		ID: facility.ID,
+		FacilityDetails: values.FacilityDetails{
+			Name:           facility.Name,
+			Location:       facility.Location,
+			FacilityTypeID: facility.FacilityTypeID,
+		},
 	}, nil
 }
 
-func (r *FacilityRepository) GetAllFacilities(c context.Context, filter string) ([]entity.Facility, *errLib.CommonError) {
+func (r *FacilityRepository) GetAllFacilities(c context.Context, filter string) ([]values.FacilityAllFields, *errLib.CommonError) {
 	dbFacilities, err := r.Queries.GetAllFacilities(c)
 
 	if err != nil {
@@ -78,20 +86,22 @@ func (r *FacilityRepository) GetAllFacilities(c context.Context, filter string) 
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	courses := make([]entity.Facility, len(dbFacilities))
+	courses := make([]values.FacilityAllFields, len(dbFacilities))
 	for i, dbFacility := range dbFacilities {
-		courses[i] = entity.Facility{
-			ID:             dbFacility.ID,
-			Name:           dbFacility.Name,
-			Location:       dbFacility.Location,
-			FacilityTypeID: dbFacility.FacilityTypeID,
+		courses[i] = values.FacilityAllFields{
+			ID: dbFacility.ID,
+			FacilityDetails: values.FacilityDetails{
+				Name:           dbFacility.Name,
+				Location:       dbFacility.Location,
+				FacilityTypeID: dbFacility.FacilityTypeID,
+			},
 		}
 	}
 
 	return courses, nil
 }
 
-func (r *FacilityRepository) UpdateFacility(c context.Context, facility *values.FacilityUpdate) *errLib.CommonError {
+func (r *FacilityRepository) UpdateFacility(c context.Context, facility *values.FacilityAllFields) *errLib.CommonError {
 
 	dbParams := db.UpdateFacilityParams{
 		ID:             facility.ID,

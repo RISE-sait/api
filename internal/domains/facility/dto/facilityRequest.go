@@ -18,13 +18,13 @@ type FacilityRequestDto struct {
 
 // ToFacilityCreateValueObject converts the FacilityRequestDto into a FacilityCreate value object.
 // It validates the DTO before conversion and returns an error if validation fails.
-func (dto *FacilityRequestDto) ToFacilityCreateValueObject() (*values.FacilityCreate, *errLib.CommonError) {
+func (dto *FacilityRequestDto) ToFacilityCreateValueObject() (*values.FacilityDetails, *errLib.CommonError) {
 
 	if err := validators.ValidateDto(dto); err != nil {
 		return nil, err
 	}
 
-	return &values.FacilityCreate{
+	return &values.FacilityDetails{
 		Name:           dto.Name,
 		Location:       dto.Location,
 		FacilityTypeID: dto.FacilityTypeID,
@@ -33,7 +33,7 @@ func (dto *FacilityRequestDto) ToFacilityCreateValueObject() (*values.FacilityCr
 
 // ToFacilityUpdateValueObject converts the FacilityRequestDto into a FacilityUpdate value object.
 // It parses and validates the provided ID string and ensures the DTO passes validation before conversion.
-func (dto FacilityRequestDto) ToFacilityUpdateValueObject(idStr string) (*values.FacilityUpdate, *errLib.CommonError) {
+func (dto FacilityRequestDto) ToFacilityUpdateValueObject(idStr string) (*values.FacilityAllFields, *errLib.CommonError) {
 
 	id, err := validators.ParseUUID(idStr)
 
@@ -44,10 +44,12 @@ func (dto FacilityRequestDto) ToFacilityUpdateValueObject(idStr string) (*values
 	if err := validators.ValidateDto(dto); err != nil {
 		return nil, err
 	}
-	return &values.FacilityUpdate{
-		ID:             id,
-		Name:           dto.Name,
-		Location:       dto.Location,
-		FacilityTypeID: dto.FacilityTypeID,
+	return &values.FacilityAllFields{
+		ID: id,
+		FacilityDetails: values.FacilityDetails{
+			Name:           dto.Name,
+			Location:       dto.Location,
+			FacilityTypeID: dto.FacilityTypeID,
+		},
 	}, nil
 }

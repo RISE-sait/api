@@ -2,7 +2,7 @@ package values
 
 import "time"
 
-type CourseCreate struct {
+type CourseDetails struct {
 	Name        string
 	Description string
 	StartDate   time.Time

@@ -21,13 +21,13 @@ func (dto *CourseRequestDto) validate() *errLib.CommonError {
 	return nil
 }
 
-func (dto *CourseRequestDto) ToCreateValueObjects() (*values.CourseCreate, *errLib.CommonError) {
+func (dto *CourseRequestDto) ToCreateValueObjects() (*values.CourseDetails, *errLib.CommonError) {
 
 	if err := dto.validate(); err != nil {
 		return nil, err
 	}
 
-	return &values.CourseCreate{
+	return &values.CourseDetails{
 		Name:        dto.Name,
 		Description: dto.Description,
 		StartDate:   dto.StartDate,
@@ -35,7 +35,7 @@ func (dto *CourseRequestDto) ToCreateValueObjects() (*values.CourseCreate, *errL
 	}, nil
 }
 
-func (dto *CourseRequestDto) ToUpdateValueObjects(idStr string) (*values.CourseUpdate, *errLib.CommonError) {
+func (dto *CourseRequestDto) ToUpdateValueObjects(idStr string) (*values.CourseAllFields, *errLib.CommonError) {
 
 	id, err := validators.ParseUUID(idStr)
 
@@ -47,11 +47,13 @@ func (dto *CourseRequestDto) ToUpdateValueObjects(idStr string) (*values.CourseU
 		return nil, err
 	}
 
-	return &values.CourseUpdate{
-		ID:          id,
-		Name:        dto.Name,
-		Description: dto.Description,
-		StartDate:   dto.StartDate,
-		EndDate:     dto.EndDate,
+	return &values.CourseAllFields{
+		ID: id,
+		CourseDetails: values.CourseDetails{
+			Name:        dto.Name,
+			Description: dto.Description,
+			StartDate:   dto.StartDate,
+			EndDate:     dto.EndDate,
+		},
 	}, nil
 }

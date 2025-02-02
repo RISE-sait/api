@@ -3,7 +3,7 @@ package course
 import (
 	"api/cmd/server/di"
 	"api/internal/domains/course/dto"
-	"api/internal/domains/course/entities"
+	"api/internal/domains/course/values"
 	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -122,7 +122,7 @@ func (h *CourseController) DeleteCourse(w http.ResponseWriter, r *http.Request) 
 	response_handlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-func mapEntityToResponse(course *entities.Course) dto.CourseResponse {
+func mapEntityToResponse(course *values.CourseAllFields) dto.CourseResponse {
 	return dto.CourseResponse{
 		ID:        course.ID,
 		Name:      course.Name,

@@ -1,13 +1,10 @@
-package entity
+package values
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
-type Membership struct {
-	ID          uuid.UUID
+type MembershipDetails struct {
 	Name        string
 	Description string
 	StartDate   time.Time

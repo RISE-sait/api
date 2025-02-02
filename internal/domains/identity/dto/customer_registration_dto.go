@@ -7,7 +7,7 @@ import (
 )
 
 type CustomerRegistrationDto struct {
-	CustomerWaiverSigningDtos []CustomerWaiverSigningDto `json:"waivers" validate:"required"`
+	CustomerWaiverSigningDtos []CustomerWaiverSigningDto `json:"waivers"`
 	Email                     string                     `json:"email" validate:"required,email"`
 	Password                  string                     `json:"password" validate:"omitempty,min=8"`
 }

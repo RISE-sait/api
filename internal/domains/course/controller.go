@@ -124,9 +124,10 @@ func (h *CourseController) DeleteCourse(w http.ResponseWriter, r *http.Request) 
 
 func mapEntityToResponse(course *values.CourseAllFields) dto.CourseResponse {
 	return dto.CourseResponse{
-		ID:        course.ID,
-		Name:      course.Name,
-		StartDate: course.StartDate,
-		EndDate:   course.EndDate,
+		ID:          course.ID,
+		Name:        course.Name,
+		StartDate:   course.StartDate,
+		EndDate:     course.EndDate,
+		Description: course.Description,
 	}
 }

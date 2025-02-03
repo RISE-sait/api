@@ -3,7 +3,7 @@ package routes
 import (
 	"api/cmd/server/di"
 	"api/internal/domains/course"
-	"api/internal/domains/facility"
+	facility "api/internal/domains/facility/controllers"
 	identity "api/internal/domains/identity/controllers"
 	membership "api/internal/domains/membership"
 	membership_plan "api/internal/domains/membership/plans"
@@ -61,7 +61,7 @@ func RegisterMembershipPlansRoutes(r chi.Router, container *di.Container) func(c
 }
 
 func RegisterFacilityRoutes(r chi.Router, container *di.Container) func(chi.Router) {
-	ctrl := facility.NewController(container)
+	ctrl := facility.NewFacilitiesController(container)
 
 	return func(r chi.Router) {
 		r.Get("/", ctrl.GetAllFacilities)
@@ -69,6 +69,19 @@ func RegisterFacilityRoutes(r chi.Router, container *di.Container) func(chi.Rout
 		r.Post("/", ctrl.CreateFacility)
 		r.Put("/{id}", ctrl.UpdateFacility)
 		r.Delete("/{id}", ctrl.DeleteFacility)
+
+		r.Route("/types", RegisterFacilityTypesRoutes(r, container))
+	}
+}
+
+func RegisterFacilityTypesRoutes(r chi.Router, container *di.Container) func(chi.Router) {
+	ctrl := facility.NewFacilityTypesController(container)
+
+	return func(r chi.Router) {
+		r.Get("/", ctrl.GetAllFacilityTypes)
+		r.Post("/", ctrl.CreateFacility)
+		r.Put("/{id}", ctrl.UpdateFacility)
+		r.Delete("/{id}", ctrl.DeleteFacilityType)
 	}
 }
 

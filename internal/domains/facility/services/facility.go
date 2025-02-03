@@ -1,9 +1,9 @@
-package facility
+package service
 
 import (
 	"api/cmd/server/di"
 	entity "api/internal/domains/facility/entities"
-	"api/internal/domains/facility/persistence"
+	repository "api/internal/domains/facility/persistence/repositories"
 	"api/internal/domains/facility/values"
 	errLib "api/internal/libs/errors"
 	"context"
@@ -12,11 +12,11 @@ import (
 )
 
 type FacilityService struct {
-	Repo *persistence.FacilityRepository
+	Repo *repository.FacilityRepository
 }
 
 func NewFacilityService(container *di.Container) *FacilityService {
-	return &FacilityService{Repo: persistence.NewFacilityRepository(container)}
+	return &FacilityService{Repo: repository.NewFacilityRepository(container)}
 }
 
 func (s *FacilityService) CreateFacility(ctx context.Context, facility *values.FacilityDetails) *errLib.CommonError {

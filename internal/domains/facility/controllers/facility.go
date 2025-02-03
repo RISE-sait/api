@@ -1,9 +1,10 @@
-package facility
+package controller
 
 import (
 	"api/cmd/server/di"
 	"api/internal/domains/facility/dto"
 	entity "api/internal/domains/facility/entities"
+	service "api/internal/domains/facility/services"
 	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -11,15 +12,15 @@ import (
 	"github.com/go-chi/chi"
 )
 
-type Controller struct {
-	Service *FacilityService
+type FacilitiesController struct {
+	Service *service.FacilityService
 }
 
-func NewController(container *di.Container) *Controller {
-	return &Controller{Service: NewFacilityService(container)}
+func NewFacilitiesController(container *di.Container) *FacilitiesController {
+	return &FacilitiesController{Service: service.NewFacilityService(container)}
 }
 
-func (h *Controller) CreateFacility(w http.ResponseWriter, r *http.Request) {
+func (h *FacilitiesController) CreateFacility(w http.ResponseWriter, r *http.Request) {
 	var dto dto.FacilityRequestDto
 
 	if err := validators.ParseJSON(r.Body, &dto); err != nil {
@@ -42,7 +43,7 @@ func (h *Controller) CreateFacility(w http.ResponseWriter, r *http.Request) {
 	response_handlers.RespondWithSuccess(w, nil, http.StatusCreated)
 }
 
-func (h *Controller) GetFacilityById(w http.ResponseWriter, r *http.Request) {
+func (h *FacilitiesController) GetFacilityById(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := validators.ParseUUID(idStr)
 
@@ -51,16 +52,18 @@ func (h *Controller) GetFacilityById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	course, err := h.Service.GetFacilityById(r.Context(), id)
+	facility, err := h.Service.GetFacilityById(r.Context(), id)
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	response_handlers.RespondWithSuccess(w, *course, http.StatusOK)
+	response := mapFacilityEntityToResponse(facility)
+
+	response_handlers.RespondWithSuccess(w, response, http.StatusOK)
 }
 
-func (h *Controller) GetAllFacilities(w http.ResponseWriter, r *http.Request) {
+func (h *FacilitiesController) GetAllFacilities(w http.ResponseWriter, r *http.Request) {
 	facilities, err := h.Service.GetAllFacilities(r.Context())
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
@@ -69,13 +72,13 @@ func (h *Controller) GetAllFacilities(w http.ResponseWriter, r *http.Request) {
 
 	result := make([]dto.FacilityResponse, len(facilities))
 	for i, facility := range facilities {
-		result[i] = mapEntityToResponse(&facility)
+		result[i] = mapFacilityEntityToResponse(&facility)
 	}
 
 	response_handlers.RespondWithSuccess(w, result, http.StatusOK)
 }
 
-func (h *Controller) UpdateFacility(w http.ResponseWriter, r *http.Request) {
+func (h *FacilitiesController) UpdateFacility(w http.ResponseWriter, r *http.Request) {
 
 	idStr := chi.URLParam(r, "id")
 
@@ -100,7 +103,7 @@ func (h *Controller) UpdateFacility(w http.ResponseWriter, r *http.Request) {
 	response_handlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-func (h *Controller) DeleteFacility(w http.ResponseWriter, r *http.Request) {
+func (h *FacilitiesController) DeleteFacility(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := validators.ParseUUID(idStr)
 
@@ -117,7 +120,7 @@ func (h *Controller) DeleteFacility(w http.ResponseWriter, r *http.Request) {
 	response_handlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-func mapEntityToResponse(facility *entity.Facility) dto.FacilityResponse {
+func mapFacilityEntityToResponse(facility *entity.Facility) dto.FacilityResponse {
 	return dto.FacilityResponse{
 		ID:           facility.ID,
 		Name:         facility.Name,

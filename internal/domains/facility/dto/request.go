@@ -53,3 +53,24 @@ func (dto FacilityRequestDto) ToFacilityUpdateValueObject(idStr string) (*values
 		},
 	}, nil
 }
+
+type FacilityTypeRequestDto struct {
+	Name string `json:"name" validate:"notwhitespace"`
+}
+
+func (dto FacilityTypeRequestDto) ToFacilityTypeUpdateValueObject(idStr string) (*values.FacilityType, *errLib.CommonError) {
+
+	id, err := validators.ParseUUID(idStr)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := validators.ValidateDto(dto); err != nil {
+		return nil, err
+	}
+	return &values.FacilityType{
+		ID:   id,
+		Name: dto.Name,
+	}, nil
+}

@@ -9,3 +9,8 @@ type Facility struct {
 	FacilityTypeID *uuid.UUID
 	FacilityType   string
 }
+
+type FacilityType struct {
+	ID   uuid.UUID
+	Name string
+}

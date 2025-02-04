@@ -1,4 +1,4 @@
-package dto
+package membership
 
 import (
 	"github.com/google/uuid"

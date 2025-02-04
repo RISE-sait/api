@@ -1,10 +1,11 @@
-package membership_plan
+package membership
 
 import (
 	"api/cmd/server/di"
-	entity "api/internal/domains/membership/plans/entities"
-	"api/internal/domains/membership/plans/persistence"
-	"api/internal/domains/membership/plans/values"
+	entity "api/internal/domains/membership/entities"
+	persistence "api/internal/domains/membership/persistence/repositories"
+
+	values "api/internal/domains/membership/values/plans"
 	errLib "api/internal/libs/errors"
 	"context"
 

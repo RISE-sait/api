@@ -1,7 +1,7 @@
-package dto
+package membership
 
 import (
-	"api/internal/domains/membership/plans/values"
+	values "api/internal/domains/membership/values/plans"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
 

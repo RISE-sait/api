@@ -3,7 +3,8 @@ package membership
 import (
 	"api/cmd/server/di"
 	dto "api/internal/domains/membership/dto"
-	"api/internal/domains/membership/values"
+	service "api/internal/domains/membership/services"
+	values "api/internal/domains/membership/values/memberships"
 	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -12,11 +13,11 @@ import (
 )
 
 type MembershipController struct {
-	Service *MembershipService
+	Service *service.MembershipService
 }
 
 func NewMembershipController(container *di.Container) *MembershipController {
-	return &MembershipController{Service: NewMembershipService(container)}
+	return &MembershipController{Service: service.NewMembershipService(container)}
 }
 
 func (h *MembershipController) CreateMembership(w http.ResponseWriter, r *http.Request) {

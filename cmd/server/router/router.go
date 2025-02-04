@@ -5,8 +5,7 @@ import (
 	"api/internal/domains/course"
 	facility "api/internal/domains/facility/controllers"
 	identity "api/internal/domains/identity/controllers"
-	membership "api/internal/domains/membership"
-	membership_plan "api/internal/domains/membership/plans"
+	membership "api/internal/domains/membership/controllers"
 	"api/internal/domains/schedule"
 
 	"github.com/go-chi/chi"
@@ -50,7 +49,7 @@ func RegisterMembershipRoutes(r chi.Router, container *di.Container) func(chi.Ro
 }
 
 func RegisterMembershipPlansRoutes(r chi.Router, container *di.Container) func(chi.Router) {
-	ctrl := membership_plan.NewMembershipPlansController(container)
+	ctrl := membership.NewMembershipPlansController(container)
 
 	return func(r chi.Router) {
 		r.Get("/", ctrl.GetMembershipPlansByMembershipId)

@@ -2,8 +2,8 @@ package membership
 
 import (
 	"api/cmd/server/di"
-	persistence "api/internal/domains/membership/persistence"
-	"api/internal/domains/membership/values"
+	persistence "api/internal/domains/membership/persistence/repositories"
+	values "api/internal/domains/membership/values/memberships"
 	errLib "api/internal/libs/errors"
 	"context"
 

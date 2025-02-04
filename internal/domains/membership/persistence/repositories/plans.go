@@ -1,10 +1,10 @@
-package persistence
+package membership
 
 import (
 	"api/cmd/server/di"
-	entity "api/internal/domains/membership/plans/entities"
-	db "api/internal/domains/membership/plans/persistence/sqlc/generated"
-	"api/internal/domains/membership/plans/values"
+	entity "api/internal/domains/membership/entities"
+	db "api/internal/domains/membership/persistence/sqlc/generated"
+	values "api/internal/domains/membership/values/plans"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
@@ -21,7 +21,7 @@ type MembershipPlansRepository struct {
 
 func NewMembershipPlansRepository(container *di.Container) *MembershipPlansRepository {
 	return &MembershipPlansRepository{
-		Queries: container.Queries.MembershipPlanDb,
+		Queries: container.Queries.MembershipDb,
 	}
 }
 

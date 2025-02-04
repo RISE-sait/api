@@ -1,9 +1,10 @@
-package membership_plan
+package membership
 
 import (
 	"api/cmd/server/di"
-	dto "api/internal/domains/membership/plans/dto"
-	entity "api/internal/domains/membership/plans/entities"
+	dto "api/internal/domains/membership/dto"
+	entity "api/internal/domains/membership/entities"
+	service "api/internal/domains/membership/services"
 
 	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
@@ -13,11 +14,11 @@ import (
 )
 
 type MembershipPlansController struct {
-	MembershipPlansService *MembershipPlansService
+	MembershipPlansService *service.MembershipPlansService
 }
 
 func NewMembershipPlansController(container *di.Container) *MembershipPlansController {
-	return &MembershipPlansController{MembershipPlansService: NewMembershipPlansService(container)}
+	return &MembershipPlansController{MembershipPlansService: service.NewMembershipPlansService(container)}
 }
 
 func (c *MembershipPlansController) CreateMembershipPlan(w http.ResponseWriter, r *http.Request) {

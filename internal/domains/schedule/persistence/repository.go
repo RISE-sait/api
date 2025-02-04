@@ -2,11 +2,10 @@ package persistence
 
 import (
 	"api/cmd/server/di"
+	entity "api/internal/domains/schedule/entities"
 	db "api/internal/domains/schedule/persistence/sqlc/generated"
 	"api/internal/domains/schedule/values"
 	errLib "api/internal/libs/errors"
-	"database/sql"
-	"errors"
 
 	"context"
 	"log"
@@ -52,7 +51,7 @@ func (r *SchedulesRepository) CreateSchedule(c context.Context, schedule *values
 	return nil
 }
 
-func (r *SchedulesRepository) GetSchedules(c context.Context, fields *values.ScheduleDetails) ([]values.ScheduleAllFields, *errLib.CommonError) {
+func (r *SchedulesRepository) GetSchedules(ctx context.Context, fields *values.ScheduleDetails) ([]entity.Schedule, *errLib.CommonError) {
 
 	dbParams := db.GetSchedulesParams{
 		BeginDatetime: fields.BeginDatetime,
@@ -64,26 +63,22 @@ func (r *SchedulesRepository) GetSchedules(c context.Context, fields *values.Sch
 		},
 	}
 
-	dbSchedules, err := r.Queries.GetSchedules(c, dbParams)
+	dbSchedules, err := r.Queries.GetSchedules(ctx, dbParams)
 
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errLib.New("No schedule found", http.StatusNotFound)
-		}
+		log.Println("Failed to get schedules: ", err.Error())
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	schedules := make([]values.ScheduleAllFields, len(dbSchedules))
+	schedules := make([]entity.Schedule, len(dbSchedules))
 	for i, dbSchedule := range dbSchedules {
-		schedules[i] = values.ScheduleAllFields{
-			ID: dbSchedule.ID,
-			ScheduleDetails: values.ScheduleDetails{
-				BeginDatetime: dbSchedule.BeginDatetime,
-				EndDatetime:   dbSchedule.EndDatetime,
-				CourseID:      dbSchedule.CourseID.UUID,
-				FacilityID:    dbSchedule.FacilityID,
-				Day:           string(dbSchedule.Day),
-			},
+		schedules[i] = entity.Schedule{
+			ID:            dbSchedule.ID,
+			Course:        dbSchedule.Course,
+			Facility:      dbSchedule.Facility,
+			BeginDatetime: dbSchedule.BeginDatetime,
+			EndDatetime:   dbSchedule.EndDatetime,
+			Day:           string(dbSchedule.Day),
 		}
 	}
 

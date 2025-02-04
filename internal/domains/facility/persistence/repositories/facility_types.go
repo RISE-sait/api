@@ -73,8 +73,11 @@ func (r *FacilityTypesRepository) GetAllFacilityTypes(c context.Context, filter 
 	}
 
 	facilityTypes := make([]entity.FacilityType, len(dbFacilityTypes))
-	for i, facilityType := range facilityTypes {
-		facilityTypes[i] = facilityType
+	for i, facilityType := range dbFacilityTypes {
+		facilityTypes[i] = entity.FacilityType{
+			ID:   facilityType.ID,
+			Name: facilityType.Name,
+		}
 	}
 
 	return facilityTypes, nil

@@ -3,12 +3,15 @@ package schedule
 import (
 	"api/cmd/server/di"
 	dto "api/internal/domains/schedule/dto"
+	entity "api/internal/domains/schedule/entities"
 	"api/internal/domains/schedule/values"
 	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi"
+	"github.com/google/uuid"
 )
 
 // SchedulesController provides HTTP handlers for managing schedules.
@@ -30,36 +33,57 @@ func (c *SchedulesController) GetSchedules(w http.ResponseWriter, r *http.Reques
 	begin_datetimeStr := r.URL.Query().Get("begin_datetime")
 	end_datetimeStr := r.URL.Query().Get("end_datetime")
 
-	courseId, err := validators.ParseUUID(courseIdStr)
+	var courseId uuid.UUID
+	var facilityId uuid.UUID
+	var beginDatetime time.Time
+	var endDatetime time.Time
 
-	if err != nil {
-		response_handlers.RespondWithError(w, err)
-		return
+	if courseIdStr != "" {
+		id, err := validators.ParseUUID(courseIdStr)
+
+		if err != nil {
+			response_handlers.RespondWithError(w, err)
+			return
+		}
+
+		courseId = id
 	}
 
-	facilityId, err := validators.ParseUUID(facilityIdStr)
+	if facilityIdStr != "" {
 
-	if err != nil {
-		response_handlers.RespondWithError(w, err)
-		return
+		id, err := validators.ParseUUID(facilityIdStr)
+
+		if err != nil {
+			response_handlers.RespondWithError(w, err)
+			return
+		}
+
+		facilityId = id
 	}
 
-	// parse datetime
-	beginDatetime, err := validators.ParseDateTime(begin_datetimeStr)
-	if err != nil {
-		response_handlers.RespondWithError(w, err)
-		return
+	if begin_datetimeStr != "" {
+		datetime, err := validators.ParseDateTime(begin_datetimeStr)
+		if err != nil {
+			response_handlers.RespondWithError(w, err)
+			return
+		}
+
+		beginDatetime = datetime
 	}
 
-	endDatetime, err := validators.ParseDateTime(end_datetimeStr)
-	if err != nil {
-		response_handlers.RespondWithError(w, err)
-		return
+	if end_datetimeStr != "" {
+		datetime, err := validators.ParseDateTime(end_datetimeStr)
+		if err != nil {
+			response_handlers.RespondWithError(w, err)
+			return
+		}
+
+		endDatetime = datetime
 	}
 
 	details := &values.ScheduleDetails{
-		BeginDatetime: *beginDatetime,
-		EndDatetime:   *endDatetime,
+		BeginDatetime: beginDatetime,
+		EndDatetime:   endDatetime,
 		CourseID:      courseId,
 		FacilityID:    facilityId,
 	}
@@ -148,13 +172,13 @@ func (c *SchedulesController) DeleteSchedule(w http.ResponseWriter, r *http.Requ
 	response_handlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-func mapEntityToResponse(schedule *values.ScheduleAllFields) dto.ScheduleResponse {
+func mapEntityToResponse(schedule *entity.Schedule) dto.ScheduleResponse {
 	return dto.ScheduleResponse{
 		ID:            schedule.ID,
 		BeginDatetime: schedule.BeginDatetime,
 		EndDatetime:   schedule.EndDatetime,
-		CourseID:      schedule.CourseID,
-		FacilityID:    schedule.FacilityID,
+		Course:        schedule.Course,
+		Facility:      schedule.Facility,
 		Day:           schedule.Day,
 	}
 }

@@ -79,8 +79,9 @@ func RegisterFacilityTypesRoutes(r chi.Router, container *di.Container) func(chi
 
 	return func(r chi.Router) {
 		r.Get("/", ctrl.GetAllFacilityTypes)
-		r.Post("/", ctrl.CreateFacility)
-		r.Put("/{id}", ctrl.UpdateFacility)
+		r.Get("/{id}", ctrl.GetFacilityTypeById)
+		r.Post("/", ctrl.CreateFacilityType)
+		r.Put("/{id}", ctrl.UpdateFacilityType)
 		r.Delete("/{id}", ctrl.DeleteFacilityType)
 	}
 }

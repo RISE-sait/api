@@ -41,7 +41,7 @@ func (dto FacilityRequestDto) ToFacilityUpdateValueObject(idStr string) (*values
 		return nil, err
 	}
 
-	if err := validators.ValidateDto(dto); err != nil {
+	if err := validators.ValidateDto(&dto); err != nil {
 		return nil, err
 	}
 	return &values.FacilityAllFields{
@@ -66,7 +66,7 @@ func (dto FacilityTypeRequestDto) ToFacilityTypeUpdateValueObject(idStr string) 
 		return nil, err
 	}
 
-	if err := validators.ValidateDto(dto); err != nil {
+	if err := validators.ValidateDto(&dto); err != nil {
 		return nil, err
 	}
 	return &values.FacilityType{

@@ -2,6 +2,7 @@ package schedule
 
 import (
 	"api/cmd/server/di"
+	entity "api/internal/domains/schedule/entities"
 	"api/internal/domains/schedule/persistence"
 	"api/internal/domains/schedule/values"
 	errLib "api/internal/libs/errors"
@@ -21,7 +22,7 @@ func NewSchedulesService(container *di.Container) *SchedulesService {
 }
 
 // GetAllSchedules retrieves all schedules from the database.
-func (s *SchedulesService) GetSchedules(ctx context.Context, fields *values.ScheduleDetails) ([]values.ScheduleAllFields, *errLib.CommonError) {
+func (s *SchedulesService) GetSchedules(ctx context.Context, fields *values.ScheduleDetails) ([]entity.Schedule, *errLib.CommonError) {
 	return s.Repo.GetSchedules(ctx, fields)
 }
 

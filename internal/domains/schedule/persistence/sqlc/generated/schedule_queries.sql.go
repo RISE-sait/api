@@ -52,12 +52,14 @@ func (q *Queries) DeleteSchedule(ctx context.Context, id uuid.UUID) (int64, erro
 }
 
 const getSchedules = `-- name: GetSchedules :many
-SELECT id, begin_datetime, end_datetime, course_id, facility_id, created_at, updated_at, day FROM schedules
+SELECT s.id, begin_datetime, end_datetime, s.day, c.name as course, f.name as facility FROM schedules s
+JOIN courses c ON c.id = s.course_id
+JOIN facilities f ON f.id = s.facility_id
 WHERE 
-    (begin_datetime >= $1 OR $1 = '0001-01-01')
-    AND (end_datetime <= $2 OR $2 = '0001-01-01')
+    (begin_datetime >= $1 OR $1::text LIKE '0001-01-01%')
+    AND (end_datetime <= $2 OR $2::text LIKE '0001-01-01%')
    AND (facility_id = $3 OR $3 = '00000000-0000-0000-0000-000000000000')
-    AND (course_id = $4 or $4 = '00000000-0000-0000-0000-000000000000')
+    AND (course_id = $4 or $4 IS NULL)
 `
 
 type GetSchedulesParams struct {
@@ -67,7 +69,16 @@ type GetSchedulesParams struct {
 	CourseID      uuid.NullUUID `json:"course_id"`
 }
 
-func (q *Queries) GetSchedules(ctx context.Context, arg GetSchedulesParams) ([]Schedule, error) {
+type GetSchedulesRow struct {
+	ID            uuid.UUID `json:"id"`
+	BeginDatetime time.Time `json:"begin_datetime"`
+	EndDatetime   time.Time `json:"end_datetime"`
+	Day           DayEnum   `json:"day"`
+	Course        string    `json:"course"`
+	Facility      string    `json:"facility"`
+}
+
+func (q *Queries) GetSchedules(ctx context.Context, arg GetSchedulesParams) ([]GetSchedulesRow, error) {
 	rows, err := q.db.QueryContext(ctx, getSchedules,
 		arg.BeginDatetime,
 		arg.EndDatetime,
@@ -78,18 +89,16 @@ func (q *Queries) GetSchedules(ctx context.Context, arg GetSchedulesParams) ([]S
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Schedule
+	var items []GetSchedulesRow
 	for rows.Next() {
-		var i Schedule
+		var i GetSchedulesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.BeginDatetime,
 			&i.EndDatetime,
-			&i.CourseID,
-			&i.FacilityID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
 			&i.Day,
+			&i.Course,
+			&i.Facility,
 		); err != nil {
 			return nil, err
 		}

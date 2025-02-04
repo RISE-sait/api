@@ -20,7 +20,7 @@ func NewFacilityTypesController(container *di.Container) *FacilityTypesControlle
 	return &FacilityTypesController{Service: service.NewFacilityTypesService(container)}
 }
 
-func (c *FacilityTypesController) CreateFacility(w http.ResponseWriter, r *http.Request) {
+func (c *FacilityTypesController) CreateFacilityType(w http.ResponseWriter, r *http.Request) {
 	var dto dto.FacilityTypeRequestDto
 
 	if err := validators.ParseJSON(r.Body, &dto); err != nil {
@@ -40,7 +40,7 @@ func (c *FacilityTypesController) CreateFacility(w http.ResponseWriter, r *http.
 	response_handlers.RespondWithSuccess(w, nil, http.StatusCreated)
 }
 
-func (c *FacilityTypesController) GetFacilityById(w http.ResponseWriter, r *http.Request) {
+func (c *FacilityTypesController) GetFacilityTypeById(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := validators.ParseUUID(idStr)
 
@@ -80,7 +80,7 @@ func (c *FacilityTypesController) GetAllFacilityTypes(w http.ResponseWriter, r *
 	response_handlers.RespondWithSuccess(w, result, http.StatusOK)
 }
 
-func (c *FacilityTypesController) UpdateFacility(w http.ResponseWriter, r *http.Request) {
+func (c *FacilityTypesController) UpdateFacilityType(w http.ResponseWriter, r *http.Request) {
 
 	idStr := chi.URLParam(r, "id")
 

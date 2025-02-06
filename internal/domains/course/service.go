@@ -27,9 +27,9 @@ func (s *CourseService) GetCourseById(ctx context.Context, id uuid.UUID) (*value
 	return s.Repo.GetCourseById(ctx, id)
 }
 
-func (s *CourseService) GetAllCourses(ctx context.Context) ([]values.CourseAllFields, *errLib.CommonError) {
+func (s *CourseService) GetCourses(ctx context.Context, name, description string) ([]values.CourseAllFields, *errLib.CommonError) {
 
-	return s.Repo.GetAllCourses(ctx, "")
+	return s.Repo.GetCourses(ctx, name, description)
 
 }
 

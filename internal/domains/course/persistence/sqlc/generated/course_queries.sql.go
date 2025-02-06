@@ -50,12 +50,38 @@ func (q *Queries) DeleteCourse(ctx context.Context, id uuid.UUID) (int64, error)
 	return result.RowsAffected()
 }
 
-const getAllCourses = `-- name: GetAllCourses :many
-SELECT id, name, description, start_date, end_date, created_at, updated_at FROM courses
+const getCourseById = `-- name: GetCourseById :one
+SELECT id, name, description, start_date, end_date, created_at, updated_at FROM courses WHERE id = $1
 `
 
-func (q *Queries) GetAllCourses(ctx context.Context) ([]Course, error) {
-	rows, err := q.db.QueryContext(ctx, getAllCourses)
+func (q *Queries) GetCourseById(ctx context.Context, id uuid.UUID) (Course, error) {
+	row := q.db.QueryRowContext(ctx, getCourseById, id)
+	var i Course
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.StartDate,
+		&i.EndDate,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getCourses = `-- name: GetCourses :many
+SELECT id, name, description, start_date, end_date, created_at, updated_at FROM courses
+WHERE (name ILIKE '%' || $1 || '%' OR $1 IS NULL)
+AND (description ILIKE '%' || $2|| '%' OR $2 IS NULL)
+`
+
+type GetCoursesParams struct {
+	Name        sql.NullString `json:"name"`
+	Description sql.NullString `json:"description"`
+}
+
+func (q *Queries) GetCourses(ctx context.Context, arg GetCoursesParams) ([]Course, error) {
+	rows, err := q.db.QueryContext(ctx, getCourses, arg.Name, arg.Description)
 	if err != nil {
 		return nil, err
 	}
@@ -83,25 +109,6 @@ func (q *Queries) GetAllCourses(ctx context.Context) ([]Course, error) {
 		return nil, err
 	}
 	return items, nil
-}
-
-const getCourseById = `-- name: GetCourseById :one
-SELECT id, name, description, start_date, end_date, created_at, updated_at FROM courses WHERE id = $1
-`
-
-func (q *Queries) GetCourseById(ctx context.Context, id uuid.UUID) (Course, error) {
-	row := q.db.QueryRowContext(ctx, getCourseById, id)
-	var i Course
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.StartDate,
-		&i.EndDate,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
 }
 
 const updateCourse = `-- name: UpdateCourse :execrows

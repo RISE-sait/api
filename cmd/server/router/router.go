@@ -63,7 +63,7 @@ func RegisterFacilityRoutes(r chi.Router, container *di.Container) func(chi.Rout
 	ctrl := facility.NewFacilitiesController(container)
 
 	return func(r chi.Router) {
-		r.Get("/", ctrl.GetAllFacilities)
+		r.Get("/", ctrl.GetFacilities)
 		r.Get("/{id}", ctrl.GetFacilityById)
 		r.Post("/", ctrl.CreateFacility)
 		r.Put("/{id}", ctrl.UpdateFacility)
@@ -89,7 +89,7 @@ func RegisterCourseRoutes(r chi.Router, container *di.Container) func(chi.Router
 	ctrl := course.NewCourseController(container)
 
 	return func(r chi.Router) {
-		r.Get("/", ctrl.GetAllCourses)
+		r.Get("/", ctrl.GetCourses)
 		r.Get("/{id}", ctrl.GetCourseById)
 		r.Post("/", ctrl.CreateCourse)
 		r.Put("/{id}", ctrl.UpdateCourse)

@@ -16,13 +16,13 @@ import (
 type DayEnum string
 
 const (
-	DayEnumM     DayEnum = "M"
-	DayEnumTues  DayEnum = "Tues"
-	DayEnumW     DayEnum = "W"
-	DayEnumThurs DayEnum = "Thurs"
-	DayEnumF     DayEnum = "F"
-	DayEnumSat   DayEnum = "Sat"
-	DayEnumSun   DayEnum = "Sun"
+	DayEnumMONDAY    DayEnum = "MONDAY"
+	DayEnumTUESDAY   DayEnum = "TUESDAY"
+	DayEnumWEDNESDAY DayEnum = "WEDNESDAY"
+	DayEnumTHURSDAY  DayEnum = "THURSDAY"
+	DayEnumFRIDAY    DayEnum = "FRIDAY"
+	DayEnumSATURDAY  DayEnum = "SATURDAY"
+	DayEnumSUNDAY    DayEnum = "SUNDAY"
 )
 
 func (e *DayEnum) Scan(src interface{}) error {

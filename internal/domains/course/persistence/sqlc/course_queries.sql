@@ -5,8 +5,10 @@ VALUES ($1, $2, $3, $4);
 -- name: GetCourseById :one
 SELECT * FROM courses WHERE id = $1;
 
--- name: GetAllCourses :many
-SELECT * FROM courses;
+-- name: GetCourses :many
+SELECT * FROM courses
+WHERE (name ILIKE '%' || @name || '%' OR @name IS NULL)
+AND (description ILIKE '%' || @description|| '%' OR @description IS NULL);
 
 -- name: UpdateCourse :execrows
 UPDATE courses

@@ -30,8 +30,8 @@ func (s *FacilityService) GetFacilityById(ctx context.Context, id uuid.UUID) (*e
 
 }
 
-func (s *FacilityService) GetAllFacilities(ctx context.Context) ([]entity.Facility, *errLib.CommonError) {
-	return s.Repo.GetAllFacilities(ctx, "")
+func (s *FacilityService) GetFacilities(ctx context.Context, name string) ([]entity.Facility, *errLib.CommonError) {
+	return s.Repo.GetFacilities(ctx, name)
 
 }
 

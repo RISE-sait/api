@@ -63,8 +63,12 @@ func (h *CourseController) GetCourseById(w http.ResponseWriter, r *http.Request)
 	response_handlers.RespondWithSuccess(w, response, http.StatusOK)
 }
 
-func (h *CourseController) GetAllCourses(w http.ResponseWriter, r *http.Request) {
-	courses, err := h.CourseService.GetAllCourses(r.Context())
+func (h *CourseController) GetCourses(w http.ResponseWriter, r *http.Request) {
+
+	name := r.URL.Query().Get("name")
+	description := r.URL.Query().Get("description")
+
+	courses, err := h.CourseService.GetCourses(r.Context(), name, description)
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return

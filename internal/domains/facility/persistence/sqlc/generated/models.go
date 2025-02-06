@@ -16,13 +16,13 @@ import (
 type DayEnum string
 
 const (
-	DayEnumM     DayEnum = "M"
-	DayEnumTues  DayEnum = "Tues"
-	DayEnumW     DayEnum = "W"
-	DayEnumThurs DayEnum = "Thurs"
-	DayEnumF     DayEnum = "F"
-	DayEnumSat   DayEnum = "Sat"
-	DayEnumSun   DayEnum = "Sun"
+	DayEnumMONDAY    DayEnum = "MONDAY"
+	DayEnumTUESDAY   DayEnum = "TUESDAY"
+	DayEnumWEDNESDAY DayEnum = "WEDNESDAY"
+	DayEnumTHURSDAY  DayEnum = "THURSDAY"
+	DayEnumFRIDAY    DayEnum = "FRIDAY"
+	DayEnumSATURDAY  DayEnum = "SATURDAY"
+	DayEnumSUNDAY    DayEnum = "SUNDAY"
 )
 
 func (e *DayEnum) Scan(src interface{}) error {
@@ -174,14 +174,14 @@ type PendingChildAccount struct {
 }
 
 type Schedule struct {
-	ID            uuid.UUID     `json:"id"`
-	BeginDatetime time.Time     `json:"begin_datetime"`
-	EndDatetime   time.Time     `json:"end_datetime"`
-	CourseID      uuid.NullUUID `json:"course_id"`
-	FacilityID    uuid.UUID     `json:"facility_id"`
-	CreatedAt     sql.NullTime  `json:"created_at"`
-	UpdatedAt     sql.NullTime  `json:"updated_at"`
-	Day           DayEnum       `json:"day"`
+	ID         uuid.UUID     `json:"id"`
+	BeginTime  time.Time     `json:"begin_time"`
+	EndTime    time.Time     `json:"end_time"`
+	CourseID   uuid.NullUUID `json:"course_id"`
+	FacilityID uuid.UUID     `json:"facility_id"`
+	CreatedAt  sql.NullTime  `json:"created_at"`
+	UpdatedAt  sql.NullTime  `json:"updated_at"`
+	Day        DayEnum       `json:"day"`
 }
 
 type Staff struct {

@@ -5,8 +5,9 @@ VALUES ($1, $2, $3);
 -- name: GetFacilityById :one
 SELECT f.id, f.name, f.location, ft.name as facility_type FROM facilities f JOIN facility_types ft ON f.facility_type_id = ft.id WHERE f.id = $1;
 
--- name: GetAllFacilities :many
-SELECT f.id, f.name, f.location, ft.name  as facility_type FROM facilities f JOIN facility_types ft ON f.facility_type_id = ft.id;
+-- name: GetFacilities :many
+SELECT f.id, f.name, f.location, ft.name  as facility_type FROM facilities f JOIN facility_types ft ON f.facility_type_id = ft.id
+WHERE (f.name ILIKE '%' || @name || '%' OR @name IS NULL);
 
 -- name: UpdateFacility :execrows
 UPDATE facilities

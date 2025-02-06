@@ -63,8 +63,11 @@ func (h *FacilitiesController) GetFacilityById(w http.ResponseWriter, r *http.Re
 	response_handlers.RespondWithSuccess(w, response, http.StatusOK)
 }
 
-func (h *FacilitiesController) GetAllFacilities(w http.ResponseWriter, r *http.Request) {
-	facilities, err := h.Service.GetAllFacilities(r.Context())
+func (h *FacilitiesController) GetFacilities(w http.ResponseWriter, r *http.Request) {
+
+	name := r.URL.Query().Get("name")
+
+	facilities, err := h.Service.GetFacilities(r.Context(), name)
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return

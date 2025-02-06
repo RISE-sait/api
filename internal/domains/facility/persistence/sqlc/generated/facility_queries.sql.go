@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 )
@@ -42,26 +43,27 @@ func (q *Queries) DeleteFacility(ctx context.Context, id uuid.UUID) (int64, erro
 	return result.RowsAffected()
 }
 
-const getAllFacilities = `-- name: GetAllFacilities :many
+const getFacilities = `-- name: GetFacilities :many
 SELECT f.id, f.name, f.location, ft.name  as facility_type FROM facilities f JOIN facility_types ft ON f.facility_type_id = ft.id
+WHERE (f.name ILIKE '%' || $1 || '%' OR $1 IS NULL)
 `
 
-type GetAllFacilitiesRow struct {
+type GetFacilitiesRow struct {
 	ID           uuid.UUID `json:"id"`
 	Name         string    `json:"name"`
 	Location     string    `json:"location"`
 	FacilityType string    `json:"facility_type"`
 }
 
-func (q *Queries) GetAllFacilities(ctx context.Context) ([]GetAllFacilitiesRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAllFacilities)
+func (q *Queries) GetFacilities(ctx context.Context, name sql.NullString) ([]GetFacilitiesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getFacilities, name)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetAllFacilitiesRow
+	var items []GetFacilitiesRow
 	for rows.Next() {
-		var i GetAllFacilitiesRow
+		var i GetFacilitiesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,

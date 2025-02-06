@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -70,10 +71,24 @@ func (r *CourseRepository) UpdateCourse(c context.Context, course *values.Course
 	return nil
 }
 
-func (r *CourseRepository) GetAllCourses(c context.Context, after string) ([]values.CourseAllFields, *errLib.CommonError) {
-	dbCourses, err := r.Queries.GetAllCourses(c)
+func (r *CourseRepository) GetCourses(c context.Context, name, description string) ([]values.CourseAllFields, *errLib.CommonError) {
+
+	dbParams := db.GetCoursesParams{
+		Name: sql.NullString{
+			String: name,
+			Valid:  name != "",
+		},
+		Description: sql.NullString{
+			String: description,
+			Valid:  description != "",
+		},
+	}
+
+	dbCourses, err := r.Queries.GetCourses(c, dbParams)
 
 	if err != nil {
+
+		log.Println("Error getting courses: ", err)
 		dbErr := errLib.New("Internal server error", http.StatusInternalServerError)
 
 		return []values.CourseAllFields{}, dbErr

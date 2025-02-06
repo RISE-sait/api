@@ -78,8 +78,8 @@ func (r *FacilityRepository) GetFacility(c context.Context, id uuid.UUID) (*enti
 	}, nil
 }
 
-func (r *FacilityRepository) GetAllFacilities(c context.Context, filter string) ([]entity.Facility, *errLib.CommonError) {
-	dbFacilities, err := r.Queries.GetAllFacilities(c)
+func (r *FacilityRepository) GetFacilities(c context.Context, name string) ([]entity.Facility, *errLib.CommonError) {
+	dbFacilities, err := r.Queries.GetFacilities(c, sql.NullString{String: name, Valid: name != ""})
 
 	if err != nil {
 		log.Printf("Error retrieving facilities: %v", err)

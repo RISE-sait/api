@@ -27,8 +27,8 @@ func NewScheduleRepository(container *di.Container) *SchedulesRepository {
 func (r *SchedulesRepository) CreateSchedule(c context.Context, schedule *values.ScheduleDetails) *errLib.CommonError {
 
 	dbParams := db.CreateScheduleParams{
-		BeginDatetime: schedule.BeginDatetime,
-		EndDatetime:   schedule.EndDatetime,
+		BeginTime: schedule.BeginTime,
+		EndTime:   schedule.EndTime,
 		CourseID: uuid.NullUUID{
 			UUID:  schedule.CourseID,
 			Valid: schedule.CourseID != uuid.Nil,
@@ -51,12 +51,12 @@ func (r *SchedulesRepository) CreateSchedule(c context.Context, schedule *values
 	return nil
 }
 
-func (r *SchedulesRepository) GetSchedules(ctx context.Context, fields *values.ScheduleDetails) ([]entity.Schedule, *errLib.CommonError) {
+func (r *SchedulesRepository) GetSchedules(ctx context.Context, fields values.ScheduleDetails) ([]entity.Schedule, *errLib.CommonError) {
 
 	dbParams := db.GetSchedulesParams{
-		BeginDatetime: fields.BeginDatetime,
-		EndDatetime:   fields.EndDatetime,
-		FacilityID:    fields.FacilityID,
+		BeginTime:  fields.BeginTime,
+		EndTime:    fields.EndTime,
+		FacilityID: fields.FacilityID,
 		CourseID: uuid.NullUUID{
 			UUID:  fields.CourseID,
 			Valid: fields.CourseID != uuid.Nil,
@@ -73,12 +73,12 @@ func (r *SchedulesRepository) GetSchedules(ctx context.Context, fields *values.S
 	schedules := make([]entity.Schedule, len(dbSchedules))
 	for i, dbSchedule := range dbSchedules {
 		schedules[i] = entity.Schedule{
-			ID:            dbSchedule.ID,
-			Course:        dbSchedule.Course,
-			Facility:      dbSchedule.Facility,
-			BeginDatetime: dbSchedule.BeginDatetime,
-			EndDatetime:   dbSchedule.EndDatetime,
-			Day:           string(dbSchedule.Day),
+			ID:        dbSchedule.ID,
+			Course:    dbSchedule.Course,
+			Facility:  dbSchedule.Facility,
+			BeginTime: dbSchedule.BeginTime,
+			EndTime:   dbSchedule.EndTime,
+			Day:       string(dbSchedule.Day),
 		}
 	}
 
@@ -87,8 +87,8 @@ func (r *SchedulesRepository) GetSchedules(ctx context.Context, fields *values.S
 
 func (r *SchedulesRepository) UpdateSchedule(c context.Context, schedule *values.ScheduleAllFields) *errLib.CommonError {
 	dbMembershipParams := db.UpdateScheduleParams{
-		BeginDatetime: schedule.BeginDatetime,
-		EndDatetime:   schedule.EndDatetime,
+		BeginTime: schedule.BeginTime,
+		EndTime:   schedule.EndTime,
 		CourseID: uuid.NullUUID{
 			UUID:  schedule.CourseID,
 			Valid: schedule.CourseID != uuid.Nil,

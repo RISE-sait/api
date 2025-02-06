@@ -7,9 +7,9 @@ import (
 )
 
 type ScheduleDetails struct {
-	BeginDatetime time.Time
-	EndDatetime   time.Time
-	CourseID      uuid.UUID
-	FacilityID    uuid.UUID
-	Day           string
+	BeginTime  time.Time
+	EndTime    time.Time
+	CourseID   uuid.UUID
+	FacilityID uuid.UUID
+	Day        string
 }

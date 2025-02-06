@@ -13,22 +13,22 @@ import (
 )
 
 const createSchedule = `-- name: CreateSchedule :execrows
-INSERT INTO schedules (begin_datetime, end_datetime, facility_id, course_id, day)
+INSERT INTO schedules (begin_time, end_time, facility_id, course_id, day)
 VALUES ($1, $2, $3, $4, $5)
 `
 
 type CreateScheduleParams struct {
-	BeginDatetime time.Time     `json:"begin_datetime"`
-	EndDatetime   time.Time     `json:"end_datetime"`
-	FacilityID    uuid.UUID     `json:"facility_id"`
-	CourseID      uuid.NullUUID `json:"course_id"`
-	Day           DayEnum       `json:"day"`
+	BeginTime  time.Time     `json:"begin_time"`
+	EndTime    time.Time     `json:"end_time"`
+	FacilityID uuid.UUID     `json:"facility_id"`
+	CourseID   uuid.NullUUID `json:"course_id"`
+	Day        DayEnum       `json:"day"`
 }
 
 func (q *Queries) CreateSchedule(ctx context.Context, arg CreateScheduleParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, createSchedule,
-		arg.BeginDatetime,
-		arg.EndDatetime,
+		arg.BeginTime,
+		arg.EndTime,
 		arg.FacilityID,
 		arg.CourseID,
 		arg.Day,
@@ -52,36 +52,36 @@ func (q *Queries) DeleteSchedule(ctx context.Context, id uuid.UUID) (int64, erro
 }
 
 const getSchedules = `-- name: GetSchedules :many
-SELECT s.id, begin_datetime, end_datetime, s.day, c.name as course, f.name as facility FROM schedules s
+SELECT s.id, begin_time, end_time, s.day, c.name as course, f.name as facility FROM schedules s
 JOIN courses c ON c.id = s.course_id
 JOIN facilities f ON f.id = s.facility_id
 WHERE 
-    (begin_datetime >= $1 OR $1::text LIKE '0001-01-01%')
-    AND (end_datetime <= $2 OR $2::text LIKE '0001-01-01%')
+    (begin_time >= $1 OR $1::text LIKE '%00:00:00%')
+    AND (end_time <= $2 OR $2::text LIKE '%00:00:00%')
    AND (facility_id = $3 OR $3 = '00000000-0000-0000-0000-000000000000')
     AND (course_id = $4 or $4 IS NULL)
 `
 
 type GetSchedulesParams struct {
-	BeginDatetime time.Time     `json:"begin_datetime"`
-	EndDatetime   time.Time     `json:"end_datetime"`
-	FacilityID    uuid.UUID     `json:"facility_id"`
-	CourseID      uuid.NullUUID `json:"course_id"`
+	BeginTime  time.Time     `json:"begin_time"`
+	EndTime    time.Time     `json:"end_time"`
+	FacilityID uuid.UUID     `json:"facility_id"`
+	CourseID   uuid.NullUUID `json:"course_id"`
 }
 
 type GetSchedulesRow struct {
-	ID            uuid.UUID `json:"id"`
-	BeginDatetime time.Time `json:"begin_datetime"`
-	EndDatetime   time.Time `json:"end_datetime"`
-	Day           DayEnum   `json:"day"`
-	Course        string    `json:"course"`
-	Facility      string    `json:"facility"`
+	ID        uuid.UUID `json:"id"`
+	BeginTime time.Time `json:"begin_time"`
+	EndTime   time.Time `json:"end_time"`
+	Day       DayEnum   `json:"day"`
+	Course    string    `json:"course"`
+	Facility  string    `json:"facility"`
 }
 
 func (q *Queries) GetSchedules(ctx context.Context, arg GetSchedulesParams) ([]GetSchedulesRow, error) {
 	rows, err := q.db.QueryContext(ctx, getSchedules,
-		arg.BeginDatetime,
-		arg.EndDatetime,
+		arg.BeginTime,
+		arg.EndTime,
 		arg.FacilityID,
 		arg.CourseID,
 	)
@@ -94,8 +94,8 @@ func (q *Queries) GetSchedules(ctx context.Context, arg GetSchedulesParams) ([]G
 		var i GetSchedulesRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.BeginDatetime,
-			&i.EndDatetime,
+			&i.BeginTime,
+			&i.EndTime,
 			&i.Day,
 			&i.Course,
 			&i.Facility,
@@ -115,23 +115,23 @@ func (q *Queries) GetSchedules(ctx context.Context, arg GetSchedulesParams) ([]G
 
 const updateSchedule = `-- name: UpdateSchedule :execrows
 UPDATE schedules s
-SET begin_datetime = $1, end_datetime = $2, facility_id = $3, course_id = $4, day = $5
+SET begin_time = $1, end_time = $2, facility_id = $3, course_id = $4, day = $5
 WHERE s.id = $6
 `
 
 type UpdateScheduleParams struct {
-	BeginDatetime time.Time     `json:"begin_datetime"`
-	EndDatetime   time.Time     `json:"end_datetime"`
-	FacilityID    uuid.UUID     `json:"facility_id"`
-	CourseID      uuid.NullUUID `json:"course_id"`
-	Day           DayEnum       `json:"day"`
-	ID            uuid.UUID     `json:"id"`
+	BeginTime  time.Time     `json:"begin_time"`
+	EndTime    time.Time     `json:"end_time"`
+	FacilityID uuid.UUID     `json:"facility_id"`
+	CourseID   uuid.NullUUID `json:"course_id"`
+	Day        DayEnum       `json:"day"`
+	ID         uuid.UUID     `json:"id"`
 }
 
 func (q *Queries) UpdateSchedule(ctx context.Context, arg UpdateScheduleParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateSchedule,
-		arg.BeginDatetime,
-		arg.EndDatetime,
+		arg.BeginTime,
+		arg.EndTime,
 		arg.FacilityID,
 		arg.CourseID,
 		arg.Day,

@@ -30,8 +30,8 @@ func (c *SchedulesController) GetSchedules(w http.ResponseWriter, r *http.Reques
 	courseIdStr := r.URL.Query().Get("course_id")
 	facilityIdStr := r.URL.Query().Get("facility_id")
 
-	begin_datetimeStr := r.URL.Query().Get("begin_datetime")
-	end_datetimeStr := r.URL.Query().Get("end_datetime")
+	beginTimeStr := r.URL.Query().Get("begin_datetime")
+	endTimeStr := r.URL.Query().Get("end_datetime")
 
 	var courseId uuid.UUID
 	var facilityId uuid.UUID
@@ -61,8 +61,8 @@ func (c *SchedulesController) GetSchedules(w http.ResponseWriter, r *http.Reques
 		facilityId = id
 	}
 
-	if begin_datetimeStr != "" {
-		datetime, err := validators.ParseDateTime(begin_datetimeStr)
+	if beginTimeStr != "" {
+		datetime, err := validators.ParseTime(beginTimeStr)
 		if err != nil {
 			response_handlers.RespondWithError(w, err)
 			return
@@ -71,8 +71,8 @@ func (c *SchedulesController) GetSchedules(w http.ResponseWriter, r *http.Reques
 		beginDatetime = datetime
 	}
 
-	if end_datetimeStr != "" {
-		datetime, err := validators.ParseDateTime(end_datetimeStr)
+	if endTimeStr != "" {
+		datetime, err := validators.ParseTime(endTimeStr)
 		if err != nil {
 			response_handlers.RespondWithError(w, err)
 			return
@@ -81,11 +81,11 @@ func (c *SchedulesController) GetSchedules(w http.ResponseWriter, r *http.Reques
 		endDatetime = datetime
 	}
 
-	details := &values.ScheduleDetails{
-		BeginDatetime: beginDatetime,
-		EndDatetime:   endDatetime,
-		CourseID:      courseId,
-		FacilityID:    facilityId,
+	details := values.ScheduleDetails{
+		BeginTime:  beginDatetime,
+		EndTime:    endDatetime,
+		CourseID:   courseId,
+		FacilityID: facilityId,
 	}
 
 	schedules, err := c.Service.GetSchedules(r.Context(), details)
@@ -139,7 +139,7 @@ func (c *SchedulesController) UpdateSchedule(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	params, err := targetBody.ToScheduleAllFields(idStr)
+	params, err := (&targetBody).ToScheduleAllFields(idStr)
 
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
@@ -174,11 +174,11 @@ func (c *SchedulesController) DeleteSchedule(w http.ResponseWriter, r *http.Requ
 
 func mapEntityToResponse(schedule *entity.Schedule) dto.ScheduleResponse {
 	return dto.ScheduleResponse{
-		ID:            schedule.ID,
-		BeginDatetime: schedule.BeginDatetime,
-		EndDatetime:   schedule.EndDatetime,
-		Course:        schedule.Course,
-		Facility:      schedule.Facility,
-		Day:           schedule.Day,
+		ID:        schedule.ID,
+		BeginTime: schedule.BeginTime.Format("15:04"), // Convert to "HH:MM:SS"
+		EndTime:   schedule.EndTime.Format("15:04"),
+		Course:    schedule.Course,
+		Facility:  schedule.Facility,
+		Day:       schedule.Day,
 	}
 }

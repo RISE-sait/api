@@ -11,7 +11,7 @@ BEGIN
         WHERE s.facility_id = NEW.facility_id
         AND s.day = NEW.day
         AND (
-            (NEW.begin_datetime < s.end_datetime AND NEW.end_datetime > s.begin_datetime)
+            (NEW.begin_time < s.begin_time AND NEW.end_time > s.end_time)
         )
 
     ) THEN

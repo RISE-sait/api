@@ -22,7 +22,7 @@ func NewSchedulesService(container *di.Container) *SchedulesService {
 }
 
 // GetAllSchedules retrieves all schedules from the database.
-func (s *SchedulesService) GetSchedules(ctx context.Context, fields *values.ScheduleDetails) ([]entity.Schedule, *errLib.CommonError) {
+func (s *SchedulesService) GetSchedules(ctx context.Context, fields values.ScheduleDetails) ([]entity.Schedule, *errLib.CommonError) {
 	return s.Repo.GetSchedules(ctx, fields)
 }
 

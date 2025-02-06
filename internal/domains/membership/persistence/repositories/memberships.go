@@ -1,7 +1,7 @@
 package membership
 
 import (
-	"api/cmd/server/di"
+	"api/internal/di"
 	db "api/internal/domains/membership/persistence/sqlc/generated"
 	values "api/internal/domains/membership/values/memberships"
 	errLib "api/internal/libs/errors"

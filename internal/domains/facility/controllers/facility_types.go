@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"api/cmd/server/di"
+	"api/internal/di"
 	"api/internal/domains/facility/dto"
 	entity "api/internal/domains/facility/entities"
 	service "api/internal/domains/facility/services"

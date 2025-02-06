@@ -1,8 +1,8 @@
 package identity
 
 import (
-	"api/cmd/server/di"
 	"api/config"
+	"api/internal/di"
 	"api/internal/domains/identity/entities"
 	identity "api/internal/domains/identity/persistence/repository"
 	errors "api/internal/libs/errors"

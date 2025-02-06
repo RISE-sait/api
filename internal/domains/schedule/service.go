@@ -1,7 +1,7 @@
 package schedule
 
 import (
-	"api/cmd/server/di"
+	"api/internal/di"
 	entity "api/internal/domains/schedule/entities"
 	"api/internal/domains/schedule/persistence"
 	"api/internal/domains/schedule/values"

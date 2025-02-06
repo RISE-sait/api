@@ -1,8 +1,8 @@
 package main
 
 import (
-	"api/cmd/server/di"
 	routes "api/cmd/server/router"
+	"api/internal/di"
 	"context"
 	"encoding/json"
 	"os"

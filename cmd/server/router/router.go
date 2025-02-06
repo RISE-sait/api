@@ -1,12 +1,13 @@
 package routes
 
 import (
-	"api/cmd/server/di"
+	"api/internal/di"
 	"api/internal/domains/course"
 	facility "api/internal/domains/facility/controllers"
 	identity "api/internal/domains/identity/controllers"
 	membership "api/internal/domains/membership/controllers"
 	"api/internal/domains/schedule"
+	"api/internal/middlewares"
 
 	"github.com/go-chi/chi"
 )
@@ -15,6 +16,12 @@ type RouteConfig struct {
 	Path      string
 	Configure func(chi.Router)
 }
+
+const (
+	RoleAdmin = "ADMIN"
+)
+
+var allowAdminOnly = middlewares.JWTAuthMiddleware(RoleAdmin)
 
 func RegisterRoutes(router *chi.Mux, container *di.Container) {
 
@@ -39,9 +46,10 @@ func RegisterMembershipRoutes(r chi.Router, container *di.Container) func(chi.Ro
 	return func(r chi.Router) {
 		r.Get("/", ctrl.GetAllMemberships)
 		r.Get("/{id}", ctrl.GetMembershipById)
-		r.Post("/", ctrl.CreateMembership)
-		r.Put("/{id}", ctrl.UpdateMembership)
-		r.Delete("/{id}", ctrl.DeleteMembership)
+
+		r.With(allowAdminOnly).Post("/", ctrl.CreateMembership)
+		r.With(allowAdminOnly).Put("/{id}", ctrl.UpdateMembership)
+		r.With(allowAdminOnly).Delete("/{id}", ctrl.DeleteMembership)
 
 		// plans as subroute
 		r.Route("/{membershipId}/plans", RegisterMembershipPlansRoutes(r, container))
@@ -53,9 +61,10 @@ func RegisterMembershipPlansRoutes(r chi.Router, container *di.Container) func(c
 
 	return func(r chi.Router) {
 		r.Get("/", ctrl.GetMembershipPlansByMembershipId)
-		r.Post("/", ctrl.CreateMembershipPlan)
-		r.Put("/{planId}", ctrl.UpdateMembershipPlan)
-		r.Delete("/{planId}", ctrl.DeleteMembershipPlan)
+
+		r.With(allowAdminOnly).Post("/", ctrl.CreateMembershipPlan)
+		r.With(allowAdminOnly).Put("/{planId}", ctrl.UpdateMembershipPlan)
+		r.With(allowAdminOnly).Delete("/{planId}", ctrl.DeleteMembershipPlan)
 	}
 }
 
@@ -65,9 +74,9 @@ func RegisterFacilityRoutes(r chi.Router, container *di.Container) func(chi.Rout
 	return func(r chi.Router) {
 		r.Get("/", ctrl.GetFacilities)
 		r.Get("/{id}", ctrl.GetFacilityById)
-		r.Post("/", ctrl.CreateFacility)
-		r.Put("/{id}", ctrl.UpdateFacility)
-		r.Delete("/{id}", ctrl.DeleteFacility)
+		r.With(allowAdminOnly).Post("/", ctrl.CreateFacility)
+		r.With(allowAdminOnly).Put("/{id}", ctrl.UpdateFacility)
+		r.With(allowAdminOnly).Delete("/{id}", ctrl.DeleteFacility)
 
 		r.Route("/types", RegisterFacilityTypesRoutes(r, container))
 	}
@@ -79,9 +88,9 @@ func RegisterFacilityTypesRoutes(r chi.Router, container *di.Container) func(chi
 	return func(r chi.Router) {
 		r.Get("/", ctrl.GetAllFacilityTypes)
 		r.Get("/{id}", ctrl.GetFacilityTypeById)
-		r.Post("/", ctrl.CreateFacilityType)
-		r.Put("/{id}", ctrl.UpdateFacilityType)
-		r.Delete("/{id}", ctrl.DeleteFacilityType)
+		r.With(allowAdminOnly).Post("/", ctrl.CreateFacilityType)
+		r.With(allowAdminOnly).Put("/{id}", ctrl.UpdateFacilityType)
+		r.With(allowAdminOnly).Delete("/{id}", ctrl.DeleteFacilityType)
 	}
 }
 
@@ -91,9 +100,9 @@ func RegisterCourseRoutes(r chi.Router, container *di.Container) func(chi.Router
 	return func(r chi.Router) {
 		r.Get("/", ctrl.GetCourses)
 		r.Get("/{id}", ctrl.GetCourseById)
-		r.Post("/", ctrl.CreateCourse)
-		r.Put("/{id}", ctrl.UpdateCourse)
-		r.Delete("/{id}", ctrl.DeleteCourse)
+		r.With(allowAdminOnly).Post("/", ctrl.CreateCourse)
+		r.With(allowAdminOnly).Put("/{id}", ctrl.UpdateCourse)
+		r.With(allowAdminOnly).Delete("/{id}", ctrl.DeleteCourse)
 	}
 }
 
@@ -102,9 +111,9 @@ func RegisterScheduleRoutes(r chi.Router, container *di.Container) func(chi.Rout
 
 	return func(r chi.Router) {
 		r.Get("/", ctrl.GetSchedules)
-		r.Post("/", ctrl.CreateSchedule)
-		r.Put("/{id}", ctrl.UpdateSchedule)
-		r.Delete("/{id}", ctrl.DeleteSchedule)
+		r.With(allowAdminOnly).Post("/", ctrl.CreateSchedule)
+		r.With(allowAdminOnly).Put("/{id}", ctrl.UpdateSchedule)
+		r.With(allowAdminOnly).Delete("/{id}", ctrl.DeleteSchedule)
 	}
 }
 

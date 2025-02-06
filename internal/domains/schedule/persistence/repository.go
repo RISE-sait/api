@@ -1,7 +1,7 @@
 package persistence
 
 import (
-	"api/cmd/server/di"
+	"api/internal/di"
 	entity "api/internal/domains/schedule/entities"
 	db "api/internal/domains/schedule/persistence/sqlc/generated"
 	"api/internal/domains/schedule/values"

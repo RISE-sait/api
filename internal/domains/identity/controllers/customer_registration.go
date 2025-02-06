@@ -1,7 +1,7 @@
 package identity
 
 import (
-	"api/cmd/server/di"
+	"api/internal/di"
 	identity "api/internal/domains/identity/dto"
 	service "api/internal/domains/identity/services"
 	lib "api/internal/libs/jwt"

@@ -1,7 +1,7 @@
 package identity
 
 import (
-	"api/cmd/server/di"
+	"api/internal/di"
 	dto "api/internal/domains/identity/dto"
 	service "api/internal/domains/identity/services"
 	errLib "api/internal/libs/errors"

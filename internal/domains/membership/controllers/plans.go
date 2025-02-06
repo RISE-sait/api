@@ -1,7 +1,7 @@
 package membership
 
 import (
-	"api/cmd/server/di"
+	"api/internal/di"
 	dto "api/internal/domains/membership/dto"
 	entity "api/internal/domains/membership/entities"
 	service "api/internal/domains/membership/services"

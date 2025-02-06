@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"api/cmd/server/di"
 	database_errors "api/internal/constants"
+	"api/internal/di"
 	db "api/internal/domains/identity/persistence/sqlc/generated"
 	errLib "api/internal/libs/errors"
 	"context"

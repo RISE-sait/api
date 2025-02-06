@@ -1,7 +1,7 @@
 package service
 
 import (
-	"api/cmd/server/di"
+	"api/internal/di"
 	entity "api/internal/domains/facility/entities"
 	repository "api/internal/domains/facility/persistence/repositories"
 	"api/internal/domains/facility/values"

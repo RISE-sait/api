@@ -1,7 +1,7 @@
 package persistence
 
 import (
-	"api/cmd/server/di"
+	"api/internal/di"
 	db "api/internal/domains/course/persistence/sqlc/generated"
 	"api/internal/domains/course/values"
 	errLib "api/internal/libs/errors"

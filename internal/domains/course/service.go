@@ -1,7 +1,7 @@
 package course
 
 import (
-	"api/cmd/server/di"
+	"api/internal/di"
 	"api/internal/domains/course/persistence"
 	"api/internal/domains/course/values"
 	errLib "api/internal/libs/errors"

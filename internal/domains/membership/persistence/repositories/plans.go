@@ -1,7 +1,7 @@
 package membership
 
 import (
-	"api/cmd/server/di"
+	"api/internal/di"
 	entity "api/internal/domains/membership/entities"
 	db "api/internal/domains/membership/persistence/sqlc/generated"
 	values "api/internal/domains/membership/values/plans"

@@ -1,7 +1,7 @@
 package identity
 
 import (
-	"api/cmd/server/di"
+	"api/internal/di"
 	"api/internal/domains/identity/entities"
 	repo "api/internal/domains/identity/persistence/repository"
 	"api/internal/domains/identity/values"

@@ -1,7 +1,7 @@
 package course
 
 import (
-	"api/cmd/server/di"
+	"api/internal/di"
 	"api/internal/domains/course/dto"
 	"api/internal/domains/course/values"
 	response_handlers "api/internal/libs/responses"

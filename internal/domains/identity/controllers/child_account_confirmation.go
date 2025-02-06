@@ -1,7 +1,7 @@
 package identity
 
 import (
-	"api/cmd/server/di"
+	"api/internal/di"
 	errLib "api/internal/libs/errors"
 	response_handlers "api/internal/libs/responses"
 	"net/http"

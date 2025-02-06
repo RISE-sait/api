@@ -1,7 +1,7 @@
 package staff
 
 import (
-	"api/cmd/server/di"
+	"api/internal/di"
 	"api/internal/domains/identity/persistence/repository"
 	errLib "api/internal/libs/errors"
 	"context"

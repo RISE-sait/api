@@ -11,7 +11,7 @@ CREATE TABLE membership_plans (
     amt_periods INT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id, membership_id),
+    PRIMARY KEY (membership_id),
     CONSTRAINT fk_membership
         FOREIGN KEY(membership_id) 
         REFERENCES memberships(id),

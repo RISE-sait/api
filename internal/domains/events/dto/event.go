@@ -1,7 +1,7 @@
 package dto
 
 import (
-	"api/internal/domains/schedule/values"
+	"api/internal/domains/events/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
 	"log"
@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type ScheduleRequestDto struct {
+type EventRequestDto struct {
 	BeginTime  string    `json:"begin_time" validate:"required"`
 	EndTime    string    `json:"end_time" validate:"required"`
 	CourseID   uuid.UUID `json:"course_id" validate:"required"`
@@ -18,7 +18,7 @@ type ScheduleRequestDto struct {
 	Day        string    `json:"day" validate:"required"`
 }
 
-func (dto *ScheduleRequestDto) validate() (time.Time, time.Time, *errLib.CommonError) {
+func (dto *EventRequestDto) validate() (time.Time, time.Time, *errLib.CommonError) {
 	if err := validators.ValidateDto(dto); err != nil {
 		return time.Time{}, time.Time{}, err
 	}
@@ -38,7 +38,7 @@ func (dto *ScheduleRequestDto) validate() (time.Time, time.Time, *errLib.CommonE
 	return beginTime, endTime, nil
 }
 
-func (dto *ScheduleRequestDto) ToScheduleDetails() (*values.ScheduleDetails, *errLib.CommonError) {
+func (dto *EventRequestDto) ToEventDetails() (*values.EventDetails, *errLib.CommonError) {
 
 	beginTime, endTime, err := dto.validate()
 
@@ -47,7 +47,7 @@ func (dto *ScheduleRequestDto) ToScheduleDetails() (*values.ScheduleDetails, *er
 		return nil, err
 	}
 
-	return &values.ScheduleDetails{
+	return &values.EventDetails{
 
 		BeginTime:  beginTime,
 		EndTime:    endTime,
@@ -57,7 +57,7 @@ func (dto *ScheduleRequestDto) ToScheduleDetails() (*values.ScheduleDetails, *er
 	}, nil
 }
 
-func (dto *ScheduleRequestDto) ToScheduleAllFields(idStr string) (*values.ScheduleAllFields, *errLib.CommonError) {
+func (dto *EventRequestDto) ToEventAllFields(idStr string) (*values.EventAllFields, *errLib.CommonError) {
 
 	id, err := validators.ParseUUID(idStr)
 
@@ -73,9 +73,9 @@ func (dto *ScheduleRequestDto) ToScheduleAllFields(idStr string) (*values.Schedu
 		return nil, err
 	}
 
-	return &values.ScheduleAllFields{
+	return &values.EventAllFields{
 		ID: id,
-		ScheduleDetails: values.ScheduleDetails{
+		EventDetails: values.EventDetails{
 
 			BeginTime:  beginTime,
 			EndTime:    endTime,

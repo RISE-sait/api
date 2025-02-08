@@ -3,10 +3,10 @@ package di
 import (
 	"api/config"
 	courseDb "api/internal/domains/course/persistence/sqlc/generated"
+	eventDb "api/internal/domains/events/persistence/sqlc/generated"
 	facilityDb "api/internal/domains/facility/persistence/sqlc/generated"
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
 	membershipDb "api/internal/domains/membership/persistence/sqlc/generated"
-	scheduleDb "api/internal/domains/schedule/persistence/sqlc/generated"
 
 	"api/internal/services/hubspot"
 	"database/sql"
@@ -23,7 +23,7 @@ type QueriesType struct {
 	CoursesDb    *courseDb.Queries
 	MembershipDb *membershipDb.Queries
 	FacilityDb   *facilityDb.Queries
-	ScheduleDb   *scheduleDb.Queries
+	EventDb      *eventDb.Queries
 }
 
 func NewContainer() *Container {
@@ -44,7 +44,7 @@ func initializeQueries(db *sql.DB) *QueriesType {
 		CoursesDb:    courseDb.New(db),
 		MembershipDb: membershipDb.New(db),
 		FacilityDb:   facilityDb.New(db),
-		ScheduleDb:   scheduleDb.New(db),
+		EventDb:      eventDb.New(db),
 	}
 }
 

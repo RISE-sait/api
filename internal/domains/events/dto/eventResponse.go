@@ -4,7 +4,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type ScheduleResponse struct {
+type EventResponse struct {
 	ID        uuid.UUID `json:"id"`
 	BeginTime string    `json:"begin_time"`
 	EndTime   string    `json:"end_time"`

@@ -2,7 +2,7 @@ package values
 
 import "github.com/google/uuid"
 
-type ScheduleAllFields struct {
-	ScheduleDetails
+type EventAllFields struct {
+	EventDetails
 	ID uuid.UUID
 }

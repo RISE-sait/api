@@ -30,7 +30,7 @@ func SignJWT(userInfo entities.UserInfo) (string, *errLib.CommonError) {
 		},
 	}
 
-	if userInfo.StaffInfo != nil {
+	if userInfo.StaffInfo != (entities.StaffInfo{}) {
 		claims.Role = userInfo.StaffInfo.Role
 		claims.IsActive = userInfo.StaffInfo.IsActive
 	}

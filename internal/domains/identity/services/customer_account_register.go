@@ -108,7 +108,7 @@ func (s *AccountRegistrationService) CreateCustomer(
 	userInfo := entities.UserInfo{
 		Name:      strings.Split(emailStr, "@")[0],
 		Email:     emailStr,
-		StaffInfo: nil,
+		StaffInfo: entities.StaffInfo{},
 	}
 
 	return &userInfo, nil

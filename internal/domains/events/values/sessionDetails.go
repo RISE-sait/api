@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type ScheduleDetails struct {
+type EventDetails struct {
 	BeginTime  time.Time
 	EndTime    time.Time
 	CourseID   uuid.UUID

@@ -3,10 +3,11 @@ package routes
 import (
 	"api/internal/di"
 	"api/internal/domains/course"
+	"api/internal/domains/events"
 	facility "api/internal/domains/facility/controllers"
 	identity "api/internal/domains/identity/controllers"
 	membership "api/internal/domains/membership/controllers"
-	"api/internal/domains/schedule"
+
 	"api/internal/middlewares"
 
 	"github.com/go-chi/chi"
@@ -30,7 +31,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 			{Path: "/memberships", Configure: RegisterMembershipRoutes(r, container)},
 			{Path: "/identity", Configure: RegisterIdentityRoutes(r, container)},
 			{Path: "/courses", Configure: RegisterCourseRoutes(r, container)},
-			{Path: "/schedules", Configure: RegisterScheduleRoutes(r, container)},
+			{Path: "/events", Configure: RegisterEventRoutes(r, container)},
 			{Path: "/facilities", Configure: RegisterFacilityRoutes(r, container)},
 		}
 
@@ -106,14 +107,16 @@ func RegisterCourseRoutes(r chi.Router, container *di.Container) func(chi.Router
 	}
 }
 
-func RegisterScheduleRoutes(r chi.Router, container *di.Container) func(chi.Router) {
-	ctrl := schedule.NewSchedulesController(container)
+func RegisterEventRoutes(r chi.Router, container *di.Container) func(chi.Router) {
+	ctrl := events.NewEventsController(container)
 
 	return func(r chi.Router) {
-		r.Get("/", ctrl.GetSchedules)
-		r.With(allowAdminOnly).Post("/", ctrl.CreateSchedule)
-		r.With(allowAdminOnly).Put("/{id}", ctrl.UpdateSchedule)
-		r.With(allowAdminOnly).Delete("/{id}", ctrl.DeleteSchedule)
+		r.Get("/", ctrl.GetEvents)
+
+		r.Get("/{id}/customer-count", ctrl.GetCustomersCountByEventId)
+		r.With(allowAdminOnly).Post("/", ctrl.CreateEvent)
+		r.With(allowAdminOnly).Put("/{id}", ctrl.UpdateEvent)
+		r.With(allowAdminOnly).Delete("/{id}", ctrl.DeleteEvent)
 	}
 }
 
@@ -129,11 +132,14 @@ func RegisterIdentityRoutes(r chi.Router, container *di.Container) func(chi.Rout
 
 	confirmChildCtrl := identity.NewChildAccountConfirmationController(container)
 
+	tokenValidationCtrl := identity.NewTokenValidationController(container)
+
 	return func(r chi.Router) {
 
 		r.Route("/auth", func(auth chi.Router) {
 			auth.Post("/traditional", authController.Login)
 			auth.Post("/oauth/google", OauthController.HandleOAuthCallback)
+			auth.Get("/check", tokenValidationCtrl.ValidateToken)
 		})
 
 		r.Route("/register", func(registration chi.Router) {

@@ -3,6 +3,7 @@ package identity
 import (
 	"api/internal/di"
 	"api/internal/domains/identity/entities"
+	"time"
 
 	service "api/internal/domains/identity/services"
 	errLib "api/internal/libs/errors"
@@ -73,6 +74,16 @@ func (h *OauthController) HandleOAuthCallback(w http.ResponseWriter, r *http.Req
 		response_handlers.RespondWithError(w, err)
 		return
 	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "jwtToken",
+		Value:    signedToken,
+		Path:     "/",
+		HttpOnly: true, // Prevent JavaScript access
+		Secure:   true, // Use HTTPS in production
+		SameSite: http.SameSiteStrictMode,
+		Expires:  time.Now().Add(24 * time.Hour), // Set expiration to 24 hours
+	})
 
 	w.Header().Set("Authorization", "Bearer "+signedToken)
 	w.WriteHeader(http.StatusOK)

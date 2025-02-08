@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"time"
 )
 
 type AuthenticationController struct {
@@ -59,7 +60,17 @@ func (h *AuthenticationController) Login(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	http.SetCookie(w, &http.Cookie{
+		Name:     "jwtToken",
+		Value:    token,
+		Path:     "/",
+		HttpOnly: false, // Prevent JavaScript access
+		Secure:   false, // Use HTTPS in production
+		SameSite: http.SameSiteLaxMode,
+		Expires:  time.Now().Add(24 * time.Hour), // Set expiration to 24 hours
+	})
+
 	w.Header().Set("Authorization", "Bearer "+token)
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"token":"` + token + `"}`))
+	response_handlers.RespondWithSuccess(w, *userInfo, http.StatusOK)
 }

@@ -8,6 +8,7 @@ import (
 	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
+	"time"
 )
 
 type CustomerRegistrationController struct {
@@ -51,6 +52,16 @@ func (c *CustomerRegistrationController) CreateCustomer(w http.ResponseWriter, r
 		response_handlers.RespondWithError(w, err)
 		return
 	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "jwtToken",
+		Value:    signedToken,
+		Path:     "/",
+		HttpOnly: true, // Prevent JavaScript access
+		Secure:   true, // Use HTTPS in production
+		SameSite: http.SameSiteNoneMode,
+		Expires:  time.Now().Add(24 * time.Hour), // Set expiration to 24 hours
+	})
 
 	// Step 4: Set Authorization header and respond
 	w.Header().Set("Authorization", "Bearer "+signedToken)

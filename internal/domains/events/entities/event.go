@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type Schedule struct {
+type Event struct {
 	ID        uuid.UUID
 	Course    string
 	Facility  string

@@ -42,7 +42,7 @@ func (s *AuthenticationService) AuthenticateUser(ctx context.Context, credential
 	return &entities.UserInfo{
 		Email:     email,
 		Name:      name,
-		StaffInfo: &staffInfo,
+		StaffInfo: staffInfo,
 	}, nil
 }
 

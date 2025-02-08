@@ -44,13 +44,11 @@ func (s *OauthService) SetUserInfoWithStaffDetails(c context.Context, userInfo e
 
 	staff, getStaffErr := s.StaffRepo.GetStaffByEmail(c, userInfo.Email)
 
-	var staffInfo *entities.StaffInfo = nil
-
 	if getStaffErr != nil {
 		return nil, getStaffErr
 	}
 
-	staffInfo = &entities.StaffInfo{
+	staffInfo := entities.StaffInfo{
 		Role:     staff.RoleName,
 		IsActive: staff.IsActive,
 	}

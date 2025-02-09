@@ -172,7 +172,7 @@ func (c *EventsController) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 	response_handlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-func (c *EventsController) GetCustomersCountByEventId(w http.ResponseWriter, r *http.Request) {
+func (c *EventsController) GetEventDetails(w http.ResponseWriter, r *http.Request) {
 
 	eventIdStr := chi.URLParam(r, "id")
 
@@ -189,7 +189,7 @@ func (c *EventsController) GetCustomersCountByEventId(w http.ResponseWriter, r *
 		eventId = id
 	}
 
-	count, err := c.Service.GetCustomersCountByEventId(r.Context(), eventId)
+	count, err := c.Service.GetEventDetails(r.Context(), eventId)
 
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
@@ -200,6 +200,7 @@ func (c *EventsController) GetCustomersCountByEventId(w http.ResponseWriter, r *
 }
 
 func mapEntityToResponse(event *entity.Event) dto.EventResponse {
+
 	return dto.EventResponse{
 		ID:        event.ID,
 		BeginTime: event.BeginTime.Format("15:04"), // Convert to "HH:MM:SS"

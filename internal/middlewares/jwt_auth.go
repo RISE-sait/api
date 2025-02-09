@@ -29,20 +29,28 @@ func JWTAuthMiddleware(allowedRoles ...string) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Extract the token from the Authorization header
 			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" {
+			var token string
 
-				response_handlers.RespondWithError(w, errLib.New("Authorization header is required", http.StatusUnauthorized))
-				return
+			// Check the Authorization header first
+			if authHeader != "" {
+				tokenParts := strings.Split(authHeader, " ")
+				if len(tokenParts) != 2 || strings.ToLower(tokenParts[0]) != "bearer" {
+					response_handlers.RespondWithError(w, errLib.New("Invalid token format", http.StatusUnauthorized))
+					return
+				}
+				token = tokenParts[1]
+			} else {
+				// If the token isn't in the Authorization header, check cookies
+				tokenCookie, err := r.Cookie("jwtToken")
+				if err == nil {
+					token = tokenCookie.Value
+				}
 			}
 
-			// The token is typically in the format "Bearer <token>"
-			tokenParts := strings.Split(authHeader, " ")
-			if len(tokenParts) != 2 || strings.ToLower(tokenParts[0]) != "bearer" {
-				response_handlers.RespondWithError(w, errLib.New("Invalid token format", http.StatusUnauthorized))
+			if token == "" {
+				response_handlers.RespondWithError(w, errLib.New("Authorization token is required", http.StatusUnauthorized))
 				return
 			}
-
-			token := tokenParts[1]
 
 			// Verify the token and extract claims
 			claims, err := jwtLib.VerifyToken(token)

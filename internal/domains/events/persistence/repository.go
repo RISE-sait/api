@@ -72,6 +72,7 @@ func (r *EventsRepository) GetEvents(ctx context.Context, fields values.EventDet
 
 	events := make([]entity.Event, len(dbevents))
 	for i, dbevent := range dbevents {
+
 		events[i] = entity.Event{
 			ID:        dbevent.ID,
 			Course:    dbevent.Course,
@@ -80,6 +81,7 @@ func (r *EventsRepository) GetEvents(ctx context.Context, fields values.EventDet
 			EndTime:   dbevent.EndTime,
 			Day:       string(dbevent.Day),
 		}
+
 	}
 
 	return events, nil
@@ -126,14 +128,23 @@ func (r *EventsRepository) DeleteEvent(c context.Context, id uuid.UUID) *errLib.
 	return nil
 }
 
-func (r *EventsRepository) GetCustomersCountByEventId(ctx context.Context, id uuid.UUID) (int64, *errLib.CommonError) {
+func (r *EventsRepository) GetEventDetails(ctx context.Context, id uuid.UUID) (*entity.Event, *errLib.CommonError) {
 
-	count, err := r.Queries.GetCustomersCountByEventId(ctx, id)
+	eventDetails, err := r.Queries.GetEventById(ctx, id)
 
 	if err != nil {
-		log.Println("Failed to get events: ", err.Error())
-		return 0, errLib.New("Internal server error", http.StatusInternalServerError)
+		log.Println("Failed to get event details: ", err.Error())
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return count, nil
+	event := &entity.Event{
+		ID:        eventDetails.ID,
+		Course:    eventDetails.Course,
+		Facility:  eventDetails.Facility,
+		BeginTime: eventDetails.BeginTime,
+		EndTime:   eventDetails.EndTime,
+		Day:       string(eventDetails.Day),
+	}
+
+	return event, nil
 }

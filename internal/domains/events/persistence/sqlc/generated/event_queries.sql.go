@@ -51,19 +51,45 @@ func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) (int64, error) 
 	return result.RowsAffected()
 }
 
-const getCustomersCountByEventId = `-- name: GetCustomersCountByEventId :one
-SELECT COUNT(id) from customer_events WHERE event_id = $1
+const getEventById = `-- name: GetEventById :one
+SELECT e.id, begin_time, end_time, e.day, c.name as course, f.name as facility
+FROM events e
+JOIN courses c ON c.id = e.course_id
+JOIN facilities f ON f.id = e.facility_id
+WHERE e.id = $1
 `
 
-func (q *Queries) GetCustomersCountByEventId(ctx context.Context, eventID uuid.UUID) (int64, error) {
-	row := q.db.QueryRowContext(ctx, getCustomersCountByEventId, eventID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
+type GetEventByIdRow struct {
+	ID        uuid.UUID `json:"id"`
+	BeginTime time.Time `json:"begin_time"`
+	EndTime   time.Time `json:"end_time"`
+	Day       DayEnum   `json:"day"`
+	Course    string    `json:"course"`
+	Facility  string    `json:"facility"`
+}
+
+func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdRow, error) {
+	row := q.db.QueryRowContext(ctx, getEventById, id)
+	var i GetEventByIdRow
+	err := row.Scan(
+		&i.ID,
+		&i.BeginTime,
+		&i.EndTime,
+		&i.Day,
+		&i.Course,
+		&i.Facility,
+	)
+	return i, err
 }
 
 const getEvents = `-- name: GetEvents :many
-SELECT e.id, begin_time, end_time, e.day, c.name as course, f.name as facility FROM events e
+SELECT e.id, 
+       begin_time, 
+       end_time, 
+       e.day, 
+       c.name as course, 
+       f.name as facility
+FROM events e
 JOIN courses c ON c.id = e.course_id
 JOIN facilities f ON f.id = e.facility_id
 WHERE 

@@ -3,6 +3,7 @@ package di
 import (
 	"api/config"
 	courseDb "api/internal/domains/course/persistence/sqlc/generated"
+	customerDb "api/internal/domains/customer/persistence/sqlc/generated"
 	eventDb "api/internal/domains/events/persistence/sqlc/generated"
 	facilityDb "api/internal/domains/facility/persistence/sqlc/generated"
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
@@ -24,6 +25,7 @@ type QueriesType struct {
 	MembershipDb *membershipDb.Queries
 	FacilityDb   *facilityDb.Queries
 	EventDb      *eventDb.Queries
+	CustomerDb   *customerDb.Queries
 }
 
 func NewContainer() *Container {
@@ -41,6 +43,7 @@ func NewContainer() *Container {
 func initializeQueries(db *sql.DB) *QueriesType {
 	return &QueriesType{
 		IdentityDb:   identityDb.New(db),
+		CustomerDb:   customerDb.New(db),
 		CoursesDb:    courseDb.New(db),
 		MembershipDb: membershipDb.New(db),
 		FacilityDb:   facilityDb.New(db),

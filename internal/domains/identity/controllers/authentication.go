@@ -66,7 +66,7 @@ func (h *AuthenticationController) Login(w http.ResponseWriter, r *http.Request)
 		Path:     "/",
 		HttpOnly: false, // Prevent JavaScript access
 		Secure:   false, // Use HTTPS in production
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteStrictMode,
 		Expires:  time.Now().Add(24 * time.Hour), // Set expiration to 24 hours
 	})
 

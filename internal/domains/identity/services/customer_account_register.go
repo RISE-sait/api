@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-type AccountRegistrationService struct {
+type CustomerAccountRegistrationService struct {
 	UsersRepository         *repo.UserRepository
 	CredentialsRepository   *repo.UserCredentialsRepository
 	HubSpotService          *hubspot.HubSpotService
@@ -21,10 +21,10 @@ type AccountRegistrationService struct {
 	DB                      *sql.DB
 }
 
-func NewAccountRegistrationService(
+func NewCustomerAccountRegistrationService(
 	container *di.Container,
-) *AccountRegistrationService {
-	return &AccountRegistrationService{
+) *CustomerAccountRegistrationService {
+	return &CustomerAccountRegistrationService{
 		UsersRepository:         repo.NewUserRepository(container),
 		CredentialsRepository:   repo.NewUserCredentialsRepository(container),
 		WaiverSigningRepository: repo.NewWaiverSigningRepository(container),
@@ -33,18 +33,23 @@ func NewAccountRegistrationService(
 	}
 }
 
-func (s *AccountRegistrationService) CreateCustomer(
+func (s *CustomerAccountRegistrationService) CreateCustomer(
 	ctx context.Context,
+	tx *sql.Tx,
 	customerCreate *values.CustomerRegistrationValueObject,
 ) (*entities.UserInfo, *errLib.CommonError) {
 
 	emailStr := customerCreate.Email
-	password := customerCreate.Password
 
 	// Begin transaction
-	tx, txErr := s.DB.BeginTx(ctx, &sql.TxOptions{})
-	if txErr != nil {
-		return nil, errLib.New("Failed to begin transaction", http.StatusInternalServerError)
+
+	if tx == nil {
+		newTx, txErr := s.DB.BeginTx(ctx, &sql.TxOptions{})
+		if txErr != nil {
+			return nil, errLib.New("Failed to begin transaction", http.StatusInternalServerError)
+		}
+
+		tx = newTx
 	}
 
 	// Ensure rollback if something goes wrong
@@ -53,22 +58,6 @@ func (s *AccountRegistrationService) CreateCustomer(
 			tx.Rollback()
 		}
 	}()
-
-	// Insert into users table
-	if err := s.UsersRepository.CreateUserTx(ctx, tx, emailStr); err != nil {
-		tx.Rollback()
-		return nil, err
-	}
-
-	// Insert into credentials (password).
-
-	if password != nil {
-
-		if err := s.CredentialsRepository.CreatePasswordTx(ctx, tx, emailStr, *password); err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-	}
 
 	for _, waiver := range customerCreate.Waivers {
 		if !waiver.IsWaiverSigned {
@@ -106,9 +95,8 @@ func (s *AccountRegistrationService) CreateCustomer(
 
 	// Generate JWT for the new user
 	userInfo := entities.UserInfo{
-		Name:      strings.Split(emailStr, "@")[0],
-		Email:     emailStr,
-		StaffInfo: entities.StaffInfo{},
+		Name:  strings.Split(emailStr, "@")[0],
+		Email: emailStr,
 	}
 
 	return &userInfo, nil

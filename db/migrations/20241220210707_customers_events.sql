@@ -6,7 +6,7 @@ CREATE TABLE customer_events (
     event_id UUID NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    attended_at TIMESTAMPTZ NULL,
+    checkedInAt TIMESTAMPTZ NULL,
     CONSTRAINT fk_event FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
     CONSTRAINT fk_customer FOREIGN KEY (customer_id) REFERENCES customers (user_id) ON DELETE CASCADE,
     CONSTRAINT unique_customer_event UNIQUE (customer_id, event_id)

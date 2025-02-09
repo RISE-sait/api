@@ -1,38 +1,45 @@
 package staff
 
-import (
-	response_handlers "api/internal/libs/responses"
-	"api/internal/libs/validators"
-	"net/http"
-)
+// import (
+// 	"api/internal/domains/staff/dto"
 
-type StaffController struct {
-	StaffService *StaffService
-}
+// 	response_handlers "api/internal/libs/responses"
+// 	"api/internal/libs/validators"
+// 	"net/http"
+// )
 
-func NewStaffController(accountRegistrationService *StaffService) *StaffController {
-	return &StaffController{
-		StaffService: accountRegistrationService,
-	}
-}
+// type StaffController struct {
+// 	StaffService *StaffService
+// }
 
-func (c *StaffController) CreateStaff(w http.ResponseWriter, r *http.Request) {
+// func NewStaffController(accountRegistrationService *StaffService) *StaffController {
+// 	return &StaffController{
+// 		StaffService: accountRegistrationService,
+// 	}
+// }
 
-	var staffDto CreateStaffDto
+// func (c *StaffController) CreateStaff(w http.ResponseWriter, r *http.Request) {
 
-	if err := validators.ParseJSON(r.Body, &staffDto); err != nil {
-		response_handlers.RespondWithError(w, err)
-		return
-	}
+// 	var staffDto dto.StaffRequestDto
 
-	staffCreate := NewCreateStaffDto(staffDto.Email, staffDto.Role, staffDto.IsActiveStaff)
+// 	if err := validators.ParseJSON(r.Body, &staffDto); err != nil {
+// 		response_handlers.RespondWithError(w, err)
+// 		return
+// 	}
 
-	// Step 2: Call the service to create the account
-	err := c.StaffService.CreateAccount(r.Context(), staffCreate)
-	if err != nil {
-		response_handlers.RespondWithError(w, err)
-		return
-	}
+// 	staffCreate, err := staffDto.ToCreateValueObjects()
 
-	response_handlers.RespondWithSuccess(w, nil, http.StatusCreated)
-}
+// 	if err != nil {
+// 		response_handlers.RespondWithError(w, err)
+// 		return
+// 	}
+
+// 	// Step 2: Call the service to create the account
+// 	err = c.StaffService.CreateAccount(r.Context(), staffCreate)
+// 	if err != nil {
+// 		response_handlers.RespondWithError(w, err)
+// 		return
+// 	}
+
+// 	response_handlers.RespondWithSuccess(w, nil, http.StatusCreated)
+// }

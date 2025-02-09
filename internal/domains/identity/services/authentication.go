@@ -19,7 +19,7 @@ type AuthenticationService struct {
 func NewAuthenticationService(container *di.Container) *AuthenticationService {
 
 	userRepo := repo.NewUserRepository(container)
-	staffRepo := repo.NewStaffRepository(container.Queries.IdentityDb)
+	staffRepo := repo.NewStaffRepository(container)
 
 	return &AuthenticationService{
 		UserRepo:  userRepo,
@@ -50,14 +50,16 @@ func (s *AuthenticationService) getNameFromEmail(email string) string {
 	return strings.Split(email, "@")[0]
 }
 
-func (s *AuthenticationService) getStaffInfo(ctx context.Context, email string) entities.StaffInfo {
-	staffInfo := entities.StaffInfo{Role: "Athlete", IsActive: false}
+func (s *AuthenticationService) getStaffInfo(ctx context.Context, email string) *entities.StaffInfo {
 
 	staff, err := s.StaffRepo.GetStaffByEmail(ctx, email)
-	if err == nil {
-		staffInfo.Role = staff.RoleName
-		staffInfo.IsActive = staff.IsActive
+
+	if err != nil {
+		return nil
 	}
 
-	return staffInfo
+	return &entities.StaffInfo{
+		Role:     staff.RoleName,
+		IsActive: staff.IsActive,
+	}
 }

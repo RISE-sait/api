@@ -5,7 +5,6 @@ import (
 	repo "api/internal/domains/identity/persistence/repository"
 	"api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
-	"api/utils/email"
 	"context"
 	"database/sql"
 	"net/http"
@@ -29,12 +28,11 @@ func NewChildAccountRegistrationRequestService(
 
 func (s *ChildAccountRequestService) CreatePendingAccount(
 	ctx context.Context,
+	tx *sql.Tx,
 	childAccountCreate *values.CreatePendingChildAccountValueObject,
 ) *errLib.CommonError {
 
-	childEmail := childAccountCreate.ChildEmail
-	parentEmail := childAccountCreate.ParentEmail
-	password := childAccountCreate.Password
+	childEmail := childAccountCreate.Email
 
 	for _, waiver := range childAccountCreate.Waivers {
 		if !waiver.IsWaiverSigned {
@@ -42,32 +40,22 @@ func (s *ChildAccountRequestService) CreatePendingAccount(
 		}
 	}
 
-	tx, err := s.DB.BeginTx(ctx, nil)
-	if err != nil {
-		return errLib.New("Failed to start transaction", http.StatusInternalServerError)
+	if tx == nil {
+		newTx, txErr := s.DB.BeginTx(ctx, &sql.TxOptions{})
+		if txErr != nil {
+			return errLib.New("Failed to begin transaction", http.StatusInternalServerError)
+		}
+
+		tx = newTx
 	}
 
-	if err := s.PendingChildAccountRepository.CreatePendingChildAccountTx(ctx, tx, childEmail, parentEmail, password); err != nil {
-		tx.Rollback()
-		return err
-	}
+	for _, waiver := range childAccountCreate.Waivers {
+		if err := s.WaiverSigningRepository.CreateWaiverSigningRecordTx(ctx, tx, childEmail, waiver.WaiverUrl, waiver.IsWaiverSigned); err != nil {
 
-	// for _, waiver := range childAccountCreate.Waivers {
-	// 	if err := s.WaiverSigningRepository.CreateWaiverSigningRecordTx(ctx, tx, childEmail, waiver.WaiverUrl, waiver.IsWaiverSigned); err != nil {
+			tx.Rollback()
+			return err
+		}
 
-	// 		tx.Rollback()
-	// 		return err
-	// 	}
-
-	// }
-
-	if err := email.SendConfirmChildEmail(parentEmail, childEmail); err != nil {
-		tx.Rollback()
-		return errLib.New("Failed to send email", http.StatusInternalServerError)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return errLib.New("Failed to commit transaction", http.StatusInternalServerError)
 	}
 
 	return nil

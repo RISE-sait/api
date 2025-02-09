@@ -38,6 +38,6 @@ func (s *EventsService) DeleteEvent(ctx context.Context, id uuid.UUID) *errLib.C
 	return s.Repo.DeleteEvent(ctx, id)
 }
 
-func (s *EventsService) GetCustomersCountByEventId(ctx context.Context, id uuid.UUID) (int64, *errLib.CommonError) {
-	return s.Repo.GetCustomersCountByEventId(ctx, id)
+func (s *EventsService) GetEventDetails(ctx context.Context, id uuid.UUID) (*entity.Event, *errLib.CommonError) {
+	return s.Repo.GetEventDetails(ctx, id)
 }

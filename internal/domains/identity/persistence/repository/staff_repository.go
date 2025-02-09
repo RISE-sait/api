@@ -2,6 +2,7 @@ package repository
 
 import (
 	database_errors "api/internal/constants"
+	"api/internal/di"
 	db "api/internal/domains/identity/persistence/sqlc/generated"
 	errLib "api/internal/libs/errors"
 	"context"
@@ -17,9 +18,9 @@ type StaffRepository struct {
 	Queries *db.Queries
 }
 
-func NewStaffRepository(q *db.Queries) *StaffRepository {
+func NewStaffRepository(container *di.Container) *StaffRepository {
 	return &StaffRepository{
-		Queries: q,
+		Queries: container.Queries.IdentityDb,
 	}
 }
 

@@ -31,10 +31,13 @@ func (h *TokenValidationController) ValidateToken(w http.ResponseWriter, r *http
 	userInfo := entities.UserInfo{
 		Name:  claims.Name,
 		Email: claims.Email,
-		StaffInfo: entities.StaffInfo{
+	}
+
+	if claims.Role != "" {
+		userInfo.StaffInfo = &entities.StaffInfo{
 			Role:     claims.Role,
 			IsActive: claims.IsActive,
-		},
+		}
 	}
 
 	response_handlers.RespondWithSuccess(w, userInfo, http.StatusOK)

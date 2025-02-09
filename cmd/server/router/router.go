@@ -3,6 +3,9 @@ package routes
 import (
 	"api/internal/di"
 	"api/internal/domains/course"
+	customer "api/internal/domains/customer"
+
+	// staff "api/internal/domains/staff"
 	"api/internal/domains/events"
 	facility "api/internal/domains/facility/controllers"
 	identity "api/internal/domains/identity/controllers"
@@ -33,12 +36,25 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 			{Path: "/courses", Configure: RegisterCourseRoutes(r, container)},
 			{Path: "/events", Configure: RegisterEventRoutes(r, container)},
 			{Path: "/facilities", Configure: RegisterFacilityRoutes(r, container)},
+			{Path: "/customers", Configure: RegisterCustomerRoutes(r, container)},
 		}
 
 		for _, route := range routes {
 			r.Route(route.Path, route.Configure)
 		}
 	})
+}
+
+func RegisterCustomerRoutes(r chi.Router, container *di.Container) func(chi.Router) {
+
+	ctrl := customer.NewCustomersController(container)
+
+	return func(r chi.Router) {
+
+		r.Get("/", ctrl.GetCustomers)
+		r.Get("/{email}", ctrl.GetCustomerByEmail)
+		r.Post("/", ctrl.CreateCustomer)
+	}
 }
 
 func RegisterMembershipRoutes(r chi.Router, container *di.Container) func(chi.Router) {
@@ -113,7 +129,6 @@ func RegisterEventRoutes(r chi.Router, container *di.Container) func(chi.Router)
 	return func(r chi.Router) {
 		r.Get("/", ctrl.GetEvents)
 
-		r.Get("/{id}/customer-count", ctrl.GetCustomersCountByEventId)
 		r.With(allowAdminOnly).Post("/", ctrl.CreateEvent)
 		r.With(allowAdminOnly).Put("/{id}", ctrl.UpdateEvent)
 		r.With(allowAdminOnly).Delete("/{id}", ctrl.DeleteEvent)

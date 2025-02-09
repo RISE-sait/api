@@ -22,7 +22,7 @@ type OauthService struct {
 
 func NewOauthService(container *di.Container) *OauthService {
 
-	staffRepo := identity.NewStaffRepository(container.Queries.IdentityDb)
+	staffRepo := identity.NewStaffRepository(container)
 	return &OauthService{
 		StaffRepo: staffRepo,
 	}
@@ -56,7 +56,7 @@ func (s *OauthService) SetUserInfoWithStaffDetails(c context.Context, userInfo e
 	userInfo = entities.UserInfo{
 		Email:     userInfo.Email,
 		Name:      userInfo.Name,
-		StaffInfo: staffInfo,
+		StaffInfo: &staffInfo,
 	}
 
 	return &userInfo, nil

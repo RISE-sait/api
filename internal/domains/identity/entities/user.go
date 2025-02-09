@@ -3,7 +3,7 @@ package entities
 type UserInfo struct {
 	Name      string
 	Email     string
-	StaffInfo StaffInfo
+	StaffInfo *StaffInfo
 }
 
 type StaffInfo struct {

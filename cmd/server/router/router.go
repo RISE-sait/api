@@ -5,7 +5,7 @@ import (
 	"api/internal/domains/course"
 	customer "api/internal/domains/customer"
 
-	// staff "api/internal/domains/staff"
+	courseRepo "api/internal/domains/course/persistence"
 	"api/internal/domains/events"
 	facility "api/internal/domains/facility/controllers"
 	identity "api/internal/domains/identity/controllers"
@@ -112,7 +112,10 @@ func RegisterFacilityTypesRoutes(r chi.Router, container *di.Container) func(chi
 }
 
 func RegisterCourseRoutes(r chi.Router, container *di.Container) func(chi.Router) {
-	ctrl := course.NewCourseController(container)
+
+	courseRepo := courseRepo.NewCourseRepository(container)
+	courseService := course.NewCourseService(courseRepo)
+	ctrl := course.NewCourseController(courseService)
 
 	return func(r chi.Router) {
 		r.Get("/", ctrl.GetCourses)

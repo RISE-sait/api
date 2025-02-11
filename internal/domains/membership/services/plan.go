@@ -2,7 +2,6 @@ package membership
 
 import (
 	"api/internal/di"
-	entity "api/internal/domains/membership/entities"
 	persistence "api/internal/domains/membership/persistence/repositories"
 
 	values "api/internal/domains/membership/values/plans"
@@ -20,17 +19,17 @@ func NewMembershipPlansService(container *di.Container) *MembershipPlansService 
 	return &MembershipPlansService{Repo: persistence.NewMembershipPlansRepository(container)}
 }
 
-func (s *MembershipPlansService) CreateMembershipPlan(ctx context.Context, plan *values.MembershipPlanCreate) *errLib.CommonError {
+func (s *MembershipPlansService) CreateMembershipPlan(ctx context.Context, plan *values.MembershipPlanDetails) *errLib.CommonError {
 
 	return s.Repo.CreateMembershipPlan(ctx, plan)
 
 }
 
-func (s *MembershipPlansService) GetMembershipPlansByMembershipId(ctx context.Context, id uuid.UUID) ([]entity.MembershipPlan, *errLib.CommonError) {
+func (s *MembershipPlansService) GetMembershipPlansByMembershipId(ctx context.Context, id uuid.UUID) ([]values.MembershipPlanAllFields, *errLib.CommonError) {
 	return s.Repo.GetMembershipPlansByMembershipId(ctx, id)
 }
 
-func (s *MembershipPlansService) UpdateMembershipPlan(ctx context.Context, plan *values.MembershipPlanUpdate) *errLib.CommonError {
+func (s *MembershipPlansService) UpdateMembershipPlan(ctx context.Context, plan *values.MembershipPlanAllFields) *errLib.CommonError {
 
 	return s.Repo.UpdateMembershipPlan(ctx, plan)
 }

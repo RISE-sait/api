@@ -20,7 +20,7 @@ VALUES ($1, $2, $3, $4, $5)
 type CreateMembershipPlanParams struct {
 	MembershipID     uuid.UUID            `json:"membership_id"`
 	Name             string               `json:"name"`
-	Price            int64                `json:"price"`
+	Price            int32                `json:"price"`
 	PaymentFrequency NullPaymentFrequency `json:"payment_frequency"`
 	AmtPeriods       sql.NullInt32        `json:"amt_periods"`
 }
@@ -57,7 +57,7 @@ func (q *Queries) DeleteMembershipPlan(ctx context.Context, arg DeleteMembership
 }
 
 const getMembershipPlansByMembershipId = `-- name: GetMembershipPlansByMembershipId :many
-SELECT id, name, price, membership_id, payment_frequency, amt_periods, created_at, updated_at 
+SELECT id, name, price, joining_fee, auto_renew, membership_id, payment_frequency, amt_periods, created_at, updated_at 
 FROM membership_plans
 WHERE 
     membership_id = $1
@@ -76,6 +76,8 @@ func (q *Queries) GetMembershipPlansByMembershipId(ctx context.Context, membersh
 			&i.ID,
 			&i.Name,
 			&i.Price,
+			&i.JoiningFee,
+			&i.AutoRenew,
 			&i.MembershipID,
 			&i.PaymentFrequency,
 			&i.AmtPeriods,
@@ -103,7 +105,7 @@ WHERE membership_id = $5 AND id = $6
 
 type UpdateMembershipPlanParams struct {
 	Name             string               `json:"name"`
-	Price            int64                `json:"price"`
+	Price            int32                `json:"price"`
 	PaymentFrequency NullPaymentFrequency `json:"payment_frequency"`
 	AmtPeriods       sql.NullInt32        `json:"amt_periods"`
 	MembershipID     uuid.UUID            `json:"membership_id"`

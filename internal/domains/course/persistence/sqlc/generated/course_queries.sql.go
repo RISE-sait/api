@@ -13,9 +13,10 @@ import (
 	"github.com/google/uuid"
 )
 
-const createCourse = `-- name: CreateCourse :execrows
-INSERT INTO courses (name, description, start_date, end_date)
-VALUES ($1, $2, $3, $4)
+const createCourse = `-- name: CreateCourse :one
+INSERT INTO courses (name, description, start_date, end_date, capacity)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, name, description, capacity, start_date, end_date, created_at, updated_at
 `
 
 type CreateCourseParams struct {
@@ -23,19 +24,29 @@ type CreateCourseParams struct {
 	Description sql.NullString `json:"description"`
 	StartDate   time.Time      `json:"start_date"`
 	EndDate     time.Time      `json:"end_date"`
+	Capacity    int32          `json:"capacity"`
 }
 
-func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, createCourse,
+func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (Course, error) {
+	row := q.db.QueryRowContext(ctx, createCourse,
 		arg.Name,
 		arg.Description,
 		arg.StartDate,
 		arg.EndDate,
+		arg.Capacity,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
+	var i Course
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Capacity,
+		&i.StartDate,
+		&i.EndDate,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const deleteCourse = `-- name: DeleteCourse :execrows
@@ -51,7 +62,7 @@ func (q *Queries) DeleteCourse(ctx context.Context, id uuid.UUID) (int64, error)
 }
 
 const getCourseById = `-- name: GetCourseById :one
-SELECT id, name, description, start_date, end_date, created_at, updated_at FROM courses WHERE id = $1
+SELECT id, name, description, capacity, start_date, end_date, created_at, updated_at FROM courses WHERE id = $1
 `
 
 func (q *Queries) GetCourseById(ctx context.Context, id uuid.UUID) (Course, error) {
@@ -61,6 +72,7 @@ func (q *Queries) GetCourseById(ctx context.Context, id uuid.UUID) (Course, erro
 		&i.ID,
 		&i.Name,
 		&i.Description,
+		&i.Capacity,
 		&i.StartDate,
 		&i.EndDate,
 		&i.CreatedAt,
@@ -70,9 +82,9 @@ func (q *Queries) GetCourseById(ctx context.Context, id uuid.UUID) (Course, erro
 }
 
 const getCourses = `-- name: GetCourses :many
-SELECT id, name, description, start_date, end_date, created_at, updated_at FROM courses
+SELECT id, name, description, capacity, start_date, end_date, created_at, updated_at FROM courses
 WHERE (name ILIKE '%' || $1 || '%' OR $1 IS NULL)
-AND (description ILIKE '%' || $2|| '%' OR $2 IS NULL)
+AND (description ILIKE '%' || $2 || '%' OR $2 IS NULL)
 `
 
 type GetCoursesParams struct {
@@ -93,6 +105,7 @@ func (q *Queries) GetCourses(ctx context.Context, arg GetCoursesParams) ([]Cours
 			&i.ID,
 			&i.Name,
 			&i.Description,
+			&i.Capacity,
 			&i.StartDate,
 			&i.EndDate,
 			&i.CreatedAt,
@@ -112,9 +125,10 @@ func (q *Queries) GetCourses(ctx context.Context, arg GetCoursesParams) ([]Cours
 }
 
 const updateCourse = `-- name: UpdateCourse :execrows
+
 UPDATE courses
-SET name = $1, description = $2, start_date = $3, end_date = $4
-WHERE id = $5
+SET name = $1, description = $2, start_date = $3, end_date = $4, capacity = $5
+WHERE id = $6
 `
 
 type UpdateCourseParams struct {
@@ -122,15 +136,19 @@ type UpdateCourseParams struct {
 	Description sql.NullString `json:"description"`
 	StartDate   time.Time      `json:"start_date"`
 	EndDate     time.Time      `json:"end_date"`
+	Capacity    int32          `json:"capacity"`
 	ID          uuid.UUID      `json:"id"`
 }
 
+// AND (start_date >= sqlc.narg(start_date) OR sqlc.narg(start_date) IS NULL)
+// AND (end_date <= sqlc.narg(end_date) OR sqlc.narg(end_date) IS NULL);
 func (q *Queries) UpdateCourse(ctx context.Context, arg UpdateCourseParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateCourse,
 		arg.Name,
 		arg.Description,
 		arg.StartDate,
 		arg.EndDate,
+		arg.Capacity,
 		arg.ID,
 	)
 	if err != nil {

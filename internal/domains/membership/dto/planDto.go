@@ -16,24 +16,29 @@ type MembershipPlanRequestDto struct {
 	AmtPeriods       int       `json:"amt_periods" `
 }
 
-func (dto *MembershipPlanRequestDto) ToCreateValueObjects() (*values.MembershipPlanCreate, *errLib.CommonError) {
+func (dto *MembershipPlanRequestDto) ToCreateValueObjects() (*values.MembershipPlanDetails, *errLib.CommonError) {
 	err := validators.ValidateDto(dto)
 	if err != nil {
 		return nil, err
 	}
 
-	return &values.MembershipPlanCreate{
-		MembershipPlanRequest: values.MembershipPlanRequest{
-			Name:             dto.Name,
-			Price:            dto.Price,
-			MembershipID:     dto.MembershipID,
-			PaymentFrequency: dto.PaymentFrequency,
-			AmtPeriods:       dto.AmtPeriods,
-		},
+	var periods *int
+
+	if dto.AmtPeriods != 0 {
+		amtPeriods := int(dto.AmtPeriods)
+		periods = &amtPeriods
+	}
+
+	return &values.MembershipPlanDetails{
+		Name:             dto.Name,
+		Price:            dto.Price,
+		MembershipID:     dto.MembershipID,
+		PaymentFrequency: dto.PaymentFrequency,
+		AmtPeriods:       periods,
 	}, nil
 }
 
-func (dto *MembershipPlanRequestDto) ToUpdateValueObjects(membershipIdStr, planIdStr string) (*values.MembershipPlanUpdate, *errLib.CommonError) {
+func (dto *MembershipPlanRequestDto) ToUpdateValueObjects(membershipIdStr, planIdStr string) (*values.MembershipPlanAllFields, *errLib.CommonError) {
 
 	membershipId, err := validators.ParseUUID(membershipIdStr)
 
@@ -52,14 +57,21 @@ func (dto *MembershipPlanRequestDto) ToUpdateValueObjects(membershipIdStr, planI
 		return nil, err
 	}
 
-	return &values.MembershipPlanUpdate{
+	var periods *int
+
+	if dto.AmtPeriods != 0 {
+		amtPeriods := int(dto.AmtPeriods)
+		periods = &amtPeriods
+	}
+
+	return &values.MembershipPlanAllFields{
 		ID: planId,
-		MembershipPlanRequest: values.MembershipPlanRequest{
+		MembershipPlanDetails: values.MembershipPlanDetails{
 			Name:             dto.Name,
 			Price:            dto.Price,
 			MembershipID:     membershipId,
 			PaymentFrequency: dto.PaymentFrequency,
-			AmtPeriods:       dto.AmtPeriods,
+			AmtPeriods:       periods,
 		},
 	}, nil
 }

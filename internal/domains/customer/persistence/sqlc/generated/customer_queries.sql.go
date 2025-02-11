@@ -12,54 +12,54 @@ import (
 	"github.com/google/uuid"
 )
 
-const getCustomersForEvent = `-- name: GetCustomersForEvent :many
-SELECT cu.user_id as customer_id, 
-       oi.name,
-       u.email,
-       m.name as membership_name,
-       cm.renewal_date as membership_renewal_date, 
-       COUNT(*) FILTER (WHERE ce.checkedinat IS NOT NULL) AS attendance
-FROM customers cu
-JOIN users u ON cu.user_id = u.id
-JOIN user_optional_info oi ON u.id = oi.id
-JOIN customer_events ce ON cu.user_id = ce.customer_id
-JOIN customer_memberships cm 
-    ON cu.user_id = cm.customer_id
-    AND cm.renewal_date = (
-        SELECT MAX(cm2.renewal_date) 
-        FROM customer_memberships cm2
-        WHERE cm2.customer_id = cu.user_id
-    ) 
-JOIN memberships m ON cm.membership_id = m.id
-WHERE (ce.event_id = $1 OR $1 = '00000000-0000-0000-0000-000000000000')
-GROUP BY cu.user_id, oi.name, u.email, m.name, cm.renewal_date
+const getCustomers = `-- name: GetCustomers :many
+SELECT
+    cu.user_id as customer_id,
+    oi.first_name,
+    oi.last_name,
+    oi.phone,
+
+    u.email,
+    ce.is_cancelled as is_event_booking_cancelled,
+    ce.checked_in_at
+FROM
+    customers cu
+    JOIN users u ON cu.user_id = u.id
+    JOIN user_optional_info oi ON u.id = oi.id
+    JOIN customer_events ce ON cu.user_id = ce.customer_id
+WHERE (
+        ce.event_id = $1
+        OR $1 IS NULL
+    )
 `
 
-type GetCustomersForEventRow struct {
-	CustomerID            uuid.UUID      `json:"customer_id"`
-	Name                  sql.NullString `json:"name"`
-	Email                 string         `json:"email"`
-	MembershipName        string         `json:"membership_name"`
-	MembershipRenewalDate sql.NullTime   `json:"membership_renewal_date"`
-	Attendance            int64          `json:"attendance"`
+type GetCustomersRow struct {
+	CustomerID              uuid.UUID      `json:"customer_id"`
+	FirstName               sql.NullString `json:"first_name"`
+	LastName                sql.NullString `json:"last_name"`
+	Phone                   sql.NullString `json:"phone"`
+	Email                   string         `json:"email"`
+	IsEventBookingCancelled sql.NullBool   `json:"is_event_booking_cancelled"`
+	CheckedInAt             sql.NullTime   `json:"checked_in_at"`
 }
 
-func (q *Queries) GetCustomersForEvent(ctx context.Context, eventID uuid.UUID) ([]GetCustomersForEventRow, error) {
-	rows, err := q.db.QueryContext(ctx, getCustomersForEvent, eventID)
+func (q *Queries) GetCustomers(ctx context.Context, eventID uuid.NullUUID) ([]GetCustomersRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCustomers, eventID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetCustomersForEventRow
+	var items []GetCustomersRow
 	for rows.Next() {
-		var i GetCustomersForEventRow
+		var i GetCustomersRow
 		if err := rows.Scan(
 			&i.CustomerID,
-			&i.Name,
+			&i.FirstName,
+			&i.LastName,
+			&i.Phone,
 			&i.Email,
-			&i.MembershipName,
-			&i.MembershipRenewalDate,
-			&i.Attendance,
+			&i.IsEventBookingCancelled,
+			&i.CheckedInAt,
 		); err != nil {
 			return nil, err
 		}

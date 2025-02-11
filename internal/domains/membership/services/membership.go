@@ -23,8 +23,6 @@ func (s *MembershipService) Create(ctx context.Context, input *values.Membership
 	membership := &values.MembershipDetails{
 		Name:        input.Name,
 		Description: input.Description,
-		StartDate:   input.StartDate,
-		EndDate:     input.EndDate,
 	}
 
 	return s.Repo.Create(ctx, membership)

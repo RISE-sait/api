@@ -12,4 +12,5 @@ type CourseResponse struct {
 	Description string    `json:"description,omitempty"`
 	StartDate   time.Time `json:"start_date"`
 	EndDate     time.Time `json:"end_date"`
+	Capacity    int32     `json:"capacity"`
 }

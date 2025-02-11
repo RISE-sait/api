@@ -7,4 +7,5 @@ type CourseDetails struct {
 	Description string
 	StartDate   time.Time
 	EndDate     time.Time
+	Capacity    int32
 }

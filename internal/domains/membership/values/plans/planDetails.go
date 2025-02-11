@@ -4,10 +4,10 @@ import (
 	"github.com/google/uuid"
 )
 
-type MembershipPlanRequest struct {
+type MembershipPlanDetails struct {
 	MembershipID     uuid.UUID
 	Name             string
 	Price            int64
 	PaymentFrequency string
-	AmtPeriods       int
+	AmtPeriods       *int
 }

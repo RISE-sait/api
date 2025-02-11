@@ -60,6 +60,50 @@ func (ns NullDayEnum) Value() (driver.Value, error) {
 	return string(ns.DayEnum), nil
 }
 
+type MembershipStatus string
+
+const (
+	MembershipStatusActive   MembershipStatus = "active"
+	MembershipStatusInactive MembershipStatus = "inactive"
+	MembershipStatusCanceled MembershipStatus = "canceled"
+	MembershipStatusExpired  MembershipStatus = "expired"
+)
+
+func (e *MembershipStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = MembershipStatus(s)
+	case string:
+		*e = MembershipStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for MembershipStatus: %T", src)
+	}
+	return nil
+}
+
+type NullMembershipStatus struct {
+	MembershipStatus MembershipStatus `json:"membership_status"`
+	Valid            bool             `json:"valid"` // Valid is true if MembershipStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullMembershipStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.MembershipStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.MembershipStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullMembershipStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.MembershipStatus), nil
+}
+
 type PaymentFrequency string
 
 const (
@@ -107,6 +151,7 @@ type Course struct {
 	ID          uuid.UUID      `json:"id"`
 	Name        string         `json:"name"`
 	Description sql.NullString `json:"description"`
+	Capacity    int32          `json:"capacity"`
 	StartDate   time.Time      `json:"start_date"`
 	EndDate     time.Time      `json:"end_date"`
 	CreatedAt   sql.NullTime   `json:"created_at"`
@@ -123,6 +168,38 @@ type CourseMembership struct {
 type Customer struct {
 	UserID    uuid.UUID `json:"user_id"`
 	HubspotID int64     `json:"hubspot_id"`
+	Credits   int32     `json:"credits"`
+}
+
+type CustomerEvent struct {
+	ID          uuid.UUID    `json:"id"`
+	CustomerID  uuid.UUID    `json:"customer_id"`
+	EventID     uuid.UUID    `json:"event_id"`
+	CreatedAt   sql.NullTime `json:"created_at"`
+	UpdatedAt   sql.NullTime `json:"updated_at"`
+	Checkedinat sql.NullTime `json:"checkedinat"`
+}
+
+type CustomerMembershipPlan struct {
+	ID               uuid.UUID        `json:"id"`
+	CustomerID       uuid.UUID        `json:"customer_id"`
+	MembershipPlanID uuid.UUID        `json:"membership_plan_id"`
+	StartDate        sql.NullTime     `json:"start_date"`
+	RenewalDate      sql.NullTime     `json:"renewal_date"`
+	Status           MembershipStatus `json:"status"`
+	CreatedAt        sql.NullTime     `json:"created_at"`
+	UpdatedAt        sql.NullTime     `json:"updated_at"`
+}
+
+type Event struct {
+	ID         uuid.UUID     `json:"id"`
+	BeginTime  time.Time     `json:"begin_time"`
+	EndTime    time.Time     `json:"end_time"`
+	CourseID   uuid.NullUUID `json:"course_id"`
+	FacilityID uuid.UUID     `json:"facility_id"`
+	CreatedAt  sql.NullTime  `json:"created_at"`
+	UpdatedAt  sql.NullTime  `json:"updated_at"`
+	Day        DayEnum       `json:"day"`
 }
 
 type Facility struct {
@@ -171,17 +248,6 @@ type PendingChildAccount struct {
 	UserEmail   string         `json:"user_email"`
 	Password    sql.NullString `json:"password"`
 	CreatedAt   time.Time      `json:"created_at"`
-}
-
-type Schedule struct {
-	ID         uuid.UUID     `json:"id"`
-	BeginTime  time.Time     `json:"begin_time"`
-	EndTime    time.Time     `json:"end_time"`
-	CourseID   uuid.NullUUID `json:"course_id"`
-	FacilityID uuid.UUID     `json:"facility_id"`
-	CreatedAt  sql.NullTime  `json:"created_at"`
-	UpdatedAt  sql.NullTime  `json:"updated_at"`
-	Day        DayEnum       `json:"day"`
 }
 
 type Staff struct {

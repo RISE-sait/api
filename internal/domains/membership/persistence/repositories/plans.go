@@ -2,7 +2,6 @@ package membership
 
 import (
 	"api/internal/di"
-	entity "api/internal/domains/membership/entities"
 	db "api/internal/domains/membership/persistence/sqlc/generated"
 	values "api/internal/domains/membership/values/plans"
 	errLib "api/internal/libs/errors"
@@ -25,18 +24,24 @@ func NewMembershipPlansRepository(container *di.Container) *MembershipPlansRepos
 	}
 }
 
-func (r *MembershipPlansRepository) CreateMembershipPlan(c context.Context, membershipPlan *values.MembershipPlanCreate) *errLib.CommonError {
+func (r *MembershipPlansRepository) CreateMembershipPlan(c context.Context, membershipPlan *values.MembershipPlanDetails) *errLib.CommonError {
+
+	var periods int32
+
+	if membershipPlan.AmtPeriods != nil {
+		periods = int32(*membershipPlan.AmtPeriods)
+	}
 
 	dbParams := db.CreateMembershipPlanParams{
 		Name:  membershipPlan.Name,
-		Price: membershipPlan.Price,
+		Price: int32(membershipPlan.Price),
 		PaymentFrequency: db.NullPaymentFrequency{
 			PaymentFrequency: db.PaymentFrequency(membershipPlan.PaymentFrequency),
 			Valid:            true,
 		},
 		AmtPeriods: sql.NullInt32{
-			Int32: int32(membershipPlan.AmtPeriods),
-			Valid: true,
+			Int32: periods,
+			Valid: membershipPlan.AmtPeriods != nil,
 		},
 		MembershipID: membershipPlan.MembershipID,
 	}
@@ -54,7 +59,7 @@ func (r *MembershipPlansRepository) CreateMembershipPlan(c context.Context, memb
 	return nil
 }
 
-func (r *MembershipPlansRepository) GetMembershipPlansByMembershipId(ctx context.Context, id uuid.UUID) ([]entity.MembershipPlan, *errLib.CommonError) {
+func (r *MembershipPlansRepository) GetMembershipPlansByMembershipId(ctx context.Context, id uuid.UUID) ([]values.MembershipPlanAllFields, *errLib.CommonError) {
 	dbPlans, err := r.Queries.GetMembershipPlansByMembershipId(ctx, id)
 
 	if err != nil {
@@ -64,33 +69,50 @@ func (r *MembershipPlansRepository) GetMembershipPlansByMembershipId(ctx context
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	plans := make([]entity.MembershipPlan, len(dbPlans))
+	plans := make([]values.MembershipPlanAllFields, len(dbPlans))
+
 	for i, dbPlan := range dbPlans {
-		plans[i] = entity.MembershipPlan{
-			ID:               dbPlan.ID,
-			Name:             dbPlan.Name,
-			MembershipID:     dbPlan.MembershipID,
-			Price:            dbPlan.Price,
-			PaymentFrequency: string(dbPlan.PaymentFrequency.PaymentFrequency),
-			AmtPeriods:       int(dbPlan.AmtPeriods.Int32),
+
+		var periods *int
+
+		if dbPlan.AmtPeriods.Valid {
+			amtPeriods := int(dbPlan.AmtPeriods.Int32)
+			periods = &amtPeriods
+		}
+
+		plans[i] = values.MembershipPlanAllFields{
+			ID: dbPlan.ID,
+			MembershipPlanDetails: values.MembershipPlanDetails{
+				Name:             dbPlan.Name,
+				MembershipID:     dbPlan.MembershipID,
+				Price:            int64(dbPlan.Price),
+				PaymentFrequency: string(dbPlan.PaymentFrequency.PaymentFrequency),
+				AmtPeriods:       periods,
+			},
 		}
 	}
 
 	return plans, nil
 }
 
-func (r *MembershipPlansRepository) UpdateMembershipPlan(c context.Context, plan *values.MembershipPlanUpdate) *errLib.CommonError {
+func (r *MembershipPlansRepository) UpdateMembershipPlan(c context.Context, plan *values.MembershipPlanAllFields) *errLib.CommonError {
+
+	var periods int32
+
+	if plan.AmtPeriods != nil {
+		periods = int32(*plan.AmtPeriods)
+	}
 
 	dbMembershipParams := db.UpdateMembershipPlanParams{
 		Name:  plan.Name,
-		Price: plan.Price,
+		Price: int32(plan.Price),
 		PaymentFrequency: db.NullPaymentFrequency{
 			PaymentFrequency: db.PaymentFrequency(plan.PaymentFrequency),
 			Valid:            true,
 		},
 		AmtPeriods: sql.NullInt32{
-			Int32: int32(plan.AmtPeriods),
-			Valid: true,
+			Int32: periods,
+			Valid: plan.AmtPeriods != nil,
 		},
 		MembershipID: plan.MembershipID,
 		ID:           plan.ID,

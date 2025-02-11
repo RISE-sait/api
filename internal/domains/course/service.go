@@ -1,8 +1,7 @@
 package course
 
 import (
-	"api/internal/di"
-	"api/internal/domains/course/persistence"
+	persistence "api/internal/domains/course/persistence"
 	"api/internal/domains/course/values"
 	errLib "api/internal/libs/errors"
 	"context"
@@ -11,23 +10,25 @@ import (
 )
 
 type CourseService struct {
-	Repo *persistence.CourseRepository
+	Repo persistence.CourseRepositoryInterface
 }
 
-func NewCourseService(container *di.Container) *CourseService {
-	return &CourseService{Repo: persistence.NewCourseRepository(container)}
+func NewCourseService(repo persistence.CourseRepositoryInterface) *CourseService {
+	return &CourseService{Repo: repo}
 }
 
-func (s *CourseService) CreateCourse(ctx context.Context, input *values.CourseDetails) *errLib.CommonError {
+func (s *CourseService) CreateCourse(ctx context.Context, input *values.CourseDetails) (*values.CourseAllFields, *errLib.CommonError) {
 
-	return s.Repo.CreateCourse(ctx, input)
+	course, err := s.Repo.CreateCourse(ctx, input)
+
+	return course, err
 }
 
 func (s *CourseService) GetCourseById(ctx context.Context, id uuid.UUID) (*values.CourseAllFields, *errLib.CommonError) {
 	return s.Repo.GetCourseById(ctx, id)
 }
 
-func (s *CourseService) GetCourses(ctx context.Context, name, description string) ([]values.CourseAllFields, *errLib.CommonError) {
+func (s *CourseService) GetCourses(ctx context.Context, name, description *string) ([]values.CourseAllFields, *errLib.CommonError) {
 
 	return s.Repo.GetCourses(ctx, name, description)
 

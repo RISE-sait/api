@@ -1,6 +1,6 @@
 -- name: CreateMembership :execrows
-INSERT INTO memberships (name, description, start_date, end_date)
-VALUES ($1, $2, $3, $4);
+INSERT INTO memberships (name, description)
+VALUES ($1, $2);
 
 -- name: GetMembershipById :one
 SELECT * FROM memberships WHERE id = $1;
@@ -10,8 +10,8 @@ SELECT * FROM memberships;
 
 -- name: UpdateMembership :execrows
 UPDATE memberships
-SET name = $1, description = $2, start_date = $3, end_date = $4
-WHERE id = $5;
+SET name = $1, description = $2
+WHERE id = $3;
 
 -- name: DeleteMembership :execrows
 DELETE FROM memberships WHERE id = $1;

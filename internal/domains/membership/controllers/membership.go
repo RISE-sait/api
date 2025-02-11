@@ -126,7 +126,5 @@ func mapEntityToResponse(membership *values.MembershipAllFields) dto.MembershipR
 		ID:          membership.ID,
 		Name:        membership.Name,
 		Description: membership.Description,
-		StartDate:   membership.StartDate,
-		EndDate:     membership.EndDate,
 	}
 }

@@ -4,7 +4,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type MembershipPlanUpdate struct {
+type MembershipPlanAllFields struct {
 	ID uuid.UUID
-	MembershipPlanRequest
+	MembershipPlanDetails
 }

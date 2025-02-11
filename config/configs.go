@@ -29,8 +29,6 @@ var Envs = initConfig()
 
 func initConfig() *config {
 
-	log.Println("Initializing config")
-
 	return &config{
 		dbConnUrl:     getEnv("DATABASE_URL", ""),
 		HubSpotApiKey: getEnv("HUBSPOT_API_KEY", ""),

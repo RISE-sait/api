@@ -1,4 +1,4 @@
-package persistence
+package course
 
 import (
 	"api/internal/di"
@@ -12,7 +12,18 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
+
+type CourseRepositoryInterface interface {
+	CreateCourse(ctx context.Context, input *values.CourseDetails) (*values.CourseAllFields, *errLib.CommonError)
+	GetCourseById(ctx context.Context, id uuid.UUID) (*values.CourseAllFields, *errLib.CommonError)
+	GetCourses(ctx context.Context, name, description *string) ([]values.CourseAllFields, *errLib.CommonError)
+	UpdateCourse(ctx context.Context, input *values.CourseAllFields) *errLib.CommonError
+	DeleteCourse(ctx context.Context, id uuid.UUID) *errLib.CommonError
+}
+
+var _ CourseRepositoryInterface = (*CourseRepository)(nil)
 
 type CourseRepository struct {
 	Queries *db.Queries
@@ -41,6 +52,7 @@ func (r *CourseRepository) GetCourseById(c context.Context, id uuid.UUID) (*valu
 			Description: course.Description.String,
 			StartDate:   course.StartDate,
 			EndDate:     course.EndDate,
+			Capacity:    course.Capacity,
 		},
 	}, nil
 }
@@ -54,6 +66,7 @@ func (r *CourseRepository) UpdateCourse(c context.Context, course *values.Course
 			String: course.Description,
 			Valid:  course.Description != "",
 		},
+		Capacity:  course.Capacity,
 		StartDate: course.StartDate,
 		EndDate:   course.EndDate,
 	}
@@ -61,6 +74,10 @@ func (r *CourseRepository) UpdateCourse(c context.Context, course *values.Course
 	row, err := r.Queries.UpdateCourse(c, dbCourseParams)
 
 	if err != nil {
+		// Check if the error is a unique violation (duplicate name)
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
+			return errLib.New("Course name already exists", http.StatusConflict)
+		}
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
@@ -71,17 +88,22 @@ func (r *CourseRepository) UpdateCourse(c context.Context, course *values.Course
 	return nil
 }
 
-func (r *CourseRepository) GetCourses(c context.Context, name, description string) ([]values.CourseAllFields, *errLib.CommonError) {
+func (r *CourseRepository) GetCourses(c context.Context, name, description *string) ([]values.CourseAllFields, *errLib.CommonError) {
 
-	dbParams := db.GetCoursesParams{
-		Name: sql.NullString{
-			String: name,
-			Valid:  name != "",
-		},
-		Description: sql.NullString{
-			String: description,
-			Valid:  description != "",
-		},
+	dbParams := db.GetCoursesParams{}
+
+	if name != nil {
+		dbParams.Name = sql.NullString{
+			String: *name,
+			Valid:  *name != "",
+		}
+	}
+
+	if description != nil {
+		dbParams.Description = sql.NullString{
+			String: *description,
+			Valid:  *description != "",
+		}
 	}
 
 	dbCourses, err := r.Queries.GetCourses(c, dbParams)
@@ -104,6 +126,7 @@ func (r *CourseRepository) GetCourses(c context.Context, name, description strin
 				Description: dbCourse.Description.String,
 				StartDate:   dbCourse.StartDate,
 				EndDate:     dbCourse.EndDate,
+				Capacity:    dbCourse.Capacity,
 			},
 		}
 	}
@@ -125,26 +148,39 @@ func (r *CourseRepository) DeleteCourse(c context.Context, id uuid.UUID) *errLib
 	return nil
 }
 
-func (r *CourseRepository) CreateCourse(c context.Context, course *values.CourseDetails) *errLib.CommonError {
+func (r *CourseRepository) CreateCourse(c context.Context, courseDetails *values.CourseDetails) (*values.CourseAllFields, *errLib.CommonError) {
 
 	dbCourseParams := db.CreateCourseParams{
-		Name: course.Name, Description: sql.NullString{
-			String: course.Description,
-			Valid:  course.Description != "",
+		Name: courseDetails.Name, Description: sql.NullString{
+			String: courseDetails.Description,
+			Valid:  courseDetails.Description != "",
 		},
-		StartDate: course.StartDate,
-		EndDate:   course.EndDate,
+		StartDate: courseDetails.StartDate,
+		EndDate:   courseDetails.EndDate,
+		Capacity:  courseDetails.Capacity,
 	}
 
-	row, err := r.Queries.CreateCourse(c, dbCourseParams)
+	course, err := r.Queries.CreateCourse(c, dbCourseParams)
 
 	if err != nil {
-		return errLib.New("Internal server error", http.StatusInternalServerError)
+		// Check if the error is a unique violation (error code 23505)
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
+			// Return a custom error for unique violation
+			return nil, errLib.New("Course name already exists", http.StatusConflict)
+		}
+
+		// Return a generic internal server error for other cases
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	if row == 0 {
-		return errLib.New("Course not created", http.StatusInternalServerError)
-	}
-
-	return nil
+	return &values.CourseAllFields{
+		ID: course.ID,
+		CourseDetails: values.CourseDetails{
+			Name:        course.Name,
+			Description: course.Description.String,
+			StartDate:   course.StartDate,
+			EndDate:     course.EndDate,
+			Capacity:    course.Capacity,
+		},
+	}, nil
 }

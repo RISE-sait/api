@@ -12,6 +12,7 @@ type CourseRequestDto struct {
 	Description string    `json:"description"`
 	StartDate   time.Time `json:"start_date" validate:"required"`
 	EndDate     time.Time `json:"end_date" validate:"required,gtcsfield=StartDate"`
+	Capacity    int32     `json:"capacity" validate:"required,gt=0"`
 }
 
 func (dto *CourseRequestDto) validate() *errLib.CommonError {
@@ -32,6 +33,7 @@ func (dto *CourseRequestDto) ToCreateValueObjects() (*values.CourseDetails, *err
 		Description: dto.Description,
 		StartDate:   dto.StartDate,
 		EndDate:     dto.EndDate,
+		Capacity:    dto.Capacity,
 	}, nil
 }
 
@@ -54,6 +56,7 @@ func (dto *CourseRequestDto) ToUpdateValueObjects(idStr string) (*values.CourseA
 			Description: dto.Description,
 			StartDate:   dto.StartDate,
 			EndDate:     dto.EndDate,
+			Capacity:    dto.Capacity,
 		},
 	}, nil
 }

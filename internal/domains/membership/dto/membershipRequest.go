@@ -30,8 +30,6 @@ func (dto *MembershipRequestDto) ToMembershipCreateValueObject() (*values.Member
 	return &values.MembershipDetails{
 		Name:        dto.Name,
 		Description: dto.Description,
-		StartDate:   dto.StartDate,
-		EndDate:     dto.EndDate,
 	}, nil
 }
 
@@ -52,8 +50,6 @@ func (dto *MembershipRequestDto) ToMembershipUpdateValueObject(idStr string) (*v
 		MembershipDetails: values.MembershipDetails{
 			Name:        dto.Name,
 			Description: dto.Description,
-			StartDate:   dto.StartDate,
-			EndDate:     dto.EndDate,
 		},
 	}, nil
 }

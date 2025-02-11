@@ -2,8 +2,8 @@ package persistence
 
 import (
 	"api/internal/di"
-	entity "api/internal/domains/customer/entities"
 	db "api/internal/domains/customer/persistence/sqlc/generated"
+	"api/internal/domains/customer/values"
 	errLib "api/internal/libs/errors"
 	"time"
 
@@ -24,129 +24,104 @@ func NewCustomersRepository(container *di.Container) *CustomersRepository {
 	}
 }
 
-// func (r *CustomersRepository) CreateEvent(c context.Context, event *values.EventDetails) *errLib.CommonError {
+func (r *CustomersRepository) GetCustomers(ctx context.Context, eventIdPtr *uuid.UUID) ([]values.CustomerWithDetails, *errLib.CommonError) {
 
-// 	dbParams := db.CreateEventParams{
-// 		BeginTime: event.BeginTime,
-// 		EndTime:   event.EndTime,
-// 		CourseID: uuid.NullUUID{
-// 			UUID:  event.CourseID,
-// 			Valid: event.CourseID != uuid.Nil,
-// 		},
-// 		FacilityID: event.FacilityID,
-// 		Day:        db.DayEnum(event.Day),
-// 	}
+	var eventId uuid.UUID
 
-// 	row, err := r.Queries.CreateEvent(c, dbParams)
+	if eventIdPtr != nil {
+		eventId = *eventIdPtr
+	}
 
-// 	if err != nil {
-// 		log.Printf("Failed to create event: %+v. Error: %v", event, err.Error())
-// 		return errLib.New("Internal server error", http.StatusInternalServerError)
-// 	}
-
-// 	if row == 0 {
-// 		return errLib.New("Course or facility not found", http.StatusNotFound)
-// 	}
-
-// 	return nil
-// }
-
-func (r *CustomersRepository) GetCustomersByEventId(ctx context.Context, id uuid.UUID) ([]entity.Customer, *errLib.CommonError) {
-
-	dbCustomers, err := r.Queries.GetCustomersForEvent(ctx, id)
+	dbCustomersByEvent, err := r.Queries.GetCustomers(ctx, uuid.NullUUID{
+		UUID:  eventId,
+		Valid: eventId != uuid.Nil,
+	})
 
 	if err != nil {
-		log.Println("Failed to get events: ", err.Error())
+		log.Println("Failed to get customers: ", err.Error())
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	customers := make([]entity.Customer, len(dbCustomers))
-	for i, dbCustomer := range dbCustomers {
+	customers := make([]values.CustomerWithDetails, len(dbCustomersByEvent))
 
-		var name *string
+	for i, dbCustomer := range dbCustomersByEvent {
 
-		if dbCustomer.Name.Valid {
-			name = &dbCustomer.Name.String
+		var firstName *string
+		var lastName *string
+
+		var checkedInAt *time.Time
+
+		if dbCustomer.FirstName.Valid {
+			firstName = &dbCustomer.FirstName.String
+			lastName = &dbCustomer.LastName.String
 		}
 
-		membershipRenewalDate := dbCustomer.MembershipRenewalDate.Time
-		var membershipRenewalDatePtr *time.Time
-		if !membershipRenewalDate.IsZero() {
-			membershipRenewalDatePtr = &membershipRenewalDate
+		if dbCustomer.CheckedInAt.Valid {
+			checkedInAt = &dbCustomer.CheckedInAt.Time
 		}
 
-		customers[i] = entity.Customer{
-			CustomerID:            dbCustomer.CustomerID,
-			Name:                  name,
-			Email:                 dbCustomer.Email,
-			MembershipName:        dbCustomer.MembershipName,
-			Attendance:            dbCustomer.Attendance,
-			MembershipRenewalDate: membershipRenewalDatePtr,
+		customerDetails := values.CustomerWithDetails{
+			CustomerInfo: values.Customer{
+				CustomerID: dbCustomer.CustomerID,
+				FirstName:  firstName,
+				LastName:   lastName,
+				Email:      dbCustomer.Email,
+				Phone:      dbCustomer.Phone.String,
+			},
+			// MembershipInfo: values.MembershipInfo{
+			// 	Name: dbCustomer.MembershipName,
+			// 	PlanInfo: values.MembershipPlanInfo{
+			// 		Id:               dbCustomer.MembershipPlanID,
+			// 		StartDate:        dbCustomer.MembershipPlanStartDate.Time.String(),
+			// 		PlanRenewalDate:  dbCustomer.MembershipPlanRenewalDate.Time.String(),
+			// 		Status:           string(dbCustomer.MembershipPlanStatus),
+			// 		Name:             dbCustomer.MembershipPlanName,
+			// 		UpdatedAt:        dbCustomer.MembershipPlanUpdatedAt.Time.String(),
+			// 		PaymentFrequency: string(dbCustomer.MembershipPlanPaymentFrequency.PaymentFrequency),
+			// 		AmtPeriods:       dbCustomer.MembershipPlanAmtPeriods.Int32,
+			// 		Price:            dbCustomer.MembershipPlanPrice,
+			// 	}},
+			EventDetails: values.CustomerEventDetails{
+				CheckedInAt: checkedInAt,
+				IsCancelled: dbCustomer.IsEventBookingCancelled.Bool,
+			},
 		}
+
+		customers[i] = customerDetails
 
 	}
 
 	return customers, nil
 }
 
-// func (r *CustomersRepository) UpdateEvent(c context.Context, event *values.EventAllFields) *errLib.CommonError {
-// 	dbEventParams := db.UpdateEventParams{
-// 		BeginTime: event.BeginTime,
-// 		EndTime:   event.EndTime,
-// 		CourseID: uuid.NullUUID{
-// 			UUID:  event.CourseID,
-// 			Valid: event.CourseID != uuid.Nil,
-// 		},
-// 		FacilityID: event.FacilityID,
-// 		Day:        db.DayEnum(event.Day),
-// 		ID:         event.ID,
-// 	}
+// func (r *CustomersRepository) GetMembershipPlansByCustomer(ctx context.Context, id uuid.UUID) ([]values.MembershipInfo, *errLib.CommonError) {
 
-// 	row, err := r.Queries.UpdateEvent(c, dbEventParams)
+// 	dbMemberships, err := r.Queries.GetMembershipInfoByCustomer(ctx, id)
 
 // 	if err != nil {
-// 		log.Printf("Failed to update event: %+v. Error: %v", event, err.Error())
-// 		return errLib.New("Internal server error", http.StatusInternalServerError)
-// 	}
-
-// 	if row == 0 {
-// 		return errLib.New("Course or facility not found", http.StatusNotFound)
-// 	}
-// 	return nil
-// }
-
-// func (r *CustomersRepository) DeleteEvent(c context.Context, id uuid.UUID) *errLib.CommonError {
-// 	row, err := r.Queries.DeleteEvent(c, id)
-
-// 	if err != nil {
-// 		log.Printf("Failed to delete event with ID: %s. Error: %s", id, err.Error())
-// 		return errLib.New("Internal server error", http.StatusInternalServerError)
-// 	}
-
-// 	if row == 0 {
-// 		return errLib.New("Event not found", http.StatusNotFound)
-// 	}
-
-// 	return nil
-// }
-
-// func (r *CustomersRepository) GetEventDetails(ctx context.Context, id uuid.UUID) (*entity.Event, *errLib.CommonError) {
-
-// 	eventDetails, err := r.Queries.GetEventById(ctx, id)
-
-// 	if err != nil {
-// 		log.Println("Failed to get event details: ", err.Error())
+// 		log.Println("Failed to get membership infos: ", err.Error())
 // 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 // 	}
 
-// 	event := &entity.Event{
-// 		ID:        eventDetails.ID,
-// 		Course:    eventDetails.Course,
-// 		Facility:  eventDetails.Facility,
-// 		BeginTime: eventDetails.BeginTime,
-// 		EndTime:   eventDetails.EndTime,
-// 		Day:       string(eventDetails.Day),
+// 	membershipInfos := make([]values.MembershipInfo, len(dbMemberships))
+// 	for i, dbMembership := range dbMemberships {
+
+// 		membershipInfos[i] = values.MembershipInfo{
+// 			Name: dbMembership.MembershipName,
+// 			PlanInfo: values.MembershipPlanInfo{
+// 				Id:               dbMembership.MembershipPlanID,
+// 				UpdatedAt:        dbMembership.MembershipPlanUpdatedAt.Time.GoString(),
+// 				AmtPeriods:       dbMembership.AmtPeriods.Int32,
+// 				PaymentFrequency: string(dbMembership.PaymentFrequency.PaymentFrequency),
+// 				Price:            dbMembership.Price,
+// 				Name:             dbMembership.MembershipPlanName,
+// 				PlanRenewalDate:  dbMembership.MembershipPlanRenewalDate.Time.GoString(),
+// 				Status:           string(dbMembership.MembershipPlanStatus),
+// 				StartDate:        dbMembership.MembershipPlanStartDate.Time.GoString(),
+// 			},
+// 		}
+
 // 	}
 
-// 	return event, nil
+// 	return membershipInfos, nil
 // }

@@ -3,8 +3,8 @@ package membership
 import (
 	"api/internal/di"
 	dto "api/internal/domains/membership/dto"
-	entity "api/internal/domains/membership/entities"
 	service "api/internal/domains/membership/services"
+	values "api/internal/domains/membership/values/plans"
 
 	response_handlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
@@ -62,7 +62,13 @@ func (c *MembershipPlansController) GetMembershipPlansByMembershipId(w http.Resp
 		return
 	}
 
-	response_handlers.RespondWithSuccess(w, plans, http.StatusOK)
+	responseBody := make([]*dto.MembershipPlanResponse, len(plans))
+
+	for i, plan := range plans {
+		responseBody[i] = MapEntityToResponse(&plan)
+	}
+
+	response_handlers.RespondWithSuccess(w, responseBody, http.StatusOK)
 }
 
 func (c *MembershipPlansController) UpdateMembershipPlan(w http.ResponseWriter, r *http.Request) {
@@ -117,7 +123,7 @@ func (c *MembershipPlansController) DeleteMembershipPlan(w http.ResponseWriter, 
 	response_handlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-func MapEntityToResponse(membership *entity.MembershipPlan) *dto.MembershipPlanResponse {
+func MapEntityToResponse(membership *values.MembershipPlanAllFields) *dto.MembershipPlanResponse {
 	return &dto.MembershipPlanResponse{
 		ID:               membership.ID,
 		Name:             membership.Name,

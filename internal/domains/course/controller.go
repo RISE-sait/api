@@ -1,7 +1,6 @@
 package course
 
 import (
-	"api/internal/di"
 	"api/internal/domains/course/dto"
 	"api/internal/domains/course/values"
 	response_handlers "api/internal/libs/responses"
@@ -15,8 +14,8 @@ type CourseController struct {
 	CourseService *CourseService
 }
 
-func NewCourseController(container *di.Container) *CourseController {
-	return &CourseController{CourseService: NewCourseService(container)}
+func NewCourseController(service *CourseService) *CourseController {
+	return &CourseController{CourseService: service}
 }
 
 func (h *CourseController) CreateCourse(w http.ResponseWriter, r *http.Request) {
@@ -34,12 +33,16 @@ func (h *CourseController) CreateCourse(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := h.CourseService.CreateCourse(r.Context(), courseCreate); err != nil {
+	course, err := h.CourseService.CreateCourse(r.Context(), courseCreate)
+
+	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	response_handlers.RespondWithSuccess(w, nil, http.StatusCreated)
+	responseBody := mapEntityToResponse(course)
+
+	response_handlers.RespondWithSuccess(w, responseBody, http.StatusCreated)
 }
 
 func (h *CourseController) GetCourseById(w http.ResponseWriter, r *http.Request) {
@@ -65,8 +68,18 @@ func (h *CourseController) GetCourseById(w http.ResponseWriter, r *http.Request)
 
 func (h *CourseController) GetCourses(w http.ResponseWriter, r *http.Request) {
 
-	name := r.URL.Query().Get("name")
-	description := r.URL.Query().Get("description")
+	nameStr := r.URL.Query().Get("name")
+	descriptionStr := r.URL.Query().Get("description")
+
+	var name, description *string
+
+	if nameStr != "" {
+		name = &nameStr
+	}
+
+	if descriptionStr != "" {
+		description = &descriptionStr
+	}
 
 	courses, err := h.CourseService.GetCourses(r.Context(), name, description)
 	if err != nil {
@@ -133,5 +146,6 @@ func mapEntityToResponse(course *values.CourseAllFields) dto.CourseResponse {
 		StartDate:   course.StartDate,
 		EndDate:     course.EndDate,
 		Description: course.Description,
+		Capacity:    course.Capacity,
 	}
 }

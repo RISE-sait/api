@@ -10,5 +10,5 @@ type MembershipPlanResponse struct {
 	Name             string    `json:"name"`
 	Price            int64     `json:"price"`
 	PaymentFrequency string    `json:"payment_frequency"`
-	AmtPeriods       int       `json:"amt_periods"`
+	AmtPeriods       *int      `json:"amt_periods,omitempty"`
 }

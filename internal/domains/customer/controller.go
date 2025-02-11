@@ -51,7 +51,7 @@ func (h *CustomersController) GetCustomers(w http.ResponseWriter, r *http.Reques
 
 	eventIdStr := r.URL.Query().Get("event_id")
 
-	var eventId uuid.UUID
+	var eventId *uuid.UUID
 
 	if eventIdStr != "" {
 		id, err := validators.ParseUUID(eventIdStr)
@@ -61,7 +61,7 @@ func (h *CustomersController) GetCustomers(w http.ResponseWriter, r *http.Reques
 			return
 		}
 
-		eventId = id
+		eventId = &id
 	}
 
 	customers, err := h.CustomersService.GetCustomers(r.Context(), eventId)
@@ -75,14 +75,44 @@ func (h *CustomersController) GetCustomers(w http.ResponseWriter, r *http.Reques
 
 	for i, customer := range customers {
 
-		response[i] = dto.CustomerResponse{
-			CustomerID:            customer.CustomerID,
-			Name:                  *customer.Name,
-			Email:                 customer.Email,
-			Membership:            customer.MembershipName,
-			Attendance:            customer.Attendance,
-			MembershipRenewalDate: customer.MembershipRenewalDate.Format(time.RFC3339),
+		customerResponse := dto.CustomerResponse{
+			CustomerInfo: dto.CustomerInfo{
+				CustomerId: customer.CustomerInfo.CustomerID,
+				Email:      customer.CustomerInfo.Email,
+			},
+			// MembershipInfo: dto.CustomerMembershipInfo{
+			// 	Name: customer.MembershipInfo.Name,
+			// 	PlanInfo: &dto.PlanInfo{
+			// 		Id:               customer.MembershipInfo.PlanInfo.Id,
+			// 		Name:             customer.MembershipInfo.PlanInfo.Name,
+			// 		StartDate:        customer.MembershipInfo.PlanInfo.StartDate,
+			// 		UpdatedAt:        customer.MembershipInfo.PlanInfo.UpdatedAt,
+			// 		PaymentFrequency: customer.MembershipInfo.PlanInfo.PaymentFrequency,
+			// 		AmtPeriods:       &customer.MembershipInfo.PlanInfo.AmtPeriods,
+			// 		Price:            customer.MembershipInfo.PlanInfo.Price,
+			// 		RenewalDate:      customer.MembershipInfo.PlanInfo.PlanRenewalDate,
+			// 		Status:           customer.MembershipInfo.PlanInfo.Status,
+			// 	},
+			// },
+			EventDetails: dto.CustomerEventDetails{
+				IsCancelled: customer.EventDetails.IsCancelled,
+			},
 		}
+
+		if customer.CustomerInfo.FirstName != nil {
+			customerResponse.CustomerInfo.FirstName = *customer.CustomerInfo.FirstName
+		}
+
+		if customer.CustomerInfo.LastName != nil {
+			customerResponse.CustomerInfo.LastName = *customer.CustomerInfo.LastName
+		}
+
+		if customer.EventDetails.CheckedInAt != nil {
+			checkedInAt := customer.EventDetails.CheckedInAt.Format(time.RFC3339)
+			customerResponse.EventDetails.CheckedInAt = checkedInAt
+		}
+
+		response[i] = customerResponse
 	}
 
 	response_handlers.RespondWithSuccess(w, response, http.StatusOK)

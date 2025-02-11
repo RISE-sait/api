@@ -2,8 +2,8 @@ package customer
 
 import (
 	"api/internal/di"
-	entity "api/internal/domains/customer/entities"
 	"api/internal/domains/customer/persistence"
+	"api/internal/domains/customer/values"
 	errLib "api/internal/libs/errors"
 	"context"
 
@@ -18,6 +18,6 @@ func NewCustomersService(container *di.Container) *CustomersService {
 	return &CustomersService{Repo: persistence.NewCustomersRepository(container)}
 }
 
-func (s *CustomersService) GetCustomers(ctx context.Context, id uuid.UUID) ([]entity.Customer, *errLib.CommonError) {
-	return s.Repo.GetCustomersByEventId(ctx, id)
+func (s *CustomersService) GetCustomers(ctx context.Context, eventId *uuid.UUID) ([]values.CustomerWithDetails, *errLib.CommonError) {
+	return s.Repo.GetCustomers(ctx, eventId)
 }

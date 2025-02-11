@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -30,8 +31,6 @@ func (r *MembershipsRepository) Create(c context.Context, membership *values.Mem
 			String: membership.Description,
 			Valid:  membership.Description != "",
 		},
-		StartDate: membership.StartDate,
-		EndDate:   membership.EndDate,
 	}
 
 	row, err := r.Queries.CreateMembership(c, dbParams)
@@ -62,8 +61,6 @@ func (r *MembershipsRepository) GetByID(c context.Context, id uuid.UUID) (*value
 		MembershipDetails: values.MembershipDetails{
 			Name:        membership.Name,
 			Description: membership.Description.String,
-			StartDate:   membership.StartDate,
-			EndDate:     membership.EndDate,
 		},
 	}, nil
 }
@@ -72,6 +69,7 @@ func (r *MembershipsRepository) List(c context.Context, after string) ([]values.
 	dbMemberships, err := r.Queries.GetAllMemberships(c)
 
 	if err != nil {
+		log.Println("Failed to get memberships: ", err.Error())
 		return []values.MembershipAllFields{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 	memebrships := make([]values.MembershipAllFields, len(dbMemberships))
@@ -81,8 +79,6 @@ func (r *MembershipsRepository) List(c context.Context, after string) ([]values.
 			MembershipDetails: values.MembershipDetails{
 				Name:        dbCourse.Name,
 				Description: dbCourse.Description.String,
-				StartDate:   dbCourse.StartDate,
-				EndDate:     dbCourse.EndDate,
 			},
 		}
 	}
@@ -99,8 +95,6 @@ func (r *MembershipsRepository) Update(c context.Context, membership *values.Mem
 			String: membership.Description,
 			Valid:  membership.Description != "",
 		},
-		StartDate: membership.StartDate,
-		EndDate:   membership.EndDate,
 	}
 
 	row, err := r.Queries.UpdateMembership(c, dbMembershipParams)

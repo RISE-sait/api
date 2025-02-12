@@ -5,10 +5,12 @@ import (
 )
 
 type EventResponse struct {
-	ID        uuid.UUID `json:"id"`
-	BeginTime string    `json:"begin_time"`
-	EndTime   string    `json:"end_time"`
-	Course    string    `json:"course"`
-	Facility  string    `json:"facility" `
-	Day       string    `json:"day" `
+	ID         uuid.UUID `json:"id"`
+	BeginTime  string    `json:"begin_time"`
+	EndTime    string    `json:"end_time"`
+	Course     string    `json:"course"`
+	CourseID   uuid.UUID `json:"course_id"`
+	Facility   string    `json:"facility" `
+	FacilityID uuid.UUID `json:"facility_id" `
+	Day        string    `json:"day" `
 }

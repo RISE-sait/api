@@ -19,7 +19,7 @@ func NewFacilityService(container *di.Container) *FacilityService {
 	return &FacilityService{Repo: repository.NewFacilityRepository(container)}
 }
 
-func (s *FacilityService) CreateFacility(ctx context.Context, facility *values.FacilityDetails) *errLib.CommonError {
+func (s *FacilityService) CreateFacility(ctx context.Context, facility *values.FacilityDetails) (*entity.Facility, *errLib.CommonError) {
 
 	return s.Repo.CreateFacility(ctx, facility)
 
@@ -35,7 +35,7 @@ func (s *FacilityService) GetFacilities(ctx context.Context, name string) ([]ent
 
 }
 
-func (s *FacilityService) UpdateFacility(ctx context.Context, facility *values.FacilityAllFields) *errLib.CommonError {
+func (s *FacilityService) UpdateFacility(ctx context.Context, facility *entity.Facility) *errLib.CommonError {
 
 	return s.Repo.UpdateFacility(ctx, facility)
 

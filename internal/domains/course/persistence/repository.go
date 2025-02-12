@@ -2,6 +2,7 @@ package course
 
 import (
 	"api/internal/di"
+	entity "api/internal/domains/course/entities"
 	db "api/internal/domains/course/persistence/sqlc/generated"
 	"api/internal/domains/course/values"
 	errLib "api/internal/libs/errors"
@@ -16,10 +17,10 @@ import (
 )
 
 type CourseRepositoryInterface interface {
-	CreateCourse(ctx context.Context, input *values.CourseDetails) (*values.CourseAllFields, *errLib.CommonError)
-	GetCourseById(ctx context.Context, id uuid.UUID) (*values.CourseAllFields, *errLib.CommonError)
-	GetCourses(ctx context.Context, name, description *string) ([]values.CourseAllFields, *errLib.CommonError)
-	UpdateCourse(ctx context.Context, input *values.CourseAllFields) *errLib.CommonError
+	CreateCourse(ctx context.Context, input *values.CourseDetails) (*entity.Course, *errLib.CommonError)
+	GetCourseById(ctx context.Context, id uuid.UUID) (*entity.Course, *errLib.CommonError)
+	GetCourses(ctx context.Context, name, description *string) ([]entity.Course, *errLib.CommonError)
+	UpdateCourse(ctx context.Context, input *entity.Course) *errLib.CommonError
 	DeleteCourse(ctx context.Context, id uuid.UUID) *errLib.CommonError
 }
 
@@ -35,7 +36,7 @@ func NewCourseRepository(container *di.Container) *CourseRepository {
 	}
 }
 
-func (r *CourseRepository) GetCourseById(c context.Context, id uuid.UUID) (*values.CourseAllFields, *errLib.CommonError) {
+func (r *CourseRepository) GetCourseById(c context.Context, id uuid.UUID) (*entity.Course, *errLib.CommonError) {
 	course, err := r.Queries.GetCourseById(c, id)
 
 	if err != nil {
@@ -45,19 +46,14 @@ func (r *CourseRepository) GetCourseById(c context.Context, id uuid.UUID) (*valu
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return &values.CourseAllFields{
-		ID: course.ID,
-		CourseDetails: values.CourseDetails{
-			Name:        course.Name,
-			Description: course.Description.String,
-			StartDate:   course.StartDate,
-			EndDate:     course.EndDate,
-			Capacity:    course.Capacity,
-		},
+	return &entity.Course{
+		ID:          course.ID,
+		Name:        course.Name,
+		Description: course.Description.String,
 	}, nil
 }
 
-func (r *CourseRepository) UpdateCourse(c context.Context, course *values.CourseAllFields) *errLib.CommonError {
+func (r *CourseRepository) UpdateCourse(c context.Context, course *entity.Course) *errLib.CommonError {
 
 	dbCourseParams := db.UpdateCourseParams{
 		ID:   course.ID,
@@ -66,9 +62,6 @@ func (r *CourseRepository) UpdateCourse(c context.Context, course *values.Course
 			String: course.Description,
 			Valid:  course.Description != "",
 		},
-		Capacity:  course.Capacity,
-		StartDate: course.StartDate,
-		EndDate:   course.EndDate,
 	}
 
 	row, err := r.Queries.UpdateCourse(c, dbCourseParams)
@@ -88,7 +81,7 @@ func (r *CourseRepository) UpdateCourse(c context.Context, course *values.Course
 	return nil
 }
 
-func (r *CourseRepository) GetCourses(c context.Context, name, description *string) ([]values.CourseAllFields, *errLib.CommonError) {
+func (r *CourseRepository) GetCourses(c context.Context, name, description *string) ([]entity.Course, *errLib.CommonError) {
 
 	dbParams := db.GetCoursesParams{}
 
@@ -113,21 +106,16 @@ func (r *CourseRepository) GetCourses(c context.Context, name, description *stri
 		log.Println("Error getting courses: ", err)
 		dbErr := errLib.New("Internal server error", http.StatusInternalServerError)
 
-		return []values.CourseAllFields{}, dbErr
+		return []entity.Course{}, dbErr
 	}
 
-	courses := make([]values.CourseAllFields, len(dbCourses))
+	courses := make([]entity.Course, len(dbCourses))
 
 	for i, dbCourse := range dbCourses {
-		courses[i] = values.CourseAllFields{
-			ID: dbCourse.ID,
-			CourseDetails: values.CourseDetails{
-				Name:        dbCourse.Name,
-				Description: dbCourse.Description.String,
-				StartDate:   dbCourse.StartDate,
-				EndDate:     dbCourse.EndDate,
-				Capacity:    dbCourse.Capacity,
-			},
+		courses[i] = entity.Course{
+			ID:          dbCourse.ID,
+			Name:        dbCourse.Name,
+			Description: dbCourse.Description.String,
 		}
 	}
 
@@ -148,16 +136,13 @@ func (r *CourseRepository) DeleteCourse(c context.Context, id uuid.UUID) *errLib
 	return nil
 }
 
-func (r *CourseRepository) CreateCourse(c context.Context, courseDetails *values.CourseDetails) (*values.CourseAllFields, *errLib.CommonError) {
+func (r *CourseRepository) CreateCourse(c context.Context, courseDetails *values.CourseDetails) (*entity.Course, *errLib.CommonError) {
 
 	dbCourseParams := db.CreateCourseParams{
 		Name: courseDetails.Name, Description: sql.NullString{
 			String: courseDetails.Description,
 			Valid:  courseDetails.Description != "",
 		},
-		StartDate: courseDetails.StartDate,
-		EndDate:   courseDetails.EndDate,
-		Capacity:  courseDetails.Capacity,
 	}
 
 	course, err := r.Queries.CreateCourse(c, dbCourseParams)
@@ -173,14 +158,9 @@ func (r *CourseRepository) CreateCourse(c context.Context, courseDetails *values
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return &values.CourseAllFields{
-		ID: course.ID,
-		CourseDetails: values.CourseDetails{
-			Name:        course.Name,
-			Description: course.Description.String,
-			StartDate:   course.StartDate,
-			EndDate:     course.EndDate,
-			Capacity:    course.Capacity,
-		},
+	return &entity.Course{
+		ID:          course.ID,
+		Name:        course.Name,
+		Description: course.Description.String,
 	}, nil
 }

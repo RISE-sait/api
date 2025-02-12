@@ -74,8 +74,11 @@ func (r *EventsRepository) GetEvents(ctx context.Context, fields values.EventDet
 	for i, dbevent := range dbevents {
 
 		events[i] = entity.Event{
-			ID:        dbevent.ID,
-			Course:    dbevent.Course,
+			ID: dbevent.ID,
+			Course: &entity.Course{
+				ID:   dbevent.CourseID,
+				Name: dbevent.Course,
+			},
 			Facility:  dbevent.Facility,
 			BeginTime: dbevent.BeginTime,
 			EndTime:   dbevent.EndTime,
@@ -87,30 +90,39 @@ func (r *EventsRepository) GetEvents(ctx context.Context, fields values.EventDet
 	return events, nil
 }
 
-func (r *EventsRepository) UpdateEvent(c context.Context, event *values.EventAllFields) *errLib.CommonError {
+func (r *EventsRepository) UpdateEvent(c context.Context, event *entity.Event) (*entity.Event, *errLib.CommonError) {
 	dbEventParams := db.UpdateEventParams{
 		BeginTime: event.BeginTime,
 		EndTime:   event.EndTime,
 		CourseID: uuid.NullUUID{
-			UUID:  event.CourseID,
-			Valid: event.CourseID != uuid.Nil,
+			UUID:  event.Course.ID,
+			Valid: event.Course.ID != uuid.Nil,
 		},
 		FacilityID: event.FacilityID,
 		Day:        db.DayEnum(event.Day),
 		ID:         event.ID,
 	}
 
-	row, err := r.Queries.UpdateEvent(c, dbEventParams)
+	dbEvent, err := r.Queries.UpdateEvent(c, dbEventParams)
 
 	if err != nil {
 		log.Printf("Failed to update event: %+v. Error: %v", event, err.Error())
-		return errLib.New("Internal server error", http.StatusInternalServerError)
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	if row == 0 {
-		return errLib.New("Course or facility not found", http.StatusNotFound)
-	}
-	return nil
+	return &entity.Event{
+		ID: dbEvent.ID,
+		Course: &entity.Course{
+			ID:   dbEvent.CourseID.UUID,
+			Name: dbEvent.CourseName,
+		},
+		Facility:   dbEvent.FacilityName,
+		FacilityID: dbEvent.FacilityID,
+		BeginTime:  dbEvent.BeginTime,
+		EndTime:    dbEvent.EndTime,
+		Day:        string(dbEvent.Day),
+	}, nil
+
 }
 
 func (r *EventsRepository) DeleteEvent(c context.Context, id uuid.UUID) *errLib.CommonError {
@@ -139,7 +151,7 @@ func (r *EventsRepository) GetEventDetails(ctx context.Context, id uuid.UUID) (*
 
 	event := &entity.Event{
 		ID:        eventDetails.ID,
-		Course:    eventDetails.Course,
+		Course:    &entity.Course{ID: eventDetails.CourseID, Name: eventDetails.Course},
 		Facility:  eventDetails.Facility,
 		BeginTime: eventDetails.BeginTime,
 		EndTime:   eventDetails.EndTime,

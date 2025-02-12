@@ -4,7 +4,6 @@ import (
 	"api/internal/di"
 	entity "api/internal/domains/facility/entities"
 	repository "api/internal/domains/facility/persistence/repositories"
-	"api/internal/domains/facility/values"
 	errLib "api/internal/libs/errors"
 	"context"
 
@@ -35,7 +34,7 @@ func (s *FacilityTypesService) GetAllFacilityTypes(ctx context.Context) ([]entit
 
 }
 
-func (s *FacilityTypesService) UpdateFacilityType(ctx context.Context, facility *values.FacilityType) *errLib.CommonError {
+func (s *FacilityTypesService) UpdateFacilityType(ctx context.Context, facility *entity.FacilityType) *errLib.CommonError {
 
 	return s.Repo.UpdateFacilityType(ctx, facility)
 

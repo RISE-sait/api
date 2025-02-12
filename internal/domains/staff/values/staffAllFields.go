@@ -4,7 +4,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type FacilityAllFields struct {
+type StaffAllFields struct {
 	ID uuid.UUID
-	FacilityDetails
+	StaffDetails
 }

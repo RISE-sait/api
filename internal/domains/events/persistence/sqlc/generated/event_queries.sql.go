@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -52,7 +53,7 @@ func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) (int64, error) 
 }
 
 const getEventById = `-- name: GetEventById :one
-SELECT e.id, begin_time, end_time, e.day, c.name as course, f.name as facility
+SELECT e.id, begin_time, end_time, e.day, c.id as course_id, c.name as course, f.id as facility_id, f.name as facility
 FROM events e
 JOIN courses c ON c.id = e.course_id
 JOIN facilities f ON f.id = e.facility_id
@@ -60,12 +61,14 @@ WHERE e.id = $1
 `
 
 type GetEventByIdRow struct {
-	ID        uuid.UUID `json:"id"`
-	BeginTime time.Time `json:"begin_time"`
-	EndTime   time.Time `json:"end_time"`
-	Day       DayEnum   `json:"day"`
-	Course    string    `json:"course"`
-	Facility  string    `json:"facility"`
+	ID         uuid.UUID `json:"id"`
+	BeginTime  time.Time `json:"begin_time"`
+	EndTime    time.Time `json:"end_time"`
+	Day        DayEnum   `json:"day"`
+	CourseID   uuid.UUID `json:"course_id"`
+	Course     string    `json:"course"`
+	FacilityID uuid.UUID `json:"facility_id"`
+	Facility   string    `json:"facility"`
 }
 
 func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdRow, error) {
@@ -76,7 +79,9 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdR
 		&i.BeginTime,
 		&i.EndTime,
 		&i.Day,
+		&i.CourseID,
 		&i.Course,
+		&i.FacilityID,
 		&i.Facility,
 	)
 	return i, err
@@ -87,7 +92,9 @@ SELECT e.id,
        begin_time, 
        end_time, 
        e.day, 
+       c.id as course_id,
        c.name as course, 
+         f.id as facility_id,
        f.name as facility
 FROM events e
 JOIN courses c ON c.id = e.course_id
@@ -107,12 +114,14 @@ type GetEventsParams struct {
 }
 
 type GetEventsRow struct {
-	ID        uuid.UUID `json:"id"`
-	BeginTime time.Time `json:"begin_time"`
-	EndTime   time.Time `json:"end_time"`
-	Day       DayEnum   `json:"day"`
-	Course    string    `json:"course"`
-	Facility  string    `json:"facility"`
+	ID         uuid.UUID `json:"id"`
+	BeginTime  time.Time `json:"begin_time"`
+	EndTime    time.Time `json:"end_time"`
+	Day        DayEnum   `json:"day"`
+	CourseID   uuid.UUID `json:"course_id"`
+	Course     string    `json:"course"`
+	FacilityID uuid.UUID `json:"facility_id"`
+	Facility   string    `json:"facility"`
 }
 
 func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEventsRow, error) {
@@ -134,7 +143,9 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 			&i.BeginTime,
 			&i.EndTime,
 			&i.Day,
+			&i.CourseID,
 			&i.Course,
+			&i.FacilityID,
 			&i.Facility,
 		); err != nil {
 			return nil, err
@@ -150,10 +161,17 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 	return items, nil
 }
 
-const updateEvent = `-- name: UpdateEvent :execrows
-UPDATE events e
-SET begin_time = $1, end_time = $2, facility_id = $3, course_id = $4, day = $5
-WHERE e.id = $6
+const updateEvent = `-- name: UpdateEvent :one
+WITH updated AS (
+    UPDATE events e
+    SET begin_time = $1, end_time = $2, facility_id = $3, course_id = $4, day = $5
+    WHERE e.id = $6
+    RETURNING e.id, e.begin_time, e.end_time, e.course_id, e.facility_id, e.created_at, e.updated_at, e.day
+)
+SELECT u.id, u.begin_time, u.end_time, u.course_id, u.facility_id, u.created_at, u.updated_at, u.day, c.name as course_name, f.name as facility_name
+FROM updated u
+JOIN courses c ON c.id = u.course_id
+JOIN facilities f ON f.id = u.facility_id
 `
 
 type UpdateEventParams struct {
@@ -165,8 +183,21 @@ type UpdateEventParams struct {
 	ID         uuid.UUID     `json:"id"`
 }
 
-func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateEvent,
+type UpdateEventRow struct {
+	ID           uuid.UUID     `json:"id"`
+	BeginTime    time.Time     `json:"begin_time"`
+	EndTime      time.Time     `json:"end_time"`
+	CourseID     uuid.NullUUID `json:"course_id"`
+	FacilityID   uuid.UUID     `json:"facility_id"`
+	CreatedAt    sql.NullTime  `json:"created_at"`
+	UpdatedAt    sql.NullTime  `json:"updated_at"`
+	Day          DayEnum       `json:"day"`
+	CourseName   string        `json:"course_name"`
+	FacilityName string        `json:"facility_name"`
+}
+
+func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (UpdateEventRow, error) {
+	row := q.db.QueryRowContext(ctx, updateEvent,
 		arg.BeginTime,
 		arg.EndTime,
 		arg.FacilityID,
@@ -174,8 +205,18 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (int64
 		arg.Day,
 		arg.ID,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
+	var i UpdateEventRow
+	err := row.Scan(
+		&i.ID,
+		&i.BeginTime,
+		&i.EndTime,
+		&i.CourseID,
+		&i.FacilityID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Day,
+		&i.CourseName,
+		&i.FacilityName,
+	)
+	return i, err
 }

@@ -1,6 +1,7 @@
 package dto
 
 import (
+	entity "api/internal/domains/events/entities"
 	"api/internal/domains/events/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
@@ -57,7 +58,7 @@ func (dto *EventRequestDto) ToEventDetails() (*values.EventDetails, *errLib.Comm
 	}, nil
 }
 
-func (dto *EventRequestDto) ToEventAllFields(idStr string) (*values.EventAllFields, *errLib.CommonError) {
+func (dto *EventRequestDto) ToEvent(idStr string) (*entity.Event, *errLib.CommonError) {
 
 	id, err := validators.ParseUUID(idStr)
 
@@ -73,15 +74,11 @@ func (dto *EventRequestDto) ToEventAllFields(idStr string) (*values.EventAllFiel
 		return nil, err
 	}
 
-	return &values.EventAllFields{
-		ID: id,
-		EventDetails: values.EventDetails{
-
-			BeginTime:  beginTime,
-			EndTime:    endTime,
-			CourseID:   dto.CourseID,
-			FacilityID: dto.FacilityID,
-			Day:        dto.Day,
-		},
+	return &entity.Event{
+		ID:         id,
+		BeginTime:  beginTime,
+		EndTime:    endTime,
+		FacilityID: dto.FacilityID,
+		Day:        dto.Day,
 	}, nil
 }

@@ -21,26 +21,35 @@ func NewFacilitiesController(container *di.Container) *FacilitiesController {
 }
 
 func (h *FacilitiesController) CreateFacility(w http.ResponseWriter, r *http.Request) {
-	var dto dto.FacilityRequestDto
+	var requestDto dto.FacilityRequestDto
 
-	if err := validators.ParseJSON(r.Body, &dto); err != nil {
+	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	facilityCreate, err := dto.ToFacilityCreateValueObject()
+	facilityCreate, err := requestDto.ToFacilityCreateValueObject()
 
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	if err := h.Service.CreateFacility(r.Context(), facilityCreate); err != nil {
+	facility, err := h.Service.CreateFacility(r.Context(), facilityCreate)
+
+	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	response_handlers.RespondWithSuccess(w, nil, http.StatusCreated)
+	responseBody := dto.FacilityResponse{
+		ID:           facility.ID,
+		Name:         facility.Name,
+		Location:     facility.Location,
+		FacilityType: facility.FacilityType,
+	}
+
+	response_handlers.RespondWithSuccess(w, responseBody, http.StatusCreated)
 }
 
 func (h *FacilitiesController) GetFacilityById(w http.ResponseWriter, r *http.Request) {

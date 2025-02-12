@@ -7,5 +7,6 @@ import (
 type FacilityDetails struct {
 	Name           string
 	Location       string
+	FacilityType   string
 	FacilityTypeID uuid.UUID
 }

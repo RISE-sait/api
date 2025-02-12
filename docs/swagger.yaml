@@ -1,0 +1,771 @@
+basePath: /api
+definitions:
+  dto.CourseRequestDto:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  dto.CourseResponse:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  dto.LoginCredentialsDto:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dto.StaffRequestDto:
+    properties:
+      created_at:
+        type: string
+      is_active:
+        type: boolean
+      role_id:
+        type: string
+      role_name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dto.StaffResponseDto:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      role_id:
+        type: string
+      role_name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  entities.StaffInfo:
+    properties:
+      isActive:
+        type: boolean
+      role:
+        type: string
+    type: object
+  entities.UserInfo:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      staffInfo:
+        $ref: '#/definitions/entities.StaffInfo'
+    type: object
+  membership.MembershipPlanRequestDto:
+    properties:
+      amt_periods:
+        type: integer
+      membership_id:
+        type: string
+      name:
+        type: string
+      payment_frequency:
+        type: string
+      price:
+        type: integer
+    required:
+    - membership_id
+    - price
+    type: object
+  membership.MembershipPlanResponse:
+    properties:
+      amt_periods:
+        type: integer
+      id:
+        type: string
+      membership_id:
+        type: string
+      name:
+        type: string
+      payment_frequency:
+        type: string
+      price:
+        type: integer
+    type: object
+  membership.MembershipRequestDto:
+    properties:
+      description:
+        example: Access to all premium features
+        type: string
+      name:
+        example: Premium Membership
+        type: string
+    type: object
+  membership.MembershipResponse:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+paths:
+  /api/memberships:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of memberships
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of memberships retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/membership.MembershipResponse'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a list of memberships
+      tags:
+      - memberships
+    post:
+      consumes:
+      - application/json
+      description: Create a new membership
+      parameters:
+      - description: Membership details
+        in: body
+        name: membership
+        required: true
+        schema:
+          $ref: '#/definitions/membership.MembershipRequestDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Membership created successfully
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Create a new membership
+      tags:
+      - memberships
+  /api/memberships/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a membership by ID
+      parameters:
+      - description: Membership ID
+        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Membership deleted successfully'
+        "400":
+          description: 'Bad Request: Invalid ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Membership not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Delete a membership
+      tags:
+      - memberships
+    get:
+      consumes:
+      - application/json
+      description: Get a membership by ID
+      parameters:
+      - description: Membership ID
+        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Membership retrieved successfully
+          schema:
+            $ref: '#/definitions/membership.MembershipResponse'
+        "400":
+          description: 'Bad Request: Invalid ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Membership not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a membership by ID
+      tags:
+      - memberships
+    put:
+      consumes:
+      - application/json
+      description: Update a membership
+      parameters:
+      - description: Membership ID
+        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Membership details
+        in: body
+        name: membership
+        required: true
+        schema:
+          $ref: '#/definitions/membership.MembershipRequestDto'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Membership updated successfully'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Membership not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Update a membership
+      tags:
+      - memberships
+  /api/memberships/{membershipId}/plans:
+    get:
+      consumes:
+      - application/json
+      description: Get membership plans by membership ID
+      parameters:
+      - description: Membership ID
+        in: path
+        name: membershipId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of membership plans retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/membership.MembershipPlanResponse'
+            type: array
+        "400":
+          description: 'Bad Request: Invalid membership ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Membership plans not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get membership plans by membership ID
+      tags:
+      - membership-plans
+    post:
+      consumes:
+      - application/json
+      description: Create a new membership plan
+      parameters:
+      - description: Membership plan details
+        in: body
+        name: plan
+        required: true
+        schema:
+          $ref: '#/definitions/membership.MembershipPlanRequestDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Membership plan created successfully
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Create a new membership plan
+      tags:
+      - membership-plans
+  /api/memberships/{membershipId}/plans/{planId}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a membership plan by ID
+      parameters:
+      - description: Membership ID
+        in: path
+        name: membershipId
+        required: true
+        type: string
+      - description: Plan ID
+        in: path
+        name: planId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Membership plan deleted successfully'
+        "400":
+          description: 'Bad Request: Invalid ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Membership plan not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Delete a membership plan
+      tags:
+      - membership-plans
+    put:
+      consumes:
+      - application/json
+      description: Update a membership plan
+      parameters:
+      - description: Membership ID
+        in: path
+        name: membershipId
+        required: true
+        type: string
+      - description: Plan ID
+        in: path
+        name: planId
+        required: true
+        type: string
+      - description: Membership plan details
+        in: body
+        name: plan
+        required: true
+        schema:
+          $ref: '#/definitions/membership.MembershipPlanRequestDto'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Membership plan updated successfully'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Membership plan not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Update a membership plan
+      tags:
+      - membership-plans
+  /api/staffs:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of staff members
+      parameters:
+      - description: Role ID to filter staff
+        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
+        in: query
+        name: role
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of staff members retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/dto.StaffResponseDto'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a list of staff members
+      tags:
+      - staff
+  /api/staffs/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a staff member by ID
+      parameters:
+      - description: Staff ID
+        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Staff deleted successfully'
+        "400":
+          description: 'Bad Request: Invalid ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Staff not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Delete a staff member
+      tags:
+      - staff
+    put:
+      consumes:
+      - application/json
+      description: Update a staff member
+      parameters:
+      - description: Staff ID
+        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Staff details
+        in: body
+        name: staff
+        required: true
+        schema:
+          $ref: '#/definitions/dto.StaffRequestDto'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Staff updated successfully'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Staff not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Update a staff member
+      tags:
+      - staff
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user using credentials and returns a JWT token
+      parameters:
+      - description: User login credentials
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginCredentialsDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User authenticated successfully
+          schema:
+            $ref: '#/definitions/entities.UserInfo'
+        "400":
+          description: 'Bad Request: Invalid credentials'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Authenticate a user and return a JWT token
+      tags:
+      - authentication
+  /courses:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of courses
+      parameters:
+      - description: Filter by course name
+        in: query
+        name: name
+        type: string
+      - description: Filter by course description
+        in: query
+        name: description
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of courses retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/dto.CourseResponse'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a list of courses
+      tags:
+      - courses
+    post:
+      consumes:
+      - application/json
+      description: Create a new course
+      parameters:
+      - description: Course details
+        in: body
+        name: course
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CourseRequestDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Course created successfully
+          schema:
+            $ref: '#/definitions/dto.CourseResponse'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Create a new course
+      tags:
+      - courses
+  /courses/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a course by ID
+      parameters:
+      - description: Course ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: 'Bad Request: Invalid ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Course not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Delete a course
+      tags:
+      - courses
+    get:
+      consumes:
+      - application/json
+      description: Get a course by ID
+      parameters:
+      - description: Course ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Course retrieved successfully
+          schema:
+            $ref: '#/definitions/dto.CourseResponse'
+        "400":
+          description: 'Bad Request: Invalid ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Course not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a course by ID
+      tags:
+      - courses
+    put:
+      consumes:
+      - application/json
+      description: Update a course
+      parameters:
+      - description: Course ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Course details
+        in: body
+        name: course
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CourseRequestDto'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Course updated successfully'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Course not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Update a course
+      tags:
+      - courses
+securityDefinitions:
+  Bearer:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

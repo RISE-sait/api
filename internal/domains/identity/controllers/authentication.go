@@ -24,6 +24,17 @@ func NewAuthenticationController(container *di.Container) *AuthenticationControl
 	return &AuthenticationController{AuthService: authService}
 }
 
+// Login authenticates a user and returns a JWT token.
+// @Summary Authenticate a user and return a JWT token
+// @Description Authenticates a user using credentials and returns a JWT token
+// @Tags authentication
+// @Accept json
+// @Produce json
+// @Param credentials body dto.LoginCredentialsDto true "User login credentials"
+// @Success 200 {object} entities.UserInfo "User authenticated successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid credentials"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /auth/login [post]
 func (h *AuthenticationController) Login(w http.ResponseWriter, r *http.Request) {
 
 	body, ioErr := io.ReadAll(r.Body)

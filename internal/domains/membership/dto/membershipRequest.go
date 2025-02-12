@@ -4,14 +4,11 @@ import (
 	values "api/internal/domains/membership/values/memberships"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
-	"time"
 )
 
 type MembershipRequestDto struct {
-	Name        string    `json:"name" validate:"notwhitespace"`
-	Description string    `json:"description" validate:"omitempty,notwhitespace"`
-	StartDate   time.Time `json:"start_date" validate:"required"`
-	EndDate     time.Time `json:"end_date" validate:"required,gtcsfield=StartDate"`
+	Name        string `json:"name" validate:"notwhitespace" example:"Premium Membership"`
+	Description string `json:"description" validate:"omitempty,notwhitespace" example:"Access to all premium features"`
 }
 
 func (dto *MembershipRequestDto) validate() *errLib.CommonError {

@@ -1,18 +1,15 @@
 package dto
 
 import (
+	entity "api/internal/domains/course/entities"
 	"api/internal/domains/course/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
-	"time"
 )
 
 type CourseRequestDto struct {
-	Name        string    `json:"name" validate:"notwhitespace"`
-	Description string    `json:"description"`
-	StartDate   time.Time `json:"start_date" validate:"required"`
-	EndDate     time.Time `json:"end_date" validate:"required,gtcsfield=StartDate"`
-	Capacity    int32     `json:"capacity" validate:"required,gt=0"`
+	Name        string `json:"name" validate:"notwhitespace"`
+	Description string `json:"description"`
 }
 
 func (dto *CourseRequestDto) validate() *errLib.CommonError {
@@ -31,13 +28,10 @@ func (dto *CourseRequestDto) ToCreateValueObjects() (*values.CourseDetails, *err
 	return &values.CourseDetails{
 		Name:        dto.Name,
 		Description: dto.Description,
-		StartDate:   dto.StartDate,
-		EndDate:     dto.EndDate,
-		Capacity:    dto.Capacity,
 	}, nil
 }
 
-func (dto *CourseRequestDto) ToUpdateValueObjects(idStr string) (*values.CourseAllFields, *errLib.CommonError) {
+func (dto *CourseRequestDto) ToUpdateValueObjects(idStr string) (*entity.Course, *errLib.CommonError) {
 
 	id, err := validators.ParseUUID(idStr)
 
@@ -49,14 +43,9 @@ func (dto *CourseRequestDto) ToUpdateValueObjects(idStr string) (*values.CourseA
 		return nil, err
 	}
 
-	return &values.CourseAllFields{
-		ID: id,
-		CourseDetails: values.CourseDetails{
-			Name:        dto.Name,
-			Description: dto.Description,
-			StartDate:   dto.StartDate,
-			EndDate:     dto.EndDate,
-			Capacity:    dto.Capacity,
-		},
+	return &entity.Course{
+		ID:          id,
+		Name:        dto.Name,
+		Description: dto.Description,
 	}, nil
 }

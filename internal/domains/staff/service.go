@@ -1,98 +1,71 @@
 package staff
 
-// import (
-// 	"api/internal/di"
-// 	"api/internal/domains/identity/persistence/repository"
-// 	errLib "api/internal/libs/errors"
-// 	"context"
-// 	"database/sql"
-// 	"net/http"
-// 	"strings"
-// )
+import (
+	"api/internal/di"
+	repository "api/internal/domains/staff/persistence"
+	"api/internal/domains/staff/values"
+	errLib "api/internal/libs/errors"
+	"context"
+	"database/sql"
 
-// type StaffService struct {
-// 	UsersRepository        *repository.UserRepository
-// 	UserPasswordRepository *repository.UserCredentialsRepository
-// 	StaffRepository        *repository.StaffRepository
-// 	DB                     *sql.DB
-// }
+	"github.com/google/uuid"
+)
 
-// func NewStaffService(
-// 	container *di.Container,
-// ) *StaffService {
-// 	return &StaffService{
-// 		UsersRepository:        repository.NewUserRepository(container),
-// 		UserPasswordRepository: repository.NewUserCredentialsRepository(container),
-// 		StaffRepository:        repository.NewStaffRepository(container.Queries.IdentityDb),
-// 		DB:                     container.DB,
-// 	}
-// }
+type StaffService struct {
+	StaffRepository *repository.StaffRepository
+	DB              *sql.DB
+}
 
-// func (s *StaffService) CreateAccount(
-// 	ctx context.Context,
-// 	staffCreate *CreateStaffDto,
-// ) *errLib.CommonError {
+func NewStaffService(
+	container *di.Container,
+) *StaffService {
+	return &StaffService{
+		StaffRepository: repository.NewStaffRepository(container),
+		DB:              container.DB,
+	}
+}
 
-// 	// Begin transaction
-// 	tx, txErr := s.DB.BeginTx(ctx, &sql.TxOptions{})
-// 	if txErr != nil {
-// 		return errLib.New("Failed to begin transaction", http.StatusInternalServerError)
-// 	}
+func (s *StaffService) GetStaffs(c context.Context, roleIdPtr *uuid.UUID) ([]values.StaffAllFields, *errLib.CommonError) {
 
-// 	// Ensure rollback if something goes wrong
-// 	defer func() {
-// 		if r := recover(); r != nil {
-// 			tx.Rollback()
-// 		}
-// 	}()
+	staffs, err := s.StaffRepository.List(c, roleIdPtr)
 
-// 	email := staffCreate.Email
+	if err != nil {
+		return nil, err
+	}
 
-// 	// Insert into users table
-// 	if err := s.UsersRepository.CreateUserTx(ctx, tx, email); err != nil {
-// 		tx.Rollback()
-// 		return err
-// 	}
+	return staffs, nil
+}
 
-// 	if err := staffCreate.Validate(); err != nil {
-// 		tx.Rollback()
-// 		return err
-// 	}
+func (s *StaffService) GetByID(c context.Context, id uuid.UUID) (*values.StaffAllFields, *errLib.CommonError) {
 
-// 	role := staffCreate.Role
-// 	isActive := staffCreate.IsActiveStaff
+	// Get the staff details
+	staff, err := s.StaffRepository.GetByID(c, id)
 
-// 	roleExists := false
+	if err != nil {
+		return nil, err
+	}
 
-// 	dbStaffRoles, err := s.StaffRepository.GetStaffRolesTx(ctx, tx)
-// 	staffRoles := []string{}
+	return staff, nil
+}
 
-// 	if err != nil {
-// 		tx.Rollback()
-// 		return err
-// 	}
+func (s *StaffService) DeleteStaff(c context.Context, id uuid.UUID) *errLib.CommonError {
 
-// 	for _, staffRole := range dbStaffRoles {
-// 		staffRoles = append(staffRoles, staffRole.RoleName)
-// 		if staffRole.RoleName == role {
-// 			roleExists = true
-// 		}
-// 	}
+	err := s.StaffRepository.Delete(c, id)
 
-// 	if !roleExists {
-// 		tx.Rollback()
-// 		return errLib.New("Role does not exist. Available roles: "+strings.Join(staffRoles, ", "), http.StatusBadRequest)
-// 	}
+	if err != nil {
+		return err
+	}
 
-// 	if err := s.StaffRepository.CreateStaffTx(ctx, tx, email, role, isActive); err != nil {
-// 		_ = tx.Rollback()
-// 		return err
-// 	}
+	return nil
+}
 
-// 	// Commit the transaction
-// 	if err := tx.Commit(); err != nil {
-// 		return errLib.New("Failed to commit transaction", http.StatusInternalServerError)
-// 	}
+func (s *StaffService) UpdateStaff(c context.Context, input *values.StaffAllFields) (*values.StaffAllFields, *errLib.CommonError) {
 
-// 	return nil
-// }
+	staff, err := s.StaffRepository.Update(c, input)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &staff, nil
+}

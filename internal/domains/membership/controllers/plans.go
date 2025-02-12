@@ -21,6 +21,18 @@ func NewMembershipPlansController(container *di.Container) *MembershipPlansContr
 	return &MembershipPlansController{MembershipPlansService: service.NewMembershipPlansService(container)}
 }
 
+// CreateMembershipPlan creates a new membership plan.
+// @Summary Create a new membership plan
+// @Description Create a new membership plan
+// @Tags membership-plans
+// @Accept json
+// @Produce json
+// @Param plan body dto.MembershipPlanRequestDto true "Membership plan details"
+// @Security Bearer
+// @Success 201 "Membership plan created successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /api/memberships/{membershipId}/plans [post]
 func (c *MembershipPlansController) CreateMembershipPlan(w http.ResponseWriter, r *http.Request) {
 
 	var requestDto dto.MembershipPlanRequestDto
@@ -45,6 +57,18 @@ func (c *MembershipPlansController) CreateMembershipPlan(w http.ResponseWriter, 
 	response_handlers.RespondWithSuccess(w, nil, http.StatusCreated)
 }
 
+// GetMembershipPlansByMembershipId retrieves membership plans by membership ID.
+// @Summary Get membership plans by membership ID
+// @Description Get membership plans by membership ID
+// @Tags membership-plans
+// @Accept json
+// @Produce json
+// @Param membershipId path string true "Membership ID"
+// @Success 200 {array} dto.MembershipPlanResponse "List of membership plans retrieved successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid membership ID"
+// @Failure 404 {object} map[string]interface{} "Not Found: Membership plans not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /api/memberships/{membershipId}/plans [get]
 func (c *MembershipPlansController) GetMembershipPlansByMembershipId(w http.ResponseWriter, r *http.Request) {
 	membershipIDStr := chi.URLParam(r, "membershipId")
 
@@ -71,6 +95,21 @@ func (c *MembershipPlansController) GetMembershipPlansByMembershipId(w http.Resp
 	response_handlers.RespondWithSuccess(w, responseBody, http.StatusOK)
 }
 
+// UpdateMembershipPlan updates an existing membership plan.
+// @Summary Update a membership plan
+// @Description Update a membership plan
+// @Tags membership-plans
+// @Accept json
+// @Produce json
+// @Param membershipId path string true "Membership ID"
+// @Param planId path string true "Plan ID"
+// @Param plan body dto.MembershipPlanRequestDto true "Membership plan details"
+// @Security Bearer
+// @Success 204 "No Content: Membership plan updated successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 404 {object} map[string]interface{} "Not Found: Membership plan not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /api/memberships/{membershipId}/plans/{planId} [put]
 func (c *MembershipPlansController) UpdateMembershipPlan(w http.ResponseWriter, r *http.Request) {
 
 	membershipIdStr := chi.URLParam(r, "membershipId")
@@ -98,6 +137,20 @@ func (c *MembershipPlansController) UpdateMembershipPlan(w http.ResponseWriter, 
 	response_handlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
+// DeleteMembershipPlan deletes a membership plan by ID.
+// @Summary Delete a membership plan
+// @Description Delete a membership plan by ID
+// @Tags membership-plans
+// @Accept json
+// @Produce json
+// @Param membershipId path string true "Membership ID"
+// @Param planId path string true "Plan ID"
+// @Security Bearer
+// @Success 204 "No Content: Membership plan deleted successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
+// @Failure 404 {object} map[string]interface{} "Not Found: Membership plan not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /api/memberships/{membershipId}/plans/{planId} [delete]
 func (c *MembershipPlansController) DeleteMembershipPlan(w http.ResponseWriter, r *http.Request) {
 	membershipIDStr := chi.URLParam(r, "membershipId")
 	planIDStr := chi.URLParam(r, "planId")

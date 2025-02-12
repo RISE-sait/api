@@ -30,7 +30,7 @@ func (s *EventsService) CreateEvent(ctx context.Context, fields *values.EventDet
 	return s.Repo.CreateEvent(ctx, fields)
 }
 
-func (s *EventsService) UpdateEvent(ctx context.Context, fields *values.EventAllFields) *errLib.CommonError {
+func (s *EventsService) UpdateEvent(ctx context.Context, fields *entity.Event) (*entity.Event, *errLib.CommonError) {
 	return s.Repo.UpdateEvent(ctx, fields)
 }
 

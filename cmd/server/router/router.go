@@ -1,9 +1,10 @@
-package routes
+package router
 
 import (
 	"api/internal/di"
 	"api/internal/domains/course"
 	customer "api/internal/domains/customer"
+	"api/internal/domains/staff"
 
 	courseRepo "api/internal/domains/course/persistence"
 	"api/internal/domains/events"
@@ -32,11 +33,12 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 	router.Route("/api", func(r chi.Router) {
 		routes := []RouteConfig{
 			{Path: "/memberships", Configure: RegisterMembershipRoutes(r, container)},
-			{Path: "/identity", Configure: RegisterIdentityRoutes(r, container)},
+			{Path: "/auth", Configure: RegisterAuthRoutes(r, container)},
 			{Path: "/courses", Configure: RegisterCourseRoutes(r, container)},
 			{Path: "/events", Configure: RegisterEventRoutes(r, container)},
 			{Path: "/facilities", Configure: RegisterFacilityRoutes(r, container)},
 			{Path: "/customers", Configure: RegisterCustomerRoutes(r, container)},
+			{Path: "/staffs", Configure: RegisterStaffRoutes(r, container)},
 		}
 
 		for _, route := range routes {
@@ -91,7 +93,7 @@ func RegisterFacilityRoutes(r chi.Router, container *di.Container) func(chi.Rout
 	return func(r chi.Router) {
 		r.Get("/", ctrl.GetFacilities)
 		r.Get("/{id}", ctrl.GetFacilityById)
-		r.With(allowAdminOnly).Post("/", ctrl.CreateFacility)
+		r.Post("/", ctrl.CreateFacility)
 		r.With(allowAdminOnly).Put("/{id}", ctrl.UpdateFacility)
 		r.With(allowAdminOnly).Delete("/{id}", ctrl.DeleteFacility)
 
@@ -105,7 +107,7 @@ func RegisterFacilityTypesRoutes(r chi.Router, container *di.Container) func(chi
 	return func(r chi.Router) {
 		r.Get("/", ctrl.GetAllFacilityTypes)
 		r.Get("/{id}", ctrl.GetFacilityTypeById)
-		r.With(allowAdminOnly).Post("/", ctrl.CreateFacilityType)
+		r.Post("/", ctrl.CreateFacilityType)
 		r.With(allowAdminOnly).Put("/{id}", ctrl.UpdateFacilityType)
 		r.With(allowAdminOnly).Delete("/{id}", ctrl.DeleteFacilityType)
 	}
@@ -120,7 +122,7 @@ func RegisterCourseRoutes(r chi.Router, container *di.Container) func(chi.Router
 	return func(r chi.Router) {
 		r.Get("/", ctrl.GetCourses)
 		r.Get("/{id}", ctrl.GetCourseById)
-		r.With(allowAdminOnly).Post("/", ctrl.CreateCourse)
+		r.Post("/", ctrl.CreateCourse)
 		r.With(allowAdminOnly).Put("/{id}", ctrl.UpdateCourse)
 		r.With(allowAdminOnly).Delete("/{id}", ctrl.DeleteCourse)
 	}
@@ -138,11 +140,32 @@ func RegisterEventRoutes(r chi.Router, container *di.Container) func(chi.Router)
 	}
 }
 
-func RegisterIdentityRoutes(r chi.Router, container *di.Container) func(chi.Router) {
+func RegisterStaffRoutes(r chi.Router, container *di.Container) func(chi.Router) {
+	ctrl := staff.NewStaffController(container)
+
+	return func(r chi.Router) {
+		r.Get("/", ctrl.GetStaffs)
+
+		r.With(allowAdminOnly).Put("/{id}", ctrl.UpdateStaff)
+		r.With(allowAdminOnly).Delete("/{id}", ctrl.DeleteStaff)
+	}
+}
+
+func RegisterAuthRoutes(r chi.Router, container *di.Container) func(chi.Router) {
 
 	authController := identity.NewAuthenticationController(container)
-
+	tokenValidationCtrl := identity.NewTokenValidationController(container)
 	OauthController := identity.NewOauthController(container)
+
+	return func(r chi.Router) {
+		r.Post("/login", authController.Login)
+
+		r.Post("/oauth/google", OauthController.HandleOAuthCallback)
+		r.Get("/validate-jwt", tokenValidationCtrl.ValidateToken)
+	}
+}
+
+func RegisterIdentityRoutes(r chi.Router, container *di.Container) func(chi.Router) {
 
 	customerRegistrationCtrl := identity.NewCustomerRegistrationController(container)
 
@@ -150,15 +173,7 @@ func RegisterIdentityRoutes(r chi.Router, container *di.Container) func(chi.Rout
 
 	confirmChildCtrl := identity.NewChildAccountConfirmationController(container)
 
-	tokenValidationCtrl := identity.NewTokenValidationController(container)
-
 	return func(r chi.Router) {
-
-		r.Route("/auth", func(auth chi.Router) {
-			auth.Post("/traditional", authController.Login)
-			auth.Post("/oauth/google", OauthController.HandleOAuthCallback)
-			auth.Get("/check", tokenValidationCtrl.ValidateToken)
-		})
 
 		r.Route("/register", func(registration chi.Router) {
 			registration.Post("/", customerRegistrationCtrl.CreateCustomer)

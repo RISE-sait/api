@@ -17,8 +17,18 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	_ "github.com/lib/pq"
+
+	_ "api/docs"
+
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
+// @host localhost:8080
+// @BasePath /api
+
+// @SecurityDefinitions.apiKey Bearer
+// @in header
+// @name Authorization
 func main() {
 
 	diContainer := di.NewContainer()
@@ -62,6 +72,8 @@ func setupServer(container *di.Container) http.Handler {
 			"version": "1.0.0",
 		})
 	})
+
+	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	routes.RegisterRoutes(r, container)
 	return r

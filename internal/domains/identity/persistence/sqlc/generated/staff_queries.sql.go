@@ -31,7 +31,7 @@ func (q *Queries) CreateStaff(ctx context.Context, arg CreateStaffParams) (int64
 }
 
 const getStaffByEmail = `-- name: GetStaffByEmail :one
-SELECT oi.name, u.email, s.is_active, s.created_at, s.updated_at, sr.role_name FROM staff s
+SELECT oi.first_name, oi.last_name, u.email, s.is_active, s.created_at, s.updated_at, sr.role_name FROM staff s
 JOIN users u ON s.id = u.id
 JOIN user_optional_info oi ON oi.id = u.id
 JOIN staff_roles sr ON s.role_id = sr.id
@@ -39,7 +39,8 @@ WHERE u.email = $1
 `
 
 type GetStaffByEmailRow struct {
-	Name      sql.NullString `json:"name"`
+	FirstName sql.NullString `json:"first_name"`
+	LastName  sql.NullString `json:"last_name"`
 	Email     string         `json:"email"`
 	IsActive  bool           `json:"is_active"`
 	CreatedAt time.Time      `json:"created_at"`
@@ -51,7 +52,8 @@ func (q *Queries) GetStaffByEmail(ctx context.Context, email string) (GetStaffBy
 	row := q.db.QueryRowContext(ctx, getStaffByEmail, email)
 	var i GetStaffByEmailRow
 	err := row.Scan(
-		&i.Name,
+		&i.FirstName,
+		&i.LastName,
 		&i.Email,
 		&i.IsActive,
 		&i.CreatedAt,

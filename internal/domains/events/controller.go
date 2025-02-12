@@ -139,19 +139,23 @@ func (c *EventsController) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	params, err := (&targetBody).ToEventAllFields(idStr)
+	params, err := (&targetBody).ToEvent(idStr)
 
 	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	if err := c.Service.UpdateEvent(r.Context(), params); err != nil {
+	event, err := c.Service.UpdateEvent(r.Context(), params)
+
+	if err != nil {
 		response_handlers.RespondWithError(w, err)
 		return
 	}
 
-	response_handlers.RespondWithSuccess(w, nil, http.StatusNoContent)
+	responseBody := mapEntityToResponse(event)
+
+	response_handlers.RespondWithSuccess(w, responseBody, http.StatusNoContent)
 }
 
 func (c *EventsController) DeleteEvent(w http.ResponseWriter, r *http.Request) {
@@ -202,11 +206,13 @@ func (c *EventsController) GetEventDetails(w http.ResponseWriter, r *http.Reques
 func mapEntityToResponse(event *entity.Event) dto.EventResponse {
 
 	return dto.EventResponse{
-		ID:        event.ID,
-		BeginTime: event.BeginTime.Format("15:04"), // Convert to "HH:MM:SS"
-		EndTime:   event.EndTime.Format("15:04"),
-		Course:    event.Course,
-		Facility:  event.Facility,
-		Day:       event.Day,
+		ID:         event.ID,
+		BeginTime:  event.BeginTime.Format("15:04"), // Convert to "HH:MM:SS"
+		EndTime:    event.EndTime.Format("15:04"),
+		Course:     event.Course.Name,
+		CourseID:   event.Course.ID,
+		Facility:   event.Facility,
+		FacilityID: event.FacilityID,
+		Day:        event.Day,
 	}
 }

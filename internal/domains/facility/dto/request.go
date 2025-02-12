@@ -1,6 +1,7 @@
 package dto
 
 import (
+	entity "api/internal/domains/facility/entities"
 	"api/internal/domains/facility/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
@@ -33,7 +34,7 @@ func (dto *FacilityRequestDto) ToFacilityCreateValueObject() (*values.FacilityDe
 
 // ToFacilityUpdateValueObject converts the FacilityRequestDto into a FacilityUpdate value object.
 // It parses and validates the provided ID string and ensures the DTO passes validation before conversion.
-func (dto FacilityRequestDto) ToFacilityUpdateValueObject(idStr string) (*values.FacilityAllFields, *errLib.CommonError) {
+func (dto FacilityRequestDto) ToFacilityUpdateValueObject(idStr string) (*entity.Facility, *errLib.CommonError) {
 
 	id, err := validators.ParseUUID(idStr)
 
@@ -44,7 +45,7 @@ func (dto FacilityRequestDto) ToFacilityUpdateValueObject(idStr string) (*values
 	if err := validators.ValidateDto(&dto); err != nil {
 		return nil, err
 	}
-	return &values.FacilityAllFields{
+	return &entity.Facility{
 		ID: id,
 		FacilityDetails: values.FacilityDetails{
 			Name:           dto.Name,
@@ -58,7 +59,7 @@ type FacilityTypeRequestDto struct {
 	Name string `json:"name" validate:"notwhitespace"`
 }
 
-func (dto FacilityTypeRequestDto) ToFacilityTypeUpdateValueObject(idStr string) (*values.FacilityType, *errLib.CommonError) {
+func (dto FacilityTypeRequestDto) ToFacilityTypeUpdateValueObject(idStr string) (*entity.FacilityType, *errLib.CommonError) {
 
 	id, err := validators.ParseUUID(idStr)
 
@@ -69,7 +70,7 @@ func (dto FacilityTypeRequestDto) ToFacilityTypeUpdateValueObject(idStr string) 
 	if err := validators.ValidateDto(&dto); err != nil {
 		return nil, err
 	}
-	return &values.FacilityType{
+	return &entity.FacilityType{
 		ID:   id,
 		Name: dto.Name,
 	}, nil

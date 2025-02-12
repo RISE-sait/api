@@ -5,7 +5,6 @@ import (
 	"api/internal/di"
 	entity "api/internal/domains/facility/entities"
 	db "api/internal/domains/facility/persistence/sqlc/generated"
-	"api/internal/domains/facility/values"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
@@ -83,7 +82,7 @@ func (r *FacilityTypesRepository) GetAllFacilityTypes(c context.Context, filter 
 	return facilityTypes, nil
 }
 
-func (r *FacilityTypesRepository) UpdateFacilityType(c context.Context, facilityType *values.FacilityType) *errLib.CommonError {
+func (r *FacilityTypesRepository) UpdateFacilityType(c context.Context, facilityType *entity.FacilityType) *errLib.CommonError {
 
 	dbParams := db.UpdateFacilityTypeParams{
 		ID:   facilityType.ID,

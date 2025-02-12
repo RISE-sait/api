@@ -27,7 +27,7 @@ func NewFacilityRepository(container *di.Container) *FacilityRepository {
 	}
 }
 
-func (r *FacilityRepository) CreateFacility(c context.Context, facility *values.FacilityDetails) *errLib.CommonError {
+func (r *FacilityRepository) CreateFacility(c context.Context, facility *values.FacilityDetails) (*entity.Facility, *errLib.CommonError) {
 
 	dbParams := db.CreateFacilityParams{
 		Name:           facility.Name,
@@ -35,7 +35,7 @@ func (r *FacilityRepository) CreateFacility(c context.Context, facility *values.
 		FacilityTypeID: facility.FacilityTypeID,
 	}
 
-	row, err := r.Queries.CreateFacility(c, dbParams)
+	dbFacility, err := r.Queries.CreateFacility(c, dbParams)
 
 	if err != nil {
 		var pqErr *pq.Error
@@ -43,19 +43,24 @@ func (r *FacilityRepository) CreateFacility(c context.Context, facility *values.
 			// Handle specific Postgres errors
 			switch pqErr.Code {
 			case database_errors.ForeignKeyViolation:
-				return errLib.New("Invalid facility type ID", http.StatusBadRequest)
+				return nil, errLib.New("Invalid facility type ID", http.StatusBadRequest)
 			case database_errors.UniqueViolation:
-				return errLib.New("Facility with the given name already exists", http.StatusConflict)
+				return nil, errLib.New("Facility with the given name already exists", http.StatusConflict)
 			}
 		}
 		log.Printf("Error creating facility: %v", err)
-		return errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-	if row == 0 {
-		return errLib.New("Facility not created", http.StatusInternalServerError)
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return nil
+	return &entity.Facility{
+		ID: dbFacility.ID,
+		FacilityDetails: values.FacilityDetails{
+			Name:           dbFacility.Name,
+			Location:       dbFacility.Location,
+			FacilityType:   dbFacility.FacilityTypeName,
+			FacilityTypeID: dbFacility.FacilityTypeID,
+		},
+	}, nil
 }
 
 func (r *FacilityRepository) GetFacility(c context.Context, id uuid.UUID) (*entity.Facility, *errLib.CommonError) {
@@ -70,11 +75,13 @@ func (r *FacilityRepository) GetFacility(c context.Context, id uuid.UUID) (*enti
 	}
 
 	return &entity.Facility{
-		ID:             facility.ID,
-		Name:           facility.Name,
-		Location:       facility.Location,
-		FacilityType:   facility.FacilityType,
-		FacilityTypeID: &uuid.Nil,
+		ID: facility.ID,
+		FacilityDetails: values.FacilityDetails{
+			Name:           facility.Name,
+			Location:       facility.Location,
+			FacilityType:   facility.FacilityType,
+			FacilityTypeID: facility.FacilityTypeID,
+		},
 	}, nil
 }
 
@@ -89,18 +96,20 @@ func (r *FacilityRepository) GetFacilities(c context.Context, name string) ([]en
 	courses := make([]entity.Facility, len(dbFacilities))
 	for i, dbFacility := range dbFacilities {
 		courses[i] = entity.Facility{
-			ID:             dbFacility.ID,
-			Name:           dbFacility.Name,
-			Location:       dbFacility.Location,
-			FacilityType:   dbFacility.FacilityType,
-			FacilityTypeID: &uuid.Nil,
+			ID: dbFacility.ID,
+			FacilityDetails: values.FacilityDetails{
+				Name:           dbFacility.Name,
+				Location:       dbFacility.Location,
+				FacilityType:   dbFacility.FacilityType,
+				FacilityTypeID: dbFacility.FacilityTypeID,
+			},
 		}
 	}
 
 	return courses, nil
 }
 
-func (r *FacilityRepository) UpdateFacility(c context.Context, facility *values.FacilityAllFields) *errLib.CommonError {
+func (r *FacilityRepository) UpdateFacility(c context.Context, facility *entity.Facility) *errLib.CommonError {
 
 	dbParams := db.UpdateFacilityParams{
 		ID:             facility.ID,

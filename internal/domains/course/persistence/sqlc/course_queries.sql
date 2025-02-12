@@ -1,6 +1,6 @@
 -- name: CreateCourse :one
-INSERT INTO courses (name, description, start_date, end_date)
-VALUES ($1, $2, $3, $4)
+INSERT INTO courses (name, description)
+VALUES ($1, $2)
 RETURNING *;
 
 -- name: GetCourseById :one
@@ -13,8 +13,8 @@ AND (description ILIKE '%' || sqlc.narg('description') || '%' OR sqlc.narg('desc
 
 -- name: UpdateCourse :execrows
 UPDATE courses
-SET name = $1, description = $2, start_date = $3, end_date = $4
-WHERE id = $5;
+SET name = $1, description = $2
+WHERE id = $3;
 
 -- name: DeleteCourse :execrows
 DELETE FROM courses WHERE id = $1;

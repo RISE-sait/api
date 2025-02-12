@@ -28,7 +28,7 @@ func (q *Queries) CreatePassword(ctx context.Context, arg CreatePasswordParams) 
 }
 
 const getUserByEmailPassword = `-- name: GetUserByEmailPassword :one
-SELECT id, name, hashed_password FROM user_optional_info WHERE id = (SELECT id FROM users WHERE email = $1) and hashed_password = $2
+SELECT id, first_name, last_name, phone, hashed_password FROM user_optional_info WHERE id = (SELECT id FROM users WHERE email = $1) and hashed_password = $2
 `
 
 type GetUserByEmailPasswordParams struct {
@@ -39,6 +39,12 @@ type GetUserByEmailPasswordParams struct {
 func (q *Queries) GetUserByEmailPassword(ctx context.Context, arg GetUserByEmailPasswordParams) (UserOptionalInfo, error) {
 	row := q.db.QueryRowContext(ctx, getUserByEmailPassword, arg.Email, arg.HashedPassword)
 	var i UserOptionalInfo
-	err := row.Scan(&i.ID, &i.Name, &i.HashedPassword)
+	err := row.Scan(
+		&i.ID,
+		&i.FirstName,
+		&i.LastName,
+		&i.Phone,
+		&i.HashedPassword,
+	)
 	return i, err
 }

@@ -25,15 +25,25 @@ func (dto *CreatePendingChildAccountDto) ToValueObjects() (*values.CreatePending
 	}
 
 	pendingChildAccountCreateVo := values.CreatePendingChildAccountValueObject{
-		RegisterCredentials: values.RegisterCredentials{
-			Email: dto.Child.Email,
+		CustomerRegistrationInfo: values.CustomerRegistrationInfo{
+			UserInfo: values.UserInfo{
+				Email: dto.Child.Email,
+			},
 		},
 		ParentEmail: dto.ParentEmail,
 		Waivers:     childVo.Waivers,
 	}
 
-	if *childVo.Password != "" {
-		pendingChildAccountCreateVo.RegisterCredentials.Password = childVo.Password
+	if dto.Child.FirstName != "" {
+		pendingChildAccountCreateVo.FirstName = &dto.Child.FirstName
+	}
+
+	if dto.Child.LastName != "" {
+		pendingChildAccountCreateVo.LastName = &dto.Child.LastName
+	}
+
+	if *(childVo.Password) != "" {
+		pendingChildAccountCreateVo.Password = childVo.Password
 	}
 
 	return &pendingChildAccountCreateVo, nil

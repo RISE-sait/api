@@ -3,7 +3,7 @@ package repository
 import (
 	database_errors "api/internal/constants"
 	"api/internal/di"
-	"api/internal/domains/identity/entities"
+	entity "api/internal/domains/identity/entities"
 	db "api/internal/domains/identity/persistence/sqlc/generated"
 	errLib "api/internal/libs/errors"
 	"context"
@@ -25,25 +25,25 @@ func NewPendingChildAccountWaiverSigningRepository(container *di.Container) *Pen
 	}
 }
 
-func (r *PendingChildAccountWaiverSigningRepository) GetWaiverSignings(ctx context.Context, email string) ([]entities.PendingAccountsWaiverSigning, *errLib.CommonError) {
+func (r *PendingChildAccountWaiverSigningRepository) GetWaiverSignings(ctx context.Context, email string) ([]entity.PendingAccountsWaiverSigning, *errLib.CommonError) {
 
 	// Insert the waiver record
 	waiverSignings, err := r.Queries.GetPendingChildAccountWaiverSigning(ctx, email)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return []entities.PendingAccountsWaiverSigning{}, errLib.New("Waivers with associated email not found", http.StatusNotFound)
+			return []entity.PendingAccountsWaiverSigning{}, errLib.New("Waivers with associated email not found", http.StatusNotFound)
 		}
 
 		// Log and handle any other database error
 		log.Printf("Unhandled database error: %v", err)
-		return []entities.PendingAccountsWaiverSigning{}, errLib.New("Internal server error", http.StatusInternalServerError)
+		return []entity.PendingAccountsWaiverSigning{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	results := make([]entities.PendingAccountsWaiverSigning, 0, len(waiverSignings))
+	results := make([]entity.PendingAccountsWaiverSigning, 0, len(waiverSignings))
 
 	for _, waiverSigning := range waiverSignings {
-		results = append(results, entities.PendingAccountsWaiverSigning{
+		results = append(results, entity.PendingAccountsWaiverSigning{
 			UserID:    waiverSigning.UserID,
 			WaiverID:  waiverSigning.WaiverID,
 			IsSigned:  waiverSigning.IsSigned,
@@ -114,7 +114,7 @@ func (r *PendingChildAccountWaiverSigningRepository) CreateWaiverSigningRecordTx
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	if rows != 1 {
+	if rows == 0 {
 		return errLib.New("Failed to create waiver signing record", http.StatusInternalServerError)
 	}
 

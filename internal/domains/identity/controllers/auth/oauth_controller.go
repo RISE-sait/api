@@ -1,10 +1,10 @@
-package identity
+package auth
 
 import (
 	"api/internal/di"
-	"api/internal/domains/identity/entities"
 	"time"
 
+	entity "api/internal/domains/identity/entities"
 	service "api/internal/domains/identity/services"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/jwt"
@@ -54,7 +54,7 @@ func (h *OauthController) HandleOAuthCallback(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	var userInfo *entities.UserInfo
+	var userInfo *entity.UserInfo
 
 	if err := validators.ParseJSON(userInfoRespBody, &userInfo); err != nil {
 		log.Println("Error getting user info", err)
@@ -76,7 +76,7 @@ func (h *OauthController) HandleOAuthCallback(w http.ResponseWriter, r *http.Req
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     "jwtToken",
+		Name:     "access_token",
 		Value:    signedToken,
 		Path:     "/",
 		HttpOnly: true, // Prevent JavaScript access

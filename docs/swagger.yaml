@@ -16,6 +16,45 @@ definitions:
       name:
         type: string
     type: object
+  dto.CreatePendingChildAccountDto:
+    properties:
+      child:
+        $ref: '#/definitions/dto.CustomerRegistrationDto'
+      parent_email:
+        type: string
+    required:
+    - child
+    - parent_email
+    type: object
+  dto.CustomerRegistrationDto:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      password:
+        minLength: 8
+        type: string
+      waivers:
+        items:
+          $ref: '#/definitions/dto.CustomerWaiverSigningDto'
+        type: array
+    required:
+    - email
+    - first_name
+    - last_name
+    type: object
+  dto.CustomerWaiverSigningDto:
+    properties:
+      is_waiver_signed:
+        type: boolean
+      waiver_url:
+        type: string
+    required:
+    - waiver_url
+    type: object
   dto.LoginCredentialsDto:
     properties:
       email:
@@ -26,6 +65,25 @@ definitions:
     required:
     - email
     - password
+    type: object
+  dto.StaffRegistrationDto:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      is_active:
+        type: boolean
+      last_name:
+        type: string
+      role_name:
+        type: string
+    required:
+    - email
+    - first_name
+    - is_active
+    - last_name
+    - role_name
     type: object
   dto.StaffRequestDto:
     properties:
@@ -55,21 +113,23 @@ definitions:
       updated_at:
         type: string
     type: object
-  entities.StaffInfo:
+  entity.StaffInfo:
     properties:
       isActive:
         type: boolean
       role:
         type: string
     type: object
-  entities.UserInfo:
+  entity.UserInfo:
     properties:
       email:
         type: string
-      name:
+      firstName:
+        type: string
+      lastName:
         type: string
       staffInfo:
-        $ref: '#/definitions/entities.StaffInfo'
+        $ref: '#/definitions/entity.StaffInfo'
     type: object
   membership.MembershipPlanRequestDto:
     properties:
@@ -573,7 +633,7 @@ paths:
         "200":
           description: User authenticated successfully
           schema:
-            $ref: '#/definitions/entities.UserInfo'
+            $ref: '#/definitions/entity.UserInfo'
         "400":
           description: 'Bad Request: Invalid credentials'
           schema:
@@ -763,6 +823,106 @@ paths:
       summary: Update a course
       tags:
       - courses
+  /register/child/pending:
+    post:
+      consumes:
+      - application/json
+      description: Registers a child account that requires parental confirmation before
+        activation
+      parameters:
+      - description: Pending child account details
+        in: body
+        name: child
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreatePendingChildAccountDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Child account request created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a pending child account
+      tags:
+      - registration
+  /register/customer:
+    post:
+      consumes:
+      - application/json
+      description: Registers a new customer with provided details and creates JWT
+        authentication token
+      parameters:
+      - description: Customer registration details
+        in: body
+        name: customer
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CustomerRegistrationDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Customer registered successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new customer account
+      tags:
+      - registration
+  /register/staff:
+    post:
+      consumes:
+      - application/json
+      description: Registers a new staff member with the provided details
+      parameters:
+      - description: Staff registration details
+        in: body
+        name: staff
+        required: true
+        schema:
+          $ref: '#/definitions/dto.StaffRegistrationDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Staff registered successfully
+          schema:
+            $ref: '#/definitions/dto.StaffRegistrationDto'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new staff member account
+      tags:
+      - registration
 securityDefinitions:
   Bearer:
     in: header

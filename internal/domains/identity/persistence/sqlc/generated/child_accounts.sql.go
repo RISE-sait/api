@@ -10,22 +10,39 @@ import (
 	"database/sql"
 )
 
-const createPendingChildAccount = `-- name: CreatePendingChildAccount :execrows
-INSERT INTO pending_child_accounts (user_email, parent_email, password ) VALUES ($1, $2, $3)
+const createPendingChildAccount = `-- name: CreatePendingChildAccount :one
+INSERT INTO pending_child_accounts (user_email, parent_email, first_name, last_name, password ) 
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, parent_email, user_email, password, created_at, first_name, last_name
 `
 
 type CreatePendingChildAccountParams struct {
 	UserEmail   string         `json:"user_email"`
 	ParentEmail string         `json:"parent_email"`
+	FirstName   sql.NullString `json:"first_name"`
+	LastName    sql.NullString `json:"last_name"`
 	Password    sql.NullString `json:"password"`
 }
 
-func (q *Queries) CreatePendingChildAccount(ctx context.Context, arg CreatePendingChildAccountParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, createPendingChildAccount, arg.UserEmail, arg.ParentEmail, arg.Password)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
+func (q *Queries) CreatePendingChildAccount(ctx context.Context, arg CreatePendingChildAccountParams) (PendingChildAccount, error) {
+	row := q.db.QueryRowContext(ctx, createPendingChildAccount,
+		arg.UserEmail,
+		arg.ParentEmail,
+		arg.FirstName,
+		arg.LastName,
+		arg.Password,
+	)
+	var i PendingChildAccount
+	err := row.Scan(
+		&i.ID,
+		&i.ParentEmail,
+		&i.UserEmail,
+		&i.Password,
+		&i.CreatedAt,
+		&i.FirstName,
+		&i.LastName,
+	)
+	return i, err
 }
 
 const deletePendingChildAccount = `-- name: DeletePendingChildAccount :execrows
@@ -41,7 +58,7 @@ func (q *Queries) DeletePendingChildAccount(ctx context.Context, userEmail strin
 }
 
 const getPendingChildAccountByChildEmail = `-- name: GetPendingChildAccountByChildEmail :one
-SELECT id, parent_email, user_email, password, created_at from pending_child_accounts WHERE user_email = $1
+SELECT id, parent_email, user_email, password, created_at, first_name, last_name from pending_child_accounts WHERE user_email = $1
 `
 
 func (q *Queries) GetPendingChildAccountByChildEmail(ctx context.Context, userEmail string) (PendingChildAccount, error) {
@@ -53,6 +70,8 @@ func (q *Queries) GetPendingChildAccountByChildEmail(ctx context.Context, userEm
 		&i.UserEmail,
 		&i.Password,
 		&i.CreatedAt,
+		&i.FirstName,
+		&i.LastName,
 	)
 	return i, err
 }

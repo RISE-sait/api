@@ -3,8 +3,8 @@ package identity
 import (
 	"api/internal/di"
 	identity "api/internal/domains/identity/persistence/repository"
+	"api/internal/domains/identity/values"
 	"fmt"
-	"strings"
 
 	errLib "api/internal/libs/errors"
 	"api/internal/services/hubspot"
@@ -14,26 +14,22 @@ import (
 )
 
 type ConfirmChildService struct {
-	UsersRepository                                *identity.UserRepository
-	CredentialsRepository                          *identity.UserCredentialsRepository
-	WaiverRepository                               *identity.WaiverSigningRepository
 	PendingChildrenAccountWaiversSigningRepository *identity.PendingChildAccountWaiverSigningRepository
 	PendingChildAccountRepository                  *identity.PendingChildAccountRepository
 	DB                                             *sql.DB
 	HubspotService                                 *hubspot.HubSpotService
+	CustomerRegistrationService                    *CustomerRegistrationService
 }
 
 func NewConfirmChildService(
 	container *di.Container,
 ) *ConfirmChildService {
 	return &ConfirmChildService{
-		UsersRepository:               identity.NewUserRepository(container),
-		PendingChildAccountRepository: identity.NewPendingChildAcountRepository(container),
-		DB:                            container.DB,
-		HubspotService:                container.HubspotService,
-		CredentialsRepository:         identity.NewUserCredentialsRepository(container),
-		WaiverRepository:              identity.NewWaiverSigningRepository(container),
 		PendingChildrenAccountWaiversSigningRepository: identity.NewPendingChildAccountWaiverSigningRepository(container),
+		CustomerRegistrationService:                    NewCustomerRegistrationService(container),
+		PendingChildAccountRepository:                  identity.NewPendingChildAcountRepository(container),
+		DB:                                             container.DB,
+		HubspotService:                                 container.HubspotService,
 	}
 }
 
@@ -49,42 +45,45 @@ func (s *ConfirmChildService) ConfirmChild(
 
 	// create accounts
 
-	child, err := s.PendingChildAccountRepository.GetPendingChildAccountByChildEmail(ctx, childEmail)
+	pendingChild, err := s.PendingChildAccountRepository.GetPendingChildAccountByChildEmail(ctx, childEmail)
 
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	if err := s.UsersRepository.CreateUserTx(ctx, tx, childEmail); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// if password is not empty, create password
-	if child.Password != "" {
-		if err := s.CredentialsRepository.CreatePasswordTx(ctx, tx, childEmail, child.Password); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	waiversSignStatuses, err := s.PendingChildrenAccountWaiversSigningRepository.GetWaiverSignings(ctx, childEmail)
+	pendingAccountWaivers, err := s.PendingChildrenAccountWaiversSigningRepository.GetWaiverSignings(ctx, childEmail)
 
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	for _, waiverSignStatus := range waiversSignStatuses {
-		if !waiverSignStatus.IsSigned {
-			tx.Rollback()
-			return errLib.New("Waiver not signed", http.StatusConflict)
+	waivers := make([]values.CustomerWaiverSigning, len(pendingAccountWaivers))
+
+	for i, pendingAccountWaiver := range pendingAccountWaivers {
+		waivers[i] = values.CustomerWaiverSigning{
+			WaiverUrl:      pendingAccountWaiver.WaiverUrl,
+			IsWaiverSigned: pendingAccountWaiver.IsSigned,
 		}
-		if err := s.WaiverRepository.CreateWaiverSigningRecordTx(ctx, tx, childEmail, waiverSignStatus.WaiverUrl, waiverSignStatus.IsSigned); err != nil {
-			tx.Rollback()
-			return err
-		}
+	}
+
+	customerRegistrationInfo := values.CustomerRegistrationInfo{
+		UserInfo: values.UserInfo{
+			FirstName: pendingChild.FirstName,
+			LastName:  pendingChild.LastName,
+			Email:     pendingChild.UserEmail,
+		},
+		Waivers:  waivers,
+		Password: pendingChild.Password,
+	}
+
+	_, err = s.CustomerRegistrationService.RegisterCustomer(ctx, &customerRegistrationInfo)
+
+	if err != nil {
+
+		tx.Rollback()
+		return err
 	}
 
 	if err := s.PendingChildrenAccountWaiversSigningRepository.DeletePendingWaiverSigningRecordByChildEmailTx(ctx, tx, childEmail); err != nil {
@@ -101,21 +100,6 @@ func (s *ConfirmChildService) ConfirmChild(
 		return errLib.New("Failed to commit transaction", http.StatusInternalServerError)
 	}
 
-	// create hubspot customer
-
-	hubspotCustomer := hubspot.HubSpotCustomerCreateBody{
-		Properties: hubspot.HubSpotCustomerProps{
-			FirstName: strings.Split(child.UserEmail, "@")[0],
-			LastName:  strings.Split(child.UserEmail, "@")[0],
-			Email:     child.UserEmail,
-		},
-	}
-
-	if err := s.HubspotService.CreateCustomer(hubspotCustomer); err != nil {
-		err.Message = fmt.Sprintf("Created user account in database but failed to create customer on hubspot: %s", err.Message)
-		return err
-	}
-
 	associatedParent, err := s.HubspotService.GetCustomerByEmail(parentEmail)
 
 	if err != nil {
@@ -130,7 +114,7 @@ func (s *ConfirmChildService) ConfirmChild(
 		return err
 	}
 
-	if err := s.HubspotService.AssociateChildAndParent(associatedChild.ID, associatedParent.ID); err != nil {
+	if err := s.HubspotService.AssociateChildAndParent(associatedParent.ID, associatedChild.ID); err != nil {
 		err.Message = fmt.Sprintf("Created user account in database and hubspot but failed to associate customer with family on hubspot: %s", err.Message)
 		return err
 	}

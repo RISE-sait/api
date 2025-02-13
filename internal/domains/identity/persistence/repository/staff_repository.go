@@ -50,7 +50,7 @@ func (r *StaffRepository) GetStaffRolesTx(ctx context.Context, tx *sql.Tx) ([]db
 	return roles, nil
 }
 
-func (r *StaffRepository) CreateStaffTx(ctx context.Context, tx *sql.Tx, email, role string, isActive bool) *errLib.CommonError {
+func (r *StaffRepository) AssignStaffRoleAndStatusTx(ctx context.Context, tx *sql.Tx, email, role string, isActive bool) *errLib.CommonError {
 
 	params := db.CreateStaffParams{
 		Email:    email,
@@ -74,7 +74,7 @@ func (r *StaffRepository) CreateStaffTx(ctx context.Context, tx *sql.Tx, email, 
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	if rows != 1 {
+	if rows == 0 {
 		log.Println("Error creating staff ", err)
 		return errLib.New("Failed to create staff", 500)
 	}

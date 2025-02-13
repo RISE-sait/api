@@ -1,7 +1,7 @@
 package values
 
 type CreatePendingChildAccountValueObject struct {
-	RegisterCredentials
+	CustomerRegistrationInfo
 	ParentEmail string
 	Waivers     []CustomerWaiverSigning
 }

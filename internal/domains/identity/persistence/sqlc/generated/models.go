@@ -343,6 +343,8 @@ type PendingChildAccount struct {
 	UserEmail   string         `json:"user_email"`
 	Password    sql.NullString `json:"password"`
 	CreatedAt   time.Time      `json:"created_at"`
+	FirstName   sql.NullString `json:"first_name"`
+	LastName    sql.NullString `json:"last_name"`
 }
 
 type Staff struct {

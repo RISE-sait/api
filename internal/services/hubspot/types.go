@@ -20,12 +20,9 @@ type AssociationEndpoint struct {
 type HubSpotCustomerResponse struct {
 	ID           string               `json:"id"`
 	Properties   HubSpotCustomerProps `json:"properties"`
+	CreatedAt    time.Time            `json:"createdAt"`
 	UpdatedAt    time.Time            `json:"updatedAt"`
 	Associations HubSpotAssociation   `json:"associations"`
-}
-
-type HubSpotCustomerCreateBody struct {
-	Properties HubSpotCustomerProps `json:"properties"`
 }
 
 type HubSpotCustomerProps struct {
@@ -39,12 +36,12 @@ type HubSpotAssociation struct {
 }
 
 type HubSpotCustomerAssociation struct {
-	Result []AssociationResponse
-}
-
-type AssociationResponse struct {
-	Results []struct {
+	Result []struct {
 		ID   string `json:"id"`
 		Type string `json:"type"`
 	} `json:"results"`
+}
+
+type HubSpotCustomerCreateBody struct {
+	Properties HubSpotCustomerProps `json:"properties"`
 }

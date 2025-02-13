@@ -1,14 +1,12 @@
-package identity
+package auth
 
 import (
 	"api/internal/di"
 	dto "api/internal/domains/identity/dto"
 	service "api/internal/domains/identity/services"
-	errLib "api/internal/libs/errors"
 	"api/internal/libs/jwt"
 	response_handlers "api/internal/libs/responses"
-	"encoding/json"
-	"io"
+	"api/internal/libs/validators"
 	"net/http"
 	"time"
 )
@@ -31,23 +29,15 @@ func NewAuthenticationController(container *di.Container) *AuthenticationControl
 // @Accept json
 // @Produce json
 // @Param credentials body dto.LoginCredentialsDto true "User login credentials"
-// @Success 200 {object} entities.UserInfo "User authenticated successfully"
+// @Success 200 {object} entity.UserInfo "User authenticated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid credentials"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /auth/login [post]
 func (h *AuthenticationController) Login(w http.ResponseWriter, r *http.Request) {
 
-	body, ioErr := io.ReadAll(r.Body)
-
-	if ioErr != nil {
-		response_handlers.RespondWithError(w, errLib.New("Failed to read request body", http.StatusBadRequest))
-		return
-	}
-
 	var credentialsDto dto.LoginCredentialsDto
-
-	if ioErr := json.Unmarshal(body, &credentialsDto); ioErr != nil {
-		response_handlers.RespondWithError(w, errLib.New("Invalid JSON format for credentials", http.StatusBadRequest))
+	if err := validators.ParseJSON(r.Body, &credentialsDto); err != nil {
+		response_handlers.RespondWithError(w, err)
 		return
 	}
 
@@ -72,7 +62,7 @@ func (h *AuthenticationController) Login(w http.ResponseWriter, r *http.Request)
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     "jwtToken",
+		Name:     "access_token",
 		Value:    token,
 		Path:     "/",
 		HttpOnly: false, // Prevent JavaScript access

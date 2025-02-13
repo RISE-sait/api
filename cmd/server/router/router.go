@@ -9,7 +9,8 @@ import (
 	courseRepo "api/internal/domains/course/persistence"
 	"api/internal/domains/events"
 	facility "api/internal/domains/facility/controllers"
-	identity "api/internal/domains/identity/controllers"
+	auth "api/internal/domains/identity/controllers/auth"
+	registration "api/internal/domains/identity/controllers/registration"
 	membership "api/internal/domains/membership/controllers"
 
 	"api/internal/middlewares"
@@ -32,13 +33,14 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 
 	router.Route("/api", func(r chi.Router) {
 		routes := []RouteConfig{
-			{Path: "/memberships", Configure: RegisterMembershipRoutes(r, container)},
-			{Path: "/auth", Configure: RegisterAuthRoutes(r, container)},
-			{Path: "/courses", Configure: RegisterCourseRoutes(r, container)},
-			{Path: "/events", Configure: RegisterEventRoutes(r, container)},
-			{Path: "/facilities", Configure: RegisterFacilityRoutes(r, container)},
-			{Path: "/customers", Configure: RegisterCustomerRoutes(r, container)},
-			{Path: "/staffs", Configure: RegisterStaffRoutes(r, container)},
+			{Path: "/memberships", Configure: RegisterMembershipRoutes(container)},
+			{Path: "/auth", Configure: RegisterAuthRoutes(container)},
+			{Path: "/register", Configure: RegisterRegistrationRoutes(container)},
+			{Path: "/courses", Configure: RegisterCourseRoutes(container)},
+			{Path: "/events", Configure: RegisterEventRoutes(container)},
+			{Path: "/facilities", Configure: RegisterFacilityRoutes(container)},
+			{Path: "/customers", Configure: RegisterCustomerRoutes(container)},
+			{Path: "/staffs", Configure: RegisterStaffRoutes(container)},
 		}
 
 		for _, route := range routes {
@@ -47,7 +49,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 	})
 }
 
-func RegisterCustomerRoutes(r chi.Router, container *di.Container) func(chi.Router) {
+func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 
 	ctrl := customer.NewCustomersController(container)
 
@@ -59,7 +61,7 @@ func RegisterCustomerRoutes(r chi.Router, container *di.Container) func(chi.Rout
 	}
 }
 
-func RegisterMembershipRoutes(r chi.Router, container *di.Container) func(chi.Router) {
+func RegisterMembershipRoutes(container *di.Container) func(chi.Router) {
 	ctrl := membership.NewMembershipController(container)
 
 	return func(r chi.Router) {
@@ -71,11 +73,11 @@ func RegisterMembershipRoutes(r chi.Router, container *di.Container) func(chi.Ro
 		r.With(allowAdminOnly).Delete("/{id}", ctrl.DeleteMembership)
 
 		// plans as subroute
-		r.Route("/{membershipId}/plans", RegisterMembershipPlansRoutes(r, container))
+		r.Route("/{membershipId}/plans", RegisterMembershipPlansRoutes(container))
 	}
 }
 
-func RegisterMembershipPlansRoutes(r chi.Router, container *di.Container) func(chi.Router) {
+func RegisterMembershipPlansRoutes(container *di.Container) func(chi.Router) {
 	ctrl := membership.NewMembershipPlansController(container)
 
 	return func(r chi.Router) {
@@ -87,7 +89,7 @@ func RegisterMembershipPlansRoutes(r chi.Router, container *di.Container) func(c
 	}
 }
 
-func RegisterFacilityRoutes(r chi.Router, container *di.Container) func(chi.Router) {
+func RegisterFacilityRoutes(container *di.Container) func(chi.Router) {
 	ctrl := facility.NewFacilitiesController(container)
 
 	return func(r chi.Router) {
@@ -97,11 +99,11 @@ func RegisterFacilityRoutes(r chi.Router, container *di.Container) func(chi.Rout
 		r.With(allowAdminOnly).Put("/{id}", ctrl.UpdateFacility)
 		r.With(allowAdminOnly).Delete("/{id}", ctrl.DeleteFacility)
 
-		r.Route("/types", RegisterFacilityTypesRoutes(r, container))
+		r.Route("/types", RegisterFacilityTypesRoutes(container))
 	}
 }
 
-func RegisterFacilityTypesRoutes(r chi.Router, container *di.Container) func(chi.Router) {
+func RegisterFacilityTypesRoutes(container *di.Container) func(chi.Router) {
 	ctrl := facility.NewFacilityTypesController(container)
 
 	return func(r chi.Router) {
@@ -113,7 +115,7 @@ func RegisterFacilityTypesRoutes(r chi.Router, container *di.Container) func(chi
 	}
 }
 
-func RegisterCourseRoutes(r chi.Router, container *di.Container) func(chi.Router) {
+func RegisterCourseRoutes(container *di.Container) func(chi.Router) {
 
 	courseRepo := courseRepo.NewCourseRepository(container)
 	courseService := course.NewCourseService(courseRepo)
@@ -128,7 +130,7 @@ func RegisterCourseRoutes(r chi.Router, container *di.Container) func(chi.Router
 	}
 }
 
-func RegisterEventRoutes(r chi.Router, container *di.Container) func(chi.Router) {
+func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 	ctrl := events.NewEventsController(container)
 
 	return func(r chi.Router) {
@@ -140,7 +142,7 @@ func RegisterEventRoutes(r chi.Router, container *di.Container) func(chi.Router)
 	}
 }
 
-func RegisterStaffRoutes(r chi.Router, container *di.Container) func(chi.Router) {
+func RegisterStaffRoutes(container *di.Container) func(chi.Router) {
 	ctrl := staff.NewStaffController(container)
 
 	return func(r chi.Router) {
@@ -151,34 +153,33 @@ func RegisterStaffRoutes(r chi.Router, container *di.Container) func(chi.Router)
 	}
 }
 
-func RegisterAuthRoutes(r chi.Router, container *di.Container) func(chi.Router) {
+func RegisterAuthRoutes(container *di.Container) func(chi.Router) {
 
-	authController := identity.NewAuthenticationController(container)
-	tokenValidationCtrl := identity.NewTokenValidationController(container)
-	OauthController := identity.NewOauthController(container)
+	authController := auth.NewAuthenticationController(container)
+	OauthController := auth.NewOauthController(container)
 
 	return func(r chi.Router) {
 		r.Post("/login", authController.Login)
 
 		r.Post("/oauth/google", OauthController.HandleOAuthCallback)
-		r.Get("/validate-jwt", tokenValidationCtrl.ValidateToken)
 	}
 }
 
-func RegisterIdentityRoutes(r chi.Router, container *di.Container) func(chi.Router) {
+func RegisterRegistrationRoutes(container *di.Container) func(chi.Router) {
 
-	customerRegistrationCtrl := identity.NewCustomerRegistrationController(container)
+	customerRegistrationCtrl := registration.NewCustomerRegistrationController(container)
 
-	childRegistrationCtrl := identity.NewCreatePendingChildAccountController(container)
+	childRegistrationCtrl := registration.NewCreatePendingChildAccountController(container)
 
-	confirmChildCtrl := identity.NewChildAccountConfirmationController(container)
+	confirmChildCtrl := registration.NewChildAccountConfirmationController(container)
+
+	staffRegistrationCtrl := registration.NewStaffRegistrationController(container)
 
 	return func(r chi.Router) {
 
-		r.Route("/register", func(registration chi.Router) {
-			registration.Post("/", customerRegistrationCtrl.CreateCustomer)
-			registration.Post("/child", childRegistrationCtrl.CreatePendingChildAccount)
-		})
+		r.Post("/customer", customerRegistrationCtrl.CreateCustomer)
+		r.Post("/child/pending", childRegistrationCtrl.CreatePendingChildAccount)
+		r.Post("/staff", staffRegistrationCtrl.CreateStaff)
 
 		r.Get("/confirm-child", confirmChildCtrl.ConfirmChild)
 	}

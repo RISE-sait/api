@@ -8,10 +8,11 @@ import (
 
 type CustomerRegistrationDto struct {
 	CustomerWaiverSigningDtos []CustomerWaiverSigningDto `json:"waivers"`
-	RegisterCredentialsDto
+	UserInfoDto
+	Password string `json:"password" validate:"omitempty,min=8"`
 }
 
-func (dto *CustomerRegistrationDto) ToValueObjects() (*values.CustomerRegistrationValueObject, *errLib.CommonError) {
+func (dto *CustomerRegistrationDto) ToValueObjects() (*values.CustomerRegistrationInfo, *errLib.CommonError) {
 
 	if err := validators.ValidateDto(dto); err != nil {
 		return nil, err
@@ -27,15 +28,23 @@ func (dto *CustomerRegistrationDto) ToValueObjects() (*values.CustomerRegistrati
 		waiversVo = append(waiversVo, *vo)
 	}
 
-	vo := values.CustomerRegistrationValueObject{
-		RegisterCredentials: values.RegisterCredentials{
+	vo := values.CustomerRegistrationInfo{
+		UserInfo: values.UserInfo{
 			Email: dto.Email,
 		},
 		Waivers: waiversVo,
 	}
 
+	if dto.FirstName != "" {
+		vo.FirstName = &dto.FirstName
+	}
+
+	if dto.LastName != "" {
+		vo.LastName = &dto.LastName
+	}
+
 	if dto.Password != "" {
-		vo.RegisterCredentials.Password = &dto.Password
+		vo.Password = &dto.Password
 	}
 
 	return &vo, nil

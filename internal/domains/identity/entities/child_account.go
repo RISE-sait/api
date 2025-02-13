@@ -1,4 +1,4 @@
-package entities
+package entity
 
 import (
 	"time"
@@ -10,6 +10,8 @@ type PendingChildAccount struct {
 	ID          uuid.UUID
 	ParentEmail string
 	UserEmail   string
-	Password    string
+	FirstName   *string
+	LastName    *string
+	Password    *string
 	CreatedAt   time.Time
 }

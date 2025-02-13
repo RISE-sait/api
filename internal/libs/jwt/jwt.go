@@ -2,7 +2,7 @@ package jwt
 
 import (
 	"api/config"
-	"api/internal/domains/identity/entities"
+	entity "api/internal/domains/identity/entities"
 	errLib "api/internal/libs/errors"
 	"fmt"
 	"net/http"
@@ -12,18 +12,20 @@ import (
 )
 
 type CustomClaims struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Role     string `json:"role"`
-	IsActive bool   `json:"isActive"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Email     string `json:"email"`
+	Role      string `json:"role"`
+	IsActive  bool   `json:"isActive"`
 	jwt.StandardClaims
 }
 
-func SignJWT(userInfo entities.UserInfo) (string, *errLib.CommonError) {
+func SignJWT(userInfo entity.UserInfo) (string, *errLib.CommonError) {
 
 	claims := CustomClaims{
-		Name:  userInfo.Name,
-		Email: userInfo.Email,
+		FirstName: *userInfo.FirstName,
+		LastName:  *userInfo.LastName,
+		Email:     userInfo.Email,
 		StandardClaims: jwt.StandardClaims{
 			Issuer:    config.Envs.JwtConfig.Issuer,
 			ExpiresAt: time.Now().Add(time.Hour * 24 * 15).Unix(), // 15 days

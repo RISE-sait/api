@@ -1,4 +1,4 @@
-package identity
+package registration
 
 import (
 	"api/internal/di"

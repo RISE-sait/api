@@ -2,55 +2,52 @@ package identity
 
 import (
 	"api/internal/di"
-	"api/internal/domains/identity/entities"
+	entity "api/internal/domains/identity/entities"
 	repo "api/internal/domains/identity/persistence/repository"
 	"api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
 	"context"
 	"net/http"
-	"strings"
 )
 
 type AuthenticationService struct {
-	UserRepo  *repo.UserRepository
-	StaffRepo *repo.StaffRepository
+	UserOptionalInfoRepository *repo.UserOptionalInfoRepository
+	StaffRepo                  *repo.StaffRepository
 }
 
 func NewAuthenticationService(container *di.Container) *AuthenticationService {
 
-	userRepo := repo.NewUserRepository(container)
+	userOptionalInfoRepo := repo.NewUserOptionalInfoRepository(container)
 	staffRepo := repo.NewStaffRepository(container)
 
 	return &AuthenticationService{
-		UserRepo:  userRepo,
-		StaffRepo: staffRepo,
+		UserOptionalInfoRepository: userOptionalInfoRepo,
+		StaffRepo:                  staffRepo,
 	}
 }
 
-func (s *AuthenticationService) AuthenticateUser(ctx context.Context, credentials values.LoginCredentials) (*entities.UserInfo, *errLib.CommonError) {
+func (s *AuthenticationService) AuthenticateUser(ctx context.Context, credentials values.LoginCredentials) (*entity.UserInfo, *errLib.CommonError) {
 
 	email := credentials.Email
 	passwordStr := credentials.Password
 
-	if !s.UserRepo.IsValidUser(ctx, email, passwordStr) {
+	user := s.UserOptionalInfoRepository.GetUser(ctx, email, passwordStr)
+
+	if user == nil {
 		return nil, errLib.New("Person with the credentials not found", http.StatusUnauthorized)
 	}
 
-	name := s.getNameFromEmail(email)
 	staffInfo := s.getStaffInfo(ctx, email)
 
-	return &entities.UserInfo{
+	return &entity.UserInfo{
 		Email:     email,
-		Name:      name,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
 		StaffInfo: staffInfo,
 	}, nil
 }
 
-func (s *AuthenticationService) getNameFromEmail(email string) string {
-	return strings.Split(email, "@")[0]
-}
-
-func (s *AuthenticationService) getStaffInfo(ctx context.Context, email string) *entities.StaffInfo {
+func (s *AuthenticationService) getStaffInfo(ctx context.Context, email string) *entity.StaffInfo {
 
 	staff, err := s.StaffRepo.GetStaffByEmail(ctx, email)
 
@@ -58,7 +55,7 @@ func (s *AuthenticationService) getStaffInfo(ctx context.Context, email string) 
 		return nil
 	}
 
-	return &entities.StaffInfo{
+	return &entity.StaffInfo{
 		Role:     staff.RoleName,
 		IsActive: staff.IsActive,
 	}

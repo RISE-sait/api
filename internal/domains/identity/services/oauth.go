@@ -3,7 +3,7 @@ package identity
 import (
 	"api/config"
 	"api/internal/di"
-	"api/internal/domains/identity/entities"
+	entity "api/internal/domains/identity/entities"
 	identity "api/internal/domains/identity/persistence/repository"
 	errors "api/internal/libs/errors"
 	"context"
@@ -40,7 +40,7 @@ func (s *OauthService) GetUserInfoRespBodyFromGoogleAPI(accessToken string) (io.
 	return resp.Body, nil
 }
 
-func (s *OauthService) SetUserInfoWithStaffDetails(c context.Context, userInfo entities.UserInfo) (*entities.UserInfo, *errors.CommonError) {
+func (s *OauthService) SetUserInfoWithStaffDetails(c context.Context, userInfo entity.UserInfo) (*entity.UserInfo, *errors.CommonError) {
 
 	staff, getStaffErr := s.StaffRepo.GetStaffByEmail(c, userInfo.Email)
 
@@ -48,14 +48,15 @@ func (s *OauthService) SetUserInfoWithStaffDetails(c context.Context, userInfo e
 		return nil, getStaffErr
 	}
 
-	staffInfo := entities.StaffInfo{
+	staffInfo := entity.StaffInfo{
 		Role:     staff.RoleName,
 		IsActive: staff.IsActive,
 	}
 
-	userInfo = entities.UserInfo{
+	userInfo = entity.UserInfo{
 		Email:     userInfo.Email,
-		Name:      userInfo.Name,
+		FirstName: userInfo.FirstName,
+		LastName:  userInfo.LastName,
 		StaffInfo: &staffInfo,
 	}
 

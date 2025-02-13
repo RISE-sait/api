@@ -41,9 +41,10 @@ func (s *HubSpotService) GetCustomerById(id string) (*HubSpotCustomerResponse, *
 
 func (s *HubSpotService) GetCustomerByEmail(email string) (*HubSpotCustomerResponse, *errLib.CommonError) {
 
-	fmt.Println("Email: ", email)
 	url := fmt.Sprintf("%scrm/v3/objects/contacts/%s?associations=contacts&idProperty=email&properties=firstName,lastName,family_role", s.BaseURL, email)
-	return executeHubSpotRequest[HubSpotCustomerResponse](s, http.MethodGet, url, nil)
+	response, err := executeHubSpotRequest[HubSpotCustomerResponse](s, http.MethodGet, url, nil)
+
+	return response, err
 }
 
 func (s *HubSpotService) CreateCustomer(customer HubSpotCustomerCreateBody) *errLib.CommonError {
@@ -59,11 +60,11 @@ func (s *HubSpotService) CreateCustomer(customer HubSpotCustomerCreateBody) *err
 	return nil
 }
 
-func (s *HubSpotService) AssociateChildAndParent(childId, parentId string) *errLib.CommonError {
+func (s *HubSpotService) AssociateChildAndParent(parentId, childId string) *errLib.CommonError {
 	url := fmt.Sprintf("%scrm/v4/objects/contacts/%s/associations/contacts/%s",
 		s.BaseURL,
-		childId,
 		parentId,
+		childId,
 	)
 
 	request := []AssociationInput{
@@ -77,19 +78,19 @@ func (s *HubSpotService) AssociateChildAndParent(childId, parentId string) *errL
 	return err
 }
 
-func (s *HubSpotService) GetCustomers(after string) ([]HubSpotCustomerResponse, *errLib.CommonError) {
-	url := fmt.Sprintf("%scrm/v3/objects/contacts?limit=10", s.BaseURL)
-	if after != "" {
-		url += fmt.Sprintf("&after=%s", after)
-	}
+// func (s *HubSpotService) GetCustomers(after string) ([]HubSpotCustomerResponse, *errLib.CommonError) {
+// 	url := fmt.Sprintf("%scrm/v3/objects/contacts?limit=10", s.BaseURL)
+// 	if after != "" {
+// 		url += fmt.Sprintf("&after=%s", after)
+// 	}
 
-	hubSpotResponse, err := executeHubSpotRequest[HubSpotCustomersResponse](s, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
+// 	hubSpotResponse, err := executeHubSpotRequest[HubSpotCustomersResponse](s, http.MethodGet, url, nil)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return hubSpotResponse.Results, nil
-}
+// 	return hubSpotResponse.Results, nil
+// }
 
 func executeHubSpotRequest[T any](s *HubSpotService, method, url string, body any) (*T, *errLib.CommonError) {
 	var requestBody []byte

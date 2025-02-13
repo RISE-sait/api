@@ -691,7 +691,7 @@ const docTemplate = `{
                     "200": {
                         "description": "User authenticated successfully",
                         "schema": {
-                            "$ref": "#/definitions/entities.UserInfo"
+                            "$ref": "#/definitions/entity.UserInfo"
                         }
                     },
                     "400": {
@@ -976,6 +976,152 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/register/child/pending": {
+            "post": {
+                "description": "Registers a child account that requires parental confirmation before activation",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "registration"
+                ],
+                "summary": "Create a pending child account",
+                "parameters": [
+                    {
+                        "description": "Pending child account details",
+                        "name": "child",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreatePendingChildAccountDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Child account request created successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/register/customer": {
+            "post": {
+                "description": "Registers a new customer with provided details and creates JWT authentication token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "registration"
+                ],
+                "summary": "Create a new customer account",
+                "parameters": [
+                    {
+                        "description": "Customer registration details",
+                        "name": "customer",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CustomerRegistrationDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Customer registered successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/register/staff": {
+            "post": {
+                "description": "Registers a new staff member with the provided details",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "registration"
+                ],
+                "summary": "Create a new staff member account",
+                "parameters": [
+                    {
+                        "description": "Staff registration details",
+                        "name": "staff",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.StaffRegistrationDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Staff registered successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dto.StaffRegistrationDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -1004,6 +1150,64 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.CreatePendingChildAccountDto": {
+            "type": "object",
+            "required": [
+                "child",
+                "parent_email"
+            ],
+            "properties": {
+                "child": {
+                    "$ref": "#/definitions/dto.CustomerRegistrationDto"
+                },
+                "parent_email": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CustomerRegistrationDto": {
+            "type": "object",
+            "required": [
+                "email",
+                "first_name",
+                "last_name"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 8
+                },
+                "waivers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CustomerWaiverSigningDto"
+                    }
+                }
+            }
+        },
+        "dto.CustomerWaiverSigningDto": {
+            "type": "object",
+            "required": [
+                "waiver_url"
+            ],
+            "properties": {
+                "is_waiver_signed": {
+                    "type": "boolean"
+                },
+                "waiver_url": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.LoginCredentialsDto": {
             "type": "object",
             "required": [
@@ -1017,6 +1221,33 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "minLength": 8
+                }
+            }
+        },
+        "dto.StaffRegistrationDto": {
+            "type": "object",
+            "required": [
+                "email",
+                "first_name",
+                "is_active",
+                "last_name",
+                "role_name"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "role_name": {
+                    "type": "string"
                 }
             }
         },
@@ -1063,7 +1294,7 @@ const docTemplate = `{
                 }
             }
         },
-        "entities.StaffInfo": {
+        "entity.StaffInfo": {
             "type": "object",
             "properties": {
                 "isActive": {
@@ -1074,17 +1305,20 @@ const docTemplate = `{
                 }
             }
         },
-        "entities.UserInfo": {
+        "entity.UserInfo": {
             "type": "object",
             "properties": {
                 "email": {
                     "type": "string"
                 },
-                "name": {
+                "firstName": {
+                    "type": "string"
+                },
+                "lastName": {
                     "type": "string"
                 },
                 "staffInfo": {
-                    "$ref": "#/definitions/entities.StaffInfo"
+                    "$ref": "#/definitions/entity.StaffInfo"
                 }
             }
         },

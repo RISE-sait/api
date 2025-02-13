@@ -1,7 +1,8 @@
-package entities
+package entity
 
 type UserInfo struct {
-	Name      string
+	FirstName *string
+	LastName  *string
 	Email     string
 	StaffInfo *StaffInfo
 }

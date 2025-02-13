@@ -2,7 +2,7 @@ package identity
 
 import (
 	"api/internal/di"
-	"api/internal/domains/identity/entities"
+	entity "api/internal/domains/identity/entities"
 	repo "api/internal/domains/identity/persistence/repository"
 	"api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
@@ -13,77 +13,76 @@ import (
 	"strings"
 )
 
-type CustomerAccountRegistrationService struct {
-	UsersRepository         *repo.UserRepository
-	CredentialsRepository   *repo.UserCredentialsRepository
-	HubSpotService          *hubspot.HubSpotService
+type CustomerRegistrationService struct {
+	AccountService          *AccountCreationService
+	UserOptionalInfoService *UserOptionalInfoService
 	WaiverSigningRepository *repo.WaiverSigningRepository
 	DB                      *sql.DB
+	HubSpotService          *hubspot.HubSpotService
 }
 
-func NewCustomerAccountRegistrationService(
-	container *di.Container,
-) *CustomerAccountRegistrationService {
-	return &CustomerAccountRegistrationService{
-		UsersRepository:         repo.NewUserRepository(container),
-		CredentialsRepository:   repo.NewUserCredentialsRepository(container),
+func NewCustomerRegistrationService(container *di.Container) *CustomerRegistrationService {
+	return &CustomerRegistrationService{
+		AccountService:          NewAccountCreationService(container),
+		UserOptionalInfoService: NewUserOptionalInfoService(container),
 		WaiverSigningRepository: repo.NewWaiverSigningRepository(container),
 		DB:                      container.DB,
-		HubSpotService:          container.HubspotService,
+		HubSpotService:          hubspot.GetHubSpotService(),
 	}
 }
 
-func (s *CustomerAccountRegistrationService) CreateCustomer(
+func (s *CustomerRegistrationService) RegisterCustomer(
 	ctx context.Context,
-	tx *sql.Tx,
-	customerCreate *values.CustomerRegistrationValueObject,
-) (*entities.UserInfo, *errLib.CommonError) {
+	customer *values.CustomerRegistrationInfo,
+) (*entity.UserInfo, *errLib.CommonError) {
 
-	emailStr := customerCreate.Email
-
-	// Begin transaction
-
-	if tx == nil {
-		newTx, txErr := s.DB.BeginTx(ctx, &sql.TxOptions{})
-		if txErr != nil {
-			return nil, errLib.New("Failed to begin transaction", http.StatusInternalServerError)
-		}
-
-		tx = newTx
+	email := customer.Email
+	tx, txErr := s.DB.BeginTx(ctx, &sql.TxOptions{})
+	if txErr != nil {
+		return nil, errLib.New("Failed to begin transaction", http.StatusInternalServerError)
 	}
 
-	// Ensure rollback if something goes wrong
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
 		}
 	}()
 
-	for _, waiver := range customerCreate.Waivers {
-		if !waiver.IsWaiverSigned {
-			return nil, errLib.New("Waiver is not signed", http.StatusBadRequest)
-		}
+	_, _, err := s.AccountService.CreateAccount(ctx, tx, customer.Email, false)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
 	}
 
-	for _, waiver := range customerCreate.Waivers {
+	tx, err = s.UserOptionalInfoService.CreateUserOptionalInfoTx(ctx, tx, customer.UserInfo, customer.Password)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
 
-		if err := s.WaiverSigningRepository.CreateWaiverSigningRecordTx(ctx, tx, emailStr, waiver.WaiverUrl, waiver.IsWaiverSigned); err != nil {
+	for _, waiver := range customer.Waivers {
+		if !waiver.IsWaiverSigned {
+			tx.Rollback()
+			return nil, errLib.New("Waiver is not signed", http.StatusBadRequest)
+		}
+
+		if err := s.WaiverSigningRepository.CreateWaiverSigningRecordTx(ctx, tx, email, waiver.WaiverUrl, waiver.IsWaiverSigned); err != nil {
 			tx.Rollback()
 			return nil, err
 		}
 	}
 
-	customer := hubspot.HubSpotCustomerCreateBody{
+	hubspotCustomer := hubspot.HubSpotCustomerCreateBody{
 		Properties: hubspot.HubSpotCustomerProps{
-			FirstName: strings.Split(emailStr, "@")[0],
-			Email:     emailStr,
+			FirstName: strings.Split(email, "@")[0],
+			Email:     email,
 			LastName:  "",
 		},
 	}
 
 	// Insert into customers via hubspot
 
-	if err := s.HubSpotService.CreateCustomer(customer); err != nil {
+	if err := s.HubSpotService.CreateCustomer(hubspotCustomer); err != nil {
 		tx.Rollback()
 		return nil, err
 	}
@@ -94,9 +93,10 @@ func (s *CustomerAccountRegistrationService) CreateCustomer(
 	}
 
 	// Generate JWT for the new user
-	userInfo := entities.UserInfo{
-		Name:  strings.Split(emailStr, "@")[0],
-		Email: emailStr,
+	userInfo := entity.UserInfo{
+		FirstName: customer.UserInfo.FirstName,
+		LastName:  customer.UserInfo.LastName,
+		Email:     email,
 	}
 
 	return &userInfo, nil

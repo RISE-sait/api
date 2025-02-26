@@ -2,8 +2,8 @@ package staff
 
 import (
 	"api/internal/di"
+	entity "api/internal/domains/staff/entity"
 	repository "api/internal/domains/staff/persistence"
-	"api/internal/domains/staff/values"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
@@ -11,21 +11,21 @@ import (
 	"github.com/google/uuid"
 )
 
-type StaffService struct {
-	StaffRepository *repository.StaffRepository
+type Service struct {
+	StaffRepository *repository.Repository
 	DB              *sql.DB
 }
 
 func NewStaffService(
 	container *di.Container,
-) *StaffService {
-	return &StaffService{
+) *Service {
+	return &Service{
 		StaffRepository: repository.NewStaffRepository(container),
 		DB:              container.DB,
 	}
 }
 
-func (s *StaffService) GetStaffs(c context.Context, roleIdPtr *uuid.UUID) ([]values.StaffAllFields, *errLib.CommonError) {
+func (s *Service) GetStaffs(c context.Context, roleIdPtr *uuid.UUID) ([]entity.Staff, *errLib.CommonError) {
 
 	staffs, err := s.StaffRepository.List(c, roleIdPtr)
 
@@ -36,7 +36,7 @@ func (s *StaffService) GetStaffs(c context.Context, roleIdPtr *uuid.UUID) ([]val
 	return staffs, nil
 }
 
-func (s *StaffService) GetByID(c context.Context, id uuid.UUID) (*values.StaffAllFields, *errLib.CommonError) {
+func (s *Service) GetByID(c context.Context, id uuid.UUID) (*entity.Staff, *errLib.CommonError) {
 
 	// Get the staff details
 	staff, err := s.StaffRepository.GetByID(c, id)
@@ -48,7 +48,7 @@ func (s *StaffService) GetByID(c context.Context, id uuid.UUID) (*values.StaffAl
 	return staff, nil
 }
 
-func (s *StaffService) DeleteStaff(c context.Context, id uuid.UUID) *errLib.CommonError {
+func (s *Service) DeleteStaff(c context.Context, id uuid.UUID) *errLib.CommonError {
 
 	err := s.StaffRepository.Delete(c, id)
 
@@ -59,7 +59,7 @@ func (s *StaffService) DeleteStaff(c context.Context, id uuid.UUID) *errLib.Comm
 	return nil
 }
 
-func (s *StaffService) UpdateStaff(c context.Context, input *values.StaffAllFields) (*values.StaffAllFields, *errLib.CommonError) {
+func (s *Service) UpdateStaff(c context.Context, input *entity.Staff) (*entity.Staff, *errLib.CommonError) {
 
 	staff, err := s.StaffRepository.Update(c, input)
 

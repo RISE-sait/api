@@ -16,19 +16,6 @@ INSERT INTO users (id, email) VALUES
   (gen_random_uuid(), 'grace@example.com'),
   (gen_random_uuid(), 'hannah@example.com');
 
--- Insert user_optional_info
-INSERT INTO user_optional_info (id, first_name, last_name, hashed_password) 
-VALUES
-  ((SELECT id FROM users WHERE email='alice@example.com'), 'Alice', 'Johnson', 'hashed_pw1'),
-  ((SELECT id FROM users WHERE email='bob@example.com'), 'Bob', 'Smith', 'hashed_pw2'),
-  ((SELECT id FROM users WHERE email='charlie@example.com'), 'Charlie', 'Brown', 'hashed_pw3'),
-  ((SELECT id FROM users WHERE email='diana@example.com'), 'Diana', 'White', 'hashed_pw4'),
-  ((SELECT id FROM users WHERE email='ethan@example.com'), 'Ethan', 'Black', 'hashed_pw5'),
-  ((SELECT id FROM users WHERE email='frank@example.com'), 'Frank', 'Green', 'hashed_pw6'),
-  ((SELECT id FROM users WHERE email='grace@example.com'), 'Grace', 'Blue', 'hashed_pw7'),
-  ((SELECT id FROM users WHERE email='hannah@example.com'), 'Hannah', 'Gray', 'hashed_pw8');
-
-
 -- Insert staff members
 INSERT INTO staff (id, is_active, created_at, updated_at, role_id) VALUES
   ((SELECT id FROM users WHERE email='alice@example.com'), true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, (SELECT id FROM staff_roles WHERE role_name='INSTRUCTOR')),
@@ -61,26 +48,26 @@ VALUES
   (gen_random_uuid(), 'Tennis for Beginners', 'Learn tennis from scratch with professional coaches.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   (gen_random_uuid(), 'Strength Training', 'Weightlifting and strength-building exercises.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
--- Insert events
-INSERT INTO events (id, begin_time, end_time, course_id, facility_id, created_at, updated_at, day) VALUES
-  (gen_random_uuid(), '08:00:00', '10:00:00', (SELECT id FROM courses WHERE name='Beginner Yoga'), (SELECT id FROM facilities WHERE name='Serenity Yoga'), NOW(), NOW(), 'MONDAY'),
-  (gen_random_uuid(), '09:30:00', '11:30:00', (SELECT id FROM courses WHERE name='Advanced Swimming'), (SELECT id FROM facilities WHERE name='City Pool'), NOW(), NOW(), 'TUESDAY'),
-  (gen_random_uuid(), '17:00:00', '19:00:00', (SELECT id FROM courses WHERE name='Basketball Training'), (SELECT id FROM facilities WHERE name='Basketball Arena'), NOW(), NOW(), 'WEDNESDAY'),
-  (gen_random_uuid(), '10:00:00', '12:00:00', (SELECT id FROM courses WHERE name='Tennis for Beginners'), (SELECT id FROM facilities WHERE name='Tennis Club'), NOW(), NOW(), 'THURSDAY'),
-  (gen_random_uuid(), '12:00:00', '14:00:00', (SELECT id FROM courses WHERE name='Strength Training'), (SELECT id FROM facilities WHERE name='Downtown Gym'), NOW(), NOW(), 'FRIDAY'),
-  (gen_random_uuid(), '15:00:00', '17:00:00', NULL, (SELECT id FROM facilities WHERE name='Serenity Yoga'), NOW(), NOW(), 'SATURDAY'), -- Open slot
-  (gen_random_uuid(), '16:00:00', '18:00:00', NULL, (SELECT id FROM facilities WHERE name='City Pool'), NOW(), NOW(), 'SUNDAY'); -- Open slot
+-- Insert practices
+INSERT INTO practices (id, name, description, level, should_email_booking_notification, capacity, start_date, end_date, created_at, updated_at)
+VALUES
+    (gen_random_uuid(), 'Yoga for Beginners', 'Learn the basics of yoga with experienced instructors.', 'beginner', TRUE, 20, '2025-03-01 09:00:00+00', '2025-03-01 10:30:00+00', NOW(), NOW()),
+    (gen_random_uuid(), 'Advanced Swimming', 'Improving skills for experienced swimmers.', 'advanced', TRUE, 15, '2025-03-02 10:00:00+00', '2025-03-02 11:30:00+00', NOW(), NOW()),
+    (gen_random_uuid(), 'Basketball Training', 'Intensive training for basketball enthusiasts.', 'intermediate', TRUE, 10, '2025-03-03 15:00:00+00', '2025-03-03 17:00:00+00', NOW(), NOW()),
+    (gen_random_uuid(), 'Tennis Skills', 'For tennis players who want to improve their technique.', 'intermediate', TRUE, 12, '2025-03-04 13:00:00+00', '2025-03-04 14:30:00+00', NOW(), NOW()),
+    (gen_random_uuid(), 'Strength Training', 'Weightlifting and strength-building for athletes.', 'advanced', TRUE, 8, '2025-03-05 08:00:00+00', '2025-03-05 09:30:00+00', NOW(), NOW());
 
-  -- Insert customers
-INSERT INTO customers (user_id, hubspot_id, credits) VALUES
-  ((SELECT id FROM users WHERE email='alice@example.com'), 123456, 10),
-  ((SELECT id FROM users WHERE email='bob@example.com'), 234567, 20),
-  ((SELECT id FROM users WHERE email='charlie@example.com'), 345678, 15),
-  ((SELECT id FROM users WHERE email='diana@example.com'), 456789, 30),
-  ((SELECT id FROM users WHERE email='ethan@example.com'), 567890, 25),
-  ((SELECT id FROM users WHERE email='frank@example.com'), 678901, 5),
-  ((SELECT id FROM users WHERE email='grace@example.com'), 789012, 50),
-  ((SELECT id FROM users WHERE email='hannah@example.com'), 890123, 40);
+
+-- Insert events
+INSERT INTO events (id, begin_time, end_time, practice_id, facility_id, created_at, updated_at, day)
+VALUES
+    (gen_random_uuid(), '08:00:00', '10:00:00', (SELECT id FROM practices WHERE name='Yoga for Beginners'), (SELECT id FROM facilities WHERE name='Serenity Yoga'), NOW(), NOW(), 'MONDAY'),
+    (gen_random_uuid(), '09:30:00', '11:30:00', (SELECT id FROM practices WHERE name='Advanced Swimming'), (SELECT id FROM facilities WHERE name='City Pool'), NOW(), NOW(), 'TUESDAY'),
+    (gen_random_uuid(), '17:00:00', '19:00:00', (SELECT id FROM practices WHERE name='Basketball Training'), (SELECT id FROM facilities WHERE name='Basketball Arena'), NOW(), NOW(), 'WEDNESDAY'),
+    (gen_random_uuid(), '10:00:00', '12:00:00', (SELECT id FROM practices WHERE name='Tennis Skills'), (SELECT id FROM facilities WHERE name='Tennis Club'), NOW(), NOW(), 'THURSDAY'),
+    (gen_random_uuid(), '12:00:00', '14:00:00', (SELECT id FROM practices WHERE name='Strength Training'), (SELECT id FROM facilities WHERE name='Downtown Gym'), NOW(), NOW(), 'FRIDAY'),
+    (gen_random_uuid(), '15:00:00', '17:00:00', NULL, (SELECT id FROM facilities WHERE name='Serenity Yoga'), NOW(), NOW(), 'SATURDAY'), -- Open slot
+    (gen_random_uuid(), '16:00:00', '18:00:00', NULL, (SELECT id FROM facilities WHERE name='City Pool'), NOW(), NOW(), 'SUNDAY'); -- Open slot
 
 -- Insert customer events
 INSERT INTO customer_events (customer_id, event_id, checked_in_at) VALUES

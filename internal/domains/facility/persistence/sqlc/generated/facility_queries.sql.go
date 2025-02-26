@@ -14,38 +14,38 @@ import (
 
 const createFacility = `-- name: CreateFacility :one
 WITH inserted_facility AS (
-    INSERT INTO facilities (name, location, facility_type_id)
+    INSERT INTO facilities (name, address, facility_category_id)
     VALUES ($1, $2, $3)
-    RETURNING id, name, location, facility_type_id
+    RETURNING id, name, address, facility_category_id
 )
-SELECT f.id, f.name, f.location, f.facility_type_id, ft.name AS facility_type_name
+SELECT f.id, f.name, f.address, f.facility_category_id, fc.name AS facility_category_name
 FROM inserted_facility f
-JOIN facility_types ft ON f.facility_type_id = ft.id
+JOIN facility_categories fc ON f.facility_category_id = fc.id
 `
 
 type CreateFacilityParams struct {
-	Name           string    `json:"name"`
-	Location       string    `json:"location"`
-	FacilityTypeID uuid.UUID `json:"facility_type_id"`
+	Name               string    `json:"name"`
+	Address            string    `json:"address"`
+	FacilityCategoryID uuid.UUID `json:"facility_category_id"`
 }
 
 type CreateFacilityRow struct {
-	ID               uuid.UUID `json:"id"`
-	Name             string    `json:"name"`
-	Location         string    `json:"location"`
-	FacilityTypeID   uuid.UUID `json:"facility_type_id"`
-	FacilityTypeName string    `json:"facility_type_name"`
+	ID                   uuid.UUID `json:"id"`
+	Name                 string    `json:"name"`
+	Address              string    `json:"address"`
+	FacilityCategoryID   uuid.UUID `json:"facility_category_id"`
+	FacilityCategoryName string    `json:"facility_category_name"`
 }
 
 func (q *Queries) CreateFacility(ctx context.Context, arg CreateFacilityParams) (CreateFacilityRow, error) {
-	row := q.db.QueryRowContext(ctx, createFacility, arg.Name, arg.Location, arg.FacilityTypeID)
+	row := q.db.QueryRowContext(ctx, createFacility, arg.Name, arg.Address, arg.FacilityCategoryID)
 	var i CreateFacilityRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.Location,
-		&i.FacilityTypeID,
-		&i.FacilityTypeName,
+		&i.Address,
+		&i.FacilityCategoryID,
+		&i.FacilityCategoryName,
 	)
 	return i, err
 }
@@ -63,21 +63,21 @@ func (q *Queries) DeleteFacility(ctx context.Context, id uuid.UUID) (int64, erro
 }
 
 const getFacilities = `-- name: GetFacilities :many
-SELECT f.id, f.name, f.location, f.facility_type_id,  ft.name as facility_type 
-FROM facilities f JOIN facility_types ft ON f.facility_type_id = ft.id
+SELECT f.id, f.name, f.address, f.facility_category_id,  fc.name as facility_category_name
+FROM facilities f JOIN facility_categories fc ON f.facility_category_id = fc.id
 WHERE (f.name ILIKE '%' || $1 || '%' OR $1 IS NULL)
 `
 
 type GetFacilitiesRow struct {
-	ID             uuid.UUID `json:"id"`
-	Name           string    `json:"name"`
-	Location       string    `json:"location"`
-	FacilityTypeID uuid.UUID `json:"facility_type_id"`
-	FacilityType   string    `json:"facility_type"`
+	ID                   uuid.UUID `json:"id"`
+	Name                 string    `json:"name"`
+	Address              string    `json:"address"`
+	FacilityCategoryID   uuid.UUID `json:"facility_category_id"`
+	FacilityCategoryName string    `json:"facility_category_name"`
 }
 
-func (q *Queries) GetFacilities(ctx context.Context, name sql.NullString) ([]GetFacilitiesRow, error) {
-	rows, err := q.db.QueryContext(ctx, getFacilities, name)
+func (q *Queries) GetFacilities(ctx context.Context, facilityName sql.NullString) ([]GetFacilitiesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getFacilities, facilityName)
 	if err != nil {
 		return nil, err
 	}
@@ -88,9 +88,9 @@ func (q *Queries) GetFacilities(ctx context.Context, name sql.NullString) ([]Get
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
-			&i.Location,
-			&i.FacilityTypeID,
-			&i.FacilityType,
+			&i.Address,
+			&i.FacilityCategoryID,
+			&i.FacilityCategoryName,
 		); err != nil {
 			return nil, err
 		}
@@ -106,16 +106,16 @@ func (q *Queries) GetFacilities(ctx context.Context, name sql.NullString) ([]Get
 }
 
 const getFacilityById = `-- name: GetFacilityById :one
-SELECT f.id, f.name, f.location, f.facility_type_id, ft.name as facility_type 
-FROM facilities f JOIN facility_types ft ON f.facility_type_id = ft.id WHERE f.id = $1
+SELECT f.id, f.name, f.address, f.facility_category_id, fc.name as facility_category_name
+FROM facilities f JOIN facility_categories fc ON f.facility_category_id = fc.id WHERE f.id = $1
 `
 
 type GetFacilityByIdRow struct {
-	ID             uuid.UUID `json:"id"`
-	Name           string    `json:"name"`
-	Location       string    `json:"location"`
-	FacilityTypeID uuid.UUID `json:"facility_type_id"`
-	FacilityType   string    `json:"facility_type"`
+	ID                   uuid.UUID `json:"id"`
+	Name                 string    `json:"name"`
+	Address              string    `json:"address"`
+	FacilityCategoryID   uuid.UUID `json:"facility_category_id"`
+	FacilityCategoryName string    `json:"facility_category_name"`
 }
 
 func (q *Queries) GetFacilityById(ctx context.Context, id uuid.UUID) (GetFacilityByIdRow, error) {
@@ -124,9 +124,9 @@ func (q *Queries) GetFacilityById(ctx context.Context, id uuid.UUID) (GetFacilit
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.Location,
-		&i.FacilityTypeID,
-		&i.FacilityType,
+		&i.Address,
+		&i.FacilityCategoryID,
+		&i.FacilityCategoryName,
 	)
 	return i, err
 }
@@ -134,27 +134,27 @@ func (q *Queries) GetFacilityById(ctx context.Context, id uuid.UUID) (GetFacilit
 const updateFacility = `-- name: UpdateFacility :execrows
 WITH updated as (
     UPDATE facilities f
-    SET name = $1, location = $2, facility_type_id = $3
+    SET name = $1, address = $2, facility_category_id = $3
     WHERE f.id = $4
-    RETURNING id, name, location, facility_type_id
+    RETURNING id, name, address, facility_category_id
 )
-SELECT f.id, f.name, f.location, f.facility_type_id, ft.name as facility_type_name
+SELECT f.id, f.name, f.address, f.facility_category_id, fc.name as facility_category_name
 FROM updated f
-JOIN facility_types ft ON f.facility_type_id = ft.id
+JOIN facility_categories fc ON f.facility_category_id = fc.id
 `
 
 type UpdateFacilityParams struct {
-	Name           string    `json:"name"`
-	Location       string    `json:"location"`
-	FacilityTypeID uuid.UUID `json:"facility_type_id"`
-	ID             uuid.UUID `json:"id"`
+	Name               string    `json:"name"`
+	Address            string    `json:"address"`
+	FacilityCategoryID uuid.UUID `json:"facility_category_id"`
+	ID                 uuid.UUID `json:"id"`
 }
 
 func (q *Queries) UpdateFacility(ctx context.Context, arg UpdateFacilityParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateFacility,
 		arg.Name,
-		arg.Location,
-		arg.FacilityTypeID,
+		arg.Address,
+		arg.FacilityCategoryID,
 		arg.ID,
 	)
 	if err != nil {

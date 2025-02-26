@@ -3,7 +3,7 @@ package membership
 import (
 	"api/internal/di"
 	db "api/internal/domains/membership/persistence/sqlc/generated"
-	values "api/internal/domains/membership/values/memberships"
+	values "api/internal/domains/membership/values"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
@@ -14,22 +14,22 @@ import (
 	"github.com/google/uuid"
 )
 
-type MembershipsRepository struct {
+type Repository struct {
 	Queries *db.Queries
 }
 
-func NewMembershipsRepository(container *di.Container) *MembershipsRepository {
-	return &MembershipsRepository{
+func NewMembershipsRepository(container *di.Container) *Repository {
+	return &Repository{
 		Queries: container.Queries.MembershipDb,
 	}
 }
 
-func (r *MembershipsRepository) Create(c context.Context, membership *values.MembershipDetails) *errLib.CommonError {
+func (r *Repository) Create(c context.Context, membership *values.CreateValues) *errLib.CommonError {
 
 	dbParams := db.CreateMembershipParams{
 		Name: membership.Name, Description: sql.NullString{
 			String: membership.Description,
-			Valid:  membership.Description != "",
+			Valid:  true,
 		},
 	}
 
@@ -46,7 +46,7 @@ func (r *MembershipsRepository) Create(c context.Context, membership *values.Mem
 	return nil
 }
 
-func (r *MembershipsRepository) GetByID(c context.Context, id uuid.UUID) (*values.MembershipAllFields, *errLib.CommonError) {
+func (r *Repository) GetByID(c context.Context, id uuid.UUID) (*values.ReadValues, *errLib.CommonError) {
 	membership, err := r.Queries.GetMembershipById(c, id)
 
 	if err != nil {
@@ -56,44 +56,44 @@ func (r *MembershipsRepository) GetByID(c context.Context, id uuid.UUID) (*value
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return &values.MembershipAllFields{
-		ID: membership.ID,
-		MembershipDetails: values.MembershipDetails{
-			Name:        membership.Name,
-			Description: membership.Description.String,
-		},
+	return &values.ReadValues{
+		ID:          membership.ID,
+		Name:        membership.Name,
+		Description: membership.Description.String,
+		UpdatedAt:   membership.UpdatedAt.Time,
+		CreatedAt:   membership.CreatedAt.Time,
 	}, nil
 }
 
-func (r *MembershipsRepository) List(c context.Context, after string) ([]values.MembershipAllFields, *errLib.CommonError) {
+func (r *Repository) List(c context.Context) ([]values.ReadValues, *errLib.CommonError) {
 	dbMemberships, err := r.Queries.GetAllMemberships(c)
 
 	if err != nil {
 		log.Println("Failed to get memberships: ", err.Error())
-		return []values.MembershipAllFields{}, errLib.New("Internal server error", http.StatusInternalServerError)
+		return []values.ReadValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
-	memebrships := make([]values.MembershipAllFields, len(dbMemberships))
-	for i, dbCourse := range dbMemberships {
-		memebrships[i] = values.MembershipAllFields{
-			ID: dbCourse.ID,
-			MembershipDetails: values.MembershipDetails{
-				Name:        dbCourse.Name,
-				Description: dbCourse.Description.String,
-			},
+	memberships := make([]values.ReadValues, len(dbMemberships))
+	for i, dbMembership := range dbMemberships {
+		memberships[i] = values.ReadValues{
+			ID:          dbMembership.ID,
+			Name:        dbMembership.Name,
+			Description: dbMembership.Description.String,
+			UpdatedAt:   dbMembership.UpdatedAt.Time,
+			CreatedAt:   dbMembership.CreatedAt.Time,
 		}
 	}
 
-	return memebrships, nil
+	return memberships, nil
 }
 
-func (r *MembershipsRepository) Update(c context.Context, membership *values.MembershipAllFields) *errLib.CommonError {
+func (r *Repository) Update(c context.Context, membership *values.UpdateValues) *errLib.CommonError {
 
 	dbMembershipParams := db.UpdateMembershipParams{
 		ID:   membership.ID,
 		Name: membership.Name,
 		Description: sql.NullString{
 			String: membership.Description,
-			Valid:  membership.Description != "",
+			Valid:  true,
 		},
 	}
 
@@ -110,7 +110,7 @@ func (r *MembershipsRepository) Update(c context.Context, membership *values.Mem
 	return nil
 }
 
-func (r *MembershipsRepository) Delete(c context.Context, id uuid.UUID) *errLib.CommonError {
+func (r *Repository) Delete(c context.Context, id uuid.UUID) *errLib.CommonError {
 	row, err := r.Queries.DeleteMembership(c, id)
 
 	if err != nil {

@@ -72,7 +72,7 @@ package hubspot
 
 // 			service := GetHubSpotService()
 
-// 			err := service.CreateCustomer(tt.customer)
+// 			err := service.RegisterCustomer(tt.customer)
 
 // 			if tt.expectedError && err == nil {
 // 				t.Error("expected error but got none")

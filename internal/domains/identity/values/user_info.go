@@ -1,19 +1,29 @@
 package values
 
-type UserInfo struct {
-	Email     string
-	FirstName *string
-	LastName  *string
-	Phone     *string
+import (
+	"api/internal/domains/staff/values"
+)
+
+type UserNecessaryInfo struct {
+	Age       int
+	FirstName string
+	LastName  string
 }
 
-type CustomerRegistrationInfo struct {
-	UserInfo
-	Waivers  []CustomerWaiverSigning
-	Password *string
+type RegularCustomerRegistrationInfo struct {
+	UserNecessaryInfo
+	Email   string
+	Phone   string
+	Waivers []CustomerWaiverSigning
+}
+
+type ChildRegistrationInfo struct {
+	UserNecessaryInfo
+	ParentEmail string
+	Waivers     []CustomerWaiverSigning
 }
 
 type StaffRegistrationInfo struct {
-	UserInfo
-	StaffDetails
+	HubSpotID string
+	staff.Details
 }

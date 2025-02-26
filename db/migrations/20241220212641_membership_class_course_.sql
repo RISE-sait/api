@@ -19,15 +19,15 @@ CREATE TABLE course_membership (
     )
 );
 
-CREATE TABLE class_membership (
-    class_id UUID NOT NULL,
+CREATE TABLE practice_membership (
+    practice_id UUID NOT NULL,
     membership_id UUID NOT NULL,
     price_per_booking DECIMAL(4, 2) NULL,
     is_eligible BOOLEAN NOT NULL DEFAULT FALSE,
-    PRIMARY KEY (class_id, membership_id),
-    CONSTRAINT fk_class
-        FOREIGN KEY (class_id) 
-        REFERENCES classes (id),
+    PRIMARY KEY (practice_id, membership_id),
+    CONSTRAINT fk_practice
+        FOREIGN KEY (practice_id)
+        REFERENCES practices (id),
     CONSTRAINT fk_membership
         FOREIGN KEY (membership_id) 
         REFERENCES memberships (id),
@@ -42,5 +42,5 @@ CREATE TABLE class_membership (
 -- +goose Down
 -- +goose StatementBegin
 DROP TABLE IF EXISTS course_membership;
-DROP TABLE IF EXISTS class_membership;
+DROP TABLE IF EXISTS practice_membership;
 -- +goose StatementEnd

@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"log"
 	"os"
+
+	_ "github.com/lib/pq"
 )
 
 type googleAuthConfig struct {
@@ -18,7 +20,7 @@ type jwtConfig struct {
 }
 
 type config struct {
-	dbConnUrl         string
+	DbConnUrl         string
 	GoogleAuthConfig  googleAuthConfig
 	JwtConfig         jwtConfig
 	HubSpotApiKey     string
@@ -30,7 +32,7 @@ var Envs = initConfig()
 func initConfig() *config {
 
 	return &config{
-		dbConnUrl:     getEnv("DATABASE_URL", ""),
+		DbConnUrl:     getEnv("DATABASE_URL", ""),
 		HubSpotApiKey: getEnv("HUBSPOT_API_KEY", ""),
 		GoogleAuthConfig: googleAuthConfig{
 			ClientId:          getEnv("GOOGLE_AUTH_CLIENT_ID", ""),
@@ -54,10 +56,11 @@ func getEnv(key string, defaultValue string) string {
 }
 
 func GetDBConnection() *sql.DB {
-	connStr := Envs.dbConnUrl
+	connStr := Envs.DbConnUrl
 
 	log.Println(connStr)
 	dbConn, err := sql.Open("postgres", connStr)
+
 	if err != nil {
 		log.Fatal(err)
 	}

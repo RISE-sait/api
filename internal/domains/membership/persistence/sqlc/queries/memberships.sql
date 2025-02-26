@@ -15,6 +15,3 @@ WHERE id = $3;
 
 -- name: DeleteMembership :execrows
 DELETE FROM memberships WHERE id = $1;
-
--- name: IsMembershipIDExist :one
-SELECT EXISTS (SELECT 1 FROM memberships WHERE id = $1) AS exists;

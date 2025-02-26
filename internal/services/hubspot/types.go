@@ -4,8 +4,8 @@ import (
 	"time"
 )
 
-type HubSpotCustomersResponse struct {
-	Results []HubSpotCustomerResponse `json:"results"`
+type UsersResponse struct {
+	Results []UserResponse `json:"results"`
 }
 
 type AssociationInput struct {
@@ -17,31 +17,36 @@ type AssociationEndpoint struct {
 	ID string `json:"id"`
 }
 
-type HubSpotCustomerResponse struct {
-	ID           string               `json:"id"`
-	Properties   HubSpotCustomerProps `json:"properties"`
-	CreatedAt    time.Time            `json:"createdAt"`
-	UpdatedAt    time.Time            `json:"updatedAt"`
-	Associations HubSpotAssociation   `json:"associations"`
+type UserResponse struct {
+	HubSpotId    string           `json:"id"`
+	Properties   UserProps        `json:"properties"`
+	CreatedAt    time.Time        `json:"createdAt"`
+	UpdatedAt    time.Time        `json:"updatedAt"`
+	Associations UserAssociations `json:"associations"`
 }
 
-type HubSpotCustomerProps struct {
+type UserProps struct {
 	FirstName string `json:"firstname"`
 	LastName  string `json:"lastname"`
 	Email     string `json:"email"`
 }
 
-type HubSpotAssociation struct {
-	Contact HubSpotCustomerAssociation `json:"contacts"`
+type UserAssociations struct {
+	Contact UserAssociation `json:"contacts"`
 }
 
-type HubSpotCustomerAssociation struct {
+type UserAssociation struct {
 	Result []struct {
 		ID   string `json:"id"`
 		Type string `json:"type"`
 	} `json:"results"`
 }
 
-type HubSpotCustomerCreateBody struct {
-	Properties HubSpotCustomerProps `json:"properties"`
+type UserCreationBody struct {
+	Properties UserProps `json:"properties"`
+}
+
+type ChildCreationBody struct {
+	Properties UserProps `json:"properties"`
+	ParentId   string    `json:"parentId"`
 }

@@ -40,38 +40,86 @@ func (q *Queries) CreateMembershipPlan(ctx context.Context, arg CreateMembership
 }
 
 const deleteMembershipPlan = `-- name: DeleteMembershipPlan :execrows
-DELETE FROM membership_plans WHERE membership_id = $1 AND id = $2
+DELETE FROM membership_plans WHERE id = $1
 `
 
-type DeleteMembershipPlanParams struct {
-	MembershipID uuid.UUID `json:"membership_id"`
-	ID           uuid.UUID `json:"id"`
-}
-
-func (q *Queries) DeleteMembershipPlan(ctx context.Context, arg DeleteMembershipPlanParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, deleteMembershipPlan, arg.MembershipID, arg.ID)
+func (q *Queries) DeleteMembershipPlan(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteMembershipPlan, id)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected()
 }
 
-const getMembershipPlansByMembershipId = `-- name: GetMembershipPlansByMembershipId :many
-SELECT id, name, price, joining_fee, auto_renew, membership_id, payment_frequency, amt_periods, created_at, updated_at 
+const getMembershipPlanById = `-- name: GetMembershipPlanById :one
+SELECT id, name, price, joining_fee, auto_renew, membership_id, payment_frequency, amt_periods, created_at, updated_at
 FROM membership_plans
-WHERE 
-    membership_id = $1
+WHERE id = $1
 `
 
-func (q *Queries) GetMembershipPlansByMembershipId(ctx context.Context, membershipID uuid.UUID) ([]MembershipPlan, error) {
-	rows, err := q.db.QueryContext(ctx, getMembershipPlansByMembershipId, membershipID)
+func (q *Queries) GetMembershipPlanById(ctx context.Context, id uuid.UUID) (MembershipPlan, error) {
+	row := q.db.QueryRowContext(ctx, getMembershipPlanById, id)
+	var i MembershipPlan
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Price,
+		&i.JoiningFee,
+		&i.AutoRenew,
+		&i.MembershipID,
+		&i.PaymentFrequency,
+		&i.AmtPeriods,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getMembershipPlans = `-- name: GetMembershipPlans :many
+SELECT mp.id, name, price, joining_fee, auto_renew, membership_id, payment_frequency, amt_periods, mp.created_at, mp.updated_at, cmp.id, customer_id, membership_plan_id, start_date, renewal_date, status, cmp.created_at, cmp.updated_at 
+FROM membership_plans mp
+JOIN customer_membership_plans cmp
+ON mp.id = cmp.membership_plan_id
+WHERE 
+    (mp.membership_id = $1 OR $1 IS NULL)
+AND (cmp.customer_id = $2 OR $2 IS NULL)
+`
+
+type GetMembershipPlansParams struct {
+	MembershipID uuid.NullUUID `json:"membership_id"`
+	CustomerID   uuid.NullUUID `json:"customer_id"`
+}
+
+type GetMembershipPlansRow struct {
+	ID               uuid.UUID            `json:"id"`
+	Name             string               `json:"name"`
+	Price            int32                `json:"price"`
+	JoiningFee       sql.NullInt32        `json:"joining_fee"`
+	AutoRenew        bool                 `json:"auto_renew"`
+	MembershipID     uuid.UUID            `json:"membership_id"`
+	PaymentFrequency NullPaymentFrequency `json:"payment_frequency"`
+	AmtPeriods       sql.NullInt32        `json:"amt_periods"`
+	CreatedAt        sql.NullTime         `json:"created_at"`
+	UpdatedAt        sql.NullTime         `json:"updated_at"`
+	ID_2             uuid.UUID            `json:"id_2"`
+	CustomerID       uuid.UUID            `json:"customer_id"`
+	MembershipPlanID uuid.UUID            `json:"membership_plan_id"`
+	StartDate        sql.NullTime         `json:"start_date"`
+	RenewalDate      sql.NullTime         `json:"renewal_date"`
+	Status           MembershipStatus     `json:"status"`
+	CreatedAt_2      sql.NullTime         `json:"created_at_2"`
+	UpdatedAt_2      sql.NullTime         `json:"updated_at_2"`
+}
+
+func (q *Queries) GetMembershipPlans(ctx context.Context, arg GetMembershipPlansParams) ([]GetMembershipPlansRow, error) {
+	rows, err := q.db.QueryContext(ctx, getMembershipPlans, arg.MembershipID, arg.CustomerID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []MembershipPlan
+	var items []GetMembershipPlansRow
 	for rows.Next() {
-		var i MembershipPlan
+		var i GetMembershipPlansRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -83,6 +131,14 @@ func (q *Queries) GetMembershipPlansByMembershipId(ctx context.Context, membersh
 			&i.AmtPeriods,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ID_2,
+			&i.CustomerID,
+			&i.MembershipPlanID,
+			&i.StartDate,
+			&i.RenewalDate,
+			&i.Status,
+			&i.CreatedAt_2,
+			&i.UpdatedAt_2,
 		); err != nil {
 			return nil, err
 		}
@@ -99,8 +155,8 @@ func (q *Queries) GetMembershipPlansByMembershipId(ctx context.Context, membersh
 
 const updateMembershipPlan = `-- name: UpdateMembershipPlan :execrows
 UPDATE membership_plans
-SET name = $1, price = $2, payment_frequency = $3, amt_periods = $4
-WHERE membership_id = $5 AND id = $6
+SET name = $1, price = $2, payment_frequency = $3, amt_periods = $4, membership_id = $5
+WHERE id = $6
 `
 
 type UpdateMembershipPlanParams struct {

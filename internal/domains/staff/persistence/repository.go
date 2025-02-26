@@ -2,8 +2,9 @@ package staff
 
 import (
 	"api/internal/di"
+	entity "api/internal/domains/staff/entity"
 	db "api/internal/domains/staff/persistence/sqlc/generated"
-	"api/internal/domains/staff/values"
+	values "api/internal/domains/staff/values"
 
 	// values "api/internal/domains/staff/values/memberships"
 	errLib "api/internal/libs/errors"
@@ -16,17 +17,17 @@ import (
 	"github.com/google/uuid"
 )
 
-type StaffRepository struct {
+type Repository struct {
 	Queries *db.Queries
 }
 
-func NewStaffRepository(container *di.Container) *StaffRepository {
-	return &StaffRepository{
+func NewStaffRepository(container *di.Container) *Repository {
+	return &Repository{
 		Queries: container.Queries.StaffDb,
 	}
 }
 
-func (r *StaffRepository) GetByID(c context.Context, id uuid.UUID) (*values.StaffAllFields, *errLib.CommonError) {
+func (r *Repository) GetByID(c context.Context, id uuid.UUID) (*entity.Staff, *errLib.CommonError) {
 	staff, err := r.Queries.GetStaffByID(c, id)
 
 	if err != nil {
@@ -36,9 +37,9 @@ func (r *StaffRepository) GetByID(c context.Context, id uuid.UUID) (*values.Staf
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return &values.StaffAllFields{
+	return &entity.Staff{
 		ID: staff.ID,
-		StaffDetails: values.StaffDetails{
+		Details: values.Details{
 			IsActive:  staff.IsActive,
 			CreatedAt: staff.CreatedAt,
 			UpdatedAt: staff.UpdatedAt,
@@ -48,7 +49,7 @@ func (r *StaffRepository) GetByID(c context.Context, id uuid.UUID) (*values.Staf
 	}, nil
 }
 
-func (r *StaffRepository) List(ctx context.Context, roleIdPtr *uuid.UUID) ([]values.StaffAllFields, *errLib.CommonError) {
+func (r *Repository) List(ctx context.Context, roleIdPtr *uuid.UUID) ([]entity.Staff, *errLib.CommonError) {
 
 	roleId := uuid.NullUUID{
 		UUID:  uuid.Nil,
@@ -66,14 +67,14 @@ func (r *StaffRepository) List(ctx context.Context, roleIdPtr *uuid.UUID) ([]val
 
 	if err != nil {
 		log.Println("Failed to get staffs: ", err.Error())
-		return []values.StaffAllFields{}, errLib.New("Internal server error", http.StatusInternalServerError)
+		return []entity.Staff{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	staffs := make([]values.StaffAllFields, len(dbStaffs))
+	staffs := make([]entity.Staff, len(dbStaffs))
 	for i, dbStaff := range dbStaffs {
-		staffs[i] = values.StaffAllFields{
+		staffs[i] = entity.Staff{
 			ID: dbStaff.ID,
-			StaffDetails: values.StaffDetails{
+			Details: values.Details{
 				IsActive:  dbStaff.IsActive,
 				CreatedAt: dbStaff.CreatedAt,
 				UpdatedAt: dbStaff.UpdatedAt,
@@ -86,7 +87,7 @@ func (r *StaffRepository) List(ctx context.Context, roleIdPtr *uuid.UUID) ([]val
 	return staffs, nil
 }
 
-func (r *StaffRepository) Update(c context.Context, staffFields *values.StaffAllFields) (values.StaffAllFields, *errLib.CommonError) {
+func (r *Repository) Update(c context.Context, staffFields *entity.Staff) (entity.Staff, *errLib.CommonError) {
 
 	dbStaffParams := db.UpdateStaffParams{
 		ID:       staffFields.ID,
@@ -97,12 +98,12 @@ func (r *StaffRepository) Update(c context.Context, staffFields *values.StaffAll
 	staff, err := r.Queries.UpdateStaff(c, dbStaffParams)
 
 	if err != nil {
-		return values.StaffAllFields{}, errLib.New("Internal server error", http.StatusInternalServerError)
+		return entity.Staff{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return values.StaffAllFields{
+	return entity.Staff{
 		ID: staff.ID,
-		StaffDetails: values.StaffDetails{
+		Details: values.Details{
 			IsActive:  staff.IsActive,
 			CreatedAt: staff.CreatedAt,
 			UpdatedAt: staff.UpdatedAt,
@@ -113,7 +114,7 @@ func (r *StaffRepository) Update(c context.Context, staffFields *values.StaffAll
 
 }
 
-func (r *StaffRepository) Delete(c context.Context, id uuid.UUID) *errLib.CommonError {
+func (r *Repository) Delete(c context.Context, id uuid.UUID) *errLib.CommonError {
 	row, err := r.Queries.DeleteStaff(c, id)
 
 	if err != nil {

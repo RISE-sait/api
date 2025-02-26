@@ -13,50 +13,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type ClassLevel string
-
-const (
-	ClassLevelBeginner     ClassLevel = "beginner"
-	ClassLevelIntermediate ClassLevel = "intermediate"
-	ClassLevelAdvanced     ClassLevel = "advanced"
-	ClassLevelAll          ClassLevel = "all"
-)
-
-func (e *ClassLevel) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = ClassLevel(s)
-	case string:
-		*e = ClassLevel(s)
-	default:
-		return fmt.Errorf("unsupported scan type for ClassLevel: %T", src)
-	}
-	return nil
-}
-
-type NullClassLevel struct {
-	ClassLevel ClassLevel `json:"class_level"`
-	Valid      bool       `json:"valid"` // Valid is true if ClassLevel is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullClassLevel) Scan(value interface{}) error {
-	if value == nil {
-		ns.ClassLevel, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.ClassLevel.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullClassLevel) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.ClassLevel), nil
-}
-
 type DayEnum string
 
 const (
@@ -192,30 +148,55 @@ func (ns NullPaymentFrequency) Value() (driver.Value, error) {
 	return string(ns.PaymentFrequency), nil
 }
 
-type Class struct {
-	ID                       uuid.UUID      `json:"id"`
-	Name                     string         `json:"name"`
-	Description              sql.NullString `json:"description"`
-	Level                    ClassLevel     `json:"level"`
-	EmailBookingNotification sql.NullBool   `json:"email_booking_notification"`
-	Capacity                 int32          `json:"capacity"`
-	StartDate                time.Time      `json:"start_date"`
-	EndDate                  sql.NullTime   `json:"end_date"`
-	CreatedAt                sql.NullTime   `json:"created_at"`
-	UpdatedAt                sql.NullTime   `json:"updated_at"`
+type PracticeLevel string
+
+const (
+	PracticeLevelBeginner     PracticeLevel = "beginner"
+	PracticeLevelIntermediate PracticeLevel = "intermediate"
+	PracticeLevelAdvanced     PracticeLevel = "advanced"
+	PracticeLevelAll          PracticeLevel = "all"
+)
+
+func (e *PracticeLevel) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PracticeLevel(s)
+	case string:
+		*e = PracticeLevel(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PracticeLevel: %T", src)
+	}
+	return nil
 }
 
-type ClassMembership struct {
-	ClassID         uuid.UUID      `json:"class_id"`
-	MembershipID    uuid.UUID      `json:"membership_id"`
-	PricePerBooking sql.NullString `json:"price_per_booking"`
-	IsEligible      bool           `json:"is_eligible"`
+type NullPracticeLevel struct {
+	PracticeLevel PracticeLevel `json:"practice_level"`
+	Valid         bool          `json:"valid"` // Valid is true if PracticeLevel is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPracticeLevel) Scan(value interface{}) error {
+	if value == nil {
+		ns.PracticeLevel, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PracticeLevel.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPracticeLevel) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PracticeLevel), nil
 }
 
 type Course struct {
 	ID          uuid.UUID      `json:"id"`
 	Name        string         `json:"name"`
 	Description sql.NullString `json:"description"`
+	Capacity    int32          `json:"capacity"`
 	CreatedAt   sql.NullTime   `json:"created_at"`
 	UpdatedAt   sql.NullTime   `json:"updated_at"`
 }
@@ -225,12 +206,6 @@ type CourseMembership struct {
 	MembershipID    uuid.UUID      `json:"membership_id"`
 	PricePerBooking sql.NullString `json:"price_per_booking"`
 	IsEligible      bool           `json:"is_eligible"`
-}
-
-type Customer struct {
-	UserID    uuid.UUID `json:"user_id"`
-	HubspotID int64     `json:"hubspot_id"`
-	Credits   int32     `json:"credits"`
 }
 
 type CustomerDiscountUsage struct {
@@ -283,9 +258,9 @@ type DiscountRestrictedMembershipPlan struct {
 
 type Event struct {
 	ID         uuid.UUID     `json:"id"`
-	BeginTime  time.Time     `json:"begin_time"`
-	EndTime    time.Time     `json:"end_time"`
-	CourseID   uuid.NullUUID `json:"course_id"`
+	BeginTime  interface{}   `json:"begin_time"`
+	EndTime    interface{}   `json:"end_time"`
+	PracticeID uuid.NullUUID `json:"practice_id"`
 	FacilityID uuid.UUID     `json:"facility_id"`
 	CreatedAt  sql.NullTime  `json:"created_at"`
 	UpdatedAt  sql.NullTime  `json:"updated_at"`
@@ -341,8 +316,29 @@ type PendingChildAccount struct {
 	ID          uuid.UUID      `json:"id"`
 	ParentEmail string         `json:"parent_email"`
 	UserEmail   string         `json:"user_email"`
-	Password    sql.NullString `json:"password"`
 	CreatedAt   time.Time      `json:"created_at"`
+	FirstName   sql.NullString `json:"first_name"`
+	LastName    sql.NullString `json:"last_name"`
+}
+
+type Practice struct {
+	ID                             uuid.UUID      `json:"id"`
+	Name                           string         `json:"name"`
+	Description                    sql.NullString `json:"description"`
+	Level                          PracticeLevel  `json:"level"`
+	ShouldEmailBookingNotification sql.NullBool   `json:"should_email_booking_notification"`
+	Capacity                       int32          `json:"capacity"`
+	StartDate                      time.Time      `json:"start_date"`
+	EndDate                        sql.NullTime   `json:"end_date"`
+	CreatedAt                      sql.NullTime   `json:"created_at"`
+	UpdatedAt                      sql.NullTime   `json:"updated_at"`
+}
+
+type PracticeMembership struct {
+	PracticeID      uuid.UUID      `json:"practice_id"`
+	MembershipID    uuid.UUID      `json:"membership_id"`
+	PricePerBooking sql.NullString `json:"price_per_booking"`
+	IsEligible      bool           `json:"is_eligible"`
 }
 
 type Staff struct {
@@ -366,16 +362,9 @@ type StaffRole struct {
 }
 
 type User struct {
-	ID    uuid.UUID `json:"id"`
-	Email string    `json:"email"`
-}
-
-type UserOptionalInfo struct {
-	ID             uuid.UUID      `json:"id"`
-	FirstName      sql.NullString `json:"first_name"`
-	LastName       sql.NullString `json:"last_name"`
-	Phone          sql.NullString `json:"phone"`
-	HashedPassword sql.NullString `json:"hashed_password"`
+	ID      uuid.UUID `json:"id"`
+	Email   string    `json:"email"`
+	Credits int32     `json:"credits"`
 }
 
 type Waiver struct {

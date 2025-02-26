@@ -97,7 +97,6 @@ func parseValidationErrors(err error, structType reflect.Type) *errLib.CommonErr
 			case "min":
 				customMessage = fmt.Sprintf("%s: must be at least %s characters long", fieldName, e.Param())
 			case "required":
-				log.Println("Field: ", e.Field())
 				customMessage = fmt.Sprintf("%s: required", fieldName)
 			case "notwhitespace":
 				customMessage = fmt.Sprintf("%s: cannot be empty or whitespace", fieldName)
@@ -122,24 +121,42 @@ func parseValidationErrors(err error, structType reflect.Type) *errLib.CommonErr
 }
 
 func getJSONFieldName(e validator.FieldError, structType reflect.Type) string {
-
 	fieldName := e.Field() // Default to the Go field name
 
-	// Iterate over the struct's fields to find the one that matches the field name
-	for i := 0; i < structType.NumField(); i++ {
-		field := structType.Field(i)
+	// Recursively search for the field in the struct and its embedded fields
+	var findField func(reflect.Type, string) string
+	findField = func(t reflect.Type, fieldName string) string {
+		// Iterate over the struct's fields
+		for i := 0; i < t.NumField(); i++ {
+			field := t.Field(i)
 
-		if field.Name == fieldName {
-			jsonTag := field.Tag.Get("json")
-			log.Println("JSON Tag: ", jsonTag)
-			if jsonTag != "" {
-				return strings.Split(jsonTag, ",")[0] // Take the first JSON tag
+			// If the field is embedded, recursively search its type
+			if field.Anonymous {
+				if result := findField(field.Type, fieldName); result != "" {
+					return result
+				}
+				continue
 			}
-			return field.Name // Fallback to Go field name
+
+			// If the field name matches, return the JSON tag
+			if field.Name == fieldName {
+				jsonTag := field.Tag.Get("json")
+				if jsonTag != "" {
+					return strings.Split(jsonTag, ",")[0] // Take the first JSON tag
+				}
+				return field.Name // Fallback to Go field name
+			}
 		}
+		return "" // Field not found
 	}
 
-	return e.Field() // If no match is found, return the Go field name by default
+	// Start the recursive search
+	if result := findField(structType, fieldName); result != "" {
+		return result
+	}
+
+	log.Println("Field not found:", fieldName)
+	return fieldName // If no match is found, return the Go field name by default
 }
 
 func getJSONFieldNameForParam(param string, structType reflect.Type) string {

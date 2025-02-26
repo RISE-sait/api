@@ -8,13 +8,13 @@ BEGIN
     IF EXISTS (
         SELECT 1
         FROM events e
-        WHERE e.facility_id = NEW.facility_id
+        WHERE e.location_id = NEW.location_id
         AND e.day = NEW.day
         AND (
-            (NEW.begin_time < e.begin_time AND NEW.end_time > e.end_time)
+            (NEW.begin_time <= e.end_time AND NEW.end_time >= e.begin_time)
         )
     ) THEN
-        RAISE EXCEPTION 'An event at this facility on the selected day overlaps with an existing event. Please choose a different time.';
+        RAISE EXCEPTION 'An event at this location on the selected day overlaps with an existing event. Please choose a different time.';
     END IF;
     RETURN NEW;
 END;

@@ -1,0 +1,205 @@
+package course
+
+import (
+	dto "api/internal/domains/course/dto"
+	persistence "api/internal/domains/course/persistence/repository"
+	responseHandlers "api/internal/libs/responses"
+	"api/internal/libs/validators"
+	"net/http"
+
+	"github.com/go-chi/chi"
+)
+
+type Handler struct {
+	Repo persistence.RepositoryInterface
+}
+
+func NewHandler(repo persistence.RepositoryInterface) *Handler {
+	return &Handler{Repo: repo}
+}
+
+// CreateCourse creates a new course.
+// @Summary Create a new course
+// @Description Create a new course
+// @Tags courses
+// @Accept json
+// @Produce json
+// @Param course body course.RequestDto true "Course details"
+// @Security Bearer
+// @Success 201 {object} course.ResponseDto "Course created successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /courses [post]
+func (h *Handler) CreateCourse(w http.ResponseWriter, r *http.Request) {
+	var requestDto dto.RequestDto
+
+	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	details, err := requestDto.ToDetails()
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	course, err := h.Repo.CreateCourse(r.Context(), details)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	responseBody := dto.NewCourseResponse(*course)
+
+	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusCreated)
+}
+
+// GetCourseById retrieves a course by HubSpotId.
+// @Summary Get a course by HubSpotId
+// @Description Get a course by HubSpotId
+// @Tags courses
+// @Accept json
+// @Produce json
+// @Param id path string true "Course HubSpotId"
+// @Success 200 {object} dto.ResponseDto "Course retrieved successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid HubSpotId"
+// @Failure 404 {object} map[string]interface{} "Not Found: Course not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /courses/{id} [get]
+func (h *Handler) GetCourseById(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := validators.ParseUUID(idStr)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	course, err := h.Repo.GetCourseById(r.Context(), id)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	response := dto.NewCourseResponse(*course)
+
+	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
+}
+
+// GetCourses retrieves a list of courses.
+// @Summary Get a list of courses
+// @Description Get a list of courses
+// @Tags courses
+// @Accept json
+// @Produce json
+// @Param name query string false "Filter by course name"
+// @Param description query string false "Filter by course description"
+// @Success 200 {array} dto.ResponseDto "GetMemberships of courses retrieved successfully"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /courses [get]
+func (h *Handler) GetCourses(w http.ResponseWriter, r *http.Request) {
+
+	nameStr := r.URL.Query().Get("name")
+	descriptionStr := r.URL.Query().Get("description")
+
+	var name, description *string
+
+	if nameStr != "" {
+		name = &nameStr
+	}
+
+	if descriptionStr != "" {
+		description = &descriptionStr
+	}
+
+	courses, err := h.Repo.GetCourses(r.Context(), name, description)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	result := make([]dto.ResponseDto, len(courses))
+
+	for i, course := range courses {
+		result[i] = *dto.NewCourseResponse(course)
+	}
+
+	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
+}
+
+// UpdateCourse updates an existing course.
+// @Summary Update a course
+// @Description Update a course
+// @Tags courses
+// @Accept json
+// @Produce json
+// @Param id path string true "Course HubSpotId"
+// @Param course body dto.RequestDto true "Course details"
+// @Security Bearer
+// @Success 204 "No Content: Course updated successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 404 {object} map[string]interface{} "Not Found: Course not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /courses/{id} [put]
+func (h *Handler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
+
+	idStr := chi.URLParam(r, "id")
+
+	var requestDto dto.RequestDto
+	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	courseUpdate, err := requestDto.ToEntity(idStr)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	course, err := h.Repo.UpdateCourse(r.Context(), courseUpdate)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	responseBody := dto.NewCourseResponse(*course)
+
+	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusNoContent)
+}
+
+// DeleteCourse deletes a course by HubSpotId.
+// @Summary Delete a course
+// @Description Delete a course by HubSpotId
+// @Tags courses
+// @Accept json
+// @Produce json
+// @Param id path string true "Course HubSpotId"
+// @Security Bearer
+// @Success 204
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid HubSpotId"
+// @Failure 404 {object} map[string]interface{} "Not Found: Course not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /courses/{id} [delete]
+func (h *Handler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := validators.ParseUUID(idStr)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	if err = h.Repo.DeleteCourse(r.Context(), id); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
+}

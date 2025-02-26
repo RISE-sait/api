@@ -3,7 +3,7 @@ package membership
 import (
 	"api/internal/di"
 	db "api/internal/domains/membership/persistence/sqlc/generated"
-	values "api/internal/domains/membership/values/plans"
+	values "api/internal/domains/membership/values"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
@@ -14,17 +14,17 @@ import (
 	"github.com/google/uuid"
 )
 
-type MembershipPlansRepository struct {
+type PlansRepository struct {
 	Queries *db.Queries
 }
 
-func NewMembershipPlansRepository(container *di.Container) *MembershipPlansRepository {
-	return &MembershipPlansRepository{
+func NewMembershipPlansRepository(container *di.Container) *PlansRepository {
+	return &PlansRepository{
 		Queries: container.Queries.MembershipDb,
 	}
 }
 
-func (r *MembershipPlansRepository) CreateMembershipPlan(c context.Context, membershipPlan *values.MembershipPlanDetails) *errLib.CommonError {
+func (r *PlansRepository) CreateMembershipPlan(c context.Context, membershipPlan *values.PlanCreateValues) *errLib.CommonError {
 
 	var periods int32
 
@@ -36,7 +36,7 @@ func (r *MembershipPlansRepository) CreateMembershipPlan(c context.Context, memb
 		Name:  membershipPlan.Name,
 		Price: int32(membershipPlan.Price),
 		PaymentFrequency: db.NullPaymentFrequency{
-			PaymentFrequency: db.PaymentFrequency(membershipPlan.PaymentFrequency),
+			PaymentFrequency: db.PaymentFrequency(*membershipPlan.PaymentFrequency),
 			Valid:            true,
 		},
 		AmtPeriods: sql.NullInt32{
@@ -59,8 +59,55 @@ func (r *MembershipPlansRepository) CreateMembershipPlan(c context.Context, memb
 	return nil
 }
 
-func (r *MembershipPlansRepository) GetMembershipPlansByMembershipId(ctx context.Context, id uuid.UUID) ([]values.MembershipPlanAllFields, *errLib.CommonError) {
-	dbPlans, err := r.Queries.GetMembershipPlansByMembershipId(ctx, id)
+func (r *PlansRepository) GetMembershipPlanById(ctx context.Context, id uuid.UUID) (*values.PlanReadValues, *errLib.CommonError) {
+	dbPlan, err := r.Queries.GetMembershipPlanById(ctx, id)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errLib.New("Plan not found", http.StatusNotFound)
+		}
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	plan := values.PlanReadValues{
+		ID:           dbPlan.ID,
+		Name:         dbPlan.Name,
+		MembershipID: dbPlan.MembershipID,
+		Price:        int64(dbPlan.Price),
+	}
+
+	if dbPlan.AmtPeriods.Valid {
+		amtPeriods := int(dbPlan.AmtPeriods.Int32)
+		plan.AmtPeriods = &amtPeriods
+	}
+
+	if dbPlan.PaymentFrequency.Valid {
+		freq := string(dbPlan.PaymentFrequency.PaymentFrequency)
+		plan.PaymentFrequency = &freq
+	}
+
+	return &plan, nil
+}
+
+func (r *PlansRepository) GetMembershipPlans(ctx context.Context, membershipId, customerId uuid.UUID) ([]values.PlanReadValues, *errLib.CommonError) {
+
+	var params db.GetMembershipPlansParams
+
+	if customerId != uuid.Nil {
+		params.CustomerID = uuid.NullUUID{
+			UUID:  customerId,
+			Valid: true,
+		}
+	}
+
+	if membershipId != uuid.Nil {
+		params.MembershipID = uuid.NullUUID{
+			UUID:  membershipId,
+			Valid: true,
+		}
+	}
+
+	dbPlans, err := r.Queries.GetMembershipPlans(ctx, params)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -69,33 +116,34 @@ func (r *MembershipPlansRepository) GetMembershipPlansByMembershipId(ctx context
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	plans := make([]values.MembershipPlanAllFields, len(dbPlans))
+	plans := make([]values.PlanReadValues, len(dbPlans))
 
 	for i, dbPlan := range dbPlans {
 
-		var periods *int
+		plan := values.PlanReadValues{
+			ID:           dbPlan.ID,
+			Name:         dbPlan.Name,
+			MembershipID: dbPlan.MembershipID,
+			Price:        int64(dbPlan.Price),
+		}
 
 		if dbPlan.AmtPeriods.Valid {
 			amtPeriods := int(dbPlan.AmtPeriods.Int32)
-			periods = &amtPeriods
+			plan.AmtPeriods = &amtPeriods
 		}
 
-		plans[i] = values.MembershipPlanAllFields{
-			ID: dbPlan.ID,
-			MembershipPlanDetails: values.MembershipPlanDetails{
-				Name:             dbPlan.Name,
-				MembershipID:     dbPlan.MembershipID,
-				Price:            int64(dbPlan.Price),
-				PaymentFrequency: string(dbPlan.PaymentFrequency.PaymentFrequency),
-				AmtPeriods:       periods,
-			},
+		if dbPlan.PaymentFrequency.Valid {
+			freq := string(dbPlan.PaymentFrequency.PaymentFrequency)
+			plan.PaymentFrequency = &freq
 		}
+
+		plans[i] = plan
 	}
 
 	return plans, nil
 }
 
-func (r *MembershipPlansRepository) UpdateMembershipPlan(c context.Context, plan *values.MembershipPlanAllFields) *errLib.CommonError {
+func (r *PlansRepository) UpdateMembershipPlan(c context.Context, plan *values.PlanUpdateValues) *errLib.CommonError {
 
 	var periods int32
 
@@ -107,7 +155,7 @@ func (r *MembershipPlansRepository) UpdateMembershipPlan(c context.Context, plan
 		Name:  plan.Name,
 		Price: int32(plan.Price),
 		PaymentFrequency: db.NullPaymentFrequency{
-			PaymentFrequency: db.PaymentFrequency(plan.PaymentFrequency),
+			PaymentFrequency: db.PaymentFrequency(*plan.PaymentFrequency),
 			Valid:            true,
 		},
 		AmtPeriods: sql.NullInt32{
@@ -131,17 +179,12 @@ func (r *MembershipPlansRepository) UpdateMembershipPlan(c context.Context, plan
 	return nil
 }
 
-func (r *MembershipPlansRepository) DeleteMembershipPlan(c context.Context, membershipId, planId uuid.UUID) *errLib.CommonError {
+func (r *PlansRepository) DeleteMembershipPlan(c context.Context, id uuid.UUID) *errLib.CommonError {
 
-	plan := db.DeleteMembershipPlanParams{
-		MembershipID: membershipId,
-		ID:           planId,
-	}
-
-	row, err := r.Queries.DeleteMembershipPlan(c, plan)
+	row, err := r.Queries.DeleteMembershipPlan(c, id)
 
 	if err != nil {
-		log.Printf("Failed to delete plan with membership ID: %s and plan ID: %s. Error: %v", membershipId, planId, err.Error())
+		log.Printf("Failed to delete plan with Id: %s. Error: %v", id, err.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 

@@ -15,7 +15,1959 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/memberships": {
+        "/api/staffs": {
+            "get": {
+                "description": "Get a list of staff members",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "staff"
+                ],
+                "summary": "Get a list of staff members",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "\"f47ac10b-58cc-4372-a567-0e02b2c3d479\"",
+                        "description": "RoleName HubSpotId to filter staff",
+                        "name": "role",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "GetMemberships of staff members retrieved successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/staff.ResponseDto"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/staffs/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Update a staff member",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "staff"
+                ],
+                "summary": "Update a staff member",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "\"f47ac10b-58cc-4372-a567-0e02b2c3d479\"",
+                        "description": "Staff HubSpotId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Staff details",
+                        "name": "staff",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/staff.RequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Staff updated successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Staff not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Delete a staff member by HubSpotId",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "staff"
+                ],
+                "summary": "Delete a staff member",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "\"f47ac10b-58cc-4372-a567-0e02b2c3d479\"",
+                        "description": "Staff HubSpotId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Staff deleted successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid HubSpotId",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Staff not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "description": "Authenticates a user using Firebase token and returns a JWT token for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "authentication"
+                ],
+                "summary": "Authenticate a user and return a JWT token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Firebase token for user verification",
+                        "name": "firebase_token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User authenticated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/entity.UserInfo"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid Firebase token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/courses": {
+            "get": {
+                "description": "Get a list of courses",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "courses"
+                ],
+                "summary": "Get a list of courses",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by course name",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by course description",
+                        "name": "description",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "GetMemberships of courses retrieved successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/course.ResponseDto"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Create a new course",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "courses"
+                ],
+                "summary": "Create a new course",
+                "parameters": [
+                    {
+                        "description": "Course details",
+                        "name": "course",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/course.RequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Course created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/course.ResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/courses/{id}": {
+            "get": {
+                "description": "Get a course by HubSpotId",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "courses"
+                ],
+                "summary": "Get a course by HubSpotId",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course HubSpotId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Course retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/course.ResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid HubSpotId",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Course not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Update a course",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "courses"
+                ],
+                "summary": "Update a course",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course HubSpotId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Course details",
+                        "name": "course",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/course.RequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Course updated successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Course not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Delete a course by HubSpotId",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "courses"
+                ],
+                "summary": "Delete a course",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course HubSpotId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid HubSpotId",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Course not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/customers": {
+            "get": {
+                "description": "Retrieves customers based on an event HubSpotId or returns all customers",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "customers"
+                ],
+                "summary": "Get customers",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Event HubSpotId (if specified, fetches customers for the event)",
+                        "name": "event_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Customers retrieved successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/hubspot.UserResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid parameters",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/customers/{email}": {
+            "get": {
+                "description": "Retrieves a customer using their email address",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "customers"
+                ],
+                "summary": "Get a customer by email",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Customer Email",
+                        "name": "email",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Customer retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/hubspot.UserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid Email",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Customer not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/customers/{email}/children": {
+            "get": {
+                "description": "Retrieves a customer's children using the parent's email address",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "customers"
+                ],
+                "summary": "Get a customer's children by parent email",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Parent Email",
+                        "name": "email",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Customer's children retrieved successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/hubspot.UserResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid Email",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Parent or children not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/enrollments": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Create a new enrollment",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "enrollments"
+                ],
+                "summary": "Create a new enrollment",
+                "parameters": [
+                    {
+                        "description": "Enrollment details",
+                        "name": "enrollment",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.EnrollmentRequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Enrollment created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EnrollmentResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/enrollments/{customerId}/{eventId}": {
+            "get": {
+                "description": "Get enrollments by customer and event HubSpotId",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "enrollments"
+                ],
+                "summary": "Get enrollments by customer and event HubSpotId",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Customer HubSpotId",
+                        "name": "customerId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Event HubSpotId",
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Enrollments retrieved successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.EnrollmentResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid HubSpotId",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Enrollments not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/enrollments/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Delete an enrollment by HubSpotId",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "enrollments"
+                ],
+                "summary": "Delete an enrollment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Enrollment HubSpotId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Enrollment deleted successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid HubSpotId",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Enrollment not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/event-staff": {
+            "get": {
+                "description": "Retrieve all staff assigned to an event using event_id as a query parameter.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "event_staff"
+                ],
+                "summary": "Get staff assigned to an event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Event ID (UUID)",
+                        "name": "event_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "GetMemberships of staff assigned to the event",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/staff.ResponseDto"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Event not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Assign a staff member to an event using event_id and staff_id in the request body.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "event_staff"
+                ],
+                "summary": "Assign a staff member to an event",
+                "parameters": [
+                    {
+                        "description": "Event and staff assignment details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/event_staff.RequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Staff successfully assigned to event",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Remove a staff member from an event using event_id and staff_id in the request body.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "event_staff"
+                ],
+                "summary": "Unassign a staff member from an event",
+                "parameters": [
+                    {
+                        "description": "Event and staff unassignment details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/event_staff.RequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Staff successfully unassigned from event",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/events": {
+            "get": {
+                "description": "Retrieve all events, with optional filters by course, location, and practice.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "summary": "Get all events",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by course ID (UUID)",
+                        "name": "courseId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by location ID (UUID)",
+                        "name": "locationId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by practice ID (UUID)",
+                        "name": "practiceId",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "GetMemberships of events retrieved successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/event.ResponseDto"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Registers a new event with the provided details.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "summary": "Create a new event",
+                "parameters": [
+                    {
+                        "description": "Event details",
+                        "name": "event",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/event.RequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Event created successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/events/{id}": {
+            "put": {
+                "description": "Updates the details of an existing event.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "summary": "Update an event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Event HubSpotId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated event details",
+                        "name": "event",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/event.RequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Event updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Event not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes an event by its HubSpotId.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "summary": "Delete an event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Event HubSpotId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Event deleted successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid HubSpotId",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Event not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/events/{id}/details": {
+            "get": {
+                "description": "Retrieves details of a specific event based on its HubSpotId.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "summary": "Get event details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Event HubSpotId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Event details retrieved successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid HubSpotId",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Event not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/facilities": {
+            "get": {
+                "description": "Retrieves a list of all facilities, optionally filtered by name.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "facilities"
+                ],
+                "summary": "Get all facilities",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Facility name filter",
+                        "name": "name",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "GetMemberships of facilities retrieved successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/facility.ResponseDto"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Registers a new facility with the provided details.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "facilities"
+                ],
+                "summary": "Create a new facility",
+                "parameters": [
+                    {
+                        "description": "Facility details",
+                        "name": "facility",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/facility.RequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Facility created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/facility.ResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/facilities/{id}": {
+            "get": {
+                "description": "Retrieves a facility by its HubSpotId.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "facilities"
+                ],
+                "summary": "Get a facility by HubSpotId",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Facility HubSpotId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Facility retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/facility.ResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid HubSpotId",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Facility not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Updates the details of an existing facility by its HubSpotId.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "facilities"
+                ],
+                "summary": "Update a facility",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Facility HubSpotId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated facility details",
+                        "name": "facility",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/facility.RequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Facility updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Facility not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes a facility by its HubSpotId.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "facilities"
+                ],
+                "summary": "Delete a facility",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Facility HubSpotId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Facility deleted successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid HubSpotId",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Facility not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/facility-categories": {
+            "get": {
+                "description": "Retrieves a list of all facility categories.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "facility-categories"
+                ],
+                "summary": "Get all facility categories",
+                "responses": {
+                    "200": {
+                        "description": "GetMemberships of facility categories retrieved successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/facility.CategoryResponseDto"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Registers a new facility category with the provided name.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "facility-categories"
+                ],
+                "summary": "Create a new facility category",
+                "parameters": [
+                    {
+                        "description": "Facility Category details",
+                        "name": "facility_category",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/facility.CategoryRequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Facility category created successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/facility-categories/{id}": {
+            "get": {
+                "description": "Retrieves a facility category by its ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "facility-categories"
+                ],
+                "summary": "Get a facility category by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Facility Category ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Facility category retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/facility.CategoryResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Facility category not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Updates the details of an existing facility category by ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "facility-categories"
+                ],
+                "summary": "Update a facility category",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Facility Category ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated facility category details",
+                        "name": "facility_category",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/facility.CategoryRequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Facility category updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Facility category not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes a facility category by its ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "facility-categories"
+                ],
+                "summary": "Delete a facility category",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Facility Category ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Facility category deleted successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Facility category not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/membership-plan": {
+            "get": {
+                "description": "Get membership plans by membership HubSpotId",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "membership-plans"
+                ],
+                "summary": "Get membership plans by membership HubSpotId",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by customer ID",
+                        "name": "customerId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by membership ID",
+                        "name": "membershipId",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "GetMemberships of membership plans retrieved successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/membership_plan.PlanResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid membership HubSpotId",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Membership plans not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Create a new membership plan",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "membership-plans"
+                ],
+                "summary": "Create a new membership plan",
+                "parameters": [
+                    {
+                        "description": "Membership plan details",
+                        "name": "plan",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/membership_plan.PlanRequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Membership plan created successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/membership-plan/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Update a membership plan",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "membership-plans"
+                ],
+                "summary": "Update a membership plan",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Plan ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Membership plan details",
+                        "name": "plan",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/membership_plan.PlanRequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Membership plan updated successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Membership plan not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Delete a membership plan by HubSpotId",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "membership-plans"
+                ],
+                "summary": "Delete a membership plan",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Plan ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Membership plan deleted successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid HubSpotId",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Membership plan not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/memberships": {
             "get": {
                 "description": "Get a list of memberships",
                 "consumes": [
@@ -30,11 +1982,11 @@ const docTemplate = `{
                 "summary": "Get a list of memberships",
                 "responses": {
                     "200": {
-                        "description": "List of memberships retrieved successfully",
+                        "description": "GetMemberships of memberships retrieved successfully",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/membership.MembershipResponse"
+                                "$ref": "#/definitions/membership.Response"
                             }
                         }
                     },
@@ -71,7 +2023,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/membership.MembershipRequestDto"
+                            "$ref": "#/definitions/membership.RequestDto"
                         }
                     }
                 ],
@@ -96,9 +2048,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/memberships/{id}": {
+        "/memberships/{id}": {
             "get": {
-                "description": "Get a membership by ID",
+                "description": "Get a membership by HubSpotId",
                 "consumes": [
                     "application/json"
                 ],
@@ -108,7 +2060,7 @@ const docTemplate = `{
                 "tags": [
                     "memberships"
                 ],
-                "summary": "Get a membership by ID",
+                "summary": "Get a membership by HubSpotId",
                 "parameters": [
                     {
                         "type": "string",
@@ -123,11 +2075,11 @@ const docTemplate = `{
                     "200": {
                         "description": "Membership retrieved successfully",
                         "schema": {
-                            "$ref": "#/definitions/membership.MembershipResponse"
+                            "$ref": "#/definitions/membership.Response"
                         }
                     },
                     "400": {
-                        "description": "Bad Request: Invalid ID",
+                        "description": "Bad Request: Invalid HubSpotId",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -181,7 +2133,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/membership.MembershipRequestDto"
+                            "$ref": "#/definitions/membership.RequestDto"
                         }
                     }
                 ],
@@ -218,7 +2170,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Delete a membership by ID",
+                "description": "Delete a membership by HubSpotId",
                 "consumes": [
                     "application/json"
                 ],
@@ -244,7 +2196,7 @@ const docTemplate = `{
                         "description": "No Content: Membership deleted successfully"
                     },
                     "400": {
-                        "description": "Bad Request: Invalid ID",
+                        "description": "Bad Request: Invalid HubSpotId",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -267,9 +2219,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/memberships/{membershipId}/plans": {
+        "/practices": {
             "get": {
-                "description": "Get membership plans by membership ID",
+                "description": "Get a list of practices",
                 "consumes": [
                     "application/json"
                 ],
@@ -277,474 +2229,30 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "membership-plans"
+                    "practices"
                 ],
-                "summary": "Get membership plans by membership ID",
+                "summary": "Get a list of practices",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Membership ID",
-                        "name": "membershipId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of membership plans retrieved successfully",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/membership.MembershipPlanResponse"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid membership ID",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Membership plans not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "Create a new membership plan",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "membership-plans"
-                ],
-                "summary": "Create a new membership plan",
-                "parameters": [
-                    {
-                        "description": "Membership plan details",
-                        "name": "plan",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/membership.MembershipPlanRequestDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Membership plan created successfully"
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/memberships/{membershipId}/plans/{planId}": {
-            "put": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "Update a membership plan",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "membership-plans"
-                ],
-                "summary": "Update a membership plan",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Membership ID",
-                        "name": "membershipId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Plan ID",
-                        "name": "planId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Membership plan details",
-                        "name": "plan",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/membership.MembershipPlanRequestDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content: Membership plan updated successfully"
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Membership plan not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "Delete a membership plan by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "membership-plans"
-                ],
-                "summary": "Delete a membership plan",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Membership ID",
-                        "name": "membershipId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Plan ID",
-                        "name": "planId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content: Membership plan deleted successfully"
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid ID",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Membership plan not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/staffs": {
-            "get": {
-                "description": "Get a list of staff members",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "staff"
-                ],
-                "summary": "Get a list of staff members",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "example": "\"f47ac10b-58cc-4372-a567-0e02b2c3d479\"",
-                        "description": "Role ID to filter staff",
-                        "name": "role",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of staff members retrieved successfully",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/dto.StaffResponseDto"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/staffs/{id}": {
-            "put": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "Update a staff member",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "staff"
-                ],
-                "summary": "Update a staff member",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "example": "\"f47ac10b-58cc-4372-a567-0e02b2c3d479\"",
-                        "description": "Staff ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Staff details",
-                        "name": "staff",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.StaffRequestDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content: Staff updated successfully"
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Staff not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "Delete a staff member by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "staff"
-                ],
-                "summary": "Delete a staff member",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "example": "\"f47ac10b-58cc-4372-a567-0e02b2c3d479\"",
-                        "description": "Staff ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content: Staff deleted successfully"
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid ID",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Staff not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/login": {
-            "post": {
-                "description": "Authenticates a user using credentials and returns a JWT token",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "authentication"
-                ],
-                "summary": "Authenticate a user and return a JWT token",
-                "parameters": [
-                    {
-                        "description": "User login credentials",
-                        "name": "credentials",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.LoginCredentialsDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "User authenticated successfully",
-                        "schema": {
-                            "$ref": "#/definitions/entity.UserInfo"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid credentials",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/courses": {
-            "get": {
-                "description": "Get a list of courses",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "courses"
-                ],
-                "summary": "Get a list of courses",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by course name",
+                        "description": "Filter by practice name",
                         "name": "name",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Filter by course description",
+                        "description": "Filter by practice description",
                         "name": "description",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "List of courses retrieved successfully",
+                        "description": "GetMemberships of practices retrieved successfully",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/dto.CourseResponse"
+                                "$ref": "#/definitions/dto.PracticeResponse"
                             }
                         }
                     },
@@ -763,7 +2271,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Create a new course",
+                "description": "Create a new practice",
                 "consumes": [
                     "application/json"
                 ],
@@ -771,25 +2279,25 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "courses"
+                    "practices"
                 ],
-                "summary": "Create a new course",
+                "summary": "Create a new practice",
                 "parameters": [
                     {
-                        "description": "Course details",
-                        "name": "course",
+                        "description": "Practice details",
+                        "name": "practice",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CourseRequestDto"
+                            "$ref": "#/definitions/dto.PracticeRequestDto"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "Course created successfully",
+                        "description": "Practice created successfully",
                         "schema": {
-                            "$ref": "#/definitions/dto.CourseResponse"
+                            "$ref": "#/definitions/dto.PracticeResponse"
                         }
                     },
                     "400": {
@@ -809,65 +2317,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/courses/{id}": {
-            "get": {
-                "description": "Get a course by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "courses"
-                ],
-                "summary": "Get a course by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Course ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Course retrieved successfully",
-                        "schema": {
-                            "$ref": "#/definitions/dto.CourseResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid ID",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Course not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
+        "/practices/{id}": {
             "put": {
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "description": "Update a course",
+                "description": "Update a practice",
                 "consumes": [
                     "application/json"
                 ],
@@ -875,30 +2332,30 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "courses"
+                    "practices"
                 ],
-                "summary": "Update a course",
+                "summary": "Update a practice",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Course ID",
+                        "description": "Practice HubSpotId",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Course details",
-                        "name": "course",
+                        "description": "Practice details",
+                        "name": "practice",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CourseRequestDto"
+                            "$ref": "#/definitions/dto.PracticeRequestDto"
                         }
                     }
                 ],
                 "responses": {
                     "204": {
-                        "description": "No Content: Course updated successfully"
+                        "description": "No Content: Practice updated successfully"
                     },
                     "400": {
                         "description": "Bad Request: Invalid input",
@@ -908,7 +2365,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Not Found: Course not found",
+                        "description": "Not Found: Practice not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -929,7 +2386,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Delete a course by ID",
+                "description": "Delete a practice by HubSpotId",
                 "consumes": [
                     "application/json"
                 ],
@@ -937,13 +2394,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "courses"
+                    "practices"
                 ],
-                "summary": "Delete a course",
+                "summary": "Delete a practice",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Course ID",
+                        "description": "Practice HubSpotId",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -951,17 +2408,17 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "204": {
-                        "description": "No Content"
+                        "description": "No Content: Practice deleted successfully"
                     },
                     "400": {
-                        "description": "Bad Request: Invalid ID",
+                        "description": "Bad Request: Invalid HubSpotId",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "404": {
-                        "description": "Not Found: Course not found",
+                        "description": "Not Found: Practice not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -977,9 +2434,116 @@ const docTemplate = `{
                 }
             }
         },
-        "/register/child/pending": {
+        "/practices/{name}": {
+            "get": {
+                "description": "Get a practice by name",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "practices"
+                ],
+                "summary": "Get a practice by name",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Practice Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Practice retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PracticeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid Name",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Practice not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/purchases/memberships": {
             "post": {
-                "description": "Registers a child account that requires parental confirmation before activation",
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Allows a customer to purchase a membership plan by providing the plan details.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "purchases"
+                ],
+                "summary": "Purchase a membership plan",
+                "parameters": [
+                    {
+                        "description": "Membership purchase details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/customer.MembershipPlanRequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Membership purchased successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error: Failed to process membership purchase",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/register/child": {
+            "post": {
+                "description": "Registers a new child account using the provided details and associates it with the parent based on the Firebase authentication token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -989,35 +2553,49 @@ const docTemplate = `{
                 "tags": [
                     "registration"
                 ],
-                "summary": "Create a pending child account",
+                "summary": "Register a new child account and associate it with the parent",
                 "parameters": [
                     {
-                        "description": "Pending child account details",
-                        "name": "child",
+                        "description": "Child account registration details",
+                        "name": "customer",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CreatePendingChildAccountDto"
+                            "$ref": "#/definitions/customer.RegistrationDto"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Firebase token for user verification",
+                        "name": "firebase_token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "Child account request created successfully",
+                        "description": "Child account registered successfully",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Bad Request: Invalid input",
+                        "description": "Bad Request: Invalid input or missing Firebase token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized: Invalid Firebase token or insufficient permissions",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Internal Server Error: Failed to register child account or associate with parent",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1028,7 +2606,7 @@ const docTemplate = `{
         },
         "/register/customer": {
             "post": {
-                "description": "Registers a new customer with provided details and creates JWT authentication token",
+                "description": "Registers a new customer using the provided details, creates a customer account, and returns a JWT token for authentication. The Firebase token is used for user verification.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1038,7 +2616,7 @@ const docTemplate = `{
                 "tags": [
                     "registration"
                 ],
-                "summary": "Create a new customer account",
+                "summary": "Register a new customer and create JWT token",
                 "parameters": [
                     {
                         "description": "Customer registration details",
@@ -1046,27 +2624,34 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CustomerRegistrationDto"
+                            "$ref": "#/definitions/customer.RegistrationDto"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Firebase token for user verification",
+                        "name": "firebase_token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "Customer registered successfully",
+                        "description": "Customer registered and JWT token issued successfully",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Bad Request: Invalid input",
+                        "description": "Bad Request: Invalid input or missing Firebase token",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Internal Server Error: Failed to register customer or create JWT token",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1077,7 +2662,7 @@ const docTemplate = `{
         },
         "/register/staff": {
             "post": {
-                "description": "Registers a new staff member with the provided details",
+                "description": "Creates a new staff account in the system using the provided registration details.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1087,7 +2672,7 @@ const docTemplate = `{
                 "tags": [
                     "registration"
                 ],
-                "summary": "Create a new staff member account",
+                "summary": "Register a new staff member",
                 "parameters": [
                     {
                         "description": "Staff registration details",
@@ -1095,7 +2680,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.StaffRegistrationDto"
+                            "$ref": "#/definitions/staff.RegistrationRequestDto"
                         }
                     }
                 ],
@@ -1103,7 +2688,8 @@ const docTemplate = `{
                     "201": {
                         "description": "Staff registered successfully",
                         "schema": {
-                            "$ref": "#/definitions/dto.StaffRegistrationDto"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -1113,8 +2699,15 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized: Invalid or missing authentication token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Internal Server Error: Failed to register staff",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1125,7 +2718,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.CourseRequestDto": {
+        "course.RequestDto": {
             "type": "object",
             "properties": {
                 "description": {
@@ -1136,7 +2729,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.CourseResponse": {
+        "course.ResponseDto": {
             "type": "object",
             "properties": {
                 "description": {
@@ -1150,31 +2743,34 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.CreatePendingChildAccountDto": {
+        "customer.MembershipPlanRequestDto": {
             "type": "object",
             "required": [
-                "child",
-                "parent_email"
+                "start_date"
             ],
             "properties": {
-                "child": {
-                    "$ref": "#/definitions/dto.CustomerRegistrationDto"
+                "membership_plan_id": {
+                    "type": "string"
                 },
-                "parent_email": {
+                "start_date": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 }
             }
         },
-        "dto.CustomerRegistrationDto": {
+        "customer.RegistrationDto": {
             "type": "object",
             "required": [
-                "email",
+                "age",
                 "first_name",
-                "last_name"
+                "last_name",
+                "waivers"
             ],
             "properties": {
-                "email": {
-                    "type": "string"
+                "age": {
+                    "type": "integer"
                 },
                 "first_name": {
                     "type": "string"
@@ -1182,19 +2778,15 @@ const docTemplate = `{
                 "last_name": {
                     "type": "string"
                 },
-                "password": {
-                    "type": "string",
-                    "minLength": 8
-                },
                 "waivers": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.CustomerWaiverSigningDto"
+                        "$ref": "#/definitions/customer.WaiverSigningDto"
                     }
                 }
             }
         },
-        "dto.CustomerWaiverSigningDto": {
+        "customer.WaiverSigningDto": {
             "type": "object",
             "required": [
                 "waiver_url"
@@ -1208,99 +2800,68 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.LoginCredentialsDto": {
+        "dto.EnrollmentRequestDto": {
             "type": "object",
             "required": [
-                "email",
-                "password"
+                "customer_id",
+                "event_id"
             ],
             "properties": {
-                "email": {
+                "customer_id": {
                     "type": "string"
                 },
-                "password": {
-                    "type": "string",
-                    "minLength": 8
-                }
-            }
-        },
-        "dto.StaffRegistrationDto": {
-            "type": "object",
-            "required": [
-                "email",
-                "first_name",
-                "is_active",
-                "last_name",
-                "role_name"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "first_name": {
-                    "type": "string"
-                },
-                "is_active": {
-                    "type": "boolean"
-                },
-                "last_name": {
-                    "type": "string"
-                },
-                "role_name": {
+                "event_id": {
                     "type": "string"
                 }
             }
         },
-        "dto.StaffRequestDto": {
+        "dto.EnrollmentResponse": {
             "type": "object",
             "properties": {
+                "checked_in_at": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
-                "is_active": {
-                    "type": "boolean"
-                },
-                "role_id": {
+                "customer_id": {
                     "type": "string"
                 },
-                "role_name": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.StaffResponseDto": {
-            "type": "object",
-            "properties": {
-                "created_at": {
+                "event_id": {
                     "type": "string"
                 },
                 "id": {
                     "type": "string"
                 },
-                "is_active": {
+                "is_cancelled": {
                     "type": "boolean"
-                },
-                "role_id": {
-                    "type": "string"
-                },
-                "role_name": {
-                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"
                 }
             }
         },
-        "entity.StaffInfo": {
+        "dto.PracticeRequestDto": {
             "type": "object",
             "properties": {
-                "isActive": {
-                    "type": "boolean"
+                "description": {
+                    "type": "string"
                 },
-                "role": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.PracticeResponse": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }
@@ -1314,15 +2875,252 @@ const docTemplate = `{
                 "firstName": {
                     "type": "string"
                 },
+                "id": {
+                    "type": "string"
+                },
                 "lastName": {
                     "type": "string"
                 },
                 "staffInfo": {
-                    "$ref": "#/definitions/entity.StaffInfo"
+                    "$ref": "#/definitions/staff.Details"
                 }
             }
         },
-        "membership.MembershipPlanRequestDto": {
+        "event.RequestDto": {
+            "type": "object",
+            "required": [
+                "begin_time",
+                "day",
+                "end_time"
+            ],
+            "properties": {
+                "begin_time": {
+                    "type": "string",
+                    "example": "07:00:00+00:00"
+                },
+                "course_id": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
+                },
+                "day": {
+                    "type": "string",
+                    "example": "MONDAY"
+                },
+                "end_time": {
+                    "type": "string",
+                    "example": "08:00:00+00:00"
+                },
+                "location_id": {
+                    "type": "string",
+                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+                },
+                "practice_id": {
+                    "type": "string",
+                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+                }
+            }
+        },
+        "event.ResponseDto": {
+            "type": "object",
+            "properties": {
+                "begin_time": {
+                    "type": "string"
+                },
+                "course_id": {
+                    "type": "string"
+                },
+                "day": {
+                    "type": "string"
+                },
+                "end_time": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "location_id": {
+                    "type": "string"
+                },
+                "practice_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "event_staff.EventStaffBase": {
+            "type": "object",
+            "properties": {
+                "event_id": {
+                    "type": "string"
+                },
+                "staff_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "event_staff.RequestDto": {
+            "type": "object",
+            "properties": {
+                "base": {
+                    "$ref": "#/definitions/event_staff.EventStaffBase"
+                }
+            }
+        },
+        "facility.CategoryRequestDto": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "facility.CategoryResponseDto": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "facility.RequestDto": {
+            "type": "object",
+            "required": [
+                "facility_type_id",
+                "location",
+                "name"
+            ],
+            "properties": {
+                "facility_type_id": {
+                    "type": "string"
+                },
+                "location": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "facility.ResponseDto": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "facility_category": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "hubspot.UserAssociation": {
+            "type": "object",
+            "properties": {
+                "results": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "type": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "hubspot.UserAssociations": {
+            "type": "object",
+            "properties": {
+                "contacts": {
+                    "$ref": "#/definitions/hubspot.UserAssociation"
+                }
+            }
+        },
+        "hubspot.UserProps": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "firstname": {
+                    "type": "string"
+                },
+                "lastname": {
+                    "type": "string"
+                }
+            }
+        },
+        "hubspot.UserResponse": {
+            "type": "object",
+            "properties": {
+                "associations": {
+                    "$ref": "#/definitions/hubspot.UserAssociations"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "properties": {
+                    "$ref": "#/definitions/hubspot.UserProps"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "membership.RequestDto": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "example": "Access to all premium features"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Premium Membership"
+                }
+            }
+        },
+        "membership.Response": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "membership_plan.PlanRequestDto": {
             "type": "object",
             "required": [
                 "membership_id",
@@ -1346,7 +3144,7 @@ const docTemplate = `{
                 }
             }
         },
-        "membership.MembershipPlanResponse": {
+        "membership_plan.PlanResponse": {
             "type": "object",
             "properties": {
                 "amt_periods": {
@@ -1369,29 +3167,80 @@ const docTemplate = `{
                 }
             }
         },
-        "membership.MembershipRequestDto": {
+        "staff.Details": {
             "type": "object",
             "properties": {
-                "description": {
-                    "type": "string",
-                    "example": "Access to all premium features"
+                "createdAt": {
+                    "type": "string"
                 },
-                "name": {
-                    "type": "string",
-                    "example": "Premium Membership"
+                "isActive": {
+                    "type": "boolean"
+                },
+                "roleID": {
+                    "type": "string"
+                },
+                "roleName": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
                 }
             }
         },
-        "membership.MembershipResponse": {
+        "staff.RegistrationRequestDto": {
+            "type": "object",
+            "required": [
+                "hubspot_id",
+                "is_active",
+                "role_name"
+            ],
+            "properties": {
+                "hubspot_id": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "role_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "staff.RequestDto": {
+            "type": "object",
+            "required": [
+                "is_active",
+                "role_name"
+            ],
+            "properties": {
+                "is_active": {
+                    "type": "boolean"
+                },
+                "role_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "staff.ResponseDto": {
             "type": "object",
             "properties": {
-                "description": {
+                "created_at": {
                     "type": "string"
                 },
                 "id": {
                     "type": "string"
                 },
-                "name": {
+                "is_active": {
+                    "description": "Indicates if the staff is still an active employee",
+                    "type": "boolean"
+                },
+                "role_id": {
+                    "type": "string"
+                },
+                "role_name": {
+                    "type": "string"
+                },
+                "updated_at": {
                     "type": "string"
                 }
             }

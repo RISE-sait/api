@@ -10,14 +10,14 @@ import (
 
 func main() {
 	// Define the base directories to scan
-	baseDirs := []string{"./cmd/server", "./internal/domains"}
+	baseDirs := []string{"./cmd/server", "./internal/domains", "./internal/services/hubspot"}
 
 	skipDirs := map[string]bool{
 		"persistence": true,
 		"values":      true,
-		"services":    true,
 		"tests":       true,
 		"test_utils":  true,
+		"service":     true,
 	}
 
 	// Collect all subdirectories containing .go files, excluding "persistence" directories
@@ -28,20 +28,27 @@ func main() {
 				return err
 			}
 			if info.IsDir() {
-				// Skip "persistence" directories
-				if skipDirs[info.Name()] {
-					return filepath.SkipDir
-				}
 
-				if info.Name() == "entities" {
-					parentDir := filepath.Base(filepath.Dir(path))
-					if parentDir != "identity" {
+				if baseDir == "./internal/domains" {
+
+					if skipDirs[info.Name()] {
 						return filepath.SkipDir
+					}
+
+					if info.Name() == "entity" {
+						parentDir := filepath.Base(filepath.Dir(path))
+						if parentDir != "identity" {
+							return filepath.SkipDir
+						}
 					}
 				}
 
 				// Check if the directory contains .go files
-				goFiles, _ := filepath.Glob(filepath.Join(path, "*.go"))
+				goFiles, err := filepath.Glob(filepath.Join(path, "*.go"))
+				if err != nil {
+					return err
+				}
+
 				if len(goFiles) > 0 {
 					dirs = append(dirs, path)
 				}

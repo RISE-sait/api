@@ -1,11 +1,11 @@
 package repository
 
 import (
-	database_errors "api/internal/constants"
+	databaseErrors "api/internal/constants"
 	"api/internal/di"
-	entity "api/internal/domains/facility/entities"
+	entity "api/internal/domains/facility/entity"
 	db "api/internal/domains/facility/persistence/sqlc/generated"
-	"api/internal/domains/facility/values"
+	values "api/internal/domains/facility/values"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
@@ -27,12 +27,12 @@ func NewFacilityRepository(container *di.Container) *FacilityRepository {
 	}
 }
 
-func (r *FacilityRepository) CreateFacility(c context.Context, facility *values.FacilityDetails) (*entity.Facility, *errLib.CommonError) {
+func (r *FacilityRepository) CreateFacility(c context.Context, facility *values.Details) (*entity.Facility, *errLib.CommonError) {
 
 	dbParams := db.CreateFacilityParams{
-		Name:           facility.Name,
-		Location:       facility.Location,
-		FacilityTypeID: facility.FacilityTypeID,
+		Name:               facility.Name,
+		Address:            facility.Address,
+		FacilityCategoryID: facility.FacilityCategoryID,
 	}
 
 	dbFacility, err := r.Queries.CreateFacility(c, dbParams)
@@ -42,9 +42,9 @@ func (r *FacilityRepository) CreateFacility(c context.Context, facility *values.
 		if errors.As(err, &pqErr) {
 			// Handle specific Postgres errors
 			switch pqErr.Code {
-			case database_errors.ForeignKeyViolation:
-				return nil, errLib.New("Invalid facility type ID", http.StatusBadRequest)
-			case database_errors.UniqueViolation:
+			case databaseErrors.ForeignKeyViolation:
+				return nil, errLib.New("Invalid facility type HubSpotId", http.StatusBadRequest)
+			case databaseErrors.UniqueViolation:
 				return nil, errLib.New("Facility with the given name already exists", http.StatusConflict)
 			}
 		}
@@ -54,11 +54,11 @@ func (r *FacilityRepository) CreateFacility(c context.Context, facility *values.
 
 	return &entity.Facility{
 		ID: dbFacility.ID,
-		FacilityDetails: values.FacilityDetails{
-			Name:           dbFacility.Name,
-			Location:       dbFacility.Location,
-			FacilityType:   dbFacility.FacilityTypeName,
-			FacilityTypeID: dbFacility.FacilityTypeID,
+		Details: values.Details{
+			Name:                 dbFacility.Name,
+			Address:              dbFacility.Address,
+			FacilityCategoryName: dbFacility.FacilityCategoryName,
+			FacilityCategoryID:   dbFacility.FacilityCategoryID,
 		},
 	}, nil
 }
@@ -70,17 +70,17 @@ func (r *FacilityRepository) GetFacility(c context.Context, id uuid.UUID) (*enti
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errLib.New("Facility not found", http.StatusNotFound)
 		}
-		log.Printf("Failed to retrieve facility with ID: %s, error: %v", id, err)
+		log.Printf("Failed to retrieve facility with HubSpotId: %s, error: %v", id, err)
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
 	return &entity.Facility{
 		ID: facility.ID,
-		FacilityDetails: values.FacilityDetails{
-			Name:           facility.Name,
-			Location:       facility.Location,
-			FacilityType:   facility.FacilityType,
-			FacilityTypeID: facility.FacilityTypeID,
+		Details: values.Details{
+			Name:                 facility.Name,
+			Address:              facility.Address,
+			FacilityCategoryName: facility.FacilityCategoryName,
+			FacilityCategoryID:   facility.FacilityCategoryID,
 		},
 	}, nil
 }
@@ -97,11 +97,11 @@ func (r *FacilityRepository) GetFacilities(c context.Context, name string) ([]en
 	for i, dbFacility := range dbFacilities {
 		courses[i] = entity.Facility{
 			ID: dbFacility.ID,
-			FacilityDetails: values.FacilityDetails{
-				Name:           dbFacility.Name,
-				Location:       dbFacility.Location,
-				FacilityType:   dbFacility.FacilityType,
-				FacilityTypeID: dbFacility.FacilityTypeID,
+			Details: values.Details{
+				Name:                 dbFacility.Name,
+				Address:              dbFacility.Address,
+				FacilityCategoryName: dbFacility.FacilityCategoryName,
+				FacilityCategoryID:   dbFacility.FacilityCategoryID,
 			},
 		}
 	}
@@ -112,10 +112,10 @@ func (r *FacilityRepository) GetFacilities(c context.Context, name string) ([]en
 func (r *FacilityRepository) UpdateFacility(c context.Context, facility *entity.Facility) *errLib.CommonError {
 
 	dbParams := db.UpdateFacilityParams{
-		ID:             facility.ID,
-		Name:           facility.Name,
-		Location:       facility.Location,
-		FacilityTypeID: facility.FacilityTypeID,
+		ID:                 facility.ID,
+		Name:               facility.Name,
+		Address:            facility.Address,
+		FacilityCategoryID: facility.FacilityCategoryID,
 	}
 
 	row, err := r.Queries.UpdateFacility(c, dbParams)
@@ -125,18 +125,18 @@ func (r *FacilityRepository) UpdateFacility(c context.Context, facility *entity.
 		if errors.As(err, &pqErr) {
 			// Handle specific Postgres errors
 			switch pqErr.Code {
-			case database_errors.ForeignKeyViolation:
-				return errLib.New("Facility type ID not found", http.StatusBadRequest)
-			case database_errors.UniqueViolation:
+			case databaseErrors.ForeignKeyViolation:
+				return errLib.New("Facility type HubSpotId not found", http.StatusBadRequest)
+			case databaseErrors.UniqueViolation:
 				return errLib.New("Facility with the given name already exists", http.StatusConflict)
 			}
 		}
-		log.Printf("Error updating facility with ID: %s, error: %v", facility.ID, err)
+		log.Printf("Error updating facility with HubSpotId: %s, error: %v", facility.ID, err)
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
 	if row == 0 {
-		log.Printf("Facility not found with ID: %s", facility.ID)
+		log.Printf("Facility not found with HubSpotId: %s", facility.ID)
 		return errLib.New("Facility not found", http.StatusNotFound)
 	}
 
@@ -149,7 +149,7 @@ func (r *FacilityRepository) DeleteFacility(c context.Context, id uuid.UUID) *er
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
-			log.Printf("Error deleting facility with ID: %s, error: %v", id, err)
+			log.Printf("Error deleting facility with HubSpotId: %s, error: %v", id, err)
 			return errLib.New("Internal server error", http.StatusInternalServerError)
 		}
 	}

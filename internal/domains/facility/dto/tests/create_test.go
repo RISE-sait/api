@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"api/internal/domains/facility/dto"
+	dto "api/internal/domains/facility/dto"
 	"api/internal/libs/validators"
 
 	"github.com/google/uuid"
@@ -23,7 +23,7 @@ func TestDecodeCreateFacilityRequestBody(t *testing.T) {
 			name: "Valid JSON",
 			jsonInput: `{
 				"name": "Facility A",
-				"location": "Location A",
+				"location": "Address A",
 				"facility_type_id": "b2f6ae19-62ff-4e64-aecc-08b432a8b593"
 			}`,
 			expectError: false,
@@ -32,7 +32,7 @@ func TestDecodeCreateFacilityRequestBody(t *testing.T) {
 			name: "Invalid JSON",
 			jsonInput: `{
 				"name": "Facility A",
-				"location": "Location A",
+				"location": "Address A",
 				"facility_type_id": "b2f6ae19-62ff-4e64-aecc-08b432a8b593"
 			`, // Missing closing brace
 			expectError: true,
@@ -40,7 +40,7 @@ func TestDecodeCreateFacilityRequestBody(t *testing.T) {
 		{
 			name: "Validation: Missing Name",
 			jsonInput: `{
-				"location": "Location A",
+				"location": "Address A",
 				"facility_type_id": "b2f6ae19-62ff-4e64-aecc-08b432a8b593"
 			}`,
 			expectError: false,
@@ -49,13 +49,13 @@ func TestDecodeCreateFacilityRequestBody(t *testing.T) {
 			name: "Validation: Whitespace Name",
 			jsonInput: `{
 				"name": "   ",
-				"location": "Location A",
+				"location": "Address A",
 				"facility_type_id": "b2f6ae19-62ff-4e64-aecc-08b432a8b593"
 			}`,
 			expectError: false,
 		},
 		{
-			name: "Validation: Missing Location",
+			name: "Validation: Missing Address",
 			jsonInput: `{
 				"name": "Facility A",
 				"facility_type_id": "b2f6ae19-62ff-4e64-aecc-08b432a8b593"
@@ -63,18 +63,18 @@ func TestDecodeCreateFacilityRequestBody(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "Validation: Missing FacilityTypeID",
+			name: "Validation: Missing FacilityCategoryID",
 			jsonInput: `{
 				"name": "Facility A",
-				"location": "Location A"
+				"location": "Address A"
 			}`,
 			expectError: false,
 		},
 		{
-			name: "Validation: Invalid FacilityTypeID",
+			name: "Validation: Invalid FacilityCategoryID",
 			jsonInput: `{
 				"name": "Facility A",
-				"location": "Location A",
+				"location": "Address A",
 				"facility_type_id": "invalid-uuid"
 			}`,
 			expectError: true,
@@ -84,7 +84,7 @@ func TestDecodeCreateFacilityRequestBody(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			reqBody := bytes.NewReader([]byte(tt.jsonInput))
-			var target dto.FacilityRequestDto
+			var target dto.RequestDto
 
 			err := validators.ParseJSON(reqBody, &target)
 			if tt.expectError {
@@ -99,7 +99,7 @@ func TestDecodeCreateFacilityRequestBody(t *testing.T) {
 					assert.Equal(t, "Facility A", target.Name)
 				}
 				if strings.TrimSpace(target.Location) != "" {
-					assert.Equal(t, "Location A", target.Location)
+					assert.Equal(t, "Address A", target.Location)
 				}
 				if target.FacilityTypeID != uuid.Nil {
 					assert.Equal(t, uuid.MustParse("b2f6ae19-62ff-4e64-aecc-08b432a8b593"), target.FacilityTypeID)

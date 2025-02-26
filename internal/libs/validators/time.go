@@ -19,11 +19,23 @@ func ParseDateTime(str string) (time.Time, *errLib.CommonError) {
 	return datetime, nil
 }
 
-func ParseTime(timeStr string) (time.Time, *errLib.CommonError) {
-	timeParsed, err := time.Parse("15:04:00", timeStr)
+// ParseTime parses a time string in the format "15:04:05+00:00" (HH:MM:SS+00:00) and returns it in the same format.
+// If the input time string is invalid or does not match the expected format, an error is returned.
+//
+// @param timeStr The time string to parse, in the format "15:04:05+00:00".
+// @return The parsed time string in the format "15:04:05+00:00".
+// @return An error *errLib.CommonError if the input time string is invalid or does not match the expected format.
+func ParseTime(timeStr string) (string, *errLib.CommonError) {
+	// Define the expected time format
+	expectedFormat := "15:04:05+00:00"
+
+	// Parse the time string with the expected format
+	timeParsed, err := time.Parse("15:04:05-07:00", timeStr)
 	if err != nil {
-		errMsg := fmt.Sprintf("Invalid time format. Expected HH:MM:SS, got: %s", timeStr)
-		return time.Time{}, errLib.New(errMsg, http.StatusBadRequest)
+		errMsg := fmt.Sprintf("Invalid time format. Expected format (%s), got: %s", expectedFormat, timeStr)
+		return "", errLib.New(errMsg, http.StatusBadRequest)
 	}
-	return timeParsed, nil
+
+	// Return the time in the same format (15:04:05+00:00)
+	return timeParsed.Format(expectedFormat), nil
 }

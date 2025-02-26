@@ -12,14 +12,17 @@ import (
 	"time"
 )
 
-// HubSpotService handles integration with HubSpot API.
-type HubSpotService struct {
+type Service struct {
 	Client  *http.Client
 	ApiKey  string
 	BaseURL string
 }
 
-func GetHubSpotService() *HubSpotService {
+// GetHubSpotService initializes and returns a new HubSpot service instance.
+//
+// Returns:
+//   - *Service: A pointer to the initialized HubSpot service.
+func GetHubSpotService() *Service {
 
 	apiKey := config.Envs.HubSpotApiKey
 
@@ -27,40 +30,130 @@ func GetHubSpotService() *HubSpotService {
 		Timeout: 10 * time.Second,
 	}
 
-	return &HubSpotService{
+	return &Service{
 		Client:  httpClient,
 		ApiKey:  apiKey,
 		BaseURL: "https://api.hubapi.com/",
 	}
 }
 
-func (s *HubSpotService) GetCustomerById(id string) (*HubSpotCustomerResponse, *errLib.CommonError) {
+// GetUsersByIds retrieves multiple users from HubSpot based on their IDs.
+//
+// Parameters:
+//   - ids: A slice of user IDs.
+//
+// Returns:
+//   - [] UserResponse: A list of user responses from HubSpot.
+//   - *errLib.CommonError: An error if the request fails.
+func (s *Service) GetUsersByIds(ids []string) ([]UserResponse, *errLib.CommonError) {
+	if len(ids) == 0 {
+		return nil, errLib.New("No customer IDs provided", http.StatusBadRequest)
+	}
+
+	url := fmt.Sprintf("%scrm/v3/objects/contacts/batch/read", s.BaseURL)
+
+	// Construct the request body for batch retrieval
+	requestBody := map[string]interface{}{
+		"properties": []string{"firstName", "lastName", "email", "family_role"},
+		"inputs":     make([]map[string]string, len(ids)),
+	}
+
+	for i, id := range ids {
+		requestBody["inputs"].([]map[string]string)[i] = map[string]string{"id": id}
+	}
+
+	// Execute the batch request
+	response, err := executeHubSpotRequest[UsersResponse](s, http.MethodPost, url, requestBody)
+	if err != nil {
+		log.Println("GetUsersByIds err:", err)
+		return nil, errLib.New("Error fetching multiple customers", http.StatusInternalServerError)
+	}
+
+	return response.Results, nil
+}
+
+// GetUserById retrieves a user from HubSpot using their ID.
+//
+// Parameters:
+//   - id: The HubSpot user ID.
+//
+// Returns:
+//   - *UserResponse: The user data from HubSpot.
+//   - *errLib.CommonError: An error if retrieval fails.
+func (s *Service) GetUserById(id string) (*UserResponse, *errLib.CommonError) {
 	url := fmt.Sprintf("%scrm/v3/objects/contacts/%s?associations=contacts&properties=firstName,lastName,family_role,email", s.BaseURL, id)
-	return executeHubSpotRequest[HubSpotCustomerResponse](s, http.MethodGet, url, nil)
+	response, err := executeHubSpotRequest[UserResponse](s, http.MethodGet, url, nil)
+
+	if err != nil {
+		log.Println("GetUserById err:", err)
+		return nil, errLib.New(fmt.Sprintf("Error getting customer with id %v", id), http.StatusInternalServerError)
+	}
+
+	return response, nil
 }
 
-func (s *HubSpotService) GetCustomerByEmail(email string) (*HubSpotCustomerResponse, *errLib.CommonError) {
+// GetUserByEmail retrieves a user from HubSpot by email.
+//
+// Parameters:
+//   - email: The user's email address.
+//
+// Returns:
+//   - *UserResponse: The user data from HubSpot.
+//   - *errLib.CommonError: An error if retrieval fails.
+func (s *Service) GetUserByEmail(email string) (*UserResponse, *errLib.CommonError) {
 
-	url := fmt.Sprintf("%scrm/v3/objects/contacts/%s?associations=contacts&idProperty=email&properties=firstName,lastName,family_role", s.BaseURL, email)
-	response, err := executeHubSpotRequest[HubSpotCustomerResponse](s, http.MethodGet, url, nil)
+	url := fmt.Sprintf("%scrm/v3/objects/contacts/%s?associations=contacts&idProperty=email&properties=firstName,lastName", s.BaseURL, email)
+	response, err := executeHubSpotRequest[UserResponse](s, http.MethodGet, url, nil)
 
-	return response, err
+	if response == nil {
+		return nil, errLib.New(fmt.Sprintf("No user found with associated email %s", email), http.StatusNotFound)
+	}
+
+	if err != nil {
+		log.Println("GetUserByEmail err:", err)
+		return nil, errLib.New(fmt.Sprintf("Error getting user with email %s", email), http.StatusInternalServerError)
+	}
+
+	return response, nil
 }
 
-func (s *HubSpotService) CreateCustomer(customer HubSpotCustomerCreateBody) *errLib.CommonError {
+// CreateUser creates a new user in HubSpot.
+//
+// Parameters:
+//   - props: The user properties to create.
+//
+// Returns:
+//   - string: The HubSpot user ID of the created user.
+//   - *errLib.CommonError: An error if creation fails.
+func (s *Service) CreateUser(props UserProps) (string, *errLib.CommonError) {
 	url := fmt.Sprintf("%scrm/v3/objects/contacts", s.BaseURL)
-	if _, err := executeHubSpotRequest[HubSpotCustomerCreateBody](s, http.MethodPost, url, customer); err != nil {
+
+	body := UserCreationBody{
+		Properties: props,
+	}
+
+	response, err := executeHubSpotRequest[UserResponse](s, http.MethodPost, url, body)
+
+	if err != nil {
 		if err.HTTPCode == http.StatusConflict {
-			return errLib.New("Customer already exists", http.StatusConflict)
+			return "", errLib.New("Customer already exists", http.StatusConflict)
 		}
 
-		log.Println("error creating customer on hubspot: ", err)
-		return errLib.New("Internal server error", http.StatusInternalServerError)
+		log.Println("error creating props on hubspot: ", err)
+		return "", errLib.New("Internal server error", http.StatusInternalServerError)
 	}
-	return nil
+	return response.HubSpotId, nil
 }
 
-func (s *HubSpotService) AssociateChildAndParent(parentId, childId string) *errLib.CommonError {
+// AssociateChildAndParent associates a child account with a parent account in HubSpot.
+//
+// Parameters:
+//   - parentId: The parent user's HubSpot ID.
+//   - childId: The child user's HubSpot ID.
+//
+// Returns:
+//   - *errLib.CommonError: An error if the association fails.
+func (s *Service) AssociateChildAndParent(parentId, childId string) *errLib.CommonError {
 	url := fmt.Sprintf("%scrm/v4/objects/contacts/%s/associations/contacts/%s",
 		s.BaseURL,
 		parentId,
@@ -75,24 +168,67 @@ func (s *HubSpotService) AssociateChildAndParent(parentId, childId string) *errL
 	}
 
 	_, err := executeHubSpotRequest[any](s, http.MethodPut, url, request)
-	return err
+
+	if err != nil {
+		log.Println("error associating customer on hubspot: ", err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+	return nil
 }
 
-// func (s *HubSpotService) GetCustomers(after string) ([]HubSpotCustomerResponse, *errLib.CommonError) {
-// 	url := fmt.Sprintf("%scrm/v3/objects/contacts?limit=10", s.BaseURL)
-// 	if after != "" {
-// 		url += fmt.Sprintf("&after=%s", after)
-// 	}
+// GetUsers retrieves a paginated list of users from HubSpot.
+//
+// Parameters:
+//   - after: The pagination cursor for retrieving the next batch.
+//
+// Returns:
+//   - [] UserResponse: A list of users from HubSpot.
+//   - *errLib.CommonError: An error if retrieval fails.
+func (s *Service) GetUsers(after string) ([]UserResponse, *errLib.CommonError) {
+	url := fmt.Sprintf("%scrm/v3/objects/contacts?limit=10", s.BaseURL)
+	if after != "" {
+		url += fmt.Sprintf("&after=%s", after)
+	}
 
-// 	hubSpotResponse, err := executeHubSpotRequest[HubSpotCustomersResponse](s, http.MethodGet, url, nil)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	hubSpotResponse, err := executeHubSpotRequest[UsersResponse](s, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
 
-// 	return hubSpotResponse.Results, nil
-// }
+	return hubSpotResponse.Results, nil
+}
 
-func executeHubSpotRequest[T any](s *HubSpotService, method, url string, body any) (*T, *errLib.CommonError) {
+// DeleteUser deletes a user from HubSpot.
+//
+// Parameters:
+//   - userId: The user's HubSpot ID.
+//
+// Returns:
+//   - *errLib.CommonError: An error if deletion fails.
+func (s *Service) DeleteUser(userId string) *errLib.CommonError {
+	url := fmt.Sprintf("%scrm/v3/objects/contacts/%s", s.BaseURL, userId)
+
+	_, err := executeHubSpotRequest[any](s, http.MethodDelete, url, nil)
+	if err != nil {
+		log.Println("Error deleting customer from HubSpot:", err)
+		return errLib.New("Failed to delete customer", http.StatusInternalServerError)
+	}
+
+	return nil
+}
+
+// executeHubSpotRequest makes an HTTP request to the HubSpot API and unmarshal the response.
+//
+// Parameters:
+//   - s: The HubSpot service instance.
+//   - method: The HTTP method (GET, POST, PUT, DELETE).
+//   - url: The endpoint URL.
+//   - body: The request body (if applicable).
+//
+// Returns:
+//   - *T: The unmarshalled response.
+//   - *errLib.CommonError: An error if the request fails.
+func executeHubSpotRequest[T any](s *Service, method, url string, body any) (*T, *errLib.CommonError) {
 	var requestBody []byte
 	var err error
 
@@ -123,18 +259,19 @@ func executeHubSpotRequest[T any](s *HubSpotService, method, url string, body an
 	defer resp.Body.Close()
 
 	statusCode := resp.StatusCode
-	bytes, err := io.ReadAll(resp.Body)
+	responseBytes, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		return nil, errLib.New(err.Error(), http.StatusInternalServerError)
 	}
+
 	if statusCode >= 400 {
-		return nil, errLib.New(string(bytes), statusCode)
+		return nil, errLib.New(string(responseBytes), statusCode)
 	}
 
 	var result T
 
-	if err := json.Unmarshal(bytes, &result); err != nil {
+	if err := json.Unmarshal(responseBytes, &result); err != nil {
 		return nil, errLib.New(err.Error(), http.StatusInternalServerError)
 	}
 

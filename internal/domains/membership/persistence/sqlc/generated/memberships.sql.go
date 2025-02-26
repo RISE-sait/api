@@ -42,7 +42,7 @@ func (q *Queries) DeleteMembership(ctx context.Context, id uuid.UUID) (int64, er
 	return result.RowsAffected()
 }
 
-const getAllMemberships = `-- name: GetAllMemberships :many
+const getAllMemberships = `-- name: GetMemberships :many
 SELECT id, name, description, created_at, updated_at FROM memberships
 `
 
@@ -90,17 +90,6 @@ func (q *Queries) GetMembershipById(ctx context.Context, id uuid.UUID) (Membersh
 		&i.UpdatedAt,
 	)
 	return i, err
-}
-
-const isMembershipIDExist = `-- name: IsMembershipIDExist :one
-SELECT EXISTS (SELECT 1 FROM memberships WHERE id = $1) AS exists
-`
-
-func (q *Queries) IsMembershipIDExist(ctx context.Context, id uuid.UUID) (bool, error) {
-	row := q.db.QueryRowContext(ctx, isMembershipIDExist, id)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
 }
 
 const updateMembership = `-- name: UpdateMembership :execrows

@@ -12,7 +12,7 @@ CREATE TABLE customer_membership_plans (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY(id),
-    CONSTRAINT fk_customer FOREIGN KEY(customer_id) REFERENCES customers(user_id),
+    CONSTRAINT fk_customer FOREIGN KEY(customer_id) REFERENCES users(id),
     CONSTRAINT fk_membership_plan FOREIGN KEY(membership_plan_id) REFERENCES membership_plans(id),
     CONSTRAINT unique_customer_membership_plan UNIQUE(customer_id, membership_plan_id)
 );

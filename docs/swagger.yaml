@@ -1,13 +1,13 @@
 basePath: /api
 definitions:
-  dto.CourseRequestDto:
+  course.RequestDto:
     properties:
       description:
         type: string
       name:
         type: string
     type: object
-  dto.CourseResponse:
+  course.ResponseDto:
     properties:
       description:
         type: string
@@ -16,37 +16,36 @@ definitions:
       name:
         type: string
     type: object
-  dto.CreatePendingChildAccountDto:
+  customer.MembershipPlanRequestDto:
     properties:
-      child:
-        $ref: '#/definitions/dto.CustomerRegistrationDto'
-      parent_email:
+      membership_plan_id:
+        type: string
+      start_date:
+        type: string
+      status:
         type: string
     required:
-    - child
-    - parent_email
+    - start_date
     type: object
-  dto.CustomerRegistrationDto:
+  customer.RegistrationDto:
     properties:
-      email:
-        type: string
+      age:
+        type: integer
       first_name:
         type: string
       last_name:
         type: string
-      password:
-        minLength: 8
-        type: string
       waivers:
         items:
-          $ref: '#/definitions/dto.CustomerWaiverSigningDto'
+          $ref: '#/definitions/customer.WaiverSigningDto'
         type: array
     required:
-    - email
+    - age
     - first_name
     - last_name
+    - waivers
     type: object
-  dto.CustomerWaiverSigningDto:
+  customer.WaiverSigningDto:
     properties:
       is_waiver_signed:
         type: boolean
@@ -55,69 +54,47 @@ definitions:
     required:
     - waiver_url
     type: object
-  dto.LoginCredentialsDto:
+  dto.EnrollmentRequestDto:
     properties:
-      email:
+      customer_id:
         type: string
-      password:
-        minLength: 8
+      event_id:
         type: string
     required:
-    - email
-    - password
+    - customer_id
+    - event_id
     type: object
-  dto.StaffRegistrationDto:
+  dto.EnrollmentResponse:
     properties:
-      email:
+      checked_in_at:
         type: string
-      first_name:
-        type: string
-      is_active:
-        type: boolean
-      last_name:
-        type: string
-      role_name:
-        type: string
-    required:
-    - email
-    - first_name
-    - is_active
-    - last_name
-    - role_name
-    type: object
-  dto.StaffRequestDto:
-    properties:
       created_at:
         type: string
-      is_active:
-        type: boolean
-      role_id:
+      customer_id:
         type: string
-      role_name:
-        type: string
-      updated_at:
-        type: string
-    type: object
-  dto.StaffResponseDto:
-    properties:
-      created_at:
+      event_id:
         type: string
       id:
         type: string
-      is_active:
+      is_cancelled:
         type: boolean
-      role_id:
-        type: string
-      role_name:
-        type: string
       updated_at:
         type: string
     type: object
-  entity.StaffInfo:
+  dto.PracticeRequestDto:
     properties:
-      isActive:
-        type: boolean
-      role:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  dto.PracticeResponse:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      name:
         type: string
     type: object
   entity.UserInfo:
@@ -126,12 +103,169 @@ definitions:
         type: string
       firstName:
         type: string
+      id:
+        type: string
       lastName:
         type: string
       staffInfo:
-        $ref: '#/definitions/entity.StaffInfo'
+        $ref: '#/definitions/staff.Details'
     type: object
-  membership.MembershipPlanRequestDto:
+  event.RequestDto:
+    properties:
+      begin_time:
+        example: 07:00:00+00:00
+        type: string
+      course_id:
+        example: 00000000-0000-0000-0000-000000000000
+        type: string
+      day:
+        example: MONDAY
+        type: string
+      end_time:
+        example: 08:00:00+00:00
+        type: string
+      location_id:
+        example: 0bab3927-50eb-42b3-9d6b-2350dd00a100
+        type: string
+      practice_id:
+        example: f0e21457-75d4-4de6-b765-5ee13221fd72
+        type: string
+    required:
+    - begin_time
+    - day
+    - end_time
+    type: object
+  event.ResponseDto:
+    properties:
+      begin_time:
+        type: string
+      course_id:
+        type: string
+      day:
+        type: string
+      end_time:
+        type: string
+      id:
+        type: string
+      location_id:
+        type: string
+      practice_id:
+        type: string
+    type: object
+  event_staff.EventStaffBase:
+    properties:
+      event_id:
+        type: string
+      staff_id:
+        type: string
+    type: object
+  event_staff.RequestDto:
+    properties:
+      base:
+        $ref: '#/definitions/event_staff.EventStaffBase'
+    type: object
+  facility.CategoryRequestDto:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  facility.CategoryResponseDto:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  facility.RequestDto:
+    properties:
+      facility_type_id:
+        type: string
+      location:
+        type: string
+      name:
+        type: string
+    required:
+    - facility_type_id
+    - location
+    - name
+    type: object
+  facility.ResponseDto:
+    properties:
+      address:
+        type: string
+      facility_category:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  hubspot.UserAssociation:
+    properties:
+      results:
+        items:
+          properties:
+            id:
+              type: string
+            type:
+              type: string
+          type: object
+        type: array
+    type: object
+  hubspot.UserAssociations:
+    properties:
+      contacts:
+        $ref: '#/definitions/hubspot.UserAssociation'
+    type: object
+  hubspot.UserProps:
+    properties:
+      email:
+        type: string
+      firstname:
+        type: string
+      lastname:
+        type: string
+    type: object
+  hubspot.UserResponse:
+    properties:
+      associations:
+        $ref: '#/definitions/hubspot.UserAssociations'
+      createdAt:
+        type: string
+      id:
+        type: string
+      properties:
+        $ref: '#/definitions/hubspot.UserProps'
+      updatedAt:
+        type: string
+    type: object
+  membership.RequestDto:
+    properties:
+      description:
+        example: Access to all premium features
+        type: string
+      name:
+        example: Premium Membership
+        type: string
+    required:
+    - name
+    type: object
+  membership.Response:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  membership_plan.PlanRequestDto:
     properties:
       amt_periods:
         type: integer
@@ -147,7 +281,7 @@ definitions:
     - membership_id
     - price
     type: object
-  membership.MembershipPlanResponse:
+  membership_plan.PlanResponse:
     properties:
       amt_periods:
         type: integer
@@ -162,359 +296,69 @@ definitions:
       price:
         type: integer
     type: object
-  membership.MembershipRequestDto:
+  staff.Details:
     properties:
-      description:
-        example: Access to all premium features
+      createdAt:
         type: string
-      name:
-        example: Premium Membership
+      isActive:
+        type: boolean
+      roleID:
+        type: string
+      roleName:
+        type: string
+      updatedAt:
         type: string
     type: object
-  membership.MembershipResponse:
+  staff.RegistrationRequestDto:
     properties:
-      description:
+      hubspot_id:
+        type: string
+      is_active:
+        type: boolean
+      role_name:
+        type: string
+    required:
+    - hubspot_id
+    - is_active
+    - role_name
+    type: object
+  staff.RequestDto:
+    properties:
+      is_active:
+        type: boolean
+      role_name:
+        type: string
+    required:
+    - is_active
+    - role_name
+    type: object
+  staff.ResponseDto:
+    properties:
+      created_at:
         type: string
       id:
         type: string
-      name:
+      is_active:
+        description: Indicates if the staff is still an active employee
+        type: boolean
+      role_id:
+        type: string
+      role_name:
+        type: string
+      updated_at:
         type: string
     type: object
 host: localhost:8080
 info:
   contact: {}
 paths:
-  /api/memberships:
-    get:
-      consumes:
-      - application/json
-      description: Get a list of memberships
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of memberships retrieved successfully
-          schema:
-            items:
-              $ref: '#/definitions/membership.MembershipResponse'
-            type: array
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get a list of memberships
-      tags:
-      - memberships
-    post:
-      consumes:
-      - application/json
-      description: Create a new membership
-      parameters:
-      - description: Membership details
-        in: body
-        name: membership
-        required: true
-        schema:
-          $ref: '#/definitions/membership.MembershipRequestDto'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Membership created successfully
-        "400":
-          description: 'Bad Request: Invalid input'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - Bearer: []
-      summary: Create a new membership
-      tags:
-      - memberships
-  /api/memberships/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a membership by ID
-      parameters:
-      - description: Membership ID
-        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: 'No Content: Membership deleted successfully'
-        "400":
-          description: 'Bad Request: Invalid ID'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Membership not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - Bearer: []
-      summary: Delete a membership
-      tags:
-      - memberships
-    get:
-      consumes:
-      - application/json
-      description: Get a membership by ID
-      parameters:
-      - description: Membership ID
-        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Membership retrieved successfully
-          schema:
-            $ref: '#/definitions/membership.MembershipResponse'
-        "400":
-          description: 'Bad Request: Invalid ID'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Membership not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get a membership by ID
-      tags:
-      - memberships
-    put:
-      consumes:
-      - application/json
-      description: Update a membership
-      parameters:
-      - description: Membership ID
-        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Membership details
-        in: body
-        name: membership
-        required: true
-        schema:
-          $ref: '#/definitions/membership.MembershipRequestDto'
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: 'No Content: Membership updated successfully'
-        "400":
-          description: 'Bad Request: Invalid input'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Membership not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - Bearer: []
-      summary: Update a membership
-      tags:
-      - memberships
-  /api/memberships/{membershipId}/plans:
-    get:
-      consumes:
-      - application/json
-      description: Get membership plans by membership ID
-      parameters:
-      - description: Membership ID
-        in: path
-        name: membershipId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of membership plans retrieved successfully
-          schema:
-            items:
-              $ref: '#/definitions/membership.MembershipPlanResponse'
-            type: array
-        "400":
-          description: 'Bad Request: Invalid membership ID'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Membership plans not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get membership plans by membership ID
-      tags:
-      - membership-plans
-    post:
-      consumes:
-      - application/json
-      description: Create a new membership plan
-      parameters:
-      - description: Membership plan details
-        in: body
-        name: plan
-        required: true
-        schema:
-          $ref: '#/definitions/membership.MembershipPlanRequestDto'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Membership plan created successfully
-        "400":
-          description: 'Bad Request: Invalid input'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - Bearer: []
-      summary: Create a new membership plan
-      tags:
-      - membership-plans
-  /api/memberships/{membershipId}/plans/{planId}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a membership plan by ID
-      parameters:
-      - description: Membership ID
-        in: path
-        name: membershipId
-        required: true
-        type: string
-      - description: Plan ID
-        in: path
-        name: planId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: 'No Content: Membership plan deleted successfully'
-        "400":
-          description: 'Bad Request: Invalid ID'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Membership plan not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - Bearer: []
-      summary: Delete a membership plan
-      tags:
-      - membership-plans
-    put:
-      consumes:
-      - application/json
-      description: Update a membership plan
-      parameters:
-      - description: Membership ID
-        in: path
-        name: membershipId
-        required: true
-        type: string
-      - description: Plan ID
-        in: path
-        name: planId
-        required: true
-        type: string
-      - description: Membership plan details
-        in: body
-        name: plan
-        required: true
-        schema:
-          $ref: '#/definitions/membership.MembershipPlanRequestDto'
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: 'No Content: Membership plan updated successfully'
-        "400":
-          description: 'Bad Request: Invalid input'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Membership plan not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - Bearer: []
-      summary: Update a membership plan
-      tags:
-      - membership-plans
   /api/staffs:
     get:
       consumes:
       - application/json
       description: Get a list of staff members
       parameters:
-      - description: Role ID to filter staff
+      - description: RoleName HubSpotId to filter staff
         example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
         in: query
         name: role
@@ -523,10 +367,10 @@ paths:
       - application/json
       responses:
         "200":
-          description: List of staff members retrieved successfully
+          description: GetMemberships of staff members retrieved successfully
           schema:
             items:
-              $ref: '#/definitions/dto.StaffResponseDto'
+              $ref: '#/definitions/staff.ResponseDto'
             type: array
         "500":
           description: Internal Server Error
@@ -540,9 +384,9 @@ paths:
     delete:
       consumes:
       - application/json
-      description: Delete a staff member by ID
+      description: Delete a staff member by HubSpotId
       parameters:
-      - description: Staff ID
+      - description: Staff HubSpotId
         example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
         in: path
         name: id
@@ -554,7 +398,7 @@ paths:
         "204":
           description: 'No Content: Staff deleted successfully'
         "400":
-          description: 'Bad Request: Invalid ID'
+          description: 'Bad Request: Invalid HubSpotId'
           schema:
             additionalProperties: true
             type: object
@@ -578,7 +422,7 @@ paths:
       - application/json
       description: Update a staff member
       parameters:
-      - description: Staff ID
+      - description: Staff HubSpotId
         example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
         in: path
         name: id
@@ -589,7 +433,7 @@ paths:
         name: staff
         required: true
         schema:
-          $ref: '#/definitions/dto.StaffRequestDto'
+          $ref: '#/definitions/staff.RequestDto'
       produces:
       - application/json
       responses:
@@ -619,14 +463,14 @@ paths:
     post:
       consumes:
       - application/json
-      description: Authenticates a user using credentials and returns a JWT token
+      description: Authenticates a user using Firebase token and returns a JWT token
+        for the authenticated user
       parameters:
-      - description: User login credentials
-        in: body
-        name: credentials
+      - description: Firebase token for user verification
+        in: header
+        name: firebase_token
         required: true
-        schema:
-          $ref: '#/definitions/dto.LoginCredentialsDto'
+        type: string
       produces:
       - application/json
       responses:
@@ -635,7 +479,7 @@ paths:
           schema:
             $ref: '#/definitions/entity.UserInfo'
         "400":
-          description: 'Bad Request: Invalid credentials'
+          description: 'Bad Request: Invalid Firebase token'
           schema:
             additionalProperties: true
             type: object
@@ -665,10 +509,10 @@ paths:
       - application/json
       responses:
         "200":
-          description: List of courses retrieved successfully
+          description: GetMemberships of courses retrieved successfully
           schema:
             items:
-              $ref: '#/definitions/dto.CourseResponse'
+              $ref: '#/definitions/course.ResponseDto'
             type: array
         "500":
           description: Internal Server Error
@@ -688,14 +532,14 @@ paths:
         name: course
         required: true
         schema:
-          $ref: '#/definitions/dto.CourseRequestDto'
+          $ref: '#/definitions/course.RequestDto'
       produces:
       - application/json
       responses:
         "201":
           description: Course created successfully
           schema:
-            $ref: '#/definitions/dto.CourseResponse'
+            $ref: '#/definitions/course.ResponseDto'
         "400":
           description: 'Bad Request: Invalid input'
           schema:
@@ -715,9 +559,9 @@ paths:
     delete:
       consumes:
       - application/json
-      description: Delete a course by ID
+      description: Delete a course by HubSpotId
       parameters:
-      - description: Course ID
+      - description: Course HubSpotId
         in: path
         name: id
         required: true
@@ -728,7 +572,7 @@ paths:
         "204":
           description: No Content
         "400":
-          description: 'Bad Request: Invalid ID'
+          description: 'Bad Request: Invalid HubSpotId'
           schema:
             additionalProperties: true
             type: object
@@ -750,9 +594,9 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get a course by ID
+      description: Get a course by HubSpotId
       parameters:
-      - description: Course ID
+      - description: Course HubSpotId
         in: path
         name: id
         required: true
@@ -763,9 +607,9 @@ paths:
         "200":
           description: Course retrieved successfully
           schema:
-            $ref: '#/definitions/dto.CourseResponse'
+            $ref: '#/definitions/course.ResponseDto'
         "400":
-          description: 'Bad Request: Invalid ID'
+          description: 'Bad Request: Invalid HubSpotId'
           schema:
             additionalProperties: true
             type: object
@@ -779,7 +623,7 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Get a course by ID
+      summary: Get a course by HubSpotId
       tags:
       - courses
     put:
@@ -787,7 +631,7 @@ paths:
       - application/json
       description: Update a course
       parameters:
-      - description: Course ID
+      - description: Course HubSpotId
         in: path
         name: id
         required: true
@@ -797,7 +641,7 @@ paths:
         name: course
         required: true
         schema:
-          $ref: '#/definitions/dto.CourseRequestDto'
+          $ref: '#/definitions/course.RequestDto'
       produces:
       - application/json
       responses:
@@ -823,24 +667,244 @@ paths:
       summary: Update a course
       tags:
       - courses
-  /register/child/pending:
+  /customers:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves customers based on an event HubSpotId or returns all
+        customers
+      parameters:
+      - description: Event HubSpotId (if specified, fetches customers for the event)
+        in: query
+        name: event_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Customers retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/hubspot.UserResponse'
+            type: array
+        "400":
+          description: 'Bad Request: Invalid parameters'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get customers
+      tags:
+      - customers
+  /customers/{email}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a customer using their email address
+      parameters:
+      - description: Customer Email
+        in: path
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Customer retrieved successfully
+          schema:
+            $ref: '#/definitions/hubspot.UserResponse'
+        "400":
+          description: 'Bad Request: Invalid Email'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Customer not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a customer by email
+      tags:
+      - customers
+  /customers/{email}/children:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a customer's children using the parent's email address
+      parameters:
+      - description: Parent Email
+        in: path
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Customer's children retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/hubspot.UserResponse'
+            type: array
+        "400":
+          description: 'Bad Request: Invalid Email'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Parent or children not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a customer's children by parent email
+      tags:
+      - customers
+  /enrollments:
     post:
       consumes:
       - application/json
-      description: Registers a child account that requires parental confirmation before
-        activation
+      description: Create a new enrollment
       parameters:
-      - description: Pending child account details
+      - description: Enrollment details
         in: body
-        name: child
+        name: enrollment
         required: true
         schema:
-          $ref: '#/definitions/dto.CreatePendingChildAccountDto'
+          $ref: '#/definitions/dto.EnrollmentRequestDto'
       produces:
       - application/json
       responses:
         "201":
-          description: Child account request created successfully
+          description: Enrollment created successfully
+          schema:
+            $ref: '#/definitions/dto.EnrollmentResponse'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Create a new enrollment
+      tags:
+      - enrollments
+  /enrollments/{customerId}/{eventId}:
+    get:
+      consumes:
+      - application/json
+      description: Get enrollments by customer and event HubSpotId
+      parameters:
+      - description: Customer HubSpotId
+        in: path
+        name: customerId
+        required: true
+        type: string
+      - description: Event HubSpotId
+        in: path
+        name: eventId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Enrollments retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/dto.EnrollmentResponse'
+            type: array
+        "400":
+          description: 'Bad Request: Invalid HubSpotId'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Enrollments not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get enrollments by customer and event HubSpotId
+      tags:
+      - enrollments
+  /enrollments/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an enrollment by HubSpotId
+      parameters:
+      - description: Enrollment HubSpotId
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Enrollment deleted successfully'
+        "400":
+          description: 'Bad Request: Invalid HubSpotId'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Enrollment not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Delete an enrollment
+      tags:
+      - enrollments
+  /event-staff:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a staff member from an event using event_id and staff_id
+        in the request body.
+      parameters:
+      - description: Event and staff unassignment details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/event_staff.RequestDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Staff successfully unassigned from event
           schema:
             additionalProperties: true
             type: object
@@ -854,73 +918,1262 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Create a pending child account
+      summary: Unassign a staff member from an event
+      tags:
+      - event_staff
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all staff assigned to an event using event_id as a query
+        parameter.
+      parameters:
+      - description: Event ID (UUID)
+        in: query
+        name: event_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: GetMemberships of staff assigned to the event
+          schema:
+            items:
+              $ref: '#/definitions/staff.ResponseDto'
+            type: array
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Event not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get staff assigned to an event
+      tags:
+      - event_staff
+    post:
+      consumes:
+      - application/json
+      description: Assign a staff member to an event using event_id and staff_id in
+        the request body.
+      parameters:
+      - description: Event and staff assignment details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/event_staff.RequestDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Staff successfully assigned to event
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Assign a staff member to an event
+      tags:
+      - event_staff
+  /events:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all events, with optional filters by course, location,
+        and practice.
+      parameters:
+      - description: Filter by course ID (UUID)
+        in: query
+        name: courseId
+        type: string
+      - description: Filter by location ID (UUID)
+        in: query
+        name: locationId
+        type: string
+      - description: Filter by practice ID (UUID)
+        in: query
+        name: practiceId
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: GetMemberships of events retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/event.ResponseDto'
+            type: array
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all events
+      tags:
+      - events
+    post:
+      consumes:
+      - application/json
+      description: Registers a new event with the provided details.
+      parameters:
+      - description: Event details
+        in: body
+        name: event
+        required: true
+        schema:
+          $ref: '#/definitions/event.RequestDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Event created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new event
+      tags:
+      - events
+  /events/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes an event by its HubSpotId.
+      parameters:
+      - description: Event HubSpotId
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Event deleted successfully'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Bad Request: Invalid HubSpotId'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Event not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete an event
+      tags:
+      - events
+    put:
+      consumes:
+      - application/json
+      description: Updates the details of an existing event.
+      parameters:
+      - description: Event HubSpotId
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated event details
+        in: body
+        name: event
+        required: true
+        schema:
+          $ref: '#/definitions/event.RequestDto'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Event updated successfully'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Event not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update an event
+      tags:
+      - events
+  /events/{id}/details:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves details of a specific event based on its HubSpotId.
+      parameters:
+      - description: Event HubSpotId
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Event details retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Bad Request: Invalid HubSpotId'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Event not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get event details
+      tags:
+      - events
+  /facilities:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of all facilities, optionally filtered by name.
+      parameters:
+      - description: Facility name filter
+        in: query
+        name: name
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: GetMemberships of facilities retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/facility.ResponseDto'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all facilities
+      tags:
+      - facilities
+    post:
+      consumes:
+      - application/json
+      description: Registers a new facility with the provided details.
+      parameters:
+      - description: Facility details
+        in: body
+        name: facility
+        required: true
+        schema:
+          $ref: '#/definitions/facility.RequestDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Facility created successfully
+          schema:
+            $ref: '#/definitions/facility.ResponseDto'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new facility
+      tags:
+      - facilities
+  /facilities/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a facility by its HubSpotId.
+      parameters:
+      - description: Facility HubSpotId
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Facility deleted successfully'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Bad Request: Invalid HubSpotId'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Facility not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete a facility
+      tags:
+      - facilities
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a facility by its HubSpotId.
+      parameters:
+      - description: Facility HubSpotId
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Facility retrieved successfully
+          schema:
+            $ref: '#/definitions/facility.ResponseDto'
+        "400":
+          description: 'Bad Request: Invalid HubSpotId'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Facility not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a facility by HubSpotId
+      tags:
+      - facilities
+    put:
+      consumes:
+      - application/json
+      description: Updates the details of an existing facility by its HubSpotId.
+      parameters:
+      - description: Facility HubSpotId
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated facility details
+        in: body
+        name: facility
+        required: true
+        schema:
+          $ref: '#/definitions/facility.RequestDto'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Facility updated successfully'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Facility not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update a facility
+      tags:
+      - facilities
+  /facility-categories:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of all facility categories.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: GetMemberships of facility categories retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/facility.CategoryResponseDto'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all facility categories
+      tags:
+      - facility-categories
+    post:
+      consumes:
+      - application/json
+      description: Registers a new facility category with the provided name.
+      parameters:
+      - description: Facility Category details
+        in: body
+        name: facility_category
+        required: true
+        schema:
+          $ref: '#/definitions/facility.CategoryRequestDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Facility category created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new facility category
+      tags:
+      - facility-categories
+  /facility-categories/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a facility category by its ID.
+      parameters:
+      - description: Facility Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Facility category deleted successfully'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Bad Request: Invalid ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Facility category not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete a facility category
+      tags:
+      - facility-categories
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a facility category by its ID.
+      parameters:
+      - description: Facility Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Facility category retrieved successfully
+          schema:
+            $ref: '#/definitions/facility.CategoryResponseDto'
+        "400":
+          description: 'Bad Request: Invalid ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Facility category not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a facility category by ID
+      tags:
+      - facility-categories
+    put:
+      consumes:
+      - application/json
+      description: Updates the details of an existing facility category by ID.
+      parameters:
+      - description: Facility Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated facility category details
+        in: body
+        name: facility_category
+        required: true
+        schema:
+          $ref: '#/definitions/facility.CategoryRequestDto'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Facility category updated successfully'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Facility category not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update a facility category
+      tags:
+      - facility-categories
+  /membership-plan:
+    get:
+      consumes:
+      - application/json
+      description: Get membership plans by membership HubSpotId
+      parameters:
+      - description: Filter by customer ID
+        in: query
+        name: customerId
+        type: string
+      - description: Filter by membership ID
+        in: query
+        name: membershipId
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: GetMemberships of membership plans retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/membership_plan.PlanResponse'
+            type: array
+        "400":
+          description: 'Bad Request: Invalid membership HubSpotId'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Membership plans not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get membership plans by membership HubSpotId
+      tags:
+      - membership-plans
+    post:
+      consumes:
+      - application/json
+      description: Create a new membership plan
+      parameters:
+      - description: Membership plan details
+        in: body
+        name: plan
+        required: true
+        schema:
+          $ref: '#/definitions/membership_plan.PlanRequestDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Membership plan created successfully
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Create a new membership plan
+      tags:
+      - membership-plans
+  /membership-plan/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a membership plan by HubSpotId
+      parameters:
+      - description: Plan ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Membership plan deleted successfully'
+        "400":
+          description: 'Bad Request: Invalid HubSpotId'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Membership plan not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Delete a membership plan
+      tags:
+      - membership-plans
+    put:
+      consumes:
+      - application/json
+      description: Update a membership plan
+      parameters:
+      - description: Plan ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Membership plan details
+        in: body
+        name: plan
+        required: true
+        schema:
+          $ref: '#/definitions/membership_plan.PlanRequestDto'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Membership plan updated successfully'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Membership plan not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Update a membership plan
+      tags:
+      - membership-plans
+  /memberships:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of memberships
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: GetMemberships of memberships retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/membership.Response'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a list of memberships
+      tags:
+      - memberships
+    post:
+      consumes:
+      - application/json
+      description: Create a new membership
+      parameters:
+      - description: Membership details
+        in: body
+        name: membership
+        required: true
+        schema:
+          $ref: '#/definitions/membership.RequestDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Membership created successfully
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Create a new membership
+      tags:
+      - memberships
+  /memberships/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a membership by HubSpotId
+      parameters:
+      - description: Membership ID
+        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Membership deleted successfully'
+        "400":
+          description: 'Bad Request: Invalid HubSpotId'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Membership not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Delete a membership
+      tags:
+      - memberships
+    get:
+      consumes:
+      - application/json
+      description: Get a membership by HubSpotId
+      parameters:
+      - description: Membership ID
+        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Membership retrieved successfully
+          schema:
+            $ref: '#/definitions/membership.Response'
+        "400":
+          description: 'Bad Request: Invalid HubSpotId'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Membership not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a membership by HubSpotId
+      tags:
+      - memberships
+    put:
+      consumes:
+      - application/json
+      description: Update a membership
+      parameters:
+      - description: Membership ID
+        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Membership details
+        in: body
+        name: membership
+        required: true
+        schema:
+          $ref: '#/definitions/membership.RequestDto'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Membership updated successfully'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Membership not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Update a membership
+      tags:
+      - memberships
+  /practices:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of practices
+      parameters:
+      - description: Filter by practice name
+        in: query
+        name: name
+        type: string
+      - description: Filter by practice description
+        in: query
+        name: description
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: GetMemberships of practices retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/dto.PracticeResponse'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a list of practices
+      tags:
+      - practices
+    post:
+      consumes:
+      - application/json
+      description: Create a new practice
+      parameters:
+      - description: Practice details
+        in: body
+        name: practice
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PracticeRequestDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Practice created successfully
+          schema:
+            $ref: '#/definitions/dto.PracticeResponse'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Create a new practice
+      tags:
+      - practices
+  /practices/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a practice by HubSpotId
+      parameters:
+      - description: Practice HubSpotId
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Practice deleted successfully'
+        "400":
+          description: 'Bad Request: Invalid HubSpotId'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Practice not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Delete a practice
+      tags:
+      - practices
+    put:
+      consumes:
+      - application/json
+      description: Update a practice
+      parameters:
+      - description: Practice HubSpotId
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Practice details
+        in: body
+        name: practice
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PracticeRequestDto'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Practice updated successfully'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Practice not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Update a practice
+      tags:
+      - practices
+  /practices/{name}:
+    get:
+      consumes:
+      - application/json
+      description: Get a practice by name
+      parameters:
+      - description: Practice Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Practice retrieved successfully
+          schema:
+            $ref: '#/definitions/dto.PracticeResponse'
+        "400":
+          description: 'Bad Request: Invalid Name'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Practice not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a practice by name
+      tags:
+      - practices
+  /purchases/memberships:
+    post:
+      consumes:
+      - application/json
+      description: Allows a customer to purchase a membership plan by providing the
+        plan details.
+      parameters:
+      - description: Membership purchase details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/customer.MembershipPlanRequestDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Membership purchased successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'Internal Server Error: Failed to process membership purchase'
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Purchase a membership plan
+      tags:
+      - purchases
+  /register/child:
+    post:
+      consumes:
+      - application/json
+      description: Registers a new child account using the provided details and associates
+        it with the parent based on the Firebase authentication token.
+      parameters:
+      - description: Child account registration details
+        in: body
+        name: customer
+        required: true
+        schema:
+          $ref: '#/definitions/customer.RegistrationDto'
+      - description: Firebase token for user verification
+        in: header
+        name: firebase_token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Child account registered successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Bad Request: Invalid input or missing Firebase token'
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 'Unauthorized: Invalid Firebase token or insufficient permissions'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'Internal Server Error: Failed to register child account or
+            associate with parent'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Register a new child account and associate it with the parent
       tags:
       - registration
   /register/customer:
     post:
       consumes:
       - application/json
-      description: Registers a new customer with provided details and creates JWT
-        authentication token
+      description: Registers a new customer using the provided details, creates a
+        customer account, and returns a JWT token for authentication. The Firebase
+        token is used for user verification.
       parameters:
       - description: Customer registration details
         in: body
         name: customer
         required: true
         schema:
-          $ref: '#/definitions/dto.CustomerRegistrationDto'
+          $ref: '#/definitions/customer.RegistrationDto'
+      - description: Firebase token for user verification
+        in: header
+        name: firebase_token
+        required: true
+        type: string
       produces:
       - application/json
       responses:
         "201":
-          description: Customer registered successfully
+          description: Customer registered and JWT token issued successfully
           schema:
             additionalProperties: true
             type: object
         "400":
-          description: 'Bad Request: Invalid input'
+          description: 'Bad Request: Invalid input or missing Firebase token'
           schema:
             additionalProperties: true
             type: object
         "500":
-          description: Internal Server Error
+          description: 'Internal Server Error: Failed to register customer or create
+            JWT token'
           schema:
             additionalProperties: true
             type: object
-      summary: Create a new customer account
+      summary: Register a new customer and create JWT token
       tags:
       - registration
   /register/staff:
     post:
       consumes:
       - application/json
-      description: Registers a new staff member with the provided details
+      description: Creates a new staff account in the system using the provided registration
+        details.
       parameters:
       - description: Staff registration details
         in: body
         name: staff
         required: true
         schema:
-          $ref: '#/definitions/dto.StaffRegistrationDto'
+          $ref: '#/definitions/staff.RegistrationRequestDto'
       produces:
       - application/json
       responses:
         "201":
           description: Staff registered successfully
           schema:
-            $ref: '#/definitions/dto.StaffRegistrationDto'
+            additionalProperties: true
+            type: object
         "400":
           description: 'Bad Request: Invalid input'
           schema:
             additionalProperties: true
             type: object
-        "500":
-          description: Internal Server Error
+        "401":
+          description: 'Unauthorized: Invalid or missing authentication token'
           schema:
             additionalProperties: true
             type: object
-      summary: Create a new staff member account
+        "500":
+          description: 'Internal Server Error: Failed to register staff'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Register a new staff member
       tags:
       - registration
 securityDefinitions:

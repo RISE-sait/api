@@ -1,40 +1,40 @@
-package jwt
+package jwtLib
 
 import (
 	"api/config"
-	entity "api/internal/domains/identity/entities"
 	errLib "api/internal/libs/errors"
 	"fmt"
+	"github.com/google/uuid"
 	"net/http"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 )
 
+type StaffInfo struct {
+	Role     string `json:"role"`
+	IsActive bool   `json:"isActive"`
+}
+
 type CustomClaims struct {
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Email     string `json:"email"`
-	Role      string `json:"role"`
-	IsActive  bool   `json:"isActive"`
+	UserID    uuid.UUID  `json:"user_id"`
+	HubspotID *string    `json:"hubspot_id,omitempty"`
+	StaffInfo *StaffInfo `json:"staff_info,omitempty"`
+}
+
+type JwtClaims struct {
+	CustomClaims
 	jwt.StandardClaims
 }
 
-func SignJWT(userInfo entity.UserInfo) (string, *errLib.CommonError) {
+func SignJWT(customClaims CustomClaims) (string, *errLib.CommonError) {
 
-	claims := CustomClaims{
-		FirstName: *userInfo.FirstName,
-		LastName:  *userInfo.LastName,
-		Email:     userInfo.Email,
+	claims := JwtClaims{
+		CustomClaims: customClaims,
 		StandardClaims: jwt.StandardClaims{
 			Issuer:    config.Envs.JwtConfig.Issuer,
 			ExpiresAt: time.Now().Add(time.Hour * 24 * 15).Unix(), // 15 days
 		},
-	}
-
-	if userInfo.StaffInfo != nil {
-		claims.Role = userInfo.StaffInfo.Role
-		claims.IsActive = userInfo.StaffInfo.IsActive
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -47,8 +47,8 @@ func SignJWT(userInfo entity.UserInfo) (string, *errLib.CommonError) {
 	return signedToken, nil
 }
 
-func VerifyToken(tokenString string) (*CustomClaims, *errLib.CommonError) {
-	token, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+func VerifyToken(tokenString string) (*JwtClaims, *errLib.CommonError) {
+	token, err := jwt.ParseWithClaims(tokenString, &JwtClaims{}, func(token *jwt.Token) (interface{}, error) {
 		// Ensure the signing method is HMAC
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -60,7 +60,7 @@ func VerifyToken(tokenString string) (*CustomClaims, *errLib.CommonError) {
 		return nil, errLib.New(err.Error(), http.StatusUnauthorized)
 	}
 
-	if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid {
+	if claims, ok := token.Claims.(*JwtClaims); ok && token.Valid {
 		return claims, nil
 	}
 

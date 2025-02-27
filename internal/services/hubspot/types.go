@@ -36,10 +36,12 @@ type UserAssociations struct {
 }
 
 type UserAssociation struct {
-	Result []struct {
-		ID   string `json:"id"`
-		Type string `json:"type"`
-	} `json:"results"`
+	Result []UserAssociationResult `json:"results"`
+}
+
+type UserAssociationResult struct {
+	ID   string `json:"id"`
+	Type string `json:"type"`
 }
 
 type UserCreationBody struct {

@@ -30,7 +30,7 @@ func NewFacilityCategoriesHandler(container *di.Container) *CategoriesHandler {
 // @Success 201 {object} map[string]interface{} "Facility category created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /facility-categories [post]
+// @Router /facilities/categories [post]
 func (h *CategoriesHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var requestDto dto.CategoryRequestDto
 
@@ -64,7 +64,7 @@ func (h *CategoriesHandler) Create(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Facility category not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /facility-categories/{id} [get]
+// @Router /facilities/categories/{id} [get]
 func (h *CategoriesHandler) GetById(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := validators.ParseUUID(idStr)
@@ -98,7 +98,7 @@ func (h *CategoriesHandler) GetById(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Success 200 {array} dto.CategoryResponseDto "GetMemberships of facility categories retrieved successfully"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /facility-categories [get]
+// @Router /facilities/categories [get]
 func (h *CategoriesHandler) List(w http.ResponseWriter, r *http.Request) {
 	facilityCategories, err := h.Service.List(r.Context())
 	if err != nil {
@@ -126,7 +126,7 @@ func (h *CategoriesHandler) List(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 404 {object} map[string]interface{} "Not Found: Facility category not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /facility-categories/{id} [put]
+// @Router /facilities/categories/{id} [put]
 func (h *CategoriesHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	idStr := chi.URLParam(r, "id")
@@ -164,7 +164,7 @@ func (h *CategoriesHandler) Update(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Facility category not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /facility-categories/{id} [delete]
+// @Router /facilities/categories/{id} [delete]
 func (h *CategoriesHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := validators.ParseUUID(idStr)

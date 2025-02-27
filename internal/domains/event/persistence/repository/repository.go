@@ -3,7 +3,7 @@ package event
 import (
 	entity "api/internal/domains/event/entity"
 	db "api/internal/domains/event/persistence/sqlc/generated"
-	"api/internal/domains/event/values"
+	values "api/internal/domains/event/values"
 	errLib "api/internal/libs/errors"
 	"context"
 	"log"
@@ -25,11 +25,11 @@ func NewEventsRepository(dbQueries *db.Queries) *Repository {
 	}
 }
 
-func (r *Repository) CreateEvent(c context.Context, eventDetails *values.EventDetails) (entity.Event, *errLib.CommonError) {
+func (r *Repository) CreateEvent(c context.Context, eventDetails *values.Details) (entity.Event, *errLib.CommonError) {
 
 	dbParams := db.CreateEventParams{
-		BeginTime: eventDetails.BeginTime,
-		EndTime:   eventDetails.EndTime,
+		BeginDateTime: eventDetails.BeginDateTime,
+		EndDateTime:   eventDetails.EndDateTime,
 		PracticeID: uuid.NullUUID{
 			UUID:  eventDetails.PracticeID,
 			Valid: eventDetails.PracticeID != uuid.Nil,
@@ -39,7 +39,6 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails *values.EventDe
 			Valid: eventDetails.CourseID != uuid.Nil,
 		},
 		LocationID: eventDetails.LocationID,
-		Day:        db.DayEnum(eventDetails.Day),
 	}
 
 	eventDb, err := r.Queries.CreateEvent(c, dbParams)
@@ -55,11 +54,10 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails *values.EventDe
 	}
 
 	event := entity.Event{
-		ID:         eventDb.ID,
-		LocationID: eventDb.LocationID,
-		BeginTime:  eventDb.BeginTime,
-		EndTime:    eventDb.EndTime,
-		Day:        eventDb.Day,
+		ID:            eventDb.ID,
+		LocationID:    eventDb.LocationID,
+		BeginDateTime: eventDb.BeginDateTime,
+		EndDateTime:   eventDb.EndDateTime,
 	}
 
 	if eventDb.PracticeID.Valid {
@@ -70,10 +68,14 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails *values.EventDe
 		event.CourseID = &eventDb.CourseID.UUID
 	}
 
+	if eventDb.GameID.Valid {
+		event.GameID = &eventDb.CourseID.UUID
+	}
+
 	return event, nil
 }
 
-func (r *Repository) GetEvents(ctx context.Context, courseId, locationId, practiceId *uuid.UUID) ([]entity.Event, *errLib.CommonError) {
+func (r *Repository) GetEvents(ctx context.Context, courseId, locationId, practiceId, gameId *uuid.UUID) ([]entity.Event, *errLib.CommonError) {
 
 	getEventsArgs := db.GetEventsParams{}
 
@@ -109,11 +111,10 @@ func (r *Repository) GetEvents(ctx context.Context, courseId, locationId, practi
 	for i, dbEvent := range dbEvents {
 
 		event := entity.Event{
-			ID:         dbEvent.ID,
-			LocationID: dbEvent.LocationID,
-			BeginTime:  dbEvent.BeginTime,
-			EndTime:    dbEvent.EndTime,
-			Day:        dbEvent.Day,
+			ID:            dbEvent.ID,
+			LocationID:    dbEvent.LocationID,
+			BeginDateTime: dbEvent.BeginDateTime,
+			EndDateTime:   dbEvent.EndDateTime,
 		}
 
 		if dbEvent.PracticeID.Valid {
@@ -122,6 +123,10 @@ func (r *Repository) GetEvents(ctx context.Context, courseId, locationId, practi
 
 		if dbEvent.CourseID.Valid {
 			event.CourseID = &dbEvent.CourseID.UUID
+		}
+
+		if dbEvent.GameID.Valid {
+			event.GameID = &dbEvent.GameID.UUID
 		}
 
 		events[i] = event
@@ -133,11 +138,10 @@ func (r *Repository) GetEvents(ctx context.Context, courseId, locationId, practi
 
 func (r *Repository) UpdateEvent(c context.Context, event *entity.Event) (*entity.Event, *errLib.CommonError) {
 	dbEventParams := db.UpdateEventParams{
-		BeginTime:  event.BeginTime,
-		EndTime:    event.EndTime,
-		LocationID: event.LocationID,
-		Day:        event.Day,
-		ID:         event.ID,
+		BeginDateTime: event.BeginDateTime,
+		EndDateTime:   event.EndDateTime,
+		LocationID:    event.LocationID,
+		ID:            event.ID,
 	}
 
 	if event.PracticeID != nil {
@@ -154,6 +158,13 @@ func (r *Repository) UpdateEvent(c context.Context, event *entity.Event) (*entit
 		}
 	}
 
+	if event.GameID != nil {
+		dbEventParams.GameID = uuid.NullUUID{
+			UUID:  *event.GameID,
+			Valid: true,
+		}
+	}
+
 	dbEvent, err := r.Queries.UpdateEvent(c, dbEventParams)
 
 	if err != nil {
@@ -162,11 +173,10 @@ func (r *Repository) UpdateEvent(c context.Context, event *entity.Event) (*entit
 	}
 
 	updatedEvent := entity.Event{
-		ID:         dbEvent.ID,
-		LocationID: dbEvent.LocationID,
-		BeginTime:  dbEvent.BeginTime,
-		EndTime:    dbEvent.EndTime,
-		Day:        dbEvent.Day,
+		ID:            dbEvent.ID,
+		LocationID:    dbEvent.LocationID,
+		BeginDateTime: dbEvent.BeginDateTime,
+		EndDateTime:   dbEvent.EndDateTime,
 	}
 
 	if dbEvent.PracticeID.Valid {
@@ -175,6 +185,10 @@ func (r *Repository) UpdateEvent(c context.Context, event *entity.Event) (*entit
 
 	if dbEvent.CourseID.Valid {
 		updatedEvent.CourseID = &dbEvent.CourseID.UUID
+	}
+
+	if dbEvent.GameID.Valid {
+		updatedEvent.GameID = &dbEvent.GameID.UUID
 	}
 
 	return &updatedEvent, nil
@@ -206,11 +220,10 @@ func (r *Repository) GetEventDetails(ctx context.Context, id uuid.UUID) (*entity
 	}
 
 	event := &entity.Event{
-		ID:         dbEvent.ID,
-		LocationID: dbEvent.LocationID,
-		BeginTime:  dbEvent.BeginTime,
-		EndTime:    dbEvent.EndTime,
-		Day:        dbEvent.Day,
+		ID:            dbEvent.ID,
+		LocationID:    dbEvent.LocationID,
+		BeginDateTime: dbEvent.BeginDateTime,
+		EndDateTime:   dbEvent.EndDateTime,
 	}
 
 	if dbEvent.PracticeID.Valid {
@@ -219,6 +232,10 @@ func (r *Repository) GetEventDetails(ctx context.Context, id uuid.UUID) (*entity
 
 	if dbEvent.CourseID.Valid {
 		event.CourseID = &dbEvent.CourseID.UUID
+	}
+
+	if dbEvent.GameID.Valid {
+		event.GameID = &dbEvent.GameID.UUID
 	}
 
 	return event, nil

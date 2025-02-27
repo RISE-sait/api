@@ -48,7 +48,7 @@ package practice
 
 // 	// Set up the router with the controller
 // 	r := chi.NewRouter()
-// 	r.Post("/courses", controller.CreateCourse)
+// 	r.Post("/courses", controller.CreateGame)
 
 // 	// Serve the HTTP request
 // 	r.ServeHTTP(rr, req)
@@ -84,7 +84,7 @@ package practice
 
 // 	rr := httptest.NewRecorder()
 // 	r := chi.NewRouter()
-// 	r.Post("/courses", controller.CreateCourse)
+// 	r.Post("/courses", controller.CreateGame)
 // 	r.ServeHTTP(rr, req)
 
 // 	require.Equal(t, http.StatusBadRequest, rr.Code)
@@ -113,7 +113,7 @@ package practice
 
 // 	rr := httptest.NewRecorder()
 // 	r := chi.NewRouter()
-// 	r.Post("/courses", controller.CreateCourse)
+// 	r.Post("/courses", controller.CreateGame)
 // 	r.ServeHTTP(rr, req)
 
 // 	require.Equal(t, http.StatusBadRequest, rr.Code)
@@ -142,7 +142,7 @@ package practice
 
 // 	rr := httptest.NewRecorder()
 // 	r := chi.NewRouter()
-// 	r.Post("/courses", controller.CreateCourse)
+// 	r.Post("/courses", controller.CreateGame)
 // 	r.ServeHTTP(rr, req)
 
 // 	require.Equal(t, http.StatusBadRequest, rr.Code)
@@ -168,7 +168,7 @@ package practice
 
 // 	rr1 := httptest.NewRecorder()
 // 	r := chi.NewRouter()
-// 	r.Post("/courses", controller.CreateCourse)
+// 	r.Post("/courses", controller.CreateGame)
 
 // 	req1, err := http.NewRequest("POST", "/courses", bytes.NewBuffer(body))
 // 	require.NoError(t, err)

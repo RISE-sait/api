@@ -1,17 +1,16 @@
 package event
 
 import (
-	"api/internal/custom_types"
-	db "api/internal/domains/event/persistence/sqlc/generated"
 	"github.com/google/uuid"
+	"time"
 )
 
 type Event struct {
-	ID         uuid.UUID
-	PracticeID *uuid.UUID
-	CourseID   *uuid.UUID
-	LocationID uuid.UUID
-	BeginTime  custom_types.TimeWithTimeZone
-	EndTime    custom_types.TimeWithTimeZone
-	Day        db.DayEnum
+	ID            uuid.UUID
+	PracticeID    *uuid.UUID
+	CourseID      *uuid.UUID
+	GameID        *uuid.UUID
+	LocationID    uuid.UUID
+	BeginDateTime time.Time
+	EndDateTime   time.Time
 }

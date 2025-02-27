@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const createCourse = `-- name: CreateCourse :one
+const createCourse = `-- name: CreateGame :one
 INSERT INTO courses (name, description, capacity)
 VALUES ($1, $2, $3)
 RETURNING id, name, description, capacity, created_at, updated_at
@@ -38,7 +38,7 @@ func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (Cou
 	return i, err
 }
 
-const deleteCourse = `-- name: DeleteCourse :execrows
+const deleteCourse = `-- name: DeleteGame :execrows
 DELETE FROM courses WHERE id = $1
 `
 
@@ -50,7 +50,7 @@ func (q *Queries) DeleteCourse(ctx context.Context, id uuid.UUID) (int64, error)
 	return result.RowsAffected()
 }
 
-const getCourseById = `-- name: GetCourseById :one
+const getCourseById = `-- name: GetGameById :one
 SELECT id, name, description, capacity, created_at, updated_at FROM courses WHERE id = $1
 `
 
@@ -68,7 +68,7 @@ func (q *Queries) GetCourseById(ctx context.Context, id uuid.UUID) (Course, erro
 	return i, err
 }
 
-const getCourses = `-- name: GetCourses :many
+const getCourses = `-- name: GetGames :many
 SELECT id, name, description, capacity, created_at, updated_at FROM courses
 WHERE (name ILIKE '%' || $1 || '%' OR $1 IS NULL)
 AND (description ILIKE '%' || $2 || '%' OR $2 IS NULL)
@@ -109,7 +109,7 @@ func (q *Queries) GetCourses(ctx context.Context, arg GetCoursesParams) ([]Cours
 	return items, nil
 }
 
-const updateCourse = `-- name: UpdateCourse :one
+const updateCourse = `-- name: UpdateGame :one
 UPDATE courses
 SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP
 WHERE id = $3

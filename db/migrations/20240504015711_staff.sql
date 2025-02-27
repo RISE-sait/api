@@ -4,8 +4,8 @@ CREATE TABLE staff_roles (
     role_name TEXT NOT NULL UNIQUE
 );
 
-CREATE Table Staff (
-    id UUID PRIMARY KEY REFERENCES users(id),
+CREATE Table users.staff (
+    id UUID PRIMARY KEY REFERENCES users.users(id),
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -13,6 +13,6 @@ CREATE Table Staff (
 );
 
 -- +goose Down
-DROP TABLE IF EXISTS Staff;
+DROP TABLE IF EXISTS users.staff;
 
 DROP TABLE IF EXISTS staff_roles;

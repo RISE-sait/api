@@ -18,7 +18,7 @@ type StaffInfo struct {
 
 type CustomClaims struct {
 	UserID    uuid.UUID  `json:"user_id"`
-	HubspotID *string    `json:"hubspot_id,omitempty"`
+	HubspotID string     `json:"hubspot_id"`
 	StaffInfo *StaffInfo `json:"staff_info,omitempty"`
 }
 

@@ -1,9 +1,18 @@
 -- +goose Up
-CREATE TABLE facility_categories (
+-- +goose StatementBegin
+
+CREATE SCHEMA IF NOT EXISTS facility;
+
+CREATE TABLE facility.facility_categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL
 );
+-- +goose StatementEnd
 
 -- +goose Down
-DROP TABLE IF EXISTS facility_categories;
+-- +goose StatementBegin
 
+DROP TABLE IF EXISTS facility.facility_categories;
+
+DROP SCHEMA IF EXISTS facility;
+-- +goose StatementEnd

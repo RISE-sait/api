@@ -33,7 +33,7 @@ package enrollment
 //		Description: sql.NullString{String: description, Valid: description != ""},
 //	}
 //
-//	course, err := queries.CreateCourse(context.Background(), createCourseParams)
+//	course, err := queries.CreateGame(context.Background(), createCourseParams)
 //
 //	require.NoError(t, err)
 //
@@ -56,7 +56,7 @@ package enrollment
 //		Description: sql.NullString{String: description, Valid: description != ""},
 //	}
 //
-//	course, err := queries.CreateCourse(context.Background(), createCourseParams)
+//	course, err := queries.CreateGame(context.Background(), createCourseParams)
 //	require.NoError(t, err)
 //
 //	// Now, update the course
@@ -67,11 +67,11 @@ package enrollment
 //		Description: sql.NullString{String: "Learn advanced Go programming", Valid: true},
 //	}
 //
-//	_, err = queries.UpdateCourse(context.Background(), updateParams)
+//	_, err = queries.UpdateGame(context.Background(), updateParams)
 //	require.NoError(t, err)
 //
 //	// Get the updated course and verify
-//	updatedCourse, err := queries.GetCourseById(context.Background(), course.HubSpotId)
+//	updatedCourse, err := queries.GetGameById(context.Background(), course.HubSpotId)
 //	require.NoError(t, err)
 //	require.Equal(t, newName, updatedCourse.Name)
 //	require.Equal(t, "Learn advanced Go programming", updatedCourse.Description.String)
@@ -91,11 +91,11 @@ package enrollment
 //		Description: sql.NullString{String: description, Valid: description != ""},
 //	}
 //
-//	_, err := queries.CreateCourse(context.Background(), createCourseParams)
+//	_, err := queries.CreateGame(context.Background(), createCourseParams)
 //	require.NoError(t, err)
 //
 //	// Attempt to create another course with the same name
-//	_, err = queries.CreateCourse(context.Background(), createCourseParams)
+//	_, err = queries.CreateGame(context.Background(), createCourseParams)
 //	require.Error(t, err)
 //
 //	var pgErr *pq.Error
@@ -115,7 +115,7 @@ package enrollment
 //			Name:        fmt.Sprintf("Course %d", i),
 //			Description: sql.NullString{String: fmt.Sprintf("Description %d", i), Valid: true},
 //		}
-//		_, err := queries.CreateCourse(context.Background(), createCourseParams)
+//		_, err := queries.CreateGame(context.Background(), createCourseParams)
 //		require.NoError(t, err)
 //	}
 //
@@ -125,7 +125,7 @@ package enrollment
 //	}
 //
 //	// Fetch all courses
-//	courses, err := queries.GetCourses(context.Background(), params)
+//	courses, err := queries.GetGames(context.Background(), params)
 //	require.NoError(t, err)
 //	require.EqualValues(t, 5, len(courses))
 //}
@@ -142,7 +142,7 @@ package enrollment
 //			Name:        fmt.Sprintf("Course %d", i),
 //			Description: sql.NullString{String: fmt.Sprintf("Description %d", i), Valid: true},
 //		}
-//		_, err := queries.CreateCourse(context.Background(), createCourseParams)
+//		_, err := queries.CreateGame(context.Background(), createCourseParams)
 //		require.NoError(t, err)
 //	}
 //
@@ -153,7 +153,7 @@ package enrollment
 //	}
 //
 //	// Fetch courses with filter
-//	courses, err := queries.GetCourses(context.Background(), params)
+//	courses, err := queries.GetGames(context.Background(), params)
 //	require.NoError(t, err)
 //
 //	// Ensure that only the filtered course(s) are returned
@@ -176,7 +176,7 @@ package enrollment
 //		Description: sql.NullString{String: "Updated course description", Valid: true},
 //	}
 //
-//	affectedRows, err := queries.UpdateCourse(context.Background(), updateParams)
+//	affectedRows, err := queries.UpdateGame(context.Background(), updateParams)
 //	require.NoError(t, err)
 //
 //	require.Equal(t, affectedRows, int64(0))
@@ -194,7 +194,7 @@ package enrollment
 //		Description: sql.NullString{String: "", Valid: false},
 //	}
 //
-//	course, err := queries.CreateCourse(context.Background(), createCourseParams)
+//	course, err := queries.CreateGame(context.Background(), createCourseParams)
 //	require.NoError(t, err)
 //
 //	// Fetch the course and check if description is null
@@ -215,16 +215,16 @@ package enrollment
 //		Description: sql.NullString{String: "Learn Go programming", Valid: true},
 //	}
 //
-//	course, err := queries.CreateCourse(context.Background(), createCourseParams)
+//	course, err := queries.CreateGame(context.Background(), createCourseParams)
 //	require.NoError(t, err)
 //
 //	// Delete the course
-//	impactedRows, err := queries.DeleteCourse(context.Background(), course.HubSpotId)
+//	impactedRows, err := queries.DeleteGame(context.Background(), course.HubSpotId)
 //	require.NoError(t, err)
 //
 //	require.Equal(t, impactedRows, int64(1))
 //
 //	// Attempt to fetch the deleted course (expecting error)
-//	_, err = queries.GetCourseById(context.Background(), course.HubSpotId)
+//	_, err = queries.GetGameById(context.Background(), course.HubSpotId)
 //	require.Error(t, err)
 //}

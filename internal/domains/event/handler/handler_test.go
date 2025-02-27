@@ -23,7 +23,7 @@ package event
 //	mock.Mock
 //}
 //
-//func (m *MockEventsRepository) GetCourseById(c context.Context, id uuid.UUID) (*entity.Event, *errLib.CommonError) {
+//func (m *MockEventsRepository) GetGameById(c context.Context, id uuid.UUID) (*entity.Event, *errLib.CommonError) {
 //	args := m.Called(c, id)
 //
 //	var event *entity.Event
@@ -39,7 +39,7 @@ package event
 //	return event, err
 //}
 //
-//func (m *MockEventsRepository) UpdateCourse(c context.Context, inputCourse *entity.Event) (*entity.Event, *errLib.CommonError) {
+//func (m *MockEventsRepository) UpdateGame(c context.Context, inputCourse *entity.Event) (*entity.Event, *errLib.CommonError) {
 //	args := m.Called(c, inputCourse)
 //
 //	var course *entity.Event
@@ -119,7 +119,7 @@ package event
 //				Description: "A course for testing",
 //			},
 //			mockSetup: func(m *MockEventsRepository) {
-//				m.On("CreateCourse", mock.Anything, mock.Anything).Return(&entity.Event{
+//				m.On("CreateGame", mock.Anything, mock.Anything).Return(&entity.Event{
 //					HubSpotId:          uuid.New(),
 //					Name:        "Test Course",
 //					Description: "A course for testing",
@@ -134,7 +134,7 @@ package event
 //				Description: "Invalid payload",
 //			},
 //			mockSetup: func(m *MockEventsRepository) {
-//				m.On("CreateCourse", mock.Anything, mock.Anything).Return(
+//				m.On("CreateGame", mock.Anything, mock.Anything).Return(
 //					nil, &errLib.CommonError{Message: "", HTTPCode: http.StatusBadRequest})
 //			}, expectedStatus: http.StatusBadRequest,
 //		},
@@ -155,7 +155,7 @@ package event
 //				Description: "First course with this name",
 //			},
 //			mockSetup: func(m *MockEventsRepository) {
-//				m.On("CreateCourse", mock.Anything, mock.Anything).Return(
+//				m.On("CreateGame", mock.Anything, mock.Anything).Return(
 //					nil, &errLib.CommonError{Message: "", HTTPCode: http.StatusConflict},
 //				)
 //			},
@@ -176,7 +176,7 @@ package event
 //
 //			rr := httptest.NewRecorder()
 //			r := chi.NewRouter()
-//			r.Post("/courses", handlers.CreateCourse)
+//			r.Post("/courses", handlers.CreateGame)
 //			r.ServeHTTP(rr, req)
 //
 //			require.Equal(t, tt.expectedStatus, rr.Code)
@@ -212,7 +212,7 @@ package event
 //		Description: courseDto.Description,
 //	}
 //
-//	mockRepo.On("UpdateCourse", mock.Anything, mock.Anything).Return(courseEntity, nil).Once()
+//	mockRepo.On("UpdateGame", mock.Anything, mock.Anything).Return(courseEntity, nil).Once()
 //
 //	body, err := json.Marshal(courseDto)
 //	require.NoError(t, err)
@@ -223,7 +223,7 @@ package event
 //
 //	rr := httptest.NewRecorder()
 //	r := chi.NewRouter()
-//	r.Put("/courses/{id}", handlers.UpdateCourse)
+//	r.Put("/courses/{id}", handlers.UpdateGame)
 //
 //	r.ServeHTTP(rr, req)
 //
@@ -246,7 +246,7 @@ package event
 //		Description: "Updated course description",
 //	}
 //
-//	mockRepo.On("UpdateCourse", mock.Anything, mock.Anything).Return(&errLib.CommonError{Message: "Course not found", HTTPCode: http.StatusNotFound})
+//	mockRepo.On("UpdateGame", mock.Anything, mock.Anything).Return(&errLib.CommonError{Message: "Course not found", HTTPCode: http.StatusNotFound})
 //
 //	body, err := json.Marshal(courseDto)
 //	require.NoError(t, err)
@@ -257,7 +257,7 @@ package event
 //
 //	rr := httptest.NewRecorder()
 //	r := chi.NewRouter()
-//	r.Put("/courses/{id}", handlers.UpdateCourse)
+//	r.Put("/courses/{id}", handlers.UpdateGame)
 //
 //	r.ServeHTTP(rr, req)
 //
@@ -274,14 +274,14 @@ package event
 //		Description: "A test course",
 //	}
 //
-//	mockRepo.On("GetCourseById", mock.Anything, courseID).Return(courseEntity, nil)
+//	mockRepo.On("GetGameById", mock.Anything, courseID).Return(courseEntity, nil)
 //
 //	req, err := http.NewRequest("GET", "/courses/"+courseID.String(), nil)
 //	require.NoError(t, err)
 //
 //	rr := httptest.NewRecorder()
 //	r := chi.NewRouter()
-//	r.Get("/courses/{id}", handlers.GetCourseById)
+//	r.Get("/courses/{id}", handlers.GetGameById)
 //
 //	r.ServeHTTP(rr, req)
 //
@@ -301,14 +301,14 @@ package event
 //		{HubSpotId: uuid.New(), Name: "Course 2", Description: "Second test course"},
 //	}
 //
-//	mockRepo.On("GetCourses", mock.Anything, mock.Anything, mock.Anything).Return(courses, nil)
+//	mockRepo.On("GetGames", mock.Anything, mock.Anything, mock.Anything).Return(courses, nil)
 //
 //	req, err := http.NewRequest("GET", "/courses", nil)
 //	require.NoError(t, err)
 //
 //	rr := httptest.NewRecorder()
 //	r := chi.NewRouter()
-//	r.Get("/courses", handlers.GetCourses)
+//	r.Get("/courses", handlers.GetGames)
 //
 //	r.ServeHTTP(rr, req)
 //
@@ -325,14 +325,14 @@ package event
 //
 //	courseID := uuid.New()
 //
-//	mockRepo.On("DeleteCourse", mock.Anything, courseID).Return(nil)
+//	mockRepo.On("DeleteGame", mock.Anything, courseID).Return(nil)
 //
 //	req, err := http.NewRequest("DELETE", "/courses/"+courseID.String(), nil)
 //	require.NoError(t, err)
 //
 //	rr := httptest.NewRecorder()
 //	r := chi.NewRouter()
-//	r.Delete("/courses/{id}", handlers.DeleteCourse)
+//	r.Delete("/courses/{id}", handlers.DeleteGame)
 //
 //	r.ServeHTTP(rr, req)
 //
@@ -344,14 +344,14 @@ package event
 //
 //	courseID := uuid.New()
 //
-//	mockRepo.On("DeleteCourse", mock.Anything, courseID).Return(&errLib.CommonError{Message: "Course not found", HTTPCode: http.StatusNotFound})
+//	mockRepo.On("DeleteGame", mock.Anything, courseID).Return(&errLib.CommonError{Message: "Course not found", HTTPCode: http.StatusNotFound})
 //
 //	req, err := http.NewRequest("DELETE", "/courses/"+courseID.String(), nil)
 //	require.NoError(t, err)
 //
 //	rr := httptest.NewRecorder()
 //	r := chi.NewRouter()
-//	r.Delete("/courses/{id}", handlers.DeleteCourse)
+//	r.Delete("/courses/{id}", handlers.DeleteGame)
 //
 //	r.ServeHTTP(rr, req)
 //

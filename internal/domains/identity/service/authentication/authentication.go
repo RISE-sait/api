@@ -10,8 +10,8 @@ import (
 	"api/internal/libs/jwt"
 	"api/internal/services/hubspot"
 	"context"
-	"github.com/google/uuid"
 	"log"
+	"net/http"
 )
 
 type Service struct {
@@ -42,46 +42,31 @@ func NewAuthenticationService(container *di.Container) *Service {
 //
 // Returns:
 //   - *entity.UserInfo: The authenticated user's information.
-//   - *string: The signed JWT token for authentication.
+//   - string: The signed JWT token for authentication.
 //   - *errLib.CommonError: An error if authentication fails.
-func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (*string, *errLib.CommonError) {
+func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string, *errLib.CommonError) {
 
 	firebaseUserInfo, err := s.FirebaseService.GetUserInfo(ctx, idToken)
 
 	if err != nil {
 		log.Println(err.Message)
-		return nil, err
+		return "", err
 	}
 
 	email := firebaseUserInfo.Email
 
-	var userId uuid.UUID
-	var hubspotId *string
-
 	hubspotResponse, err := s.HubSpotService.GetUserByEmail(email)
 
-	// If info is already on HubSpot
-	if err == nil {
-		hubspotId = &hubspotResponse.HubSpotId
+	if err != nil {
+		return "", err
+	}
 
-		id, newErr := s.UserRepo.GetUserIdByHubspotId(ctx, *hubspotId)
+	hubspotId := hubspotResponse.HubSpotId
 
-		if newErr != nil {
-			return nil, newErr
-		}
+	userId, newErr := s.UserRepo.GetUserIdByHubspotId(ctx, hubspotId)
 
-		userId = *id
-	} else {
-		// info is not on HubSpot yet
-
-		userTempInfo, err := s.UserInfoTempRepo.GetTempUserInfoByEmail(ctx, email)
-
-		if err != nil {
-			return nil, err
-		}
-
-		userId = userTempInfo.ID
-
+	if newErr != nil {
+		return "", newErr
 	}
 
 	jwtCustomClaims := jwtLib.CustomClaims{
@@ -101,8 +86,60 @@ func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (*string
 	jwtToken, err := jwtLib.SignJWT(jwtCustomClaims)
 
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return &jwtToken, nil
+	return jwtToken, nil
+}
+
+// AuthenticateChild authenticates a child user by verifying their association with a parent user in HubSpot.
+// It retrieves the child's user ID from the database and generates a JWT token.
+//
+// Parameters:
+//   - ctx: The request context.
+//   - childHubspotId: The HubSpot ID of the child user.
+//   - parentHubspotId: The HubSpot ID of the parent user.
+//
+// Returns:
+//   - string: The signed JWT token for authentication.
+//   - *errLib.CommonError: An error if authentication fails.
+func (s *Service) AuthenticateChild(ctx context.Context, childHubspotId, parentHubspotId string) (string, *errLib.CommonError) {
+
+	parentInfo, err := s.HubSpotService.GetUserById(parentHubspotId)
+
+	if err != nil {
+		return "", err
+	}
+
+	if !isChildAssociated(parentInfo.Associations.Contact.Result, childHubspotId) {
+		return "", errLib.New("child is not associated with the parent", http.StatusNotFound)
+	}
+
+	childId, newErr := s.UserRepo.GetUserIdByHubspotId(ctx, childHubspotId)
+
+	if newErr != nil {
+		return "", newErr
+	}
+
+	jwtCustomClaims := jwtLib.CustomClaims{
+		UserID:    childId,
+		HubspotID: childHubspotId,
+	}
+
+	jwtToken, err := jwtLib.SignJWT(jwtCustomClaims)
+
+	if err != nil {
+		return "", err
+	}
+
+	return jwtToken, nil
+}
+
+func isChildAssociated(contacts []hubspot.UserAssociationResult, childHubspotId string) bool {
+	for _, contact := range contacts {
+		if contact.Type == "child_parent" && contact.ID == childHubspotId {
+			return true
+		}
+	}
+	return false
 }

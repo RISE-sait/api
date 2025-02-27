@@ -8,9 +8,9 @@ VALUES ($1, $2);
 --     AND (practice_id = $2 or $2 IS NULL);
 
 -- name: GetStaffsAssignedToEvent :many
-SELECT staff.*
-FROM staff
-JOIN event_staff ON staff.id = event_staff.staff_id
+SELECT s.*
+FROM users.staff s
+JOIN event_staff ON s.id = event_staff.staff_id
 WHERE event_id = $1;
 
 -- name: UnassignStaffFomEvent :execrows

@@ -8,7 +8,7 @@ CREATE TABLE customer_discount_usage (
     PRIMARY KEY (customer_id, discount_id),
     CONSTRAINT fk_customer
         FOREIGN KEY (customer_id) 
-        REFERENCES users(id)
+        REFERENCES users.users(id)
         ON DELETE CASCADE,
     CONSTRAINT fk_discount
         FOREIGN KEY (discount_id) 

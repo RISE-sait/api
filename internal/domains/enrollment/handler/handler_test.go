@@ -118,7 +118,7 @@ func TestCreateCourse(t *testing.T) {
 				Description: "A course for testing",
 			},
 			mockSetup: func(m *MockCourseRepository) {
-				m.On("CreateCourse", mock.Anything, mock.Anything).Return(&entity.Course{
+				m.On("CreateGame", mock.Anything, mock.Anything).Return(&entity.Course{
 					ID:          uuid.New(),
 					Name:        "Test Course",
 					Description: "A course for testing",
@@ -133,7 +133,7 @@ func TestCreateCourse(t *testing.T) {
 				Description: "Invalid payload",
 			},
 			mockSetup: func(m *MockCourseRepository) {
-				m.On("CreateCourse", mock.Anything, mock.Anything).Return(
+				m.On("CreateGame", mock.Anything, mock.Anything).Return(
 					nil, &errLib.CommonError{Message: "", HTTPCode: http.StatusBadRequest})
 			}, expectedStatus: http.StatusBadRequest,
 		},
@@ -154,7 +154,7 @@ func TestCreateCourse(t *testing.T) {
 				Description: "First course with this name",
 			},
 			mockSetup: func(m *MockCourseRepository) {
-				m.On("CreateCourse", mock.Anything, mock.Anything).Return(
+				m.On("CreateGame", mock.Anything, mock.Anything).Return(
 					nil, &errLib.CommonError{Message: "", HTTPCode: http.StatusConflict},
 				)
 			},
@@ -206,7 +206,7 @@ func TestGetCourseById(t *testing.T) {
 		Description: "A test course",
 	}
 
-	mockRepo.On("GetCourseById", mock.Anything, courseID).Return(courseEntity, nil)
+	mockRepo.On("GetGameById", mock.Anything, courseID).Return(courseEntity, nil)
 
 	req, err := http.NewRequest("GET", "/courses/"+courseID.String(), nil)
 	require.NoError(t, err)
@@ -233,7 +233,7 @@ func TestGetCourses(t *testing.T) {
 		{ID: uuid.New(), Name: "Course 2", Description: "Second test course"},
 	}
 
-	mockRepo.On("GetCourses", mock.Anything, mock.Anything, mock.Anything).Return(courses, nil)
+	mockRepo.On("GetGames", mock.Anything, mock.Anything, mock.Anything).Return(courses, nil)
 
 	req, err := http.NewRequest("GET", "/courses", nil)
 	require.NoError(t, err)
@@ -257,7 +257,7 @@ func TestDeleteCourse(t *testing.T) {
 
 	courseID := uuid.New()
 
-	mockRepo.On("DeleteCourse", mock.Anything, courseID).Return(nil)
+	mockRepo.On("DeleteGame", mock.Anything, courseID).Return(nil)
 
 	req, err := http.NewRequest("DELETE", "/courses/"+courseID.String(), nil)
 	require.NoError(t, err)
@@ -276,7 +276,7 @@ func TestDeleteCourse_NotFound(t *testing.T) {
 
 	courseID := uuid.New()
 
-	mockRepo.On("DeleteCourse", mock.Anything, courseID).Return(&errLib.CommonError{Message: "Course not found", HTTPCode: http.StatusNotFound})
+	mockRepo.On("DeleteGame", mock.Anything, courseID).Return(&errLib.CommonError{Message: "Course not found", HTTPCode: http.StatusNotFound})
 
 	req, err := http.NewRequest("DELETE", "/courses/"+courseID.String(), nil)
 	require.NoError(t, err)

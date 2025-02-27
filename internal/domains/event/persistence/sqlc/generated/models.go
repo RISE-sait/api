@@ -10,82 +10,8 @@ import (
 	"fmt"
 	"time"
 
-	"api/internal/custom_types"
 	"github.com/google/uuid"
 )
-
-type DayEnum string
-
-const (
-	DayEnumMONDAY    DayEnum = "MONDAY"
-	DayEnumTUESDAY   DayEnum = "TUESDAY"
-	DayEnumWEDNESDAY DayEnum = "WEDNESDAY"
-	DayEnumTHURSDAY  DayEnum = "THURSDAY"
-	DayEnumFRIDAY    DayEnum = "FRIDAY"
-	DayEnumSATURDAY  DayEnum = "SATURDAY"
-	DayEnumSUNDAY    DayEnum = "SUNDAY"
-)
-
-func (e *DayEnum) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = DayEnum(s)
-	case string:
-		*e = DayEnum(s)
-	default:
-		return fmt.Errorf("unsupported scan type for DayEnum: %T", src)
-	}
-	return nil
-}
-
-type NullDayEnum struct {
-	DayEnum DayEnum `json:"day_enum"`
-	Valid   bool    `json:"valid"` // Valid is true if DayEnum is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullDayEnum) Scan(value interface{}) error {
-	if value == nil {
-		ns.DayEnum, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.DayEnum.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullDayEnum) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.DayEnum), nil
-}
-
-func (e DayEnum) Valid() bool {
-	switch e {
-	case DayEnumMONDAY,
-		DayEnumTUESDAY,
-		DayEnumWEDNESDAY,
-		DayEnumTHURSDAY,
-		DayEnumFRIDAY,
-		DayEnumSATURDAY,
-		DayEnumSUNDAY:
-		return true
-	}
-	return false
-}
-
-func AllDayEnumValues() []DayEnum {
-	return []DayEnum{
-		DayEnumMONDAY,
-		DayEnumTUESDAY,
-		DayEnumWEDNESDAY,
-		DayEnumTHURSDAY,
-		DayEnumFRIDAY,
-		DayEnumSATURDAY,
-		DayEnumSUNDAY,
-	}
-}
 
 type MembershipStatus string
 
@@ -349,15 +275,15 @@ type DiscountRestrictedMembershipPlan struct {
 }
 
 type Event struct {
-	ID         uuid.UUID                     `json:"id"`
-	BeginTime  custom_types.TimeWithTimeZone `json:"begin_time"`
-	EndTime    custom_types.TimeWithTimeZone `json:"end_time"`
-	PracticeID uuid.NullUUID                 `json:"practice_id"`
-	CourseID   uuid.NullUUID                 `json:"course_id"`
-	LocationID uuid.UUID                     `json:"location_id"`
-	CreatedAt  sql.NullTime                  `json:"created_at"`
-	UpdatedAt  sql.NullTime                  `json:"updated_at"`
-	Day        DayEnum                       `json:"day"`
+	ID            uuid.UUID     `json:"id"`
+	BeginDateTime time.Time     `json:"begin_date_time"`
+	EndDateTime   time.Time     `json:"end_date_time"`
+	PracticeID    uuid.NullUUID `json:"practice_id"`
+	CourseID      uuid.NullUUID `json:"course_id"`
+	GameID        uuid.NullUUID `json:"game_id"`
+	LocationID    uuid.UUID     `json:"location_id"`
+	CreatedAt     sql.NullTime  `json:"created_at"`
+	UpdatedAt     sql.NullTime  `json:"updated_at"`
 }
 
 type EventStaff struct {
@@ -375,6 +301,12 @@ type Facility struct {
 type FacilityCategory struct {
 	ID   uuid.UUID `json:"id"`
 	Name string    `json:"name"`
+}
+
+type Game struct {
+	ID        uuid.UUID      `json:"id"`
+	Name      string         `json:"name"`
+	VideoLink sql.NullString `json:"video_link"`
 }
 
 type Location struct {

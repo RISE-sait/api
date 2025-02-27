@@ -3,22 +3,29 @@ package middlewares
 import (
 	errLib "api/internal/libs/errors"
 	jwtLib "api/internal/libs/jwt"
-	"log"
-
 	responseHandlers "api/internal/libs/responses"
 	"context"
 	"net/http"
 	"strings"
 )
 
+// ContextKey is a custom type for context keys to avoid collisions.
+type ContextKey string
+
+const (
+	UserIDKey    ContextKey = "userId"
+	HubspotIDKey ContextKey = "hubspotId"
+)
+
 // JWTAuthMiddleware validates JWT tokens and checks user roles.
 // It allows SUPERADMIN access to all routes and grants access if the user's role matches any allowed role (case-insensitive).
+// If isAllowAnyoneWithValidToken is true, any user with a valid token is allowed, regardless of roles.
 // Responds with 401 for missing/invalid tokens and 403 for unauthorized roles.
 // Adds token claims to the request context.
 //
 // Example:
-// router.Use(JWTAuthMiddleware("admin", "manager"))
-func JWTAuthMiddleware(allowedRoles ...string) func(http.Handler) http.Handler {
+// router.Use(JWTAuthMiddleware(false, "admin", "manager"))
+func JWTAuthMiddleware(isAllowAnyoneWithValidToken bool, allowedRoles ...string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -35,16 +42,17 @@ func JWTAuthMiddleware(allowedRoles ...string) func(http.Handler) http.Handler {
 				return
 			}
 
-			if claims.StaffInfo == nil || !hasRequiredRole(claims.StaffInfo.Role, allowedRoles) {
-				responseHandlers.RespondWithError(w, errLib.New("You do not have permission to access this resource", http.StatusForbidden))
-				return
+			if !isAllowAnyoneWithValidToken {
+
+				if claims.StaffInfo == nil || !hasRequiredRole(claims.StaffInfo.Role, allowedRoles) {
+					responseHandlers.RespondWithError(w, errLib.New("You do not have permission to access this resource", http.StatusForbidden))
+					return
+				}
 			}
 
-			log.Println(claims.UserID)
-
 			// Add the claims to the request context for use in handlers
-			ctx := context.WithValue(r.Context(), "userId", claims.UserID)
-			ctx = context.WithValue(ctx, "hubspotId", claims.HubspotID)
+			ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
+			ctx = context.WithValue(ctx, HubspotIDKey, claims.HubspotID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

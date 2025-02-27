@@ -1,5 +1,40 @@
 basePath: /api
 definitions:
+  barber.RequestDto:
+    properties:
+      barber_id:
+        example: f0e21457-75d4-4de6-b765-5ee13221fd72
+        type: string
+      begin_time:
+        example: "2023-10-05T07:00:00Z"
+        type: string
+      customer_id:
+        example: 00000000-0000-0000-0000-000000000000
+        type: string
+      end_time:
+        example: "2023-10-05T07:00:00Z"
+        type: string
+    required:
+    - begin_time
+    - end_time
+    type: object
+  barber.ResponseDto:
+    properties:
+      barber_id:
+        type: string
+      begin_time:
+        type: string
+      created_at:
+        type: string
+      customer_id:
+        type: string
+      end_time:
+        type: string
+      id:
+        type: string
+      updated_at:
+        type: string
+    type: object
   course.RequestDto:
     properties:
       description:
@@ -15,17 +50,6 @@ definitions:
         type: string
       name:
         type: string
-    type: object
-  customer.MembershipPlanRequestDto:
-    properties:
-      membership_plan_id:
-        type: string
-      start_date:
-        type: string
-      status:
-        type: string
-    required:
-    - start_date
     type: object
   customer.RegistrationDto:
     properties:
@@ -113,16 +137,13 @@ definitions:
   event.RequestDto:
     properties:
       begin_time:
-        example: 07:00:00+00:00
+        example: "2023-10-05T07:00:00Z"
         type: string
       course_id:
         example: 00000000-0000-0000-0000-000000000000
         type: string
-      day:
-        example: MONDAY
-        type: string
       end_time:
-        example: 08:00:00+00:00
+        example: "2023-10-05T07:00:00Z"
         type: string
       location_id:
         example: 0bab3927-50eb-42b3-9d6b-2350dd00a100
@@ -132,7 +153,6 @@ definitions:
         type: string
     required:
     - begin_time
-    - day
     - end_time
     type: object
   event.ResponseDto:
@@ -140,8 +160,6 @@ definitions:
       begin_time:
         type: string
       course_id:
-        type: string
-      day:
         type: string
       end_time:
         type: string
@@ -202,17 +220,35 @@ definitions:
       name:
         type: string
     type: object
+  game.RequestDto:
+    properties:
+      name:
+        type: string
+      video_link:
+        type: string
+    type: object
+  game.ResponseDto:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      video_link:
+        type: string
+    type: object
   hubspot.UserAssociation:
     properties:
       results:
         items:
-          properties:
-            id:
-              type: string
-            type:
-              type: string
-          type: object
+          $ref: '#/definitions/hubspot.UserAssociationResult'
         type: array
+    type: object
+  hubspot.UserAssociationResult:
+    properties:
+      id:
+        type: string
+      type:
+        type: string
     type: object
   hubspot.UserAssociations:
     properties:
@@ -295,6 +331,17 @@ definitions:
         type: string
       price:
         type: integer
+    type: object
+  purchase.MembershipPlanRequestDto:
+    properties:
+      membership_plan_id:
+        type: string
+      start_date:
+        type: string
+      status:
+        type: string
+    required:
+    - start_date
     type: object
   staff.Details:
     properties:
@@ -459,7 +506,7 @@ paths:
       summary: Update a staff member
       tags:
       - staff
-  /auth/login:
+  /auth:
     post:
       consumes:
       - application/json
@@ -491,6 +538,262 @@ paths:
       summary: Authenticate a user and return a JWT token
       tags:
       - authentication
+  /auth/child/{hubspot_id}:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user using Firebase token and returns a JWT token
+        for the authenticated user
+      parameters:
+      - description: Child HubSpotId
+        in: path
+        name: hubspot_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User authenticated successfully
+          schema:
+            $ref: '#/definitions/entity.UserInfo'
+        "400":
+          description: 'Bad Request: Invalid Firebase token'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Authenticate a user and return a JWT token
+      tags:
+      - authentication
+  /barbers/{id}/haircuts/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Uploads a haircut image to S3 and returns the object URL.
+      parameters:
+      - description: Haircut image to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: File uploaded successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Upload a haircut image
+      tags:
+      - haircut
+  /barbers/events:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all barber events, with optional filters by barber ID
+        and customer ID.
+      parameters:
+      - description: Filter by barber ID
+        in: query
+        name: barber_id
+        type: string
+      - description: Filter by customer ID
+        in: query
+        name: customer_id
+        type: string
+      - description: Filter by start date (ISO 8601 format)
+        in: query
+        name: begin_date_time
+        type: string
+      - description: Filter by end date (ISO 8601 format)
+        in: query
+        name: end_date_time
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of barber events retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/barber.ResponseDto'
+            type: array
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all barber events
+      tags:
+      - barber_events
+    post:
+      consumes:
+      - application/json
+      description: Registers a new barber event with the provided details.
+      parameters:
+      - description: Barber event details
+        in: body
+        name: event
+        required: true
+        schema:
+          $ref: '#/definitions/barber.RequestDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Barber event created successfully
+          schema:
+            $ref: '#/definitions/barber.ResponseDto'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new barber event
+      tags:
+      - barber_events
+  /barbers/events/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a barber event by its ID.
+      parameters:
+      - description: Barber event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Barber event deleted successfully'
+        "400":
+          description: 'Bad Request: Invalid ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Barber event not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete a barber event
+      tags:
+      - barber_events
+    put:
+      consumes:
+      - application/json
+      description: Updates the details of an existing barber event.
+      parameters:
+      - description: Barber event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated barber event details
+        in: body
+        name: event
+        required: true
+        schema:
+          $ref: '#/definitions/barber.RequestDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Barber event updated successfully
+          schema:
+            $ref: '#/definitions/barber.ResponseDto'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Barber event not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update a barber event
+      tags:
+      - barber_events
+  /barbers/events/{id}/details:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves details of a specific barber event based on its ID.
+      parameters:
+      - description: Barber event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Barber event details retrieved successfully
+          schema:
+            $ref: '#/definitions/barber.ResponseDto'
+        "400":
+          description: 'Bad Request: Invalid ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Barber event not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get barber event details
+      tags:
+      - barber_events
   /courses:
     get:
       consumes:
@@ -704,9 +1007,9 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieves a customer using their email address
+      description: Retrieves a repository using their email address
       parameters:
-      - description: Customer Email
+      - description: Email
         in: path
         name: email
         required: true
@@ -733,14 +1036,14 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Get a customer by email
+      summary: Get a repository by email
       tags:
       - customers
   /customers/{email}/children:
     get:
       consumes:
       - application/json
-      description: Retrieves a customer's children using the parent's email address
+      description: Retrieves a repository's children using the parent's email address
       parameters:
       - description: Parent Email
         in: path
@@ -771,7 +1074,7 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Get a customer's children by parent email
+      summary: Get a repository's children by parent email
       tags:
       - customers
   /enrollments:
@@ -1353,7 +1656,7 @@ paths:
       summary: Update a facility
       tags:
       - facilities
-  /facility-categories:
+  /facilities/categories:
     get:
       consumes:
       - application/json
@@ -1407,7 +1710,7 @@ paths:
       summary: Create a new facility category
       tags:
       - facility-categories
-  /facility-categories/{id}:
+  /facilities/categories/{id}:
     delete:
       consumes:
       - application/json
@@ -1521,6 +1824,184 @@ paths:
       summary: Update a facility category
       tags:
       - facility-categories
+  /games:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of games
+      parameters:
+      - description: Filter by game name
+        in: query
+        name: name
+        type: string
+      - description: Filter by game description
+        in: query
+        name: description
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of games retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/game.ResponseDto'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a list of games
+      tags:
+      - games
+    post:
+      consumes:
+      - application/json
+      description: Create a new game
+      parameters:
+      - description: Game details
+        in: body
+        name: game
+        required: true
+        schema:
+          $ref: '#/definitions/game.RequestDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Game created successfully
+          schema:
+            $ref: '#/definitions/game.ResponseDto'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Create a new game
+      tags:
+      - games
+  /games/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a game by ID
+      parameters:
+      - description: Game ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Game deleted successfully'
+        "400":
+          description: 'Bad Request: Invalid ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Game not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Delete a game
+      tags:
+      - games
+    get:
+      consumes:
+      - application/json
+      description: Get a game by ID
+      parameters:
+      - description: Game ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Game retrieved successfully
+          schema:
+            $ref: '#/definitions/game.ResponseDto'
+        "400":
+          description: 'Bad Request: Invalid ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Game not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a game by ID
+      tags:
+      - games
+    put:
+      consumes:
+      - application/json
+      description: Update a game
+      parameters:
+      - description: Game ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Game details
+        in: body
+        name: game
+        required: true
+        schema:
+          $ref: '#/definitions/game.RequestDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Game updated successfully
+          schema:
+            $ref: '#/definitions/game.ResponseDto'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Game not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Update a game
+      tags:
+      - games
   /membership-plan:
     get:
       consumes:
@@ -2027,7 +2508,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/customer.MembershipPlanRequestDto'
+          $ref: '#/definitions/purchase.MembershipPlanRequestDto'
       produces:
       - application/json
       responses:
@@ -2101,8 +2582,7 @@ paths:
       consumes:
       - application/json
       description: Registers a new customer using the provided details, creates a
-        customer account, and returns a JWT token for authentication. The Firebase
-        token is used for user verification.
+        customer account. The Firebase token is used for user verification.
       parameters:
       - description: Customer registration details
         in: body
@@ -2134,7 +2614,7 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Register a new customer and create JWT token
+      summary: Register a new customer
       tags:
       - registration
   /register/staff:

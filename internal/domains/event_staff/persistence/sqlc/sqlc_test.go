@@ -51,10 +51,10 @@ package event_sqlc_test
 //	now := time.Now()
 //
 //	createEventParams := eventDb.CreateEventParams{
-//		BeginTime: custom_types.TimeWithTimeZone{
+//		BeginDateTime: custom_types.TimeWithTimeZone{
 //			Time: now.Add(1 * time.Hour).UTC().Format("15:04:05+00:00"),
 //		},
-//		EndTime: custom_types.TimeWithTimeZone{
+//		EndDateTime: custom_types.TimeWithTimeZone{
 //			Time: now.Add(2 * time.Hour).UTC().Format("15:04:05+00:00"),
 //		},
 //		FacilityID: facility.HubSpotId, // Sample facility HubSpotId
@@ -66,8 +66,8 @@ package event_sqlc_test
 //
 //	require.NoError(t, err)
 //
-//	require.Equal(t, createEventParams.BeginTime.Time, event.BeginTime.Time)
-//	require.Equal(t, createEventParams.EndTime.Time, event.EndTime.Time)
+//	require.Equal(t, createEventParams.BeginDateTime.Time, event.BeginDateTime.Time)
+//	require.Equal(t, createEventParams.EndDateTime.Time, event.EndDateTime.Time)
 //
 //	require.Equal(t, createEventParams.FacilityID, event.FacilityID)
 //	require.Equal(t, createEventParams.PracticeID, event.PracticeID)
@@ -97,10 +97,10 @@ package event_sqlc_test
 //
 //	// Create an event to update
 //	createEventParams := eventDb.CreateEventParams{
-//		BeginTime: custom_types.TimeWithTimeZone{
+//		BeginDateTime: custom_types.TimeWithTimeZone{
 //			Time: now.Add(1 * time.Hour).UTC().Format("15:04:05+00:00"),
 //		},
-//		EndTime: custom_types.TimeWithTimeZone{
+//		EndDateTime: custom_types.TimeWithTimeZone{
 //			Time: now.Add(2 * time.Hour).UTC().Format("15:04:05+00:00"),
 //		},
 //		FacilityID: facility.HubSpotId,
@@ -117,8 +117,8 @@ package event_sqlc_test
 //
 //	updateEventParams := eventDb.UpdateEventParams{
 //		HubSpotId:         event.HubSpotId,
-//		BeginTime:  custom_types.TimeWithTimeZone{Time: newBeginTime},
-//		EndTime:    custom_types.TimeWithTimeZone{Time: newEndTime},
+//		BeginDateTime:  custom_types.TimeWithTimeZone{Time: newBeginTime},
+//		EndDateTime:    custom_types.TimeWithTimeZone{Time: newEndTime},
 //		FacilityID: event.FacilityID,
 //		PracticeID: event.PracticeID,
 //		Day:        event.Day,
@@ -128,8 +128,8 @@ package event_sqlc_test
 //	require.NoError(t, err)
 //
 //	// Assert updated event data (only comparing time)
-//	require.Equal(t, newBeginTime, updatedEvent.BeginTime.Time)
-//	require.Equal(t, newEndTime, updatedEvent.EndTime.Time)
+//	require.Equal(t, newBeginTime, updatedEvent.BeginDateTime.Time)
+//	require.Equal(t, newEndTime, updatedEvent.EndDateTime.Time)
 //}
 //
 //func TestDeleteEvent(t *testing.T) {
@@ -165,10 +165,10 @@ package event_sqlc_test
 //
 //	// Create an event to delete
 //	createEventParams := eventDb.CreateEventParams{
-//		BeginTime: custom_types.TimeWithTimeZone{
+//		BeginDateTime: custom_types.TimeWithTimeZone{
 //			Time: now.Add(1 * time.Hour).UTC().Format("15:04:05+00:00"),
 //		},
-//		EndTime: custom_types.TimeWithTimeZone{
+//		EndDateTime: custom_types.TimeWithTimeZone{
 //			Time: now.Add(2 * time.Hour).UTC().Format("15:04:05+00:00"),
 //		},
 //		FacilityID: facility.HubSpotId,
@@ -223,10 +223,10 @@ package event_sqlc_test
 //
 //	// Create an event
 //	createEventParams := eventDb.CreateEventParams{
-//		BeginTime: custom_types.TimeWithTimeZone{
+//		BeginDateTime: custom_types.TimeWithTimeZone{
 //			Time: now.Add(1 * time.Hour).UTC().Format("15:04:05+00:00"),
 //		},
-//		EndTime: custom_types.TimeWithTimeZone{
+//		EndDateTime: custom_types.TimeWithTimeZone{
 //			Time: now.Add(2 * time.Hour).UTC().Format("15:04:05+00:00"),
 //		},
 //		FacilityID: facility.HubSpotId,
@@ -243,8 +243,8 @@ package event_sqlc_test
 //
 //	// Assert fetched event matches created event
 //	require.Equal(t, event.HubSpotId, fetchedEvent.HubSpotId)
-//	require.Equal(t, event.BeginTime.Time, fetchedEvent.BeginTime.Time)
-//	require.Equal(t, event.EndTime.Time, fetchedEvent.EndTime.Time)
+//	require.Equal(t, event.BeginDateTime.Time, fetchedEvent.BeginDateTime.Time)
+//	require.Equal(t, event.EndDateTime.Time, fetchedEvent.EndDateTime.Time)
 //}
 //
 //func TestGetEvents(t *testing.T) {
@@ -289,10 +289,10 @@ package event_sqlc_test
 //		log.Println("end ", endTime)
 //
 //		createEventParams := eventDb.CreateEventParams{
-//			BeginTime: custom_types.TimeWithTimeZone{
+//			BeginDateTime: custom_types.TimeWithTimeZone{
 //				Time: beginTime,
 //			},
-//			EndTime: custom_types.TimeWithTimeZone{
+//			EndDateTime: custom_types.TimeWithTimeZone{
 //				Time: endTime,
 //			},
 //			FacilityID: facility.HubSpotId,

@@ -2,12 +2,14 @@ package di
 
 import (
 	"api/config"
+	barberDb "api/internal/domains/barber/persistence/sqlc/generated"
 	courseDb "api/internal/domains/course/persistence/sqlc/generated"
 	customerDb "api/internal/domains/customer/persistence/sqlc/generated"
 	enrollmentDb "api/internal/domains/enrollment/persistence/sqlc/generated"
 	eventDb "api/internal/domains/event/persistence/sqlc/generated"
 	eventStaffDb "api/internal/domains/event_staff/persistence/sqlc/generated"
 	facilityDb "api/internal/domains/facility/persistence/sqlc/generated"
+	gameDb "api/internal/domains/game/persistence/sqlc/generated"
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
 	membershipDb "api/internal/domains/membership/persistence/sqlc/generated"
 	practiceDb "api/internal/domains/practice/persistence/sqlc/generated"
@@ -39,6 +41,8 @@ type QueriesType struct {
 	StaffDb      *staffDb.Queries
 	EnrollmentDb *enrollmentDb.Queries
 	EventStaffDb *eventStaffDb.Queries
+	BarberDb     *barberDb.Queries
+	GameDb       *gameDb.Queries
 }
 
 func NewContainer() *Container {
@@ -72,6 +76,8 @@ func initializeQueries(db *sql.DB) *QueriesType {
 		StaffDb:      staffDb.New(db),
 		EnrollmentDb: enrollmentDb.New(db),
 		EventStaffDb: eventStaffDb.New(db),
+		BarberDb:     barberDb.New(db),
+		GameDb:       gameDb.New(db),
 	}
 }
 

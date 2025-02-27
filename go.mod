@@ -55,6 +55,7 @@ require (
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.4 // indirect
 	github.com/googleapis/gax-go/v2 v2.14.1 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/klauspost/compress v1.17.4 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
@@ -77,15 +78,9 @@ require (
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	github.com/supabase-community/functions-go v0.0.0-20220927045802-22373e6cb51d // indirect
-	github.com/supabase-community/gotrue-go v1.2.0 // indirect
-	github.com/supabase-community/postgrest-go v0.0.11 // indirect
-	github.com/supabase-community/storage-go v0.7.0 // indirect
-	github.com/supabase-community/supabase-go v0.0.4 // indirect
 	github.com/swaggo/files v1.0.1 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
-	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/detectors/gcp v1.32.0 // indirect
@@ -116,6 +111,7 @@ require (
 
 require (
 	firebase.google.com/go v3.13.0+incompatible
+	github.com/aws/aws-sdk-go v1.55.6
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/lib/pq v1.10.9

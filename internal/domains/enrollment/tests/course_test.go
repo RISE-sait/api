@@ -127,7 +127,7 @@ func TestCreateCourse_MissingRequiredFields(t *testing.T) {
 //
 //	rr := httptest.NewRecorder()
 //	r := chi.NewRouter()
-//	r.Post("/courses", handlers.CreateCourse)
+//	r.Post("/courses", handlers.CreateGame)
 //	r.ServeHTTP(rr, req)
 //
 //	require.Equal(t, http.StatusBadRequest, rr.Code)

@@ -4,7 +4,7 @@ CREATE TABLE staff_activity_logs (
     user_id UUID NOT NULL,
     activity VARCHAR(1000) NOT NULL, -- Description of the activity
     occurred_at TIMESTAMPTZ DEFAULT NOW(),
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users.users (id) ON DELETE CASCADE
 );
 
 

@@ -11,7 +11,7 @@ CREATE TABLE discount_restricted_membership_plans (
         ON DELETE CASCADE,
     CONSTRAINT fk_membership_plan
         FOREIGN KEY (membership_plan_id) 
-        REFERENCES membership_plans(id)
+        REFERENCES membership.membership_plans(id)
         ON DELETE CASCADE
 );
 -- +goose StatementEnd

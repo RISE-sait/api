@@ -59,7 +59,7 @@ func (r *Repository) CreateUserTx(ctx context.Context, tx *sql.Tx) (*uuid.UUID, 
 	return &user.ID, nil
 }
 
-func (r *Repository) GetUserIdByHubspotId(ctx context.Context, id string) (*uuid.UUID, *errLib.CommonError) {
+func (r *Repository) GetUserIdByHubspotId(ctx context.Context, id string) (uuid.UUID, *errLib.CommonError) {
 
 	user, err := r.Queries.GetUserByHubSpotId(ctx, sql.NullString{
 		String: id,
@@ -68,14 +68,14 @@ func (r *Repository) GetUserIdByHubspotId(ctx context.Context, id string) (*uuid
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errLib.New("User not found", http.StatusNotFound)
+			return uuid.Nil, errLib.New("User not found", http.StatusNotFound)
 		}
 
 		log.Printf("Unhandled error: %v", err)
-		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+		return uuid.Nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return &user.ID, nil
+	return user.ID, nil
 }
 
 func (r *Repository) UpdateUserHubspotIdTx(ctx context.Context, tx *sql.Tx, userId uuid.UUID, hubspotId string) *errLib.CommonError {

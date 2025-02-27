@@ -29,7 +29,7 @@ package course
 // 		Capacity:    30,
 // 	}
 
-// 	course, err := repo.CreateCourse(context.Background(), courseDetails)
+// 	course, err := repo.CreateGame(context.Background(), courseDetails)
 
 // 	var errToCheck error
 
@@ -63,7 +63,7 @@ package course
 // 		Capacity:    30,
 // 	}
 
-// 	course, err := repo.CreateCourse(context.Background(), courseDetails)
+// 	course, err := repo.CreateGame(context.Background(), courseDetails)
 
 // 	var errToCheck error
 
@@ -85,7 +85,7 @@ package course
 // 			Capacity:    30,
 // 		},
 // 	}
-// 	err = repo.UpdateCourse(context.Background(), updatedCourseDetails)
+// 	err = repo.UpdateGame(context.Background(), updatedCourseDetails)
 
 // 	if err != nil {
 
@@ -94,7 +94,7 @@ package course
 
 // 	require.NoError(t, errToCheck)
 
-// 	course, err = repo.GetCourseById(context.Background(), course.HubSpotId)
+// 	course, err = repo.GetGameById(context.Background(), course.HubSpotId)
 
 // 	if err != nil {
 
@@ -129,7 +129,7 @@ package course
 // 			EndDate:     time.Now().AddDate(0, 0, 7),
 // 			Capacity:    100,
 // 		}
-// 		_, err := repo.CreateCourse(context.Background(), courseDetails)
+// 		_, err := repo.CreateGame(context.Background(), courseDetails)
 
 // 		var errToCheck error
 
@@ -145,7 +145,7 @@ package course
 // 	description := "Description 1"
 
 // 	// Fetch courses based on the filter
-// 	courses, err := repo.GetCourses(context.Background(), &name, &description)
+// 	courses, err := repo.GetGames(context.Background(), &name, &description)
 
 // 	var errToCheck error
 
@@ -179,7 +179,7 @@ package course
 // 		EndDate:     time.Now().AddDate(0, 0, 7),
 // 		Capacity:    30,
 // 	}
-// 	_, err := repo.CreateCourse(context.Background(), courseDetails1)
+// 	_, err := repo.CreateGame(context.Background(), courseDetails1)
 
 // 	var errToCheck error
 
@@ -198,7 +198,7 @@ package course
 // 		EndDate:     time.Now().AddDate(0, 0, 7),
 // 		Capacity:    30,
 // 	}
-// 	_, err = repo.CreateCourse(context.Background(), courseDetails2)
+// 	_, err = repo.CreateGame(context.Background(), courseDetails2)
 
 // 	errToCheck = fmt.Errorf("%v", err.Message)
 
@@ -220,7 +220,7 @@ package course
 // 		EndDate:     time.Now().AddDate(0, 0, 7),
 // 		Capacity:    30,
 // 	}
-// 	_, err := repo.CreateCourse(context.Background(), courseDetails1)
+// 	_, err := repo.CreateGame(context.Background(), courseDetails1)
 
 // 	var errToCheck error
 // 	if err != nil {
@@ -237,7 +237,7 @@ package course
 // 		Capacity:    30,
 // 	}
 
-// 	course2, err := repo.CreateCourse(context.Background(), courseDetails2)
+// 	course2, err := repo.CreateGame(context.Background(), courseDetails2)
 
 // 	if err != nil {
 // 		errToCheck = fmt.Errorf("%v", err.Message)
@@ -256,7 +256,7 @@ package course
 // 			Capacity:    30,
 // 		},
 // 	}
-// 	err = repo.UpdateCourse(context.Background(), updatedCourse)
+// 	err = repo.UpdateGame(context.Background(), updatedCourse)
 
 // 	if err != nil {
 // 		errToCheck = fmt.Errorf("%v", err.Message)

@@ -11,7 +11,7 @@ CREATE TABLE course_membership (
         REFERENCES courses (id),
     CONSTRAINT fk_membership
         FOREIGN KEY (membership_id) 
-        REFERENCES memberships (id),
+        REFERENCES membership.memberships (id),
     CONSTRAINT chk_price_if_eligible
        CHECK (
         (is_eligible = TRUE AND price_per_booking IS NOT NULL) OR
@@ -30,7 +30,7 @@ CREATE TABLE practice_membership (
         REFERENCES practices (id),
     CONSTRAINT fk_membership
         FOREIGN KEY (membership_id) 
-        REFERENCES memberships (id),
+        REFERENCES membership.memberships (id),
     CONSTRAINT chk_price_if_eligible
        CHECK (
         (is_eligible = TRUE AND price_per_booking IS NOT NULL) OR

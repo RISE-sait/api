@@ -9,7 +9,6 @@ import (
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
-	"time"
 )
 
 type CustomerRegistrationHandlers struct {
@@ -25,9 +24,9 @@ func NewCustomerRegistrationHandlers(container *di.Container) *CustomerRegistrat
 	}
 }
 
-// RegisterCustomer registers a new customer and creates a JWT token.
-// @Summary Register a new customer and create JWT token
-// @Description Registers a new customer using the provided details, creates a customer account, and returns a JWT token for authentication. The Firebase token is used for user verification.
+// RegisterCustomer registers a new customer.
+// @Summary Register a new customer
+// @Description Registers a new customer using the provided details, creates a customer account. The Firebase token is used for user verification.
 // @Tags registration
 // @Accept json
 // @Produce json
@@ -67,24 +66,10 @@ func (h *CustomerRegistrationHandlers) RegisterCustomer(w http.ResponseWriter, r
 	}
 
 	// Step 3: Call the service to create the customer account
-	jwtToken, err := h.CustomerRegistrationService.RegisterCustomer(r.Context(), valueObject)
-
-	if err != nil {
+	if err := h.CustomerRegistrationService.RegisterCustomer(r.Context(), valueObject); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "access_token",
-		Value:    *jwtToken,
-		Path:     "/",
-		HttpOnly: true,  // Prevent JavaScript access
-		Secure:   false, // Use HTTPS in production
-		SameSite: http.SameSiteStrictMode,
-		Expires:  time.Now().Add(24 * time.Hour), // Set expiration to 24 hours
-	})
-
-	// Step 5: Set Authorization header and respond
-	w.Header().Set("Authorization", "Bearer "+*jwtToken)
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusCreated)
 }

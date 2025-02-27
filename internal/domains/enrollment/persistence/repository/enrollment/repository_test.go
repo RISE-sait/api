@@ -34,7 +34,7 @@ package enrollment
 //		Description: "Learn Go programming",
 //	}
 //
-//	course, err := repo.CreateCourse(context.Background(), courseDetails)
+//	course, err := repo.CreateGame(context.Background(), courseDetails)
 //
 //	var errToCheck error
 //
@@ -59,7 +59,7 @@ package enrollment
 //		Description: "Learn Go programming",
 //	}
 //
-//	createdCourse, err := repo.CreateCourse(context.Background(), courseDetails)
+//	createdCourse, err := repo.CreateGame(context.Background(), courseDetails)
 //
 //	var errToCheck error
 //
@@ -77,7 +77,7 @@ package enrollment
 //		Description: "Learn advanced Go programming",
 //	}
 //
-//	_, err = repo.UpdateCourse(context.Background(), updatedCourseDetails)
+//	_, err = repo.UpdateGame(context.Background(), updatedCourseDetails)
 //
 //	if err != nil {
 //
@@ -86,7 +86,7 @@ package enrollment
 //
 //	require.NoError(t, errToCheck)
 //
-//	courseToBeChecked, err := repo.GetCourseById(context.Background(), createdCourse.HubSpotId)
+//	courseToBeChecked, err := repo.GetGameById(context.Background(), createdCourse.HubSpotId)
 //
 //	if err != nil {
 //
@@ -110,7 +110,7 @@ package enrollment
 //			Name:        fmt.Sprintf("Course %d", i),
 //			Description: fmt.Sprintf("Description %d", i),
 //		}
-//		_, err := repo.CreateCourse(context.Background(), courseDetails)
+//		_, err := repo.CreateGame(context.Background(), courseDetails)
 //
 //		var errToCheck error
 //
@@ -126,7 +126,7 @@ package enrollment
 //	description := "Description 1"
 //
 //	// Fetch courses based on the filter
-//	courses, err := repo.GetCourses(context.Background(), &name, &description)
+//	courses, err := repo.GetGames(context.Background(), &name, &description)
 //
 //	var errToCheck error
 //
@@ -154,7 +154,7 @@ package enrollment
 //		Name:        "Go Course",
 //		Description: "Learn Go programming",
 //	}
-//	_, err := repo.CreateCourse(context.Background(), courseDetails1)
+//	_, err := repo.CreateGame(context.Background(), courseDetails1)
 //
 //	var errToCheck error
 //
@@ -170,7 +170,7 @@ package enrollment
 //		Name:        "Go Course", // Duplicate name
 //		Description: "Another Go programming course",
 //	}
-//	_, err = repo.CreateCourse(context.Background(), courseDetails2)
+//	_, err = repo.CreateGame(context.Background(), courseDetails2)
 //
 //	errToCheck = fmt.Errorf("%v", err.Message)
 //
@@ -189,7 +189,7 @@ package enrollment
 //		Name:        "Go Course",
 //		Description: "Learn Go programming",
 //	}
-//	_, err := repo.CreateCourse(context.Background(), courseDetails1)
+//	_, err := repo.CreateGame(context.Background(), courseDetails1)
 //
 //	var errToCheck error
 //	if err != nil {
@@ -203,7 +203,7 @@ package enrollment
 //		Description: "Another Go programming course",
 //	}
 //
-//	course2, err := repo.CreateCourse(context.Background(), courseDetails2)
+//	course2, err := repo.CreateGame(context.Background(), courseDetails2)
 //
 //	if err != nil {
 //		errToCheck = fmt.Errorf("%v", err.Message)
@@ -218,7 +218,7 @@ package enrollment
 //		Description: "Updated description",
 //	}
 //
-//	_, err = repo.UpdateCourse(context.Background(), updatedCourse)
+//	_, err = repo.UpdateGame(context.Background(), updatedCourse)
 //
 //	if err != nil {
 //		errToCheck = fmt.Errorf("%v", err.Message)

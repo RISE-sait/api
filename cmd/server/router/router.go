@@ -2,6 +2,9 @@ package router
 
 import (
 	"api/internal/di"
+	barber "api/internal/domains/barber/handler/events"
+	haircut "api/internal/domains/barber/handler/haircuts"
+	barberEventRepo "api/internal/domains/barber/persistence/repository/event"
 	courseHandler "api/internal/domains/course/handler"
 	courseRepo "api/internal/domains/course/persistence/repository"
 	"api/internal/domains/customer"
@@ -9,6 +12,9 @@ import (
 	eventRepo "api/internal/domains/event/persistence/repository"
 	eventStaffHandler "api/internal/domains/event_staff/handler"
 	eventStaffRepo "api/internal/domains/event_staff/persistence/repository"
+	game "api/internal/domains/game/handler"
+	gameRepo "api/internal/domains/game/persistence/repository"
+
 	"api/internal/domains/identity/handler/authentication"
 	"api/internal/domains/practice"
 	practiceHandler "api/internal/domains/practice/handler"
@@ -34,7 +40,8 @@ const (
 	RoleAdmin = "ADMIN"
 )
 
-var allowAdminOnly = middlewares.JWTAuthMiddleware(RoleAdmin)
+var allowAdminOnly = middlewares.JWTAuthMiddleware(false, RoleAdmin)
+var allowAnyoneWithValidToken = middlewares.JWTAuthMiddleware(true)
 
 func RegisterRoutes(router *chi.Mux, container *di.Container) {
 	router.Route("/api", func(r chi.Router) {
@@ -52,12 +59,15 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		r.Route("/practices", RegisterPracticeRoutes(container))
 		r.Route("/events", RegisterEventRoutes(container))
 		r.Route("/facilities", RegisterFacilityRoutes(container))
-		r.Route("/facility-categories", RegisterFacilityCategoriesRoutes(container))
+		r.Route("/games", RegisterGamesRoutes(container))
 
 		// Users & Staff
 		r.Route("/customers", RegisterCustomerRoutes(container))
 		r.Route("/staffs", RegisterStaffRoutes(container))
 		r.Route("/event-staff", RegisterEventStaffRoutes(container))
+
+		// Barber
+		r.Route("/barbers", RegisterBarberRoutes(container))
 
 		// Purchases
 		r.Route("/purchases", RegisterPurchasesRoutes(container))
@@ -73,6 +83,33 @@ func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 		r.Get("/", h.GetCustomers)
 		r.Get("/{email}/children", h.GetChildrenByParentEmail)
 		r.Get("/{email}", h.GetCustomerByEmail)
+	}
+}
+
+func RegisterBarberRoutes(container *di.Container) func(chi.Router) {
+
+	//h := customer.NewCustomersHandler(container)
+
+	return func(r chi.Router) {
+
+		r.Post("/haircuts", haircut.UploadHaircutImage)
+
+		r.Route("/events", RegisterBarberEventsRoutes(container))
+	}
+}
+
+func RegisterBarberEventsRoutes(container *di.Container) func(chi.Router) {
+
+	repo := barberEventRepo.NewEventsRepository(container.Queries.BarberDb)
+	h := barber.NewEventsHandler(repo)
+
+	return func(r chi.Router) {
+
+		r.Get("/", h.GetEvents)
+		r.Get("/{id}", h.GetEventDetails)
+		r.Post("/", h.CreateEvent)
+		r.Put("/{id}", h.UpdateEvent)
+		r.Delete("/{id}", h.DeleteEvent)
 	}
 }
 
@@ -101,41 +138,58 @@ func RegisterMembershipPlansRoutes(container *di.Container) func(chi.Router) {
 	}
 }
 
-func RegisterFacilityRoutes(container *di.Container) func(chi.Router) {
-	ctrl := facility.NewFacilitiesHandler(container)
+func RegisterGamesRoutes(container *di.Container) func(chi.Router) {
+
+	repo := gameRepo.NewGameRepository(container.Queries.GameDb)
+	h := game.NewHandler(repo)
 
 	return func(r chi.Router) {
-		r.Get("/", ctrl.GetFacilities)
-		r.Get("/{id}", ctrl.GetFacilityById)
-		r.Post("/", ctrl.CreateFacility)
-		r.With(allowAdminOnly).Put("/{id}", ctrl.UpdateFacility)
-		r.With(allowAdminOnly).Delete("/{id}", ctrl.DeleteFacility)
+		r.Get("/", h.GetGames)
+		r.Get("/{id}", h.GetGameById)
+
+		r.With(allowAdminOnly).Post("/", h.CreateGame)
+		r.With(allowAdminOnly).Put("/{id}", h.UpdateGame)
+		r.With(allowAdminOnly).Delete("/{id}", h.DeleteGame)
+	}
+}
+
+func RegisterFacilityRoutes(container *di.Container) func(chi.Router) {
+	h := facility.NewFacilitiesHandler(container)
+
+	return func(r chi.Router) {
+		r.Get("/", h.GetFacilities)
+		r.Get("/{id}", h.GetFacilityById)
+		r.Post("/", h.CreateFacility)
+		r.With(allowAdminOnly).Put("/{id}", h.UpdateFacility)
+		r.With(allowAdminOnly).Delete("/{id}", h.DeleteFacility)
+
+		r.Route("/categories", RegisterFacilityCategoriesRoutes(container))
 	}
 }
 
 func RegisterFacilityCategoriesRoutes(container *di.Container) func(chi.Router) {
-	ctrl := facility.NewFacilityCategoriesHandler(container)
+	h := facility.NewFacilityCategoriesHandler(container)
 
 	return func(r chi.Router) {
-		r.Get("/", ctrl.List)
-		r.Get("/{id}", ctrl.GetById)
-		r.Post("/", ctrl.Create)
-		r.With(allowAdminOnly).Put("/{id}", ctrl.Update)
-		r.With(allowAdminOnly).Delete("/{id}", ctrl.Delete)
+		r.Get("/", h.List)
+		r.Get("/{id}", h.GetById)
+		r.Post("/", h.Create)
+		r.With(allowAdminOnly).Put("/{id}", h.Update)
+		r.With(allowAdminOnly).Delete("/{id}", h.Delete)
 	}
 }
 
 func RegisterCourseRoutes(container *di.Container) func(chi.Router) {
 
 	courseRepository := courseRepo.NewCourseRepository(container.Queries.CoursesDb)
-	ctrl := courseHandler.NewHandler(courseRepository)
+	h := courseHandler.NewHandler(courseRepository)
 
 	return func(r chi.Router) {
-		r.Get("/", ctrl.GetCourses)
-		r.Get("/{id}", ctrl.GetCourseById)
-		r.With(allowAdminOnly).Post("/", ctrl.CreateCourse)
-		r.With(allowAdminOnly).Put("/{id}", ctrl.UpdateCourse)
-		r.With(allowAdminOnly).Delete("/{id}", ctrl.DeleteCourse)
+		r.Get("/", h.GetCourses)
+		r.Get("/{id}", h.GetCourseById)
+		r.With(allowAdminOnly).Post("/", h.CreateCourse)
+		r.With(allowAdminOnly).Put("/{id}", h.UpdateCourse)
+		r.With(allowAdminOnly).Delete("/{id}", h.DeleteCourse)
 	}
 }
 
@@ -168,13 +222,13 @@ func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 }
 
 func RegisterStaffRoutes(container *di.Container) func(chi.Router) {
-	ctrl := staff.NewStaffHandlers(container)
+	h := staff.NewStaffHandlers(container)
 
 	return func(r chi.Router) {
-		r.Get("/", ctrl.GetStaffs)
+		r.Get("/", h.GetStaffs)
 
-		r.With(allowAdminOnly).Put("/{id}", ctrl.UpdateStaff)
-		r.With(allowAdminOnly).Delete("/{id}", ctrl.DeleteStaff)
+		r.With(allowAdminOnly).Put("/{id}", h.UpdateStaff)
+		r.With(allowAdminOnly).Delete("/{id}", h.DeleteStaff)
 	}
 }
 
@@ -203,10 +257,11 @@ func RegisterPurchasesRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterAuthRoutes(container *di.Container) func(chi.Router) {
 
-	authController := authentication.NewHandlers(container)
+	h := authentication.NewHandlers(container)
 
 	return func(r chi.Router) {
-		r.Post("/login", authController.Login)
+		r.Post("/", h.Login)
+		r.With(allowAnyoneWithValidToken).Post("/child/{hubspot_id}", h.LoginAsChild)
 	}
 }
 

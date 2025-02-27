@@ -14,13 +14,13 @@ import (
 
 const createFacility = `-- name: CreateFacility :one
 WITH inserted_facility AS (
-    INSERT INTO facilities (name, address, facility_category_id)
+    INSERT INTO facility.facilities (name, address, facility_category_id)
     VALUES ($1, $2, $3)
     RETURNING id, name, address, facility_category_id
 )
 SELECT f.id, f.name, f.address, f.facility_category_id, fc.name AS facility_category_name
 FROM inserted_facility f
-JOIN facility_categories fc ON f.facility_category_id = fc.id
+JOIN facility.facility_categories fc ON f.facility_category_id = fc.id
 `
 
 type CreateFacilityParams struct {
@@ -51,7 +51,7 @@ func (q *Queries) CreateFacility(ctx context.Context, arg CreateFacilityParams) 
 }
 
 const deleteFacility = `-- name: DeleteFacility :execrows
-DELETE FROM facilities WHERE id = $1
+DELETE FROM facility.facilities WHERE id = $1
 `
 
 func (q *Queries) DeleteFacility(ctx context.Context, id uuid.UUID) (int64, error) {
@@ -64,7 +64,7 @@ func (q *Queries) DeleteFacility(ctx context.Context, id uuid.UUID) (int64, erro
 
 const getFacilities = `-- name: GetFacilities :many
 SELECT f.id, f.name, f.address, f.facility_category_id,  fc.name as facility_category_name
-FROM facilities f JOIN facility_categories fc ON f.facility_category_id = fc.id
+FROM facility.facilities f JOIN facility.facility_categories fc ON f.facility_category_id = fc.id
 WHERE (f.name ILIKE '%' || $1 || '%' OR $1 IS NULL)
 `
 
@@ -107,7 +107,7 @@ func (q *Queries) GetFacilities(ctx context.Context, facilityName sql.NullString
 
 const getFacilityById = `-- name: GetFacilityById :one
 SELECT f.id, f.name, f.address, f.facility_category_id, fc.name as facility_category_name
-FROM facilities f JOIN facility_categories fc ON f.facility_category_id = fc.id WHERE f.id = $1
+FROM facility.facilities f JOIN facility.facility_categories fc ON f.facility_category_id = fc.id WHERE f.id = $1
 `
 
 type GetFacilityByIdRow struct {
@@ -133,14 +133,14 @@ func (q *Queries) GetFacilityById(ctx context.Context, id uuid.UUID) (GetFacilit
 
 const updateFacility = `-- name: UpdateFacility :execrows
 WITH updated as (
-    UPDATE facilities f
+    UPDATE facility.facilities f
     SET name = $1, address = $2, facility_category_id = $3
     WHERE f.id = $4
     RETURNING id, name, address, facility_category_id
 )
 SELECT f.id, f.name, f.address, f.facility_category_id, fc.name as facility_category_name
 FROM updated f
-JOIN facility_categories fc ON f.facility_category_id = fc.id
+JOIN facility.facility_categories fc ON f.facility_category_id = fc.id
 `
 
 type UpdateFacilityParams struct {

@@ -176,7 +176,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/login": {
+        "/auth": {
             "post": {
                 "description": "Authenticates a user using Firebase token and returns a JWT token for the authenticated user",
                 "consumes": [
@@ -217,6 +217,385 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/child/{hubspot_id}": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Authenticates a user using Firebase token and returns a JWT token for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "authentication"
+                ],
+                "summary": "Authenticate a user and return a JWT token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Child HubSpotId",
+                        "name": "hubspot_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User authenticated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/entity.UserInfo"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid Firebase token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/barbers/events": {
+            "get": {
+                "description": "Retrieve all barber events, with optional filters by barber ID and customer ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "barber_events"
+                ],
+                "summary": "Get all barber events",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by barber ID",
+                        "name": "barber_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by customer ID",
+                        "name": "customer_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by start date (ISO 8601 format)",
+                        "name": "begin_date_time",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by end date (ISO 8601 format)",
+                        "name": "end_date_time",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of barber events retrieved successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/barber.ResponseDto"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Registers a new barber event with the provided details.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "barber_events"
+                ],
+                "summary": "Create a new barber event",
+                "parameters": [
+                    {
+                        "description": "Barber event details",
+                        "name": "event",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/barber.RequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Barber event created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/barber.ResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/barbers/events/{id}": {
+            "put": {
+                "description": "Updates the details of an existing barber event.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "barber_events"
+                ],
+                "summary": "Update a barber event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Barber event ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated barber event details",
+                        "name": "event",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/barber.RequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Barber event updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/barber.ResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Barber event not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes a barber event by its ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "barber_events"
+                ],
+                "summary": "Delete a barber event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Barber event ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Barber event deleted successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Barber event not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/barbers/events/{id}/details": {
+            "get": {
+                "description": "Retrieves details of a specific barber event based on its ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "barber_events"
+                ],
+                "summary": "Get barber event details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Barber event ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Barber event details retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/barber.ResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Barber event not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/barbers/{id}/haircuts/upload": {
+            "post": {
+                "description": "Uploads a haircut image to S3 and returns the object URL.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "haircut"
+                ],
+                "summary": "Upload a haircut image",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Haircut image to upload",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "File uploaded successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -538,7 +917,7 @@ const docTemplate = `{
         },
         "/customers/{email}": {
             "get": {
-                "description": "Retrieves a customer using their email address",
+                "description": "Retrieves a repository using their email address",
                 "consumes": [
                     "application/json"
                 ],
@@ -548,11 +927,11 @@ const docTemplate = `{
                 "tags": [
                     "customers"
                 ],
-                "summary": "Get a customer by email",
+                "summary": "Get a repository by email",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Customer Email",
+                        "description": "Email",
                         "name": "email",
                         "in": "path",
                         "required": true
@@ -591,7 +970,7 @@ const docTemplate = `{
         },
         "/customers/{email}/children": {
             "get": {
-                "description": "Retrieves a customer's children using the parent's email address",
+                "description": "Retrieves a repository's children using the parent's email address",
                 "consumes": [
                     "application/json"
                 ],
@@ -601,7 +980,7 @@ const docTemplate = `{
                 "tags": [
                     "customers"
                 ],
-                "summary": "Get a customer's children by parent email",
+                "summary": "Get a repository's children by parent email",
                 "parameters": [
                     {
                         "type": "string",
@@ -1329,6 +1708,252 @@ const docTemplate = `{
                 }
             }
         },
+        "/facilities/categories": {
+            "get": {
+                "description": "Retrieves a list of all facility categories.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "facility-categories"
+                ],
+                "summary": "Get all facility categories",
+                "responses": {
+                    "200": {
+                        "description": "GetMemberships of facility categories retrieved successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/facility.CategoryResponseDto"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Registers a new facility category with the provided name.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "facility-categories"
+                ],
+                "summary": "Create a new facility category",
+                "parameters": [
+                    {
+                        "description": "Facility Category details",
+                        "name": "facility_category",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/facility.CategoryRequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Facility category created successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/facilities/categories/{id}": {
+            "get": {
+                "description": "Retrieves a facility category by its ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "facility-categories"
+                ],
+                "summary": "Get a facility category by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Facility Category ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Facility category retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/facility.CategoryResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Facility category not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Updates the details of an existing facility category by ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "facility-categories"
+                ],
+                "summary": "Update a facility category",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Facility Category ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated facility category details",
+                        "name": "facility_category",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/facility.CategoryRequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Facility category updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Facility category not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes a facility category by its ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "facility-categories"
+                ],
+                "summary": "Delete a facility category",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Facility Category ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Facility category deleted successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Facility category not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/facilities/{id}": {
             "get": {
                 "description": "Retrieves a facility by its HubSpotId.",
@@ -1495,9 +2120,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/facility-categories": {
+        "/games": {
             "get": {
-                "description": "Retrieves a list of all facility categories.",
+                "description": "Get a list of games",
                 "consumes": [
                     "application/json"
                 ],
@@ -1505,16 +2130,30 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "facility-categories"
+                    "games"
                 ],
-                "summary": "Get all facility categories",
+                "summary": "Get a list of games",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by game name",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by game description",
+                        "name": "description",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "GetMemberships of facility categories retrieved successfully",
+                        "description": "List of games retrieved successfully",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/facility.CategoryResponseDto"
+                                "$ref": "#/definitions/game.ResponseDto"
                             }
                         }
                     },
@@ -1528,7 +2167,12 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Registers a new facility category with the provided name.",
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Create a new game",
                 "consumes": [
                     "application/json"
                 ],
@@ -1536,26 +2180,25 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "facility-categories"
+                    "games"
                 ],
-                "summary": "Create a new facility category",
+                "summary": "Create a new game",
                 "parameters": [
                     {
-                        "description": "Facility Category details",
-                        "name": "facility_category",
+                        "description": "Game details",
+                        "name": "game",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/facility.CategoryRequestDto"
+                            "$ref": "#/definitions/game.RequestDto"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "Facility category created successfully",
+                        "description": "Game created successfully",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/game.ResponseDto"
                         }
                     },
                     "400": {
@@ -1575,9 +2218,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/facility-categories/{id}": {
+        "/games/{id}": {
             "get": {
-                "description": "Retrieves a facility category by its ID.",
+                "description": "Get a game by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -1585,13 +2228,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "facility-categories"
+                    "games"
                 ],
-                "summary": "Get a facility category by ID",
+                "summary": "Get a game by ID",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Facility Category ID",
+                        "description": "Game ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1599,9 +2242,9 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Facility category retrieved successfully",
+                        "description": "Game retrieved successfully",
                         "schema": {
-                            "$ref": "#/definitions/facility.CategoryResponseDto"
+                            "$ref": "#/definitions/game.ResponseDto"
                         }
                     },
                     "400": {
@@ -1612,7 +2255,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Not Found: Facility category not found",
+                        "description": "Not Found: Game not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1628,7 +2271,12 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Updates the details of an existing facility category by ID.",
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Update a game",
                 "consumes": [
                     "application/json"
                 ],
@@ -1636,33 +2284,32 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "facility-categories"
+                    "games"
                 ],
-                "summary": "Update a facility category",
+                "summary": "Update a game",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Facility Category ID",
+                        "description": "Game ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Updated facility category details",
-                        "name": "facility_category",
+                        "description": "Game details",
+                        "name": "game",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/facility.CategoryRequestDto"
+                            "$ref": "#/definitions/game.RequestDto"
                         }
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "No Content: Facility category updated successfully",
+                    "200": {
+                        "description": "Game updated successfully",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/game.ResponseDto"
                         }
                     },
                     "400": {
@@ -1673,7 +2320,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Not Found: Facility category not found",
+                        "description": "Not Found: Game not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1689,7 +2336,12 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Deletes a facility category by its ID.",
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Delete a game by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -1697,13 +2349,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "facility-categories"
+                    "games"
                 ],
-                "summary": "Delete a facility category",
+                "summary": "Delete a game",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Facility Category ID",
+                        "description": "Game ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1711,11 +2363,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "204": {
-                        "description": "No Content: Facility category deleted successfully",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
+                        "description": "No Content: Game deleted successfully"
                     },
                     "400": {
                         "description": "Bad Request: Invalid ID",
@@ -1725,7 +2373,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Not Found: Facility category not found",
+                        "description": "Not Found: Game not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2512,7 +3160,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/customer.MembershipPlanRequestDto"
+                            "$ref": "#/definitions/purchase.MembershipPlanRequestDto"
                         }
                     }
                 ],
@@ -2606,7 +3254,7 @@ const docTemplate = `{
         },
         "/register/customer": {
             "post": {
-                "description": "Registers a new customer using the provided details, creates a customer account, and returns a JWT token for authentication. The Firebase token is used for user verification.",
+                "description": "Registers a new customer using the provided details, creates a customer account. The Firebase token is used for user verification.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2616,7 +3264,7 @@ const docTemplate = `{
                 "tags": [
                     "registration"
                 ],
-                "summary": "Register a new customer and create JWT token",
+                "summary": "Register a new customer",
                 "parameters": [
                     {
                         "description": "Customer registration details",
@@ -2718,6 +3366,57 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "barber.RequestDto": {
+            "type": "object",
+            "required": [
+                "begin_time",
+                "end_time"
+            ],
+            "properties": {
+                "barber_id": {
+                    "type": "string",
+                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+                },
+                "begin_time": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "customer_id": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
+                },
+                "end_time": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                }
+            }
+        },
+        "barber.ResponseDto": {
+            "type": "object",
+            "properties": {
+                "barber_id": {
+                    "type": "string"
+                },
+                "begin_time": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "customer_id": {
+                    "type": "string"
+                },
+                "end_time": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "course.RequestDto": {
             "type": "object",
             "properties": {
@@ -2739,23 +3438,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "customer.MembershipPlanRequestDto": {
-            "type": "object",
-            "required": [
-                "start_date"
-            ],
-            "properties": {
-                "membership_plan_id": {
-                    "type": "string"
-                },
-                "start_date": {
-                    "type": "string"
-                },
-                "status": {
                     "type": "string"
                 }
             }
@@ -2890,25 +3572,20 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "begin_time",
-                "day",
                 "end_time"
             ],
             "properties": {
                 "begin_time": {
                     "type": "string",
-                    "example": "07:00:00+00:00"
+                    "example": "2023-10-05T07:00:00Z"
                 },
                 "course_id": {
                     "type": "string",
                     "example": "00000000-0000-0000-0000-000000000000"
                 },
-                "day": {
-                    "type": "string",
-                    "example": "MONDAY"
-                },
                 "end_time": {
                     "type": "string",
-                    "example": "08:00:00+00:00"
+                    "example": "2023-10-05T07:00:00Z"
                 },
                 "location_id": {
                     "type": "string",
@@ -2927,9 +3604,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "course_id": {
-                    "type": "string"
-                },
-                "day": {
                     "type": "string"
                 },
                 "end_time": {
@@ -3023,22 +3697,50 @@ const docTemplate = `{
                 }
             }
         },
+        "game.RequestDto": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "video_link": {
+                    "type": "string"
+                }
+            }
+        },
+        "game.ResponseDto": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "video_link": {
+                    "type": "string"
+                }
+            }
+        },
         "hubspot.UserAssociation": {
             "type": "object",
             "properties": {
                 "results": {
                     "type": "array",
                     "items": {
-                        "type": "object",
-                        "properties": {
-                            "id": {
-                                "type": "string"
-                            },
-                            "type": {
-                                "type": "string"
-                            }
-                        }
+                        "$ref": "#/definitions/hubspot.UserAssociationResult"
                     }
+                }
+            }
+        },
+        "hubspot.UserAssociationResult": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
                 }
             }
         },
@@ -3164,6 +3866,23 @@ const docTemplate = `{
                 },
                 "price": {
                     "type": "integer"
+                }
+            }
+        },
+        "purchase.MembershipPlanRequestDto": {
+            "type": "object",
+            "required": [
+                "start_date"
+            ],
+            "properties": {
+                "membership_plan_id": {
+                    "type": "string"
+                },
+                "start_date": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
                 }
             }
         },

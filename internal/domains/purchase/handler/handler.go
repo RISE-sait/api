@@ -24,7 +24,7 @@ func NewPurchaseHandlers(container *di.Container) *Handlers {
 // @Tags purchases
 // @Accept json
 // @Produce json
-// @Param request body customer.MembershipPlanRequestDto true "Membership purchase details"
+// @Param request body dto.MembershipPlanRequestDto true "Membership purchase details"
 // @Success 200 {object} map[string]interface{} "Membership purchased successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error: Failed to process membership purchase"

@@ -38,10 +38,9 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	courseIdStr := r.URL.Query().Get("courseId")
 	locationIdStr := r.URL.Query().Get("locationId")
 	practiceIdStr := r.URL.Query().Get("practiceId")
+	gameIdStr := r.URL.Query().Get("gameId")
 
-	var courseId *uuid.UUID
-	var locationId *uuid.UUID
-	var practiceId *uuid.UUID
+	var courseId, locationId, practiceId, gameId *uuid.UUID
 
 	if courseIdStr != "" {
 		id, err := validators.ParseUUID(courseIdStr)
@@ -73,7 +72,17 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		practiceId = &id
 	}
 
-	events, err := h.Repo.GetEvents(r.Context(), courseId, locationId, practiceId)
+	if gameIdStr != "" {
+		id, err := validators.ParseUUID(gameIdStr)
+
+		if err != nil {
+			responseHandlers.RespondWithError(w, errLib.New("Invalid game ID", http.StatusBadRequest))
+		}
+
+		gameId = &id
+	}
+
+	events, err := h.Repo.GetEvents(r.Context(), courseId, locationId, practiceId, gameId)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)

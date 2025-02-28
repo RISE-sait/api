@@ -1,40 +1,4 @@
-basePath: /api
 definitions:
-  barber.RequestDto:
-    properties:
-      barber_id:
-        example: f0e21457-75d4-4de6-b765-5ee13221fd72
-        type: string
-      begin_time:
-        example: "2023-10-05T07:00:00Z"
-        type: string
-      customer_id:
-        example: 00000000-0000-0000-0000-000000000000
-        type: string
-      end_time:
-        example: "2023-10-05T07:00:00Z"
-        type: string
-    required:
-    - begin_time
-    - end_time
-    type: object
-  barber.ResponseDto:
-    properties:
-      barber_id:
-        type: string
-      begin_time:
-        type: string
-      created_at:
-        type: string
-      customer_id:
-        type: string
-      end_time:
-        type: string
-      id:
-        type: string
-      updated_at:
-        type: string
-    type: object
   course.RequestDto:
     properties:
       description:
@@ -163,6 +127,8 @@ definitions:
         type: string
       end_time:
         type: string
+      game_id:
+        type: string
       id:
         type: string
       location_id:
@@ -234,6 +200,41 @@ definitions:
       name:
         type: string
       video_link:
+        type: string
+    type: object
+  haircut.RequestDto:
+    properties:
+      barber_id:
+        example: f0e21457-75d4-4de6-b765-5ee13221fd72
+        type: string
+      begin_time:
+        example: "2023-10-05T07:00:00Z"
+        type: string
+      customer_id:
+        example: 00000000-0000-0000-0000-000000000000
+        type: string
+      end_time:
+        example: "2023-10-05T07:00:00Z"
+        type: string
+    required:
+    - begin_time
+    - end_time
+    type: object
+  haircut.ResponseDto:
+    properties:
+      barber_id:
+        type: string
+      begin_time:
+        type: string
+      created_at:
+        type: string
+      customer_id:
+        type: string
+      end_time:
+        type: string
+      id:
+        type: string
+      updated_at:
         type: string
     type: object
   hubspot.UserAssociation:
@@ -395,117 +396,25 @@ definitions:
       updated_at:
         type: string
     type: object
+  user.StatsUpdateRequestDto:
+    properties:
+      assists:
+        type: integer
+      losses:
+        type: integer
+      points:
+        type: integer
+      rebounds:
+        type: integer
+      steals:
+        type: integer
+      wins:
+        type: integer
+    type: object
 host: localhost:8080
 info:
   contact: {}
 paths:
-  /api/staffs:
-    get:
-      consumes:
-      - application/json
-      description: Get a list of staff members
-      parameters:
-      - description: RoleName HubSpotId to filter staff
-        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
-        in: query
-        name: role
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: GetMemberships of staff members retrieved successfully
-          schema:
-            items:
-              $ref: '#/definitions/staff.ResponseDto'
-            type: array
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get a list of staff members
-      tags:
-      - staff
-  /api/staffs/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a staff member by HubSpotId
-      parameters:
-      - description: Staff HubSpotId
-        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: 'No Content: Staff deleted successfully'
-        "400":
-          description: 'Bad Request: Invalid HubSpotId'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Staff not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - Bearer: []
-      summary: Delete a staff member
-      tags:
-      - staff
-    put:
-      consumes:
-      - application/json
-      description: Update a staff member
-      parameters:
-      - description: Staff HubSpotId
-        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Staff details
-        in: body
-        name: staff
-        required: true
-        schema:
-          $ref: '#/definitions/staff.RequestDto'
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: 'No Content: Staff updated successfully'
-        "400":
-          description: 'Bad Request: Invalid input'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Staff not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - Bearer: []
-      summary: Update a staff member
-      tags:
-      - staff
   /auth:
     post:
       consumes:
@@ -572,228 +481,6 @@ paths:
       summary: Authenticate a user and return a JWT token
       tags:
       - authentication
-  /barbers/{id}/haircuts/upload:
-    post:
-      consumes:
-      - multipart/form-data
-      description: Uploads a haircut image to S3 and returns the object URL.
-      parameters:
-      - description: Haircut image to upload
-        in: formData
-        name: file
-        required: true
-        type: file
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: File uploaded successfully
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: 'Bad Request: Invalid input'
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Upload a haircut image
-      tags:
-      - haircut
-  /barbers/events:
-    get:
-      consumes:
-      - application/json
-      description: Retrieve all barber events, with optional filters by barber ID
-        and customer ID.
-      parameters:
-      - description: Filter by barber ID
-        in: query
-        name: barber_id
-        type: string
-      - description: Filter by customer ID
-        in: query
-        name: customer_id
-        type: string
-      - description: Filter by start date (ISO 8601 format)
-        in: query
-        name: begin_date_time
-        type: string
-      - description: Filter by end date (ISO 8601 format)
-        in: query
-        name: end_date_time
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of barber events retrieved successfully
-          schema:
-            items:
-              $ref: '#/definitions/barber.ResponseDto'
-            type: array
-        "400":
-          description: 'Bad Request: Invalid input'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get all barber events
-      tags:
-      - barber_events
-    post:
-      consumes:
-      - application/json
-      description: Registers a new barber event with the provided details.
-      parameters:
-      - description: Barber event details
-        in: body
-        name: event
-        required: true
-        schema:
-          $ref: '#/definitions/barber.RequestDto'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Barber event created successfully
-          schema:
-            $ref: '#/definitions/barber.ResponseDto'
-        "400":
-          description: 'Bad Request: Invalid input'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Create a new barber event
-      tags:
-      - barber_events
-  /barbers/events/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Deletes a barber event by its ID.
-      parameters:
-      - description: Barber event ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: 'No Content: Barber event deleted successfully'
-        "400":
-          description: 'Bad Request: Invalid ID'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Barber event not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Delete a barber event
-      tags:
-      - barber_events
-    put:
-      consumes:
-      - application/json
-      description: Updates the details of an existing barber event.
-      parameters:
-      - description: Barber event ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Updated barber event details
-        in: body
-        name: event
-        required: true
-        schema:
-          $ref: '#/definitions/barber.RequestDto'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Barber event updated successfully
-          schema:
-            $ref: '#/definitions/barber.ResponseDto'
-        "400":
-          description: 'Bad Request: Invalid input'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Barber event not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Update a barber event
-      tags:
-      - barber_events
-  /barbers/events/{id}/details:
-    get:
-      consumes:
-      - application/json
-      description: Retrieves details of a specific barber event based on its ID.
-      parameters:
-      - description: Barber event ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Barber event details retrieved successfully
-          schema:
-            $ref: '#/definitions/barber.ResponseDto'
-        "400":
-          description: 'Bad Request: Invalid ID'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Barber event not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get barber event details
-      tags:
-      - barber_events
   /courses:
     get:
       consumes:
@@ -1001,6 +688,45 @@ paths:
             additionalProperties: true
             type: object
       summary: Get customers
+      tags:
+      - customers
+  /customers/{customer_id}/stats:
+    patch:
+      consumes:
+      - application/json
+      description: Updates customer statistics (wins, losses, etc.) for the specified
+        customer ID
+      parameters:
+      - description: Customer ID
+        in: path
+        name: customer_id
+        required: true
+        type: string
+      - description: Customer stats update data
+        in: body
+        name: update_body
+        required: true
+        schema:
+          $ref: '#/definitions/user.StatsUpdateRequestDto'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Customer stats updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Bad Request: Invalid parameters'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update customer statistics
       tags:
       - customers
   /customers/{email}:
@@ -2002,6 +1728,261 @@ paths:
       summary: Update a game
       tags:
       - games
+  /haircuts:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all haircut images from a folder in S3. Optionally, specify
+        a barber name to get images from that barber's folder.
+      parameters:
+      - description: Barber name to filter images
+        in: query
+        name: barber
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of image URLs
+          schema:
+            items:
+              type: string
+            type: array
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Retrieve haircut images
+      tags:
+      - haircut
+    post:
+      consumes:
+      - multipart/form-data
+      description: Uploads a haircut image to S3 and returns the object URL.
+      parameters:
+      - description: Haircut image to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: File uploaded successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Upload a haircut image
+      tags:
+      - haircut
+  /haircuts/events:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all barber events, with optional filters by barber ID
+        and customer ID.
+      parameters:
+      - description: Filter by barber ID
+        in: query
+        name: barber_id
+        type: string
+      - description: Filter by customer ID
+        in: query
+        name: customer_id
+        type: string
+      - description: Filter by start date (ISO 8601 format)
+        in: query
+        name: begin_date_time
+        type: string
+      - description: Filter by end date (ISO 8601 format)
+        in: query
+        name: end_date_time
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of barber events retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/haircut.ResponseDto'
+            type: array
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all barber events
+      tags:
+      - barber_events
+    post:
+      consumes:
+      - application/json
+      description: Registers a new barber event with the provided details.
+      parameters:
+      - description: Barber event details
+        in: body
+        name: event
+        required: true
+        schema:
+          $ref: '#/definitions/haircut.RequestDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Barber event created successfully
+          schema:
+            $ref: '#/definitions/haircut.ResponseDto'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new barber event
+      tags:
+      - barber_events
+  /haircuts/events/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a barber event by its ID.
+      parameters:
+      - description: Barber event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Barber event deleted successfully'
+        "400":
+          description: 'Bad Request: Invalid ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Barber event not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete a barber event
+      tags:
+      - barber_events
+    get:
+      consumes:
+      - application/json
+      description: Retrieves details of a specific barber event based on its ID.
+      parameters:
+      - description: Barber event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Barber event details retrieved successfully
+          schema:
+            $ref: '#/definitions/haircut.ResponseDto'
+        "400":
+          description: 'Bad Request: Invalid ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Barber event not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get barber event details
+      tags:
+      - barber_events
+    put:
+      consumes:
+      - application/json
+      description: Updates the details of an existing barber event.
+      parameters:
+      - description: Barber event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated barber event details
+        in: body
+        name: event
+        required: true
+        schema:
+          $ref: '#/definitions/haircut.RequestDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Barber event updated successfully
+          schema:
+            $ref: '#/definitions/haircut.ResponseDto'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Barber event not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update a barber event
+      tags:
+      - barber_events
   /membership-plan:
     get:
       consumes:
@@ -2656,6 +2637,113 @@ paths:
       summary: Register a new staff member
       tags:
       - registration
+  /staffs:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of staff members
+      parameters:
+      - description: RoleName HubSpotId to filter staff
+        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
+        in: query
+        name: role
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: GetMemberships of staff members retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/staff.ResponseDto'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a list of staff members
+      tags:
+      - staff
+  /staffs/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a staff member by HubSpotId
+      parameters:
+      - description: Staff HubSpotId
+        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Staff deleted successfully'
+        "400":
+          description: 'Bad Request: Invalid HubSpotId'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Staff not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Delete a staff member
+      tags:
+      - staff
+    put:
+      consumes:
+      - application/json
+      description: Update a staff member
+      parameters:
+      - description: Staff HubSpotId
+        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Staff details
+        in: body
+        name: staff
+        required: true
+        schema:
+          $ref: '#/definitions/staff.RequestDto'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Staff updated successfully'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Staff not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Update a staff member
+      tags:
+      - staff
 securityDefinitions:
   Bearer:
     in: header

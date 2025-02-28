@@ -1,7 +1,7 @@
 package waiver_signing
 
 import (
-	databaseerrors "api/internal/constants"
+	databaseErrors "api/internal/constants"
 	"api/internal/di"
 	db "api/internal/domains/identity/persistence/sqlc/generated"
 	errLib "api/internal/libs/errors"
@@ -25,23 +25,7 @@ func NewWaiverSigningRepository(container *di.Container) *Repository {
 	}
 }
 
-var _ RepositoryInterface = (*Repository)(nil)
-
-func (r *Repository) GetWaiver(ctx context.Context, url string) (*db.Waiver, *errLib.CommonError) {
-	waiver, err := r.Queries.GetWaiver(ctx, url)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			log.Printf("Waiver not found for URL: %s", url)
-			return nil, errLib.New("Waiver not found", http.StatusNotFound)
-		}
-
-		log.Printf("Error fetching waiver for URL %s: %v", url, err)
-		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-
-	return &waiver, nil
-}
+var _ IRepository = (*Repository)(nil)
 
 func (r *Repository) CreateWaiverSigningRecordTx(ctx context.Context, tx *sql.Tx, userId uuid.UUID, waiverUrl string, isSigned bool) *errLib.CommonError {
 
@@ -71,10 +55,10 @@ func (r *Repository) CreateWaiverSigningRecordTx(ctx context.Context, tx *sql.Tx
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			switch pqErr.Code {
-			case databaseerrors.ForeignKeyViolation:
+			case databaseErrors.ForeignKeyViolation:
 				log.Printf("Foreign key violation: %v", pqErr.Message)
 				return errLib.New("User not found for the provided user id. Or waiver not found", http.StatusBadRequest)
-			case databaseerrors.UniqueViolation:
+			case databaseErrors.UniqueViolation:
 				log.Printf("Unique violation: %v", pqErr.Message)
 				return errLib.New("Waiver for this user id already exists", http.StatusConflict)
 			default:

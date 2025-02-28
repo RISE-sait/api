@@ -2,19 +2,19 @@ package di
 
 import (
 	"api/config"
-	barberDb "api/internal/domains/barber/persistence/sqlc/generated"
 	courseDb "api/internal/domains/course/persistence/sqlc/generated"
-	customerDb "api/internal/domains/customer/persistence/sqlc/generated"
 	enrollmentDb "api/internal/domains/enrollment/persistence/sqlc/generated"
 	eventDb "api/internal/domains/event/persistence/sqlc/generated"
 	eventStaffDb "api/internal/domains/event_staff/persistence/sqlc/generated"
 	facilityDb "api/internal/domains/facility/persistence/sqlc/generated"
 	gameDb "api/internal/domains/game/persistence/sqlc/generated"
+	barberDb "api/internal/domains/haircut/persistence/sqlc/generated"
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
 	membershipDb "api/internal/domains/membership/persistence/sqlc/generated"
 	practiceDb "api/internal/domains/practice/persistence/sqlc/generated"
 	purchaseDb "api/internal/domains/purchase/persistence/sqlc/generated"
 	staffDb "api/internal/domains/staff/persistence/sqlc/generated"
+	customerDb "api/internal/domains/user/persistence/sqlc/generated"
 
 	"api/internal/services/firebase"
 	"api/internal/services/hubspot"
@@ -48,7 +48,7 @@ type QueriesType struct {
 func NewContainer() *Container {
 	db := config.GetDBConnection()
 	queries := initializeQueries(db)
-	hubspotService := hubspot.GetHubSpotService()
+	hubspotService := hubspot.GetHubSpotService(nil)
 	firebaseService, err := firebase.NewFirebaseService()
 
 	if err != nil {

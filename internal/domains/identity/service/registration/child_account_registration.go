@@ -2,10 +2,8 @@ package registration
 
 import (
 	"api/internal/di"
-	"api/internal/domains/identity/persistence/repository/user"
-	tempUserInfo "api/internal/domains/identity/persistence/repository/user_info"
-
-	repo "api/internal/domains/identity/persistence/repository/waiver_signing"
+	pendingUsers "api/internal/domains/identity/persistence/repository/pending_users"
+	waiverSigningRepo "api/internal/domains/identity/persistence/repository/waiver_signing"
 	"api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/services/hubspot"
@@ -17,9 +15,8 @@ import (
 
 type ChildRegistrationService struct {
 	HubSpotService          *hubspot.Service
-	UserRepository          user.RepositoryInterface
-	TempUserInfoRepo        tempUserInfo.InfoTempRepositoryInterface
-	WaiverSigningRepository repo.RepositoryInterface
+	PendingUsersRepository  pendingUsers.IPendingUsersRepository
+	WaiverSigningRepository waiverSigningRepo.IRepository
 	DB                      *sql.DB
 }
 
@@ -27,9 +24,8 @@ func NewChildAccountRegistrationService(
 	container *di.Container,
 ) *ChildRegistrationService {
 	return &ChildRegistrationService{
-		UserRepository:          user.NewUserRepository(container),
-		TempUserInfoRepo:        tempUserInfo.NewInfoTempRepository(container),
-		WaiverSigningRepository: repo.NewWaiverSigningRepository(container),
+		PendingUsersRepository:  pendingUsers.NewPendingUserInfoRepository(container),
+		WaiverSigningRepository: waiverSigningRepo.NewPendingUserWaiverSigningRepository(container),
 		DB:                      container.DB,
 		HubSpotService:          container.HubspotService,
 	}
@@ -57,21 +53,6 @@ func (s *ChildRegistrationService) CreateChildAccount(
 		}
 	}()
 
-	userId, err := s.UserRepository.CreateUserTx(ctx, tx)
-
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	for _, waiver := range childRegistrationInfo.Waivers {
-		if err := s.WaiverSigningRepository.CreateWaiverSigningRecordTx(ctx, tx, *userId, waiver.WaiverUrl, waiver.IsWaiverSigned); err != nil {
-			tx.Rollback()
-			return err
-		}
-
-	}
-
 	parent, err := s.HubSpotService.GetUserByEmail(childRegistrationInfo.ParentEmail)
 
 	if err != nil {
@@ -79,11 +60,18 @@ func (s *ChildRegistrationService) CreateChildAccount(
 		return err
 	}
 
-	err = s.TempUserInfoRepo.CreateTempUserInfoTx(ctx, tx, *userId, childRegistrationInfo.FirstName, childRegistrationInfo.LastName, nil, &parent.Properties.Email, childRegistrationInfo.Age)
+	childId, err := s.PendingUsersRepository.CreatePendingUserInfoTx(ctx, tx, childRegistrationInfo.FirstName, childRegistrationInfo.LastName, nil, &parent.HubSpotId, childRegistrationInfo.Age)
 
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	for _, waiver := range childRegistrationInfo.Waivers {
+		if err := s.WaiverSigningRepository.CreateWaiverSigningRecordTx(ctx, tx, childId, waiver.WaiverUrl, waiver.IsWaiverSigned); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	if err := tx.Commit(); err != nil {

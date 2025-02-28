@@ -23,5 +23,4 @@ tmp/
 .jetclient/*
 
 qodana.yaml
-
-./rise-446720-firebase-adminsdk-fbsvc-a29dfd8e97.json
+/config/firebase_credentials.json

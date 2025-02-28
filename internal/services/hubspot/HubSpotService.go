@@ -22,9 +22,15 @@ type Service struct {
 //
 // Returns:
 //   - *Service: A pointer to the initialized HubSpot service.
-func GetHubSpotService() *Service {
+func GetHubSpotService(apiKeyPtr *string) *Service {
 
-	apiKey := config.Envs.HubSpotApiKey
+	var apiKey string
+
+	if apiKeyPtr != nil {
+		apiKey = *apiKeyPtr
+	} else {
+		apiKey = config.Envs.HubSpotApiKey
+	}
 
 	httpClient := &http.Client{
 		Timeout: 10 * time.Second,
@@ -72,7 +78,7 @@ func (s *Service) GetUsersByIds(ids []string) ([]UserResponse, *errLib.CommonErr
 	return response.Results, nil
 }
 
-// GetUserById retrieves a user from HubSpot using their ID.
+// GetUserById retrieves a user from HubSpot using their Hubspot ID.
 //
 // Parameters:
 //   - id: The HubSpot user ID.

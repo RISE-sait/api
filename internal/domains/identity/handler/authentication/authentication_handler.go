@@ -2,6 +2,7 @@ package authentication
 
 import (
 	"api/internal/di"
+	identity "api/internal/domains/identity/dto/common"
 	service "api/internal/domains/identity/service/authentication"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
@@ -43,7 +44,7 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwtToken, err := h.AuthService.AuthenticateUser(r.Context(), firebaseToken)
+	jwtToken, userInfo, err := h.AuthService.AuthenticateUser(r.Context(), firebaseToken)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -60,9 +61,15 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().Add(24 * time.Hour), // Set expiration to 24 hours
 	})
 
+	responseBody := identity.UserNecessaryInfoDto{
+		FirstName: userInfo.FirstName,
+		LastName:  userInfo.LastName,
+		Age:       0,
+	}
+
 	w.Header().Set("Authorization", "Bearer "+jwtToken)
 	w.WriteHeader(http.StatusOK)
-	responseHandlers.RespondWithSuccess(w, nil, http.StatusOK)
+	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusOK)
 
 }
 
@@ -84,7 +91,7 @@ func (h *Handlers) LoginAsChild(w http.ResponseWriter, r *http.Request) {
 
 	parentHubspotId := r.Context().Value(middlewares.HubspotIDKey).(string)
 
-	jwtToken, err := h.AuthService.AuthenticateChild(r.Context(), childHubspotId, parentHubspotId)
+	jwtToken, userInfo, err := h.AuthService.AuthenticateChild(r.Context(), childHubspotId, parentHubspotId)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -101,8 +108,14 @@ func (h *Handlers) LoginAsChild(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().Add(24 * time.Hour), // Set expiration to 24 hours
 	})
 
+	responseBody := identity.UserNecessaryInfoDto{
+		FirstName: userInfo.FirstName,
+		LastName:  userInfo.LastName,
+		Age:       0,
+	}
+
 	w.Header().Set("Authorization", "Bearer "+jwtToken)
 	w.WriteHeader(http.StatusOK)
-	responseHandlers.RespondWithSuccess(w, nil, http.StatusOK)
+	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusOK)
 
 }

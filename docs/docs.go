@@ -15,167 +15,6 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/staffs": {
-            "get": {
-                "description": "Get a list of staff members",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "staff"
-                ],
-                "summary": "Get a list of staff members",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "example": "\"f47ac10b-58cc-4372-a567-0e02b2c3d479\"",
-                        "description": "RoleName HubSpotId to filter staff",
-                        "name": "role",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "GetMemberships of staff members retrieved successfully",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/staff.ResponseDto"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/staffs/{id}": {
-            "put": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "Update a staff member",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "staff"
-                ],
-                "summary": "Update a staff member",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "example": "\"f47ac10b-58cc-4372-a567-0e02b2c3d479\"",
-                        "description": "Staff HubSpotId",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Staff details",
-                        "name": "staff",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/staff.RequestDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content: Staff updated successfully"
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Staff not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "Delete a staff member by HubSpotId",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "staff"
-                ],
-                "summary": "Delete a staff member",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "example": "\"f47ac10b-58cc-4372-a567-0e02b2c3d479\"",
-                        "description": "Staff HubSpotId",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content: Staff deleted successfully"
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid HubSpotId",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Staff not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/auth": {
             "post": {
                 "description": "Authenticates a user using Firebase token and returns a JWT token for the authenticated user",
@@ -268,334 +107,6 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/barbers/events": {
-            "get": {
-                "description": "Retrieve all barber events, with optional filters by barber ID and customer ID.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "barber_events"
-                ],
-                "summary": "Get all barber events",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by barber ID",
-                        "name": "barber_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by customer ID",
-                        "name": "customer_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by start date (ISO 8601 format)",
-                        "name": "begin_date_time",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by end date (ISO 8601 format)",
-                        "name": "end_date_time",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of barber events retrieved successfully",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/barber.ResponseDto"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Registers a new barber event with the provided details.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "barber_events"
-                ],
-                "summary": "Create a new barber event",
-                "parameters": [
-                    {
-                        "description": "Barber event details",
-                        "name": "event",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/barber.RequestDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Barber event created successfully",
-                        "schema": {
-                            "$ref": "#/definitions/barber.ResponseDto"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/barbers/events/{id}": {
-            "put": {
-                "description": "Updates the details of an existing barber event.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "barber_events"
-                ],
-                "summary": "Update a barber event",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Barber event ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated barber event details",
-                        "name": "event",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/barber.RequestDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Barber event updated successfully",
-                        "schema": {
-                            "$ref": "#/definitions/barber.ResponseDto"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Barber event not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "description": "Deletes a barber event by its ID.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "barber_events"
-                ],
-                "summary": "Delete a barber event",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Barber event ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content: Barber event deleted successfully"
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid ID",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Barber event not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/barbers/events/{id}/details": {
-            "get": {
-                "description": "Retrieves details of a specific barber event based on its ID.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "barber_events"
-                ],
-                "summary": "Get barber event details",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Barber event ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Barber event details retrieved successfully",
-                        "schema": {
-                            "$ref": "#/definitions/barber.ResponseDto"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid ID",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Barber event not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/barbers/{id}/haircuts/upload": {
-            "post": {
-                "description": "Uploads a haircut image to S3 and returns the object URL.",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "haircut"
-                ],
-                "summary": "Upload a haircut image",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "Haircut image to upload",
-                        "name": "file",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "File uploaded successfully",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
                         }
                     }
                 }
@@ -896,6 +407,62 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/hubspot.UserResponse"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid parameters",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/customers/{customer_id}/stats": {
+            "patch": {
+                "description": "Updates customer statistics (wins, losses, etc.) for the specified customer ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "customers"
+                ],
+                "summary": "Update customer statistics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Customer ID",
+                        "name": "customer_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Customer stats update data",
+                        "name": "update_body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.StatsUpdateRequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Customer stats updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -2389,6 +1956,382 @@ const docTemplate = `{
                 }
             }
         },
+        "/haircuts": {
+            "get": {
+                "description": "Retrieves all haircut images from a folder in S3. Optionally, specify a barber name to get images from that barber's folder.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "haircut"
+                ],
+                "summary": "Retrieve haircut images",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Barber name to filter images",
+                        "name": "barber",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of image URLs",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Uploads a haircut image to S3 and returns the object URL.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "haircut"
+                ],
+                "summary": "Upload a haircut image",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Haircut image to upload",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "File uploaded successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/haircuts/events": {
+            "get": {
+                "description": "Retrieve all barber events, with optional filters by barber ID and customer ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "barber_events"
+                ],
+                "summary": "Get all barber events",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by barber ID",
+                        "name": "barber_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by customer ID",
+                        "name": "customer_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by start date (ISO 8601 format)",
+                        "name": "begin_date_time",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by end date (ISO 8601 format)",
+                        "name": "end_date_time",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of barber events retrieved successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/haircut.ResponseDto"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Registers a new barber event with the provided details.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "barber_events"
+                ],
+                "summary": "Create a new barber event",
+                "parameters": [
+                    {
+                        "description": "Barber event details",
+                        "name": "event",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/haircut.RequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Barber event created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/haircut.ResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/haircuts/events/{id}": {
+            "get": {
+                "description": "Retrieves details of a specific barber event based on its ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "barber_events"
+                ],
+                "summary": "Get barber event details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Barber event ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Barber event details retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/haircut.ResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Barber event not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Updates the details of an existing barber event.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "barber_events"
+                ],
+                "summary": "Update a barber event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Barber event ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated barber event details",
+                        "name": "event",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/haircut.RequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Barber event updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/haircut.ResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Barber event not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes a barber event by its ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "barber_events"
+                ],
+                "summary": "Delete a barber event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Barber event ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Barber event deleted successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Barber event not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/membership-plan": {
             "get": {
                 "description": "Get membership plans by membership HubSpotId",
@@ -3363,60 +3306,170 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/staffs": {
+            "get": {
+                "description": "Get a list of staff members",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "staff"
+                ],
+                "summary": "Get a list of staff members",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "\"f47ac10b-58cc-4372-a567-0e02b2c3d479\"",
+                        "description": "RoleName HubSpotId to filter staff",
+                        "name": "role",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "GetMemberships of staff members retrieved successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/staff.ResponseDto"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/staffs/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Update a staff member",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "staff"
+                ],
+                "summary": "Update a staff member",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "\"f47ac10b-58cc-4372-a567-0e02b2c3d479\"",
+                        "description": "Staff HubSpotId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Staff details",
+                        "name": "staff",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/staff.RequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Staff updated successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Staff not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Delete a staff member by HubSpotId",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "staff"
+                ],
+                "summary": "Delete a staff member",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "\"f47ac10b-58cc-4372-a567-0e02b2c3d479\"",
+                        "description": "Staff HubSpotId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Staff deleted successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid HubSpotId",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Staff not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
-        "barber.RequestDto": {
-            "type": "object",
-            "required": [
-                "begin_time",
-                "end_time"
-            ],
-            "properties": {
-                "barber_id": {
-                    "type": "string",
-                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
-                },
-                "begin_time": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
-                "customer_id": {
-                    "type": "string",
-                    "example": "00000000-0000-0000-0000-000000000000"
-                },
-                "end_time": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                }
-            }
-        },
-        "barber.ResponseDto": {
-            "type": "object",
-            "properties": {
-                "barber_id": {
-                    "type": "string"
-                },
-                "begin_time": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "customer_id": {
-                    "type": "string"
-                },
-                "end_time": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
         "course.RequestDto": {
             "type": "object",
             "properties": {
@@ -3609,6 +3662,9 @@ const docTemplate = `{
                 "end_time": {
                     "type": "string"
                 },
+                "game_id": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -3718,6 +3774,57 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "video_link": {
+                    "type": "string"
+                }
+            }
+        },
+        "haircut.RequestDto": {
+            "type": "object",
+            "required": [
+                "begin_time",
+                "end_time"
+            ],
+            "properties": {
+                "barber_id": {
+                    "type": "string",
+                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+                },
+                "begin_time": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "customer_id": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
+                },
+                "end_time": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                }
+            }
+        },
+        "haircut.ResponseDto": {
+            "type": "object",
+            "properties": {
+                "barber_id": {
+                    "type": "string"
+                },
+                "begin_time": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "customer_id": {
+                    "type": "string"
+                },
+                "end_time": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "updated_at": {
                     "type": "string"
                 }
             }
@@ -3963,6 +4070,29 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "user.StatsUpdateRequestDto": {
+            "type": "object",
+            "properties": {
+                "assists": {
+                    "type": "integer"
+                },
+                "losses": {
+                    "type": "integer"
+                },
+                "points": {
+                    "type": "integer"
+                },
+                "rebounds": {
+                    "type": "integer"
+                },
+                "steals": {
+                    "type": "integer"
+                },
+                "wins": {
+                    "type": "integer"
+                }
+            }
         }
     },
     "securityDefinitions": {
@@ -3978,7 +4108,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "",
 	Host:             "localhost:8080",
-	BasePath:         "/api",
+	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "",
 	Description:      "",

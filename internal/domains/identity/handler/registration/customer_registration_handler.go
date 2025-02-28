@@ -56,6 +56,7 @@ func (h *CustomerRegistrationHandlers) RegisterCustomer(w http.ResponseWriter, r
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
+		return
 	}
 
 	valueObject, err := dto.ToCreateRegularCustomerValueObject(user.Email)

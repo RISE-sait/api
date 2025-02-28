@@ -3,7 +3,7 @@
 
 CREATE SCHEMA IF NOT EXISTS course;
 
-CREATE TABLE courses
+CREATE TABLE course.courses
 (
     id          UUID PRIMARY KEY         DEFAULT gen_random_uuid(),
     name        VARCHAR(50) NOT NULL UNIQUE,
@@ -16,7 +16,7 @@ CREATE TABLE courses
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE IF EXISTS courses;
+DROP TABLE IF EXISTS course.courses;
 
 DROP SCHEMA IF EXISTS course;
 -- +goose StatementEnd

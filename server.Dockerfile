@@ -11,10 +11,14 @@ COPY go.sum .
 # Download and cache Go dependencies
 RUN go mod download
 
+RUN go install github.com/air-verse/air@latest
+
 # Copy the rest of the application code
 COPY . .
 
 # Expose the port your Go server listens on
 EXPOSE 8080
 
-CMD ["go","run","cmd/server/main.go"]
+ENV DATABASE_URL=${DATABASE_URL}
+
+ENTRYPOINT ["go run cmd/server/main.go"]

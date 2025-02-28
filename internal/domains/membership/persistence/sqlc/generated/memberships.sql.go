@@ -13,7 +13,7 @@ import (
 )
 
 const createMembership = `-- name: CreateMembership :execrows
-INSERT INTO memberships (name, description)
+INSERT INTO membership.memberships (name, description)
 VALUES ($1, $2)
 `
 
@@ -31,7 +31,7 @@ func (q *Queries) CreateMembership(ctx context.Context, arg CreateMembershipPara
 }
 
 const deleteMembership = `-- name: DeleteMembership :execrows
-DELETE FROM memberships WHERE id = $1
+DELETE FROM membership.memberships WHERE id = $1
 `
 
 func (q *Queries) DeleteMembership(ctx context.Context, id uuid.UUID) (int64, error) {
@@ -42,19 +42,19 @@ func (q *Queries) DeleteMembership(ctx context.Context, id uuid.UUID) (int64, er
 	return result.RowsAffected()
 }
 
-const getAllMemberships = `-- name: GetMemberships :many
-SELECT id, name, description, created_at, updated_at FROM memberships
+const getAllMemberships = `-- name: GetAllMemberships :many
+SELECT id, name, description, created_at, updated_at FROM membership.memberships
 `
 
-func (q *Queries) GetAllMemberships(ctx context.Context) ([]Membership, error) {
+func (q *Queries) GetAllMemberships(ctx context.Context) ([]MembershipMembership, error) {
 	rows, err := q.db.QueryContext(ctx, getAllMemberships)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Membership
+	var items []MembershipMembership
 	for rows.Next() {
-		var i Membership
+		var i MembershipMembership
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -76,12 +76,12 @@ func (q *Queries) GetAllMemberships(ctx context.Context) ([]Membership, error) {
 }
 
 const getMembershipById = `-- name: GetMembershipById :one
-SELECT id, name, description, created_at, updated_at FROM memberships WHERE id = $1
+SELECT id, name, description, created_at, updated_at FROM membership.memberships WHERE id = $1
 `
 
-func (q *Queries) GetMembershipById(ctx context.Context, id uuid.UUID) (Membership, error) {
+func (q *Queries) GetMembershipById(ctx context.Context, id uuid.UUID) (MembershipMembership, error) {
 	row := q.db.QueryRowContext(ctx, getMembershipById, id)
-	var i Membership
+	var i MembershipMembership
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -93,7 +93,7 @@ func (q *Queries) GetMembershipById(ctx context.Context, id uuid.UUID) (Membersh
 }
 
 const updateMembership = `-- name: UpdateMembership :execrows
-UPDATE memberships
+UPDATE membership.memberships
 SET name = $1, description = $2
 WHERE id = $3
 `

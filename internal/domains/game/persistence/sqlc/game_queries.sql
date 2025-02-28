@@ -8,8 +8,7 @@ SELECT * FROM games WHERE id = $1;
 
 -- name: GetGames :many
 SELECT * FROM games
-WHERE (name ILIKE '%' || @name || '%' OR @name IS NULL)
-LIMIT $1;
+WHERE (name ILIKE '%' || @name || '%' OR @name IS NULL);
 
 -- name: UpdateGame :one
 UPDATE games

@@ -25,12 +25,13 @@ import (
 )
 
 // @host localhost:8080
-// @BasePath /api
 
 // @SecurityDefinitions.apiKey Bearer
 // @in header
 // @name Authorization
 func main() {
+
+	log.Println("Server starting on")
 
 	diContainer := di.NewContainer()
 	defer diContainer.Cleanup()
@@ -69,7 +70,7 @@ func setupServer(container *di.Container) http.Handler {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
-			"message": "Hello, welcome to Rise API",
+			"message": "Hello, welcome to our Rise API",
 			"version": "1.0.0",
 		})
 	})

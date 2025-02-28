@@ -13,7 +13,7 @@ import (
 )
 
 const createMembershipPlan = `-- name: CreateMembershipPlan :execrows
-INSERT INTO membership_plans (membership_id, name, price, payment_frequency, amt_periods)
+INSERT INTO membership.membership_plans (membership_id, name, price, payment_frequency, amt_periods)
 VALUES ($1, $2, $3, $4, $5)
 `
 
@@ -40,7 +40,7 @@ func (q *Queries) CreateMembershipPlan(ctx context.Context, arg CreateMembership
 }
 
 const deleteMembershipPlan = `-- name: DeleteMembershipPlan :execrows
-DELETE FROM membership_plans WHERE id = $1
+DELETE FROM membership.membership_plans WHERE id = $1
 `
 
 func (q *Queries) DeleteMembershipPlan(ctx context.Context, id uuid.UUID) (int64, error) {
@@ -53,13 +53,13 @@ func (q *Queries) DeleteMembershipPlan(ctx context.Context, id uuid.UUID) (int64
 
 const getMembershipPlanById = `-- name: GetMembershipPlanById :one
 SELECT id, name, price, joining_fee, auto_renew, membership_id, payment_frequency, amt_periods, created_at, updated_at
-FROM membership_plans
+FROM membership.membership_plans
 WHERE id = $1
 `
 
-func (q *Queries) GetMembershipPlanById(ctx context.Context, id uuid.UUID) (MembershipPlan, error) {
+func (q *Queries) GetMembershipPlanById(ctx context.Context, id uuid.UUID) (MembershipMembershipPlan, error) {
 	row := q.db.QueryRowContext(ctx, getMembershipPlanById, id)
-	var i MembershipPlan
+	var i MembershipMembershipPlan
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -77,7 +77,7 @@ func (q *Queries) GetMembershipPlanById(ctx context.Context, id uuid.UUID) (Memb
 
 const getMembershipPlans = `-- name: GetMembershipPlans :many
 SELECT mp.id, name, price, joining_fee, auto_renew, membership_id, payment_frequency, amt_periods, mp.created_at, mp.updated_at, cmp.id, customer_id, membership_plan_id, start_date, renewal_date, status, cmp.created_at, cmp.updated_at 
-FROM membership_plans mp
+FROM membership.membership_plans mp
 JOIN customer_membership_plans cmp
 ON mp.id = cmp.membership_plan_id
 WHERE 
@@ -154,7 +154,7 @@ func (q *Queries) GetMembershipPlans(ctx context.Context, arg GetMembershipPlans
 }
 
 const updateMembershipPlan = `-- name: UpdateMembershipPlan :execrows
-UPDATE membership_plans
+UPDATE membership.membership_plans
 SET name = $1, price = $2, payment_frequency = $3, amt_periods = $4, membership_id = $5
 WHERE id = $6
 `

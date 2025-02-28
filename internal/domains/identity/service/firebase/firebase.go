@@ -5,6 +5,7 @@ import (
 	"api/internal/domains/identity/entity"
 	errLib "api/internal/libs/errors"
 	"context"
+	"log"
 	"net/http"
 
 	"firebase.google.com/go/auth"
@@ -28,6 +29,7 @@ func (s *Service) GetUserInfo(ctx context.Context, firebaseIdToken string) (*ent
 	token, firebaseErr := s.FirebaseAuthClient.VerifyIDToken(ctx, firebaseIdToken)
 
 	if firebaseErr != nil {
+		log.Println("failed to verify: ", firebaseErr.Error())
 		return nil, errLib.New("Invalid Firebase token", http.StatusUnauthorized)
 	}
 

@@ -3,7 +3,7 @@
 //   sqlc v1.27.0
 // source: facility_queries.sql
 
-package db
+package facility_db
 
 import (
 	"context"
@@ -24,17 +24,17 @@ JOIN facility.facility_categories fc ON f.facility_category_id = fc.id
 `
 
 type CreateFacilityParams struct {
-	Name               string    `json:"name"`
-	Address            string    `json:"address"`
-	FacilityCategoryID uuid.UUID `json:"facility_category_id"`
+	Name               string
+	Address            string
+	FacilityCategoryID uuid.UUID
 }
 
 type CreateFacilityRow struct {
-	ID                   uuid.UUID `json:"id"`
-	Name                 string    `json:"name"`
-	Address              string    `json:"address"`
-	FacilityCategoryID   uuid.UUID `json:"facility_category_id"`
-	FacilityCategoryName string    `json:"facility_category_name"`
+	ID                   uuid.UUID
+	Name                 string
+	Address              string
+	FacilityCategoryID   uuid.UUID
+	FacilityCategoryName string
 }
 
 func (q *Queries) CreateFacility(ctx context.Context, arg CreateFacilityParams) (CreateFacilityRow, error) {
@@ -69,11 +69,11 @@ WHERE (f.name ILIKE '%' || $1 || '%' OR $1 IS NULL)
 `
 
 type GetFacilitiesRow struct {
-	ID                   uuid.UUID `json:"id"`
-	Name                 string    `json:"name"`
-	Address              string    `json:"address"`
-	FacilityCategoryID   uuid.UUID `json:"facility_category_id"`
-	FacilityCategoryName string    `json:"facility_category_name"`
+	ID                   uuid.UUID
+	Name                 string
+	Address              string
+	FacilityCategoryID   uuid.UUID
+	FacilityCategoryName string
 }
 
 func (q *Queries) GetFacilities(ctx context.Context, facilityName sql.NullString) ([]GetFacilitiesRow, error) {
@@ -111,11 +111,11 @@ FROM facility.facilities f JOIN facility.facility_categories fc ON f.facility_ca
 `
 
 type GetFacilityByIdRow struct {
-	ID                   uuid.UUID `json:"id"`
-	Name                 string    `json:"name"`
-	Address              string    `json:"address"`
-	FacilityCategoryID   uuid.UUID `json:"facility_category_id"`
-	FacilityCategoryName string    `json:"facility_category_name"`
+	ID                   uuid.UUID
+	Name                 string
+	Address              string
+	FacilityCategoryID   uuid.UUID
+	FacilityCategoryName string
 }
 
 func (q *Queries) GetFacilityById(ctx context.Context, id uuid.UUID) (GetFacilityByIdRow, error) {
@@ -144,10 +144,10 @@ JOIN facility.facility_categories fc ON f.facility_category_id = fc.id
 `
 
 type UpdateFacilityParams struct {
-	Name               string    `json:"name"`
-	Address            string    `json:"address"`
-	FacilityCategoryID uuid.UUID `json:"facility_category_id"`
-	ID                 uuid.UUID `json:"id"`
+	Name               string
+	Address            string
+	FacilityCategoryID uuid.UUID
+	ID                 uuid.UUID
 }
 
 func (q *Queries) UpdateFacility(ctx context.Context, arg UpdateFacilityParams) (int64, error) {

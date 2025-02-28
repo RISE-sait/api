@@ -11,6 +11,7 @@ type ResponseDto struct {
 	EndDateTime   string     `json:"end_time"`
 	PracticeID    *uuid.UUID `json:"practice_id,omitempty"`
 	CourseID      *uuid.UUID `json:"course_id,omitempty"`
+	GameID        *uuid.UUID `json:"game_id,omitempty"`
 	LocationID    uuid.UUID  `json:"location_id"`
 }
 
@@ -21,6 +22,8 @@ func NewEventResponse(event entity.Event) ResponseDto {
 		EndDateTime:   event.EndDateTime.String(),
 		PracticeID:    event.PracticeID,
 		CourseID:      event.CourseID,
-		LocationID:    event.LocationID,
+		GameID:        event.GameID,
+
+		LocationID: event.LocationID,
 	}
 }

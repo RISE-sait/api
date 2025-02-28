@@ -12,8 +12,8 @@ import (
 	"github.com/google/uuid"
 )
 
-const createCourse = `-- name: CreateGame :one
-INSERT INTO courses (name, description, capacity)
+const createCourse = `-- name: CreateCourse :one
+INSERT INTO course.courses (name, description, capacity)
 VALUES ($1, $2, $3)
 RETURNING id, name, description, capacity, created_at, updated_at
 `
@@ -24,9 +24,9 @@ type CreateCourseParams struct {
 	Capacity    int32          `json:"capacity"`
 }
 
-func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (Course, error) {
+func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (CourseCourse, error) {
 	row := q.db.QueryRowContext(ctx, createCourse, arg.Name, arg.Description, arg.Capacity)
-	var i Course
+	var i CourseCourse
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -38,8 +38,8 @@ func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (Cou
 	return i, err
 }
 
-const deleteCourse = `-- name: DeleteGame :execrows
-DELETE FROM courses WHERE id = $1
+const deleteCourse = `-- name: DeleteCourse :execrows
+DELETE FROM course.courses WHERE id = $1
 `
 
 func (q *Queries) DeleteCourse(ctx context.Context, id uuid.UUID) (int64, error) {
@@ -50,13 +50,13 @@ func (q *Queries) DeleteCourse(ctx context.Context, id uuid.UUID) (int64, error)
 	return result.RowsAffected()
 }
 
-const getCourseById = `-- name: GetGameById :one
-SELECT id, name, description, capacity, created_at, updated_at FROM courses WHERE id = $1
+const getCourseById = `-- name: GetCourseById :one
+SELECT id, name, description, capacity, created_at, updated_at FROM course.courses WHERE id = $1
 `
 
-func (q *Queries) GetCourseById(ctx context.Context, id uuid.UUID) (Course, error) {
+func (q *Queries) GetCourseById(ctx context.Context, id uuid.UUID) (CourseCourse, error) {
 	row := q.db.QueryRowContext(ctx, getCourseById, id)
-	var i Course
+	var i CourseCourse
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -68,8 +68,8 @@ func (q *Queries) GetCourseById(ctx context.Context, id uuid.UUID) (Course, erro
 	return i, err
 }
 
-const getCourses = `-- name: GetGames :many
-SELECT id, name, description, capacity, created_at, updated_at FROM courses
+const getCourses = `-- name: GetCourses :many
+SELECT id, name, description, capacity, created_at, updated_at FROM course.courses
 WHERE (name ILIKE '%' || $1 || '%' OR $1 IS NULL)
 AND (description ILIKE '%' || $2 || '%' OR $2 IS NULL)
 `
@@ -79,15 +79,15 @@ type GetCoursesParams struct {
 	Description sql.NullString `json:"description"`
 }
 
-func (q *Queries) GetCourses(ctx context.Context, arg GetCoursesParams) ([]Course, error) {
+func (q *Queries) GetCourses(ctx context.Context, arg GetCoursesParams) ([]CourseCourse, error) {
 	rows, err := q.db.QueryContext(ctx, getCourses, arg.Name, arg.Description)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Course
+	var items []CourseCourse
 	for rows.Next() {
-		var i Course
+		var i CourseCourse
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -109,8 +109,8 @@ func (q *Queries) GetCourses(ctx context.Context, arg GetCoursesParams) ([]Cours
 	return items, nil
 }
 
-const updateCourse = `-- name: UpdateGame :one
-UPDATE courses
+const updateCourse = `-- name: UpdateCourse :one
+UPDATE course.courses
 SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP
 WHERE id = $3
 RETURNING id, name, description, capacity, created_at, updated_at
@@ -122,9 +122,9 @@ type UpdateCourseParams struct {
 	ID          uuid.UUID      `json:"id"`
 }
 
-func (q *Queries) UpdateCourse(ctx context.Context, arg UpdateCourseParams) (Course, error) {
+func (q *Queries) UpdateCourse(ctx context.Context, arg UpdateCourseParams) (CourseCourse, error) {
 	row := q.db.QueryRowContext(ctx, updateCourse, arg.Name, arg.Description, arg.ID)
-	var i Course
+	var i CourseCourse
 	err := row.Scan(
 		&i.ID,
 		&i.Name,

@@ -8,7 +8,7 @@ CREATE TABLE course_membership (
     PRIMARY KEY (course_id, membership_id),
     CONSTRAINT fk_course
         FOREIGN KEY (course_id) 
-        REFERENCES courses (id),
+        REFERENCES course.courses (id),
     CONSTRAINT fk_membership
         FOREIGN KEY (membership_id) 
         REFERENCES membership.memberships (id),

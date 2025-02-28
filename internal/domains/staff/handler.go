@@ -28,7 +28,7 @@ func NewStaffHandlers(container *di.Container) *Handlers {
 // @Param role query string false "RoleName HubSpotId to filter staff" example("f47ac10b-58cc-4372-a567-0e02b2c3d479")
 // @Success 200 {array} staff.ResponseDto "GetMemberships of staff members retrieved successfully"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /api/staffs [get]
+// @Router /staffs [get]
 func (h *Handlers) GetStaffs(w http.ResponseWriter, r *http.Request) {
 
 	var rolePtr *uuid.UUID
@@ -71,7 +71,7 @@ func (h *Handlers) GetStaffs(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 404 {object} map[string]interface{} "Not Found: Staff not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /api/staffs/{id} [put]
+// @Router /staffs/{id} [put]
 // @Security Bearer
 func (h *Handlers) UpdateStaff(w http.ResponseWriter, r *http.Request) {
 
@@ -114,7 +114,7 @@ func (h *Handlers) UpdateStaff(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid HubSpotId"
 // @Failure 404 {object} map[string]interface{} "Not Found: Staff not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /api/staffs/{id} [delete]
+// @Router /staffs/{id} [delete]
 // @Security Bearer
 func (h *Handlers) DeleteStaff(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")

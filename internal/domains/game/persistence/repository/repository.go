@@ -50,7 +50,7 @@ func (r *Repository) GetGameById(ctx context.Context, id uuid.UUID) (values.Read
 	return game, nil
 }
 
-func (r *Repository) UpdateGame(c context.Context, value values.UpdateGameValue) (values.ReadValue, *errLib.CommonError) {
+func (r *Repository) UpdateGame(ctx context.Context, value values.UpdateGameValue) (values.ReadValue, *errLib.CommonError) {
 
 	updateParams := db.UpdateGameParams{
 		ID: value.ID,
@@ -67,7 +67,7 @@ func (r *Repository) UpdateGame(c context.Context, value values.UpdateGameValue)
 		}
 	}
 
-	updatedGame, err := r.Queries.UpdateGame(c, updateParams)
+	updatedGame, err := r.Queries.UpdateGame(ctx, updateParams)
 
 	if err != nil {
 		// Check if the error is a unique violation (duplicate name)
@@ -87,11 +87,11 @@ func (r *Repository) UpdateGame(c context.Context, value values.UpdateGameValue)
 	}, nil
 }
 
-func (r *Repository) GetGames(c context.Context) ([]values.ReadValue, *errLib.CommonError) {
+func (r *Repository) GetGames(ctx context.Context) ([]values.ReadValue, *errLib.CommonError) {
 
-	dbParams := db.GetGamesParams{}
-
-	dbGames, err := r.Queries.GetGames(c, dbParams)
+	dbGames, err := r.Queries.GetGames(ctx, sql.NullString{
+		Valid: false,
+	})
 
 	if err != nil {
 

@@ -16,8 +16,8 @@ type RegistrationDto struct {
 
 // toValueObjectBase validates the DTO and converts waiver signing details into value objects.
 // Returns a slice of CustomerWaiverSigning value objects and an error if validation fails.
-func (dto *RegistrationDto) toValueObjectBase() ([]values.CustomerWaiverSigning, *errLib.CommonError) {
-	if err := validators.ValidateDto(dto); err != nil {
+func (dto RegistrationDto) toValueObjectBase() ([]values.CustomerWaiverSigning, *errLib.CommonError) {
+	if err := validators.ValidateDto(&dto); err != nil {
 		return nil, err
 	}
 
@@ -34,7 +34,7 @@ func (dto *RegistrationDto) toValueObjectBase() ([]values.CustomerWaiverSigning,
 
 // ToCreateRegularCustomerValueObject converts the DTO into a RegularCustomerRegistrationInfo value object.
 // Requires an email address as input. Returns the value object and an error if validation fails.
-func (dto *RegistrationDto) ToCreateRegularCustomerValueObject(email string) (*values.RegularCustomerRegistrationInfo, *errLib.CommonError) {
+func (dto RegistrationDto) ToCreateRegularCustomerValueObject(email string) (*values.RegularCustomerRegistrationInfo, *errLib.CommonError) {
 
 	waiversVo, err := dto.toValueObjectBase()
 
@@ -57,7 +57,7 @@ func (dto *RegistrationDto) ToCreateRegularCustomerValueObject(email string) (*v
 
 // ToCreateChildValueObject converts the DTO into a ChildRegistrationInfo value object.
 // Requires a parent email as input. Returns the value object and an error if validation fails.
-func (dto *RegistrationDto) ToCreateChildValueObject(parentEmail string) (*values.ChildRegistrationInfo, *errLib.CommonError) {
+func (dto RegistrationDto) ToCreateChildValueObject(parentEmail string) (*values.ChildRegistrationInfo, *errLib.CommonError) {
 
 	waiversVo, err := dto.toValueObjectBase()
 

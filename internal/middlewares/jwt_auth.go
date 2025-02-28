@@ -42,17 +42,13 @@ func JWTAuthMiddleware(isAllowAnyoneWithValidToken bool, allowedRoles ...string)
 				return
 			}
 
-			if !isAllowAnyoneWithValidToken {
-
-				if claims.StaffInfo == nil || !hasRequiredRole(claims.StaffInfo.Role, allowedRoles) {
-					responseHandlers.RespondWithError(w, errLib.New("You do not have permission to access this resource", http.StatusForbidden))
-					return
-				}
+			if !isAllowAnyoneWithValidToken && !hasRequiredRole(claims.StaffInfo, allowedRoles) {
+				responseHandlers.RespondWithError(w, errLib.New("You do not have permission to access this resource", http.StatusForbidden))
+				return
 			}
 
 			// Add the claims to the request context for use in handlers
-			ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
-			ctx = context.WithValue(ctx, HubspotIDKey, claims.HubspotID)
+			ctx := addClaimsToContext(r.Context(), claims)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -81,7 +77,14 @@ func extractToken(r *http.Request) (string, *errLib.CommonError) {
 }
 
 // hasRequiredRole checks if the user's role matches any of the allowed roles or is SUPERADMIN.
-func hasRequiredRole(userRole string, allowedRoles []string) bool {
+func hasRequiredRole(staffInfo *jwtLib.StaffInfo, allowedRoles []string) bool {
+
+	if staffInfo == nil {
+		return false
+	}
+
+	userRole := staffInfo.Role
+
 	// SUPER ADMIN has access to everything
 	if strings.EqualFold(userRole, "SUPERADMIN") {
 		return true
@@ -95,4 +98,11 @@ func hasRequiredRole(userRole string, allowedRoles []string) bool {
 	}
 
 	return false
+}
+
+// addClaimsToContext adds the JWT claims to the request context.
+func addClaimsToContext(ctx context.Context, claims *jwtLib.JwtClaims) context.Context {
+	ctx = context.WithValue(ctx, UserIDKey, claims.UserID)
+	ctx = context.WithValue(ctx, HubspotIDKey, claims.HubspotID)
+	return ctx
 }

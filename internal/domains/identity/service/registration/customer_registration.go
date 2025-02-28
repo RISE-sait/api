@@ -2,8 +2,8 @@ package registration
 
 import (
 	"api/internal/di"
+	pendingUsersRepo "api/internal/domains/identity/persistence/repository/pending_users"
 	"api/internal/domains/identity/persistence/repository/user"
-	userInfoTempRepo "api/internal/domains/identity/persistence/repository/user_info"
 	waiverSigningRepo "api/internal/domains/identity/persistence/repository/waiver_signing"
 	"api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
@@ -14,9 +14,9 @@ import (
 
 // CustomerRegistrationService handles customer registration and related operations.
 type CustomerRegistrationService struct {
-	UserRepo                user.RepositoryInterface
-	UserInfoTempRepo        userInfoTempRepo.InfoTempRepositoryInterface
-	WaiverSigningRepository waiverSigningRepo.RepositoryInterface
+	UserRepo                user.IRepository
+	UserInfoTempRepo        pendingUsersRepo.IPendingUsersRepository
+	WaiverSigningRepository waiverSigningRepo.IRepository
 	DB                      *sql.DB
 }
 
@@ -24,8 +24,8 @@ type CustomerRegistrationService struct {
 func NewCustomerRegistrationService(container *di.Container) *CustomerRegistrationService {
 	return &CustomerRegistrationService{
 		UserRepo:                user.NewUserRepository(container),
-		WaiverSigningRepository: waiverSigningRepo.NewWaiverSigningRepository(container),
-		UserInfoTempRepo:        userInfoTempRepo.NewInfoTempRepository(container),
+		WaiverSigningRepository: waiverSigningRepo.NewPendingUserWaiverSigningRepository(container),
+		UserInfoTempRepo:        pendingUsersRepo.NewPendingUserInfoRepository(container),
 		DB:                      container.DB,
 	}
 }
@@ -60,19 +60,15 @@ func (s *CustomerRegistrationService) RegisterCustomer(
 		}
 	}()
 
-	userId, err := s.UserRepo.CreateUserTx(ctx, tx)
+	userId, err := s.UserInfoTempRepo.CreatePendingUserInfoTx(ctx, tx, customer.FirstName, customer.LastName, &customer.Email, nil, customer.Age)
+
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	if err := s.UserInfoTempRepo.CreateTempUserInfoTx(ctx, tx, *userId, customer.FirstName, customer.LastName, &customer.Email, nil, customer.Age); err != nil {
-		tx.Rollback()
-		return err
-	}
-
 	for _, waiver := range customer.Waivers {
-		if err := s.WaiverSigningRepository.CreateWaiverSigningRecordTx(ctx, tx, *userId, waiver.WaiverUrl, waiver.IsWaiverSigned); err != nil {
+		if err := s.WaiverSigningRepository.CreateWaiverSigningRecordTx(ctx, tx, userId, waiver.WaiverUrl, waiver.IsWaiverSigned); err != nil {
 			tx.Rollback()
 			return err
 		}

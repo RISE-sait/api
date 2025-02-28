@@ -2,25 +2,24 @@ package router
 
 import (
 	"api/internal/di"
-	barber "api/internal/domains/barber/handler/events"
-	haircut "api/internal/domains/barber/handler/haircuts"
-	barberEventRepo "api/internal/domains/barber/persistence/repository/event"
 	courseHandler "api/internal/domains/course/handler"
 	courseRepo "api/internal/domains/course/persistence/repository"
-	"api/internal/domains/customer"
 	eventHandler "api/internal/domains/event/handler"
 	eventRepo "api/internal/domains/event/persistence/repository"
 	eventStaffHandler "api/internal/domains/event_staff/handler"
 	eventStaffRepo "api/internal/domains/event_staff/persistence/repository"
 	game "api/internal/domains/game/handler"
 	gameRepo "api/internal/domains/game/persistence/repository"
-
+	barber "api/internal/domains/haircut/handler/events"
+	haircut "api/internal/domains/haircut/handler/haircuts"
+	barberEventRepo "api/internal/domains/haircut/persistence/repository/event"
 	"api/internal/domains/identity/handler/authentication"
 	"api/internal/domains/practice"
 	practiceHandler "api/internal/domains/practice/handler"
 	practiceRepo "api/internal/domains/practice/persistence/repository"
 	purchase "api/internal/domains/purchase/handler"
 	"api/internal/domains/staff"
+	"api/internal/domains/user"
 
 	"api/internal/domains/facility/handler"
 	"api/internal/domains/identity/handler/registration"
@@ -44,39 +43,43 @@ var allowAdminOnly = middlewares.JWTAuthMiddleware(false, RoleAdmin)
 var allowAnyoneWithValidToken = middlewares.JWTAuthMiddleware(true)
 
 func RegisterRoutes(router *chi.Mux, container *di.Container) {
-	router.Route("/api", func(r chi.Router) {
+	routeMappings := map[string]func(*di.Container) func(chi.Router){
 
-		// Membership-related
-		r.Route("/memberships", RegisterMembershipRoutes(container))
-		r.Route("/membership-plan", RegisterMembershipPlansRoutes(container))
+		// Membership-related routes
+		"/memberships":     RegisterMembershipRoutes,
+		"/membership-plan": RegisterMembershipPlansRoutes,
 
-		// Authentication & Registration
-		r.Route("/auth", RegisterAuthRoutes(container))
-		r.Route("/register", RegisterRegistrationRoutes(container))
+		// Authentication & Registration routes
+		"/auth":     RegisterAuthRoutes,
+		"/register": RegisterRegistrationRoutes,
 
-		// Core Functionalities
-		r.Route("/courses", RegisterCourseRoutes(container))
-		r.Route("/practices", RegisterPracticeRoutes(container))
-		r.Route("/events", RegisterEventRoutes(container))
-		r.Route("/facilities", RegisterFacilityRoutes(container))
-		r.Route("/games", RegisterGamesRoutes(container))
+		// Core functionalities
+		"/courses":    RegisterCourseRoutes,
+		"/practices":  RegisterPracticeRoutes,
+		"/events":     RegisterEventRoutes,
+		"/facilities": RegisterFacilityRoutes,
+		"/games":      RegisterGamesRoutes,
 
-		// Users & Staff
-		r.Route("/customers", RegisterCustomerRoutes(container))
-		r.Route("/staffs", RegisterStaffRoutes(container))
-		r.Route("/event-staff", RegisterEventStaffRoutes(container))
+		// Users & Staff routes
+		"/customers":   RegisterCustomerRoutes,
+		"/staffs":      RegisterStaffRoutes,
+		"/event-staff": RegisterEventStaffRoutes,
 
-		// Barber
-		r.Route("/barbers", RegisterBarberRoutes(container))
+		// Haircut routes
+		"/haircuts": RegisterHaircutRoutes,
 
-		// Purchases
-		r.Route("/purchases", RegisterPurchasesRoutes(container))
-	})
+		// Purchase-related routes
+		"/purchases": RegisterPurchasesRoutes,
+	}
+
+	for path, handler := range routeMappings {
+		router.Route(path, handler(container))
+	}
 }
 
 func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 
-	h := customer.NewCustomersHandler(container)
+	h := user.NewCustomersHandler(container)
 
 	return func(r chi.Router) {
 
@@ -86,19 +89,18 @@ func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 	}
 }
 
-func RegisterBarberRoutes(container *di.Container) func(chi.Router) {
-
-	//h := customer.NewCustomersHandler(container)
+func RegisterHaircutRoutes(container *di.Container) func(chi.Router) {
 
 	return func(r chi.Router) {
 
-		r.Post("/haircuts", haircut.UploadHaircutImage)
+		r.Get("/", haircut.GetHaircutImages)
+		r.Post("/", haircut.UploadHaircutImage)
 
-		r.Route("/events", RegisterBarberEventsRoutes(container))
+		r.Route("/events", RegisterHaircutEventsRoutes(container))
 	}
 }
 
-func RegisterBarberEventsRoutes(container *di.Container) func(chi.Router) {
+func RegisterHaircutEventsRoutes(container *di.Container) func(chi.Router) {
 
 	repo := barberEventRepo.NewEventsRepository(container.Queries.BarberDb)
 	h := barber.NewEventsHandler(repo)

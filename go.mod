@@ -2,8 +2,6 @@ module api
 
 go 1.23.4
 
-replace api => ./
-
 require github.com/google/uuid v1.6.0
 
 require github.com/go-chi/chi v1.5.5
@@ -114,6 +112,7 @@ require (
 	github.com/aws/aws-sdk-go v1.55.6
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-playground/validator v9.31.0+incompatible
+	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	github.com/pressly/goose v2.7.0+incompatible
 	github.com/stretchr/testify v1.10.0

@@ -6,6 +6,7 @@ services:
    container_name: '${COMPOSE_PROJECT_NAME}_tests'
    env_file:
      - ./config/.env
+     - ./config/.env.local  # Load .env.local after .env for priority
 
   seed:
    build:
@@ -14,6 +15,7 @@ services:
    container_name: '${COMPOSE_PROJECT_NAME}_seed'
    env_file:
      - ./config/.env
+     - ./config/.env.local  # Load .env.local after .env for priority
 
   migrate:
     build:
@@ -22,5 +24,6 @@ services:
     container_name: '${COMPOSE_PROJECT_NAME}_migrate'
     env_file:
       - ./config/.env
+      - ./config/.env.local  # Load .env.local after .env for priority
 
 # docker compose -f tasks.docker-compose.yml run --rm --build migrate up

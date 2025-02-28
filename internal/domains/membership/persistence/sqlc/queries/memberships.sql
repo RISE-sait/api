@@ -1,17 +1,17 @@
 -- name: CreateMembership :execrows
-INSERT INTO memberships (name, description)
+INSERT INTO membership.memberships (name, description)
 VALUES ($1, $2);
 
 -- name: GetMembershipById :one
-SELECT * FROM memberships WHERE id = $1;
+SELECT * FROM membership.memberships WHERE id = $1;
 
 -- name: GetAllMemberships :many
-SELECT * FROM memberships;
+SELECT * FROM membership.memberships;
 
 -- name: UpdateMembership :execrows
-UPDATE memberships
+UPDATE membership.memberships
 SET name = $1, description = $2
 WHERE id = $3;
 
 -- name: DeleteMembership :execrows
-DELETE FROM memberships WHERE id = $1;
+DELETE FROM membership.memberships WHERE id = $1;

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"api/cmd/server/router"
+	"api/internal/di"
 	"context"
 	"encoding/json"
 	"errors"
@@ -29,12 +31,12 @@ import (
 // @name Authorization
 func main() {
 
-	//diContainer := di.NewContainer()
-	//defer diContainer.Cleanup()
+	diContainer := di.NewContainer()
+	defer diContainer.Cleanup()
 
 	server := &http.Server{
 		Addr:         ":80",
-		Handler:      setupServer(),
+		Handler:      setupServer(diContainer),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
@@ -59,7 +61,7 @@ func main() {
 	}
 }
 
-func setupServer() http.Handler {
+func setupServer(container *di.Container) http.Handler {
 	r := chi.NewRouter()
 	setupMiddlewares(r)
 
@@ -73,7 +75,7 @@ func setupServer() http.Handler {
 
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
-	//routes.RegisterRoutes(r, container)
+	router.RegisterRoutes(r, container)
 	return r
 }
 

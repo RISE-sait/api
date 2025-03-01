@@ -1,8 +1,6 @@
 package main
 
 import (
-	routes "api/cmd/server/router"
-	"api/internal/di"
 	"context"
 	"encoding/json"
 	"errors"
@@ -24,21 +22,19 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-// @host localhost:8080
+// @host localhost:80
 
 // @SecurityDefinitions.apiKey Bearer
 // @in header
 // @name Authorization
 func main() {
 
-	log.Println("Server starting on")
-
-	diContainer := di.NewContainer()
-	defer diContainer.Cleanup()
+	//diContainer := di.NewContainer()
+	//defer diContainer.Cleanup()
 
 	server := &http.Server{
-		Addr:         ":8080",
-		Handler:      setupServer(diContainer),
+		Addr:         ":80",
+		Handler:      setupServer(),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
@@ -63,7 +59,7 @@ func main() {
 	}
 }
 
-func setupServer(container *di.Container) http.Handler {
+func setupServer() http.Handler {
 	r := chi.NewRouter()
 	setupMiddlewares(r)
 
@@ -77,7 +73,7 @@ func setupServer(container *di.Container) http.Handler {
 
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
-	routes.RegisterRoutes(r, container)
+	//routes.RegisterRoutes(r, container)
 	return r
 }
 

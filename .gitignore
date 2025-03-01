@@ -9,6 +9,8 @@
 
 tmp/
 *.env
+*.env.*
+
 .idea/
 
 *.test

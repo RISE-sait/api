@@ -23,7 +23,6 @@ services:
       dockerfile: migrate.Dockerfile
     container_name: '${COMPOSE_PROJECT_NAME}_migrate'
     env_file:
-      - ./config/.env
       - ./config/.env.local  # Load .env.local after .env for priority
 
 # docker compose -f tasks.docker-compose.yml run --rm --build migrate up

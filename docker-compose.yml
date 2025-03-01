@@ -15,11 +15,10 @@ services:
       dockerfile: server.Dockerfile
     container_name: '${COMPOSE_PROJECT_NAME}_go_server'
     ports:
-      - '8080:8080'
+      - '80:80'
     volumes:
       - ./cmd:/app/cmd
       - ./internal:/app/internal
-    entrypoint: air
     env_file:
       - ./config/.env
       - ./config/.env.local

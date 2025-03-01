@@ -16,6 +16,9 @@ COPY go.sum .
 # Download Go dependencies
 RUN go mod download
 
+ENV GOOSE_DRIVER=postgres
+ENV GOOSE_MIGRATION_DIR="./db/migrations"
+
 # Copy everything else
 COPY . .
 

@@ -4,21 +4,37 @@ FROM golang:1.23.4-alpine AS builder
 # Set the working directory inside the container
 WORKDIR /app
 
+# Install necessary dependencies
+RUN apk add --no-cache coreutils
+
 # Copy go.mod and go.sum files
-COPY go.mod .
-COPY go.sum .
+COPY go.mod go.sum ./
 
-# Download and cache Go dependencies
+# Download dependencies
 RUN go mod download
-
-RUN go install github.com/air-verse/air@latest
 
 # Copy the rest of the application code
 COPY . .
 
+# Build the Go application
+RUN go build -o server cmd/server/main.go
+
+# Final lightweight image
+FROM alpine:latest AS final
+
+WORKDIR /root/
+
+# Install only required dependencies
+RUN apk --no-cache add ca-certificates
+
+# Copy the compiled binary from the builder stage
+COPY --from=builder /app/server .
+
 # Expose the port your Go server listens on
-EXPOSE 8080
+EXPOSE 80
 
-ENV DATABASE_URL=${DATABASE_URL}
+# Set environment variables (passed at runtime)
+ENV DATABASE_URL=${secrets.DATABASE_URL}}
 
-ENTRYPOINT ["go run cmd/server/main.go"]
+# Run the compiled binary
+CMD ["./server"]

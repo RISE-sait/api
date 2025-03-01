@@ -1,0 +1,30 @@
+name: Migrate Database
+
+on:
+  push:
+    branches:
+      - main  # Runs on every push to the main branch
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Log in to Google Cloud
+        run: |
+          echo ${{ secrets.GCP_CREDENTIALS }} | gcloud auth activate-service-account --key-file=-
+          gcloud config set project ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Build Docker Image
+        run: |
+          docker build -t api-go-server:latest -f migrate.Dockerfile .  
+
+      - name: Run Migrations
+        run: |
+          docker run --rm -e DATABASE_URL="${{ secrets.DATABASE_URL }}" api-go-server:latest up

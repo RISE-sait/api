@@ -10,6 +10,7 @@ RUN apk add --no-cache coreutils
 # Copy go.mod and go.sum files
 COPY go.mod go.sum ./
 
+
 # Download dependencies
 RUN go mod download
 

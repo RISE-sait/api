@@ -15,20 +15,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-
-      - name: Install gcloud SDK
-        run: |
-            echo "Installing Google Cloud SDK..."
-            curl https://sdk.cloud.google.com | bash
-            source $HOME/google-cloud-sdk/path.bash.inc
-            gcloud --version  # Verifying gcloud installation
-
-      - name: Log in to Google Cloud
-        run: |
-          echo "${{ secrets.GCP_CREDENTIALS }}" > $HOME/gcloud-service-key.json  # Create the service account key file
-          gcloud auth activate-service-account --key-file=$HOME/gcloud-service-key.json  # Authenticate using the key
-          gcloud config set project ${{ secrets.GCP_PROJECT_ID }}  # Set the project
-
       - name: Build Docker Image
         run: |
           docker build -t api-go-server:latest -f migrate.Dockerfile .  

@@ -16,9 +16,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
+      - name: Install gcloud SDK
+        run: |
+            echo "Installing Google Cloud SDK..."
+            curl https://sdk.cloud.google.com | bash
+            source $HOME/google-cloud-sdk/path.bash.inc
+            gcloud --version  # Verifying gcloud installation
+
       - name: Log in to Google Cloud
         run: |
-          echo ${{ secrets.GCP_CREDENTIALS }} | gcloud auth activate-service-account --key-file=-
+          gcloud auth activate-service-account --key-file=-
           gcloud config set project ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Build Docker Image

@@ -33,8 +33,5 @@ COPY --from=builder /app/server .
 # Expose the port your Go server listens on
 EXPOSE 80
 
-# Set environment variables (passed at runtime)
-ENV DATABASE_URL=${secrets.DATABASE_URL}}
-
 # Run the compiled binary
 CMD ["./server"]

@@ -1308,6 +1308,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Registers a new facility category with the provided name.",
                 "consumes": [
                     "application/json"
@@ -3513,6 +3518,9 @@ const docTemplate = `{
                 "last_name": {
                     "type": "string"
                 },
+                "role": {
+                    "type": "string"
+                },
                 "waivers": {
                     "type": "array",
                     "items": {
@@ -4107,7 +4115,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "",
-	Host:             "localhost:8080",
+	Host:             "localhost:80",
 	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "",

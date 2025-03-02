@@ -10,7 +10,7 @@ import (
 
 func main() {
 	// Define the base directories to scan
-	baseDirs := []string{"../../cmd/server", "../../internal/domains", "../../internal/services/hubspot"}
+	baseDirs := []string{"./cmd/server", "./internal/domains", "./internal/services/hubspot"}
 
 	skipDirs := map[string]bool{
 		"persistence": true,

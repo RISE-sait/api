@@ -35,7 +35,7 @@ func (r *Repository) GetStaffByUserId(ctx context.Context, id uuid.UUID) (*value
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errLib.New("Staff not found", http.StatusNotFound)
 		}
-		log.Printf("Error fetching staff by email: %v", err)
+		log.Printf("Error fetching staff by id: %v", err)
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 

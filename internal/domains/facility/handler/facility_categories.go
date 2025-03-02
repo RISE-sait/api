@@ -26,6 +26,7 @@ func NewFacilityCategoriesHandler(container *di.Container) *CategoriesHandler {
 // @Tags facility-categories
 // @Accept json
 // @Produce json
+// @Security Bearer
 // @Param facility_category body dto.CategoryRequestDto true "Facility Category details"
 // @Success 201 {object} map[string]interface{} "Facility category created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"

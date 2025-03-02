@@ -3,7 +3,7 @@
     "info": {
         "contact": {}
     },
-    "host": "localhost:8080",
+    "host": "localhost:80",
     "paths": {
         "/auth": {
             "post": {
@@ -1298,6 +1298,11 @@
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Registers a new facility category with the provided name.",
                 "consumes": [
                     "application/json"
@@ -3501,6 +3506,9 @@
                     "type": "string"
                 },
                 "last_name": {
+                    "type": "string"
+                },
+                "role": {
                     "type": "string"
                 },
                 "waivers": {

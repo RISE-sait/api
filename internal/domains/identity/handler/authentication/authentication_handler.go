@@ -9,7 +9,6 @@ import (
 	"api/internal/middlewares"
 	"github.com/go-chi/chi"
 	"net/http"
-	"time"
 )
 
 type Handlers struct {
@@ -51,16 +50,6 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "access_token",
-		Value:    jwtToken,
-		Path:     "/",
-		HttpOnly: true,  // Prevent JavaScript access
-		Secure:   false, // Use HTTPS in production
-		SameSite: http.SameSiteStrictMode,
-		Expires:  time.Now().Add(24 * time.Hour), // Set expiration to 24 hours
-	})
-
 	responseBody := identity.UserNecessaryInfoDto{
 		FirstName: userInfo.FirstName,
 		LastName:  userInfo.LastName,
@@ -98,16 +87,6 @@ func (h *Handlers) LoginAsChild(w http.ResponseWriter, r *http.Request) {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "access_token",
-		Value:    jwtToken,
-		Path:     "/",
-		HttpOnly: true,  // Prevent JavaScript access
-		Secure:   false, // Use HTTPS in production
-		SameSite: http.SameSiteStrictMode,
-		Expires:  time.Now().Add(24 * time.Hour), // Set expiration to 24 hours
-	})
 
 	responseBody := identity.UserNecessaryInfoDto{
 		FirstName: userInfo.FirstName,

@@ -23,6 +23,8 @@ definitions:
         type: string
       last_name:
         type: string
+      role:
+        type: string
       waivers:
         items:
           $ref: '#/definitions/customer.WaiverSigningDto'
@@ -411,7 +413,7 @@ definitions:
       wins:
         type: integer
     type: object
-host: localhost:8080
+host: localhost:80
 info:
   contact: {}
 paths:
@@ -1433,6 +1435,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - Bearer: []
       summary: Create a new facility category
       tags:
       - facility-categories

@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,7 +14,7 @@ import (
 
 const createStaff = `-- name: CreateStaff :execrows
 INSERT INTO users.staff (id, role_id, is_active) VALUES ($1,
-(SELECT id from staff_roles where role_name = $2), $3)
+(SELECT id from users.staff_roles where role_name = $2), $3)
 `
 
 type CreateStaffParams struct {
@@ -35,15 +34,15 @@ func (q *Queries) CreateStaff(ctx context.Context, arg CreateStaffParams) (int64
 const getStaffById = `-- name: GetStaffById :one
 SELECT s.is_active, s.created_at, s.updated_at, sr.role_name FROM users.staff s
 JOIN users.users u ON s.id = u.id
-JOIN staff_roles sr ON s.role_id = sr.id
+JOIN users.staff_roles sr ON s.role_id = sr.id
 WHERE u.id = $1
 `
 
 type GetStaffByIdRow struct {
-	IsActive  bool         `json:"is_active"`
-	CreatedAt sql.NullTime `json:"created_at"`
-	UpdatedAt time.Time    `json:"updated_at"`
-	RoleName  string       `json:"role_name"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	RoleName  string    `json:"role_name"`
 }
 
 func (q *Queries) GetStaffById(ctx context.Context, id uuid.UUID) (GetStaffByIdRow, error) {
@@ -59,18 +58,18 @@ func (q *Queries) GetStaffById(ctx context.Context, id uuid.UUID) (GetStaffByIdR
 }
 
 const getStaffRoles = `-- name: GetStaffRoles :many
-SELECT id, role_name FROM staff_roles
+SELECT id, role_name FROM users.staff_roles
 `
 
-func (q *Queries) GetStaffRoles(ctx context.Context) ([]StaffRole, error) {
+func (q *Queries) GetStaffRoles(ctx context.Context) ([]UsersStaffRole, error) {
 	rows, err := q.db.QueryContext(ctx, getStaffRoles)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []StaffRole
+	var items []UsersStaffRole
 	for rows.Next() {
-		var i StaffRole
+		var i UsersStaffRole
 		if err := rows.Scan(&i.ID, &i.RoleName); err != nil {
 			return nil, err
 		}

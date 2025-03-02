@@ -14,7 +14,7 @@ CREATE TABLE events (
     CONSTRAINT fk_game FOREIGN KEY (game_id) REFERENCES games (id),
     CONSTRAINT fk_course FOREIGN KEY (course_id) REFERENCES course.courses (id),
     CONSTRAINT fk_practice FOREIGN KEY (practice_id) REFERENCES practices (id),
-    CONSTRAINT fk_location FOREIGN KEY (location_id) REFERENCES locations (id),
+    CONSTRAINT fk_location FOREIGN KEY (location_id) REFERENCES location.locations (id),
     CONSTRAINT check_end_time CHECK (end_date_time > begin_date_time) -- Prevent invalid schedules
 );
 

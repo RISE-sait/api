@@ -53,8 +53,8 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 			BeginDateTime: eventDb.BeginDateTime,
 			EndDateTime:   eventDb.EndDateTime,
 		},
-		CreatedAt: eventDb.CreatedAt.Time,
-		UpdatedAt: eventDb.UpdatedAt.Time,
+		CreatedAt: eventDb.CreatedAt,
+		UpdatedAt: eventDb.UpdatedAt,
 	}
 
 	return event, nil
@@ -82,8 +82,8 @@ func (r *Repository) GetEvents(ctx context.Context) ([]values.EventReadValues, *
 				BeginDateTime: dbEvent.BeginDateTime,
 				EndDateTime:   dbEvent.EndDateTime,
 			},
-			CreatedAt: dbEvent.CreatedAt.Time,
-			UpdatedAt: dbEvent.UpdatedAt.Time,
+			CreatedAt: dbEvent.CreatedAt,
+			UpdatedAt: dbEvent.UpdatedAt,
 		}
 
 		events[i] = event
@@ -119,8 +119,8 @@ func (r *Repository) UpdateEvent(c context.Context, event values.UpdateEventValu
 			BeginDateTime: dbEvent.BeginDateTime,
 			EndDateTime:   dbEvent.EndDateTime,
 		},
-		CreatedAt: dbEvent.CreatedAt.Time,
-		UpdatedAt: dbEvent.UpdatedAt.Time,
+		CreatedAt: dbEvent.CreatedAt,
+		UpdatedAt: dbEvent.UpdatedAt,
 	}
 
 	return updatedEvent, nil
@@ -161,8 +161,8 @@ func (r *Repository) GetEventDetails(ctx context.Context, id uuid.UUID) (values.
 			BeginDateTime: dbEvent.BeginDateTime,
 			EndDateTime:   dbEvent.EndDateTime,
 		},
-		CreatedAt: dbEvent.CreatedAt.Time,
-		UpdatedAt: dbEvent.UpdatedAt.Time,
+		CreatedAt: dbEvent.CreatedAt,
+		UpdatedAt: dbEvent.UpdatedAt,
 	}
 
 	return event, nil

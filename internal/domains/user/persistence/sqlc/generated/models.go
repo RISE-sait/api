@@ -215,7 +215,7 @@ type BarberBarberEvent struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
-type Course struct {
+type CourseCourse struct {
 	ID          uuid.UUID      `json:"id"`
 	Name        string         `json:"name"`
 	Description sql.NullString `json:"description"`
@@ -229,11 +229,6 @@ type CourseMembership struct {
 	MembershipID    uuid.UUID      `json:"membership_id"`
 	PricePerBooking sql.NullString `json:"price_per_booking"`
 	IsEligible      bool           `json:"is_eligible"`
-}
-
-type CustomerCredit struct {
-	CustomerID uuid.UUID `json:"customer_id"`
-	Credits    int32     `json:"credits"`
 }
 
 type CustomerDiscountUsage struct {
@@ -301,25 +296,25 @@ type EventStaff struct {
 	StaffID uuid.UUID `json:"staff_id"`
 }
 
-type FacilityFacility struct {
-	ID                 uuid.UUID `json:"id"`
-	Name               string    `json:"name"`
-	Address            string    `json:"address"`
-	FacilityCategoryID uuid.UUID `json:"facility_category_id"`
-}
-
-type FacilityFacilityCategory struct {
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
-}
-
 type Game struct {
 	ID        uuid.UUID      `json:"id"`
 	Name      string         `json:"name"`
 	VideoLink sql.NullString `json:"video_link"`
 }
 
-type Location struct {
+type LocationFacility struct {
+	ID                 uuid.UUID `json:"id"`
+	Name               string    `json:"name"`
+	Address            string    `json:"address"`
+	FacilityCategoryID uuid.UUID `json:"facility_category_id"`
+}
+
+type LocationFacilityCategory struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+type LocationLocation struct {
 	ID         uuid.UUID `json:"id"`
 	Name       string    `json:"name"`
 	FacilityID uuid.UUID `json:"facility_id"`
@@ -366,16 +361,9 @@ type PracticeMembership struct {
 	IsEligible      bool           `json:"is_eligible"`
 }
 
-type StaffActivityLog struct {
-	ID         uuid.UUID    `json:"id"`
-	UserID     uuid.UUID    `json:"user_id"`
-	Activity   string       `json:"activity"`
-	OccurredAt sql.NullTime `json:"occurred_at"`
-}
-
-type StaffRole struct {
-	ID       uuid.UUID `json:"id"`
-	RoleName string    `json:"role_name"`
+type UsersCustomerCredit struct {
+	CustomerID uuid.UUID `json:"customer_id"`
+	Credits    int32     `json:"credits"`
 }
 
 type UsersPendingUser struct {
@@ -395,6 +383,18 @@ type UsersStaff struct {
 	CreatedAt sql.NullTime `json:"created_at"`
 	UpdatedAt time.Time    `json:"updated_at"`
 	RoleID    uuid.UUID    `json:"role_id"`
+}
+
+type UsersStaffActivityLog struct {
+	ID         uuid.UUID    `json:"id"`
+	UserID     uuid.UUID    `json:"user_id"`
+	Activity   string       `json:"activity"`
+	OccurredAt sql.NullTime `json:"occurred_at"`
+}
+
+type UsersStaffRole struct {
+	ID       uuid.UUID `json:"id"`
+	RoleName string    `json:"role_name"`
 }
 
 type UsersUser struct {

@@ -10,7 +10,7 @@ import (
 // RegistrationDto represents the data transfer object for customer registration.
 // It includes user information, waivers, Firebase authentication token, and age.
 type RegistrationDto struct {
-	CustomerWaiversSigningDto []WaiverSigningDto `json:"waivers" validate:"required,dive"`
+	CustomerWaiversSigningDto []WaiverSigningDto `json:"waivers" validate:"required"`
 	identity.UserNecessaryInfoDto
 }
 
@@ -23,9 +23,15 @@ func (dto RegistrationDto) toValueObjectBase() ([]values.CustomerWaiverSigning, 
 
 	waiversVo := make([]values.CustomerWaiverSigning, len(dto.CustomerWaiversSigningDto))
 	for i, waiver := range dto.CustomerWaiversSigningDto {
+		vo, err := waiver.ToValueObjects()
+
+		if err != nil {
+			return nil, err
+		}
+
 		waiversVo[i] = values.CustomerWaiverSigning{
-			IsWaiverSigned: waiver.IsWaiverSigned,
-			WaiverUrl:      waiver.WaiverUrl,
+			IsWaiverSigned: vo.IsWaiverSigned,
+			WaiverUrl:      vo.WaiverUrl,
 		}
 	}
 
@@ -55,9 +61,9 @@ func (dto RegistrationDto) ToCreateRegularCustomerValueObject(email string) (*va
 	return &vo, nil
 }
 
-// ToCreateChildValueObject converts the DTO into a ChildRegistrationInfo value object.
+// ToCreateChildValueObject converts the DTO into a ChildRegistrationRequestInfo value object.
 // Requires a parent email as input. Returns the value object and an error if validation fails.
-func (dto RegistrationDto) ToCreateChildValueObject(parentEmail string) (*values.ChildRegistrationInfo, *errLib.CommonError) {
+func (dto RegistrationDto) ToCreateChildValueObject(parentEmail string) (*values.ChildRegistrationRequestInfo, *errLib.CommonError) {
 
 	waiversVo, err := dto.toValueObjectBase()
 
@@ -65,7 +71,7 @@ func (dto RegistrationDto) ToCreateChildValueObject(parentEmail string) (*values
 		return nil, err
 	}
 
-	vo := values.ChildRegistrationInfo{
+	vo := values.ChildRegistrationRequestInfo{
 		UserNecessaryInfo: values.UserNecessaryInfo{
 			Age:       dto.Age,
 			FirstName: dto.FirstName,

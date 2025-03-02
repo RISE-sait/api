@@ -64,6 +64,7 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 	responseBody := identity.UserNecessaryInfoDto{
 		FirstName: userInfo.FirstName,
 		LastName:  userInfo.LastName,
+		Role:      userInfo.Role,
 		Age:       0,
 	}
 

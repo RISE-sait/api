@@ -8,6 +8,7 @@ type UserNecessaryInfo struct {
 	Age       int
 	FirstName string
 	LastName  string
+	Role      string
 }
 
 type RegularCustomerRegistrationInfo struct {
@@ -17,7 +18,7 @@ type RegularCustomerRegistrationInfo struct {
 	Waivers []CustomerWaiverSigning
 }
 
-type ChildRegistrationInfo struct {
+type ChildRegistrationRequestInfo struct {
 	UserNecessaryInfo
 	ParentEmail string
 	Waivers     []CustomerWaiverSigning

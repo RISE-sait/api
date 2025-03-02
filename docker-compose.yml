@@ -12,7 +12,7 @@ services:
   go-server:
     build:
       context: .
-      dockerfile: server.Dockerfile
+      dockerfile: dev.server.Dockerfile
     container_name: '${COMPOSE_PROJECT_NAME}_go_server'
     ports:
       - '80:80'

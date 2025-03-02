@@ -2,9 +2,9 @@ package authentication
 
 import (
 	"api/internal/di"
+	userInfoTempRepo "api/internal/domains/identity/persistence/repository/pending_users"
 	staffRepo "api/internal/domains/identity/persistence/repository/staff"
 	"api/internal/domains/identity/persistence/repository/user"
-	userInfoTempRepo "api/internal/domains/identity/persistence/repository/pending_users"
 	"api/internal/domains/identity/service/firebase"
 	"api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
@@ -81,6 +81,7 @@ func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string,
 		//Age:       hubspotResponse.Properties.,
 		FirstName: hubspotResponse.Properties.FirstName,
 		LastName:  hubspotResponse.Properties.LastName,
+		Role:      "Athlete",
 	}
 
 	staffInfoPtr, _ := s.StaffRepo.GetStaffByUserId(ctx, userId)
@@ -90,6 +91,8 @@ func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string,
 			Role:     (*staffInfoPtr).RoleName,
 			IsActive: (*staffInfoPtr).IsActive,
 		}
+
+		userInfo.Role = (*staffInfoPtr).RoleName
 	}
 
 	jwtToken, err := jwtLib.SignJWT(jwtCustomClaims)

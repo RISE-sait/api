@@ -238,7 +238,7 @@ func TestCustomerRegistrationDto_ToCreateChildValueObject(t *testing.T) {
 		dto            *RegistrationDto
 		parentEmail    string
 		expectError    bool
-		expectedValues *values.ChildRegistrationInfo
+		expectedValues *values.ChildRegistrationRequestInfo
 	}{
 		{
 			name: "Valid Input",
@@ -257,7 +257,7 @@ func TestCustomerRegistrationDto_ToCreateChildValueObject(t *testing.T) {
 			},
 			parentEmail: "john.doe@example.com",
 			expectError: false,
-			expectedValues: &values.ChildRegistrationInfo{
+			expectedValues: &values.ChildRegistrationRequestInfo{
 				UserNecessaryInfo: values.UserNecessaryInfo{
 					Age:       10,
 					FirstName: "Alice",

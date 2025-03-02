@@ -9,6 +9,7 @@ import (
 	"google.golang.org/api/option"
 	"log"
 	"net/http"
+	"os"
 )
 
 type Service struct {
@@ -20,7 +21,7 @@ func NewFirebaseService() (*Service, *errLib.CommonError) {
 	authClient, err := getFirebaseAuthClient()
 
 	if err != nil {
-		return nil, errLib.New("Failed to get firebase auth client", http.StatusInternalServerError)
+		return nil, err
 	}
 
 	return &Service{
@@ -30,14 +31,17 @@ func NewFirebaseService() (*Service, *errLib.CommonError) {
 
 func getFirebaseAuthClient() (*auth.Client, *errLib.CommonError) {
 
-	// Load the Firebase service account key from an environment variable or a file
-	firebaseCredentials := config.Envs.FirebaseCredentials
-	if firebaseCredentials == "" {
-		log.Printf("Firebase credentials not found in environment variables")
+	var opt option.ClientOption
+
+	if firebaseCredentials := config.Envs.FirebaseCredentials; firebaseCredentials != "" {
+		opt = option.WithCredentialsJSON([]byte(firebaseCredentials))
+	} else if _, err := os.Stat("/app/config/firebase_credentials.json"); err == nil {
+		opt = option.WithCredentialsFile("/app/config/firebase_credentials.json")
+	} else {
+		log.Printf("Firebase credentials not found in environment variables or file")
 		return nil, errLib.New("Internal server error: Firebase credentials not found", http.StatusInternalServerError)
 	}
-
-	opt := option.WithCredentialsJSON([]byte(firebaseCredentials))
+	
 	app, err := firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
 		log.Printf("error initializing app: %v", err)

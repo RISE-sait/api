@@ -7,13 +7,14 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 const deleteStaff = `-- name: DeleteStaff :execrows
-DELETE FROM staff WHERE id = $1
+DELETE FROM users.staff WHERE id = $1
 `
 
 func (q *Queries) DeleteStaff(ctx context.Context, id uuid.UUID) (int64, error) {
@@ -25,20 +26,20 @@ func (q *Queries) DeleteStaff(ctx context.Context, id uuid.UUID) (int64, error) 
 }
 
 const getStaffByID = `-- name: GetStaffByID :one
-SELECT s.id, is_active, created_at, updated_at, role_id, sr.id, role_name, sr.role_name FROM staff s 
-JOIN staff_roles sr ON staff.role_id = staff_roles.id
+SELECT s.id, is_active, created_at, updated_at, role_id, sr.id, role_name, sr.role_name FROM users.staff s
+JOIN users.staff_roles sr ON s.role_id = sr.id
 WHERE s.id = $1
 `
 
 type GetStaffByIDRow struct {
-	ID         uuid.UUID `json:"id"`
-	IsActive   bool      `json:"is_active"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
-	RoleID     uuid.UUID `json:"role_id"`
-	ID_2       uuid.UUID `json:"id_2"`
-	RoleName   string    `json:"role_name"`
-	RoleName_2 string    `json:"role_name_2"`
+	ID         uuid.UUID    `json:"id"`
+	IsActive   bool         `json:"is_active"`
+	CreatedAt  sql.NullTime `json:"created_at"`
+	UpdatedAt  time.Time    `json:"updated_at"`
+	RoleID     uuid.UUID    `json:"role_id"`
+	ID_2       uuid.UUID    `json:"id_2"`
+	RoleName   string       `json:"role_name"`
+	RoleName_2 string       `json:"role_name_2"`
 }
 
 func (q *Queries) GetStaffByID(ctx context.Context, id uuid.UUID) (GetStaffByIDRow, error) {
@@ -58,19 +59,19 @@ func (q *Queries) GetStaffByID(ctx context.Context, id uuid.UUID) (GetStaffByIDR
 }
 
 const getStaffs = `-- name: GetStaffs :many
-SELECT s.id, s.is_active, s.created_at, s.updated_at, s.role_id, sr.role_name FROM staff s
-JOIN staff_roles sr ON s.role_id = sr.id
+SELECT s.id, s.is_active, s.created_at, s.updated_at, s.role_id, sr.role_name FROM users.staff s
+JOIN users.staff_roles sr ON s.role_id = sr.id
 WHERE
 (role_id = $1 OR $1 IS NULL)
 `
 
 type GetStaffsRow struct {
-	ID        uuid.UUID `json:"id"`
-	IsActive  bool      `json:"is_active"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	RoleID    uuid.UUID `json:"role_id"`
-	RoleName  string    `json:"role_name"`
+	ID        uuid.UUID    `json:"id"`
+	IsActive  bool         `json:"is_active"`
+	CreatedAt sql.NullTime `json:"created_at"`
+	UpdatedAt time.Time    `json:"updated_at"`
+	RoleID    uuid.UUID    `json:"role_id"`
+	RoleName  string       `json:"role_name"`
 }
 
 func (q *Queries) GetStaffs(ctx context.Context, roleID uuid.NullUUID) ([]GetStaffsRow, error) {
@@ -105,7 +106,7 @@ func (q *Queries) GetStaffs(ctx context.Context, roleID uuid.NullUUID) ([]GetSta
 
 const updateStaff = `-- name: UpdateStaff :one
 WITH updated_staff AS (
-    UPDATE staff s
+    UPDATE users.staff s
     SET
         role_id = $1,
         is_active = $2
@@ -114,7 +115,7 @@ WITH updated_staff AS (
 )
 SELECT us.id, us.is_active, us.created_at, us.updated_at, us.role_id, sr.role_name
 FROM updated_staff us
-JOIN staff_roles sr ON us.role_id = sr.id
+JOIN users.staff_roles sr ON us.role_id = sr.id
 `
 
 type UpdateStaffParams struct {
@@ -124,12 +125,12 @@ type UpdateStaffParams struct {
 }
 
 type UpdateStaffRow struct {
-	ID        uuid.UUID `json:"id"`
-	IsActive  bool      `json:"is_active"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	RoleID    uuid.UUID `json:"role_id"`
-	RoleName  string    `json:"role_name"`
+	ID        uuid.UUID    `json:"id"`
+	IsActive  bool         `json:"is_active"`
+	CreatedAt sql.NullTime `json:"created_at"`
+	UpdatedAt time.Time    `json:"updated_at"`
+	RoleID    uuid.UUID    `json:"role_id"`
+	RoleName  string       `json:"role_name"`
 }
 
 func (q *Queries) UpdateStaff(ctx context.Context, arg UpdateStaffParams) (UpdateStaffRow, error) {

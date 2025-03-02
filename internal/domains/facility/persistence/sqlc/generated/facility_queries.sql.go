@@ -3,7 +3,7 @@
 //   sqlc v1.27.0
 // source: facility_queries.sql
 
-package facility_db
+package db
 
 import (
 	"context"
@@ -14,27 +14,27 @@ import (
 
 const createFacility = `-- name: CreateFacility :one
 WITH inserted_facility AS (
-    INSERT INTO facility.facilities (name, address, facility_category_id)
+    INSERT INTO location.facilities (name, address, facility_category_id)
     VALUES ($1, $2, $3)
     RETURNING id, name, address, facility_category_id
 )
 SELECT f.id, f.name, f.address, f.facility_category_id, fc.name AS facility_category_name
 FROM inserted_facility f
-JOIN facility.facility_categories fc ON f.facility_category_id = fc.id
+JOIN location.facility_categories fc ON f.facility_category_id = fc.id
 `
 
 type CreateFacilityParams struct {
-	Name               string
-	Address            string
-	FacilityCategoryID uuid.UUID
+	Name               string    `json:"name"`
+	Address            string    `json:"address"`
+	FacilityCategoryID uuid.UUID `json:"facility_category_id"`
 }
 
 type CreateFacilityRow struct {
-	ID                   uuid.UUID
-	Name                 string
-	Address              string
-	FacilityCategoryID   uuid.UUID
-	FacilityCategoryName string
+	ID                   uuid.UUID `json:"id"`
+	Name                 string    `json:"name"`
+	Address              string    `json:"address"`
+	FacilityCategoryID   uuid.UUID `json:"facility_category_id"`
+	FacilityCategoryName string    `json:"facility_category_name"`
 }
 
 func (q *Queries) CreateFacility(ctx context.Context, arg CreateFacilityParams) (CreateFacilityRow, error) {
@@ -51,7 +51,7 @@ func (q *Queries) CreateFacility(ctx context.Context, arg CreateFacilityParams) 
 }
 
 const deleteFacility = `-- name: DeleteFacility :execrows
-DELETE FROM facility.facilities WHERE id = $1
+DELETE FROM location.facilities WHERE id = $1
 `
 
 func (q *Queries) DeleteFacility(ctx context.Context, id uuid.UUID) (int64, error) {
@@ -64,16 +64,16 @@ func (q *Queries) DeleteFacility(ctx context.Context, id uuid.UUID) (int64, erro
 
 const getFacilities = `-- name: GetFacilities :many
 SELECT f.id, f.name, f.address, f.facility_category_id,  fc.name as facility_category_name
-FROM facility.facilities f JOIN facility.facility_categories fc ON f.facility_category_id = fc.id
+FROM location.facilities f JOIN location.facility_categories fc ON f.facility_category_id = fc.id
 WHERE (f.name ILIKE '%' || $1 || '%' OR $1 IS NULL)
 `
 
 type GetFacilitiesRow struct {
-	ID                   uuid.UUID
-	Name                 string
-	Address              string
-	FacilityCategoryID   uuid.UUID
-	FacilityCategoryName string
+	ID                   uuid.UUID `json:"id"`
+	Name                 string    `json:"name"`
+	Address              string    `json:"address"`
+	FacilityCategoryID   uuid.UUID `json:"facility_category_id"`
+	FacilityCategoryName string    `json:"facility_category_name"`
 }
 
 func (q *Queries) GetFacilities(ctx context.Context, facilityName sql.NullString) ([]GetFacilitiesRow, error) {
@@ -107,15 +107,15 @@ func (q *Queries) GetFacilities(ctx context.Context, facilityName sql.NullString
 
 const getFacilityById = `-- name: GetFacilityById :one
 SELECT f.id, f.name, f.address, f.facility_category_id, fc.name as facility_category_name
-FROM facility.facilities f JOIN facility.facility_categories fc ON f.facility_category_id = fc.id WHERE f.id = $1
+FROM location.facilities f JOIN location.facility_categories fc ON f.facility_category_id = fc.id WHERE f.id = $1
 `
 
 type GetFacilityByIdRow struct {
-	ID                   uuid.UUID
-	Name                 string
-	Address              string
-	FacilityCategoryID   uuid.UUID
-	FacilityCategoryName string
+	ID                   uuid.UUID `json:"id"`
+	Name                 string    `json:"name"`
+	Address              string    `json:"address"`
+	FacilityCategoryID   uuid.UUID `json:"facility_category_id"`
+	FacilityCategoryName string    `json:"facility_category_name"`
 }
 
 func (q *Queries) GetFacilityById(ctx context.Context, id uuid.UUID) (GetFacilityByIdRow, error) {
@@ -133,21 +133,21 @@ func (q *Queries) GetFacilityById(ctx context.Context, id uuid.UUID) (GetFacilit
 
 const updateFacility = `-- name: UpdateFacility :execrows
 WITH updated as (
-    UPDATE facility.facilities f
+    UPDATE location.facilities f
     SET name = $1, address = $2, facility_category_id = $3
     WHERE f.id = $4
     RETURNING id, name, address, facility_category_id
 )
 SELECT f.id, f.name, f.address, f.facility_category_id, fc.name as facility_category_name
 FROM updated f
-JOIN facility.facility_categories fc ON f.facility_category_id = fc.id
+JOIN location.facility_categories fc ON f.facility_category_id = fc.id
 `
 
 type UpdateFacilityParams struct {
-	Name               string
-	Address            string
-	FacilityCategoryID uuid.UUID
-	ID                 uuid.UUID
+	Name               string    `json:"name"`
+	Address            string    `json:"address"`
+	FacilityCategoryID uuid.UUID `json:"facility_category_id"`
+	ID                 uuid.UUID `json:"id"`
 }
 
 func (q *Queries) UpdateFacility(ctx context.Context, arg UpdateFacilityParams) (int64, error) {

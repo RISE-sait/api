@@ -3,7 +3,7 @@
 //   sqlc v1.27.0
 // source: facility_categories_queries.sql
 
-package facility_db
+package db
 
 import (
 	"context"
@@ -12,19 +12,19 @@ import (
 )
 
 const createFacilityCategory = `-- name: CreateFacilityCategory :one
-INSERT INTO facility.facility_categories (name) VALUES ($1)
+INSERT INTO location.facility_categories (name) VALUES ($1)
 RETURNING id, name
 `
 
-func (q *Queries) CreateFacilityCategory(ctx context.Context, name string) (FacilityFacilityCategory, error) {
+func (q *Queries) CreateFacilityCategory(ctx context.Context, name string) (LocationFacilityCategory, error) {
 	row := q.db.QueryRowContext(ctx, createFacilityCategory, name)
-	var i FacilityFacilityCategory
+	var i LocationFacilityCategory
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }
 
 const deleteFacilityCategory = `-- name: DeleteFacilityCategory :execrows
-DELETE FROM facility.facility_categories WHERE id = $1
+DELETE FROM location.facility_categories WHERE id = $1
 `
 
 func (q *Queries) DeleteFacilityCategory(ctx context.Context, id uuid.UUID) (int64, error) {
@@ -36,18 +36,18 @@ func (q *Queries) DeleteFacilityCategory(ctx context.Context, id uuid.UUID) (int
 }
 
 const getFacilityCategories = `-- name: GetFacilityCategories :many
-SELECT id, name from facility.facility_categories
+SELECT id, name from location.facility_categories
 `
 
-func (q *Queries) GetFacilityCategories(ctx context.Context) ([]FacilityFacilityCategory, error) {
+func (q *Queries) GetFacilityCategories(ctx context.Context) ([]LocationFacilityCategory, error) {
 	rows, err := q.db.QueryContext(ctx, getFacilityCategories)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []FacilityFacilityCategory
+	var items []LocationFacilityCategory
 	for rows.Next() {
-		var i FacilityFacilityCategory
+		var i LocationFacilityCategory
 		if err := rows.Scan(&i.ID, &i.Name); err != nil {
 			return nil, err
 		}
@@ -63,7 +63,7 @@ func (q *Queries) GetFacilityCategories(ctx context.Context) ([]FacilityFacility
 }
 
 const getFacilityCategoryById = `-- name: GetFacilityCategoryById :one
-SELECT name FROM facility.facility_categories WHERE id = $1
+SELECT name FROM location.facility_categories WHERE id = $1
 `
 
 func (q *Queries) GetFacilityCategoryById(ctx context.Context, id uuid.UUID) (string, error) {
@@ -74,20 +74,20 @@ func (q *Queries) GetFacilityCategoryById(ctx context.Context, id uuid.UUID) (st
 }
 
 const updateFacilityCategory = `-- name: UpdateFacilityCategory :one
-UPDATE facility.facility_categories
+UPDATE location.facility_categories
 SET name = $1
 WHERE id = $2
 RETURNING id, name
 `
 
 type UpdateFacilityCategoryParams struct {
-	Name string
-	ID   uuid.UUID
+	Name string    `json:"name"`
+	ID   uuid.UUID `json:"id"`
 }
 
-func (q *Queries) UpdateFacilityCategory(ctx context.Context, arg UpdateFacilityCategoryParams) (FacilityFacilityCategory, error) {
+func (q *Queries) UpdateFacilityCategory(ctx context.Context, arg UpdateFacilityCategoryParams) (LocationFacilityCategory, error) {
 	row := q.db.QueryRowContext(ctx, updateFacilityCategory, arg.Name, arg.ID)
-	var i FacilityFacilityCategory
+	var i LocationFacilityCategory
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }

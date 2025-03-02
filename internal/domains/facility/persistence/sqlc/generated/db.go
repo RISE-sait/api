@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.27.0
 
-package facility_db
+package db
 
 import (
 	"context"

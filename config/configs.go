@@ -25,12 +25,13 @@ type awsConfig struct {
 }
 
 type config struct {
-	DbConnUrl         string
-	GoogleAuthConfig  googleAuthConfig
-	JwtConfig         jwtConfig
-	AwsConfig         awsConfig
-	HubSpotApiKey     string
-	GmailSmtpPassword string
+	DbConnUrl           string
+	GoogleAuthConfig    googleAuthConfig
+	JwtConfig           jwtConfig
+	AwsConfig           awsConfig
+	HubSpotApiKey       string
+	GmailSmtpPassword   string
+	FirebaseCredentials string
 }
 
 var Envs = initConfig()
@@ -53,7 +54,8 @@ func initConfig() *config {
 			AccessKeyId: getEnv("AWS_KEY_ID", ""),
 			SecretKey:   getEnv("AWS_SECRET_ACCESS_KEY", ""),
 		},
-		GmailSmtpPassword: getEnv("GMAIL_SMTP_PWD", ""),
+		GmailSmtpPassword:   getEnv("GMAIL_SMTP_PWD", ""),
+		FirebaseCredentials: getEnv("firebase_credentials", ""),
 	}
 }
 

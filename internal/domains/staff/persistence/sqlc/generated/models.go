@@ -318,11 +318,11 @@ type UsersPendingUser struct {
 }
 
 type UsersStaff struct {
-	ID        uuid.UUID    `json:"id"`
-	IsActive  bool         `json:"is_active"`
-	CreatedAt sql.NullTime `json:"created_at"`
-	UpdatedAt time.Time    `json:"updated_at"`
-	RoleID    uuid.UUID    `json:"role_id"`
+	ID        uuid.UUID `json:"id"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	RoleID    uuid.UUID `json:"role_id"`
 }
 
 type UsersStaffActivityLog struct {

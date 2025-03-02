@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -32,14 +31,14 @@ WHERE s.id = $1
 `
 
 type GetStaffByIDRow struct {
-	ID         uuid.UUID    `json:"id"`
-	IsActive   bool         `json:"is_active"`
-	CreatedAt  sql.NullTime `json:"created_at"`
-	UpdatedAt  time.Time    `json:"updated_at"`
-	RoleID     uuid.UUID    `json:"role_id"`
-	ID_2       uuid.UUID    `json:"id_2"`
-	RoleName   string       `json:"role_name"`
-	RoleName_2 string       `json:"role_name_2"`
+	ID         uuid.UUID `json:"id"`
+	IsActive   bool      `json:"is_active"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+	RoleID     uuid.UUID `json:"role_id"`
+	ID_2       uuid.UUID `json:"id_2"`
+	RoleName   string    `json:"role_name"`
+	RoleName_2 string    `json:"role_name_2"`
 }
 
 func (q *Queries) GetStaffByID(ctx context.Context, id uuid.UUID) (GetStaffByIDRow, error) {
@@ -66,12 +65,12 @@ WHERE
 `
 
 type GetStaffsRow struct {
-	ID        uuid.UUID    `json:"id"`
-	IsActive  bool         `json:"is_active"`
-	CreatedAt sql.NullTime `json:"created_at"`
-	UpdatedAt time.Time    `json:"updated_at"`
-	RoleID    uuid.UUID    `json:"role_id"`
-	RoleName  string       `json:"role_name"`
+	ID        uuid.UUID `json:"id"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	RoleID    uuid.UUID `json:"role_id"`
+	RoleName  string    `json:"role_name"`
 }
 
 func (q *Queries) GetStaffs(ctx context.Context, roleID uuid.NullUUID) ([]GetStaffsRow, error) {
@@ -125,12 +124,12 @@ type UpdateStaffParams struct {
 }
 
 type UpdateStaffRow struct {
-	ID        uuid.UUID    `json:"id"`
-	IsActive  bool         `json:"is_active"`
-	CreatedAt sql.NullTime `json:"created_at"`
-	UpdatedAt time.Time    `json:"updated_at"`
-	RoleID    uuid.UUID    `json:"role_id"`
-	RoleName  string       `json:"role_name"`
+	ID        uuid.UUID `json:"id"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	RoleID    uuid.UUID `json:"role_id"`
+	RoleName  string    `json:"role_name"`
 }
 
 func (q *Queries) UpdateStaff(ctx context.Context, arg UpdateStaffParams) (UpdateStaffRow, error) {

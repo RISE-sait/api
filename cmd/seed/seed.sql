@@ -1,161 +1,318 @@
 -- Insert staff roles
-INSERT INTO staff_roles (id, role_name) VALUES
-  (gen_random_uuid(), 'INSTRUCTOR'),
-  (gen_random_uuid(), 'ADMIN'),
-  (gen_random_uuid(), 'SUPERADMIN'),
-  (gen_random_uuid(), 'COACH');
+-- INSERT INTO users.staff_roles (id, role_name) VALUES
+--   (gen_random_uuid(), 'INSTRUCTOR'),
+--   (gen_random_uuid(), 'ADMIN'),
+--   (gen_random_uuid(), 'SUPERADMIN'),
+--   (gen_random_uuid(), 'COACH');
 
 -- Insert users
-INSERT INTO users (id, email) VALUES
-  (gen_random_uuid(), 'alice@example.com'),
-  (gen_random_uuid(), 'bob@example.com'),
-  (gen_random_uuid(), 'charlie@example.com'),
-  (gen_random_uuid(), 'diana@example.com'),
-  (gen_random_uuid(), 'ethan@example.com'),
-  (gen_random_uuid(), 'frank@example.com'),
-  (gen_random_uuid(), 'grace@example.com'),
-  (gen_random_uuid(), 'hannah@example.com');
+INSERT INTO users.users (hubspot_id)
+VALUES (103323445125),
+       (103322588816),
+       (103323445021),
+       (103322588701);
 
 -- Insert staff members
-INSERT INTO staff (id, is_active, created_at, updated_at, role_id) VALUES
-  ((SELECT id FROM users WHERE email='alice@example.com'), true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, (SELECT id FROM staff_roles WHERE role_name='INSTRUCTOR')),
-  ((SELECT id FROM users WHERE email='bob@example.com'), true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, (SELECT id FROM staff_roles WHERE role_name='ADMIN')),
-  ((SELECT id FROM users WHERE email='charlie@example.com'), true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, (SELECT id FROM staff_roles WHERE role_name='SUPERADMIN')),
-  ((SELECT id FROM users WHERE email='diana@example.com'), true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, (SELECT id FROM staff_roles WHERE role_name='COACH'));
+INSERT INTO users.staff (id, role_id, is_active)
+VALUES ((SELECT id FROM users.users LIMIT 1 OFFSET 0),
+        (SELECT id FROM users.staff_roles WHERE role_name = 'INSTRUCTOR'), true),
+       ((SELECT id FROM users.users LIMIT 1 OFFSET 1), (SELECT id FROM users.staff_roles WHERE role_name = 'ADMIN'),
+        true),
+       ((SELECT id FROM users.users LIMIT 1 OFFSET 2),
+        (SELECT id FROM users.staff_roles WHERE role_name = 'SUPERADMIN'), true),
+       ((SELECT id FROM users.users LIMIT 1 OFFSET 3), (SELECT id FROM users.staff_roles WHERE role_name = 'COACH'),
+        true)
+ON CONFLICT (id) DO NOTHING;
 
 -- Insert facility types
-INSERT INTO facility_types (id, name) VALUES
-  (gen_random_uuid(), 'Gym'),
-  (gen_random_uuid(), 'Swimming Pool'),
-  (gen_random_uuid(), 'Tennis Court'),
-  (gen_random_uuid(), 'Basketball Court'),
-  (gen_random_uuid(), 'Yoga Studio');
+INSERT INTO location.facility_categories (name)
+VALUES ('Gym'),
+       ('Swimming Pool'),
+       ('Tennis Court'),
+       ('Basketball Court'),
+       ('Yoga Studio');
+
 
 -- Insert facilities
-INSERT INTO facilities (id, name, location, facility_type_id) VALUES
-  (gen_random_uuid(), 'Downtown Gym', '123 Main St', (SELECT id FROM facility_types WHERE name='Gym')),
-  (gen_random_uuid(), 'City Pool', '456 Water Ave', (SELECT id FROM facility_types WHERE name='Swimming Pool')),
-  (gen_random_uuid(), 'Tennis Club', '789 Court St', (SELECT id FROM facility_types WHERE name='Tennis Court')),
-  (gen_random_uuid(), 'Basketball Arena', '321 Hoop Rd', (SELECT id FROM facility_types WHERE name='Basketball Court')),
-  (gen_random_uuid(), 'Serenity Yoga', '654 Zen St', (SELECT id FROM facility_types WHERE name='Yoga Studio'));
+INSERT INTO location.facilities (name, address, facility_category_id)
+VALUES ('Downtown Gym', '123 Main St', (SELECT id FROM location.facility_categories WHERE name = 'Gym')),
+       ('City Pool', '456 Water Ave', (SELECT id FROM location.facility_categories WHERE name = 'Swimming Pool')),
+       ('Tennis Club', '789 Court St', (SELECT id FROM location.facility_categories WHERE name = 'Tennis Court')),
+       ('Basketball Arena', '321 Hoop Rd',
+        (SELECT id FROM location.facility_categories WHERE name = 'Basketball Court')),
+       ('Serenity Yoga', '654 Zen St', (SELECT id FROM location.facility_categories WHERE name = 'Yoga Studio'));
+
+-- Insert locations
+INSERT INTO location.locations (name, facility_id)
+VALUES ('Downtown Gym Location', (SELECT id FROM location.facilities WHERE name = 'Downtown Gym')),
+       ('City Pool Location', (SELECT id FROM location.facilities WHERE name = 'City Pool')),
+       ('Tennis Club Location', (SELECT id FROM location.facilities WHERE name = 'Tennis Club')),
+       ('Basketball Arena Location', (SELECT id FROM location.facilities WHERE name = 'Basketball Arena')),
+       ('Serenity Yoga Location', (SELECT id FROM location.facilities WHERE name = 'Serenity Yoga'));
+
 
 -- Insert courses
-INSERT INTO courses (id, name, description, created_at, updated_at) 
-VALUES
-  (gen_random_uuid(), 'Beginner Yoga', 'Introduction to yoga for all ages.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  (gen_random_uuid(), 'Advanced Swimming', 'For experienced swimmers looking to improve.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  (gen_random_uuid(), 'Basketball Training', 'Intensive training for basketball players.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  (gen_random_uuid(), 'Tennis for Beginners', 'Learn tennis from scratch with professional coaches.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  (gen_random_uuid(), 'Strength Training', 'Weightlifting and strength-building exercises.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO course.courses (name, description, capacity)
+VALUES ('Beginner Yoga', 'A relaxing yoga course for beginners.', 20),
+       ('Advanced Swimming', 'Improve your swimming techniques with professional coaching.', 15),
+       ('Tennis Fundamentals', 'Learn the basics of tennis from experienced instructors.', 12),
+       ('Basketball Skills Camp', 'Enhance your basketball skills with expert guidance.', 25),
+       ('Strength Training 101', 'A foundational strength training program for all levels.', 18);
 
 -- Insert practices
-INSERT INTO practices (id, name, description, level, should_email_booking_notification, capacity, start_date, end_date, created_at, updated_at)
+INSERT INTO public.practices (name, description, level, capacity, start_date, end_date)
+VALUES ('Yoga for Beginners', 'A gentle introduction to yoga, perfect for those new to the practice.', 'beginner', 20,
+        '2025-03-10 10:00:00+00', '2025-03-10 11:00:00+00'),
+       ('Intermediate Swimming', 'Build on your swimming skills with intermediate-level techniques.', 'intermediate',
+        15, '2025-03-15 09:00:00+00', '2025-03-15 10:00:00+00'),
+       ('Advanced Tennis', 'Refine your tennis game with advanced drills and strategies.', 'advanced', 12,
+        '2025-03-20 08:00:00+00', '2025-03-20 10:00:00+00'),
+       ('Basketball Training', 'Focused training on basketball shooting techniques and teamwork.', 'intermediate', 25,
+        '2025-03-25 13:00:00+00', '2025-03-25 14:30:00+00'),
+       ('Strength and Conditioning', 'An intense workout program aimed at improving strength and endurance.', 'all', 18,
+        '2025-03-30 17:00:00+00', '2025-03-30 19:00:00+00');
+
+INSERT INTO public.games (name, video_link)
+VALUES ('Football Match 2025', 'https://example.com/video/football-2025'),
+       ('Basketball Championship', 'https://example.com/video/basketball-championship'),
+       ('Tennis Grand Slam', 'https://example.com/video/tennis-grand-slam'),
+       ('Swimming Relay 2025', 'https://example.com/video/swimming-relay'),
+       ('Yoga Live Session', 'https://example.com/video/yoga-live');
+
+-- Insert mock events
+INSERT INTO public.events (begin_date_time, end_date_time, practice_id, course_id, game_id, location_id)
+VALUES ('2025-03-10 10:00:00+00', '2025-03-10 11:00:00+00',
+        (SELECT id FROM public.practices WHERE name = 'Yoga for Beginners'),
+        (SELECT id FROM course.courses WHERE name = 'Beginner Yoga'),
+        (SELECT id FROM public.games WHERE name = 'Football Match 2025'),
+        (SELECT id FROM location.locations WHERE name = 'Downtown Gym Location')),
+
+       ('2025-03-15 09:00:00+00', '2025-03-15 10:00:00+00',
+        (SELECT id FROM public.practices WHERE name = 'Intermediate Swimming'),
+        (SELECT id FROM course.courses WHERE name = 'Advanced Swimming'),
+        (SELECT id FROM public.games WHERE name = 'Basketball Championship'),
+        (SELECT id FROM location.locations WHERE name = 'City Pool Location')),
+
+       ('2025-03-20 08:00:00+00', '2025-03-20 10:00:00+00',
+        (SELECT id FROM public.practices WHERE name = 'Advanced Tennis'),
+        (SELECT id FROM course.courses WHERE name = 'Tennis Fundamentals'),
+        (SELECT id FROM public.games WHERE name = 'Tennis Grand Slam'),
+        (SELECT id FROM location.locations WHERE name = 'Tennis Club Location')),
+
+       ('2025-03-25 13:00:00+00', '2025-03-25 14:30:00+00',
+        (SELECT id FROM public.practices WHERE name = 'Basketball Training'),
+        (SELECT id FROM course.courses WHERE name = 'Basketball Skills Camp'),
+        (SELECT id FROM public.games WHERE name = 'Basketball Championship'),
+        (SELECT id FROM location.locations WHERE name = 'Basketball Arena Location')),
+
+       ('2025-03-30 17:00:00+00', '2025-03-30 19:00:00+00',
+        (SELECT id FROM public.practices WHERE name = 'Strength and Conditioning'),
+        (SELECT id FROM course.courses WHERE name = 'Strength Training 101'),
+        (SELECT id FROM public.games WHERE name = 'Swimming Relay 2025'),
+        (SELECT id FROM location.locations WHERE name = 'Serenity Yoga Location'));
+
+
+-- Insert memberships
+INSERT INTO membership.memberships (name, description)
+VALUES ('Basic Membership', 'Access to basic gym facilities'),
+       ('Premium Membership', 'Access to all gym facilities and special classes'),
+       ('VIP Membership', 'Exclusive access to VIP areas and events');
+
+-- Insert membership plans
+INSERT INTO membership.membership_plans (name, price, joining_fee, membership_id, payment_frequency, amt_periods)
 VALUES
-    (gen_random_uuid(), 'Yoga for Beginners', 'Learn the basics of yoga with experienced instructors.', 'beginner', TRUE, 20, '2025-03-01 09:00:00+00', '2025-03-01 10:30:00+00', NOW(), NOW()),
-    (gen_random_uuid(), 'Advanced Swimming', 'Improving skills for experienced swimmers.', 'advanced', TRUE, 15, '2025-03-02 10:00:00+00', '2025-03-02 11:30:00+00', NOW(), NOW()),
-    (gen_random_uuid(), 'Basketball Training', 'Intensive training for basketball enthusiasts.', 'intermediate', TRUE, 10, '2025-03-03 15:00:00+00', '2025-03-03 17:00:00+00', NOW(), NOW()),
-    (gen_random_uuid(), 'Tennis Skills', 'For tennis players who want to improve their technique.', 'intermediate', TRUE, 12, '2025-03-04 13:00:00+00', '2025-03-04 14:30:00+00', NOW(), NOW()),
-    (gen_random_uuid(), 'Strength Training', 'Weightlifting and strength-building for athletes.', 'advanced', TRUE, 8, '2025-03-05 08:00:00+00', '2025-03-05 09:30:00+00', NOW(), NOW());
+    -- Basic Membership Plans
+    ('Basic - Football', 50, 10, (SELECT id FROM membership.memberships WHERE name = 'Basic Membership'), 'month', 12),
+    ('Basic - Basketball', 50, 10, (SELECT id FROM membership.memberships WHERE name = 'Basic Membership'), 'month', 12),
+    ('Basic - Swimming', 50, 10, (SELECT id FROM membership.memberships WHERE name = 'Basic Membership'), 'month', 12),
+    ('Basic - Yoga', 50, 10, (SELECT id FROM membership.memberships WHERE name = 'Basic Membership'), 'month', 12),
+
+    -- Premium Membership Plans
+    ('Premium - Football', 75, 10, (SELECT id FROM membership.memberships WHERE name = 'Premium Membership'), 'month', 12),
+    ('Premium - Basketball', 75, 10, (SELECT id FROM membership.memberships WHERE name = 'Premium Membership'), 'month', 12),
+    ('Premium - Swimming', 75, 10, (SELECT id FROM membership.memberships WHERE name = 'Premium Membership'), 'month', 12),
+    ('Premium - Yoga', 75, 10, (SELECT id FROM membership.memberships WHERE name = 'Premium Membership'), 'month', 12),
+
+    -- VIP Membership Plans
+    ('VIP - Football', 100, 10, (SELECT id FROM membership.memberships WHERE name = 'VIP Membership'), 'month', 12),
+    ('VIP - Basketball', 100, 10, (SELECT id FROM membership.memberships WHERE name = 'VIP Membership'), 'month', 12),
+    ('VIP - Swimming', 100, 10, (SELECT id FROM membership.memberships WHERE name = 'VIP Membership'), 'month', 12),
+    ('VIP - Yoga', 100, 10, (SELECT id FROM membership.memberships WHERE name = 'VIP Membership'), 'month', 12);
 
 
--- Insert events
-INSERT INTO events (id, begin_time, end_time, practice_id, facility_id, created_at, updated_at, day)
+-- Insert mock customer membership plans
+INSERT INTO public.customer_membership_plans (customer_id, membership_plan_id, start_date, renewal_date, status)
 VALUES
-    (gen_random_uuid(), '08:00:00', '10:00:00', (SELECT id FROM practices WHERE name='Yoga for Beginners'), (SELECT id FROM facilities WHERE name='Serenity Yoga'), NOW(), NOW(), 'MONDAY'),
-    (gen_random_uuid(), '09:30:00', '11:30:00', (SELECT id FROM practices WHERE name='Advanced Swimming'), (SELECT id FROM facilities WHERE name='City Pool'), NOW(), NOW(), 'TUESDAY'),
-    (gen_random_uuid(), '17:00:00', '19:00:00', (SELECT id FROM practices WHERE name='Basketball Training'), (SELECT id FROM facilities WHERE name='Basketball Arena'), NOW(), NOW(), 'WEDNESDAY'),
-    (gen_random_uuid(), '10:00:00', '12:00:00', (SELECT id FROM practices WHERE name='Tennis Skills'), (SELECT id FROM facilities WHERE name='Tennis Club'), NOW(), NOW(), 'THURSDAY'),
-    (gen_random_uuid(), '12:00:00', '14:00:00', (SELECT id FROM practices WHERE name='Strength Training'), (SELECT id FROM facilities WHERE name='Downtown Gym'), NOW(), NOW(), 'FRIDAY'),
-    (gen_random_uuid(), '15:00:00', '17:00:00', NULL, (SELECT id FROM facilities WHERE name='Serenity Yoga'), NOW(), NOW(), 'SATURDAY'), -- Open slot
-    (gen_random_uuid(), '16:00:00', '18:00:00', NULL, (SELECT id FROM facilities WHERE name='City Pool'), NOW(), NOW(), 'SUNDAY'); -- Open slot
+    -- Mock data for 'Basic Football' plan
+    ((SELECT id FROM users.users LIMIT 1 OFFSET 0),
+     (SELECT id FROM membership.membership_plans WHERE name = 'Basic - Football'),
+     '2025-03-01 00:00:00+00',
+     '2026-03-01 00:00:00+00',
+     'active'),
 
--- Insert customer events
-INSERT INTO customer_events (customer_id, event_id, checked_in_at) VALUES
-  ((SELECT user_id FROM customers WHERE hubspot_id = 123456), (SELECT id FROM events WHERE course_id = (SELECT id FROM courses WHERE name = 'Beginner Yoga') AND facility_id = (SELECT id FROM facilities WHERE name = 'Serenity Yoga') AND day = 'MONDAY'), '2025-03-02 08:00:00+00');
-  ((SELECT user_id FROM customers WHERE hubspot_id = 234567), (SELECT id FROM events WHERE course_id = (SELECT id FROM courses WHERE name = 'Advanced Swimming') AND facility_id = (SELECT id FROM facilities WHERE name = 'City Pool') AND day = 'TUESDAY'), '2025-04-12 09:30:00+00'),
-  ((SELECT user_id FROM customers WHERE hubspot_id = 345678), (SELECT id FROM events WHERE course_id = (SELECT id FROM courses WHERE name = 'Basketball Training') AND facility_id = (SELECT id FROM facilities WHERE name = 'Basketball Arena') AND day = 'WEDNESDAY'), '2025-05-20 17:00:00+00'),
-  ((SELECT user_id FROM customers WHERE hubspot_id = 456789), (SELECT id FROM events WHERE course_id = (SELECT id FROM courses WHERE name = 'Tennis for Beginners') AND facility_id = (SELECT id FROM facilities WHERE name = 'Tennis Club') AND day = 'THURSDAY'), '2025-06-22 10:00:00+00'),
-  ((SELECT user_id FROM customers WHERE hubspot_id = 567890), (SELECT id FROM events WHERE course_id = (SELECT id FROM courses WHERE name = 'Strength Training') AND facility_id = (SELECT id FROM facilities WHERE name = 'Downtown Gym') AND day = 'FRIDAY'), '2025-07-10 12:00:00+00'),
-  ((SELECT user_id FROM customers WHERE hubspot_id = 678901), (SELECT id FROM events WHERE course_id = (SELECT id FROM courses WHERE name = 'Beginner Yoga') AND facility_id = (SELECT id FROM facilities WHERE name = 'Serenity Yoga') AND day = 'SATURDAY'), NULL),
-  ((SELECT user_id FROM customers WHERE hubspot_id = 789012), (SELECT id FROM events WHERE course_id = (SELECT id FROM courses WHERE name = 'Advanced Swimming') AND facility_id = (SELECT id FROM facilities WHERE name = 'City Pool') AND day = 'SUNDAY'), NULL);
+    -- Mock data for 'Premium Yoga' plan
+    ((SELECT id FROM users.users LIMIT 1 OFFSET 1),
+     (SELECT id FROM membership.membership_plans WHERE name = 'Premium - Yoga'),
+     '2025-03-01 00:00:00+00',
+     '2026-03-01 00:00:00+00',
+     'active'),
 
-INSERT INTO users (id, email) VALUES
-  (gen_random_uuid(), 'jackson@example.com'),
-  (gen_random_uuid(), 'katherine@example.com'),
-  (gen_random_uuid(), 'lucas@example.com'),
-  (gen_random_uuid(), 'mia@example.com'),
-  (gen_random_uuid(), 'noah@example.com'),
-  (gen_random_uuid(), 'olivia@example.com'),
-  (gen_random_uuid(), 'patrick@example.com'),
-  (gen_random_uuid(), 'quinn@example.com');
--- Insert more customers
-INSERT INTO customers (user_id, hubspot_id, credits) VALUES
-  ((SELECT id FROM users WHERE email='jackson@example.com'), 123457, 35),
-  ((SELECT id FROM users WHERE email='katherine@example.com'), 234568, 60),
-  ((SELECT id FROM users WHERE email='lucas@example.com'), 345679, 10),
-  ((SELECT id FROM users WHERE email='mia@example.com'), 456780, 45),
-  ((SELECT id FROM users WHERE email='noah@example.com'), 567891, 50),
-  ((SELECT id FROM users WHERE email='olivia@example.com'), 678902, 5),
-  ((SELECT id FROM users WHERE email='patrick@example.com'), 789013, 20),
-  ((SELECT id FROM users WHERE email='quinn@example.com'), 890124, 30);
+    -- Mock data for 'VIP Basketball' plan
+    ((SELECT id FROM users.users LIMIT 1 OFFSET 2),
+     (SELECT id FROM membership.membership_plans WHERE name = 'VIP - Basketball'),
+     '2025-03-01 00:00:00+00',
+     '2026-03-01 00:00:00+00',
+     'active'),
 
--- Insert more customer events
--- Insert 1st customer event
-INSERT INTO customer_events (customer_id, event_id, checked_in_at) 
-VALUES 
-  ((SELECT user_id FROM customers WHERE hubspot_id = 123457), 
-   (SELECT id FROM events WHERE course_id = (SELECT id FROM courses WHERE name = 'Beginner Yoga') 
-    AND facility_id = (SELECT id FROM facilities WHERE name = 'Serenity Yoga') 
-    AND day = 'MONDAY'), '2025-03-02 08:00:00+00');
+    -- Mock data for 'Basic Tennis' plan
+    ((SELECT id FROM users.users LIMIT 1 OFFSET 3),
+     (SELECT id FROM membership.membership_plans WHERE name = 'Basic - Football'),
+     '2025-03-01 00:00:00+00',
+     '2026-03-01 00:00:00+00',
+     'active');
 
--- Insert 2nd customer event
-INSERT INTO customer_events (customer_id, event_id, checked_in_at) 
-VALUES 
-  ((SELECT user_id FROM customers WHERE hubspot_id = 234568), 
-   (SELECT id FROM events WHERE course_id = (SELECT id FROM courses WHERE name = 'Advanced Swimming') 
-    AND facility_id = (SELECT id FROM facilities WHERE name = 'City Pool') 
-    AND day = 'TUESDAY'), '2025-04-13 09:30:00+00');
-
--- Insert 3rd customer event
-INSERT INTO customer_events (customer_id, event_id, checked_in_at) 
-VALUES 
-  ((SELECT user_id FROM customers WHERE hubspot_id = 345679), 
-   (SELECT id FROM events WHERE course_id = (SELECT id FROM courses WHERE name = 'Basketball Training') 
-    AND facility_id = (SELECT id FROM facilities WHERE name = 'Basketball Arena') 
-    AND day = 'WEDNESDAY'), '2025-05-21 17:00:00+00');
-
--- Insert 4th customer event
-INSERT INTO customer_events (customer_id, event_id, checked_in_at) 
-VALUES 
-  ((SELECT user_id FROM customers WHERE hubspot_id = 456780), 
-   (SELECT id FROM events WHERE course_id = (SELECT id FROM courses WHERE name = 'Tennis for Beginners') 
-    AND facility_id = (SELECT id FROM facilities WHERE name = 'Tennis Club') 
-    AND day = 'THURSDAY'), '2025-06-23 10:00:00+00');
-
--- Insert 5th customer event
-INSERT INTO customer_events (customer_id, event_id, checked_in_at) 
-VALUES 
-  ((SELECT user_id FROM customers WHERE hubspot_id = 567891), 
-   (SELECT id FROM events WHERE course_id = (SELECT id FROM courses WHERE name = 'Strength Training') 
-    AND facility_id = (SELECT id FROM facilities WHERE name = 'Downtown Gym') 
-    AND day = 'FRIDAY'), '2025-07-11 12:00:00+00');
-    
--- Insert 8th customer event
-INSERT INTO customer_events (customer_id, event_id, attended_at) 
-VALUES 
-  ((SELECT user_id FROM customers WHERE hubspot_id = 890124), 
-   (SELECT id FROM events WHERE course_id = (SELECT id FROM courses WHERE name = 'Strength Training') 
-    AND facility_id = (SELECT id FROM facilities WHERE name = 'Downtown Gym') 
-    AND day = 'FRIDAY'), '2025-07-12 12:00:00+00');
-
-INSERT INTO memberships (id, name, description, start_date, end_date, created_at, updated_at)
+-- Insert mock customer enrollments
+INSERT INTO public.customer_enrollment (customer_id, event_id, created_at, updated_at, checked_in_at, is_cancelled)
 VALUES
-    (gen_random_uuid(), 'Basic Plan', 'Access to gym facilities and group classes', '2024-01-01', '2024-12-31', NOW(), NOW()),
-    (gen_random_uuid(), 'Premium Plan', 'Includes personal training and sauna access', '2024-01-01', '2024-12-31', NOW(), NOW()),
-    (gen_random_uuid(), 'Elite Plan', 'All-inclusive membership with unlimited guest passes', '2024-01-01', '2024-12-31', NOW(), NOW());
+    -- Mock enrollment for 'Yoga for Beginners' event
+    ((SELECT id FROM users.users LIMIT 1 OFFSET 0),
+     (SELECT id FROM public.events WHERE begin_date_time = '2025-03-10 10:00:00+00'),
+     '2025-03-01 00:00:00+00',
+     '2025-03-01 00:00:00+00',
+     '2025-03-10 10:30:00+00',
+     false),
 
-INSERT INTO customer_membership_plans (customer_id, membership_plan_id, start_date, renewal_date, status)
-SELECT c.user_id, m.id, NOW() - INTERVAL '30 days', NOW() + INTERVAL '1 year', 'active'
-FROM customers c
-CROSS JOIN memberships m
-LIMIT 10
+    -- Mock enrollment for 'Intermediate Swimming' event
+    ((SELECT id FROM users.users LIMIT 1 OFFSET 1),
+     (SELECT id FROM public.events WHERE begin_date_time = '2025-03-15 09:00:00+00'),
+     '2025-03-01 00:00:00+00',
+     '2025-03-01 00:00:00+00',
+     NULL,
+     false),
+
+    -- Mock enrollment for 'Advanced Tennis' event
+    ((SELECT id FROM users.users LIMIT 1 OFFSET 2),
+     (SELECT id FROM public.events WHERE begin_date_time = '2025-03-20 08:00:00+00'),
+     '2025-03-01 00:00:00+00',
+     '2025-03-01 00:00:00+00',
+     NULL,
+     true),
+
+    -- Mock enrollment for 'Basketball Training' event
+    ((SELECT id FROM users.users LIMIT 1 OFFSET 3),
+     (SELECT id FROM public.events WHERE begin_date_time = '2025-03-25 13:00:00+00'),
+     '2025-03-01 00:00:00+00',
+     '2025-03-01 00:00:00+00',
+     '2025-03-25 13:30:00+00',
+     false);
+
+
+-- Insert mock event staff assignments
+INSERT INTO public.event_staff (event_id, staff_id)
+VALUES
+    -- Assign 'INSTRUCTOR' to 'Yoga for Beginners' event
+    ((SELECT id FROM public.events WHERE begin_date_time = '2025-03-10 10:00:00+00'),
+     (SELECT id FROM users.staff WHERE role_id = (SELECT id FROM users.staff_roles WHERE role_name = 'INSTRUCTOR') LIMIT 1)),
+
+    -- Assign 'ADMIN' to 'Intermediate Swimming' event
+    ((SELECT id FROM public.events WHERE begin_date_time = '2025-03-15 09:00:00+00'),
+     (SELECT id FROM users.staff WHERE role_id = (SELECT id FROM users.staff_roles WHERE role_name = 'ADMIN') LIMIT 1)),
+
+    -- Assign 'SUPERADMIN' to 'Advanced Tennis' event
+    ((SELECT id FROM public.events WHERE begin_date_time = '2025-03-20 08:00:00+00'),
+     (SELECT id FROM users.staff WHERE role_id = (SELECT id FROM users.staff_roles WHERE role_name = 'SUPERADMIN') LIMIT 1)),
+
+    -- Assign 'COACH' to 'Basketball Training' event
+    ((SELECT id FROM public.events WHERE begin_date_time = '2025-03-25 13:00:00+00'),
+     (SELECT id FROM users.staff WHERE role_id = (SELECT id FROM users.staff_roles WHERE role_name = 'COACH') LIMIT 1)),
+
+    -- Assign 'INSTRUCTOR' to 'Strength and Conditioning' event
+    ((SELECT id FROM public.events WHERE begin_date_time = '2025-03-30 17:00:00+00'),
+     (SELECT id FROM users.staff WHERE role_id = (SELECT id FROM users.staff_roles WHERE role_name = 'INSTRUCTOR') LIMIT 1));
+
+
+-- Insert mock course memberships
+INSERT INTO public.course_membership (course_id, membership_id, price_per_booking, is_eligible)
+VALUES
+    -- Mock data for 'Basic Membership' for 'Beginner Yoga'
+    ((SELECT id FROM course.courses WHERE name = 'Beginner Yoga'),
+     (SELECT id FROM membership.memberships WHERE name = 'Basic Membership'),
+     15.00, true),
+
+    -- Mock data for 'Premium Membership' for 'Advanced Swimming'
+    ((SELECT id FROM course.courses WHERE name = 'Advanced Swimming'),
+     (SELECT id FROM membership.memberships WHERE name = 'Premium Membership'),
+     20.00, true),
+
+    -- Mock data for 'VIP Membership' for 'Tennis Fundamentals'
+    ((SELECT id FROM course.courses WHERE name = 'Tennis Fundamentals'),
+     (SELECT id FROM membership.memberships WHERE name = 'VIP Membership'),
+     30.00, true),
+
+    -- Mock data for 'Basic Membership' for 'Strength Training 101'
+    ((SELECT id FROM course.courses WHERE name = 'Strength Training 101'),
+     (SELECT id FROM membership.memberships WHERE name = 'Basic Membership'),
+     12.00, false),
+
+    -- Mock data for 'Premium Membership' for 'Basketball Skills Camp'
+    ((SELECT id FROM course.courses WHERE name = 'Basketball Skills Camp'),
+     (SELECT id FROM membership.memberships WHERE name = 'Premium Membership'),
+     18.00, true);
+
+
+-- Insert mock practice memberships
+-- Insert mock practice memberships
+INSERT INTO public.practice_membership (practice_id, membership_id, price_per_booking, is_eligible)
+VALUES
+    -- Mock data for 'Basic Membership' for 'Yoga for Beginners' practice
+    ((SELECT id FROM public.practices WHERE name = 'Yoga for Beginners'),
+     (SELECT id FROM membership.memberships WHERE name = 'Basic Membership'),
+     10.00, true),
+
+    -- Mock data for 'Premium Membership' for 'Intermediate Swimming' practice
+    ((SELECT id FROM public.practices WHERE name = 'Intermediate Swimming'),
+     (SELECT id FROM membership.memberships WHERE name = 'Premium Membership'),
+     12.00, true),
+
+    -- Mock data for 'VIP Membership' for 'Advanced Tennis' practice
+    ((SELECT id FROM public.practices WHERE name = 'Advanced Tennis'),
+     (SELECT id FROM membership.memberships WHERE name = 'VIP Membership'),
+     15.00, true),
+
+    -- Mock data for 'Basic Membership' for 'Basketball Training' practice
+    ((SELECT id FROM public.practices WHERE name = 'Basketball Training'),
+     (SELECT id FROM membership.memberships WHERE name = 'Basic Membership'),
+     10.00, false),
+
+    ((SELECT id FROM public.practices WHERE name = 'Strength and Conditioning'),
+     (SELECT id FROM membership.memberships WHERE name = 'Premium Membership'),
+     20.00, true);
+
+-- Mock data for 'Premium Membership' f
+
+
+INSERT INTO users.users (hubspot_id)
+VALUES (103336460047),
+       (103324806199);
+
+-- Insert staff members
+INSERT INTO users.staff (id, role_id, is_active)
+VALUES
+    ((SELECT id FROM users.users WHERE hubspot_id = '103336460047'::text),
+     (SELECT id FROM users.staff_roles WHERE role_name = 'BARBER'), true),
+
+    ((SELECT id FROM users.users WHERE hubspot_id = '103324806199'::text),
+     (SELECT id FROM users.staff_roles WHERE role_name = 'BARBER'), true);
+
+
+-- Insert mock data into barber.barber_events
+INSERT INTO barber.barber_events (begin_date_time, end_date_time, customer_id, barber_id, created_at, updated_at)
+VALUES
+    ('2025-03-02 10:00:00+00', '2025-03-02 11:00:00+00',
+     (SELECT id FROM users.users WHERE hubspot_id = '103323445125'::text),
+     (SELECT id FROM users.users WHERE hubspot_id = '103336460047'::text),
+     now(), now()),
+    ('2025-03-02 11:30:00+00', '2025-03-02 12:30:00+00',
+     (SELECT id FROM users.users WHERE hubspot_id = '103323445125'::text),
+     (SELECT id FROM users.users WHERE hubspot_id = '103336460047'::text),
+     now(), now());

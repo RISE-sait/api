@@ -1,0 +1,38 @@
+name: Update Swagger in Frontend
+
+on:
+  push:
+    branches:
+      - main  # Change this to match your API repo's default branch
+    paths:
+      - 'docs/**'
+
+jobs:
+  update-swagger:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout API repository
+        uses: actions/checkout@v4
+
+      - name: Copy Swagger docs (excluding docs.go)
+        run: |
+            mkdir -p swagger-output
+            cp docs/swagger.json swagger-output/
+            cp docs/swagger.yaml swagger-output/
+
+      - name: Checkout Frontend Repository
+        uses: actions/checkout@v4
+        with:
+          repository: RISE-sait/Rise-Admin-Shad-Version
+          token: ${{ secrets.FRONTEND_REPO_PAT }}
+
+      - name: Copy new Swagger files to frontend
+        run: |
+            mkdir -p src/api/docs
+            cp -rf swagger-output/docs/* src/api/docs/
+            git config --global user.email "klintlee1@gmail.com"
+            git config --global user.name "KlintLee115"
+            git add src/api/docs/
+            git commit -m "Updated Swagger docs from API repo" || echo "No changes to commit"
+            git push

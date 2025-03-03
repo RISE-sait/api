@@ -58,22 +58,16 @@ func JWTAuthMiddleware(isAllowAnyoneWithValidToken bool, allowedRoles ...string)
 func extractToken(r *http.Request) (string, *errLib.CommonError) {
 	// Check the Authorization header
 	authHeader := r.Header.Get("Authorization")
-	if authHeader != "" {
-		tokenParts := strings.Split(authHeader, " ")
-		if len(tokenParts) != 2 || strings.ToLower(tokenParts[0]) != "bearer" {
-			return "", errLib.New("Invalid token format", http.StatusUnauthorized)
-		}
-		return tokenParts[1], nil
+
+	if authHeader == "" {
+		return "", errLib.New("Authorization token is required", http.StatusUnauthorized)
 	}
 
-	// Check the cookie
-	tokenCookie, err := r.Cookie("access_token")
-	if err == nil && tokenCookie.Value != "" {
-		return tokenCookie.Value, nil
+	tokenParts := strings.Split(authHeader, " ")
+	if len(tokenParts) != 2 || strings.ToLower(tokenParts[0]) != "bearer" {
+		return "", errLib.New("Invalid token format", http.StatusUnauthorized)
 	}
-
-	// No token found
-	return "", errLib.New("Authorization token is required", http.StatusUnauthorized)
+	return tokenParts[1], nil
 }
 
 // hasRequiredRole checks if the user's role matches any of the allowed roles or is SUPERADMIN.

@@ -6,6 +6,7 @@ on:
       - main  # Change this to match your API repo's default branch
     paths:
       - 'docs/**'
+      - '.github/workflows/update-swagger.yml'
 
 jobs:
   update-swagger:
@@ -17,9 +18,25 @@ jobs:
 
       - name: Copy Swagger docs (excluding docs.go)
         run: |
-            mkdir -p swagger-output
-            cp docs/swagger.json swagger-output/
-            cp docs/swagger.yaml swagger-output/
+          mkdir -p swagger-output  # Ensure the swagger-output directory exists
+          
+          # Check if swagger.json and swagger.yaml exist
+          if [ ! -f docs/swagger.json ]; then
+            echo "ERROR: swagger.json not found!" && exit 1
+          fi
+          if [ ! -f docs/swagger.yaml ]; then
+            echo "ERROR: swagger.yaml not found!" && exit 1
+          fi
+          
+          # Copy files to swagger-output
+          cp docs/swagger.json swagger-output/
+          cp docs/swagger.yaml swagger-output/
+
+      - name: Upload Swagger docs as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: swagger-docs
+          path: swagger-output/
 
       - name: Checkout Frontend Repository
         uses: actions/checkout@v4
@@ -27,12 +44,25 @@ jobs:
           repository: RISE-sait/Rise-Admin-Shad-Version
           token: ${{ secrets.FRONTEND_REPO_PAT }}
 
+      - name: Download Swagger docs artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: swagger-docs
+          path: swagger-output
+
+
       - name: Copy new Swagger files to frontend
         run: |
-            mkdir -p src/api/docs
-            cp -rf swagger-output/docs/* src/api/docs/
-            git config --global user.email "klintlee1@gmail.com"
-            git config --global user.name "KlintLee115"
-            git add src/api/docs/
-            git commit -m "Updated Swagger docs from API repo" || echo "No changes to commit"
-            git push
+          mkdir -p app/api/docs
+          
+          echo "Files in swagger-output before copying:"
+          ls -l swagger-output
+
+          # Directly copy files from swagger-output to frontend repo
+          cp -rf swagger-output/* src/api/docs/
+          
+          git config --global user.email "klintlee1@gmail.com"
+          git config --global user.name "KlintLee115"
+          git add api/docs/
+          git commit -m "Updated Swagger docs from API repo" || echo "No changes to commit"
+          git push

@@ -35,6 +35,38 @@ definitions:
     - last_name
     - waivers
     type: object
+  customer.Response:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      hubspot_id:
+        type: string
+      last_name:
+        type: string
+      phone:
+        type: string
+      profile_pic:
+        type: string
+      user_id:
+        type: string
+    type: object
+  customer.StatsUpdateRequestDto:
+    properties:
+      assists:
+        type: integer
+      losses:
+        type: integer
+      points:
+        type: integer
+      rebounds:
+        type: integer
+      steals:
+        type: integer
+      wins:
+        type: integer
+    type: object
   customer.WaiverSigningDto:
     properties:
       is_waiver_signed:
@@ -398,21 +430,6 @@ definitions:
       updated_at:
         type: string
     type: object
-  user.StatsUpdateRequestDto:
-    properties:
-      assists:
-        type: integer
-      losses:
-        type: integer
-      points:
-        type: integer
-      rebounds:
-        type: integer
-      steals:
-        type: integer
-      wins:
-        type: integer
-    type: object
 host: localhost:80
 info:
   contact: {}
@@ -663,21 +680,21 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieves customers based on an event HubSpotId or returns all
-        customers
+      description: Retrieves a list of customers, optionally filtered by HubSpot IDs.
+        Returns user details from the database and HubSpot.
       parameters:
-      - description: Event HubSpotId (if specified, fetches customers for the event)
+      - description: Comma-separated list of HubSpot IDs to filter customers
         in: query
-        name: event_id
+        name: hubspot_ids
         type: string
       produces:
       - application/json
       responses:
         "200":
-          description: Customers retrieved successfully
+          description: List of customers
           schema:
             items:
-              $ref: '#/definitions/hubspot.UserResponse'
+              $ref: '#/definitions/customer.Response'
             type: array
         "400":
           description: 'Bad Request: Invalid parameters'
@@ -709,7 +726,7 @@ paths:
         name: update_body
         required: true
         schema:
-          $ref: '#/definitions/user.StatsUpdateRequestDto'
+          $ref: '#/definitions/customer.StatsUpdateRequestDto'
       produces:
       - application/json
       responses:
@@ -729,80 +746,6 @@ paths:
             additionalProperties: true
             type: object
       summary: Update customer statistics
-      tags:
-      - customers
-  /customers/{email}:
-    get:
-      consumes:
-      - application/json
-      description: Retrieves a repository using their email address
-      parameters:
-      - description: Email
-        in: path
-        name: email
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Customer retrieved successfully
-          schema:
-            $ref: '#/definitions/hubspot.UserResponse'
-        "400":
-          description: 'Bad Request: Invalid Email'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Customer not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get a repository by email
-      tags:
-      - customers
-  /customers/{email}/children:
-    get:
-      consumes:
-      - application/json
-      description: Retrieves a repository's children using the parent's email address
-      parameters:
-      - description: Parent Email
-        in: path
-        name: email
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Customer's children retrieved successfully
-          schema:
-            items:
-              $ref: '#/definitions/hubspot.UserResponse'
-            type: array
-        "400":
-          description: 'Bad Request: Invalid Email'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Parent or children not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get a repository's children by parent email
       tags:
       - customers
   /enrollments:
@@ -2748,6 +2691,80 @@ paths:
       summary: Update a staff member
       tags:
       - staff
+  /users/{email}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a repository using their email address
+      parameters:
+      - description: Email
+        in: path
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Customer retrieved successfully
+          schema:
+            $ref: '#/definitions/hubspot.UserResponse'
+        "400":
+          description: 'Bad Request: Invalid Email'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Customer not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a repository by email
+      tags:
+      - users
+  /users/{email}/children:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a repository's children using the parent's email address
+      parameters:
+      - description: Parent Email
+        in: path
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Customer's children retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/hubspot.UserResponse'
+            type: array
+        "400":
+          description: 'Bad Request: Invalid Email'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Parent or children not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a repository's children by parent email
+      tags:
+      - users
 securityDefinitions:
   Bearer:
     in: header

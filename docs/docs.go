@@ -380,7 +380,7 @@ const docTemplate = `{
         },
         "/customers": {
             "get": {
-                "description": "Retrieves customers based on an event HubSpotId or returns all customers",
+                "description": "Retrieves a list of customers, optionally filtered by HubSpot IDs. Returns user details from the database and HubSpot.",
                 "consumes": [
                     "application/json"
                 ],
@@ -394,18 +394,18 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Event HubSpotId (if specified, fetches customers for the event)",
-                        "name": "event_id",
+                        "description": "Comma-separated list of HubSpot IDs to filter customers",
+                        "name": "hubspot_ids",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Customers retrieved successfully",
+                        "description": "List of customers",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/hubspot.UserResponse"
+                                "$ref": "#/definitions/customer.Response"
                             }
                         }
                     },
@@ -453,7 +453,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/user.StatsUpdateRequestDto"
+                            "$ref": "#/definitions/customer.StatsUpdateRequestDto"
                         }
                     }
                 ],
@@ -467,115 +467,6 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request: Invalid parameters",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/customers/{email}": {
-            "get": {
-                "description": "Retrieves a repository using their email address",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "customers"
-                ],
-                "summary": "Get a repository by email",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Email",
-                        "name": "email",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Customer retrieved successfully",
-                        "schema": {
-                            "$ref": "#/definitions/hubspot.UserResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid Email",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Customer not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/customers/{email}/children": {
-            "get": {
-                "description": "Retrieves a repository's children using the parent's email address",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "customers"
-                ],
-                "summary": "Get a repository's children by parent email",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Parent Email",
-                        "name": "email",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Customer's children retrieved successfully",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/hubspot.UserResponse"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid Email",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Parent or children not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3472,6 +3363,115 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/users/{email}": {
+            "get": {
+                "description": "Retrieves a repository using their email address",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get a repository by email",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Email",
+                        "name": "email",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Customer retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/hubspot.UserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid Email",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Customer not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{email}/children": {
+            "get": {
+                "description": "Retrieves a repository's children using the parent's email address",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get a repository's children by parent email",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Parent Email",
+                        "name": "email",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Customer's children retrieved successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/hubspot.UserResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid Email",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Parent or children not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -3526,6 +3526,55 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/customer.WaiverSigningDto"
                     }
+                }
+            }
+        },
+        "customer.Response": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "hubspot_id": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "profile_pic": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "customer.StatsUpdateRequestDto": {
+            "type": "object",
+            "properties": {
+                "assists": {
+                    "type": "integer"
+                },
+                "losses": {
+                    "type": "integer"
+                },
+                "points": {
+                    "type": "integer"
+                },
+                "rebounds": {
+                    "type": "integer"
+                },
+                "steals": {
+                    "type": "integer"
+                },
+                "wins": {
+                    "type": "integer"
                 }
             }
         },
@@ -4076,29 +4125,6 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
-                }
-            }
-        },
-        "user.StatsUpdateRequestDto": {
-            "type": "object",
-            "properties": {
-                "assists": {
-                    "type": "integer"
-                },
-                "losses": {
-                    "type": "integer"
-                },
-                "points": {
-                    "type": "integer"
-                },
-                "rebounds": {
-                    "type": "integer"
-                },
-                "steals": {
-                    "type": "integer"
-                },
-                "wins": {
-                    "type": "integer"
                 }
             }
         }

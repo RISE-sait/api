@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.27.0
 
-package db_user
+package db_customer
 
 import (
 	"context"

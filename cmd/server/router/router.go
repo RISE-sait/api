@@ -4,6 +4,7 @@ import (
 	"api/internal/di"
 	courseHandler "api/internal/domains/course/handler"
 	courseRepo "api/internal/domains/course/persistence/repository"
+	customer "api/internal/domains/customer"
 	eventHandler "api/internal/domains/event/handler"
 	eventRepo "api/internal/domains/event/persistence/repository"
 	eventStaffHandler "api/internal/domains/event_staff/handler"
@@ -61,6 +62,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		"/games":      RegisterGamesRoutes,
 
 		// Users & Staff routes
+		"/users":       RegisterUserRoutes,
 		"/customers":   RegisterCustomerRoutes,
 		"/staffs":      RegisterStaffRoutes,
 		"/event-staff": RegisterEventStaffRoutes,
@@ -77,15 +79,25 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 	}
 }
 
+func RegisterUserRoutes(container *di.Container) func(chi.Router) {
+
+	h := user.NewUsersHandler(container)
+
+	return func(r chi.Router) {
+
+		r.Get("/{email}/children", h.GetChildrenByParentEmail)
+		r.Get("/{email}", h.GetUserByEmail)
+	}
+}
+
 func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 
-	h := user.NewCustomersHandler(container)
+	h := customer.NewCustomersHandler(container)
 
 	return func(r chi.Router) {
 
 		r.Get("/", h.GetCustomers)
-		r.Get("/{email}/children", h.GetChildrenByParentEmail)
-		r.Get("/{email}", h.GetCustomerByEmail)
+		r.Patch("/customers/{customer_id}/stats", h.UpdateCustomerStats)
 	}
 }
 
@@ -249,7 +261,6 @@ func RegisterEventStaffRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterPurchasesRoutes(container *di.Container) func(chi.Router) {
 
-	//repo := eventStaffRepo.NewEventStaffsRepository(container.Queries.EventStaffDb)
 	h := purchase.NewPurchaseHandlers(container)
 
 	return func(r chi.Router) {

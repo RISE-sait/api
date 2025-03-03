@@ -3,7 +3,7 @@
 //   sqlc v1.27.0
 // source: user_queries.sql
 
-package db
+package db_user
 
 import (
 	"context"
@@ -60,43 +60,4 @@ func (q *Queries) GetUsers(ctx context.Context) ([]UsersUser, error) {
 		return nil, err
 	}
 	return items, nil
-}
-
-const updateUserStats = `-- name: UpdateUserStats :execrows
-UPDATE users.users
-SET
-    wins = COALESCE($1, wins),
-    losses = COALESCE($2, losses),
-    points = COALESCE($3, points),
-    steals = COALESCE($4, steals),
-    assists = COALESCE($5, assists),
-    rebounds = COALESCE($6, rebounds),
-    updated_at = NOW()
-WHERE id = $7
-`
-
-type UpdateUserStatsParams struct {
-	Wins     sql.NullInt32 `json:"wins"`
-	Losses   sql.NullInt32 `json:"losses"`
-	Points   sql.NullInt32 `json:"points"`
-	Steals   sql.NullInt32 `json:"steals"`
-	Assists  sql.NullInt32 `json:"assists"`
-	Rebounds sql.NullInt32 `json:"rebounds"`
-	ID       uuid.UUID     `json:"id"`
-}
-
-func (q *Queries) UpdateUserStats(ctx context.Context, arg UpdateUserStatsParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateUserStats,
-		arg.Wins,
-		arg.Losses,
-		arg.Points,
-		arg.Steals,
-		arg.Assists,
-		arg.Rebounds,
-		arg.ID,
-	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
 }

@@ -68,7 +68,7 @@ func setupServer(container *di.Container) http.Handler {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
-			"message": "Hello, welcome to our Rise API",
+			"message": "Hello, welcome to Rise API",
 			"version": "1.0.0",
 		})
 	})

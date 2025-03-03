@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.27.0
 
-package db_user
+package db_customer
 
 import (
 	"database/sql"
@@ -399,7 +399,7 @@ type UsersStaffRole struct {
 
 type UsersUser struct {
 	ID            uuid.UUID      `json:"id"`
-	HubspotID     sql.NullString `json:"hubspot_id"`
+	HubspotID     string         `json:"hubspot_id"`
 	ProfilePicUrl sql.NullString `json:"profile_pic_url"`
 	Wins          int32          `json:"wins"`
 	Losses        int32          `json:"losses"`

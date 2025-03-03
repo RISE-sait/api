@@ -59,7 +59,7 @@ func (h *Handler) CreateEnrollment(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusCreated)
 }
 
-// GetEnrollments retrieves enrollments.
+// GetEnrollment retrieves enrollments.
 // @Summary Get enrollments by customer and event HubSpotId
 // @Description Get enrollments by customer and event HubSpotId
 // @Tags enrollments
@@ -72,7 +72,7 @@ func (h *Handler) CreateEnrollment(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} map[string]interface{} "Not Found: Enrollments not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /enrollments/{customerId}/{eventId} [get]
-func (h *Handler) GetEnrollments(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetEnrollment(w http.ResponseWriter, r *http.Request) {
 
 	var customerId *uuid.UUID
 

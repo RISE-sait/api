@@ -2,7 +2,7 @@ package event_staff
 
 import (
 	values "api/internal/domains/event_staff/values"
-	entity "api/internal/domains/staff/entity"
+	staffValues "api/internal/domains/user/values/staff"
 	errLib "api/internal/libs/errors"
 	"context"
 	"github.com/google/uuid"
@@ -10,6 +10,6 @@ import (
 
 type EventStaffsRepositoryInterface interface {
 	AssignStaffToEvent(c context.Context, input values.EventStaff) *errLib.CommonError
-	GetStaffsAssignedToEvent(ctx context.Context, eventId uuid.UUID) ([]entity.Staff, *errLib.CommonError)
+	GetStaffsAssignedToEvent(ctx context.Context, eventId uuid.UUID) ([]staffValues.ReadValues, *errLib.CommonError)
 	UnassignedStaffFromEvent(c context.Context, input values.EventStaff) *errLib.CommonError
 }

@@ -2,21 +2,21 @@ package customer
 
 import (
 	"api/internal/domains/identity/dto/common"
-	"api/internal/domains/identity/values"
+	values "api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
 )
 
-// RegistrationDto represents the data transfer object for customer registration.
+// RegistrationRequestDto represents the data transfer object for customer registration.
 // It includes user information, waivers, Firebase authentication token, and age.
-type RegistrationDto struct {
-	CustomerWaiversSigningDto []WaiverSigningDto `json:"waivers" validate:"required"`
-	identity.UserNecessaryInfoDto
+type RegistrationRequestDto struct {
+	CustomerWaiversSigningDto []WaiverSigningRequestDto `json:"waivers" validate:"required"`
+	identity.UserNecessaryInfoRequestDto
 }
 
 // toValueObjectBase validates the DTO and converts waiver signing details into value objects.
 // Returns a slice of CustomerWaiverSigning value objects and an error if validation fails.
-func (dto RegistrationDto) toValueObjectBase() ([]values.CustomerWaiverSigning, *errLib.CommonError) {
+func (dto RegistrationRequestDto) toValueObjectBase() ([]values.CustomerWaiverSigning, *errLib.CommonError) {
 	if err := validators.ValidateDto(&dto); err != nil {
 		return nil, err
 	}
@@ -38,9 +38,9 @@ func (dto RegistrationDto) toValueObjectBase() ([]values.CustomerWaiverSigning, 
 	return waiversVo, nil
 }
 
-// ToCreateRegularCustomerValueObject converts the DTO into a RegularCustomerRegistrationInfo value object.
+// ToCreateRegularCustomerValueObject converts the DTO into a RegularCustomerRegistrationRequestInfo value object.
 // Requires an email address as input. Returns the value object and an error if validation fails.
-func (dto RegistrationDto) ToCreateRegularCustomerValueObject(email string) (*values.RegularCustomerRegistrationInfo, *errLib.CommonError) {
+func (dto RegistrationRequestDto) ToCreateRegularCustomerValueObject(email string) (*values.RegularCustomerRegistrationRequestInfo, *errLib.CommonError) {
 
 	waiversVo, err := dto.toValueObjectBase()
 
@@ -48,8 +48,8 @@ func (dto RegistrationDto) ToCreateRegularCustomerValueObject(email string) (*va
 		return nil, err
 	}
 
-	vo := values.RegularCustomerRegistrationInfo{
-		UserNecessaryInfo: values.UserNecessaryInfo{
+	vo := values.RegularCustomerRegistrationRequestInfo{
+		UserRegistrationRequestNecessaryInfo: values.UserRegistrationRequestNecessaryInfo{
 			Age:       dto.Age,
 			FirstName: dto.FirstName,
 			LastName:  dto.LastName,
@@ -63,7 +63,7 @@ func (dto RegistrationDto) ToCreateRegularCustomerValueObject(email string) (*va
 
 // ToCreateChildValueObject converts the DTO into a ChildRegistrationRequestInfo value object.
 // Requires a parent email as input. Returns the value object and an error if validation fails.
-func (dto RegistrationDto) ToCreateChildValueObject(parentEmail string) (*values.ChildRegistrationRequestInfo, *errLib.CommonError) {
+func (dto RegistrationRequestDto) ToCreateChildValueObject(parentEmail string) (*values.ChildRegistrationRequestInfo, *errLib.CommonError) {
 
 	waiversVo, err := dto.toValueObjectBase()
 
@@ -72,7 +72,7 @@ func (dto RegistrationDto) ToCreateChildValueObject(parentEmail string) (*values
 	}
 
 	vo := values.ChildRegistrationRequestInfo{
-		UserNecessaryInfo: values.UserNecessaryInfo{
+		UserRegistrationRequestNecessaryInfo: values.UserRegistrationRequestNecessaryInfo{
 			Age:       dto.Age,
 			FirstName: dto.FirstName,
 			LastName:  dto.LastName,

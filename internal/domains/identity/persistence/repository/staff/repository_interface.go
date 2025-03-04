@@ -1,7 +1,7 @@
 package staff
 
 import (
-	"api/internal/domains/staff/values"
+	values "api/internal/domains/user/values/staff"
 	"api/internal/libs/errors"
 	"context"
 	"database/sql"
@@ -11,7 +11,7 @@ import (
 // RepositoryInterface defines the methods that the Repository must implement
 type RepositoryInterface interface {
 	// GetStaffByUserId fetches staff details by user ID
-	GetStaffByUserId(ctx context.Context, id uuid.UUID) (*staff.Details, *errLib.CommonError)
+	GetStaffByUserId(ctx context.Context, id uuid.UUID) (values.ReadValues, *errLib.CommonError)
 
 	// GetStaffRolesTx fetches staff roles within a transaction
 	GetStaffRolesTx(ctx context.Context, tx *sql.Tx) ([]string, *errLib.CommonError)

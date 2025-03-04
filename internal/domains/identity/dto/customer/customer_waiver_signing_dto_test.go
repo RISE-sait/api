@@ -10,17 +10,17 @@ import (
 func TestCustomerWaiverSigningDto_ToValueObjects(t *testing.T) {
 	tests := []struct {
 		name          string
-		input         WaiverSigningDto
-		expectedValue *values.CustomerWaiverSigning
+		input         WaiverSigningRequestDto
+		expectedValue *identity.CustomerWaiverSigning
 		expectedError *errLib.CommonError
 	}{
 		{
 			name: "Valid Input",
-			input: WaiverSigningDto{
+			input: WaiverSigningRequestDto{
 				WaiverUrl:      "https://example.com/waiver",
 				IsWaiverSigned: true,
 			},
-			expectedValue: &values.CustomerWaiverSigning{
+			expectedValue: &identity.CustomerWaiverSigning{
 				WaiverUrl:      "https://example.com/waiver",
 				IsWaiverSigned: true,
 			},
@@ -28,7 +28,7 @@ func TestCustomerWaiverSigningDto_ToValueObjects(t *testing.T) {
 		},
 		{
 			name: "Invalid URL",
-			input: WaiverSigningDto{
+			input: WaiverSigningRequestDto{
 				WaiverUrl:      "invalid-url",
 				IsWaiverSigned: true,
 			},
@@ -37,7 +37,7 @@ func TestCustomerWaiverSigningDto_ToValueObjects(t *testing.T) {
 		},
 		{
 			name: "Missing Waiver URL",
-			input: WaiverSigningDto{
+			input: WaiverSigningRequestDto{
 				WaiverUrl:      "",
 				IsWaiverSigned: true,
 			},
@@ -46,11 +46,11 @@ func TestCustomerWaiverSigningDto_ToValueObjects(t *testing.T) {
 		},
 		{
 			name: "IsWaiverSigned Default Value",
-			input: WaiverSigningDto{
+			input: WaiverSigningRequestDto{
 				WaiverUrl:      "https://example.com/waiver",
 				IsWaiverSigned: false, // Default value
 			},
-			expectedValue: &values.CustomerWaiverSigning{
+			expectedValue: &identity.CustomerWaiverSigning{
 				WaiverUrl:      "https://example.com/waiver",
 				IsWaiverSigned: false,
 			},

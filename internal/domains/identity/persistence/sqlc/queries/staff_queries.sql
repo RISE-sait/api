@@ -1,5 +1,5 @@
 -- name: GetStaffById :one
-SELECT s.is_active, s.created_at, s.updated_at, sr.role_name FROM users.staff s
+SELECT s.*, sr.role_name, u.hubspot_id FROM users.staff s
 JOIN users.users u ON s.id = u.id
 JOIN users.staff_roles sr ON s.role_id = sr.id
 WHERE u.id = $1;

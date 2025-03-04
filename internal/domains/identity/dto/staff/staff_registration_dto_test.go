@@ -2,7 +2,7 @@ package staff
 
 import (
 	"api/internal/domains/identity/values"
-	staffValues "api/internal/domains/staff/values"
+	staffValues "api/internal/domains/user/values/staff"
 	"api/internal/libs/validators"
 	"testing"
 
@@ -74,7 +74,7 @@ func TestStaffRegistrationRequestDto_ToDetails(t *testing.T) {
 		name           string
 		dto            *RegistrationRequestDto
 		expectError    bool
-		expectedValues *values.StaffRegistrationInfo
+		expectedValues *identity.StaffRegistrationRequestInfo
 	}{
 		{
 			name: "Valid Input",
@@ -84,7 +84,7 @@ func TestStaffRegistrationRequestDto_ToDetails(t *testing.T) {
 				IsActive:  true,
 			},
 			expectError: false,
-			expectedValues: &values.StaffRegistrationInfo{
+			expectedValues: &identity.StaffRegistrationRequestInfo{
 				HubSpotID: "12345",
 				Details: staffValues.Details{
 					RoleName: "Manager",

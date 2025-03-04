@@ -36,7 +36,7 @@ package registration
 //	parentEmail := r.URL.Query().Get("parentEmail")
 //
 //	args := values.ChildRegistrationInfo{
-//		UserNecessaryInfoDto:    values.UserNecessaryInfoDto{},
+//		UserNecessaryInfoRequestDto:    values.UserNecessaryInfoRequestDto{},
 //		ParentEmail: parentEmail,
 //		Waivers:     nil,
 //	}

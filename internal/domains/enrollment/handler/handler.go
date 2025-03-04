@@ -1,9 +1,10 @@
-package handler
+package enrollment
 
 import (
 	"api/internal/domains/enrollment/dto"
 	"api/internal/domains/enrollment/entity"
-	"api/internal/domains/enrollment/service"
+	service "api/internal/domains/enrollment/service"
+	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"github.com/google/uuid"
@@ -13,10 +14,10 @@ import (
 )
 
 type Handler struct {
-	Service enrollment_service.EnrollmentService
+	Service *service.Service
 }
 
-func NewHandler(service enrollment_service.EnrollmentService) *Handler {
+func NewHandler(service *service.Service) *Handler {
 	return &Handler{Service: service}
 }
 
@@ -59,24 +60,24 @@ func (h *Handler) CreateEnrollment(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusCreated)
 }
 
-// GetEnrollment retrieves enrollments.
+// GetEnrollments retrieves enrollments.
 // @Summary Get enrollments by customer and event HubSpotId
 // @Description Get enrollments by customer and event HubSpotId
 // @Tags enrollments
 // @Accept json
 // @Produce json
-// @Param customerId path string true "Customer HubSpotId"
-// @Param eventId path string true "Event HubSpotId"
+// @Param customerId query string false "Customer ID"
+// @Param eventId query string false "Event ID"
 // @Success 200 {array} dto.EnrollmentResponse "Enrollments retrieved successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid HubSpotId"
 // @Failure 404 {object} map[string]interface{} "Not Found: Enrollments not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /enrollments/{customerId}/{eventId} [get]
-func (h *Handler) GetEnrollment(w http.ResponseWriter, r *http.Request) {
+// @Router /enrollments [get]
+func (h *Handler) GetEnrollments(w http.ResponseWriter, r *http.Request) {
 
-	var customerId *uuid.UUID
+	var customerId, eventId uuid.UUID
 
-	customerIdStr := chi.URLParam(r, "customerId")
+	customerIdStr := r.URL.Query().Get("customerId")
 
 	if customerIdStr != "" {
 		id, err := validators.ParseUUID(customerIdStr)
@@ -86,22 +87,26 @@ func (h *Handler) GetEnrollment(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		customerId = &id
+		customerId = id
 	}
 
-	var eventId *uuid.UUID
-
-	eventIdStr := chi.URLParam(r, "eventId")
+	eventIdStr := r.URL.Query().Get("eventId")
 
 	if eventIdStr != "" {
-		id, err := validators.ParseUUID(customerIdStr)
+		id, err := validators.ParseUUID(eventIdStr)
 
 		if err != nil {
 			responseHandlers.RespondWithError(w, err)
 			return
 		}
 
-		eventId = &id
+		eventId = id
+	}
+
+	if eventId == uuid.Nil && customerId == uuid.Nil {
+		err := errLib.New("either customerId or eventId must be provided", http.StatusBadRequest)
+		responseHandlers.RespondWithError(w, err)
+		return
 	}
 
 	enrollments, err := h.Service.GetEnrollments(r.Context(), eventId, customerId)

@@ -29,7 +29,7 @@ func NewUserRepository(container *di.Container) *Repository {
 	}
 }
 
-func (r *Repository) CreateUserTx(ctx context.Context, tx *sql.Tx) (*uuid.UUID, *errLib.CommonError) {
+func (r *Repository) CreateUserTx(ctx context.Context, tx *sql.Tx, hubspotID string) (*uuid.UUID, *errLib.CommonError) {
 
 	queries := r.Queries
 
@@ -37,10 +37,7 @@ func (r *Repository) CreateUserTx(ctx context.Context, tx *sql.Tx) (*uuid.UUID, 
 		queries = queries.WithTx(tx)
 	}
 
-	user, err := queries.CreateUser(ctx, sql.NullString{
-		String: uuid.Nil.String(),
-		Valid:  false,
-	})
+	user, err := queries.CreateUser(ctx, hubspotID)
 
 	if err != nil {
 		var pqErr *pq.Error
@@ -61,10 +58,7 @@ func (r *Repository) CreateUserTx(ctx context.Context, tx *sql.Tx) (*uuid.UUID, 
 
 func (r *Repository) GetUserIdByHubspotId(ctx context.Context, id string) (uuid.UUID, *errLib.CommonError) {
 
-	user, err := r.Queries.GetUserByHubSpotId(ctx, sql.NullString{
-		String: id,
-		Valid:  true,
-	})
+	user, err := r.Queries.GetUserByHubSpotId(ctx, id)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -87,11 +81,8 @@ func (r *Repository) UpdateUserHubspotIdTx(ctx context.Context, tx *sql.Tx, user
 	}
 
 	updatedRows, err := queries.UpdateUserHubspotId(ctx, db.UpdateUserHubspotIdParams{
-		HubspotID: sql.NullString{
-			String: hubspotId,
-			Valid:  true,
-		},
-		ID: userId,
+		HubspotID: hubspotId,
+		ID:        userId,
 	})
 
 	if err != nil {

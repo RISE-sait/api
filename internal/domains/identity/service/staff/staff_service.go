@@ -4,7 +4,7 @@ import (
 	"api/internal/di"
 	staffRepo "api/internal/domains/identity/persistence/repository/staff"
 	"api/internal/domains/identity/persistence/repository/user"
-	staffValues "api/internal/domains/staff/values"
+	staffValues "api/internal/domains/user/values/staff"
 	"api/internal/services/hubspot"
 	"github.com/google/uuid"
 
@@ -36,7 +36,7 @@ func NewStaffRegistrationService(
 	}
 }
 
-func (s *RegistrationService) GetStaffInfo(ctx context.Context, userId uuid.UUID) *staffValues.Details {
+func (s *RegistrationService) GetStaffInfo(ctx context.Context, userId uuid.UUID) *staffValues.ReadValues {
 
 	staff, err := s.StaffRepository.GetStaffByUserId(ctx, userId)
 
@@ -44,7 +44,7 @@ func (s *RegistrationService) GetStaffInfo(ctx context.Context, userId uuid.UUID
 		return nil
 	}
 
-	return &staffValues.Details{
+	return &staffValues.ReadValues{
 		RoleName: staff.RoleName,
 		IsActive: staff.IsActive,
 	}
@@ -52,7 +52,7 @@ func (s *RegistrationService) GetStaffInfo(ctx context.Context, userId uuid.UUID
 
 func (s *RegistrationService) RegisterStaff(
 	ctx context.Context,
-	staffDetails *values.StaffRegistrationInfo,
+	staffDetails *identity.StaffRegistrationRequestInfo,
 ) *errLib.CommonError {
 
 	_, err := s.HubSpotService.GetUserById(staffDetails.HubSpotID)
@@ -74,7 +74,7 @@ func (s *RegistrationService) RegisterStaff(
 		}
 	}()
 
-	userId, err := s.UsersRepository.CreateUserTx(ctx, tx)
+	userId, err := s.UsersRepository.CreateUserTx(ctx, tx, staffDetails.HubSpotID)
 
 	if err != nil {
 		tx.Rollback()

@@ -29,7 +29,7 @@ func NewHandlers(container *di.Container) *Handlers {
 // @Accept json
 // @Produce json
 // @Param firebase_token header string true "Firebase token for user verification" // Firebase token in the Authorization header
-// @Success 200 {object} entity.UserInfo "User authenticated successfully"
+// @Success 200 {object} identity.UserNecessaryInfoRequestDto "User authenticated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid Firebase token"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /auth [post]
@@ -50,7 +50,7 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseBody := identity.UserNecessaryInfoDto{
+	responseBody := identity.UserNecessaryInfoRequestDto{
 		FirstName: userInfo.FirstName,
 		LastName:  userInfo.LastName,
 		Role:      userInfo.Role,
@@ -71,7 +71,7 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Security Bearer
 // @Param hubspot_id path string true "Child HubSpotId"
-// @Success 200 {object} entity.UserInfo "User authenticated successfully"
+// @Success 200 {object} identity.UserNecessaryInfoRequestDto "User authenticated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid Firebase token"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /auth/child/{hubspot_id} [post]
@@ -88,7 +88,7 @@ func (h *Handlers) LoginAsChild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseBody := identity.UserNecessaryInfoDto{
+	responseBody := identity.UserNecessaryInfoRequestDto{
 		FirstName: userInfo.FirstName,
 		LastName:  userInfo.LastName,
 		Age:       0,

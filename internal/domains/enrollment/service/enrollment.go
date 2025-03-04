@@ -1,9 +1,8 @@
-package enrollment_service
+package enrollment
 
 import (
 	"api/internal/domains/enrollment/entity"
 	enrollmentRepo "api/internal/domains/enrollment/persistence/repository/enrollment"
-	eventCapacityRepo "api/internal/domains/enrollment/persistence/repository/event_capacity"
 	"api/internal/domains/enrollment/values"
 	errLib "api/internal/libs/errors"
 	"context"
@@ -12,21 +11,19 @@ import (
 	"github.com/google/uuid"
 )
 
-type EnrollmentService struct {
-	EnrollmentRepository    *enrollmentRepo.Repository
-	EventCapacityRepository *eventCapacityRepo.Repository
+type Service struct {
+	EnrollmentRepository *enrollmentRepo.Repository
 }
 
-func NewEnrollmentService(enrollmentRepo *enrollmentRepo.Repository, eventCapacityRepo *eventCapacityRepo.Repository) *EnrollmentService {
-	return &EnrollmentService{
-		EnrollmentRepository:    enrollmentRepo,
-		EventCapacityRepository: eventCapacityRepo,
+func NewEnrollmentService(enrollmentRepo *enrollmentRepo.Repository) *Service {
+	return &Service{
+		EnrollmentRepository: enrollmentRepo,
 	}
 }
 
-func (s *EnrollmentService) EnrollCustomer(ctx context.Context, details values.EnrollmentDetails) (*entity.Enrollment, *errLib.CommonError) {
+func (s *Service) EnrollCustomer(ctx context.Context, details values.EnrollmentDetails) (*entity.Enrollment, *errLib.CommonError) {
 
-	isFull, err := s.EventCapacityRepository.GetEventIsFull(ctx, details.EventId)
+	isFull, err := s.EnrollmentRepository.GetEventIsFull(ctx, details.EventId)
 
 	if err != nil {
 		return nil, err
@@ -40,10 +37,10 @@ func (s *EnrollmentService) EnrollCustomer(ctx context.Context, details values.E
 
 }
 
-func (s *EnrollmentService) GetEnrollments(ctx context.Context, eventId, customerId *uuid.UUID) ([]entity.Enrollment, *errLib.CommonError) {
+func (s *Service) GetEnrollments(ctx context.Context, eventId, customerId uuid.UUID) ([]entity.Enrollment, *errLib.CommonError) {
 	return s.EnrollmentRepository.GetEnrollments(ctx, eventId, customerId)
 }
 
-func (s *EnrollmentService) UnEnrollCustomer(ctx context.Context, id uuid.UUID) *errLib.CommonError {
+func (s *Service) UnEnrollCustomer(ctx context.Context, id uuid.UUID) *errLib.CommonError {
 	return s.EnrollmentRepository.UnEnrollCustomer(ctx, id)
 }

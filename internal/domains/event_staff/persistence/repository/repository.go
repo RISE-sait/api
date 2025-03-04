@@ -3,10 +3,7 @@ package event_staff
 import (
 	db "api/internal/domains/event_staff/persistence/sqlc/generated"
 	values "api/internal/domains/event_staff/values"
-	staffEntity "api/internal/domains/staff/entity"
-
-	staffValues "api/internal/domains/staff/values"
-
+	staffValues "api/internal/domains/user/values/staff"
 	errLib "api/internal/libs/errors"
 
 	"context"
@@ -45,26 +42,27 @@ func (r *EventStaffsRepository) AssignStaffToEvent(c context.Context, input valu
 	return nil
 }
 
-func (r *EventStaffsRepository) GetStaffsAssignedToEvent(ctx context.Context, eventId uuid.UUID) ([]staffEntity.Staff, *errLib.CommonError) {
+func (r *EventStaffsRepository) GetStaffsAssignedToEvent(ctx context.Context, eventId uuid.UUID) ([]staffValues.ReadValues, *errLib.CommonError) {
 
-	dbEvents, err := r.Queries.GetStaffsAssignedToEvent(ctx, eventId)
+	dbStaffs, err := r.Queries.GetStaffsAssignedToEvent(ctx, eventId)
 
 	if err != nil {
 		log.Println("Failed to get staffs: ", err.Error())
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	staffs := make([]staffEntity.Staff, len(dbEvents))
-	for i, dbEvent := range dbEvents {
+	staffs := make([]staffValues.ReadValues, len(dbStaffs))
+	for i, dbStaff := range dbStaffs {
 
-		staffs[i] = staffEntity.Staff{
-			ID: dbEvent.ID,
-			Details: staffValues.Details{
-				RoleName: "",
-				IsActive: false,
-			},
+		staffs[i] = staffValues.ReadValues{
+			ID:        dbStaff.ID,
+			HubspotID: dbStaff.HubspotID,
+			IsActive:  dbStaff.IsActive,
+			CreatedAt: dbStaff.CreatedAt,
+			UpdatedAt: dbStaff.UpdatedAt,
+			RoleID:    dbStaff.RoleID,
+			RoleName:  dbStaff.RoleName,
 		}
-
 	}
 
 	return staffs, nil
@@ -72,12 +70,12 @@ func (r *EventStaffsRepository) GetStaffsAssignedToEvent(ctx context.Context, ev
 
 func (r *EventStaffsRepository) UnassignedStaffFromEvent(c context.Context, values values.EventStaff) *errLib.CommonError {
 
-	params := db.UnassignStaffFomEventParams{
+	params := db.UnassignStaffFromEventParams{
 		EventID: values.EventID,
 		StaffID: values.StaffID,
 	}
 
-	_, err := r.Queries.UnassignStaffFomEvent(c, params)
+	_, err := r.Queries.UnassignStaffFromEvent(c, params)
 
 	if err != nil {
 		log.Printf("Failed to unassign staff: %+v. Error: %v", values.StaffID, err.Error())

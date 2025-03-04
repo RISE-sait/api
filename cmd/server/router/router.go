@@ -4,28 +4,28 @@ import (
 	"api/internal/di"
 	courseHandler "api/internal/domains/course/handler"
 	courseRepo "api/internal/domains/course/persistence/repository"
-	customer "api/internal/domains/customer"
+	enrollment "api/internal/domains/enrollment/handler"
+	enrollmentService "api/internal/domains/enrollment/service"
+	userHandler "api/internal/domains/user/handler"
+
+	enrollmentRepo "api/internal/domains/enrollment/persistence/repository/enrollment"
 	eventHandler "api/internal/domains/event/handler"
 	eventRepo "api/internal/domains/event/persistence/repository"
 	eventStaffHandler "api/internal/domains/event_staff/handler"
 	eventStaffRepo "api/internal/domains/event_staff/persistence/repository"
+	"api/internal/domains/facility/handler"
 	game "api/internal/domains/game/handler"
 	gameRepo "api/internal/domains/game/persistence/repository"
 	barber "api/internal/domains/haircut/handler/events"
 	haircut "api/internal/domains/haircut/handler/haircuts"
 	barberEventRepo "api/internal/domains/haircut/persistence/repository/event"
 	"api/internal/domains/identity/handler/authentication"
+	"api/internal/domains/identity/handler/registration"
+	"api/internal/domains/membership/handler"
 	"api/internal/domains/practice"
 	practiceHandler "api/internal/domains/practice/handler"
 	practiceRepo "api/internal/domains/practice/persistence/repository"
 	purchase "api/internal/domains/purchase/handler"
-	"api/internal/domains/staff"
-	"api/internal/domains/user"
-
-	"api/internal/domains/facility/handler"
-	"api/internal/domains/identity/handler/registration"
-	"api/internal/domains/membership/handler"
-
 	"api/internal/middlewares"
 
 	"github.com/go-chi/chi"
@@ -55,11 +55,12 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		"/register": RegisterRegistrationRoutes,
 
 		// Core functionalities
-		"/courses":    RegisterCourseRoutes,
-		"/practices":  RegisterPracticeRoutes,
-		"/events":     RegisterEventRoutes,
-		"/facilities": RegisterFacilityRoutes,
-		"/games":      RegisterGamesRoutes,
+		"/courses":     RegisterCourseRoutes,
+		"/practices":   RegisterPracticeRoutes,
+		"/events":      RegisterEventRoutes,
+		"/facilities":  RegisterFacilityRoutes,
+		"/games":       RegisterGamesRoutes,
+		"/enrollments": RegisterEnrollmentRoutes,
 
 		// Users & Staff routes
 		"/users":       RegisterUserRoutes,
@@ -81,7 +82,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 
 func RegisterUserRoutes(container *di.Container) func(chi.Router) {
 
-	h := user.NewUsersHandler(container)
+	h := userHandler.NewUsersHandler(container)
 
 	return func(r chi.Router) {
 
@@ -92,10 +93,9 @@ func RegisterUserRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 
-	h := customer.NewCustomersHandler(container)
+	h := userHandler.NewCustomersHandler(container)
 
 	return func(r chi.Router) {
-
 		r.Get("/", h.GetCustomers)
 		r.Patch("/customers/{customer_id}/stats", h.UpdateCustomerStats)
 	}
@@ -236,7 +236,7 @@ func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 }
 
 func RegisterStaffRoutes(container *di.Container) func(chi.Router) {
-	h := staff.NewStaffHandlers(container)
+	h := userHandler.NewStaffHandlers(container)
 
 	return func(r chi.Router) {
 		r.Get("/", h.GetStaffs)
@@ -256,6 +256,20 @@ func RegisterEventStaffRoutes(container *di.Container) func(chi.Router) {
 
 		r.With(allowAdminOnly).Post("/", h.AssignStaffToEvent)
 		r.With(allowAdminOnly).Delete("/", h.UnassignStaffFromEvent)
+	}
+}
+
+func RegisterEnrollmentRoutes(container *di.Container) func(chi.Router) {
+
+	repo := enrollmentRepo.NewEnrollmentRepository(container.Queries.EnrollmentDb)
+
+	service := enrollmentService.NewEnrollmentService(repo)
+	h := enrollment.NewHandler(service)
+
+	return func(r chi.Router) {
+		r.Get("/", h.GetEnrollments)
+		r.Post("/", h.CreateEnrollment)
+		r.Delete("/{id}", h.DeleteEnrollment)
 	}
 }
 

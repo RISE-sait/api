@@ -28,12 +28,11 @@ func main() {
 				return err
 			}
 
-			if baseDir == "./cmd/server" {
-				if info.IsDir() && info.Name() == "router" {
-					return filepath.SkipDir
-				}
-			}
 			if info.IsDir() {
+
+				if baseDir == "./cmd/server" && info.Name() == "router" {
+					return filepath.SkipDir // Skip the "router" directory
+				}
 
 				if baseDir == "./internal/domains" {
 
@@ -61,11 +60,6 @@ func main() {
 			}
 			return nil
 		})
-	}
-
-	mainFile := "./cmd/server/main.go"
-	if _, err := os.Stat(mainFile); err == nil {
-		dirs = append(dirs, "./cmd/server")
 	}
 
 	// Join the directories with commas

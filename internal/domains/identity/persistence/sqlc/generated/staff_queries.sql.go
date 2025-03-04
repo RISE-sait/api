@@ -32,27 +32,33 @@ func (q *Queries) CreateStaff(ctx context.Context, arg CreateStaffParams) (int64
 }
 
 const getStaffById = `-- name: GetStaffById :one
-SELECT s.is_active, s.created_at, s.updated_at, sr.role_name FROM users.staff s
+SELECT s.id, s.is_active, s.created_at, s.updated_at, s.role_id, sr.role_name, u.hubspot_id FROM users.staff s
 JOIN users.users u ON s.id = u.id
 JOIN users.staff_roles sr ON s.role_id = sr.id
 WHERE u.id = $1
 `
 
 type GetStaffByIdRow struct {
+	ID        uuid.UUID `json:"id"`
 	IsActive  bool      `json:"is_active"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+	RoleID    uuid.UUID `json:"role_id"`
 	RoleName  string    `json:"role_name"`
+	HubspotID string    `json:"hubspot_id"`
 }
 
 func (q *Queries) GetStaffById(ctx context.Context, id uuid.UUID) (GetStaffByIdRow, error) {
 	row := q.db.QueryRowContext(ctx, getStaffById, id)
 	var i GetStaffByIdRow
 	err := row.Scan(
+		&i.ID,
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.RoleID,
 		&i.RoleName,
+		&i.HubspotID,
 	)
 	return i, err
 }

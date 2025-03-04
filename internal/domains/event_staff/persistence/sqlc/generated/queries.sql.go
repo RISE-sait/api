@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -31,31 +32,45 @@ func (q *Queries) AssignStaffToEvent(ctx context.Context, arg AssignStaffToEvent
 
 const getStaffsAssignedToEvent = `-- name: GetStaffsAssignedToEvent :many
 
-SELECT s.id, s.is_active, s.created_at, s.updated_at, s.role_id
+SELECT s.id, s.is_active, s.created_at, s.updated_at, s.role_id, sr.role_name, u.hubspot_id
 FROM users.staff s
+    JOIN users.staff_roles sr ON s.role_id = sr.id
+    JOIN users.users u ON u.id = s.id
 JOIN event_staff ON s.id = event_staff.staff_id
 WHERE event_id = $1
 `
+
+type GetStaffsAssignedToEventRow struct {
+	ID        uuid.UUID `json:"id"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	RoleID    uuid.UUID `json:"role_id"`
+	RoleName  string    `json:"role_name"`
+	HubspotID string    `json:"hubspot_id"`
+}
 
 // (begin_time >= $1 OR $1::text LIKE '%00:00:00%')
 // AND (end_time <= $2 OR $2::text LIKE '%00:00:00%')
 // (facility_id = $1 OR $1 = '00000000-0000-0000-0000-000000000000')
 // AND (practice_id = $2 or $2 IS NULL);
-func (q *Queries) GetStaffsAssignedToEvent(ctx context.Context, eventID uuid.UUID) ([]UsersStaff, error) {
+func (q *Queries) GetStaffsAssignedToEvent(ctx context.Context, eventID uuid.UUID) ([]GetStaffsAssignedToEventRow, error) {
 	rows, err := q.db.QueryContext(ctx, getStaffsAssignedToEvent, eventID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []UsersStaff
+	var items []GetStaffsAssignedToEventRow
 	for rows.Next() {
-		var i UsersStaff
+		var i GetStaffsAssignedToEventRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.RoleID,
+			&i.RoleName,
+			&i.HubspotID,
 		); err != nil {
 			return nil, err
 		}
@@ -70,18 +85,18 @@ func (q *Queries) GetStaffsAssignedToEvent(ctx context.Context, eventID uuid.UUI
 	return items, nil
 }
 
-const unassignStaffFomEvent = `-- name: UnassignStaffFomEvent :execrows
+const unassignStaffFromEvent = `-- name: UnassignStaffFromEvent :execrows
 DELETE FROM event_staff where staff_id = $1
 and event_id = $2
 `
 
-type UnassignStaffFomEventParams struct {
+type UnassignStaffFromEventParams struct {
 	StaffID uuid.UUID `json:"staff_id"`
 	EventID uuid.UUID `json:"event_id"`
 }
 
-func (q *Queries) UnassignStaffFomEvent(ctx context.Context, arg UnassignStaffFomEventParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, unassignStaffFomEvent, arg.StaffID, arg.EventID)
+func (q *Queries) UnassignStaffFromEvent(ctx context.Context, arg UnassignStaffFromEventParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, unassignStaffFromEvent, arg.StaffID, arg.EventID)
 	if err != nil {
 		return 0, err
 	}

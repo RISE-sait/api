@@ -6,18 +6,18 @@ import (
 	"api/internal/libs/validators"
 )
 
-type WaiverSigningDto struct {
+type WaiverSigningRequestDto struct {
 	WaiverUrl      string `json:"waiver_url" validate:"required,url"`
 	IsWaiverSigned bool   `json:"is_waiver_signed"`
 }
 
-func (dto WaiverSigningDto) ToValueObjects() (*values.CustomerWaiverSigning, *errLib.CommonError) {
+func (dto WaiverSigningRequestDto) ToValueObjects() (*identity.CustomerWaiverSigning, *errLib.CommonError) {
 
 	if err := validators.ValidateDto(&dto); err != nil {
 		return nil, err
 	}
 
-	return &values.CustomerWaiverSigning{
+	return &identity.CustomerWaiverSigning{
 		WaiverUrl:      dto.WaiverUrl,
 		IsWaiverSigned: dto.IsWaiverSigned,
 	}, nil

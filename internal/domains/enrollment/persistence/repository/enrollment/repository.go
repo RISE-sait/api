@@ -28,22 +28,18 @@ func NewEnrollmentRepository(dbQueries *db.Queries) *Repository {
 	}
 }
 
-func (r *Repository) GetEnrollments(c context.Context, eventId, customerId *uuid.UUID) ([]entity.Enrollment, *errLib.CommonError) {
+func (r *Repository) GetEnrollments(c context.Context, eventId, customerId uuid.UUID) ([]entity.Enrollment, *errLib.CommonError) {
 
-	args := db.GetCustomerEnrollmentsParams{}
+	var args db.GetCustomerEnrollmentsParams
 
-	if customerId != nil {
-		args.CustomerID = uuid.NullUUID{
-			UUID:  *customerId,
-			Valid: true,
-		}
+	args.CustomerID = uuid.NullUUID{
+		UUID:  customerId,
+		Valid: customerId != uuid.Nil,
 	}
 
-	if eventId != nil {
-		args.EventID = uuid.NullUUID{
-			UUID:  *eventId,
-			Valid: true,
-		}
+	args.EventID = uuid.NullUUID{
+		UUID:  eventId,
+		Valid: eventId != uuid.Nil,
 	}
 
 	dbEnrollments, err := r.Queries.GetCustomerEnrollments(c, args)
@@ -118,4 +114,16 @@ func (r *Repository) EnrollCustomer(c context.Context, input values.EnrollmentDe
 		UpdatedAt:   enrollment.UpdatedAt.Time,
 		CheckedInAt: enrollment.CheckedInAt.Time,
 	}, nil
+}
+
+func (r *Repository) GetEventIsFull(c context.Context, eventId uuid.UUID) (*bool, *errLib.CommonError) {
+
+	isFull, err := r.Queries.GetEventIsFull(c, eventId)
+
+	if err != nil {
+		log.Printf("Error getting info: %v", err)
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	return &isFull, nil
 }

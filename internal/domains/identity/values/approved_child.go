@@ -1,4 +1,4 @@
-package values
+package identity
 
 type ApprovedChild struct {
 	ChildEmail  string

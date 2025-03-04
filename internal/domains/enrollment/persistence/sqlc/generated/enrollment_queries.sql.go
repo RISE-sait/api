@@ -46,12 +46,12 @@ func (q *Queries) EnrollCustomer(ctx context.Context, arg EnrollCustomerParams) 
 }
 
 const getCustomerEnrollments = `-- name: GetCustomerEnrollments :many
-SELECT customer_enrollment.id, customer_enrollment.customer_id, customer_enrollment.event_id, customer_enrollment.created_at, customer_enrollment.updated_at, customer_enrollment.checked_in_at, customer_enrollment.is_cancelled, users.email FROM customer_enrollment
-         JOIN users ON customer_enrollment.customer_id = users.id
-         WHERE (customer_id = COALESCE($1, customer_id)
-         OR
-                event_id = COALESCE($2, event_id)
-                   )
+SELECT customer_enrollment.id, customer_enrollment.customer_id, customer_enrollment.event_id, customer_enrollment.created_at, customer_enrollment.updated_at, customer_enrollment.checked_in_at, customer_enrollment.is_cancelled FROM customer_enrollment
+         JOIN users.users ON customer_enrollment.customer_id = users.id
+         WHERE (
+                   (customer_id = $1 OR $1 IS NULL)
+                       AND
+                    (event_id = $2 OR $2 IS NULL))
 `
 
 type GetCustomerEnrollmentsParams struct {
@@ -59,26 +59,15 @@ type GetCustomerEnrollmentsParams struct {
 	EventID    uuid.NullUUID `json:"event_id"`
 }
 
-type GetCustomerEnrollmentsRow struct {
-	ID          uuid.UUID    `json:"id"`
-	CustomerID  uuid.UUID    `json:"customer_id"`
-	EventID     uuid.UUID    `json:"event_id"`
-	CreatedAt   sql.NullTime `json:"created_at"`
-	UpdatedAt   sql.NullTime `json:"updated_at"`
-	CheckedInAt sql.NullTime `json:"checked_in_at"`
-	IsCancelled bool         `json:"is_cancelled"`
-	Email       string       `json:"email"`
-}
-
-func (q *Queries) GetCustomerEnrollments(ctx context.Context, arg GetCustomerEnrollmentsParams) ([]GetCustomerEnrollmentsRow, error) {
+func (q *Queries) GetCustomerEnrollments(ctx context.Context, arg GetCustomerEnrollmentsParams) ([]CustomerEnrollment, error) {
 	rows, err := q.db.QueryContext(ctx, getCustomerEnrollments, arg.CustomerID, arg.EventID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetCustomerEnrollmentsRow
+	var items []CustomerEnrollment
 	for rows.Next() {
-		var i GetCustomerEnrollmentsRow
+		var i CustomerEnrollment
 		if err := rows.Scan(
 			&i.ID,
 			&i.CustomerID,
@@ -87,7 +76,6 @@ func (q *Queries) GetCustomerEnrollments(ctx context.Context, arg GetCustomerEnr
 			&i.UpdatedAt,
 			&i.CheckedInAt,
 			&i.IsCancelled,
-			&i.Email,
 		); err != nil {
 			return nil, err
 		}
@@ -100,6 +88,24 @@ func (q *Queries) GetCustomerEnrollments(ctx context.Context, arg GetCustomerEnr
 		return nil, err
 	}
 	return items, nil
+}
+
+const getEventIsFull = `-- name: GetEventIsFull :one
+SELECT
+    COUNT(ce.customer_id) >= COALESCE(p.capacity, c.capacity) AS is_full
+FROM events e
+         LEFT JOIN customer_enrollment ce ON e.id = ce.event_id
+         LEFT JOIN practices p ON e.practice_id = p.id
+         LEFT JOIN course.courses c ON e.course_id = c.id
+WHERE e.id = $1
+GROUP BY e.id, e.practice_id, e.course_id, p.capacity, c.capacity
+`
+
+func (q *Queries) GetEventIsFull(ctx context.Context, eventID uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, getEventIsFull, eventID)
+	var is_full bool
+	err := row.Scan(&is_full)
+	return is_full, err
 }
 
 const unEnrollCustomer = `-- name: UnEnrollCustomer :execrows

@@ -2,7 +2,7 @@ package staff
 
 import (
 	"api/internal/domains/identity/values"
-	staffValues "api/internal/domains/staff/values"
+	staffValues "api/internal/domains/user/values/staff"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
 )
@@ -13,15 +13,15 @@ type RegistrationRequestDto struct {
 	IsActive  bool   `json:"is_active" validate:"required"`
 }
 
-func (dto RegistrationRequestDto) ToDetails() (*values.StaffRegistrationInfo, *errLib.CommonError) {
+func (dto RegistrationRequestDto) ToDetails() (*identity.StaffRegistrationRequestInfo, *errLib.CommonError) {
 
 	if err := validators.ValidateDto(&dto); err != nil {
 		return nil, err
 	}
 
-	vo := values.StaffRegistrationInfo{
+	vo := identity.StaffRegistrationRequestInfo{
 		HubSpotID: dto.HubSpotID,
-		Details: staffValues.Details{
+		CreateValues: staffValues.CreateValues{
 			RoleName: dto.RoleName,
 			IsActive: dto.IsActive,
 		},

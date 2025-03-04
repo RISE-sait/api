@@ -15,7 +15,7 @@ definitions:
       name:
         type: string
     type: object
-  customer.RegistrationDto:
+  customer.RegistrationRequestDto:
     properties:
       age:
         type: integer
@@ -27,7 +27,7 @@ definitions:
         type: string
       waivers:
         items:
-          $ref: '#/definitions/customer.WaiverSigningDto'
+          $ref: '#/definitions/customer.WaiverSigningRequestDto'
         type: array
     required:
     - age
@@ -67,7 +67,7 @@ definitions:
       wins:
         type: integer
     type: object
-  customer.WaiverSigningDto:
+  customer.WaiverSigningRequestDto:
     properties:
       is_waiver_signed:
         type: boolean
@@ -118,19 +118,6 @@ definitions:
         type: string
       name:
         type: string
-    type: object
-  entity.UserInfo:
-    properties:
-      email:
-        type: string
-      firstName:
-        type: string
-      id:
-        type: string
-      lastName:
-        type: string
-      staffInfo:
-        $ref: '#/definitions/staff.Details'
     type: object
   event.RequestDto:
     properties:
@@ -312,6 +299,21 @@ definitions:
       updatedAt:
         type: string
     type: object
+  identity.UserNecessaryInfoRequestDto:
+    properties:
+      age:
+        type: integer
+      first_name:
+        type: string
+      last_name:
+        type: string
+      role:
+        type: string
+    required:
+    - age
+    - first_name
+    - last_name
+    type: object
   membership.RequestDto:
     properties:
       description:
@@ -378,19 +380,6 @@ definitions:
     required:
     - start_date
     type: object
-  staff.Details:
-    properties:
-      createdAt:
-        type: string
-      isActive:
-        type: boolean
-      roleID:
-        type: string
-      roleName:
-        type: string
-      updatedAt:
-        type: string
-    type: object
   staff.RegistrationRequestDto:
     properties:
       hubspot_id:
@@ -418,11 +407,21 @@ definitions:
     properties:
       created_at:
         type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      hubspot_id:
+        type: string
       id:
         type: string
       is_active:
         description: Indicates if the staff is still an active employee
         type: boolean
+      last_name:
+        type: string
+      phone:
+        type: string
       role_id:
         type: string
       role_name:
@@ -452,7 +451,7 @@ paths:
         "200":
           description: User authenticated successfully
           schema:
-            $ref: '#/definitions/entity.UserInfo'
+            $ref: '#/definitions/identity.UserNecessaryInfoRequestDto'
         "400":
           description: 'Bad Request: Invalid Firebase token'
           schema:
@@ -484,7 +483,7 @@ paths:
         "200":
           description: User authenticated successfully
           schema:
-            $ref: '#/definitions/entity.UserInfo'
+            $ref: '#/definitions/identity.UserNecessaryInfoRequestDto'
         "400":
           description: 'Bad Request: Invalid Firebase token'
           schema:
@@ -681,7 +680,6 @@ paths:
       consumes:
       - application/json
       description: Retrieves a list of customers, optionally filtered by HubSpot IDs.
-        Returns user details from the database and HubSpot.
       parameters:
       - description: Comma-separated list of HubSpot IDs to filter customers
         in: query
@@ -749,6 +747,46 @@ paths:
       tags:
       - customers
   /enrollments:
+    get:
+      consumes:
+      - application/json
+      description: Get enrollments by customer and event HubSpotId
+      parameters:
+      - description: Customer ID
+        in: query
+        name: customerId
+        type: string
+      - description: Event ID
+        in: query
+        name: eventId
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Enrollments retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/dto.EnrollmentResponse'
+            type: array
+        "400":
+          description: 'Bad Request: Invalid HubSpotId'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Enrollments not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get enrollments by customer and event HubSpotId
+      tags:
+      - enrollments
     post:
       consumes:
       - application/json
@@ -780,49 +818,6 @@ paths:
       security:
       - Bearer: []
       summary: Create a new enrollment
-      tags:
-      - enrollments
-  /enrollments/{customerId}/{eventId}:
-    get:
-      consumes:
-      - application/json
-      description: Get enrollments by customer and event HubSpotId
-      parameters:
-      - description: Customer HubSpotId
-        in: path
-        name: customerId
-        required: true
-        type: string
-      - description: Event HubSpotId
-        in: path
-        name: eventId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Enrollments retrieved successfully
-          schema:
-            items:
-              $ref: '#/definitions/dto.EnrollmentResponse'
-            type: array
-        "400":
-          description: 'Bad Request: Invalid HubSpotId'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Enrollments not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get enrollments by customer and event HubSpotId
       tags:
       - enrollments
   /enrollments/{id}:
@@ -1788,7 +1783,7 @@ paths:
             type: object
       summary: Get all barber events
       tags:
-      - barber_events
+      - haircut
     post:
       consumes:
       - application/json
@@ -1819,7 +1814,7 @@ paths:
             type: object
       summary: Create a new barber event
       tags:
-      - barber_events
+      - haircut
   /haircuts/events/{id}:
     delete:
       consumes:
@@ -1853,7 +1848,7 @@ paths:
             type: object
       summary: Delete a barber event
       tags:
-      - barber_events
+      - haircut
     get:
       consumes:
       - application/json
@@ -1888,7 +1883,7 @@ paths:
             type: object
       summary: Get barber event details
       tags:
-      - barber_events
+      - haircut
     put:
       consumes:
       - application/json
@@ -1929,7 +1924,7 @@ paths:
             type: object
       summary: Update a barber event
       tags:
-      - barber_events
+      - haircut
   /membership-plan:
     get:
       consumes:
@@ -2472,7 +2467,7 @@ paths:
         name: customer
         required: true
         schema:
-          $ref: '#/definitions/customer.RegistrationDto'
+          $ref: '#/definitions/customer.RegistrationRequestDto'
       - description: Firebase token for user verification
         in: header
         name: firebase_token
@@ -2517,7 +2512,7 @@ paths:
         name: customer
         required: true
         schema:
-          $ref: '#/definitions/customer.RegistrationDto'
+          $ref: '#/definitions/customer.RegistrationRequestDto'
       - description: Firebase token for user verification
         in: header
         name: firebase_token
@@ -2588,22 +2583,33 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get a list of staff members
+      description: Retrieves staff members based on optional filters like role or
+        HubSpot IDs.
       parameters:
-      - description: RoleName HubSpotId to filter staff
-        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
+      - description: Role name to filter staff
+        example: '"Coach"'
         in: query
         name: role
+        type: string
+      - description: Comma-separated HubSpot IDs
+        example: '"123,456,789"'
+        in: query
+        name: hubspot_ids
         type: string
       produces:
       - application/json
       responses:
         "200":
-          description: GetMemberships of staff members retrieved successfully
+          description: List of staff members retrieved successfully
           schema:
             items:
               $ref: '#/definitions/staff.ResponseDto'
             type: array
+        "400":
+          description: 'Bad Request: Invalid parameters'
+          schema:
+            additionalProperties: true
+            type: object
         "500":
           description: Internal Server Error
           schema:

@@ -3,7 +3,6 @@ package di
 import (
 	"api/config"
 	courseDb "api/internal/domains/course/persistence/sqlc/generated"
-	customerDb "api/internal/domains/customer/persistence/sqlc/generated"
 	enrollmentDb "api/internal/domains/enrollment/persistence/sqlc/generated"
 	eventDb "api/internal/domains/event/persistence/sqlc/generated"
 	eventStaffDb "api/internal/domains/event_staff/persistence/sqlc/generated"
@@ -14,7 +13,6 @@ import (
 	membershipDb "api/internal/domains/membership/persistence/sqlc/generated"
 	practiceDb "api/internal/domains/practice/persistence/sqlc/generated"
 	purchaseDb "api/internal/domains/purchase/persistence/sqlc/generated"
-	staffDb "api/internal/domains/staff/persistence/sqlc/generated"
 	userDb "api/internal/domains/user/persistence/sqlc/generated"
 
 	"api/internal/services/firebase"
@@ -32,20 +30,17 @@ type Container struct {
 
 type QueriesType struct {
 	IdentityDb   *identityDb.Queries
-	CustomerDb   *customerDb.Queries
 	PurchasesDb  *purchaseDb.Queries
 	CoursesDb    *courseDb.Queries
 	PracticesDb  *practiceDb.Queries
 	MembershipDb *membershipDb.Queries
 	FacilityDb   *facilityDb.Queries
 	EventDb      *eventDb.Queries
-	StaffDb      *staffDb.Queries
 	EnrollmentDb *enrollmentDb.Queries
 	EventStaffDb *eventStaffDb.Queries
 	BarberDb     *barberDb.Queries
 	GameDb       *gameDb.Queries
 	UserDb       *userDb.Queries
-	CustomerDB   *customerDb.Queries
 }
 
 func NewContainer() *Container {
@@ -69,7 +64,6 @@ func NewContainer() *Container {
 func initializeQueries(db *sql.DB) *QueriesType {
 	return &QueriesType{
 		IdentityDb:   identityDb.New(db),
-		CustomerDb:   customerDb.New(db),
 		UserDb:       userDb.New(db),
 		PurchasesDb:  purchaseDb.New(db),
 		CoursesDb:    courseDb.New(db),
@@ -77,7 +71,6 @@ func initializeQueries(db *sql.DB) *QueriesType {
 		MembershipDb: membershipDb.New(db),
 		FacilityDb:   facilityDb.New(db),
 		EventDb:      eventDb.New(db),
-		StaffDb:      staffDb.New(db),
 		EnrollmentDb: enrollmentDb.New(db),
 		EventStaffDb: eventStaffDb.New(db),
 		BarberDb:     barberDb.New(db),

@@ -10,6 +10,7 @@ import (
 
 type RepositoryInterface interface {
 	EnrollCustomer(c context.Context, input values.EnrollmentDetails) (*entity.Enrollment, *errLib.CommonError)
-	GetEnrollments(c context.Context, eventId, customerId *uuid.UUID) ([]entity.Enrollment, *errLib.CommonError)
+	GetEnrollments(c context.Context, eventId, customerId uuid.UUID) ([]entity.Enrollment, *errLib.CommonError)
 	UnEnrollCustomer(c context.Context, id uuid.UUID) *errLib.CommonError
+	GetEventIsFull(c context.Context, eventId uuid.UUID) (*bool, *errLib.CommonError)
 }

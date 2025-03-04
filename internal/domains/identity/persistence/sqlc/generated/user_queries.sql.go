@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
 )
@@ -17,7 +16,7 @@ INSERT INTO users.users (hubspot_id) VALUES ($1)
 RETURNING id, hubspot_id, profile_pic_url, wins, losses, points, steals, assists, rebounds, created_at, updated_at
 `
 
-func (q *Queries) CreateUser(ctx context.Context, hubspotID sql.NullString) (UsersUser, error) {
+func (q *Queries) CreateUser(ctx context.Context, hubspotID string) (UsersUser, error) {
 	row := q.db.QueryRowContext(ctx, createUser, hubspotID)
 	var i UsersUser
 	err := row.Scan(
@@ -40,7 +39,7 @@ const getUserByHubSpotId = `-- name: GetUserByHubSpotId :one
 SELECT id, hubspot_id, profile_pic_url, wins, losses, points, steals, assists, rebounds, created_at, updated_at FROM users.users WHERE hubspot_id = $1 LIMIT 1
 `
 
-func (q *Queries) GetUserByHubSpotId(ctx context.Context, hubspotID sql.NullString) (UsersUser, error) {
+func (q *Queries) GetUserByHubSpotId(ctx context.Context, hubspotID string) (UsersUser, error) {
 	row := q.db.QueryRowContext(ctx, getUserByHubSpotId, hubspotID)
 	var i UsersUser
 	err := row.Scan(
@@ -66,8 +65,8 @@ WHERE id = $2
 `
 
 type UpdateUserHubspotIdParams struct {
-	HubspotID sql.NullString `json:"hubspot_id"`
-	ID        uuid.UUID      `json:"id"`
+	HubspotID string    `json:"hubspot_id"`
+	ID        uuid.UUID `json:"id"`
 }
 
 func (q *Queries) UpdateUserHubspotId(ctx context.Context, arg UpdateUserHubspotIdParams) (int64, error) {

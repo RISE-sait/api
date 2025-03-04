@@ -1,30 +1,38 @@
-package values
+package identity
 
 import (
-	"api/internal/domains/staff/values"
+	"api/internal/domains/user/values/staff"
+	"github.com/google/uuid"
 )
 
-type UserNecessaryInfo struct {
+type UserRegistrationRequestNecessaryInfo struct {
 	Age       int
 	FirstName string
 	LastName  string
 	Role      string
 }
 
-type RegularCustomerRegistrationInfo struct {
-	UserNecessaryInfo
+type RegularCustomerRegistrationRequestInfo struct {
+	UserRegistrationRequestNecessaryInfo
 	Email   string
 	Phone   string
 	Waivers []CustomerWaiverSigning
 }
 
 type ChildRegistrationRequestInfo struct {
-	UserNecessaryInfo
+	UserRegistrationRequestNecessaryInfo
 	ParentEmail string
 	Waivers     []CustomerWaiverSigning
 }
 
-type StaffRegistrationInfo struct {
+type StaffRegistrationRequestInfo struct {
 	HubSpotID string
-	staff.Details
+	staff.CreateValues
+}
+
+type PendingUserReadValues struct {
+	ID        uuid.UUID
+	FirstName string
+	LastName  string
+	Email     *string
 }

@@ -2,8 +2,8 @@ package user_info_temp_repo
 
 import (
 	"api/internal/di"
-	"api/internal/domains/identity/entity"
 	"api/internal/domains/identity/persistence/sqlc/generated"
+	values "api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
@@ -84,7 +84,7 @@ func (r *PendingUsersRepo) DeletePendingUserInfoTx(ctx context.Context, tx *sql.
 	return nil
 }
 
-func (r *PendingUsersRepo) GetPendingUserInfoByEmail(ctx context.Context, email string) (*entity.UserInfo, *errLib.CommonError) {
+func (r *PendingUsersRepo) GetPendingUserInfoByEmail(ctx context.Context, email string) (values.PendingUserReadValues, *errLib.CommonError) {
 
 	info, err := r.Queries.GetPendingUserByEmail(ctx, sql.NullString{
 		String: email,
@@ -94,16 +94,21 @@ func (r *PendingUsersRepo) GetPendingUserInfoByEmail(ctx context.Context, email 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			// Return a "not found" error if no rows are returned
-			return nil, errLib.New("User info not found", http.StatusNotFound)
+			return values.PendingUserReadValues{}, errLib.New("User info not found", http.StatusNotFound)
 		}
 		log.Printf("Error fetching temp user info: %v", err)
-		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+		return values.PendingUserReadValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return &entity.UserInfo{
+	response := values.PendingUserReadValues{
 		ID:        info.ID,
 		FirstName: info.FirstName,
 		LastName:  info.LastName,
-		Email:     info.Email.String,
-	}, nil
+	}
+
+	if info.Email.Valid {
+		response.Email = &info.Email.String
+	}
+
+	return response, nil
 }

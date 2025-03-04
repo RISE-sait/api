@@ -33,7 +33,7 @@ func NewChildAccountRegistrationService(
 
 func (s *ChildRegistrationService) CreateChildAccount(
 	ctx context.Context,
-	childRegistrationInfo *values.ChildRegistrationRequestInfo,
+	childRegistrationInfo *identity.ChildRegistrationRequestInfo,
 ) *errLib.CommonError {
 
 	for _, waiver := range childRegistrationInfo.Waivers {

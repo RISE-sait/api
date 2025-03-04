@@ -41,7 +41,7 @@ const docTemplate = `{
                     "200": {
                         "description": "User authenticated successfully",
                         "schema": {
-                            "$ref": "#/definitions/entity.UserInfo"
+                            "$ref": "#/definitions/identity.UserNecessaryInfoRequestDto"
                         }
                     },
                     "400": {
@@ -92,7 +92,7 @@ const docTemplate = `{
                     "200": {
                         "description": "User authenticated successfully",
                         "schema": {
-                            "$ref": "#/definitions/entity.UserInfo"
+                            "$ref": "#/definitions/identity.UserNecessaryInfoRequestDto"
                         }
                     },
                     "400": {
@@ -380,7 +380,7 @@ const docTemplate = `{
         },
         "/customers": {
             "get": {
-                "description": "Retrieves a list of customers, optionally filtered by HubSpot IDs. Returns user details from the database and HubSpot.",
+                "description": "Retrieves a list of customers, optionally filtered by HubSpot IDs.",
                 "consumes": [
                     "application/json"
                 ],
@@ -483,6 +483,65 @@ const docTemplate = `{
             }
         },
         "/enrollments": {
+            "get": {
+                "description": "Get enrollments by customer and event HubSpotId",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "enrollments"
+                ],
+                "summary": "Get enrollments by customer and event HubSpotId",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Customer ID",
+                        "name": "customerId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Event ID",
+                        "name": "eventId",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Enrollments retrieved successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.EnrollmentResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid HubSpotId",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Enrollments not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -520,69 +579,6 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request: Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/enrollments/{customerId}/{eventId}": {
-            "get": {
-                "description": "Get enrollments by customer and event HubSpotId",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "enrollments"
-                ],
-                "summary": "Get enrollments by customer and event HubSpotId",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Customer HubSpotId",
-                        "name": "customerId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Event HubSpotId",
-                        "name": "eventId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Enrollments retrieved successfully",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/dto.EnrollmentResponse"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid HubSpotId",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Enrollments not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1965,7 +1961,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "barber_events"
+                    "haircut"
                 ],
                 "summary": "Get all barber events",
                 "parameters": [
@@ -2029,7 +2025,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "barber_events"
+                    "haircut"
                 ],
                 "summary": "Create a new barber event",
                 "parameters": [
@@ -2077,7 +2073,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "barber_events"
+                    "haircut"
                 ],
                 "summary": "Get barber event details",
                 "parameters": [
@@ -2128,7 +2124,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "barber_events"
+                    "haircut"
                 ],
                 "summary": "Update a barber event",
                 "parameters": [
@@ -2188,7 +2184,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "barber_events"
+                    "haircut"
                 ],
                 "summary": "Delete a barber event",
                 "parameters": [
@@ -3048,7 +3044,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/customer.RegistrationDto"
+                            "$ref": "#/definitions/customer.RegistrationRequestDto"
                         }
                     },
                     {
@@ -3111,7 +3107,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/customer.RegistrationDto"
+                            "$ref": "#/definitions/customer.RegistrationRequestDto"
                         }
                     },
                     {
@@ -3205,7 +3201,7 @@ const docTemplate = `{
         },
         "/staffs": {
             "get": {
-                "description": "Get a list of staff members",
+                "description": "Retrieves staff members based on optional filters like role or HubSpot IDs.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3219,20 +3215,34 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "example": "\"f47ac10b-58cc-4372-a567-0e02b2c3d479\"",
-                        "description": "RoleName HubSpotId to filter staff",
+                        "example": "\"Coach\"",
+                        "description": "Role name to filter staff",
                         "name": "role",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"123,456,789\"",
+                        "description": "Comma-separated HubSpot IDs",
+                        "name": "hubspot_ids",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "GetMemberships of staff members retrieved successfully",
+                        "description": "List of staff members retrieved successfully",
                         "schema": {
                             "type": "array",
                             "items": {
                                 "$ref": "#/definitions/staff.ResponseDto"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid parameters",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "500": {
@@ -3500,7 +3510,7 @@ const docTemplate = `{
                 }
             }
         },
-        "customer.RegistrationDto": {
+        "customer.RegistrationRequestDto": {
             "type": "object",
             "required": [
                 "age",
@@ -3524,7 +3534,7 @@ const docTemplate = `{
                 "waivers": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/customer.WaiverSigningDto"
+                        "$ref": "#/definitions/customer.WaiverSigningRequestDto"
                     }
                 }
             }
@@ -3578,7 +3588,7 @@ const docTemplate = `{
                 }
             }
         },
-        "customer.WaiverSigningDto": {
+        "customer.WaiverSigningRequestDto": {
             "type": "object",
             "required": [
                 "waiver_url"
@@ -3655,26 +3665,6 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
-                }
-            }
-        },
-        "entity.UserInfo": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "firstName": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "lastName": {
-                    "type": "string"
-                },
-                "staffInfo": {
-                    "$ref": "#/definitions/staff.Details"
                 }
             }
         },
@@ -3950,6 +3940,28 @@ const docTemplate = `{
                 }
             }
         },
+        "identity.UserNecessaryInfoRequestDto": {
+            "type": "object",
+            "required": [
+                "age",
+                "first_name",
+                "last_name"
+            ],
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                }
+            }
+        },
         "membership.RequestDto": {
             "type": "object",
             "required": [
@@ -4050,26 +4062,6 @@ const docTemplate = `{
                 }
             }
         },
-        "staff.Details": {
-            "type": "object",
-            "properties": {
-                "createdAt": {
-                    "type": "string"
-                },
-                "isActive": {
-                    "type": "boolean"
-                },
-                "roleID": {
-                    "type": "string"
-                },
-                "roleName": {
-                    "type": "string"
-                },
-                "updatedAt": {
-                    "type": "string"
-                }
-            }
-        },
         "staff.RegistrationRequestDto": {
             "type": "object",
             "required": [
@@ -4110,12 +4102,27 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "hubspot_id": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
                 "is_active": {
                     "description": "Indicates if the staff is still an active employee",
                     "type": "boolean"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
                 },
                 "role_id": {
                     "type": "string"

@@ -1,6 +1,6 @@
 package identity
 
-type UserNecessaryInfoDto struct {
+type UserNecessaryInfoRequestDto struct {
 	FirstName string `json:"first_name" validate:"required,notwhitespace"`
 	LastName  string `json:"last_name" validate:"required,notwhitespace"`
 	Role      string `json:"role"`

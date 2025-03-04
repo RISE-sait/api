@@ -3,7 +3,7 @@ package event_staff
 import (
 	eventStaffDto "api/internal/domains/event_staff/dto"
 	repository "api/internal/domains/event_staff/persistence/repository"
-	staffDto "api/internal/domains/staff/dto"
+	staffDto "api/internal/domains/user/dto/staff"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"github.com/go-chi/chi"

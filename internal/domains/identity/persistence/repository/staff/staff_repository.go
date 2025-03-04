@@ -4,16 +4,15 @@ import (
 	databaseErrors "api/internal/constants"
 	"api/internal/di"
 	"api/internal/domains/identity/persistence/sqlc/generated"
-	values "api/internal/domains/staff/values"
+	values "api/internal/domains/user/values/staff"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
 	"errors"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"log"
 	"net/http"
-
-	"github.com/lib/pq"
 )
 
 type Repository struct {
@@ -28,20 +27,25 @@ func NewStaffRepository(container *di.Container) *Repository {
 
 var _ RepositoryInterface = (*Repository)(nil)
 
-func (r *Repository) GetStaffByUserId(ctx context.Context, id uuid.UUID) (*values.Details, *errLib.CommonError) {
+func (r *Repository) GetStaffByUserId(ctx context.Context, id uuid.UUID) (values.ReadValues, *errLib.CommonError) {
 	dbStaff, err := r.Queries.GetStaffById(ctx, id)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errLib.New("Staff not found", http.StatusNotFound)
+			return values.ReadValues{}, errLib.New("Staff not found", http.StatusNotFound)
 		}
 		log.Printf("Error fetching staff by id: %v", err)
-		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+		return values.ReadValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return &values.Details{
-		RoleName: dbStaff.RoleName,
-		IsActive: dbStaff.IsActive,
+	return values.ReadValues{
+		ID:        dbStaff.ID,
+		HubspotID: dbStaff.HubspotID,
+		IsActive:  dbStaff.IsActive,
+		CreatedAt: dbStaff.CreatedAt,
+		UpdatedAt: dbStaff.UpdatedAt,
+		RoleID:    dbStaff.RoleID,
+		RoleName:  dbStaff.RoleName,
 	}, nil
 }
 

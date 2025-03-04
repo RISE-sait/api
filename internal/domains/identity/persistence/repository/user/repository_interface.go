@@ -8,7 +8,7 @@ import (
 )
 
 type IRepository interface {
-	CreateUserTx(ctx context.Context, tx *sql.Tx) (*uuid.UUID, *errLib.CommonError)
+	CreateUserTx(ctx context.Context, tx *sql.Tx, hubspotID string) (*uuid.UUID, *errLib.CommonError)
 	GetUserIdByHubspotId(ctx context.Context, id string) (uuid.UUID, *errLib.CommonError)
 	UpdateUserHubspotIdTx(ctx context.Context, tx *sql.Tx, userId uuid.UUID, hubspotId string) *errLib.CommonError
 }

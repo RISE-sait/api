@@ -45,18 +45,16 @@ func NewAuthenticationService(container *di.Container) *Service {
 //   - *entity.UserInfo: The authenticated user's information.
 //   - string: The signed JWT token for authentication.
 //   - *errLib.CommonError: An error if authentication fails.
-func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string, values.UserNecessaryInfo, *errLib.CommonError) {
+func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string, identity.UserRegistrationRequestNecessaryInfo, *errLib.CommonError) {
 
-	var userInfo values.UserNecessaryInfo
+	var userInfo identity.UserRegistrationRequestNecessaryInfo
 
-	firebaseUserInfo, err := s.FirebaseService.GetUserInfo(ctx, idToken)
+	email, err := s.FirebaseService.GetUserEmail(ctx, idToken)
 
 	if err != nil {
 		log.Println(err.Message)
 		return "", userInfo, err
 	}
-
-	email := firebaseUserInfo.Email
 
 	hubspotResponse, err := s.HubSpotService.GetUserByEmail(email)
 
@@ -77,22 +75,22 @@ func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string,
 		HubspotID: hubspotId,
 	}
 
-	userInfo = values.UserNecessaryInfo{
+	userInfo = identity.UserRegistrationRequestNecessaryInfo{
 		//Age:       hubspotResponse.Properties.,
 		FirstName: hubspotResponse.Properties.FirstName,
 		LastName:  hubspotResponse.Properties.LastName,
 		Role:      "Athlete",
 	}
 
-	staffInfoPtr, _ := s.StaffRepo.GetStaffByUserId(ctx, userId)
+	staffInfo, err := s.StaffRepo.GetStaffByUserId(ctx, userId)
 
-	if staffInfoPtr != nil {
+	if err == nil {
 		jwtCustomClaims.StaffInfo = &jwtLib.StaffInfo{
-			Role:     (*staffInfoPtr).RoleName,
-			IsActive: (*staffInfoPtr).IsActive,
+			Role:     staffInfo.RoleName,
+			IsActive: staffInfo.IsActive,
 		}
 
-		userInfo.Role = (*staffInfoPtr).RoleName
+		userInfo.Role = staffInfo.RoleName
 	}
 
 	jwtToken, err := jwtLib.SignJWT(jwtCustomClaims)
@@ -115,9 +113,9 @@ func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string,
 // Returns:
 //   - string: The signed JWT token for authentication.
 //   - *errLib.CommonError: An error if authentication fails.
-func (s *Service) AuthenticateChild(ctx context.Context, childHubspotId, parentHubspotId string) (string, values.UserNecessaryInfo, *errLib.CommonError) {
+func (s *Service) AuthenticateChild(ctx context.Context, childHubspotId, parentHubspotId string) (string, identity.UserRegistrationRequestNecessaryInfo, *errLib.CommonError) {
 
-	var userInfo values.UserNecessaryInfo
+	var userInfo identity.UserRegistrationRequestNecessaryInfo
 
 	parentInfo, err := s.HubSpotService.GetUserById(parentHubspotId)
 
@@ -141,7 +139,7 @@ func (s *Service) AuthenticateChild(ctx context.Context, childHubspotId, parentH
 		return "", userInfo, err
 	}
 
-	userInfo = values.UserNecessaryInfo{
+	userInfo = identity.UserRegistrationRequestNecessaryInfo{
 		FirstName: childInfo.Properties.FirstName,
 		LastName:  childInfo.Properties.LastName,
 	}

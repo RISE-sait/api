@@ -8,12 +8,12 @@ import (
 func TestUserNecessaryInfoDto_Validation(t *testing.T) {
 	tests := []struct {
 		name          string
-		input         UserNecessaryInfoDto
+		input         UserNecessaryInfoRequestDto
 		expectedError bool
 	}{
 		{
 			name: "Valid Input",
-			input: UserNecessaryInfoDto{
+			input: UserNecessaryInfoRequestDto{
 				FirstName: "John",
 				LastName:  "Doe",
 				Age:       25,
@@ -22,7 +22,7 @@ func TestUserNecessaryInfoDto_Validation(t *testing.T) {
 		},
 		{
 			name: "Missing First Name",
-			input: UserNecessaryInfoDto{
+			input: UserNecessaryInfoRequestDto{
 				FirstName: "", // Missing first name
 				LastName:  "Doe",
 				Age:       25,
@@ -31,7 +31,7 @@ func TestUserNecessaryInfoDto_Validation(t *testing.T) {
 		},
 		{
 			name: "Whitespace First Name",
-			input: UserNecessaryInfoDto{
+			input: UserNecessaryInfoRequestDto{
 				FirstName: "   ", // Whitespace first name
 				LastName:  "Doe",
 				Age:       25,
@@ -40,7 +40,7 @@ func TestUserNecessaryInfoDto_Validation(t *testing.T) {
 		},
 		{
 			name: "Missing Last Name",
-			input: UserNecessaryInfoDto{
+			input: UserNecessaryInfoRequestDto{
 				FirstName: "John",
 				LastName:  "", // Missing last name
 				Age:       25,
@@ -49,7 +49,7 @@ func TestUserNecessaryInfoDto_Validation(t *testing.T) {
 		},
 		{
 			name: "Whitespace Last Name",
-			input: UserNecessaryInfoDto{
+			input: UserNecessaryInfoRequestDto{
 				FirstName: "John",
 				LastName:  "   ", // Whitespace last name
 				Age:       25,
@@ -58,7 +58,7 @@ func TestUserNecessaryInfoDto_Validation(t *testing.T) {
 		},
 		{
 			name: "Invalid Age (Zero)",
-			input: UserNecessaryInfoDto{
+			input: UserNecessaryInfoRequestDto{
 				FirstName: "John",
 				LastName:  "Doe",
 				Age:       0, // Invalid age (zero)
@@ -67,7 +67,7 @@ func TestUserNecessaryInfoDto_Validation(t *testing.T) {
 		},
 		{
 			name: "Invalid Age (Negative)",
-			input: UserNecessaryInfoDto{
+			input: UserNecessaryInfoRequestDto{
 				FirstName: "John",
 				LastName:  "Doe",
 				Age:       -5, // Invalid age (negative)

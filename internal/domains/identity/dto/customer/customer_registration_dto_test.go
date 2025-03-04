@@ -15,7 +15,7 @@ func TestDecodeRequestBody(t *testing.T) {
 		name           string
 		jsonBody       string
 		expectError    bool
-		expectedValues *RegistrationDto
+		expectedValues *RegistrationRequestDto
 	}{
 		{
 			name: "Valid Input",
@@ -31,14 +31,14 @@ func TestDecodeRequestBody(t *testing.T) {
 				"last_name": "Doe"
 			}`,
 			expectError: false,
-			expectedValues: &RegistrationDto{
-				CustomerWaiversSigningDto: []WaiverSigningDto{
+			expectedValues: &RegistrationRequestDto{
+				CustomerWaiversSigningDto: []WaiverSigningRequestDto{
 					{
 						IsWaiverSigned: true,
 						WaiverUrl:      "https://example.com/waiver1",
 					},
 				},
-				UserNecessaryInfoDto: identity.UserNecessaryInfoDto{
+				UserNecessaryInfoRequestDto: identity.UserNecessaryInfoRequestDto{
 					Age:       25,
 					FirstName: "John",
 					LastName:  "Doe",
@@ -73,7 +73,7 @@ func TestDecodeRequestBody(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			reqBody := bytes.NewReader([]byte(tc.jsonBody))
-			var target RegistrationDto
+			var target RegistrationRequestDto
 
 			err := validators.ParseJSON(reqBody, &target)
 			if tc.expectError {
@@ -94,20 +94,20 @@ func TestDecodeRequestBody(t *testing.T) {
 func TestCustomerRegistrationDto_Validation(t *testing.T) {
 	tests := []struct {
 		name                 string
-		dto                  *RegistrationDto
+		dto                  *RegistrationRequestDto
 		expectErr            bool
 		expectedErrorMessage string
 	}{
 		{
 			name: "Valid DTO",
-			dto: &RegistrationDto{
-				CustomerWaiversSigningDto: []WaiverSigningDto{
+			dto: &RegistrationRequestDto{
+				CustomerWaiversSigningDto: []WaiverSigningRequestDto{
 					{
 						IsWaiverSigned: true,
 						WaiverUrl:      "https://example.com/waiver1",
 					},
 				},
-				UserNecessaryInfoDto: identity.UserNecessaryInfoDto{
+				UserNecessaryInfoRequestDto: identity.UserNecessaryInfoRequestDto{
 					Age:       25,
 					FirstName: "John",
 					LastName:  "Doe",
@@ -117,8 +117,8 @@ func TestCustomerRegistrationDto_Validation(t *testing.T) {
 		},
 		{
 			name: "Missing Waivers",
-			dto: &RegistrationDto{
-				UserNecessaryInfoDto: identity.UserNecessaryInfoDto{
+			dto: &RegistrationRequestDto{
+				UserNecessaryInfoRequestDto: identity.UserNecessaryInfoRequestDto{
 					Age:       25,
 					FirstName: "John",
 					LastName:  "Doe",
@@ -129,14 +129,14 @@ func TestCustomerRegistrationDto_Validation(t *testing.T) {
 		},
 		{
 			name: "Missing First Name",
-			dto: &RegistrationDto{
-				CustomerWaiversSigningDto: []WaiverSigningDto{
+			dto: &RegistrationRequestDto{
+				CustomerWaiversSigningDto: []WaiverSigningRequestDto{
 					{
 						IsWaiverSigned: true,
 						WaiverUrl:      "https://example.com/waiver1",
 					},
 				},
-				UserNecessaryInfoDto: identity.UserNecessaryInfoDto{
+				UserNecessaryInfoRequestDto: identity.UserNecessaryInfoRequestDto{
 					Age:      25,
 					LastName: "Doe",
 				},
@@ -164,21 +164,21 @@ func TestCustomerRegistrationDto_Validation(t *testing.T) {
 func TestCustomerRegistrationDto_ToCreateRegularCustomerValueObject(t *testing.T) {
 	tests := []struct {
 		name           string
-		dto            *RegistrationDto
+		dto            *RegistrationRequestDto
 		email          string
 		expectError    bool
-		expectedValues *values.RegularCustomerRegistrationInfo
+		expectedValues *identity.RegularCustomerRegistrationInfo
 	}{
 		{
 			name: "Valid Input",
-			dto: &RegistrationDto{
-				CustomerWaiversSigningDto: []WaiverSigningDto{
+			dto: &RegistrationRequestDto{
+				CustomerWaiversSigningDto: []WaiverSigningRequestDto{
 					{
 						IsWaiverSigned: true,
 						WaiverUrl:      "https://example.com/waiver1",
 					},
 				},
-				UserNecessaryInfoDto: identity.UserNecessaryInfoDto{
+				UserNecessaryInfoRequestDto: identity.UserNecessaryInfoRequestDto{
 					Age:       25,
 					FirstName: "John",
 					LastName:  "Doe",
@@ -186,14 +186,14 @@ func TestCustomerRegistrationDto_ToCreateRegularCustomerValueObject(t *testing.T
 			},
 			email:       "john.doe@example.com",
 			expectError: false,
-			expectedValues: &values.RegularCustomerRegistrationInfo{
-				UserNecessaryInfo: values.UserNecessaryInfo{
+			expectedValues: &identity.RegularCustomerRegistrationInfo{
+				UserNecessaryInfo: identity.UserNecessaryInfo{
 					Age:       25,
 					FirstName: "John",
 					LastName:  "Doe",
 				},
 				Email: "john.doe@example.com",
-				Waivers: []values.CustomerWaiverSigning{
+				Waivers: []identity.CustomerWaiverSigning{
 					{
 						IsWaiverSigned: true,
 						WaiverUrl:      "https://example.com/waiver1",
@@ -203,8 +203,8 @@ func TestCustomerRegistrationDto_ToCreateRegularCustomerValueObject(t *testing.T
 		},
 		{
 			name: "Invalid DTO - Missing Waivers",
-			dto: &RegistrationDto{
-				UserNecessaryInfoDto: identity.UserNecessaryInfoDto{
+			dto: &RegistrationRequestDto{
+				UserNecessaryInfoRequestDto: identity.UserNecessaryInfoRequestDto{
 					Age:       25,
 					FirstName: "John",
 					LastName:  "Doe",
@@ -223,7 +223,7 @@ func TestCustomerRegistrationDto_ToCreateRegularCustomerValueObject(t *testing.T
 			} else {
 				assert.Nil(t, err)
 				if tc.expectedValues != nil {
-					assert.Equal(t, tc.expectedValues.UserNecessaryInfo, vo.UserNecessaryInfo)
+					assert.Equal(t, tc.expectedValues.UserNecessaryInfo, vo.UserRegistrationRequestNecessaryInfo)
 					assert.Equal(t, tc.expectedValues.Email, vo.Email)
 					assert.Equal(t, tc.expectedValues.Waivers, vo.Waivers)
 				}
@@ -235,21 +235,21 @@ func TestCustomerRegistrationDto_ToCreateRegularCustomerValueObject(t *testing.T
 func TestCustomerRegistrationDto_ToCreateChildValueObject(t *testing.T) {
 	tests := []struct {
 		name           string
-		dto            *RegistrationDto
+		dto            *RegistrationRequestDto
 		parentEmail    string
 		expectError    bool
-		expectedValues *values.ChildRegistrationRequestInfo
+		expectedValues *identity.ChildRegistrationRequestInfo
 	}{
 		{
 			name: "Valid Input",
-			dto: &RegistrationDto{
-				CustomerWaiversSigningDto: []WaiverSigningDto{
+			dto: &RegistrationRequestDto{
+				CustomerWaiversSigningDto: []WaiverSigningRequestDto{
 					{
 						IsWaiverSigned: true,
 						WaiverUrl:      "https://example.com/waiver1",
 					},
 				},
-				UserNecessaryInfoDto: identity.UserNecessaryInfoDto{
+				UserNecessaryInfoRequestDto: identity.UserNecessaryInfoRequestDto{
 					Age:       10,
 					FirstName: "Alice",
 					LastName:  "Doe",
@@ -257,14 +257,14 @@ func TestCustomerRegistrationDto_ToCreateChildValueObject(t *testing.T) {
 			},
 			parentEmail: "john.doe@example.com",
 			expectError: false,
-			expectedValues: &values.ChildRegistrationRequestInfo{
-				UserNecessaryInfo: values.UserNecessaryInfo{
+			expectedValues: &identity.ChildRegistrationRequestInfo{
+				UserNecessaryInfo: identity.UserNecessaryInfo{
 					Age:       10,
 					FirstName: "Alice",
 					LastName:  "Doe",
 				},
 				ParentEmail: "john.doe@example.com",
-				Waivers: []values.CustomerWaiverSigning{
+				Waivers: []identity.CustomerWaiverSigning{
 					{
 						IsWaiverSigned: true,
 						WaiverUrl:      "https://example.com/waiver1",
@@ -274,8 +274,8 @@ func TestCustomerRegistrationDto_ToCreateChildValueObject(t *testing.T) {
 		},
 		{
 			name: "Invalid DTO - Missing Waivers",
-			dto: &RegistrationDto{
-				UserNecessaryInfoDto: identity.UserNecessaryInfoDto{
+			dto: &RegistrationRequestDto{
+				UserNecessaryInfoRequestDto: identity.UserNecessaryInfoRequestDto{
 					Age:       10,
 					FirstName: "Alice",
 					LastName:  "Doe",
@@ -294,7 +294,7 @@ func TestCustomerRegistrationDto_ToCreateChildValueObject(t *testing.T) {
 			} else {
 				assert.Nil(t, err)
 				if tc.expectedValues != nil {
-					assert.Equal(t, tc.expectedValues.UserNecessaryInfo, vo.UserNecessaryInfo)
+					assert.Equal(t, tc.expectedValues.UserNecessaryInfo, vo.UserRegistrationRequestNecessaryInfo)
 					assert.Equal(t, tc.expectedValues.ParentEmail, vo.ParentEmail)
 					assert.Equal(t, tc.expectedValues.Waivers, vo.Waivers)
 				}

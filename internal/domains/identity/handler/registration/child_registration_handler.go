@@ -30,7 +30,7 @@ func NewChildRegistrationHandlers(container *di.Container) *ChildRegistrationHan
 // @Tags registration
 // @Accept json
 // @Produce json
-// @Param customer body customer.RegistrationDto true "Child account registration details" // Details for child account registration
+// @Param customer body customer.RegistrationRequestDto true "Child account registration details" // Details for child account registration
 // @Param firebase_token header string true "Firebase token for user verification" // Firebase token in the Authorization header
 // @Success 201 {object} map[string]interface{} "Child account registered successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input or missing Firebase token"
@@ -46,20 +46,20 @@ func (h *ChildRegistrationHandlers) RegisterChild(w http.ResponseWriter, r *http
 		return
 	}
 
-	var dto customer.RegistrationDto
+	var dto customer.RegistrationRequestDto
 
 	if err := validators.ParseJSON(r.Body, &dto); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	parent, err := h.FirebaseService.GetUserInfo(r.Context(), firebaseToken)
+	parentEmail, err := h.FirebaseService.GetUserEmail(r.Context(), firebaseToken)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 	}
 
-	valueObject, err := dto.ToCreateChildValueObject(parent.Email)
+	valueObject, err := dto.ToCreateChildValueObject(parentEmail)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)

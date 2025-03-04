@@ -34,7 +34,7 @@ func NewStaffRegistrationHandlers(container *di.Container) *StaffHandlers {
 // @Failure 401 {object} map[string]interface{} "Unauthorized: Invalid or missing authentication token"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error: Failed to register staff"
 // @Router /register/staff [post]
-func (c *StaffHandlers) CreateStaff(w http.ResponseWriter, r *http.Request) {
+func (h *StaffHandlers) CreateStaff(w http.ResponseWriter, r *http.Request) {
 
 	var dto staff.RegistrationRequestDto
 
@@ -50,7 +50,7 @@ func (c *StaffHandlers) CreateStaff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = c.StaffRegistrationService.RegisterStaff(r.Context(), valueObject)
+	err = h.StaffRegistrationService.RegisterStaff(r.Context(), valueObject)
 	if err != nil {
 		responsehandlers.RespondWithError(w, err)
 		return

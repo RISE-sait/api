@@ -2,7 +2,6 @@ package firebase
 
 import (
 	"api/internal/di"
-	"api/internal/domains/identity/entity"
 	errLib "api/internal/libs/errors"
 	"context"
 	"log"
@@ -24,28 +23,20 @@ func NewFirebaseService(container *di.Container) *Service {
 	}
 }
 
-func (s *Service) GetUserInfo(ctx context.Context, firebaseIdToken string) (*entity.UserInfo, *errLib.CommonError) {
+func (s *Service) GetUserEmail(ctx context.Context, firebaseIdToken string) (string, *errLib.CommonError) {
 
 	token, firebaseErr := s.FirebaseAuthClient.VerifyIDToken(ctx, firebaseIdToken)
 
 	if firebaseErr != nil {
 		log.Println("failed to verify: ", firebaseErr.Error())
-		return nil, errLib.New("Invalid Firebase token", http.StatusUnauthorized)
+		return "", errLib.New("Invalid Firebase token", http.StatusUnauthorized)
 	}
 
 	user, firebaseErr := s.FirebaseAuthClient.GetUser(ctx, token.UID)
 
 	if firebaseErr != nil {
-		return nil, errLib.New("User not found", http.StatusUnauthorized)
+		return "", errLib.New("User not found", http.StatusUnauthorized)
 	}
 
-	email := user.Email
-
-	userInfo := entity.UserInfo{
-		Email:     email,
-		FirstName: user.DisplayName,
-		LastName:  "",
-	}
-
-	return &userInfo, nil
+	return user.Email, nil
 }

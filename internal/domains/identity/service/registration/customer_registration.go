@@ -34,13 +34,13 @@ func NewCustomerRegistrationService(container *di.Container) *CustomerRegistrati
 //
 // Parameters:
 // - ctx: Context for request lifecycle management.
-// - customer: *values.RegularCustomerRegistrationInfo Customer registration data including name, email, and waiver signings.
+// - customer: *values.RegularCustomerRegistrationRequestInfo Customer registration data including name, email, and waiver signings.
 //
 // Returns:
 // - *errLib.CommonError: Error if registration fails.
 func (s *CustomerRegistrationService) RegisterCustomer(
 	ctx context.Context,
-	customer *values.RegularCustomerRegistrationInfo,
+	customer *identity.RegularCustomerRegistrationRequestInfo,
 ) *errLib.CommonError {
 
 	for _, waiver := range customer.Waivers {

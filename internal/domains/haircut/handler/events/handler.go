@@ -22,7 +22,7 @@ func NewEventsHandler(repo repository.IBarberEventsRepository) *EventsHandler {
 // GetEvents retrieves all barber events based on filter criteria.
 // @Summary Get all barber events
 // @Description Retrieve all barber events, with optional filters by barber ID and customer ID.
-// @Tags barber_events
+// @Tags haircut
 // @Accept json
 // @Produce json
 // @Param barber_id query string false "Filter by barber ID"
@@ -54,7 +54,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 // CreateEvent creates a new barber event.
 // @Summary Create a new barber event
 // @Description Registers a new barber event with the provided details.
-// @Tags barber_events
+// @Tags haircut
 // @Accept json
 // @Produce json
 // @Param event body dto.RequestDto true "Barber event details"
@@ -93,7 +93,7 @@ func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 // UpdateEvent updates an existing barber event by ID.
 // @Summary Update a barber event
 // @Description Updates the details of an existing barber event.
-// @Tags barber_events
+// @Tags haircut
 // @Accept json
 // @Produce json
 // @Param id path string true "Barber event ID"
@@ -136,7 +136,7 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 // DeleteEvent deletes a barber event by ID.
 // @Summary Delete a barber event
 // @Description Deletes a barber event by its ID.
-// @Tags barber_events
+// @Tags haircut
 // @Accept json
 // @Produce json
 // @Param id path string true "Barber event ID"
@@ -166,7 +166,7 @@ func (h *EventsHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 // GetEventDetails retrieves detailed information about a specific barber event.
 // @Summary Get barber event details
 // @Description Retrieves details of a specific barber event based on its ID.
-// @Tags barber_events
+// @Tags haircut
 // @Accept json
 // @Produce json
 // @Param id path string true "Barber event ID"

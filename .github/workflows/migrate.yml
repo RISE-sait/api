@@ -5,7 +5,7 @@ on:
     branches:
       - main  # Runs on every push to the main branch
     paths:
-      - 'db/migrations'
+      - 'db/**'
 
 jobs:
   migrate:

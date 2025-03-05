@@ -5,6 +5,7 @@ ALTER TABLE course.courses
     ALTER COLUMN created_at SET NOT NULL;
 -- +goose StatementEnd
 
+
 -- +goose Down
 -- +goose StatementBegin
 ALTER TABLE users.users

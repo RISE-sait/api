@@ -1,7 +1,6 @@
 package course
 
 import (
-	entity "api/internal/domains/course/entity"
 	values "api/internal/domains/course/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
@@ -12,33 +11,41 @@ type RequestDto struct {
 	Description string `json:"description"`
 }
 
-func (dto *RequestDto) ToDetails() (*values.Details, *errLib.CommonError) {
+func (dto RequestDto) ToCreateCourseDetails() (values.CreateCourseDetails, *errLib.CommonError) {
 
-	if err := validators.ValidateDto(dto); err != nil {
-		return nil, err
+	if err := validators.ValidateDto(&dto); err != nil {
+		return values.CreateCourseDetails{}, err
 	}
 
-	return &values.Details{
-		Name:        dto.Name,
-		Description: dto.Description,
+	return values.CreateCourseDetails{
+		Details: values.Details{
+			Name:        dto.Name,
+			Description: dto.Description,
+		},
 	}, nil
 }
 
-func (dto *RequestDto) ToEntity(idStr string) (*entity.Course, *errLib.CommonError) {
+func (dto RequestDto) ToUpdateCourseDetails(idStr string) (values.UpdateCourseDetails, *errLib.CommonError) {
+
+	var details values.UpdateCourseDetails
 
 	id, err := validators.ParseUUID(idStr)
 
 	if err != nil {
-		return nil, err
+		return details, err
 	}
 
-	if err := validators.ValidateDto(dto); err != nil {
-		return nil, err
+	if err = validators.ValidateDto(&dto); err != nil {
+		return details, err
 	}
 
-	return &entity.Course{
-		ID:          id,
-		Name:        dto.Name,
-		Description: dto.Description,
-	}, nil
+	details = values.UpdateCourseDetails{
+		ID: id,
+		Details: values.Details{
+			Name:        dto.Name,
+			Description: dto.Description,
+		},
+	}
+
+	return details, nil
 }

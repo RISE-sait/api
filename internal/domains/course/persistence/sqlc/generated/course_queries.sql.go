@@ -109,11 +109,10 @@ func (q *Queries) GetCourses(ctx context.Context, arg GetCoursesParams) ([]Cours
 	return items, nil
 }
 
-const updateCourse = `-- name: UpdateCourse :one
+const updateCourse = `-- name: UpdateCourse :execrows
 UPDATE course.courses
 SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP
 WHERE id = $3
-RETURNING id, name, description, capacity, created_at, updated_at
 `
 
 type UpdateCourseParams struct {
@@ -122,16 +121,10 @@ type UpdateCourseParams struct {
 	ID          uuid.UUID      `json:"id"`
 }
 
-func (q *Queries) UpdateCourse(ctx context.Context, arg UpdateCourseParams) (CourseCourse, error) {
-	row := q.db.QueryRowContext(ctx, updateCourse, arg.Name, arg.Description, arg.ID)
-	var i CourseCourse
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.Capacity,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) UpdateCourse(ctx context.Context, arg UpdateCourseParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateCourse, arg.Name, arg.Description, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

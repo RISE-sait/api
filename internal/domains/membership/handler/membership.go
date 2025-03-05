@@ -117,9 +117,9 @@ func (h *Handlers) GetMemberships(w http.ResponseWriter, r *http.Request) {
 // @Tags memberships
 // @Accept json
 // @Produce json
+// @Security Bearer
 // @Param id path string true "Membership ID" example("f47ac10b-58cc-4372-a567-0e02b2c3d479")
 // @Param membership body dto.RequestDto true "Membership details"
-// @Security Bearer
 // @Success 204 "No Content: Membership updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 404 {object} map[string]interface{} "Not Found: Membership not found"

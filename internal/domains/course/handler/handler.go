@@ -24,7 +24,7 @@ func NewHandler(repo persistence.RepositoryInterface) *Handler {
 // @Tags courses
 // @Accept json
 // @Produce json
-// @Param course body course.RequestDto true "Course details"
+// @Param course body dto.RequestDto true "Course details"
 // @Security Bearer
 // @Success 201 {object} course.ResponseDto "Course created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
@@ -38,21 +38,21 @@ func (h *Handler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	details, err := requestDto.ToDetails()
+	details, err := requestDto.ToCreateCourseDetails()
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	course, err := h.Repo.CreateCourse(r.Context(), details)
+	createdCourse, err := h.Repo.CreateCourse(r.Context(), details)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	responseBody := dto.NewCourseResponse(*course)
+	responseBody := dto.NewCourseResponse(createdCourse)
 
 	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusCreated)
 }
@@ -64,7 +64,7 @@ func (h *Handler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param id path string true "Course HubSpotId"
-// @Success 200 {object} dto.ResponseDto "Course retrieved successfully"
+// @Success 200 {object} course.ResponseDto "Course retrieved successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid HubSpotId"
 // @Failure 404 {object} map[string]interface{} "Not Found: Course not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
@@ -85,7 +85,7 @@ func (h *Handler) GetCourseById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := dto.NewCourseResponse(*course)
+	response := dto.NewCourseResponse(course)
 
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 }
@@ -98,7 +98,7 @@ func (h *Handler) GetCourseById(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param name query string false "Filter by course name"
 // @Param description query string false "Filter by course description"
-// @Success 200 {array} dto.ResponseDto "GetMemberships of courses retrieved successfully"
+// @Success 200 {array} course.ResponseDto "GetMemberships of courses retrieved successfully"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /courses [get]
 func (h *Handler) GetCourses(w http.ResponseWriter, r *http.Request) {
@@ -125,7 +125,7 @@ func (h *Handler) GetCourses(w http.ResponseWriter, r *http.Request) {
 	result := make([]dto.ResponseDto, len(courses))
 
 	for i, course := range courses {
-		result[i] = *dto.NewCourseResponse(course)
+		result[i] = dto.NewCourseResponse(course)
 	}
 
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
@@ -137,9 +137,9 @@ func (h *Handler) GetCourses(w http.ResponseWriter, r *http.Request) {
 // @Tags courses
 // @Accept json
 // @Produce json
-// @Param id path string true "Course HubSpotId"
-// @Param course body dto.RequestDto true "Course details"
 // @Security Bearer
+// @Param id path string true "Course ID"
+// @Param course body dto.RequestDto true "Course details"
 // @Success 204 "No Content: Course updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 404 {object} map[string]interface{} "Not Found: Course not found"
@@ -155,23 +155,19 @@ func (h *Handler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	courseUpdate, err := requestDto.ToEntity(idStr)
+	courseUpdate, err := requestDto.ToUpdateCourseDetails(idStr)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	course, err := h.Repo.UpdateCourse(r.Context(), courseUpdate)
-
-	if err != nil {
+	if err = h.Repo.UpdateCourse(r.Context(), courseUpdate); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	responseBody := dto.NewCourseResponse(*course)
-
-	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusNoContent)
+	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
 // DeleteCourse deletes a course by HubSpotId.

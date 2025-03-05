@@ -282,7 +282,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Course HubSpotId",
+                        "description": "Course ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -2802,11 +2802,6 @@ const docTemplate = `{
         },
         "/practices/{id}": {
             "put": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
                 "description": "Update a practice",
                 "consumes": [
                     "application/json"
@@ -3499,6 +3494,9 @@ const docTemplate = `{
         "course.ResponseDto": {
             "type": "object",
             "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -3506,6 +3504,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "updatedAt": {
                     "type": "string"
                 }
             }

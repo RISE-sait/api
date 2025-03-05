@@ -22,7 +22,6 @@ import (
 	"api/internal/domains/identity/handler/authentication"
 	"api/internal/domains/identity/handler/registration"
 	"api/internal/domains/membership/handler"
-	"api/internal/domains/practice"
 	practiceHandler "api/internal/domains/practice/handler"
 	practiceRepo "api/internal/domains/practice/persistence/repository"
 	purchase "api/internal/domains/purchase/handler"
@@ -147,7 +146,7 @@ func RegisterMembershipPlansRoutes(container *di.Container) func(chi.Router) {
 		r.Get("/", h.GetMembershipPlans)
 
 		r.With(allowAdminOnly).Post("/", h.CreateMembershipPlan)
-		r.With(allowAdminOnly).Put("/{id}", h.UpdateMembershipPlan)
+		r.Put("/{id}", h.UpdateMembershipPlan)
 		r.With(allowAdminOnly).Delete("/{id}", h.DeleteMembershipPlan)
 	}
 }
@@ -209,15 +208,13 @@ func RegisterCourseRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterPracticeRoutes(container *di.Container) func(chi.Router) {
 
-	practiceRepository := practiceRepo.NewPracticeRepository(container.Queries.PracticesDb)
-	service := practice.NewPracticeService(practiceRepository)
-
-	h := practiceHandler.NewHandler(service)
+	repo := practiceRepo.NewPracticeRepository(container.Queries.PracticesDb)
+	h := practiceHandler.NewHandler(repo)
 
 	return func(r chi.Router) {
 		r.Get("/", h.GetPractices)
 		r.Post("/", h.CreatePractice)
-		r.With(allowAdminOnly).Put("/{id}", h.UpdatePractice)
+		r.Put("/{id}", h.UpdatePractice)
 		r.With(allowAdminOnly).Delete("/{id}", h.DeletePractice)
 	}
 }

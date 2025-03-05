@@ -1,23 +1,24 @@
 package practice
 
 import (
-	"api/internal/domains/practice"
 	"api/internal/domains/practice/dto"
 	"api/internal/domains/practice/entity"
+	"api/internal/domains/practice/persistence/repository"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi"
 )
 
 type Handler struct {
-	PracticeService *practice.Service
+	Repo repository.IPracticeRepository
 }
 
-func NewHandler(service *practice.Service) *Handler {
-	return &Handler{PracticeService: service}
+func NewHandler(repo repository.IPracticeRepository) *Handler {
+	return &Handler{Repo: repo}
 }
 
 // CreatePractice creates a new practice.
@@ -47,7 +48,7 @@ func (h *Handler) CreatePractice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	course, err := h.PracticeService.CreatePractice(r.Context(), courseCreate)
+	course, err := h.Repo.Create(r.Context(), courseCreate)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -78,7 +79,7 @@ func (h *Handler) GetPracticeByName(w http.ResponseWriter, r *http.Request) {
 		responseHandlers.RespondWithError(w, errLib.New("Name cannot be empty", http.StatusBadRequest))
 	}
 
-	course, err := h.PracticeService.GetPracticeByName(r.Context(), name)
+	course, err := h.Repo.GetPracticeByName(r.Context(), name)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -103,20 +104,7 @@ func (h *Handler) GetPracticeByName(w http.ResponseWriter, r *http.Request) {
 // @Router /practices [get]
 func (h *Handler) GetPractices(w http.ResponseWriter, r *http.Request) {
 
-	nameStr := r.URL.Query().Get("name")
-	descriptionStr := r.URL.Query().Get("description")
-
-	var name, description *string
-
-	if nameStr != "" {
-		name = &nameStr
-	}
-
-	if descriptionStr != "" {
-		description = &descriptionStr
-	}
-
-	practices, err := h.PracticeService.GetPractices(r.Context(), name, description)
+	practices, err := h.Repo.List(r.Context())
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
@@ -139,7 +127,6 @@ func (h *Handler) GetPractices(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param id path string true "Practice HubSpotId"
 // @Param practice body dto.PracticeRequestDto true "Practice details"
-// @Security Bearer
 // @Success 204 "No Content: Practice updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 404 {object} map[string]interface{} "Not Found: Practice not found"
@@ -163,10 +150,12 @@ func (h *Handler) UpdatePractice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.PracticeService.Update(r.Context(), practiceUpdate); err != nil {
+	if err = h.Repo.Update(r.Context(), practiceUpdate); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
+
+	log.Println("no")
 
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
@@ -193,7 +182,7 @@ func (h *Handler) DeletePractice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.PracticeService.DeletePractice(r.Context(), id); err != nil {
+	if err = h.Repo.Delete(r.Context(), id); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

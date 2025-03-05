@@ -1,7 +1,7 @@
 package course
 
 import (
-	entity "api/internal/domains/course/entity"
+	databaseErrors "api/internal/constants"
 	db "api/internal/domains/course/persistence/sqlc/generated"
 	values "api/internal/domains/course/values"
 	errLib "api/internal/libs/errors"
@@ -27,24 +27,31 @@ func NewCourseRepository(dbQueries *db.Queries) *Repository {
 	}
 }
 
-func (r *Repository) GetCourseById(c context.Context, id uuid.UUID) (*entity.Course, *errLib.CommonError) {
-	course, err := r.Queries.GetCourseById(c, id)
+func (r *Repository) GetCourseById(c context.Context, id uuid.UUID) (values.ReadDetails, *errLib.CommonError) {
+
+	var course values.ReadDetails
+
+	dbCourse, err := r.Queries.GetCourseById(c, id)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errLib.New("Course not found", http.StatusNotFound)
+			return course, errLib.New("Course not found", http.StatusNotFound)
 		}
-		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+		return course, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return &entity.Course{
-		ID:          course.ID,
-		Name:        course.Name,
-		Description: course.Description.String,
+	return values.ReadDetails{
+		ID:        dbCourse.ID,
+		CreatedAt: dbCourse.CreatedAt,
+		UpdatedAt: dbCourse.UpdatedAt,
+		Details: values.Details{
+			Name:        dbCourse.Name,
+			Description: dbCourse.Description.String,
+		},
 	}, nil
 }
 
-func (r *Repository) UpdateCourse(c context.Context, course *entity.Course) (*entity.Course, *errLib.CommonError) {
+func (r *Repository) UpdateCourse(c context.Context, course values.UpdateCourseDetails) *errLib.CommonError {
 
 	dbCourseParams := db.UpdateCourseParams{
 		ID:   course.ID,
@@ -55,39 +62,39 @@ func (r *Repository) UpdateCourse(c context.Context, course *entity.Course) (*en
 		},
 	}
 
-	dbCourse, err := r.Queries.UpdateCourse(c, dbCourseParams)
+	impactedRows, err := r.Queries.UpdateCourse(c, dbCourseParams)
 
 	if err != nil {
 		// Check if the error is a unique violation (duplicate name)
 		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
-			return nil, errLib.New("Course name already exists", http.StatusConflict)
+		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
+			return errLib.New("Course name already exists", http.StatusConflict)
 		}
-		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return &entity.Course{
-		ID:          dbCourse.ID,
-		Name:        dbCourse.Name,
-		Description: dbCourse.Description.String,
-	}, nil
+	if impactedRows == 0 {
+		return errLib.New("Course with associated ID not found", http.StatusNotFound)
+	}
+
+	return nil
 }
 
-func (r *Repository) GetCourses(c context.Context, name, description *string) ([]entity.Course, *errLib.CommonError) {
+func (r *Repository) GetCourses(c context.Context, name, description *string) ([]values.ReadDetails, *errLib.CommonError) {
 
 	dbParams := db.GetCoursesParams{}
 
 	if name != nil {
 		dbParams.Name = sql.NullString{
 			String: *name,
-			Valid:  *name != "",
+			Valid:  true,
 		}
 	}
 
 	if description != nil {
 		dbParams.Description = sql.NullString{
 			String: *description,
-			Valid:  *description != "",
+			Valid:  true,
 		}
 	}
 
@@ -98,16 +105,20 @@ func (r *Repository) GetCourses(c context.Context, name, description *string) ([
 		log.Println("Error getting courses: ", err)
 		dbErr := errLib.New("Internal server error", http.StatusInternalServerError)
 
-		return []entity.Course{}, dbErr
+		return nil, dbErr
 	}
 
-	courses := make([]entity.Course, len(dbCourses))
+	courses := make([]values.ReadDetails, len(dbCourses))
 
 	for i, dbCourse := range dbCourses {
-		courses[i] = entity.Course{
-			ID:          dbCourse.ID,
-			Name:        dbCourse.Name,
-			Description: dbCourse.Description.String,
+		courses[i] = values.ReadDetails{
+			ID:        dbCourse.ID,
+			CreatedAt: dbCourse.CreatedAt,
+			UpdatedAt: dbCourse.UpdatedAt,
+			Details: values.Details{
+				Name:        dbCourse.Name,
+				Description: dbCourse.Description.String,
+			},
 		}
 	}
 
@@ -128,7 +139,9 @@ func (r *Repository) DeleteCourse(c context.Context, id uuid.UUID) *errLib.Commo
 	return nil
 }
 
-func (r *Repository) CreateCourse(c context.Context, courseDetails *values.Details) (*entity.Course, *errLib.CommonError) {
+func (r *Repository) CreateCourse(c context.Context, courseDetails values.CreateCourseDetails) (values.ReadDetails, *errLib.CommonError) {
+
+	var createdCourse values.ReadDetails
 
 	dbCourseParams := db.CreateCourseParams{
 		Name: courseDetails.Name, Description: sql.NullString{
@@ -144,17 +157,18 @@ func (r *Repository) CreateCourse(c context.Context, courseDetails *values.Detai
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
 			// Return a custom error for unique violation
-			return nil, errLib.New("Course name already exists", http.StatusConflict)
+			return createdCourse, errLib.New("Course name already exists", http.StatusConflict)
 		}
 
 		// Return a generic internal server error for other cases
 		log.Println("error creating course: ", err)
-		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+		return createdCourse, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return &entity.Course{
-		ID:          course.ID,
-		Name:        course.Name,
-		Description: course.Description.String,
+	return values.ReadDetails{
+		ID:        course.ID,
+		Details:   values.Details{Name: courseDetails.Name, Description: courseDetails.Description},
+		CreatedAt: course.CreatedAt,
+		UpdatedAt: course.UpdatedAt,
 	}, nil
 }

@@ -12,14 +12,14 @@ type PracticeRequestDto struct {
 	Description string `json:"description"`
 }
 
-func (dto *PracticeRequestDto) validate() *errLib.CommonError {
-	if err := validators.ValidateDto(dto); err != nil {
+func (dto PracticeRequestDto) validate() *errLib.CommonError {
+	if err := validators.ValidateDto(&dto); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (dto *PracticeRequestDto) ToCreateValueObjects() (*values.PracticeDetails, *errLib.CommonError) {
+func (dto PracticeRequestDto) ToCreateValueObjects() (*values.PracticeDetails, *errLib.CommonError) {
 
 	if err := dto.validate(); err != nil {
 		return nil, err
@@ -31,19 +31,19 @@ func (dto *PracticeRequestDto) ToCreateValueObjects() (*values.PracticeDetails, 
 	}, nil
 }
 
-func (dto *PracticeRequestDto) ToUpdateValueObjects(idStr string) (*entity.Practice, *errLib.CommonError) {
+func (dto PracticeRequestDto) ToUpdateValueObjects(idStr string) (entity.Practice, *errLib.CommonError) {
 
 	id, err := validators.ParseUUID(idStr)
 
 	if err != nil {
-		return nil, err
+		return entity.Practice{}, err
 	}
 
-	if err := dto.validate(); err != nil {
-		return nil, err
+	if err = dto.validate(); err != nil {
+		return entity.Practice{}, err
 	}
 
-	return &entity.Practice{
+	return entity.Practice{
 		ID:          id,
 		Name:        dto.Name,
 		Description: dto.Description,

@@ -1,20 +1,26 @@
 package course
 
 import (
-	entity "api/internal/domains/course/entity"
+	values "api/internal/domains/course/values"
 	"github.com/google/uuid"
+	"time"
 )
 
 type ResponseDto struct {
 	ID          uuid.UUID `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description,omitempty"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
-func NewCourseResponse(course entity.Course) *ResponseDto {
-	return &ResponseDto{
+func NewCourseResponse(course values.ReadDetails) ResponseDto {
+
+	return ResponseDto{
 		ID:          course.ID,
 		Name:        course.Name,
 		Description: course.Description,
+		CreatedAt:   course.CreatedAt,
+		UpdatedAt:   course.UpdatedAt,
 	}
 }

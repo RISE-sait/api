@@ -1,6 +1,7 @@
 package repository
 
 import (
+	databaseErrors "api/internal/constants"
 	"api/internal/domains/practice/entity"
 	db "api/internal/domains/practice/persistence/sqlc/generated"
 	"api/internal/domains/practice/values"
@@ -8,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/lib/pq"
 	"log"
 	"net/http"
@@ -15,7 +17,7 @@ import (
 	"github.com/google/uuid"
 )
 
-var _ PracticeRepositoryInterface = (*PracticeRepository)(nil)
+var _ IPracticeRepository = (*PracticeRepository)(nil)
 
 type PracticeRepository struct {
 	Queries *db.Queries
@@ -44,24 +46,28 @@ func (r *PracticeRepository) GetPracticeByName(c context.Context, name string) (
 	}, nil
 }
 
-func (r *PracticeRepository) Update(c context.Context, course *entity.Practice) *errLib.CommonError {
+func (r *PracticeRepository) Update(ctx context.Context, practice entity.Practice) *errLib.CommonError {
 
 	dbCourseParams := db.UpdatePracticeParams{
-		ID:   course.ID,
-		Name: course.Name,
+		ID:   practice.ID,
+		Name: practice.Name,
 		Description: sql.NullString{
-			String: course.Description,
-			Valid:  course.Description != "",
+			String: practice.Description,
+			Valid:  practice.Description != "",
 		},
 	}
 
-	row, err := r.Queries.UpdatePractice(c, dbCourseParams)
+	row, err := r.Queries.UpdatePractice(ctx, dbCourseParams)
 
 	if err != nil {
 		// Check if the error is a unique violation (duplicate name)
 		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
-			return errLib.New("Practice name already exists", http.StatusConflict)
+		if errors.As(err, &pqErr) {
+			if pqErr.Code == databaseErrors.UniqueViolation {
+				return errLib.New("Practice name already exists", http.StatusConflict)
+			}
+			log.Println(fmt.Sprintf("Database error %v", err.Error()))
+			return errLib.New("Database error", http.StatusInternalServerError)
 		}
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}

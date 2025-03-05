@@ -8,11 +8,15 @@ definitions:
     type: object
   course.ResponseDto:
     properties:
+      createdAt:
+        type: string
       description:
         type: string
       id:
         type: string
       name:
+        type: string
+      updatedAt:
         type: string
     type: object
   customer.RegistrationRequestDto:
@@ -639,7 +643,7 @@ paths:
       - application/json
       description: Update a course
       parameters:
-      - description: Course HubSpotId
+      - description: Course ID
         in: path
         name: id
         required: true
@@ -2378,8 +2382,6 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      security:
-      - Bearer: []
       summary: Update a practice
       tags:
       - practices

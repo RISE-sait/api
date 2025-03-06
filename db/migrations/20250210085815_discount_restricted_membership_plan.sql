@@ -3,7 +3,7 @@
 CREATE TABLE discount_restricted_membership_plans (
     discount_id UUID NOT NULL,
     membership_plan_id UUID NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (discount_id, membership_plan_id),
     CONSTRAINT fk_discount
         FOREIGN KEY (discount_id) 

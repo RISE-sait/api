@@ -3,7 +3,7 @@
 CREATE TABLE course_membership (
     course_id UUID NOT NULL,
     membership_id UUID NOT NULL,
-    price_per_booking DECIMAL(4, 2) NULL,
+    price_per_booking DECIMAL(4, 2),
     is_eligible BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (course_id, membership_id),
     CONSTRAINT fk_course

@@ -4,7 +4,7 @@ CREATE TABLE customer_discount_usage (
     customer_id UUID NOT NULL,
     discount_id UUID NOT NULL,
     usage_count INT NOT NULL DEFAULT 1,
-    last_used_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_used_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (customer_id, discount_id),
     CONSTRAINT fk_customer
         FOREIGN KEY (customer_id) 

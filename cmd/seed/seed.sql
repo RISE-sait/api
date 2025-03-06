@@ -80,37 +80,47 @@ VALUES ('Football Match 2025', 'https://example.com/video/football-2025'),
        ('Yoga Live Session', 'https://example.com/video/yoga-live');
 
 -- Insert mock events
-INSERT INTO public.events (begin_date_time, end_date_time, practice_id, course_id, game_id, location_id)
-VALUES ('2025-03-10 10:00:00+00', '2025-03-10 11:00:00+00',
-        (SELECT id FROM public.practices WHERE name = 'Yoga for Beginners'),
-        (SELECT id FROM course.courses WHERE name = 'Beginner Yoga'),
-        (SELECT id FROM public.games WHERE name = 'Football Match 2025'),
-        (SELECT id FROM location.locations WHERE name = 'Downtown Gym Location')),
+INSERT INTO public.events (event_start_at, event_end_at, session_start_time, session_end_time, practice_id, course_id, game_id, location_id, day)
+VALUES
+    ('2025-03-10 10:00:00+00', '2025-03-10 11:00:00+00',
+     '10:00:00+00', '15:00:00+00',
+     (SELECT id FROM public.practices WHERE name = 'Yoga for Beginners'),
+     (SELECT id FROM course.courses WHERE name = 'Beginner Yoga'),
+     (SELECT id FROM public.games WHERE name = 'Football Match 2025'),
+     (SELECT id FROM location.locations WHERE name = 'Downtown Gym Location'),
+     'MONDAY'),
 
-       ('2025-03-15 09:00:00+00', '2025-03-15 10:00:00+00',
-        (SELECT id FROM public.practices WHERE name = 'Intermediate Swimming'),
-        (SELECT id FROM course.courses WHERE name = 'Advanced Swimming'),
-        (SELECT id FROM public.games WHERE name = 'Basketball Championship'),
-        (SELECT id FROM location.locations WHERE name = 'City Pool Location')),
+    ('2025-03-15 09:00:00+00', '2025-03-15 10:00:00+00',
+     '09:00:00+00', '12:00:00+00',
+     (SELECT id FROM public.practices WHERE name = 'Intermediate Swimming'),
+     (SELECT id FROM course.courses WHERE name = 'Advanced Swimming'),
+     (SELECT id FROM public.games WHERE name = 'Basketball Championship'),
+     (SELECT id FROM location.locations WHERE name = 'City Pool Location'),
+     'SATURDAY'),
 
-       ('2025-03-20 08:00:00+00', '2025-03-20 10:00:00+00',
-        (SELECT id FROM public.practices WHERE name = 'Advanced Tennis'),
-        (SELECT id FROM course.courses WHERE name = 'Tennis Fundamentals'),
-        (SELECT id FROM public.games WHERE name = 'Tennis Grand Slam'),
-        (SELECT id FROM location.locations WHERE name = 'Tennis Club Location')),
+    ('2025-03-20 08:00:00+00', '2025-03-20 10:00:00+00',
+     '08:00:00+00', '11:00:00+00',
+     (SELECT id FROM public.practices WHERE name = 'Advanced Tennis'),
+     (SELECT id FROM course.courses WHERE name = 'Tennis Fundamentals'),
+     (SELECT id FROM public.games WHERE name = 'Tennis Grand Slam'),
+     (SELECT id FROM location.locations WHERE name = 'Tennis Club Location'),
+     'THURSDAY'),
 
-       ('2025-03-25 13:00:00+00', '2025-03-25 14:30:00+00',
-        (SELECT id FROM public.practices WHERE name = 'Basketball Training'),
-        (SELECT id FROM course.courses WHERE name = 'Basketball Skills Camp'),
-        (SELECT id FROM public.games WHERE name = 'Basketball Championship'),
-        (SELECT id FROM location.locations WHERE name = 'Basketball Arena Location')),
+    ('2025-03-25 13:00:00+00', '2025-03-25 14:30:00+00',
+     '13:00:00+00', '16:00:00+00',
+     (SELECT id FROM public.practices WHERE name = 'Basketball Training'),
+     (SELECT id FROM course.courses WHERE name = 'Basketball Skills Camp'),
+     (SELECT id FROM public.games WHERE name = 'Basketball Championship'),
+     (SELECT id FROM location.locations WHERE name = 'Basketball Arena Location'),
+     'TUESDAY'),
 
-       ('2025-03-30 17:00:00+00', '2025-03-30 19:00:00+00',
-        (SELECT id FROM public.practices WHERE name = 'Strength and Conditioning'),
-        (SELECT id FROM course.courses WHERE name = 'Strength Training 101'),
-        (SELECT id FROM public.games WHERE name = 'Swimming Relay 2025'),
-        (SELECT id FROM location.locations WHERE name = 'Serenity Yoga Location'));
-
+    ('2025-03-30 17:00:00+00', '2025-03-30 19:00:00+00',
+     '17:00:00+00', '20:00:00+00',
+     (SELECT id FROM public.practices WHERE name = 'Strength and Conditioning'),
+     (SELECT id FROM course.courses WHERE name = 'Strength Training 101'),
+     (SELECT id FROM public.games WHERE name = 'Swimming Relay 2025'),
+     (SELECT id FROM location.locations WHERE name = 'Serenity Yoga Location'),
+     'SUNDAY');
 
 -- Insert memberships
 INSERT INTO membership.memberships (name, description)
@@ -176,7 +186,7 @@ INSERT INTO public.customer_enrollment (customer_id, event_id, created_at, updat
 VALUES
     -- Mock enrollment for 'Yoga for Beginners' event
     ((SELECT id FROM users.users LIMIT 1 OFFSET 0),
-     (SELECT id FROM public.events WHERE begin_date_time = '2025-03-10 10:00:00+00'),
+     (SELECT id FROM public.events WHERE event_start_at = '2025-03-10 10:00:00+00'),
      '2025-03-01 00:00:00+00',
      '2025-03-01 00:00:00+00',
      '2025-03-10 10:30:00+00',
@@ -184,7 +194,7 @@ VALUES
 
     -- Mock enrollment for 'Intermediate Swimming' event
     ((SELECT id FROM users.users LIMIT 1 OFFSET 1),
-     (SELECT id FROM public.events WHERE begin_date_time = '2025-03-15 09:00:00+00'),
+     (SELECT id FROM public.events WHERE event_start_at = '2025-03-15 09:00:00+00'),
      '2025-03-01 00:00:00+00',
      '2025-03-01 00:00:00+00',
      NULL,
@@ -192,7 +202,7 @@ VALUES
 
     -- Mock enrollment for 'Advanced Tennis' event
     ((SELECT id FROM users.users LIMIT 1 OFFSET 2),
-     (SELECT id FROM public.events WHERE begin_date_time = '2025-03-20 08:00:00+00'),
+     (SELECT id FROM public.events WHERE event_start_at = '2025-03-20 08:00:00+00'),
      '2025-03-01 00:00:00+00',
      '2025-03-01 00:00:00+00',
      NULL,
@@ -200,7 +210,7 @@ VALUES
 
     -- Mock enrollment for 'Basketball Training' event
     ((SELECT id FROM users.users LIMIT 1 OFFSET 3),
-     (SELECT id FROM public.events WHERE begin_date_time = '2025-03-25 13:00:00+00'),
+     (SELECT id FROM public.events WHERE event_start_at = '2025-03-25 13:00:00+00'),
      '2025-03-01 00:00:00+00',
      '2025-03-01 00:00:00+00',
      '2025-03-25 13:30:00+00',
@@ -211,23 +221,23 @@ VALUES
 INSERT INTO public.event_staff (event_id, staff_id)
 VALUES
     -- Assign 'INSTRUCTOR' to 'Yoga for Beginners' event
-    ((SELECT id FROM public.events WHERE begin_date_time = '2025-03-10 10:00:00+00'),
+    ((SELECT id FROM public.events WHERE event_start_at = '2025-03-10 10:00:00+00'),
      (SELECT id FROM users.staff WHERE role_id = (SELECT id FROM users.staff_roles WHERE role_name = 'INSTRUCTOR') LIMIT 1)),
 
     -- Assign 'ADMIN' to 'Intermediate Swimming' event
-    ((SELECT id FROM public.events WHERE begin_date_time = '2025-03-15 09:00:00+00'),
+    ((SELECT id FROM public.events WHERE event_start_at = '2025-03-15 09:00:00+00'),
      (SELECT id FROM users.staff WHERE role_id = (SELECT id FROM users.staff_roles WHERE role_name = 'ADMIN') LIMIT 1)),
 
     -- Assign 'SUPERADMIN' to 'Advanced Tennis' event
-    ((SELECT id FROM public.events WHERE begin_date_time = '2025-03-20 08:00:00+00'),
+    ((SELECT id FROM public.events WHERE event_start_at = '2025-03-20 08:00:00+00'),
      (SELECT id FROM users.staff WHERE role_id = (SELECT id FROM users.staff_roles WHERE role_name = 'SUPERADMIN') LIMIT 1)),
 
     -- Assign 'COACH' to 'Basketball Training' event
-    ((SELECT id FROM public.events WHERE begin_date_time = '2025-03-25 13:00:00+00'),
+    ((SELECT id FROM public.events WHERE event_start_at = '2025-03-25 13:00:00+00'),
      (SELECT id FROM users.staff WHERE role_id = (SELECT id FROM users.staff_roles WHERE role_name = 'COACH') LIMIT 1)),
 
     -- Assign 'INSTRUCTOR' to 'Strength and Conditioning' event
-    ((SELECT id FROM public.events WHERE begin_date_time = '2025-03-30 17:00:00+00'),
+    ((SELECT id FROM public.events WHERE event_start_at = '2025-03-30 17:00:00+00'),
      (SELECT id FROM users.staff WHERE role_id = (SELECT id FROM users.staff_roles WHERE role_name = 'INSTRUCTOR') LIMIT 1));
 
 

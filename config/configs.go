@@ -25,13 +25,13 @@ type awsConfig struct {
 }
 
 type config struct {
-	DbConnUrl           string
-	GoogleAuthConfig    googleAuthConfig
-	JwtConfig           jwtConfig
-	AwsConfig           awsConfig
-	HubSpotApiKey       string
-	GmailSmtpPassword   string
-	FirebaseCredentials string
+	DbConnUrl                    string
+	GoogleAuthConfig             googleAuthConfig
+	JwtConfig                    jwtConfig
+	AwsConfig                    awsConfig
+	HubSpotApiKey                string
+	GmailSmtpPassword            string
+	GcpServiceAccountCredentials string
 }
 
 var Envs = initConfig()
@@ -41,11 +41,6 @@ func initConfig() *config {
 	return &config{
 		DbConnUrl:     getEnv("DATABASE_URL", ""),
 		HubSpotApiKey: getEnv("HUBSPOT_API_KEY", ""),
-		GoogleAuthConfig: googleAuthConfig{
-			ClientId:          getEnv("GOOGLE_AUTH_CLIENT_ID", ""),
-			ClientSecret:      getEnv("GOOGLE_AUTH_CLIENT_SECRET", ""),
-			GoogleRedirectUrl: getEnv("GOOGLE_REDIRECT_URL", ""),
-		},
 		JwtConfig: jwtConfig{
 			Secret: getEnv("JWT_SECRET", ""),
 			Issuer: getEnv("JWT_ISSUER", ""),
@@ -54,8 +49,8 @@ func initConfig() *config {
 			AccessKeyId: getEnv("AWS_KEY_ID", ""),
 			SecretKey:   getEnv("AWS_SECRET_ACCESS_KEY", ""),
 		},
-		GmailSmtpPassword:   getEnv("GMAIL_SMTP_PWD", ""),
-		FirebaseCredentials: getEnv("firebase_credentials", ""),
+		GmailSmtpPassword:            getEnv("GMAIL_SMTP_PWD", ""),
+		GcpServiceAccountCredentials: getEnv("GCP_SERVICE_ACCOUNT_CREDENTIALS", ""),
 	}
 }
 

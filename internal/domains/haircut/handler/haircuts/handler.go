@@ -1,7 +1,8 @@
 package haircut
 
 import (
-	"api/internal/services/s3"
+	responseHandlers "api/internal/libs/responses"
+	"api/internal/services/gcp"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -34,21 +35,28 @@ func UploadHaircutImage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	fileName := fmt.Sprintf("haircuts/%v", header.Filename)
+	fileName := fmt.Sprintf("haircut/%v", header.Filename)
 
-	// Upload the file to S3
-	url, err := s3.UploadImageToS3(
+	url, uploadErr := gcp.UploadImageToGCP(
 		file,     // File (io.Reader)
 		fileName, // Use the original file name
 	)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to upload file: %v", err), http.StatusInternalServerError)
+	if uploadErr != nil {
+		responseHandlers.RespondWithError(w, uploadErr)
 		return
 	}
 
-	// Return the S3 object URL in the response
+	successMessage := "Success. URL generated: " + url
+
+	// Encode the success message as JSON and write it to the response
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "File uploaded successfully. URL: %s", url)
+
+	// Using json.NewEncoder directly to encode the response to JSON
+	response := map[string]string{"message": successMessage}
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Failed to encode success message", http.StatusInternalServerError)
+	}
 }
 
 // GetHaircutImages retrieves haircut images from the specified folder in S3.
@@ -66,14 +74,14 @@ func GetHaircutImages(w http.ResponseWriter, r *http.Request) {
 
 	barberName := r.URL.Query().Get("barber")
 
-	folderPath := "haircuts"
+	folderPath := "haircut"
 
 	// If a barberName is provided, append it to the folder path
 	if barberName != "" {
-		folderPath = fmt.Sprintf("haircuts/%s/", barberName)
+		folderPath = fmt.Sprintf("haircut/%s", barberName)
 	}
 
-	images, err := s3.GetImagesFromFolder(folderPath)
+	images, err := gcp.GetFilesInBucket("rise-sports", folderPath)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error fetching images: %v", err), http.StatusInternalServerError)
 		return

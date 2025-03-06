@@ -3,6 +3,7 @@ package main
 import (
 	"api/cmd/server/router"
 	"api/internal/di"
+	"api/internal/services/gcp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -33,6 +34,14 @@ func main() {
 
 	diContainer := di.NewContainer()
 	defer diContainer.Cleanup()
+
+	urls, err := gcp.GetFilesInBucket("rise-sports", "haircut")
+
+	if err != nil {
+		log.Fatalf("Failed to get files in bucket: %v", err)
+	}
+
+	log.Println(urls)
 
 	server := &http.Server{
 		Addr:         ":80",

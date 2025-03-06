@@ -25,4 +25,4 @@ tmp/
 .jetclient/*
 
 qodana.yaml
-/config/firebase_credentials.json
+/config/gcp-service-account.json

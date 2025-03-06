@@ -15,7 +15,7 @@ import (
 	purchaseDb "api/internal/domains/purchase/persistence/sqlc/generated"
 	userDb "api/internal/domains/user/persistence/sqlc/generated"
 
-	"api/internal/services/firebase"
+	"api/internal/services/gcp"
 	"api/internal/services/hubspot"
 	"database/sql"
 )
@@ -25,7 +25,7 @@ type Container struct {
 	DbConnString    string
 	Queries         *QueriesType
 	HubspotService  *hubspot.Service
-	FirebaseService *firebase.Service
+	FirebaseService *gcp.Service
 }
 
 type QueriesType struct {
@@ -47,7 +47,7 @@ func NewContainer() *Container {
 	db := config.GetDBConnection()
 	queries := initializeQueries(db)
 	hubspotService := hubspot.GetHubSpotService(nil)
-	firebaseService, err := firebase.NewFirebaseService()
+	firebaseService, err := gcp.NewFirebaseService()
 
 	if err != nil {
 		panic("Failed to get firebase auth client")

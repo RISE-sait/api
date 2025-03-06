@@ -1,4 +1,4 @@
-package firebase
+package gcp
 
 import (
 	"api/config"
@@ -33,15 +33,15 @@ func getFirebaseAuthClient() (*auth.Client, *errLib.CommonError) {
 
 	var opt option.ClientOption
 
-	if firebaseCredentials := config.Envs.FirebaseCredentials; firebaseCredentials != "" {
-		opt = option.WithCredentialsJSON([]byte(firebaseCredentials))
-	} else if _, err := os.Stat("/app/config/firebase_credentials.json"); err == nil {
-		opt = option.WithCredentialsFile("/app/config/firebase_credentials.json")
+	if gcpServiceAccountCredentials := config.Envs.GcpServiceAccountCredentials; gcpServiceAccountCredentials != "" {
+		opt = option.WithCredentialsJSON([]byte(gcpServiceAccountCredentials))
+	} else if _, err := os.Stat("/app/config/gcp-service-account.json"); err == nil {
+		opt = option.WithCredentialsFile("/app/config/gcp-service-account.json")
 	} else {
 		log.Printf("Firebase credentials not found in environment variables or file")
 		return nil, errLib.New("Internal server error: Firebase credentials not found", http.StatusInternalServerError)
 	}
-	
+
 	app, err := firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
 		log.Printf("error initializing app: %v", err)

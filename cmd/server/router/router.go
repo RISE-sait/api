@@ -225,7 +225,7 @@ func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 
 	return func(r chi.Router) {
 		r.Get("/", handler.GetEvents)
-
+		r.Get("/{id}", handler.GetEvent)
 		r.Post("/", handler.CreateEvent)
 		r.With(allowAdminOnly).Put("/{id}", handler.UpdateEvent)
 		r.With(allowAdminOnly).Delete("/{id}", handler.DeleteEvent)

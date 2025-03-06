@@ -907,6 +907,57 @@ const docTemplate = `{
             }
         },
         "/events/{id}": {
+            "get": {
+                "description": "Retrieves details of a specific event based on its HubSpotId.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "summary": "Get event details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Event ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Event details retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/event.ResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid HubSpotId",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Event not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
             "put": {
                 "description": "Updates the details of an existing event.",
                 "consumes": [
@@ -922,7 +973,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Event HubSpotId",
+                        "description": "Event ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -983,7 +1034,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Event HubSpotId",
+                        "description": "Event ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -992,60 +1043,6 @@ const docTemplate = `{
                 "responses": {
                     "204": {
                         "description": "No Content: Event deleted successfully",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid HubSpotId",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Event not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/events/{id}/details": {
-            "get": {
-                "description": "Retrieves details of a specific event based on its HubSpotId.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "events"
-                ],
-                "summary": "Get event details",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Event HubSpotId",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Event details retrieved successfully",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1975,18 +1972,6 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Filter by customer ID",
                         "name": "customer_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by start date (ISO 8601 format)",
-                        "name": "begin_date_time",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by end date (ISO 8601 format)",
-                        "name": "end_date_time",
                         "in": "query"
                     }
                 ],
@@ -3672,21 +3657,32 @@ const docTemplate = `{
         "event.RequestDto": {
             "type": "object",
             "required": [
-                "begin_time",
-                "end_time"
+                "day",
+                "event_end_at",
+                "event_start_at",
+                "session_end_time",
+                "session_start_time"
             ],
             "properties": {
-                "begin_time": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
                 "course_id": {
                     "type": "string",
                     "example": "00000000-0000-0000-0000-000000000000"
                 },
-                "end_time": {
+                "day": {
+                    "type": "string",
+                    "example": "THURSDAY"
+                },
+                "event_end_at": {
                     "type": "string",
                     "example": "2023-10-05T07:00:00Z"
+                },
+                "event_start_at": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "game_id": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
                 },
                 "location_id": {
                     "type": "string",
@@ -3695,19 +3691,30 @@ const docTemplate = `{
                 "practice_id": {
                     "type": "string",
                     "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+                },
+                "session_end_time": {
+                    "type": "string",
+                    "example": "23:00:00+00:00"
+                },
+                "session_start_time": {
+                    "type": "string",
+                    "example": "23:00:00+00:00"
                 }
             }
         },
         "event.ResponseDto": {
             "type": "object",
             "properties": {
-                "begin_time": {
-                    "type": "string"
-                },
                 "course_id": {
                     "type": "string"
                 },
-                "end_time": {
+                "day": {
+                    "type": "string"
+                },
+                "event_end_at": {
+                    "type": "string"
+                },
+                "event_start_at": {
                     "type": "string"
                 },
                 "game_id": {
@@ -3720,6 +3727,12 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "practice_id": {
+                    "type": "string"
+                },
+                "session_end_at": {
+                    "type": "string"
+                },
+                "session_start_at": {
                     "type": "string"
                 }
             }

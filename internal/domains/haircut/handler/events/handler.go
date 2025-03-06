@@ -27,15 +27,40 @@ func NewEventsHandler(repo repository.IBarberEventsRepository) *EventsHandler {
 // @Produce json
 // @Param barber_id query string false "Filter by barber ID"
 // @Param customer_id query string false "Filter by customer ID"
-// @Param begin_date_time query string false "Filter by start date (ISO 8601 format)"
-// @Param end_date_time query string false "Filter by end date (ISO 8601 format)"
 // @Success 200 {array} haircut.ResponseDto "List of barber events retrieved successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /haircuts/events [get]
 func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 
-	events, err := h.Repo.GetEvents(r.Context())
+	var barberID, customerID uuid.UUID
+
+	barberIdStr := r.URL.Query().Get("barber_id")
+	customerIdStr := r.URL.Query().Get("customer_id")
+
+	if barberIdStr != "" {
+		id, err := validators.ParseUUID(barberIdStr)
+
+		if err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		}
+
+		barberID = id
+	}
+
+	if customerIdStr != "" {
+		id, err := validators.ParseUUID(customerIdStr)
+
+		if err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		}
+
+		customerID = id
+	}
+
+	events, err := h.Repo.GetEvents(r.Context(), barberID, customerID)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)

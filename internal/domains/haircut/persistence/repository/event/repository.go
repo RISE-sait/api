@@ -60,9 +60,19 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 	return event, nil
 }
 
-func (r *Repository) GetEvents(ctx context.Context) ([]values.EventReadValues, *errLib.CommonError) {
+func (r *Repository) GetEvents(ctx context.Context, barberID, customerID uuid.UUID) ([]values.EventReadValues, *errLib.CommonError) {
 
-	var getEventsArgs db.GetBarberEventsParams
+	getEventsArgs := db.GetBarberEventsParams{
+		BarberID: uuid.NullUUID{
+			UUID:  barberID,
+			Valid: barberID != uuid.Nil,
+		},
+
+		CustomerID: uuid.NullUUID{
+			UUID:  customerID,
+			Valid: customerID != uuid.Nil,
+		},
+	}
 
 	dbEvents, err := r.Queries.GetBarberEvents(ctx, getEventsArgs)
 

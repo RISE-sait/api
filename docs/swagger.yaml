@@ -125,14 +125,20 @@ definitions:
     type: object
   event.RequestDto:
     properties:
-      begin_time:
-        example: "2023-10-05T07:00:00Z"
-        type: string
       course_id:
         example: 00000000-0000-0000-0000-000000000000
         type: string
-      end_time:
+      day:
+        example: THURSDAY
+        type: string
+      event_end_at:
         example: "2023-10-05T07:00:00Z"
+        type: string
+      event_start_at:
+        example: "2023-10-05T07:00:00Z"
+        type: string
+      game_id:
+        example: 00000000-0000-0000-0000-000000000000
         type: string
       location_id:
         example: 0bab3927-50eb-42b3-9d6b-2350dd00a100
@@ -140,17 +146,28 @@ definitions:
       practice_id:
         example: f0e21457-75d4-4de6-b765-5ee13221fd72
         type: string
+      session_end_time:
+        example: 23:00:00+00:00
+        type: string
+      session_start_time:
+        example: 23:00:00+00:00
+        type: string
     required:
-    - begin_time
-    - end_time
+    - day
+    - event_end_at
+    - event_start_at
+    - session_end_time
+    - session_start_time
     type: object
   event.ResponseDto:
     properties:
-      begin_time:
-        type: string
       course_id:
         type: string
-      end_time:
+      day:
+        type: string
+      event_end_at:
+        type: string
+      event_start_at:
         type: string
       game_id:
         type: string
@@ -159,6 +176,10 @@ definitions:
       location_id:
         type: string
       practice_id:
+        type: string
+      session_end_at:
+        type: string
+      session_start_at:
         type: string
     type: object
   event_staff.EventStaffBase:
@@ -1044,7 +1065,7 @@ paths:
       - application/json
       description: Deletes an event by its HubSpotId.
       parameters:
-      - description: Event HubSpotId
+      - description: Event ID
         in: path
         name: id
         required: true
@@ -1075,12 +1096,47 @@ paths:
       summary: Delete an event
       tags:
       - events
+    get:
+      consumes:
+      - application/json
+      description: Retrieves details of a specific event based on its HubSpotId.
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Event details retrieved successfully
+          schema:
+            $ref: '#/definitions/event.ResponseDto'
+        "400":
+          description: 'Bad Request: Invalid HubSpotId'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Event not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get event details
+      tags:
+      - events
     put:
       consumes:
       - application/json
       description: Updates the details of an existing event.
       parameters:
-      - description: Event HubSpotId
+      - description: Event ID
         in: path
         name: id
         required: true
@@ -1115,43 +1171,6 @@ paths:
             additionalProperties: true
             type: object
       summary: Update an event
-      tags:
-      - events
-  /events/{id}/details:
-    get:
-      consumes:
-      - application/json
-      description: Retrieves details of a specific event based on its HubSpotId.
-      parameters:
-      - description: Event HubSpotId
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Event details retrieved successfully
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: 'Bad Request: Invalid HubSpotId'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Event not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get event details
       tags:
       - events
   /facilities:
@@ -1757,14 +1776,6 @@ paths:
       - description: Filter by customer ID
         in: query
         name: customer_id
-        type: string
-      - description: Filter by start date (ISO 8601 format)
-        in: query
-        name: begin_date_time
-        type: string
-      - description: Filter by end date (ISO 8601 format)
-        in: query
-        name: end_date_time
         type: string
       produces:
       - application/json

@@ -13,10 +13,10 @@ import (
 
 // EventsHandler provides HTTP handlers for managing events.
 type EventsHandler struct {
-	Repo repository.EventsRepositoryInterface
+	Repo repository.IEventsRepository
 }
 
-func NewEventsHandler(repo repository.EventsRepositoryInterface) *EventsHandler {
+func NewEventsHandler(repo repository.IEventsRepository) *EventsHandler {
 	return &EventsHandler{Repo: repo}
 }
 
@@ -29,7 +29,7 @@ func NewEventsHandler(repo repository.EventsRepositoryInterface) *EventsHandler 
 // @Param courseId query string false "Filter by course ID (UUID)"
 // @Param locationId query string false "Filter by location ID (UUID)"
 // @Param practiceId query string false "Filter by practice ID (UUID)"
-// @Success 200 {array} dto.ResponseDto "GetMemberships of events retrieved successfully"
+// @Success 200 {array} event.ResponseDto "GetMemberships of events retrieved successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /events [get]
@@ -40,16 +40,17 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	practiceIdStr := r.URL.Query().Get("practiceId")
 	gameIdStr := r.URL.Query().Get("gameId")
 
-	var courseId, locationId, practiceId, gameId *uuid.UUID
+	var courseId, locationId, practiceId, gameId uuid.UUID
 
 	if courseIdStr != "" {
 		id, err := validators.ParseUUID(courseIdStr)
 
 		if err != nil {
 			responseHandlers.RespondWithError(w, errLib.New("Invalid course ID", http.StatusBadRequest))
+			return
 		}
 
-		courseId = &id
+		courseId = id
 	}
 
 	if locationIdStr != "" {
@@ -57,9 +58,10 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			responseHandlers.RespondWithError(w, errLib.New("Invalid location ID", http.StatusBadRequest))
+			return
 		}
 
-		locationId = &id
+		locationId = id
 	}
 
 	if practiceIdStr != "" {
@@ -67,9 +69,10 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			responseHandlers.RespondWithError(w, errLib.New("Invalid practice ID", http.StatusBadRequest))
+			return
 		}
 
-		practiceId = &id
+		practiceId = id
 	}
 
 	if gameIdStr != "" {
@@ -77,9 +80,10 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			responseHandlers.RespondWithError(w, errLib.New("Invalid game ID", http.StatusBadRequest))
+			return
 		}
 
-		gameId = &id
+		gameId = id
 	}
 
 	events, err := h.Repo.GetEvents(r.Context(), courseId, locationId, practiceId, gameId)
@@ -96,6 +100,47 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
+}
+
+// GetEvent retrieves detailed information about a specific event.
+// @Summary Get event details
+// @Description Retrieves details of a specific event based on its HubSpotId.
+// @Tags events
+// @Accept json
+// @Produce json
+// @Param id path string true "Event ID"
+// @Success 200 {object} event.ResponseDto "Event details retrieved successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid HubSpotId"
+// @Failure 404 {object} map[string]interface{} "Not Found: Event not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /events/{id} [get]
+func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
+
+	eventIdStr := chi.URLParam(r, "id")
+
+	var eventId uuid.UUID
+
+	if eventIdStr != "" {
+		id, err := validators.ParseUUID(eventIdStr)
+
+		if err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		}
+
+		eventId = id
+	}
+
+	event, err := h.Repo.GetEvent(r.Context(), eventId)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	response := dto.NewEventResponse(event)
+
+	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 }
 
 // CreateEvent creates a new event.
@@ -118,7 +163,7 @@ func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventCreate, err := targetBody.ToDetails()
+	eventCreate, err := targetBody.ToCreateEventValues()
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -143,7 +188,7 @@ func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 // @Tags events
 // @Accept json
 // @Produce json
-// @Param id path string true "Event HubSpotId"
+// @Param id path string true "Event ID"
 // @Param event body dto.RequestDto true "Updated event details"
 // @Success 204 {object} map[string]interface{} "No Content: Event updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
@@ -161,7 +206,7 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	params, err := (&targetBody).ToEntity(idStr)
+	params, err := targetBody.ToUpdateEventValues(idStr)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -175,7 +220,7 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseBody := dto.NewEventResponse(*event)
+	responseBody := dto.NewEventResponse(event)
 
 	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusNoContent)
 }
@@ -186,7 +231,7 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 // @Tags events
 // @Accept json
 // @Produce json
-// @Param id path string true "Event HubSpotId"
+// @Param id path string true "Event ID"
 // @Success 204 {object} map[string]interface{} "No Content: Event deleted successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid HubSpotId"
 // @Failure 404 {object} map[string]interface{} "Not Found: Event not found"
@@ -208,43 +253,4 @@ func (h *EventsHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
-}
-
-// GetEventDetails retrieves detailed information about a specific event.
-// @Summary Get event details
-// @Description Retrieves details of a specific event based on its HubSpotId.
-// @Tags events
-// @Accept json
-// @Produce json
-// @Param id path string true "Event HubSpotId"
-// @Success 200 {object} map[string]interface{} "Event details retrieved successfully"
-// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid HubSpotId"
-// @Failure 404 {object} map[string]interface{} "Not Found: Event not found"
-// @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /events/{id}/details [get]
-func (h *EventsHandler) GetEventDetails(w http.ResponseWriter, r *http.Request) {
-
-	eventIdStr := chi.URLParam(r, "id")
-
-	var eventId uuid.UUID
-
-	if eventIdStr != "" {
-		id, err := validators.ParseUUID(eventIdStr)
-
-		if err != nil {
-			responseHandlers.RespondWithError(w, err)
-			return
-		}
-
-		eventId = id
-	}
-
-	count, err := h.Repo.GetEventDetails(r.Context(), eventId)
-
-	if err != nil {
-		responseHandlers.RespondWithError(w, err)
-		return
-	}
-
-	responseHandlers.RespondWithSuccess(w, count, http.StatusOK)
 }

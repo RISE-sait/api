@@ -60,17 +60,14 @@ VALUES ('Beginner Yoga', 'A relaxing yoga course for beginners.', 20),
        ('Strength Training 101', 'A foundational strength training program for all levels.', 18);
 
 -- Insert practices
-INSERT INTO public.practices (name, description, level, capacity, start_date, end_date)
-VALUES ('Yoga for Beginners', 'A gentle introduction to yoga, perfect for those new to the practice.', 'beginner', 20,
-        '2025-03-10 10:00:00+00', '2025-03-10 11:00:00+00'),
-       ('Intermediate Swimming', 'Build on your swimming skills with intermediate-level techniques.', 'intermediate',
-        15, '2025-03-15 09:00:00+00', '2025-03-15 10:00:00+00'),
-       ('Advanced Tennis', 'Refine your tennis game with advanced drills and strategies.', 'advanced', 12,
-        '2025-03-20 08:00:00+00', '2025-03-20 10:00:00+00'),
-       ('Basketball Training', 'Focused training on basketball shooting techniques and teamwork.', 'intermediate', 25,
-        '2025-03-25 13:00:00+00', '2025-03-25 14:30:00+00'),
-       ('Strength and Conditioning', 'An intense workout program aimed at improving strength and endurance.', 'all', 18,
-        '2025-03-30 17:00:00+00', '2025-03-30 19:00:00+00');
+INSERT INTO public.practices (name, description, level, capacity)
+VALUES
+    ('Yoga for Beginners', 'A gentle introduction to yoga, perfect for those new to the practice.', 'beginner', 20),
+    ('Intermediate Swimming', 'Build on your swimming skills with intermediate-level techniques.', 'intermediate', 15),
+    ('Advanced Tennis', 'Refine your tennis game with advanced drills and strategies.', 'advanced', 12),
+    ('Basketball Training', 'Focused training on basketball shooting techniques and teamwork.', 'intermediate', 25),
+    ('Strength and Conditioning', 'An intense workout program aimed at improving strength and endurance.', 'all', 18);
+
 
 INSERT INTO public.games (name, video_link)
 VALUES ('Football Match 2025', 'https://example.com/video/football-2025'),

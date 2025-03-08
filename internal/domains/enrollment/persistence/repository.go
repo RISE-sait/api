@@ -2,7 +2,6 @@ package enrollment
 
 import (
 	"api/internal/constants"
-	"api/internal/domains/enrollment/entity"
 	db "api/internal/domains/enrollment/persistence/sqlc/generated"
 	"api/internal/domains/enrollment/values"
 	errLib "api/internal/libs/errors"
@@ -16,8 +15,6 @@ import (
 	"github.com/google/uuid"
 )
 
-var _ RepositoryInterface = (*Repository)(nil)
-
 type Repository struct {
 	Queries *db.Queries
 }
@@ -28,7 +25,7 @@ func NewEnrollmentRepository(dbQueries *db.Queries) *Repository {
 	}
 }
 
-func (r *Repository) GetEnrollments(c context.Context, eventId, customerId uuid.UUID) ([]entity.Enrollment, *errLib.CommonError) {
+func (r *Repository) GetEnrollments(c context.Context, eventId, customerId uuid.UUID) ([]values.EnrollmentReadDetails, *errLib.CommonError) {
 
 	var args db.GetCustomerEnrollmentsParams
 
@@ -49,10 +46,10 @@ func (r *Repository) GetEnrollments(c context.Context, eventId, customerId uuid.
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	enrollments := make([]entity.Enrollment, len(dbEnrollments))
+	enrollments := make([]values.EnrollmentReadDetails, len(dbEnrollments))
 
 	for i, enrollment := range dbEnrollments {
-		enrollments[i] = entity.Enrollment{
+		enrollments[i] = values.EnrollmentReadDetails{
 			ID:          enrollment.ID,
 			CustomerID:  enrollment.CustomerID,
 			EventID:     enrollment.EventID,
@@ -80,7 +77,9 @@ func (r *Repository) UnEnrollCustomer(c context.Context, id uuid.UUID) *errLib.C
 	return nil
 }
 
-func (r *Repository) EnrollCustomer(c context.Context, input values.EnrollmentDetails) (*entity.Enrollment, *errLib.CommonError) {
+func (r *Repository) EnrollCustomer(c context.Context, input values.EnrollmentCreateDetails) (values.EnrollmentReadDetails, *errLib.CommonError) {
+
+	var returnedValues values.EnrollmentReadDetails
 
 	params := db.EnrollCustomerParams{
 		CustomerID: input.CustomerId,
@@ -88,7 +87,7 @@ func (r *Repository) EnrollCustomer(c context.Context, input values.EnrollmentDe
 		CheckedInAt: sql.NullTime{
 			Valid: false,
 		},
-		IsCancelled: input.IsCancelled,
+		IsCancelled: false,
 	}
 
 	enrollment, err := r.Queries.EnrollCustomer(c, params)
@@ -98,15 +97,15 @@ func (r *Repository) EnrollCustomer(c context.Context, input values.EnrollmentDe
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) && pqErr.Code == database_errors.UniqueViolation {
 			// Return a custom error for unique violation
-			return nil, errLib.New("Duplicate info", http.StatusConflict)
+			return returnedValues, errLib.New("Duplicate info", http.StatusConflict)
 		}
 
 		// Return a generic internal server error for other cases
 		log.Println("error creating enrollment: ", err)
-		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+		return returnedValues, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return &entity.Enrollment{
+	return values.EnrollmentReadDetails{
 		ID:          enrollment.ID,
 		CustomerID:  enrollment.CustomerID,
 		EventID:     enrollment.EventID,

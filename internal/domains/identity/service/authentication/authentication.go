@@ -2,9 +2,7 @@ package authentication
 
 import (
 	"api/internal/di"
-	userInfoTempRepo "api/internal/domains/identity/persistence/repository/pending_users"
-	staffRepo "api/internal/domains/identity/persistence/repository/staff"
-	"api/internal/domains/identity/persistence/repository/user"
+	identityRepo "api/internal/domains/identity/persistence/repository"
 	"api/internal/domains/identity/service/firebase"
 	"api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
@@ -13,23 +11,24 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 type Service struct {
 	FirebaseService  *firebase.Service
 	HubSpotService   *hubspot.Service
-	UserRepo         *user.Repository
-	StaffRepo        *staffRepo.Repository
-	UserInfoTempRepo *userInfoTempRepo.PendingUsersRepo
+	UserRepo         *identityRepo.UsersRepository
+	StaffRepo        *identityRepo.StaffRepository
+	UserInfoTempRepo *identityRepo.PendingUsersRepo
 }
 
 func NewAuthenticationService(container *di.Container) *Service {
 
 	return &Service{
 		FirebaseService:  firebase.NewFirebaseService(container),
-		UserRepo:         user.NewUserRepository(container),
-		StaffRepo:        staffRepo.NewStaffRepository(container),
-		UserInfoTempRepo: userInfoTempRepo.NewPendingUserInfoRepository(container),
+		UserRepo:         identityRepo.NewUserRepository(container),
+		StaffRepo:        identityRepo.NewStaffRepository(container),
+		UserInfoTempRepo: identityRepo.NewPendingUserInfoRepository(container),
 		HubSpotService:   container.HubspotService,
 	}
 }
@@ -75,11 +74,20 @@ func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string,
 		HubspotID: hubspotId,
 	}
 
+	age, ageErr := strconv.Atoi(hubspotResponse.Properties.Age)
+	if ageErr != nil {
+		return "", userInfo, errLib.New("Invalid age. Internal error", http.StatusInternalServerError)
+	}
+
 	userInfo = identity.UserAuthenticationResponseInfo{
-		//Age:       hubspotResponse.Properties.,
 		FirstName: hubspotResponse.Properties.FirstName,
 		LastName:  hubspotResponse.Properties.LastName,
 		Role:      "Athlete",
+		Age:       age,
+	}
+
+	if hubspotResponse.Properties.Phone != "" {
+		userInfo.Phone = &hubspotResponse.Properties.Phone
 	}
 
 	staffInfo, err := s.StaffRepo.GetStaffByUserId(ctx, userId)

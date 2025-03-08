@@ -1,12 +1,4 @@
 services:
-  test:
-   build:
-     context: .
-     dockerfile: tests.Dockerfile
-   container_name: '${COMPOSE_PROJECT_NAME}_tests'
-   env_file:
-     - ./config/.env
-     - ./config/.env.local  # Load .env.local after .env for priority
 
   seed:
    build:

@@ -11,4 +11,4 @@ RUN go mod download
 COPY . .
 
 # Run tests
-ENTRYPOINT ["go", "test", "./internal/services/hubspot"]
+ENTRYPOINT ["go", "test", "./..."]

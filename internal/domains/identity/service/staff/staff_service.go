@@ -2,8 +2,7 @@ package staff
 
 import (
 	"api/internal/di"
-	staffRepo "api/internal/domains/identity/persistence/repository/staff"
-	"api/internal/domains/identity/persistence/repository/user"
+	identityRepo "api/internal/domains/identity/persistence/repository"
 	staffValues "api/internal/domains/user/values/staff"
 	"api/internal/services/hubspot"
 	"github.com/google/uuid"
@@ -19,8 +18,8 @@ import (
 
 type RegistrationService struct {
 	HubSpotService  *hubspot.Service
-	UsersRepository *user.Repository
-	StaffRepository *staffRepo.Repository
+	UsersRepository *identityRepo.UsersRepository
+	StaffRepository *identityRepo.StaffRepository
 	DB              *sql.DB
 }
 
@@ -29,9 +28,9 @@ func NewStaffRegistrationService(
 ) *RegistrationService {
 
 	return &RegistrationService{
-		StaffRepository: staffRepo.NewStaffRepository(container),
+		StaffRepository: identityRepo.NewStaffRepository(container),
 		DB:              container.DB,
-		UsersRepository: user.NewUserRepository(container),
+		UsersRepository: identityRepo.NewUserRepository(container),
 		HubSpotService:  container.HubspotService,
 	}
 }

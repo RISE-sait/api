@@ -5,5 +5,6 @@ type UserAuthenticationResponseDto struct {
 	LastName  string  `json:"last_name"`
 	Email     *string `json:"email,omitempty"`
 	Role      string  `json:"role"`
+	Phone     *string `json:"phone,omitempty"`
 	Age       int     `json:"age"`
 }

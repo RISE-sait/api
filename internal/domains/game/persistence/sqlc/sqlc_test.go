@@ -174,9 +174,11 @@ func TestUpdateNonExistentCourse(t *testing.T) {
 		Description: sql.NullString{String: "Updated course description", Valid: true},
 	}
 
-	_, err := queries.UpdateCourse(context.Background(), updateParams)
+	row, err := queries.UpdateCourse(context.Background(), updateParams)
 
-	require.Error(t, err)
+	require.Equal(t, int64(0), row)
+
+	require.Nil(t, err)
 }
 
 func TestCreateCourseWithNullDescription(t *testing.T) {

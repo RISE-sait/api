@@ -29,6 +29,8 @@ type UserProps struct {
 	FirstName string `json:"firstname"`
 	LastName  string `json:"lastname"`
 	Email     string `json:"email"`
+	Phone     string `json:"phone"`
+	Age       string `json:"age"`
 }
 
 type UserAssociations struct {

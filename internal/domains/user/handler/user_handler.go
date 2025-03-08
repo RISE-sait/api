@@ -2,7 +2,7 @@ package user
 
 import (
 	"api/internal/di"
-	enrollmentRepo "api/internal/domains/enrollment/persistence/repository/enrollment"
+	enrollmentRepo "api/internal/domains/enrollment/persistence"
 	enrollmentService "api/internal/domains/enrollment/service"
 	dto "api/internal/domains/user/dto/user"
 	userRepo "api/internal/domains/user/persistence/repository/user"

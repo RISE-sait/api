@@ -1,9 +1,9 @@
 package enrollment
 
 import (
-	"api/internal/domains/enrollment/dto"
-	"api/internal/domains/enrollment/entity"
+	dto "api/internal/domains/enrollment/dto"
 	service "api/internal/domains/enrollment/service"
+	"api/internal/domains/enrollment/values"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
@@ -34,8 +34,7 @@ func NewHandler(service *service.Service) *Handler {
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /enrollments [post]
 func (h *Handler) CreateEnrollment(w http.ResponseWriter, r *http.Request) {
-	var requestDto dto.EnrollmentRequestDto
-
+	var requestDto dto.CreateRequestDto
 	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
@@ -48,14 +47,14 @@ func (h *Handler) CreateEnrollment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	createdEnrollment, err := h.Service.EnrollCustomer(r.Context(), *enrollmentDetails)
+	createdEnrollment, err := h.Service.EnrollCustomer(r.Context(), enrollmentDetails)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	responseBody := mapEntityToResponse(createdEnrollment)
+	responseBody := mapReadDetailsToResponse(createdEnrollment)
 
 	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusCreated)
 }
@@ -116,10 +115,10 @@ func (h *Handler) GetEnrollments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseData := make([]dto.EnrollmentResponse, len(enrollments))
+	responseData := make([]dto.ResponseDto, len(enrollments))
 
 	for i, enrollment := range enrollments {
-		responseData[i] = mapEntityToResponse(&enrollment)
+		responseData[i] = mapReadDetailsToResponse(enrollment)
 	}
 
 	responseHandlers.RespondWithSuccess(w, responseData, http.StatusOK)
@@ -155,8 +154,8 @@ func (h *Handler) DeleteEnrollment(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-func mapEntityToResponse(enrollment *entity.Enrollment) dto.EnrollmentResponse {
-	return dto.EnrollmentResponse{
+func mapReadDetailsToResponse(enrollment values.EnrollmentReadDetails) dto.ResponseDto {
+	return dto.ResponseDto{
 		ID:          enrollment.ID,
 		CustomerID:  enrollment.CustomerID,
 		EventID:     enrollment.EventID,

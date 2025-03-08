@@ -86,7 +86,7 @@ func TestStaffRegistrationRequestDto_ToDetails(t *testing.T) {
 			expectError: false,
 			expectedValues: &identity.StaffRegistrationRequestInfo{
 				HubSpotID: "12345",
-				Details: staffValues.Details{
+				CreateValues: staffValues.CreateValues{
 					RoleName: "Manager",
 					IsActive: true,
 				},
@@ -111,8 +111,8 @@ func TestStaffRegistrationRequestDto_ToDetails(t *testing.T) {
 				assert.Nil(t, err)
 				if tc.expectedValues != nil {
 					assert.Equal(t, tc.expectedValues.HubSpotID, vo.HubSpotID)
-					assert.Equal(t, tc.expectedValues.Details.RoleName, vo.Details.RoleName)
-					assert.Equal(t, tc.expectedValues.Details.IsActive, vo.Details.IsActive)
+					assert.Equal(t, tc.expectedValues.CreateValues.RoleName, vo.CreateValues.RoleName)
+					assert.Equal(t, tc.expectedValues.CreateValues.IsActive, vo.CreateValues.IsActive)
 				}
 			}
 		})

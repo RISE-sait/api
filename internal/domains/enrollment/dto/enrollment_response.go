@@ -1,11 +1,11 @@
-package dto
+package enrollment
 
 import (
 	"github.com/google/uuid"
 	"time"
 )
 
-type EnrollmentResponse struct {
+type ResponseDto struct {
 	ID          uuid.UUID `json:"id"`
 	CustomerID  uuid.UUID `json:"customer_id"`
 	EventID     uuid.UUID `json:"event_id"`

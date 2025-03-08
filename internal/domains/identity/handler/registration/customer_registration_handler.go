@@ -67,7 +67,7 @@ func (h *CustomerRegistrationHandlers) RegisterCustomer(w http.ResponseWriter, r
 	}
 
 	// Step 3: Call the service to create the customer account
-	if err := h.CustomerRegistrationService.RegisterCustomer(r.Context(), valueObject); err != nil {
+	if err = h.CustomerRegistrationService.RegisterCustomer(r.Context(), valueObject); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

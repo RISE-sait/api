@@ -15,8 +15,8 @@ import (
 
 type ChildRegistrationService struct {
 	HubSpotService          *hubspot.Service
-	PendingUsersRepository  pendingUsers.IPendingUsersRepository
-	WaiverSigningRepository waiverSigningRepo.IRepository
+	PendingUsersRepository  *pendingUsers.PendingUsersRepo
+	WaiverSigningRepository *waiverSigningRepo.PendingUserWaiverSigningRepository
 	DB                      *sql.DB
 }
 

@@ -18,9 +18,9 @@ import (
 type Service struct {
 	FirebaseService  *firebase.Service
 	HubSpotService   *hubspot.Service
-	UserRepo         user.IRepository
-	StaffRepo        staffRepo.RepositoryInterface
-	UserInfoTempRepo userInfoTempRepo.IPendingUsersRepository
+	UserRepo         *user.Repository
+	StaffRepo        *staffRepo.Repository
+	UserInfoTempRepo *userInfoTempRepo.PendingUsersRepo
 }
 
 func NewAuthenticationService(container *di.Container) *Service {

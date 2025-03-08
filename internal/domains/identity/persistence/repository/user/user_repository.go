@@ -20,8 +20,6 @@ type Repository struct {
 	Queries *db.Queries
 }
 
-var _ IRepository = (*Repository)(nil)
-
 // NewUserRepository creates a new instance of UserRepository with the provided dependency injection container.
 func NewUserRepository(container *di.Container) *Repository {
 	return &Repository{

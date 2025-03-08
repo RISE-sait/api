@@ -25,8 +25,6 @@ func NewWaiverSigningRepository(container *di.Container) *Repository {
 	}
 }
 
-var _ IRepository = (*Repository)(nil)
-
 func (r *Repository) CreateWaiverSigningRecordTx(ctx context.Context, tx *sql.Tx, userId uuid.UUID, waiverUrl string, isSigned bool) *errLib.CommonError {
 
 	txQueries := r.Queries.WithTx(tx)

@@ -14,9 +14,9 @@ import (
 
 // CustomerRegistrationService handles customer registration and related operations.
 type CustomerRegistrationService struct {
-	UserRepo                user.IRepository
-	UserInfoTempRepo        pendingUsersRepo.IPendingUsersRepository
-	WaiverSigningRepository waiverSigningRepo.IRepository
+	UserRepo                *user.Repository
+	UserInfoTempRepo        *pendingUsersRepo.PendingUsersRepo
+	WaiverSigningRepository *waiverSigningRepo.PendingUserWaiverSigningRepository
 	DB                      *sql.DB
 }
 

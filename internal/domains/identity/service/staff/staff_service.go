@@ -20,7 +20,7 @@ import (
 type RegistrationService struct {
 	HubSpotService  *hubspot.Service
 	UsersRepository user.IRepository
-	StaffRepository staffRepo.RepositoryInterface
+	StaffRepository *staffRepo.Repository
 	DB              *sql.DB
 }
 
@@ -108,7 +108,7 @@ func (s *RegistrationService) RegisterStaff(
 		return errLib.New("RoleName does not exist. Available roles: "+strings.Join(staffRoles, ", "), http.StatusBadRequest)
 	}
 
-	if err := s.StaffRepository.AssignStaffRoleAndStatusTx(ctx, tx, *userId, role, isActive); err != nil {
+	if err = s.StaffRepository.AssignStaffRoleAndStatusTx(ctx, tx, *userId, role, isActive); err != nil {
 		tx.Rollback()
 		return err
 	}

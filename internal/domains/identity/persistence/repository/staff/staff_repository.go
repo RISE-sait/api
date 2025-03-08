@@ -25,8 +25,6 @@ func NewStaffRepository(container *di.Container) *Repository {
 	}
 }
 
-var _ RepositoryInterface = (*Repository)(nil)
-
 func (r *Repository) GetStaffByUserId(ctx context.Context, id uuid.UUID) (values.ReadValues, *errLib.CommonError) {
 	dbStaff, err := r.Queries.GetStaffById(ctx, id)
 

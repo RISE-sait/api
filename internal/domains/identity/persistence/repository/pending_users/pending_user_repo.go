@@ -24,8 +24,6 @@ func NewPendingUserInfoRepository(container *di.Container) *PendingUsersRepo {
 	}
 }
 
-var _ IPendingUsersRepository = (*PendingUsersRepo)(nil)
-
 func (r *PendingUsersRepo) CreatePendingUserInfoTx(ctx context.Context, tx *sql.Tx, firstName, lastName string, email, parentHubspotId *string, age int) (uuid.UUID, *errLib.CommonError) {
 
 	queries := r.Queries

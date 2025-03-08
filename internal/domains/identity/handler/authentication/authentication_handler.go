@@ -2,7 +2,7 @@ package authentication
 
 import (
 	"api/internal/di"
-	identity "api/internal/domains/identity/dto/common"
+	dto "api/internal/domains/identity/dto/common"
 	service "api/internal/domains/identity/service/authentication"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
@@ -29,7 +29,7 @@ func NewHandlers(container *di.Container) *Handlers {
 // @Accept json
 // @Produce json
 // @Param firebase_token header string true "Firebase token for user verification" // Firebase token in the Authorization header
-// @Success 200 {object} identity.UserNecessaryInfoRequestDto "User authenticated successfully"
+// @Success 200 {object} dto.UserAuthenticationResponseDto "User authenticated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid Firebase token"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /auth [post]
@@ -50,7 +50,7 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseBody := identity.UserNecessaryInfoRequestDto{
+	responseBody := dto.UserAuthenticationResponseDto{
 		FirstName: userInfo.FirstName,
 		LastName:  userInfo.LastName,
 		Role:      userInfo.Role,
@@ -88,7 +88,7 @@ func (h *Handlers) LoginAsChild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseBody := identity.UserNecessaryInfoRequestDto{
+	responseBody := dto.UserNecessaryInfoRequestDto{
 		FirstName: userInfo.FirstName,
 		LastName:  userInfo.LastName,
 		Age:       0,

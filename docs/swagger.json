@@ -31,7 +31,7 @@
                     "200": {
                         "description": "User authenticated successfully",
                         "schema": {
-                            "$ref": "#/definitions/identity.UserNecessaryInfoRequestDto"
+                            "$ref": "#/definitions/identity.UserAuthenticationResponseDto"
                         }
                     },
                     "400": {
@@ -3504,9 +3504,6 @@
                 "last_name": {
                     "type": "string"
                 },
-                "role": {
-                    "type": "string"
-                },
                 "waivers": {
                     "type": "array",
                     "items": {
@@ -3944,6 +3941,26 @@
                 }
             }
         },
+        "identity.UserAuthenticationResponseDto": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                }
+            }
+        },
         "identity.UserNecessaryInfoRequestDto": {
             "type": "object",
             "required": [
@@ -3959,9 +3976,6 @@
                     "type": "string"
                 },
                 "last_name": {
-                    "type": "string"
-                },
-                "role": {
                     "type": "string"
                 }
             }

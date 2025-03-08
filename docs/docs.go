@@ -41,7 +41,7 @@ const docTemplate = `{
                     "200": {
                         "description": "User authenticated successfully",
                         "schema": {
-                            "$ref": "#/definitions/identity.UserNecessaryInfoRequestDto"
+                            "$ref": "#/definitions/identity.UserAuthenticationResponseDto"
                         }
                     },
                     "400": {
@@ -3514,9 +3514,6 @@ const docTemplate = `{
                 "last_name": {
                     "type": "string"
                 },
-                "role": {
-                    "type": "string"
-                },
                 "waivers": {
                     "type": "array",
                     "items": {
@@ -3954,6 +3951,26 @@ const docTemplate = `{
                 }
             }
         },
+        "identity.UserAuthenticationResponseDto": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                }
+            }
+        },
         "identity.UserNecessaryInfoRequestDto": {
             "type": "object",
             "required": [
@@ -3969,9 +3986,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "last_name": {
-                    "type": "string"
-                },
-                "role": {
                     "type": "string"
                 }
             }

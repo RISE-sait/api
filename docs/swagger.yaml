@@ -27,8 +27,6 @@ definitions:
         type: string
       last_name:
         type: string
-      role:
-        type: string
       waivers:
         items:
           $ref: '#/definitions/customer.WaiverSigningRequestDto'
@@ -324,6 +322,19 @@ definitions:
       updatedAt:
         type: string
     type: object
+  identity.UserAuthenticationResponseDto:
+    properties:
+      age:
+        type: integer
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      role:
+        type: string
+    type: object
   identity.UserNecessaryInfoRequestDto:
     properties:
       age:
@@ -331,8 +342,6 @@ definitions:
       first_name:
         type: string
       last_name:
-        type: string
-      role:
         type: string
     required:
     - age
@@ -476,7 +485,7 @@ paths:
         "200":
           description: User authenticated successfully
           schema:
-            $ref: '#/definitions/identity.UserNecessaryInfoRequestDto'
+            $ref: '#/definitions/identity.UserAuthenticationResponseDto'
         "400":
           description: 'Bad Request: Invalid Firebase token'
           schema:

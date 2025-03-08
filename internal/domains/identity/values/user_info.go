@@ -9,6 +9,13 @@ type UserRegistrationRequestNecessaryInfo struct {
 	Age       int
 	FirstName string
 	LastName  string
+}
+
+type UserAuthenticationResponseInfo struct {
+	Age       int
+	FirstName string
+	LastName  string
+	Email     *string
 	Role      string
 }
 

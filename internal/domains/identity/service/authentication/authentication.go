@@ -13,6 +13,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 type Service struct {
@@ -75,11 +76,20 @@ func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string,
 		HubspotID: hubspotId,
 	}
 
+	age, ageErr := strconv.Atoi(hubspotResponse.Properties.Age)
+	if ageErr != nil {
+		return "", userInfo, errLib.New("Invalid age. Internal error", http.StatusInternalServerError)
+	}
+
 	userInfo = identity.UserAuthenticationResponseInfo{
-		//Age:       hubspotResponse.Properties.,
 		FirstName: hubspotResponse.Properties.FirstName,
 		LastName:  hubspotResponse.Properties.LastName,
 		Role:      "Athlete",
+		Age:       age,
+	}
+
+	if hubspotResponse.Properties.Phone != "" {
+		userInfo.Phone = &hubspotResponse.Properties.Phone
 	}
 
 	staffInfo, err := s.StaffRepo.GetStaffByUserId(ctx, userId)

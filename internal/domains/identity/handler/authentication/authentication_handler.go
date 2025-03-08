@@ -54,7 +54,8 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 		FirstName: userInfo.FirstName,
 		LastName:  userInfo.LastName,
 		Role:      userInfo.Role,
-		Age:       0,
+		Phone:     userInfo.Phone,
+		Age:       userInfo.Age,
 	}
 
 	w.Header().Set("Authorization", "Bearer "+jwtToken)

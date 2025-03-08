@@ -17,6 +17,7 @@ type UserAuthenticationResponseInfo struct {
 	LastName  string
 	Email     *string
 	Role      string
+	Phone     *string
 }
 
 type RegularCustomerRegistrationRequestInfo struct {

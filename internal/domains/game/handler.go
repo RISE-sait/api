@@ -2,7 +2,7 @@ package game
 
 import (
 	dto "api/internal/domains/game/dto"
-	repository "api/internal/domains/game/persistence/repository"
+	repository "api/internal/domains/game/persistence"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -11,10 +11,10 @@ import (
 )
 
 type Handler struct {
-	Repo repository.RepositoryInterface
+	Repo *repository.Repository
 }
 
-func NewHandler(repo repository.RepositoryInterface) *Handler {
+func NewHandler(repo *repository.Repository) *Handler {
 	return &Handler{Repo: repo}
 }
 

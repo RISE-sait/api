@@ -11,10 +11,10 @@ import (
 )
 
 type Handler struct {
-	Repo persistence.RepositoryInterface
+	Repo *persistence.Repository
 }
 
-func NewHandler(repo persistence.RepositoryInterface) *Handler {
+func NewHandler(repo *persistence.Repository) *Handler {
 	return &Handler{Repo: repo}
 }
 

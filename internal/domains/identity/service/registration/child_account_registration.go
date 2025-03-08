@@ -2,7 +2,7 @@ package registration
 
 import (
 	"api/internal/di"
-	pendingUsers "api/internal/domains/identity/persistence/repository/pending_users"
+	pendingUsers "api/internal/domains/identity/persistence/repository"
 	waiverSigningRepo "api/internal/domains/identity/persistence/repository/waiver_signing"
 	"api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"

@@ -1,4 +1,4 @@
-package staff
+package identity
 
 import (
 	databaseErrors "api/internal/constants"
@@ -15,17 +15,17 @@ import (
 	"net/http"
 )
 
-type Repository struct {
+type StaffRepository struct {
 	Queries *db.Queries
 }
 
-func NewStaffRepository(container *di.Container) *Repository {
-	return &Repository{
+func NewStaffRepository(container *di.Container) *StaffRepository {
+	return &StaffRepository{
 		Queries: container.Queries.IdentityDb,
 	}
 }
 
-func (r *Repository) GetStaffByUserId(ctx context.Context, id uuid.UUID) (values.ReadValues, *errLib.CommonError) {
+func (r *StaffRepository) GetStaffByUserId(ctx context.Context, id uuid.UUID) (values.ReadValues, *errLib.CommonError) {
 	dbStaff, err := r.Queries.GetStaffById(ctx, id)
 
 	if err != nil {
@@ -47,7 +47,7 @@ func (r *Repository) GetStaffByUserId(ctx context.Context, id uuid.UUID) (values
 	}, nil
 }
 
-func (r *Repository) GetStaffRolesTx(ctx context.Context, tx *sql.Tx) ([]string, *errLib.CommonError) {
+func (r *StaffRepository) GetStaffRolesTx(ctx context.Context, tx *sql.Tx) ([]string, *errLib.CommonError) {
 	txQueries := r.Queries.WithTx(tx)
 
 	dbRoles, err := txQueries.GetStaffRoles(ctx)
@@ -66,7 +66,7 @@ func (r *Repository) GetStaffRolesTx(ctx context.Context, tx *sql.Tx) ([]string,
 	return roles, nil
 }
 
-func (r *Repository) AssignStaffRoleAndStatusTx(ctx context.Context, tx *sql.Tx, id uuid.UUID, role string, isActive bool) *errLib.CommonError {
+func (r *StaffRepository) AssignStaffRoleAndStatusTx(ctx context.Context, tx *sql.Tx, id uuid.UUID, role string, isActive bool) *errLib.CommonError {
 
 	params := db.CreateStaffParams{
 		ID:       id,

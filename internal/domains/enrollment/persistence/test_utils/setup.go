@@ -19,12 +19,11 @@ func SetupEnrollmentTestDb(t *testing.T, testDb *sql.DB) (*db.Queries, func()) {
     checked_in_at TIMESTAMPTZ NULL,
     is_cancelled BOOLEAN DEFAULT FALSE,
     CONSTRAINT fk_event FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-    CONSTRAINT fk_customer FOREIGN KEY (customer_id) REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT fk_customer FOREIGN KEY (customer_id) REFERENCES users.users (id) ON DELETE CASCADE,
     CONSTRAINT unique_customer_event UNIQUE (customer_id, event_id),
     CONSTRAINT chk_cancelled_checked_in CHECK (
         NOT (is_cancelled AND checked_in_at IS NOT NULL)
     )
-);
 );`
 
 	_, err := testDb.Exec(migrationScript)

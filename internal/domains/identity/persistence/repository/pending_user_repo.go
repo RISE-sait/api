@@ -1,4 +1,4 @@
-package user_info_temp_repo
+package identity
 
 import (
 	"api/internal/di"

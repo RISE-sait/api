@@ -2,9 +2,7 @@ package authentication
 
 import (
 	"api/internal/di"
-	userInfoTempRepo "api/internal/domains/identity/persistence/repository/pending_users"
-	staffRepo "api/internal/domains/identity/persistence/repository/staff"
-	"api/internal/domains/identity/persistence/repository/user"
+	identityRepo "api/internal/domains/identity/persistence/repository"
 	"api/internal/domains/identity/service/firebase"
 	"api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
@@ -19,18 +17,18 @@ import (
 type Service struct {
 	FirebaseService  *firebase.Service
 	HubSpotService   *hubspot.Service
-	UserRepo         *user.Repository
-	StaffRepo        *staffRepo.Repository
-	UserInfoTempRepo *userInfoTempRepo.PendingUsersRepo
+	UserRepo         *identityRepo.UsersRepository
+	StaffRepo        *identityRepo.StaffRepository
+	UserInfoTempRepo *identityRepo.PendingUsersRepo
 }
 
 func NewAuthenticationService(container *di.Container) *Service {
 
 	return &Service{
 		FirebaseService:  firebase.NewFirebaseService(container),
-		UserRepo:         user.NewUserRepository(container),
-		StaffRepo:        staffRepo.NewStaffRepository(container),
-		UserInfoTempRepo: userInfoTempRepo.NewPendingUserInfoRepository(container),
+		UserRepo:         identityRepo.NewUserRepository(container),
+		StaffRepo:        identityRepo.NewStaffRepository(container),
+		UserInfoTempRepo: identityRepo.NewPendingUserInfoRepository(container),
 		HubSpotService:   container.HubspotService,
 	}
 }

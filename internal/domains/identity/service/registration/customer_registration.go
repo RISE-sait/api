@@ -2,8 +2,7 @@ package registration
 
 import (
 	"api/internal/di"
-	pendingUsersRepo "api/internal/domains/identity/persistence/repository/pending_users"
-	"api/internal/domains/identity/persistence/repository/user"
+	identityRepo "api/internal/domains/identity/persistence/repository"
 	waiverSigningRepo "api/internal/domains/identity/persistence/repository/waiver_signing"
 	"api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
@@ -14,8 +13,8 @@ import (
 
 // CustomerRegistrationService handles customer registration and related operations.
 type CustomerRegistrationService struct {
-	UserRepo                *user.Repository
-	UserInfoTempRepo        *pendingUsersRepo.PendingUsersRepo
+	UserRepo                *identityRepo.UsersRepository
+	UserInfoTempRepo        *identityRepo.PendingUsersRepo
 	WaiverSigningRepository *waiverSigningRepo.PendingUserWaiverSigningRepository
 	DB                      *sql.DB
 }
@@ -23,9 +22,9 @@ type CustomerRegistrationService struct {
 // NewCustomerRegistrationService initializes a new CustomerRegistrationService instance.
 func NewCustomerRegistrationService(container *di.Container) *CustomerRegistrationService {
 	return &CustomerRegistrationService{
-		UserRepo:                user.NewUserRepository(container),
+		UserRepo:                identityRepo.NewUserRepository(container),
 		WaiverSigningRepository: waiverSigningRepo.NewPendingUserWaiverSigningRepository(container),
-		UserInfoTempRepo:        pendingUsersRepo.NewPendingUserInfoRepository(container),
+		UserInfoTempRepo:        identityRepo.NewPendingUserInfoRepository(container),
 		DB:                      container.DB,
 	}
 }

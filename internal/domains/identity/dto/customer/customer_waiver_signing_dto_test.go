@@ -56,6 +56,16 @@ func TestCustomerWaiverSigningDto_ToValueObjects(t *testing.T) {
 			},
 			expectedError: nil,
 		},
+		{
+			name: "Missing waiver signed value",
+			input: WaiverSigningRequestDto{
+				WaiverUrl: "https://example.com/waiver",
+			},
+			expectedValue: &identity.CustomerWaiverSigning{
+				WaiverUrl: "https://example.com/waiver",
+			},
+			expectedError: nil,
+		},
 	}
 
 	for _, tt := range tests {

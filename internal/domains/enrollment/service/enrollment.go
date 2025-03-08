@@ -1,8 +1,7 @@
 package enrollment
 
 import (
-	"api/internal/domains/enrollment/entity"
-	enrollmentRepo "api/internal/domains/enrollment/persistence/repository/enrollment"
+	enrollmentRepo "api/internal/domains/enrollment/persistence"
 	"api/internal/domains/enrollment/values"
 	errLib "api/internal/libs/errors"
 	"context"
@@ -21,23 +20,25 @@ func NewEnrollmentService(enrollmentRepo *enrollmentRepo.Repository) *Service {
 	}
 }
 
-func (s *Service) EnrollCustomer(ctx context.Context, details values.EnrollmentDetails) (*entity.Enrollment, *errLib.CommonError) {
+func (s *Service) EnrollCustomer(ctx context.Context, details values.EnrollmentCreateDetails) (values.EnrollmentReadDetails, *errLib.CommonError) {
+
+	var readDetails values.EnrollmentReadDetails
 
 	isFull, err := s.EnrollmentRepository.GetEventIsFull(ctx, details.EventId)
 
 	if err != nil {
-		return nil, err
+		return readDetails, err
 	}
 
 	if *isFull {
-		return nil, errLib.New("Event is full", http.StatusConflict)
+		return readDetails, errLib.New("Event is full", http.StatusConflict)
 	}
 
 	return s.EnrollmentRepository.EnrollCustomer(ctx, details)
 
 }
 
-func (s *Service) GetEnrollments(ctx context.Context, eventId, customerId uuid.UUID) ([]entity.Enrollment, *errLib.CommonError) {
+func (s *Service) GetEnrollments(ctx context.Context, eventId, customerId uuid.UUID) ([]values.EnrollmentReadDetails, *errLib.CommonError) {
 	return s.EnrollmentRepository.GetEnrollments(ctx, eventId, customerId)
 }
 

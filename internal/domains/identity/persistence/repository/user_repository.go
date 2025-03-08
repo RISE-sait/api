@@ -1,4 +1,4 @@
-package user
+package identity
 
 import (
 	databaseErrors "api/internal/constants"
@@ -15,19 +15,19 @@ import (
 	"github.com/lib/pq"
 )
 
-// Repository provides methods to interact with the user data in the database.
-type Repository struct {
+// UsersRepository provides methods to interact with the user data in the database.
+type UsersRepository struct {
 	Queries *db.Queries
 }
 
 // NewUserRepository creates a new instance of UserRepository with the provided dependency injection container.
-func NewUserRepository(container *di.Container) *Repository {
-	return &Repository{
+func NewUserRepository(container *di.Container) *UsersRepository {
+	return &UsersRepository{
 		Queries: container.Queries.IdentityDb,
 	}
 }
 
-func (r *Repository) CreateUserTx(ctx context.Context, tx *sql.Tx, hubspotID string) (*uuid.UUID, *errLib.CommonError) {
+func (r *UsersRepository) CreateUserTx(ctx context.Context, tx *sql.Tx, hubspotID string) (*uuid.UUID, *errLib.CommonError) {
 
 	queries := r.Queries
 
@@ -54,7 +54,7 @@ func (r *Repository) CreateUserTx(ctx context.Context, tx *sql.Tx, hubspotID str
 	return &user.ID, nil
 }
 
-func (r *Repository) GetUserIdByHubspotId(ctx context.Context, id string) (uuid.UUID, *errLib.CommonError) {
+func (r *UsersRepository) GetUserIdByHubspotId(ctx context.Context, id string) (uuid.UUID, *errLib.CommonError) {
 
 	user, err := r.Queries.GetUserByHubSpotId(ctx, id)
 
@@ -70,7 +70,7 @@ func (r *Repository) GetUserIdByHubspotId(ctx context.Context, id string) (uuid.
 	return user.ID, nil
 }
 
-func (r *Repository) UpdateUserHubspotIdTx(ctx context.Context, tx *sql.Tx, userId uuid.UUID, hubspotId string) *errLib.CommonError {
+func (r *UsersRepository) UpdateUserHubspotIdTx(ctx context.Context, tx *sql.Tx, userId uuid.UUID, hubspotId string) *errLib.CommonError {
 
 	queries := r.Queries
 

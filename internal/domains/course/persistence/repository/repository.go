@@ -15,8 +15,6 @@ import (
 	"github.com/google/uuid"
 )
 
-var _ RepositoryInterface = (*Repository)(nil)
-
 type Repository struct {
 	Queries *db.Queries
 }

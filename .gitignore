@@ -26,3 +26,5 @@ tmp/
 
 qodana.yaml
 /config/gcp-service-account.json
+
+server.log

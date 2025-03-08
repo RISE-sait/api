@@ -3,10 +3,10 @@ package main
 import (
 	"api/cmd/server/router"
 	"api/internal/di"
-	"api/internal/services/gcp"
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/go-chi/cors"
 	"os"
 	"os/signal"
 	"syscall"
@@ -34,14 +34,6 @@ func main() {
 
 	diContainer := di.NewContainer()
 	defer diContainer.Cleanup()
-
-	urls, err := gcp.GetFilesInBucket("rise-sports", "haircut")
-
-	if err != nil {
-		log.Fatalf("Failed to get files in bucket: %v", err)
-	}
-
-	log.Println(urls)
 
 	server := &http.Server{
 		Addr:         ":80",
@@ -92,4 +84,12 @@ func setupMiddlewares(router *chi.Mux) {
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
 	router.Use(middlewares.SetJSONContentType)
+
+	router.Use(cors.New(cors.Options{
+		AllowedOrigins:   []string{"https://rise-web-461776259687.us-west2.run.app"}, // Allow this specific origin
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},        // Allowed HTTP methods
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},                  // Allowed headers
+		AllowCredentials: true,                                                       // Allow cookies and credentials
+		Debug:            true,                                                       // Enable CORS debugging
+	}).Handler)
 }

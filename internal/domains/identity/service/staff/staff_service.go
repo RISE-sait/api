@@ -19,7 +19,7 @@ import (
 
 type RegistrationService struct {
 	HubSpotService  *hubspot.Service
-	UsersRepository user.IRepository
+	UsersRepository *user.Repository
 	StaffRepository *staffRepo.Repository
 	DB              *sql.DB
 }

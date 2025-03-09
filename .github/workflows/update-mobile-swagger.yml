@@ -9,7 +9,7 @@ on:
       - '.github/workflows/update-swagger.yml'
 
 jobs:
-  update-swagger:
+  update-mobile-swagger:
     runs-on: ubuntu-latest
 
     steps:
@@ -38,10 +38,10 @@ jobs:
           name: swagger-docs
           path: swagger-output/
 
-      - name: Checkout Frontend Repository
+      - name: Checkout Mobile Repository
         uses: actions/checkout@v4
         with:
-          repository: RISE-sait/Rise-Admin-Shad-Version
+          repository: Mostapha45/RiseMobile
           token: ${{ secrets.FRONTEND_REPO_PAT }}
 
       - name: Download Swagger docs artifact
@@ -51,7 +51,7 @@ jobs:
           path: swagger-output
 
 
-      - name: Copy new Swagger files to frontend
+      - name: Copy new Swagger files to mobile
         run: |
           mkdir -p app/api/docs
           
@@ -66,5 +66,3 @@ jobs:
           git add app/api/docs/
           git commit -m "Updated Swagger docs from API repo" || echo "No changes to commit"
           git push
-          
-      

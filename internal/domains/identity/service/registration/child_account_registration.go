@@ -33,7 +33,7 @@ func NewChildAccountRegistrationService(
 
 func (s *ChildRegistrationService) CreateChildAccount(
 	ctx context.Context,
-	childRegistrationInfo *identity.ChildRegistrationRequestInfo,
+	childRegistrationInfo identity.ChildRegistrationRequestInfo,
 ) *errLib.CommonError {
 
 	for _, waiver := range childRegistrationInfo.Waivers {
@@ -60,7 +60,7 @@ func (s *ChildRegistrationService) CreateChildAccount(
 		return err
 	}
 
-	childId, err := s.PendingUsersRepository.CreatePendingUserInfoTx(ctx, tx, childRegistrationInfo.FirstName, childRegistrationInfo.LastName, nil, &parent.HubSpotId, childRegistrationInfo.Age)
+	childId, err := s.PendingUsersRepository.CreatePendingUserInfoTx(ctx, tx, childRegistrationInfo.FirstName, childRegistrationInfo.LastName, false, false, nil, nil, &parent.HubSpotId, childRegistrationInfo.Age)
 
 	if err != nil {
 		tx.Rollback()

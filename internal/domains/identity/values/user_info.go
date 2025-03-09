@@ -12,19 +12,23 @@ type UserRegistrationRequestNecessaryInfo struct {
 }
 
 type UserAuthenticationResponseInfo struct {
-	Age       int
-	FirstName string
-	LastName  string
-	Email     *string
-	Role      string
-	Phone     *string
+	Age                        int
+	HasConsentToSms            bool
+	HasConsentToEmailMarketing bool
+	FirstName                  string
+	LastName                   string
+	Email                      *string
+	Role                       string
+	Phone                      *string
 }
 
 type RegularCustomerRegistrationRequestInfo struct {
 	UserRegistrationRequestNecessaryInfo
-	Email   string
-	Phone   string
-	Waivers []CustomerWaiverSigning
+	Email                      string
+	Phone                      string
+	HasConsentToSms            bool
+	HasConsentToEmailMarketing bool
+	Waivers                    []CustomerWaiverSigning
 }
 
 type ChildRegistrationRequestInfo struct {
@@ -39,8 +43,11 @@ type StaffRegistrationRequestInfo struct {
 }
 
 type PendingUserReadValues struct {
-	ID        uuid.UUID
-	FirstName string
-	LastName  string
-	Email     *string
+	ID                         uuid.UUID
+	FirstName                  string
+	LastName                   string
+	Phone                      *string
+	HasConsentToSms            bool
+	HasConsentToEmailMarketing bool
+	Email                      *string
 }

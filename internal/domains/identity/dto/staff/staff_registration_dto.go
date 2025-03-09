@@ -8,9 +8,10 @@ import (
 )
 
 type RegistrationRequestDto struct {
-	HubSpotID string `json:"hubspot_id" validate:"required,notwhitespace"`
-	RoleName  string `json:"role_name" validate:"required,notwhitespace"`
-	IsActive  bool   `json:"is_active" validate:"required"`
+	HubSpotID   string `json:"hubspot_id" validate:"required,notwhitespace"`
+	RoleName    string `json:"role_name" validate:"required,notwhitespace"`
+	IsActive    bool   `json:"is_active" validate:"required"`
+	PhoneNumber string `json:"phone_number" validate:"e164" example:"+15141234567"`
 }
 
 func (dto RegistrationRequestDto) ToDetails() (*identity.StaffRegistrationRequestInfo, *errLib.CommonError) {

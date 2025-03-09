@@ -17,7 +17,7 @@ func TestCustomerWaiverSigningDto_ToValueObjects(t *testing.T) {
 		{
 			name: "Valid Input",
 			input: WaiverSigningRequestDto{
-				WaiverUrl:      "https://example.com/waiver",
+				WaiverURL:      "https://example.com/waiver",
 				IsWaiverSigned: true,
 			},
 			expectedValue: &identity.CustomerWaiverSigning{
@@ -29,7 +29,7 @@ func TestCustomerWaiverSigningDto_ToValueObjects(t *testing.T) {
 		{
 			name: "Invalid URL",
 			input: WaiverSigningRequestDto{
-				WaiverUrl:      "invalid-url",
+				WaiverURL:      "invalid-url",
 				IsWaiverSigned: true,
 			},
 			expectedValue: nil,
@@ -38,7 +38,7 @@ func TestCustomerWaiverSigningDto_ToValueObjects(t *testing.T) {
 		{
 			name: "Missing Waiver URL",
 			input: WaiverSigningRequestDto{
-				WaiverUrl:      "",
+				WaiverURL:      "",
 				IsWaiverSigned: true,
 			},
 			expectedValue: nil,
@@ -47,7 +47,7 @@ func TestCustomerWaiverSigningDto_ToValueObjects(t *testing.T) {
 		{
 			name: "IsWaiverSigned Default Value",
 			input: WaiverSigningRequestDto{
-				WaiverUrl:      "https://example.com/waiver",
+				WaiverURL:      "https://example.com/waiver",
 				IsWaiverSigned: false, // Default value
 			},
 			expectedValue: &identity.CustomerWaiverSigning{
@@ -59,7 +59,7 @@ func TestCustomerWaiverSigningDto_ToValueObjects(t *testing.T) {
 		{
 			name: "Missing waiver signed value",
 			input: WaiverSigningRequestDto{
-				WaiverUrl: "https://example.com/waiver",
+				WaiverURL: "https://example.com/waiver",
 			},
 			expectedValue: &identity.CustomerWaiverSigning{
 				WaiverUrl: "https://example.com/waiver",

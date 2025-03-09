@@ -30,7 +30,7 @@ func NewChildRegistrationHandlers(container *di.Container) *ChildRegistrationHan
 // @Tags registration
 // @Accept json
 // @Produce json
-// @Param customer body customer.RegistrationRequestDto true "Child account registration details" // Details for child account registration
+// @Param customer body customer.ChildRegistrationRequestDto true "Child account registration details" // Details for child account registration
 // @Param firebase_token header string true "Firebase token for user verification" // Firebase token in the Authorization header
 // @Success 201 {object} map[string]interface{} "Child account registered successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input or missing Firebase token"
@@ -46,7 +46,7 @@ func (h *ChildRegistrationHandlers) RegisterChild(w http.ResponseWriter, r *http
 		return
 	}
 
-	var dto customer.RegistrationRequestDto
+	var dto customer.ChildRegistrationRequestDto
 
 	if err := validators.ParseJSON(r.Body, &dto); err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -67,9 +67,7 @@ func (h *ChildRegistrationHandlers) RegisterChild(w http.ResponseWriter, r *http
 	}
 
 	// Step 3: Call the service to create the customer account
-	err = h.ChildAccountRegistrationService.CreateChildAccount(r.Context(), valueObject)
-
-	if err != nil {
+	if err = h.ChildAccountRegistrationService.CreateChildAccount(r.Context(), valueObject); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

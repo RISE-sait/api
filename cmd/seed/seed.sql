@@ -1,16 +1,17 @@
 -- Insert staff roles
--- INSERT INTO users.staff_roles (id, role_name) VALUES
---   (gen_random_uuid(), 'INSTRUCTOR'),
---   (gen_random_uuid(), 'ADMIN'),
---   (gen_random_uuid(), 'SUPERADMIN'),
---   (gen_random_uuid(), 'COACH');
+INSERT INTO users.staff_roles (id, role_name) VALUES
+  (gen_random_uuid(), 'INSTRUCTOR'),
+  (gen_random_uuid(), 'ADMIN'),
+  (gen_random_uuid(), 'SUPERADMIN'),
+  (gen_random_uuid(), 'COACH'),
+  (gen_random_uuid(), 'BARBER');
 
 -- Insert users
-INSERT INTO users.users (hubspot_id)
-VALUES (103323445125),
-       (103322588816),
-       (103323445021),
-       (103322588701);
+INSERT INTO users.users (hubspot_id, has_marketing_email_consent, has_sms_consent)
+VALUES (103323445125, true, true),
+       (103322588816, true, false),
+       (103323445021, false, true),
+       (103322588701, true, true);
 
 -- Insert staff members
 INSERT INTO users.staff (id, role_id, is_active)
@@ -298,9 +299,9 @@ VALUES
 -- Mock data for 'Premium Membership' f
 
 
-INSERT INTO users.users (hubspot_id)
-VALUES (103336460047),
-       (103324806199);
+INSERT INTO users.users (hubspot_id, has_sms_consent, has_marketing_email_consent)
+VALUES (103336460047, false, false),
+       (103324806199, true, true);
 
 -- Insert staff members
 INSERT INTO users.staff (id, role_id, is_active)

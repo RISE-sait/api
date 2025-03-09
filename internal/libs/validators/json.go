@@ -94,6 +94,8 @@ func parseValidationErrors(err error, structType reflect.Type) *errLib.CommonErr
 
 			case "email":
 				customMessage = fmt.Sprintf("%s: must be a valid email address", fieldName)
+			case "e164":
+				customMessage = fmt.Sprintf("%s: must be a valid phone number", fieldName)
 			case "min":
 				customMessage = fmt.Sprintf("%s: must be at least %s characters long", fieldName, e.Param())
 			case "required":

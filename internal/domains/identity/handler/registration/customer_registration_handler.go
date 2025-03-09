@@ -30,7 +30,7 @@ func NewCustomerRegistrationHandlers(container *di.Container) *CustomerRegistrat
 // @Tags registration
 // @Accept json
 // @Produce json
-// @Param customer body customer.RegistrationRequestDto true "Customer registration details" // Details for customer registration
+// @Param customer body customer.RegularCustomerRegistrationRequestDto true "Customer registration details" // Details for customer registration
 // @Param firebase_token header string true "Firebase token for user verification" // Firebase token in the Authorization header
 // @Success 201 {object} map[string]interface{} "Customer registered and JWT token issued successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input or missing Firebase token"
@@ -45,7 +45,7 @@ func (h *CustomerRegistrationHandlers) RegisterCustomer(w http.ResponseWriter, r
 		return
 	}
 
-	var dto customer.RegistrationRequestDto
+	var dto customer.RegularCustomerRegistrationRequestDto
 
 	if err := validators.ParseJSON(r.Body, &dto); err != nil {
 		responseHandlers.RespondWithError(w, err)

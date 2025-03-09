@@ -60,7 +60,7 @@ func (s *ChildRegistrationService) CreateChildAccount(
 		return err
 	}
 
-	childId, err := s.PendingUsersRepository.CreatePendingUserInfoTx(ctx, tx, childRegistrationInfo.FirstName, childRegistrationInfo.LastName, false, false, nil, nil, &parent.HubSpotId, childRegistrationInfo.Age)
+	childId, err := s.PendingUsersRepository.CreatePendingUserInfoTx(ctx, tx, childRegistrationInfo.FirstName, childRegistrationInfo.LastName, false, false, false, nil, nil, &parent.HubSpotId, childRegistrationInfo.Age)
 
 	if err != nil {
 		tx.Rollback()
@@ -68,14 +68,14 @@ func (s *ChildRegistrationService) CreateChildAccount(
 	}
 
 	for _, waiver := range childRegistrationInfo.Waivers {
-		if err := s.WaiverSigningRepository.CreateWaiverSigningRecordTx(ctx, tx, childId, waiver.WaiverUrl, waiver.IsWaiverSigned); err != nil {
+		if err = s.WaiverSigningRepository.CreateWaiverSigningRecordTx(ctx, tx, childId, waiver.WaiverUrl, waiver.IsWaiverSigned); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
 
-	if err := tx.Commit(); err != nil {
-		log.Printf("Failed to commit transaction: %v", err)
+	if txErr = tx.Commit(); txErr != nil {
+		log.Printf("Failed to commit transaction: %v", txErr)
 		return errLib.New("Failed to commit transaction but event is logged", http.StatusInternalServerError)
 	}
 

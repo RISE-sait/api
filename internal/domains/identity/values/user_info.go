@@ -1,7 +1,6 @@
 package identity
 
 import (
-	"api/internal/domains/user/values/staff"
 	"github.com/google/uuid"
 )
 
@@ -22,13 +21,17 @@ type UserAuthenticationResponseInfo struct {
 	Phone                      *string
 }
 
-type RegularCustomerRegistrationRequestInfo struct {
+type AdultCustomerRegistrationRequestInfo struct {
 	UserRegistrationRequestNecessaryInfo
 	Email                      string
 	Phone                      string
 	HasConsentToSms            bool
 	HasConsentToEmailMarketing bool
-	Waivers                    []CustomerWaiverSigning
+}
+
+type AthleteRegistrationRequestInfo struct {
+	AdultCustomerRegistrationRequestInfo
+	Waivers []CustomerWaiverSigning
 }
 
 type ChildRegistrationRequestInfo struct {
@@ -37,9 +40,15 @@ type ChildRegistrationRequestInfo struct {
 	Waivers     []CustomerWaiverSigning
 }
 
+type StaffCreateValues struct {
+	IsActive bool
+	RoleName string
+}
+
 type StaffRegistrationRequestInfo struct {
+	UserRegistrationRequestNecessaryInfo
 	HubSpotID string
-	staff.CreateValues
+	StaffCreateValues
 }
 
 type PendingUserReadValues struct {
@@ -50,4 +59,7 @@ type PendingUserReadValues struct {
 	HasConsentToSms            bool
 	HasConsentToEmailMarketing bool
 	Email                      *string
+}
+
+type AthleteInfo struct {
 }

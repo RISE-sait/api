@@ -21,8 +21,3 @@ type UpdateValues struct {
 	IsActive bool
 	RoleName string
 }
-
-type CreateValues struct {
-	IsActive bool
-	RoleName string
-}

@@ -92,7 +92,7 @@ const docTemplate = `{
                     "200": {
                         "description": "User authenticated successfully",
                         "schema": {
-                            "$ref": "#/definitions/identity.UserNecessaryInfoRequestDto"
+                            "$ref": "#/definitions/identity.UserAuthenticationResponseDto"
                         }
                     },
                     "400": {
@@ -2396,6 +2396,42 @@ const docTemplate = `{
                 }
             }
         },
+        "/memberships/plans/payment-frequencies": {
+            "get": {
+                "description": "Retrieves a list of available payment frequencies for membership plans.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "membership-plans"
+                ],
+                "summary": "Get payment frequencies for membership plans",
+                "responses": {
+                    "200": {
+                        "description": "List of payment frequencies",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/memberships/plans/{id}": {
             "put": {
                 "security": [
@@ -3058,72 +3094,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/register/child": {
-            "post": {
-                "description": "Registers a new child account using the provided details and associates it with the parent based on the Firebase authentication token.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "registration"
-                ],
-                "summary": "Register a new child account and associate it with the parent",
-                "parameters": [
-                    {
-                        "description": "Child account registration details",
-                        "name": "customer",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/customer.ChildRegistrationRequestDto"
-                        }
-                    },
-                    {
-                        "type": "string",
-                        "description": "Firebase token for user verification",
-                        "name": "firebase_token",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Child account registered successfully",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid input or missing Firebase token",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized: Invalid Firebase token or insufficient permissions",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error: Failed to register child account or associate with parent",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/register/customer": {
             "post": {
-                "description": "Registers a new customer using the provided details, creates a customer account. The Firebase token is used for user verification.",
+                "description": "Registers a new customer by verifying the Firebase token and creating an account based on the provided details. The registration can either be for an athlete or a parent, depending on the specified role in the request.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3141,7 +3114,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/customer.RegularCustomerRegistrationRequestDto"
+                            "$ref": "#/definitions/identity.CustomerRegistrationRequestDto"
                         }
                     },
                     {
@@ -3154,21 +3127,21 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Customer registered and JWT token issued successfully",
+                        "description": "Customer registered successfully",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Bad Request: Invalid input or missing Firebase token",
+                        "description": "Bad Request: Missing or invalid Firebase token or request body",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error: Failed to register customer or create JWT token",
+                        "description": "Internal Server Error: Failed to register customer",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3197,7 +3170,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/staff.RegistrationRequestDto"
+                            "$ref": "#/definitions/identity.StaffRegistrationRequestDto"
                         }
                     }
                 ],
@@ -3550,32 +3523,6 @@ const docTemplate = `{
                 }
             }
         },
-        "customer.ChildRegistrationRequestDto": {
-            "type": "object",
-            "required": [
-                "age",
-                "first_name",
-                "last_name",
-                "waivers"
-            ],
-            "properties": {
-                "age": {
-                    "type": "integer"
-                },
-                "first_name": {
-                    "type": "string"
-                },
-                "last_name": {
-                    "type": "string"
-                },
-                "waivers": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/customer.WaiverSigningRequestDto"
-                    }
-                }
-            }
-        },
         "customer.MembershipPlansResponseDto": {
             "type": "object",
             "properties": {
@@ -3605,44 +3552,6 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
-                }
-            }
-        },
-        "customer.RegularCustomerRegistrationRequestDto": {
-            "type": "object",
-            "required": [
-                "age",
-                "first_name",
-                "has_consent_to_email_marketing",
-                "has_consent_to_sms",
-                "last_name",
-                "waivers"
-            ],
-            "properties": {
-                "age": {
-                    "type": "integer"
-                },
-                "first_name": {
-                    "type": "string"
-                },
-                "has_consent_to_email_marketing": {
-                    "type": "boolean"
-                },
-                "has_consent_to_sms": {
-                    "type": "boolean"
-                },
-                "last_name": {
-                    "type": "string"
-                },
-                "phone_number": {
-                    "type": "string",
-                    "example": "+15141234567"
-                },
-                "waivers": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/customer.WaiverSigningRequestDto"
-                    }
                 }
             }
         },
@@ -4081,6 +3990,75 @@ const docTemplate = `{
                 }
             }
         },
+        "identity.CustomerRegistrationRequestDto": {
+            "type": "object",
+            "required": [
+                "age",
+                "first_name",
+                "last_name",
+                "role"
+            ],
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "has_consent_to_email_marketing": {
+                    "type": "boolean"
+                },
+                "has_consent_to_sms": {
+                    "type": "boolean"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string",
+                    "example": "+15141234567"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "waivers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/customer.WaiverSigningRequestDto"
+                    }
+                }
+            }
+        },
+        "identity.StaffRegistrationRequestDto": {
+            "type": "object",
+            "required": [
+                "age",
+                "first_name",
+                "last_name",
+                "role"
+            ],
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "is_active_staff": {
+                    "type": "boolean"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string",
+                    "example": "+15141234567"
+                },
+                "role": {
+                    "type": "string"
+                }
+            }
+        },
         "identity.UserAuthenticationResponseDto": {
             "type": "object",
             "properties": {
@@ -4100,25 +4078,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "role": {
-                    "type": "string"
-                }
-            }
-        },
-        "identity.UserNecessaryInfoRequestDto": {
-            "type": "object",
-            "required": [
-                "age",
-                "first_name",
-                "last_name"
-            ],
-            "properties": {
-                "age": {
-                    "type": "integer"
-                },
-                "first_name": {
-                    "type": "string"
-                },
-                "last_name": {
                     "type": "string"
                 }
             }
@@ -4219,29 +4178,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "type": "string"
-                }
-            }
-        },
-        "staff.RegistrationRequestDto": {
-            "type": "object",
-            "required": [
-                "hubspot_id",
-                "is_active",
-                "role_name"
-            ],
-            "properties": {
-                "hubspot_id": {
-                    "type": "string"
-                },
-                "is_active": {
-                    "type": "boolean"
-                },
-                "phone_number": {
-                    "type": "string",
-                    "example": "+15141234567"
-                },
-                "role_name": {
                     "type": "string"
                 }
             }

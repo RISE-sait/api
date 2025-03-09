@@ -13,3 +13,10 @@ type Response struct {
 	Email      *string   `json:"email,omitempty"`
 	Phone      *string   `json:"phone,omitempty"`
 }
+
+type ChildResponse struct {
+	HubspotId string `json:"hubspot_id"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	//Age       int    `json:"age"`
+}

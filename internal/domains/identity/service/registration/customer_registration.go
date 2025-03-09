@@ -29,17 +29,17 @@ func NewCustomerRegistrationService(container *di.Container) *CustomerRegistrati
 	}
 }
 
-// RegisterCustomer registers a new customer, ensuring all waivers are signed, creating user and temp info records.
+// RegisterAthlete registers a new athlete customer, ensuring all waivers are signed and creates user and temporary info records.
 //
 // Parameters:
-// - ctx: Context for request lifecycle management.
-// - customer: identity.RegularCustomerRegistrationRequestInfo Customer registration data including name, email, and waiver signings.
+// - ctx: Context for managing the request lifecycle and cancellation.
+// - customer: Contains the registration data, including name, email, phone number, age, and waivers signed.
 //
 // Returns:
-// - *errLib.CommonError: Error if registration fails.
-func (s *CustomerRegistrationService) RegisterCustomer(
+// - *errLib.CommonError: Returns an error if registration fails or if waivers are not signed.
+func (s *CustomerRegistrationService) RegisterAthlete(
 	ctx context.Context,
-	customer identity.RegularCustomerRegistrationRequestInfo,
+	customer identity.AthleteRegistrationRequestInfo,
 ) *errLib.CommonError {
 
 	for _, waiver := range customer.Waivers {
@@ -56,10 +56,11 @@ func (s *CustomerRegistrationService) RegisterCustomer(
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
+
 		}
 	}()
 
-	userId, err := s.UserInfoTempRepo.CreatePendingUserInfoTx(ctx, tx, customer.FirstName, customer.LastName, customer.HasConsentToSms, customer.HasConsentToEmailMarketing, &customer.Phone, &customer.Email, nil, customer.Age)
+	userId, err := s.UserInfoTempRepo.CreatePendingUserInfoTx(ctx, tx, customer.FirstName, customer.LastName, customer.HasConsentToSms, customer.HasConsentToEmailMarketing, false, &customer.Phone, &customer.Email, nil, customer.Age)
 
 	if err != nil {
 		tx.Rollback()
@@ -71,6 +72,47 @@ func (s *CustomerRegistrationService) RegisterCustomer(
 			tx.Rollback()
 			return err
 		}
+	}
+
+	// Commit the transaction
+	if txErr = tx.Commit(); txErr != nil {
+		tx.Rollback()
+		return errLib.New("Failed to commit transaction", http.StatusInternalServerError)
+	}
+
+	return nil
+}
+
+// RegisterParent registers a new parent customer and creates user and temporary info records.
+//
+// Parameters:
+// - ctx: Context for managing the request lifecycle and cancellation.
+// - customer: Contains the registration data, including name, email, phone number, age, and consent information.
+//
+// Returns:
+// - *errLib.CommonError: Returns an error if registration fails.
+func (s *CustomerRegistrationService) RegisterParent(
+	ctx context.Context,
+	customer identity.AdultCustomerRegistrationRequestInfo,
+) *errLib.CommonError {
+
+	tx, txErr := s.DB.BeginTx(ctx, &sql.TxOptions{})
+	if txErr != nil {
+		return errLib.New("Failed to begin transaction", http.StatusInternalServerError)
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+
+		}
+	}()
+
+	_, err := s.UserInfoTempRepo.CreatePendingUserInfoTx(ctx, tx, customer.FirstName, customer.LastName, customer.HasConsentToSms, customer.HasConsentToEmailMarketing, true, &customer.Phone, &customer.Email, nil, customer.Age)
+
+	if err != nil {
+		tx.Rollback()
+		return err
 	}
 
 	// Commit the transaction

@@ -19,24 +19,6 @@ definitions:
       updatedAt:
         type: string
     type: object
-  customer.ChildRegistrationRequestDto:
-    properties:
-      age:
-        type: integer
-      first_name:
-        type: string
-      last_name:
-        type: string
-      waivers:
-        items:
-          $ref: '#/definitions/customer.WaiverSigningRequestDto'
-        type: array
-    required:
-    - age
-    - first_name
-    - last_name
-    - waivers
-    type: object
   customer.MembershipPlansResponseDto:
     properties:
       created_at:
@@ -57,33 +39,6 @@ definitions:
         type: string
       updated_at:
         type: string
-    type: object
-  customer.RegularCustomerRegistrationRequestDto:
-    properties:
-      age:
-        type: integer
-      first_name:
-        type: string
-      has_consent_to_email_marketing:
-        type: boolean
-      has_consent_to_sms:
-        type: boolean
-      last_name:
-        type: string
-      phone_number:
-        example: "+15141234567"
-        type: string
-      waivers:
-        items:
-          $ref: '#/definitions/customer.WaiverSigningRequestDto'
-        type: array
-    required:
-    - age
-    - first_name
-    - has_consent_to_email_marketing
-    - has_consent_to_sms
-    - last_name
-    - waivers
     type: object
   customer.Response:
     properties:
@@ -374,6 +329,54 @@ definitions:
       updatedAt:
         type: string
     type: object
+  identity.CustomerRegistrationRequestDto:
+    properties:
+      age:
+        type: integer
+      first_name:
+        type: string
+      has_consent_to_email_marketing:
+        type: boolean
+      has_consent_to_sms:
+        type: boolean
+      last_name:
+        type: string
+      phone_number:
+        example: "+15141234567"
+        type: string
+      role:
+        type: string
+      waivers:
+        items:
+          $ref: '#/definitions/customer.WaiverSigningRequestDto'
+        type: array
+    required:
+      - age
+      - first_name
+      - last_name
+      - role
+    type: object
+  identity.StaffRegistrationRequestDto:
+    properties:
+      age:
+        type: integer
+      first_name:
+        type: string
+      is_active_staff:
+        type: boolean
+      last_name:
+        type: string
+      phone_number:
+        example: "+15141234567"
+        type: string
+      role:
+        type: string
+    required:
+    - age
+    - first_name
+    - last_name
+    - role
+    type: object
   identity.UserAuthenticationResponseDto:
     properties:
       age:
@@ -388,19 +391,6 @@ definitions:
         type: string
       role:
         type: string
-    type: object
-  identity.UserNecessaryInfoRequestDto:
-    properties:
-      age:
-        type: integer
-      first_name:
-        type: string
-      last_name:
-        type: string
-    required:
-    - age
-    - first_name
-    - last_name
     type: object
   membership.RequestDto:
     properties:
@@ -467,22 +457,6 @@ definitions:
         type: string
     required:
     - start_date
-    type: object
-  staff.RegistrationRequestDto:
-    properties:
-      hubspot_id:
-        type: string
-      is_active:
-        type: boolean
-      phone_number:
-        example: "+15141234567"
-        type: string
-      role_name:
-        type: string
-    required:
-    - hubspot_id
-    - is_active
-    - role_name
     type: object
   staff.RequestDto:
     properties:
@@ -574,7 +548,7 @@ paths:
         "200":
           description: User authenticated successfully
           schema:
-            $ref: '#/definitions/identity.UserNecessaryInfoRequestDto'
+            $ref: '#/definitions/identity.UserAuthenticationResponseDto'
         "400":
           description: 'Bad Request: Invalid Firebase token'
           schema:
@@ -2361,6 +2335,31 @@ paths:
       summary: Update a membership plan
       tags:
         - membership-plans
+  /memberships/plans/payment-frequencies:
+    get:
+      consumes:
+        - application/json
+      description: Retrieves a list of available payment frequencies for membership
+        plans.
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: List of payment frequencies
+          schema:
+            additionalProperties:
+              items:
+                type: string
+              type: array
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get payment frequencies for membership plans
+      tags:
+        - membership-plans
   /practices:
     get:
       consumes:
@@ -2572,64 +2571,20 @@ paths:
       summary: Purchase a membership plan
       tags:
       - purchases
-  /register/child:
-    post:
-      consumes:
-      - application/json
-      description: Registers a new child account using the provided details and associates
-        it with the parent based on the Firebase authentication token.
-      parameters:
-      - description: Child account registration details
-        in: body
-        name: customer
-        required: true
-        schema:
-          $ref: '#/definitions/customer.ChildRegistrationRequestDto'
-      - description: Firebase token for user verification
-        in: header
-        name: firebase_token
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Child account registered successfully
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: 'Bad Request: Invalid input or missing Firebase token'
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: 'Unauthorized: Invalid Firebase token or insufficient permissions'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: 'Internal Server Error: Failed to register child account or
-            associate with parent'
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Register a new child account and associate it with the parent
-      tags:
-      - registration
   /register/customer:
     post:
       consumes:
       - application/json
-      description: Registers a new customer using the provided details, creates a
-        customer account. The Firebase token is used for user verification.
+      description: Registers a new customer by verifying the Firebase token and creating
+        an account based on the provided details. The registration can either be for
+        an athlete or a parent, depending on the specified role in the request.
       parameters:
       - description: Customer registration details
         in: body
         name: customer
         required: true
         schema:
-          $ref: '#/definitions/customer.RegularCustomerRegistrationRequestDto'
+          $ref: '#/definitions/identity.CustomerRegistrationRequestDto'
       - description: Firebase token for user verification
         in: header
         name: firebase_token
@@ -2639,18 +2594,18 @@ paths:
       - application/json
       responses:
         "201":
-          description: Customer registered and JWT token issued successfully
+          description: Customer registered successfully
           schema:
             additionalProperties: true
             type: object
         "400":
-          description: 'Bad Request: Invalid input or missing Firebase token'
+          description: 'Bad Request: Missing or invalid Firebase token or request
+            body'
           schema:
             additionalProperties: true
             type: object
         "500":
-          description: 'Internal Server Error: Failed to register customer or create
-            JWT token'
+          description: 'Internal Server Error: Failed to register customer'
           schema:
             additionalProperties: true
             type: object
@@ -2669,7 +2624,7 @@ paths:
         name: staff
         required: true
         schema:
-          $ref: '#/definitions/staff.RegistrationRequestDto'
+          $ref: '#/definitions/identity.StaffRegistrationRequestDto'
       produces:
       - application/json
       responses:

@@ -148,6 +148,7 @@ func RegisterMembershipPlansRoutes(container *di.Container) func(chi.Router) {
 
 	return func(r chi.Router) {
 
+		r.Get("/payment-frequencies", h.GetMembershipPlanPaymentFrequencies)
 		r.With(allowAdminOnly).Post("/", h.CreateMembershipPlan)
 		r.Put("/{id}", h.UpdateMembershipPlan)
 		r.With(allowAdminOnly).Delete("/{id}", h.DeleteMembershipPlan)
@@ -294,17 +295,16 @@ func RegisterAuthRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterRegistrationRoutes(container *di.Container) func(chi.Router) {
 
-	customerRegistrationCtrl := registration.NewCustomerRegistrationHandlers(container)
+	customerHandler := registration.NewCustomerRegistrationHandlers(container)
+	staffHandler := registration.NewStaffRegistrationHandlers(container)
 
-	childRegistrationCtrl := registration.NewChildRegistrationHandlers(container)
-
-	staffRegistrationCtrl := registration.NewStaffRegistrationHandlers(container)
+	//childRegistrationCtrl := registration.NewChildRegistrationHandlers(container)
 
 	return func(r chi.Router) {
 
-		r.Post("/customer", customerRegistrationCtrl.RegisterCustomer)
-		r.Post("/staff", staffRegistrationCtrl.CreateStaff)
-		//
-		r.Post("/child", childRegistrationCtrl.RegisterChild)
+		r.Post("/customer", customerHandler.RegisterCustomer)
+
+		r.Post("/staff", staffHandler.CreateStaff)
+		//r.Post("/child", childRegistrationCtrl.RegisterChild)
 	}
 }

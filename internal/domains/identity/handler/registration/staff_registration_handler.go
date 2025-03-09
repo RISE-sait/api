@@ -2,15 +2,16 @@ package registration
 
 import (
 	"api/internal/di"
-	"api/internal/domains/identity/dto/staff"
-	service "api/internal/domains/identity/service/staff"
+	dto "api/internal/domains/identity/dto"
+	service "api/internal/domains/identity/service/registration"
+	values "api/internal/domains/identity/values"
 	responsehandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
 )
 
 type StaffHandlers struct {
-	StaffRegistrationService *service.RegistrationService
+	StaffRegistrationService *service.StaffsRegistrationService
 }
 
 func NewStaffRegistrationHandlers(container *di.Container) *StaffHandlers {
@@ -28,7 +29,7 @@ func NewStaffRegistrationHandlers(container *di.Container) *StaffHandlers {
 // @Tags registration
 // @Accept json
 // @Produce json
-// @Param staff body staff.RegistrationRequestDto true "Staff registration details"
+// @Param staff body dto.StaffRegistrationRequestDto true "Staff registration details"
 // @Success 201 {object} map[string]interface{} "Staff registered successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 401 {object} map[string]interface{} "Unauthorized: Invalid or missing authentication token"
@@ -36,21 +37,26 @@ func NewStaffRegistrationHandlers(container *di.Container) *StaffHandlers {
 // @Router /register/staff [post]
 func (h *StaffHandlers) CreateStaff(w http.ResponseWriter, r *http.Request) {
 
-	var dto staff.RegistrationRequestDto
+	var requestDto dto.StaffRegistrationRequestDto
 
-	if err := validators.ParseJSON(r.Body, &dto); err != nil {
+	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
 		responsehandlers.RespondWithError(w, err)
 		return
 	}
 
-	valueObject, err := dto.ToDetails()
-
-	if err != nil {
-		responsehandlers.RespondWithError(w, err)
-		return
+	valueObject := values.StaffRegistrationRequestInfo{
+		UserRegistrationRequestNecessaryInfo: values.UserRegistrationRequestNecessaryInfo{
+			Age:       requestDto.Age,
+			FirstName: requestDto.FirstName,
+			LastName:  requestDto.LastName,
+		},
+		StaffCreateValues: values.StaffCreateValues{
+			IsActive: requestDto.IsActiveStaff,
+			RoleName: requestDto.Role,
+		},
 	}
 
-	err = h.StaffRegistrationService.RegisterStaff(r.Context(), valueObject)
+	err := h.StaffRegistrationService.RegisterStaff(r.Context(), valueObject)
 	if err != nil {
 		responsehandlers.RespondWithError(w, err)
 		return

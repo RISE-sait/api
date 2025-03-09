@@ -11,13 +11,13 @@ type WaiverSigningRequestDto struct {
 	IsWaiverSigned bool   `json:"is_waiver_signed"`
 }
 
-func (dto WaiverSigningRequestDto) ToValueObjects() (*identity.CustomerWaiverSigning, *errLib.CommonError) {
+func (dto WaiverSigningRequestDto) ToValueObjects() (identity.CustomerWaiverSigning, *errLib.CommonError) {
 
 	if err := validators.ValidateDto(&dto); err != nil {
-		return nil, err
+		return identity.CustomerWaiverSigning{}, err
 	}
 
-	return &identity.CustomerWaiverSigning{
+	return identity.CustomerWaiverSigning{
 		WaiverUrl:      dto.WaiverURL,
 		IsWaiverSigned: dto.IsWaiverSigned,
 	}, nil

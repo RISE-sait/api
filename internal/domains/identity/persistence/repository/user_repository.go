@@ -70,6 +70,38 @@ func (r *UsersRepository) GetUserIdByHubspotId(ctx context.Context, id string) (
 	return user.ID, nil
 }
 
+func (r *UsersRepository) CreateAthlete(ctx context.Context, tx *sql.Tx, id uuid.UUID) *errLib.CommonError {
+
+	_, err := r.Queries.WithTx(tx).CreateAthleteInfo(ctx, id)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return errLib.New("User not found", http.StatusNotFound)
+		}
+
+		log.Printf("Unhandled error: %v", err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	return nil
+}
+
+func (r *UsersRepository) GetIsAthleteByID(ctx context.Context, id uuid.UUID) (bool, *errLib.CommonError) {
+
+	_, err := r.Queries.GetAthleteInfoByUserID(ctx, id)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+
+		log.Printf("Unhandled error: %v", err)
+		return false, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	return true, nil
+}
+
 func (r *UsersRepository) UpdateUserHubspotIdTx(ctx context.Context, tx *sql.Tx, userId uuid.UUID, hubspotId string) *errLib.CommonError {
 
 	queries := r.Queries

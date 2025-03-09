@@ -435,6 +435,19 @@ type PracticeMembership struct {
 	IsEligible      bool           `json:"is_eligible"`
 }
 
+type UsersAthlete struct {
+	ID            uuid.UUID      `json:"id"`
+	ProfilePicUrl sql.NullString `json:"profile_pic_url"`
+	Wins          int32          `json:"wins"`
+	Losses        int32          `json:"losses"`
+	Points        int32          `json:"points"`
+	Steals        int32          `json:"steals"`
+	Assists       int32          `json:"assists"`
+	Rebounds      int32          `json:"rebounds"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+}
+
 type UsersCustomerCredit struct {
 	CustomerID uuid.UUID `json:"customer_id"`
 	Credits    int32     `json:"credits"`
@@ -452,6 +465,7 @@ type UsersPendingUser struct {
 	Phone                    sql.NullString `json:"phone"`
 	HasMarketingEmailConsent bool           `json:"has_marketing_email_consent"`
 	HasSmsConsent            bool           `json:"has_sms_consent"`
+	IsParent                 bool           `json:"is_parent"`
 }
 
 type UsersStaff struct {
@@ -475,17 +489,10 @@ type UsersStaffRole struct {
 }
 
 type UsersUser struct {
-	ID            uuid.UUID      `json:"id"`
-	HubspotID     string         `json:"hubspot_id"`
-	ProfilePicUrl sql.NullString `json:"profile_pic_url"`
-	Wins          int32          `json:"wins"`
-	Losses        int32          `json:"losses"`
-	Points        int32          `json:"points"`
-	Steals        int32          `json:"steals"`
-	Assists       int32          `json:"assists"`
-	Rebounds      int32          `json:"rebounds"`
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
+	ID        uuid.UUID `json:"id"`
+	HubspotID string    `json:"hubspot_id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type Waiver struct {

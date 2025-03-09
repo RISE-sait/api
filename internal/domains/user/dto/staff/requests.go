@@ -12,23 +12,6 @@ type RequestDto struct {
 	RoleName string `json:"role_name" validate:"required"`
 }
 
-// ToCreateRequestValues converts the CreateStaffRequest DTO to the domain value object.
-// @Description Converts the request DTO to domain values for staff creation.
-// @Param dto body RequestDto true "Request body containing staff details"
-// @Return values.CreateValues "Converted domain values for creating a staff member"
-// @Return *errLib.CommonError "Validation or processing error"
-func (dto *RequestDto) ToCreateRequestValues() (values.CreateValues, *errLib.CommonError) {
-
-	if err := validators.ValidateDto(dto); err != nil {
-		return values.CreateValues{}, err
-	}
-
-	return values.CreateValues{
-		IsActive: dto.IsActive,
-		RoleName: dto.RoleName,
-	}, nil
-}
-
 // ToUpdateRequestValues converts the UpdateStaffRequest DTO to the domain entity.
 // @Description Converts the request DTO to domain values for updating staff details.
 // @Param idStr path string true "The UUID of the staff member to update"

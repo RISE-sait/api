@@ -14,11 +14,11 @@ import (
 )
 
 type PlansHandlers struct {
-	MembershipPlansService *repo.PlansRepository
+	Repo *repo.PlansRepository
 }
 
 func NewPlansHandlers(container *di.Container) *PlansHandlers {
-	return &PlansHandlers{MembershipPlansService: repo.NewMembershipPlansRepository(container)}
+	return &PlansHandlers{Repo: repo.NewMembershipPlansRepository(container)}
 }
 
 // CreateMembershipPlan creates a new membership plan.
@@ -49,7 +49,7 @@ func (h *PlansHandlers) CreateMembershipPlan(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err = h.MembershipPlansService.CreateMembershipPlan(r.Context(), plan); err != nil {
+	if err = h.Repo.CreateMembershipPlan(r.Context(), plan); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -81,7 +81,7 @@ func (h *PlansHandlers) GetMembershipPlans(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	plans, err := h.MembershipPlansService.GetMembershipPlans(r.Context(), membershipId)
+	plans, err := h.Repo.GetMembershipPlans(r.Context(), membershipId)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -95,6 +95,23 @@ func (h *PlansHandlers) GetMembershipPlans(w http.ResponseWriter, r *http.Reques
 	}
 
 	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusOK)
+}
+
+// GetMembershipPlanPaymentFrequencies retrieves available payment frequencies.
+// @Summary Get payment frequencies for membership plans
+// @Description Retrieves a list of available payment frequencies for membership plans.
+// @Tags membership-plans
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string][]string "List of payment frequencies"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /memberships/plans/payment-frequencies [get]
+func (h *PlansHandlers) GetMembershipPlanPaymentFrequencies(w http.ResponseWriter, r *http.Request) {
+	freqs := h.Repo.GetMembershipPlanPaymentFrequencies()
+
+	response := map[string][]string{"payment_frequencies": freqs}
+
+	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 }
 
 // UpdateMembershipPlan updates an existing membership plan.
@@ -129,7 +146,7 @@ func (h *PlansHandlers) UpdateMembershipPlan(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := h.MembershipPlansService.UpdateMembershipPlan(r.Context(), plan); err != nil {
+	if err := h.Repo.UpdateMembershipPlan(r.Context(), plan); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -161,7 +178,7 @@ func (h *PlansHandlers) DeleteMembershipPlan(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err = h.MembershipPlansService.DeleteMembershipPlan(r.Context(), id); err != nil {
+	if err = h.Repo.DeleteMembershipPlan(r.Context(), id); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

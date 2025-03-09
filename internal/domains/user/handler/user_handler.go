@@ -57,6 +57,7 @@ func (h *UsersHandler) GetUserByEmail(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			responseHandlers.RespondWithError(w, err)
+			return
 		}
 
 		customerInfo = dto.Response{
@@ -107,10 +108,21 @@ func (h *UsersHandler) GetChildrenByParentEmail(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	children, err := h.HubSpotService.GetUsersByIds(childrenIds)
+	hubspotChildren, err := h.HubSpotService.GetUsersByIds(childrenIds)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	children := make([]dto.ChildResponse, len(hubspotChildren))
+
+	for _, child := range hubspotChildren {
+		children = append(children, dto.ChildResponse{
+			HubspotId: child.HubSpotId,
+			FirstName: child.Properties.FirstName,
+			LastName:  child.Properties.LastName,
+		})
 	}
 
 	responseHandlers.RespondWithSuccess(w, children, http.StatusOK)

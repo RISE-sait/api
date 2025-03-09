@@ -89,6 +89,18 @@ func (r *PlansRepository) GetMembershipPlanById(ctx context.Context, id uuid.UUI
 	return &plan, nil
 }
 
+func (r *PlansRepository) GetMembershipPlanPaymentFrequencies() []string {
+	dbFreqs := db.AllPaymentFrequencyValues()
+
+	var freq []string
+
+	for _, dbFreq := range dbFreqs {
+		freq = append(freq, string(dbFreq))
+	}
+
+	return freq
+}
+
 func (r *PlansRepository) GetMembershipPlans(ctx context.Context, membershipId uuid.UUID) ([]values.PlanReadValues, *errLib.CommonError) {
 
 	dbPlans, err := r.Queries.GetMembershipPlans(ctx, membershipId)

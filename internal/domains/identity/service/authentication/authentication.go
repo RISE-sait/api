@@ -69,28 +69,33 @@ func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string,
 		return "", userInfo, newErr
 	}
 
-	jwtCustomClaims := jwtLib.CustomClaims{
-		UserID:    userId,
-		HubspotID: hubspotId,
-	}
-
 	age, ageErr := strconv.Atoi(hubspotResponse.Properties.Age)
 	if ageErr != nil {
 		return "", userInfo, errLib.New("Invalid age. Internal error", http.StatusInternalServerError)
 	}
 
+	isAthlete, err := s.UserRepo.GetIsAthleteByID(ctx, userId)
+
+	if err != nil {
+		return "", identity.UserAuthenticationResponseInfo{}, err
+	}
+
+	staffInfo, err := s.StaffRepo.GetStaffByUserId(ctx, userId)
+
+	jwtCustomClaims := jwtLib.CustomClaims{
+		UserID:    userId,
+		HubspotID: hubspotId,
+	}
+
 	userInfo = identity.UserAuthenticationResponseInfo{
 		FirstName: hubspotResponse.Properties.FirstName,
 		LastName:  hubspotResponse.Properties.LastName,
-		Role:      "Athlete",
 		Age:       age,
 	}
 
 	if hubspotResponse.Properties.Phone != "" {
 		userInfo.Phone = &hubspotResponse.Properties.Phone
 	}
-
-	staffInfo, err := s.StaffRepo.GetStaffByUserId(ctx, userId)
 
 	if err == nil {
 		jwtCustomClaims.StaffInfo = &jwtLib.StaffInfo{
@@ -99,6 +104,10 @@ func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string,
 		}
 
 		userInfo.Role = staffInfo.RoleName
+	} else if !isAthlete {
+		userInfo.Role = "Parent"
+	} else {
+		userInfo.Role = "Athlete"
 	}
 
 	jwtToken, err := jwtLib.SignJWT(jwtCustomClaims)

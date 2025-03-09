@@ -2,7 +2,7 @@ package registration
 
 import (
 	"api/internal/di"
-	"api/internal/domains/identity/dto/customer"
+	dto "api/internal/domains/identity/dto/customer"
 	service "api/internal/domains/identity/service/firebase"
 	"api/internal/domains/identity/service/registration"
 	errLib "api/internal/libs/errors"
@@ -46,9 +46,9 @@ func (h *ChildRegistrationHandlers) RegisterChild(w http.ResponseWriter, r *http
 		return
 	}
 
-	var dto customer.ChildRegistrationRequestDto
+	var requestDto dto.ChildRegistrationRequestDto
 
-	if err := validators.ParseJSON(r.Body, &dto); err != nil {
+	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -59,7 +59,7 @@ func (h *ChildRegistrationHandlers) RegisterChild(w http.ResponseWriter, r *http
 		responseHandlers.RespondWithError(w, err)
 	}
 
-	valueObject, err := dto.ToCreateChildValueObject(parentEmail)
+	valueObject, err := requestDto.ToCreateChildValueObject(parentEmail)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)

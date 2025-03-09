@@ -27,9 +27,9 @@ func NewHandler(service *service.Service) *Handler {
 // @Tags enrollments
 // @Accept json
 // @Produce json
-// @Param enrollment body dto.EnrollmentRequestDto true "Enrollment details"
+// @Param enrollment body dto.CreateRequestDto true "Enrollment details"
 // @Security Bearer
-// @Success 201 {object} dto.EnrollmentResponse "Enrollment created successfully"
+// @Success 201 {object} enrollment.ResponseDto "Enrollment created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /enrollments [post]
@@ -67,7 +67,7 @@ func (h *Handler) CreateEnrollment(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param customerId query string false "Customer ID"
 // @Param eventId query string false "Event ID"
-// @Success 200 {array} dto.EnrollmentResponse "Enrollments retrieved successfully"
+// @Success 200 {array} enrollment.ResponseDto "Enrollments retrieved successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid HubSpotId"
 // @Failure 404 {object} map[string]interface{} "Not Found: Enrollments not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"

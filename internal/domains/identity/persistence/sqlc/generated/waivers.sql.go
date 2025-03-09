@@ -50,7 +50,7 @@ func (q *Queries) CreateWaiverSignedStatus(ctx context.Context, arg CreateWaiver
 }
 
 const getWaiver = `-- name: GetWaiver :one
-SELECT id, waiver_url, created_at, updated_at FROM waiver.waiver WHERE waiver_url = $1
+SELECT id, waiver_url, created_at, updated_at, waiver_name FROM waiver.waiver WHERE waiver_url = $1
 `
 
 func (q *Queries) GetWaiver(ctx context.Context, waiverUrl string) (Waiver, error) {
@@ -61,6 +61,7 @@ func (q *Queries) GetWaiver(ctx context.Context, waiverUrl string) (Waiver, erro
 		&i.WaiverUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.WaiverName,
 	)
 	return i, err
 }

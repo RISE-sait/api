@@ -1,6 +1,7 @@
 package identity
 
 import (
+	database_errors "api/internal/constants"
 	"api/internal/di"
 	"api/internal/domains/identity/persistence/sqlc/generated"
 	values "api/internal/domains/identity/values"
@@ -24,7 +25,7 @@ func NewPendingUserInfoRepository(container *di.Container) *PendingUsersRepo {
 	}
 }
 
-func (r *PendingUsersRepo) CreatePendingUserInfoTx(ctx context.Context, tx *sql.Tx, firstName, lastName string, email, parentHubspotId *string, age int) (uuid.UUID, *errLib.CommonError) {
+func (r *PendingUsersRepo) CreatePendingUserInfoTx(ctx context.Context, tx *sql.Tx, firstName, lastName string, hasSmsConsent, hasEmailConsent bool, phone, email, parentHubspotId *string, age int) (uuid.UUID, *errLib.CommonError) {
 
 	queries := r.Queries
 	if tx != nil {
@@ -32,9 +33,15 @@ func (r *PendingUsersRepo) CreatePendingUserInfoTx(ctx context.Context, tx *sql.
 	}
 
 	dbTempUserInfo := db.CreatePendingUserParams{
-		FirstName: firstName,
-		LastName:  lastName,
-		Age:       int32(age),
+		FirstName:                firstName,
+		LastName:                 lastName,
+		Age:                      int32(age),
+		HasMarketingEmailConsent: hasEmailConsent,
+		HasSmsConsent:            hasSmsConsent,
+	}
+
+	if phone != nil {
+		dbTempUserInfo.Phone = sql.NullString{String: *phone, Valid: true}
 	}
 
 	if email != nil {
@@ -51,7 +58,7 @@ func (r *PendingUsersRepo) CreatePendingUserInfoTx(ctx context.Context, tx *sql.
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			// Handle unique constraint violation
-			if pqErr.Code == "23505" { // Unique violation
+			if pqErr.Code == database_errors.UniqueViolation { // Unique violation
 				log.Printf("Unique constraint violation: %v", pqErr.Message)
 				return uuid.Nil, errLib.New("Email already exists", http.StatusConflict)
 			}
@@ -99,13 +106,19 @@ func (r *PendingUsersRepo) GetPendingUserInfoByEmail(ctx context.Context, email 
 	}
 
 	response := values.PendingUserReadValues{
-		ID:        info.ID,
-		FirstName: info.FirstName,
-		LastName:  info.LastName,
+		ID:                         info.ID,
+		FirstName:                  info.FirstName,
+		LastName:                   info.LastName,
+		HasConsentToSms:            info.HasSmsConsent,
+		HasConsentToEmailMarketing: info.HasMarketingEmailConsent,
 	}
 
 	if info.Email.Valid {
 		response.Email = &info.Email.String
+	}
+
+	if info.Phone.Valid {
+		response.Phone = &info.Phone.String
 	}
 
 	return response, nil

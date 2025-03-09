@@ -19,7 +19,7 @@ definitions:
       updatedAt:
         type: string
     type: object
-  customer.RegistrationRequestDto:
+  customer.ChildRegistrationRequestDto:
     properties:
       age:
         type: integer
@@ -34,6 +34,33 @@ definitions:
     required:
     - age
     - first_name
+    - last_name
+    - waivers
+    type: object
+  customer.RegularCustomerRegistrationRequestDto:
+    properties:
+      age:
+        type: integer
+      first_name:
+        type: string
+      has_consent_to_email_marketing:
+        type: boolean
+      has_consent_to_sms:
+        type: boolean
+      last_name:
+        type: string
+      phone_number:
+        example: "+15141234567"
+        type: string
+      waivers:
+        items:
+          $ref: '#/definitions/customer.WaiverSigningRequestDto'
+        type: array
+    required:
+    - age
+    - first_name
+    - has_consent_to_email_marketing
+    - has_consent_to_sms
     - last_name
     - waivers
     type: object
@@ -78,33 +105,6 @@ definitions:
     required:
     - waiver_url
     type: object
-  dto.EnrollmentRequestDto:
-    properties:
-      customer_id:
-        type: string
-      event_id:
-        type: string
-    required:
-    - customer_id
-    - event_id
-    type: object
-  dto.EnrollmentResponse:
-    properties:
-      checked_in_at:
-        type: string
-      created_at:
-        type: string
-      customer_id:
-        type: string
-      event_id:
-        type: string
-      id:
-        type: string
-      is_cancelled:
-        type: boolean
-      updated_at:
-        type: string
-    type: object
   dto.PracticeRequestDto:
     properties:
       description:
@@ -119,6 +119,33 @@ definitions:
       id:
         type: string
       name:
+        type: string
+    type: object
+  enrollment.CreateRequestDto:
+    properties:
+      customer_id:
+        type: string
+      event_id:
+        type: string
+    required:
+    - customer_id
+    - event_id
+    type: object
+  enrollment.ResponseDto:
+    properties:
+      checked_in_at:
+        type: string
+      created_at:
+        type: string
+      customer_id:
+        type: string
+      event_id:
+        type: string
+      id:
+        type: string
+      is_cancelled:
+        type: boolean
+      updated_at:
         type: string
     type: object
   event.RequestDto:
@@ -302,11 +329,15 @@ definitions:
     type: object
   hubspot.UserProps:
     properties:
+      age:
+        type: string
       email:
         type: string
       firstname:
         type: string
       lastname:
+        type: string
+      phone:
         type: string
     type: object
   hubspot.UserResponse:
@@ -331,6 +362,8 @@ definitions:
       first_name:
         type: string
       last_name:
+        type: string
+      phone:
         type: string
       role:
         type: string
@@ -420,6 +453,9 @@ definitions:
         type: string
       is_active:
         type: boolean
+      phone_number:
+        example: "+15141234567"
+        type: string
       role_name:
         type: string
     required:
@@ -801,7 +837,7 @@ paths:
           description: Enrollments retrieved successfully
           schema:
             items:
-              $ref: '#/definitions/dto.EnrollmentResponse'
+              $ref: '#/definitions/enrollment.ResponseDto'
             type: array
         "400":
           description: 'Bad Request: Invalid HubSpotId'
@@ -831,14 +867,14 @@ paths:
         name: enrollment
         required: true
         schema:
-          $ref: '#/definitions/dto.EnrollmentRequestDto'
+          $ref: '#/definitions/enrollment.CreateRequestDto'
       produces:
       - application/json
       responses:
         "201":
           description: Enrollment created successfully
           schema:
-            $ref: '#/definitions/dto.EnrollmentResponse'
+            $ref: '#/definitions/enrollment.ResponseDto'
         "400":
           description: 'Bad Request: Invalid input'
           schema:
@@ -2489,7 +2525,7 @@ paths:
         name: customer
         required: true
         schema:
-          $ref: '#/definitions/customer.RegistrationRequestDto'
+          $ref: '#/definitions/customer.ChildRegistrationRequestDto'
       - description: Firebase token for user verification
         in: header
         name: firebase_token
@@ -2534,7 +2570,7 @@ paths:
         name: customer
         required: true
         schema:
-          $ref: '#/definitions/customer.RegistrationRequestDto'
+          $ref: '#/definitions/customer.RegularCustomerRegistrationRequestDto'
       - description: Firebase token for user verification
         in: header
         name: firebase_token

@@ -505,7 +505,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/dto.EnrollmentResponse"
+                                "$ref": "#/definitions/enrollment.ResponseDto"
                             }
                         }
                     },
@@ -556,7 +556,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.EnrollmentRequestDto"
+                            "$ref": "#/definitions/enrollment.CreateRequestDto"
                         }
                     }
                 ],
@@ -564,7 +564,7 @@
                     "201": {
                         "description": "Enrollment created successfully",
                         "schema": {
-                            "$ref": "#/definitions/dto.EnrollmentResponse"
+                            "$ref": "#/definitions/enrollment.ResponseDto"
                         }
                     },
                     "400": {
@@ -3014,7 +3014,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/customer.RegistrationRequestDto"
+                            "$ref": "#/definitions/customer.ChildRegistrationRequestDto"
                         }
                     },
                     {
@@ -3077,7 +3077,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/customer.RegistrationRequestDto"
+                            "$ref": "#/definitions/customer.RegularCustomerRegistrationRequestDto"
                         }
                     },
                     {
@@ -3486,7 +3486,7 @@
                 }
             }
         },
-        "customer.RegistrationRequestDto": {
+        "customer.ChildRegistrationRequestDto": {
             "type": "object",
             "required": [
                 "age",
@@ -3503,6 +3503,44 @@
                 },
                 "last_name": {
                     "type": "string"
+                },
+                "waivers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/customer.WaiverSigningRequestDto"
+                    }
+                }
+            }
+        },
+        "customer.RegularCustomerRegistrationRequestDto": {
+            "type": "object",
+            "required": [
+                "age",
+                "first_name",
+                "has_consent_to_email_marketing",
+                "has_consent_to_sms",
+                "last_name",
+                "waivers"
+            ],
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "has_consent_to_email_marketing": {
+                    "type": "boolean"
+                },
+                "has_consent_to_sms": {
+                    "type": "boolean"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string",
+                    "example": "+15141234567"
                 },
                 "waivers": {
                     "type": "array",
@@ -3575,47 +3613,6 @@
                 }
             }
         },
-        "dto.EnrollmentRequestDto": {
-            "type": "object",
-            "required": [
-                "customer_id",
-                "event_id"
-            ],
-            "properties": {
-                "customer_id": {
-                    "type": "string"
-                },
-                "event_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.EnrollmentResponse": {
-            "type": "object",
-            "properties": {
-                "checked_in_at": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "customer_id": {
-                    "type": "string"
-                },
-                "event_id": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_cancelled": {
-                    "type": "boolean"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
         "dto.PracticeRequestDto": {
             "type": "object",
             "properties": {
@@ -3637,6 +3634,47 @@
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "enrollment.CreateRequestDto": {
+            "type": "object",
+            "required": [
+                "customer_id",
+                "event_id"
+            ],
+            "properties": {
+                "customer_id": {
+                    "type": "string"
+                },
+                "event_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "enrollment.ResponseDto": {
+            "type": "object",
+            "properties": {
+                "checked_in_at": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "customer_id": {
+                    "type": "string"
+                },
+                "event_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_cancelled": {
+                    "type": "boolean"
+                },
+                "updated_at": {
                     "type": "string"
                 }
             }
@@ -3910,6 +3948,9 @@
         "hubspot.UserProps": {
             "type": "object",
             "properties": {
+                "age": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 },
@@ -3917,6 +3958,9 @@
                     "type": "string"
                 },
                 "lastname": {
+                    "type": "string"
+                },
+                "phone": {
                     "type": "string"
                 }
             }
@@ -3954,6 +3998,9 @@
                     "type": "string"
                 },
                 "last_name": {
+                    "type": "string"
+                },
+                "phone": {
                     "type": "string"
                 },
                 "role": {
@@ -4093,6 +4140,10 @@
                 },
                 "is_active": {
                     "type": "boolean"
+                },
+                "phone_number": {
+                    "type": "string",
+                    "example": "+15141234567"
                 },
                 "role_name": {
                     "type": "string"

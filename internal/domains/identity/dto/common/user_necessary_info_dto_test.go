@@ -62,6 +62,7 @@ func TestUserNecessaryInfoDto_Validation(t *testing.T) {
 				FirstName: "John",
 				LastName:  "Doe",
 				Age:       0, // Invalid age (zero)
+
 			},
 			expectedError: true,
 		},
@@ -71,6 +72,25 @@ func TestUserNecessaryInfoDto_Validation(t *testing.T) {
 				FirstName: "John",
 				LastName:  "Doe",
 				Age:       -5, // Invalid age (negative)
+
+			},
+			expectedError: true,
+		},
+		{
+			name: "Valid Phone Number",
+			input: UserNecessaryInfoRequestDto{
+				FirstName: "John",
+				LastName:  "Doe",
+				Age:       25,
+			},
+			expectedError: false,
+		},
+		{
+			name: "Whitespace Phone Number",
+			input: UserNecessaryInfoRequestDto{
+				FirstName: "John",
+				LastName:  "Doe",
+				Age:       25,
 			},
 			expectedError: true,
 		},

@@ -13,17 +13,20 @@ import (
 )
 
 const createPendingUser = `-- name: CreatePendingUser :one
-INSERT INTO users.pending_users (first_name, last_name, email, parent_hubspot_id, age)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, first_name, last_name, email, parent_hubspot_id, age, created_at, updated_at
+INSERT INTO users.pending_users (first_name, last_name, email, phone, parent_hubspot_id, age, has_sms_consent, has_marketing_email_consent)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING id, first_name, last_name, email, parent_hubspot_id, age, created_at, updated_at, phone, has_marketing_email_consent, has_sms_consent
 `
 
 type CreatePendingUserParams struct {
-	FirstName       string         `json:"first_name"`
-	LastName        string         `json:"last_name"`
-	Email           sql.NullString `json:"email"`
-	ParentHubspotID sql.NullString `json:"parent_hubspot_id"`
-	Age             int32          `json:"age"`
+	FirstName                string         `json:"first_name"`
+	LastName                 string         `json:"last_name"`
+	Email                    sql.NullString `json:"email"`
+	Phone                    sql.NullString `json:"phone"`
+	ParentHubspotID          sql.NullString `json:"parent_hubspot_id"`
+	Age                      int32          `json:"age"`
+	HasSmsConsent            bool           `json:"has_sms_consent"`
+	HasMarketingEmailConsent bool           `json:"has_marketing_email_consent"`
 }
 
 func (q *Queries) CreatePendingUser(ctx context.Context, arg CreatePendingUserParams) (UsersPendingUser, error) {
@@ -31,8 +34,11 @@ func (q *Queries) CreatePendingUser(ctx context.Context, arg CreatePendingUserPa
 		arg.FirstName,
 		arg.LastName,
 		arg.Email,
+		arg.Phone,
 		arg.ParentHubspotID,
 		arg.Age,
+		arg.HasSmsConsent,
+		arg.HasMarketingEmailConsent,
 	)
 	var i UsersPendingUser
 	err := row.Scan(
@@ -44,6 +50,9 @@ func (q *Queries) CreatePendingUser(ctx context.Context, arg CreatePendingUserPa
 		&i.Age,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Phone,
+		&i.HasMarketingEmailConsent,
+		&i.HasSmsConsent,
 	)
 	return i, err
 }
@@ -61,7 +70,7 @@ func (q *Queries) DeletePendingUser(ctx context.Context, id uuid.UUID) (int64, e
 }
 
 const getPendingUserByEmail = `-- name: GetPendingUserByEmail :one
-SELECT id, first_name, last_name, email, parent_hubspot_id, age, created_at, updated_at FROM users.pending_users WHERE email = $1
+SELECT id, first_name, last_name, email, parent_hubspot_id, age, created_at, updated_at, phone, has_marketing_email_consent, has_sms_consent FROM users.pending_users WHERE email = $1
 `
 
 func (q *Queries) GetPendingUserByEmail(ctx context.Context, email sql.NullString) (UsersPendingUser, error) {
@@ -76,6 +85,9 @@ func (q *Queries) GetPendingUserByEmail(ctx context.Context, email sql.NullStrin
 		&i.Age,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Phone,
+		&i.HasMarketingEmailConsent,
+		&i.HasSmsConsent,
 	)
 	return i, err
 }

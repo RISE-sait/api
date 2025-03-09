@@ -515,7 +515,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/dto.EnrollmentResponse"
+                                "$ref": "#/definitions/enrollment.ResponseDto"
                             }
                         }
                     },
@@ -566,7 +566,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.EnrollmentRequestDto"
+                            "$ref": "#/definitions/enrollment.CreateRequestDto"
                         }
                     }
                 ],
@@ -574,7 +574,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Enrollment created successfully",
                         "schema": {
-                            "$ref": "#/definitions/dto.EnrollmentResponse"
+                            "$ref": "#/definitions/enrollment.ResponseDto"
                         }
                     },
                     "400": {
@@ -3024,7 +3024,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/customer.RegistrationRequestDto"
+                            "$ref": "#/definitions/customer.ChildRegistrationRequestDto"
                         }
                     },
                     {
@@ -3087,7 +3087,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/customer.RegistrationRequestDto"
+                            "$ref": "#/definitions/customer.RegularCustomerRegistrationRequestDto"
                         }
                     },
                     {
@@ -3496,7 +3496,7 @@ const docTemplate = `{
                 }
             }
         },
-        "customer.RegistrationRequestDto": {
+        "customer.ChildRegistrationRequestDto": {
             "type": "object",
             "required": [
                 "age",
@@ -3513,6 +3513,44 @@ const docTemplate = `{
                 },
                 "last_name": {
                     "type": "string"
+                },
+                "waivers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/customer.WaiverSigningRequestDto"
+                    }
+                }
+            }
+        },
+        "customer.RegularCustomerRegistrationRequestDto": {
+            "type": "object",
+            "required": [
+                "age",
+                "first_name",
+                "has_consent_to_email_marketing",
+                "has_consent_to_sms",
+                "last_name",
+                "waivers"
+            ],
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "has_consent_to_email_marketing": {
+                    "type": "boolean"
+                },
+                "has_consent_to_sms": {
+                    "type": "boolean"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string",
+                    "example": "+15141234567"
                 },
                 "waivers": {
                     "type": "array",
@@ -3585,47 +3623,6 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.EnrollmentRequestDto": {
-            "type": "object",
-            "required": [
-                "customer_id",
-                "event_id"
-            ],
-            "properties": {
-                "customer_id": {
-                    "type": "string"
-                },
-                "event_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.EnrollmentResponse": {
-            "type": "object",
-            "properties": {
-                "checked_in_at": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "customer_id": {
-                    "type": "string"
-                },
-                "event_id": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_cancelled": {
-                    "type": "boolean"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
         "dto.PracticeRequestDto": {
             "type": "object",
             "properties": {
@@ -3647,6 +3644,47 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "enrollment.CreateRequestDto": {
+            "type": "object",
+            "required": [
+                "customer_id",
+                "event_id"
+            ],
+            "properties": {
+                "customer_id": {
+                    "type": "string"
+                },
+                "event_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "enrollment.ResponseDto": {
+            "type": "object",
+            "properties": {
+                "checked_in_at": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "customer_id": {
+                    "type": "string"
+                },
+                "event_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_cancelled": {
+                    "type": "boolean"
+                },
+                "updated_at": {
                     "type": "string"
                 }
             }
@@ -3920,6 +3958,9 @@ const docTemplate = `{
         "hubspot.UserProps": {
             "type": "object",
             "properties": {
+                "age": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 },
@@ -3927,6 +3968,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "lastname": {
+                    "type": "string"
+                },
+                "phone": {
                     "type": "string"
                 }
             }
@@ -3964,6 +4008,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "last_name": {
+                    "type": "string"
+                },
+                "phone": {
                     "type": "string"
                 },
                 "role": {
@@ -4103,6 +4150,10 @@ const docTemplate = `{
                 },
                 "is_active": {
                     "type": "boolean"
+                },
+                "phone_number": {
+                    "type": "string",
+                    "example": "+15141234567"
                 },
                 "role_name": {
                     "type": "string"

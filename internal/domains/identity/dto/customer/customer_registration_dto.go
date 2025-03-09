@@ -7,16 +7,31 @@ import (
 	"api/internal/libs/validators"
 )
 
-// RegistrationRequestDto represents the data transfer object for customer registration.
+// RegistrationBaseRequestDto represents the data transfer object for customer registration.
 // It includes user information, waivers, Firebase authentication token, and age.
-type RegistrationRequestDto struct {
+type RegistrationBaseRequestDto struct {
 	CustomerWaiversSigningDto []WaiverSigningRequestDto `json:"waivers" validate:"required"`
 	identity.UserNecessaryInfoRequestDto
 }
 
+// RegularCustomerRegistrationRequestDto represents the data transfer object for customer registration.
+// It includes user information, waivers, Firebase authentication token, and age.
+type RegularCustomerRegistrationRequestDto struct {
+	RegistrationBaseRequestDto
+	PhoneNumber                string `json:"phone_number" validate:"e164" example:"+15141234567"`
+	HasConsentToSmS            bool   `json:"has_consent_to_sms" validate:"required"`
+	HasConsentToEmailMarketing bool   `json:"has_consent_to_email_marketing" validate:"required"`
+}
+
+// ChildRegistrationRequestDto represents the data transfer object for child registration.
+// It includes user information, waivers, Firebase authentication token, and age.
+type ChildRegistrationRequestDto struct {
+	RegistrationBaseRequestDto
+}
+
 // toValueObjectBase validates the DTO and converts waiver signing details into value objects.
 // Returns a slice of CustomerWaiverSigning value objects and an error if validation fails.
-func (dto RegistrationRequestDto) toValueObjectBase() ([]values.CustomerWaiverSigning, *errLib.CommonError) {
+func (dto RegistrationBaseRequestDto) toValueObjectBase() ([]values.CustomerWaiverSigning, *errLib.CommonError) {
 	if err := validators.ValidateDto(&dto); err != nil {
 		return nil, err
 	}
@@ -40,12 +55,16 @@ func (dto RegistrationRequestDto) toValueObjectBase() ([]values.CustomerWaiverSi
 
 // ToCreateRegularCustomerValueObject converts the DTO into a RegularCustomerRegistrationRequestInfo value object.
 // Requires an email address as input. Returns the value object and an error if validation fails.
-func (dto RegistrationRequestDto) ToCreateRegularCustomerValueObject(email string) (*values.RegularCustomerRegistrationRequestInfo, *errLib.CommonError) {
+func (dto RegularCustomerRegistrationRequestDto) ToCreateRegularCustomerValueObject(email string) (values.RegularCustomerRegistrationRequestInfo, *errLib.CommonError) {
 
-	waiversVo, err := dto.toValueObjectBase()
+	if err := validators.ValidateDto(&dto); err != nil {
+		return values.RegularCustomerRegistrationRequestInfo{}, err
+	}
+
+	waiversVo, err := dto.RegistrationBaseRequestDto.toValueObjectBase()
 
 	if err != nil {
-		return nil, err
+		return values.RegularCustomerRegistrationRequestInfo{}, err
 	}
 
 	vo := values.RegularCustomerRegistrationRequestInfo{
@@ -54,21 +73,24 @@ func (dto RegistrationRequestDto) ToCreateRegularCustomerValueObject(email strin
 			FirstName: dto.FirstName,
 			LastName:  dto.LastName,
 		},
-		Email:   email,
-		Waivers: waiversVo,
+		Phone:                      dto.PhoneNumber,
+		Email:                      email,
+		Waivers:                    waiversVo,
+		HasConsentToEmailMarketing: dto.HasConsentToEmailMarketing,
+		HasConsentToSms:            dto.HasConsentToSmS,
 	}
 
-	return &vo, nil
+	return vo, nil
 }
 
 // ToCreateChildValueObject converts the DTO into a ChildRegistrationRequestInfo value object.
 // Requires a parent email as input. Returns the value object and an error if validation fails.
-func (dto RegistrationRequestDto) ToCreateChildValueObject(parentEmail string) (*values.ChildRegistrationRequestInfo, *errLib.CommonError) {
+func (dto ChildRegistrationRequestDto) ToCreateChildValueObject(parentEmail string) (values.ChildRegistrationRequestInfo, *errLib.CommonError) {
 
 	waiversVo, err := dto.toValueObjectBase()
 
 	if err != nil {
-		return nil, err
+		return values.ChildRegistrationRequestInfo{}, err
 	}
 
 	vo := values.ChildRegistrationRequestInfo{
@@ -81,5 +103,5 @@ func (dto RegistrationRequestDto) ToCreateChildValueObject(parentEmail string) (
 		Waivers:     waiversVo,
 	}
 
-	return &vo, nil
+	return vo, nil
 }

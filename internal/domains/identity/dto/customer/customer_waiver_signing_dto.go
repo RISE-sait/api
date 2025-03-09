@@ -7,7 +7,7 @@ import (
 )
 
 type WaiverSigningRequestDto struct {
-	WaiverUrl      string `json:"waiver_url" validate:"required,url"`
+	WaiverURL      string `json:"waiver_url" validate:"required,url"`
 	IsWaiverSigned bool   `json:"is_waiver_signed"`
 }
 
@@ -18,7 +18,7 @@ func (dto WaiverSigningRequestDto) ToValueObjects() (*identity.CustomerWaiverSig
 	}
 
 	return &identity.CustomerWaiverSigning{
-		WaiverUrl:      dto.WaiverUrl,
+		WaiverUrl:      dto.WaiverURL,
 		IsWaiverSigned: dto.IsWaiverSigned,
 	}, nil
 }

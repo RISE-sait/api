@@ -86,10 +86,10 @@ func setupMiddlewares(router *chi.Mux) {
 	router.Use(middlewares.SetJSONContentType)
 
 	router.Use(cors.New(cors.Options{
-		AllowedOrigins:   []string{"https://rise-web-461776259687.us-west2.run.app"}, // Allow this specific origin
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},        // Allowed HTTP methods
-		AllowedHeaders:   []string{"Content-Type", "Authorization"},                  // Allowed headers
-		AllowCredentials: true,                                                       // Allow cookies and credentials
-		Debug:            true,                                                       // Enable CORS debugging
+		AllowedOrigins:   []string{"https://rise-web-461776259687.us-west2.run.app", "http://localhost:3000"}, // Allow this specific origin
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},                                 // Allowed HTTP methods
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},                                           // Allowed headers
+		AllowCredentials: true,                                                                                // Allow cookies and credentials
+		Debug:            true,                                                                                // Enable CORS debugging
 	}).Handler)
 }

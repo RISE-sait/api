@@ -19,6 +19,23 @@ definitions:
       updatedAt:
         type: string
     type: object
+  customer.ChildRegistrationRequestDto:
+    properties:
+      age:
+        type: integer
+      first_name:
+        type: string
+      last_name:
+        type: string
+      waivers:
+        items:
+          $ref: '#/definitions/customer.WaiverSigningRequestDto'
+        type: array
+    required:
+      - age
+      - first_name
+      - last_name
+    type: object
   customer.MembershipPlansResponseDto:
     properties:
       created_at:
@@ -39,6 +56,33 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  customer.RegistrationRequestDto:
+    properties:
+      age:
+        type: integer
+      first_name:
+        type: string
+      has_consent_to_email_marketing:
+        type: boolean
+      has_consent_to_sms:
+        type: boolean
+      last_name:
+        type: string
+      phone_number:
+        example: "+15141234567"
+        type: string
+      role:
+        type: string
+      waivers:
+        items:
+          $ref: '#/definitions/customer.WaiverSigningRequestDto'
+        type: array
+    required:
+      - age
+      - first_name
+      - last_name
+      - role
     type: object
   customer.Response:
     properties:
@@ -329,33 +373,6 @@ definitions:
       updatedAt:
         type: string
     type: object
-  identity.CustomerRegistrationRequestDto:
-    properties:
-      age:
-        type: integer
-      first_name:
-        type: string
-      has_consent_to_email_marketing:
-        type: boolean
-      has_consent_to_sms:
-        type: boolean
-      last_name:
-        type: string
-      phone_number:
-        example: "+15141234567"
-        type: string
-      role:
-        type: string
-      waivers:
-        items:
-          $ref: '#/definitions/customer.WaiverSigningRequestDto'
-        type: array
-    required:
-      - age
-      - first_name
-      - last_name
-      - role
-    type: object
   identity.StaffRegistrationRequestDto:
     properties:
       age:
@@ -492,6 +509,23 @@ definitions:
       role_name:
         type: string
       updated_at:
+        type: string
+    type: object
+  user.Response:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      hubspot_id:
+        type: string
+      last_name:
+        type: string
+      phone:
+        type: string
+      profile_pic:
+        type: string
+      user_id:
         type: string
     type: object
 host: localhost:80
@@ -2571,6 +2605,51 @@ paths:
       summary: Purchase a membership plan
       tags:
       - purchases
+  /register/child:
+    post:
+      consumes:
+        - application/json
+      description: Registers a new child account using the provided details and associates
+        it with the parent based on the Firebase authentication token.
+      parameters:
+        - description: Child account registration details
+          in: body
+          name: customer
+          required: true
+          schema:
+            $ref: '#/definitions/customer.ChildRegistrationRequestDto'
+        - description: Firebase token for user verification
+          in: header
+          name: firebase_token
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        "201":
+          description: Child account registered successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Bad Request: Invalid input or missing Firebase token'
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 'Unauthorized: Invalid Firebase token or insufficient permissions'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'Internal Server Error: Failed to register child account or
+            associate with parent'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Register a new child account and associate it with the parent
+      tags:
+        - registration
   /register/customer:
     post:
       consumes:
@@ -2584,7 +2663,7 @@ paths:
         name: customer
         required: true
         schema:
-          $ref: '#/definitions/identity.CustomerRegistrationRequestDto'
+          $ref: '#/definitions/customer.RegistrationRequestDto'
       - description: Firebase token for user verification
         in: header
         name: firebase_token
@@ -2786,7 +2865,7 @@ paths:
         "200":
           description: Customer retrieved successfully
           schema:
-            $ref: '#/definitions/hubspot.UserResponse'
+            $ref: '#/definitions/user.Response'
         "400":
           description: 'Bad Request: Invalid Email'
           schema:

@@ -6,10 +6,13 @@ import (
 	enrollmentService "api/internal/domains/enrollment/service"
 	dto "api/internal/domains/user/dto/user"
 	userRepo "api/internal/domains/user/persistence/repository/user"
+	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/services/hubspot"
 	"github.com/go-chi/chi"
+	"log"
 	"net/http"
+	"strconv"
 )
 
 type UsersHandler struct {
@@ -35,7 +38,7 @@ func NewUsersHandler(container *di.Container) *UsersHandler {
 // @Accept json
 // @Produce json
 // @Param email path string true "Email"
-// @Success 200 {object} hubspot.UserResponse "Customer retrieved successfully"
+// @Success 200 {object} dto.Response "Customer retrieved successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid Email"
 // @Failure 404 {object} map[string]interface{} "Not Found: Customer not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
@@ -115,13 +118,22 @@ func (h *UsersHandler) GetChildrenByParentEmail(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	children := make([]dto.ChildResponse, len(hubspotChildren))
+	var children []dto.ChildResponse
 
 	for _, child := range hubspotChildren {
+
+		age, err := strconv.Atoi(child.Properties.Age)
+		log.Println(age)
+		if err != nil {
+			responseHandlers.RespondWithError(w, errLib.New("Invalid age format", http.StatusInternalServerError))
+			return
+		}
+
 		children = append(children, dto.ChildResponse{
 			HubspotId: child.HubSpotId,
 			FirstName: child.Properties.FirstName,
 			LastName:  child.Properties.LastName,
+			Age:       age,
 		})
 	}
 

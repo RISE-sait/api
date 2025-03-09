@@ -166,26 +166,26 @@ func (h *CustomersHandler) GetMembershipPlansByCustomer(w http.ResponseWriter, r
 		return
 	}
 
-	dbPlans, err := h.CustomerRepo.GetMembershipPlansByCustomer(r.Context(), customerID)
+	plans, err := h.CustomerRepo.GetMembershipPlansByCustomer(r.Context(), customerID)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	result := make([]customer.MembershipPlansResponseDto, len(dbPlans))
+	result := make([]customer.MembershipPlansResponseDto, len(plans))
 
-	for i, dbPlan := range dbPlans {
+	for i, plan := range plans {
 		response := customer.MembershipPlansResponseDto{
-			ID:               dbPlan.ID,
-			CustomerID:       dbPlan.CustomerID,
-			MembershipPlanID: dbPlan.MembershipPlanID,
-			StartDate:        dbPlan.StartDate,
-			RenewalDate:      dbPlan.RenewalDate,
-			Status:           dbPlan.Status,
-			CreatedAt:        dbPlan.CreatedAt,
-			UpdatedAt:        dbPlan.UpdatedAt,
-			MembershipName:   dbPlan.MembershipName,
+			ID:               plan.ID,
+			CustomerID:       plan.CustomerID,
+			MembershipPlanID: plan.MembershipPlanID,
+			StartDate:        plan.StartDate,
+			RenewalDate:      plan.RenewalDate,
+			Status:           plan.Status,
+			CreatedAt:        plan.CreatedAt,
+			UpdatedAt:        plan.UpdatedAt,
+			MembershipName:   plan.MembershipName,
 		}
 
 		result[i] = response

@@ -74,12 +74,6 @@ func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string,
 		return "", userInfo, errLib.New("Invalid age. Internal error", http.StatusInternalServerError)
 	}
 
-	isAthlete, err := s.UserRepo.GetIsAthleteByID(ctx, userId)
-
-	if err != nil {
-		return "", identity.UserAuthenticationResponseInfo{}, err
-	}
-
 	staffInfo, err := s.StaffRepo.GetStaffByUserId(ctx, userId)
 
 	jwtCustomClaims := jwtLib.CustomClaims{
@@ -97,6 +91,15 @@ func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string,
 		userInfo.Phone = &hubspotResponse.Properties.Phone
 	}
 
+	isParent := false
+
+	for _, result := range hubspotResponse.Associations.Contact.Result {
+		if result.Type == "child_parent" {
+			isParent = true
+			break
+		}
+	}
+
 	if err == nil {
 		jwtCustomClaims.StaffInfo = &jwtLib.StaffInfo{
 			Role:     staffInfo.RoleName,
@@ -104,7 +107,7 @@ func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string,
 		}
 
 		userInfo.Role = staffInfo.RoleName
-	} else if !isAthlete {
+	} else if isParent {
 		userInfo.Role = "Parent"
 	} else {
 		userInfo.Role = "Athlete"

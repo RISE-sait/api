@@ -82,7 +82,7 @@
                     "200": {
                         "description": "User authenticated successfully",
                         "schema": {
-                          "$ref": "#/definitions/identity.UserAuthenticationResponseDto"
+                            "$ref": "#/definitions/identity.UserAuthenticationResponseDto"
                         }
                     },
                     "400": {
@@ -472,57 +472,57 @@
                 }
             }
         },
-      "/customers/{id}/membership-plans": {
-        "get": {
-          "description": "Retrieves a list of membership plans associated with a specific customer, using the customer ID as a required parameter.",
-          "consumes": [
-            "application/json"
-          ],
-          "produces": [
-            "application/json"
-          ],
-          "tags": [
-            "customers"
-          ],
-          "summary": "Get membership plans by customer",
-          "parameters": [
-            {
-              "type": "string",
-              "description": "Customer ID",
-              "name": "id",
-              "in": "path",
-              "required": true
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "List of membership plans for the customer",
-              "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/definitions/customer.MembershipPlansResponseDto"
-                }
-              }
-            },
-            "400": {
-              "description": "Bad Request: Invalid customer ID",
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            },
-            "404": {
-              "description": "Not Found: Customer not found",
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            },
-            "500": {
-              "description": "Internal Server Error",
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
+        "/customers/{id}/membership-plans": {
+            "get": {
+                "description": "Retrieves a list of membership plans associated with a specific customer, using the customer ID as a required parameter.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "customers"
+                ],
+                "summary": "Get membership plans by customer",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Customer ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of membership plans for the customer",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/customer.MembershipPlansResponseDto"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid customer ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Customer not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -2255,9 +2255,9 @@
                 }
             }
         },
-      "/memberships": {
+        "/memberships": {
             "get": {
-              "description": "Get a list of memberships",
+                "description": "Get a list of memberships",
                 "consumes": [
                     "application/json"
                 ],
@@ -2265,62 +2265,62 @@
                     "application/json"
                 ],
                 "tags": [
-                  "memberships"
+                    "memberships"
                 ],
-              "summary": "Get a list of memberships",
+                "summary": "Get a list of memberships",
                 "responses": {
                     "200": {
-                      "description": "GetMemberships of memberships retrieved successfully",
+                        "description": "GetMemberships of memberships retrieved successfully",
                         "schema": {
                             "type": "array",
                             "items": {
-                              "$ref": "#/definitions/membership.Response"
+                                "$ref": "#/definitions/membership.Response"
                             }
                         }
                     },
-                  "500": {
-                    "description": "Internal Server Error",
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
-                  }
+                    }
                 }
             },
-        "post": {
-          "security": [
-            {
-              "Bearer": []
-            }
-          ],
-          "description": "Create a new membership",
-          "consumes": [
-            "application/json"
-          ],
-          "produces": [
-            "application/json"
-          ],
-          "tags": [
-            "memberships"
-          ],
-          "summary": "Create a new membership",
-          "parameters": [
-            {
-              "description": "Membership details",
-              "name": "membership",
-              "in": "body",
-              "required": true,
-              "schema": {
-                "$ref": "#/definitions/membership.RequestDto"
-              }
-            }
-          ],
-          "responses": {
-            "201": {
-              "description": "Membership created successfully"
-            },
-            "400": {
-              "description": "Bad Request: Invalid input",
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Create a new membership",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "memberships"
+                ],
+                "summary": "Create a new membership",
+                "parameters": [
+                    {
+                        "description": "Membership details",
+                        "name": "membership",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/membership.RequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Membership created successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2334,9 +2334,9 @@
                         }
                     }
                 }
-        }
-      },
-      "/memberships/plans": {
+            }
+        },
+        "/memberships/plans": {
             "post": {
                 "security": [
                     {
@@ -2386,43 +2386,43 @@
                 }
             }
         },
-      "/memberships/plans/payment-frequencies": {
-        "get": {
-          "description": "Retrieves a list of available payment frequencies for membership plans.",
-          "consumes": [
-            "application/json"
-          ],
-          "produces": [
-            "application/json"
-          ],
-          "tags": [
-            "membership-plans"
-          ],
-          "summary": "Get payment frequencies for membership plans",
-          "responses": {
-            "200": {
-              "description": "List of payment frequencies",
-              "schema": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
+        "/memberships/plans/payment-frequencies": {
+            "get": {
+                "description": "Retrieves a list of available payment frequencies for membership plans.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "membership-plans"
+                ],
+                "summary": "Get payment frequencies for membership plans",
+                "responses": {
+                    "200": {
+                        "description": "List of payment frequencies",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
                 }
-              }
-            },
-            "500": {
-              "description": "Internal Server Error",
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
             }
-          }
-        }
-      },
-      "/memberships/plans/{id}": {
+        },
+        "/memberships/plans/{id}": {
             "put": {
                 "security": [
                     {
@@ -2491,7 +2491,7 @@
                         "Bearer": []
                     }
                 ],
-              "description": "Delete a membership plan by ID",
+                "description": "Delete a membership plan by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -2516,7 +2516,7 @@
                         "description": "No Content: Membership plan deleted successfully"
                     },
                     "400": {
-                      "description": "Bad Request: Invalid ID",
+                        "description": "Bad Request: Invalid ID",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2541,7 +2541,7 @@
         },
         "/memberships/{id}": {
             "get": {
-              "description": "Get a membership by ID",
+                "description": "Get a membership by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -2551,7 +2551,7 @@
                 "tags": [
                     "memberships"
                 ],
-              "summary": "Get a membership by ID",
+                "summary": "Get a membership by ID",
                 "parameters": [
                     {
                         "type": "string",
@@ -2570,7 +2570,7 @@
                         }
                     },
                     "400": {
-                      "description": "Bad Request: Invalid ID",
+                        "description": "Bad Request: Invalid ID",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2661,7 +2661,7 @@
                         "Bearer": []
                     }
                 ],
-              "description": "Delete a membership by ID",
+                "description": "Delete a membership by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -2687,7 +2687,7 @@
                         "description": "No Content: Membership deleted successfully"
                     },
                     "400": {
-                      "description": "Bad Request: Invalid ID",
+                        "description": "Bad Request: Invalid ID",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2700,62 +2700,62 @@
                             "additionalProperties": true
                         }
                     },
-                  "500": {
-                    "description": "Internal Server Error",
-                    "schema": {
-                      "type": "object",
-                      "additionalProperties": true
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
                     }
-                  }
                 }
             }
         },
-      "/memberships/{id}/plans": {
-        "get": {
-          "description": "Get membership plans by membership ID",
-          "consumes": [
-            "application/json"
-          ],
-          "produces": [
-            "application/json"
-          ],
-          "tags": [
-            "membership-plans"
-          ],
-          "summary": "Get membership plans by membership ID",
-          "parameters": [
-            {
-              "type": "string",
-              "example": "\"f47ac10b-58cc-4372-a567-0e02b2c3d479\"",
-              "description": "Membership ID",
-              "name": "id",
-              "in": "path",
-              "required": true
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "GetMemberships of membership plans retrieved successfully",
-              "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/definitions/membership_plan.PlanResponse"
-                }
-              }
-            },
-            "400": {
-              "description": "Bad Request: Invalid membership ID",
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            },
-            "404": {
-              "description": "Not Found: Membership plans not found",
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
+        "/memberships/{id}/plans": {
+            "get": {
+                "description": "Get membership plans by membership ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "membership-plans"
+                ],
+                "summary": "Get membership plans by membership ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "\"f47ac10b-58cc-4372-a567-0e02b2c3d479\"",
+                        "description": "Membership ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "GetMemberships of membership plans retrieved successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/membership_plan.PlanResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid membership ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Membership plans not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -3084,9 +3084,72 @@
                 }
             }
         },
+        "/register/child": {
+            "post": {
+                "description": "Registers a new child account using the provided details and associates it with the parent based on the Firebase authentication token.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "registration"
+                ],
+                "summary": "Register a new child account and associate it with the parent",
+                "parameters": [
+                    {
+                        "description": "Child account registration details",
+                        "name": "customer",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/customer.ChildRegistrationRequestDto"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Firebase token for user verification",
+                        "name": "firebase_token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Child account registered successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input or missing Firebase token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized: Invalid Firebase token or insufficient permissions",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error: Failed to register child account or associate with parent",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/register/customer": {
             "post": {
-              "description": "Registers a new customer by verifying the Firebase token and creating an account based on the provided details. The registration can either be for an athlete or a parent, depending on the specified role in the request.",
+                "description": "Registers a new customer by verifying the Firebase token and creating an account based on the provided details. The registration can either be for an athlete or a parent, depending on the specified role in the request.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3104,7 +3167,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                          "$ref": "#/definitions/identity.CustomerRegistrationRequestDto"
+                            "$ref": "#/definitions/customer.RegistrationRequestDto"
                         }
                     },
                     {
@@ -3117,21 +3180,21 @@
                 ],
                 "responses": {
                     "201": {
-                      "description": "Customer registered successfully",
+                        "description": "Customer registered successfully",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "400": {
-                      "description": "Bad Request: Missing or invalid Firebase token or request body",
+                        "description": "Bad Request: Missing or invalid Firebase token or request body",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "500": {
-                      "description": "Internal Server Error: Failed to register customer",
+                        "description": "Internal Server Error: Failed to register customer",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3160,7 +3223,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                          "$ref": "#/definitions/identity.StaffRegistrationRequestDto"
+                            "$ref": "#/definitions/identity.StaffRegistrationRequestDto"
                         }
                     }
                 ],
@@ -3397,7 +3460,7 @@
                     "200": {
                         "description": "Customer retrieved successfully",
                         "schema": {
-                            "$ref": "#/definitions/hubspot.UserResponse"
+                            "$ref": "#/definitions/user.Response"
                         }
                     },
                     "400": {
@@ -3513,35 +3576,99 @@
                 }
             }
         },
-      "customer.MembershipPlansResponseDto": {
-        "type": "object",
-        "properties": {
-          "created_at": {
-            "type": "string"
-          },
-          "customer_id": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "membership_name": {
-            "type": "string"
-          },
-          "membership_plan_id": {
-            "type": "string"
-          },
-          "renewal_date": {
-            "type": "string"
-          },
-          "start_date": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "updated_at": {
-            "type": "string"
+        "customer.ChildRegistrationRequestDto": {
+            "type": "object",
+            "required": [
+                "age",
+                "first_name",
+                "last_name"
+            ],
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "waivers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/customer.WaiverSigningRequestDto"
+                    }
+                }
+            }
+        },
+        "customer.MembershipPlansResponseDto": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "customer_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "membership_name": {
+                    "type": "string"
+                },
+                "membership_plan_id": {
+                    "type": "string"
+                },
+                "renewal_date": {
+                    "type": "string"
+                },
+                "start_date": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "customer.RegistrationRequestDto": {
+            "type": "object",
+            "required": [
+                "age",
+                "first_name",
+                "last_name",
+                "role"
+            ],
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "has_consent_to_email_marketing": {
+                    "type": "boolean"
+                },
+                "has_consent_to_sms": {
+                    "type": "boolean"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string",
+                    "example": "+15141234567"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "waivers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/customer.WaiverSigningRequestDto"
+                    }
                 }
             }
         },
@@ -3980,95 +4107,56 @@
                 }
             }
         },
-      "identity.CustomerRegistrationRequestDto": {
-            "type": "object",
-        "required": [
-          "age",
-          "first_name",
-          "last_name",
-          "role"
-        ],
-            "properties": {
-                "age": {
-                    "type": "integer"
-                },
-                "first_name": {
-                    "type": "string"
-                },
-              "has_consent_to_email_marketing": {
-                "type": "boolean"
-              },
-              "has_consent_to_sms": {
-                "type": "boolean"
-              },
-                "last_name": {
-                    "type": "string"
-                },
-              "phone_number": {
-                "type": "string",
-                "example": "+15141234567"
-                },
-                "role": {
-                    "type": "string"
-                },
-              "waivers": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/definitions/customer.WaiverSigningRequestDto"
-                }
-                }
-            }
-        },
-      "identity.StaffRegistrationRequestDto": {
+        "identity.StaffRegistrationRequestDto": {
             "type": "object",
             "required": [
                 "age",
                 "first_name",
-              "last_name",
-              "role"
+                "last_name",
+                "role"
             ],
             "properties": {
                 "age": {
                     "type": "integer"
                 },
-              "first_name": {
-                "type": "string"
-              },
-              "is_active_staff": {
-                "type": "boolean"
-              },
-              "last_name": {
-                "type": "string"
-              },
-              "phone_number": {
-                "type": "string",
-                "example": "+15141234567"
-              },
-              "role": {
-                "type": "string"
-              }
+                "first_name": {
+                    "type": "string"
+                },
+                "is_active_staff": {
+                    "type": "boolean"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string",
+                    "example": "+15141234567"
+                },
+                "role": {
+                    "type": "string"
+                }
             }
-      },
-      "identity.UserAuthenticationResponseDto": {
-        "type": "object",
-        "properties": {
-          "age": {
-            "type": "integer"
-          },
-          "email": {
-            "type": "string"
-          },
+        },
+        "identity.UserAuthenticationResponseDto": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "email": {
+                    "type": "string"
+                },
                 "first_name": {
                     "type": "string"
                 },
                 "last_name": {
                     "type": "string"
                 },
-          "phone": {
-            "type": "string"
-          },
-          "role": {
-            "type": "string"
+                "phone": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
                 }
             }
         },
@@ -4222,6 +4310,32 @@
                     "type": "string"
                 },
                 "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "user.Response": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "hubspot_id": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "profile_pic": {
+                    "type": "string"
+                },
+                "user_id": {
                     "type": "string"
                 }
             }

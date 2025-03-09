@@ -18,5 +18,5 @@ type ChildResponse struct {
 	HubspotId string `json:"hubspot_id"`
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
-	//Age       int    `json:"age"`
+	Age       int    `json:"age"`
 }

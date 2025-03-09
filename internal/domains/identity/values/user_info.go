@@ -23,6 +23,7 @@ type UserAuthenticationResponseInfo struct {
 
 type AdultCustomerRegistrationRequestInfo struct {
 	UserRegistrationRequestNecessaryInfo
+	Waivers                    []CustomerWaiverSigning
 	Email                      string
 	Phone                      string
 	HasConsentToSms            bool

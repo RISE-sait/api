@@ -7,7 +7,7 @@ import (
 	"api/internal/libs/validators"
 )
 
-type RegistrationRequestDto struct {
+type AdultsRegistrationRequestDto struct {
 	identity.UserNecessaryInfoRequestDto
 	CustomerWaiversSigningDto  []WaiverSigningRequestDto `json:"waivers"`
 	PhoneNumber                string                    `json:"phone_number" validate:"omitempty,e164" example:"+15141234567"`
@@ -16,28 +16,44 @@ type RegistrationRequestDto struct {
 	Role                       string                    `json:"role" validate:"required"`
 }
 
-// toValueObjectBase validates the DTO and converts waiver signing details into value objects.
+// ToValueObject validates the DTO and converts waiver signing details into value objects.
 // Returns a slice of CustomerWaiverSigning value objects and an error if validation fails.
-func (dto RegistrationRequestDto) toValueObjectBase() ([]values.CustomerWaiverSigning, *errLib.CommonError) {
+func (dto AdultsRegistrationRequestDto) ToValueObject(email string) (values.AdultCustomerRegistrationRequestInfo, *errLib.CommonError) {
 	if err := validators.ValidateDto(&dto); err != nil {
-		return nil, err
+		return values.AdultCustomerRegistrationRequestInfo{}, err
 	}
 
 	waiversVo := make([]values.CustomerWaiverSigning, len(dto.CustomerWaiversSigningDto))
-	for i, waiver := range dto.CustomerWaiversSigningDto {
-		vo, err := waiver.ToValueObjects()
 
-		if err != nil {
-			return nil, err
-		}
+	if dto.CustomerWaiversSigningDto != nil {
 
-		waiversVo[i] = values.CustomerWaiverSigning{
-			IsWaiverSigned: vo.IsWaiverSigned,
-			WaiverUrl:      vo.WaiverUrl,
+		for i, waiver := range dto.CustomerWaiversSigningDto {
+			vo, err := waiver.ToValueObjects()
+
+			if err != nil {
+				return values.AdultCustomerRegistrationRequestInfo{}, err
+			}
+
+			waiversVo[i] = values.CustomerWaiverSigning{
+				IsWaiverSigned: vo.IsWaiverSigned,
+				WaiverUrl:      vo.WaiverUrl,
+			}
+
 		}
 	}
 
-	return waiversVo, nil
+	return values.AdultCustomerRegistrationRequestInfo{
+		UserRegistrationRequestNecessaryInfo: values.UserRegistrationRequestNecessaryInfo{
+			Age:       dto.Age,
+			FirstName: dto.FirstName,
+			LastName:  dto.LastName,
+		},
+		Email:                      email,
+		Phone:                      dto.PhoneNumber,
+		HasConsentToSms:            dto.HasConsentToSmS,
+		HasConsentToEmailMarketing: dto.HasConsentToEmailMarketing,
+		Waivers:                    waiversVo,
+	}, nil
 }
 
 type ChildRegistrationRequestDto struct {

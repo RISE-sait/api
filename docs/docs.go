@@ -3094,6 +3094,69 @@ const docTemplate = `{
                 }
             }
         },
+        "/register/child": {
+            "post": {
+                "description": "Registers a new child account using the provided details and associates it with the parent based on the Firebase authentication token.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "registration"
+                ],
+                "summary": "Register a new child account and associate it with the parent",
+                "parameters": [
+                    {
+                        "description": "Child account registration details",
+                        "name": "customer",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/customer.ChildRegistrationRequestDto"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Firebase token for user verification",
+                        "name": "firebase_token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Child account registered successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input or missing Firebase token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized: Invalid Firebase token or insufficient permissions",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error: Failed to register child account or associate with parent",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/register/customer": {
             "post": {
                 "description": "Registers a new customer by verifying the Firebase token and creating an account based on the provided details. The registration can either be for an athlete or a parent, depending on the specified role in the request.",
@@ -3114,7 +3177,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/identity.CustomerRegistrationRequestDto"
+                            "$ref": "#/definitions/customer.RegistrationRequestDto"
                         }
                     },
                     {
@@ -3407,7 +3470,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Customer retrieved successfully",
                         "schema": {
-                            "$ref": "#/definitions/hubspot.UserResponse"
+                            "$ref": "#/definitions/user.Response"
                         }
                     },
                     "400": {
@@ -3523,6 +3586,31 @@ const docTemplate = `{
                 }
             }
         },
+        "customer.ChildRegistrationRequestDto": {
+            "type": "object",
+            "required": [
+                "age",
+                "first_name",
+                "last_name"
+            ],
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "waivers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/customer.WaiverSigningRequestDto"
+                    }
+                }
+            }
+        },
         "customer.MembershipPlansResponseDto": {
             "type": "object",
             "properties": {
@@ -3552,6 +3640,45 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "customer.RegistrationRequestDto": {
+            "type": "object",
+            "required": [
+                "age",
+                "first_name",
+                "last_name",
+                "role"
+            ],
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "has_consent_to_email_marketing": {
+                    "type": "boolean"
+                },
+                "has_consent_to_sms": {
+                    "type": "boolean"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string",
+                    "example": "+15141234567"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "waivers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/customer.WaiverSigningRequestDto"
+                    }
                 }
             }
         },
@@ -3990,45 +4117,6 @@ const docTemplate = `{
                 }
             }
         },
-        "identity.CustomerRegistrationRequestDto": {
-            "type": "object",
-            "required": [
-                "age",
-                "first_name",
-                "last_name",
-                "role"
-            ],
-            "properties": {
-                "age": {
-                    "type": "integer"
-                },
-                "first_name": {
-                    "type": "string"
-                },
-                "has_consent_to_email_marketing": {
-                    "type": "boolean"
-                },
-                "has_consent_to_sms": {
-                    "type": "boolean"
-                },
-                "last_name": {
-                    "type": "string"
-                },
-                "phone_number": {
-                    "type": "string",
-                    "example": "+15141234567"
-                },
-                "role": {
-                    "type": "string"
-                },
-                "waivers": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/customer.WaiverSigningRequestDto"
-                    }
-                }
-            }
-        },
         "identity.StaffRegistrationRequestDto": {
             "type": "object",
             "required": [
@@ -4232,6 +4320,32 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "user.Response": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "hubspot_id": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "profile_pic": {
+                    "type": "string"
+                },
+                "user_id": {
                     "type": "string"
                 }
             }

@@ -71,7 +71,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Mostapha45/RiseMobile
-          token: ${{ secrets.MOBILE_REPO_PAT }}
+          token: ${{ secrets.FRONTEND_REPO_PAT }}
 
       - name: Copy new Swagger files to mobile
         run: |

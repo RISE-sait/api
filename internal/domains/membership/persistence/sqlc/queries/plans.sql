@@ -10,11 +10,7 @@ WHERE id = $1;
 -- name: GetMembershipPlans :many
 SELECT * 
 FROM membership.membership_plans mp
-JOIN customer_membership_plans cmp
-ON mp.id = cmp.membership_plan_id
-WHERE 
-    (mp.membership_id = sqlc.narg('membership_id') OR sqlc.narg('membership_id') IS NULL)
-AND (cmp.customer_id = sqlc.narg('customer_id') OR sqlc.narg('customer_id') IS NULL);
+WHERE mp.membership_id = $1;
 
 -- name: UpdateMembershipPlan :execrows
 UPDATE membership.membership_plans

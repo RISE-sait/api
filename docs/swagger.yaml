@@ -37,6 +37,27 @@ definitions:
     - last_name
     - waivers
     type: object
+  customer.MembershipPlansResponseDto:
+    properties:
+      created_at:
+        type: string
+      customer_id:
+        type: string
+      id:
+        type: string
+      membership_name:
+        type: string
+      membership_plan_id:
+        type: string
+      renewal_date:
+        type: string
+      start_date:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+    type: object
   customer.RegularCustomerRegistrationRequestDto:
     properties:
       age:
@@ -814,6 +835,45 @@ paths:
             additionalProperties: true
             type: object
       summary: Update customer statistics
+      tags:
+        - customers
+  /customers/{id}/membership-plans:
+    get:
+      consumes:
+        - application/json
+      description: Retrieves a list of membership plans associated with a specific
+        customer, using the customer ID as a required parameter.
+      parameters:
+        - description: Customer ID
+          in: path
+          name: id
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: List of membership plans for the customer
+          schema:
+            items:
+              $ref: '#/definitions/customer.MembershipPlansResponseDto'
+            type: array
+        "400":
+          description: 'Bad Request: Invalid customer ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Customer not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get membership plans by customer
       tags:
       - customers
   /enrollments:
@@ -1985,155 +2045,6 @@ paths:
       summary: Update a barber event
       tags:
       - haircut
-  /membership-plan:
-    get:
-      consumes:
-      - application/json
-      description: Get membership plans by membership HubSpotId
-      parameters:
-      - description: Filter by customer ID
-        in: query
-        name: customerId
-        type: string
-      - description: Filter by membership ID
-        in: query
-        name: membershipId
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: GetMemberships of membership plans retrieved successfully
-          schema:
-            items:
-              $ref: '#/definitions/membership_plan.PlanResponse'
-            type: array
-        "400":
-          description: 'Bad Request: Invalid membership HubSpotId'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Membership plans not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get membership plans by membership HubSpotId
-      tags:
-      - membership-plans
-    post:
-      consumes:
-      - application/json
-      description: Create a new membership plan
-      parameters:
-      - description: Membership plan details
-        in: body
-        name: plan
-        required: true
-        schema:
-          $ref: '#/definitions/membership_plan.PlanRequestDto'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Membership plan created successfully
-        "400":
-          description: 'Bad Request: Invalid input'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - Bearer: []
-      summary: Create a new membership plan
-      tags:
-      - membership-plans
-  /membership-plan/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a membership plan by HubSpotId
-      parameters:
-      - description: Plan ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: 'No Content: Membership plan deleted successfully'
-        "400":
-          description: 'Bad Request: Invalid HubSpotId'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Membership plan not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - Bearer: []
-      summary: Delete a membership plan
-      tags:
-      - membership-plans
-    put:
-      consumes:
-      - application/json
-      description: Update a membership plan
-      parameters:
-      - description: Plan ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Membership plan details
-        in: body
-        name: plan
-        required: true
-        schema:
-          $ref: '#/definitions/membership_plan.PlanRequestDto'
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: 'No Content: Membership plan updated successfully'
-        "400":
-          description: 'Bad Request: Invalid input'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Membership plan not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - Bearer: []
-      summary: Update a membership plan
-      tags:
-      - membership-plans
   /memberships:
     get:
       consumes:
@@ -2155,15 +2066,15 @@ paths:
             type: object
       summary: Get a list of memberships
       tags:
-      - memberships
+        - memberships
     post:
       consumes:
       - application/json
       description: Create a new membership
       parameters:
-      - description: Membership details
+        - description: Membership details
         in: body
-        name: membership
+          name: membership
         required: true
         schema:
           $ref: '#/definitions/membership.RequestDto'
@@ -2186,15 +2097,15 @@ paths:
       - Bearer: []
       summary: Create a new membership
       tags:
-      - memberships
+        - memberships
   /memberships/{id}:
     delete:
       consumes:
       - application/json
-      description: Delete a membership by HubSpotId
+      description: Delete a membership by ID
       parameters:
-      - description: Membership ID
-        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
+        - description: Membership ID
+          example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
         in: path
         name: id
         required: true
@@ -2205,7 +2116,7 @@ paths:
         "204":
           description: 'No Content: Membership deleted successfully'
         "400":
-          description: 'Bad Request: Invalid HubSpotId'
+          description: 'Bad Request: Invalid ID'
           schema:
             additionalProperties: true
             type: object
@@ -2223,14 +2134,14 @@ paths:
       - Bearer: []
       summary: Delete a membership
       tags:
-      - memberships
+        - memberships
     get:
       consumes:
       - application/json
-      description: Get a membership by HubSpotId
+      description: Get a membership by ID
       parameters:
-      - description: Membership ID
-        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
+        - description: Membership ID
+          example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
         in: path
         name: id
         required: true
@@ -2243,7 +2154,7 @@ paths:
           schema:
             $ref: '#/definitions/membership.Response'
         "400":
-          description: 'Bad Request: Invalid HubSpotId'
+          description: 'Bad Request: Invalid ID'
           schema:
             additionalProperties: true
             type: object
@@ -2257,7 +2168,7 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Get a membership by HubSpotId
+      summary: Get a membership by ID
       tags:
       - memberships
     put:
@@ -2265,12 +2176,12 @@ paths:
       - application/json
       description: Update a membership
       parameters:
-      - description: Membership ID
-        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
-        in: path
-        name: id
-        required: true
-        type: string
+        - description: Membership ID
+          example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
+          in: path
+          name: id
+          required: true
+          type: string
       - description: Membership details
         in: body
         name: membership
@@ -2302,6 +2213,154 @@ paths:
       summary: Update a membership
       tags:
       - memberships
+  /memberships/{id}/plans:
+    get:
+      consumes:
+      - application/json
+      description: Get membership plans by membership ID
+      parameters:
+      - description: Membership ID
+        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: GetMemberships of membership plans retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/membership_plan.PlanResponse'
+            type: array
+        "400":
+          description: 'Bad Request: Invalid membership ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Membership plans not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get membership plans by membership ID
+      tags:
+        - membership-plans
+  /memberships/plans:
+    post:
+      consumes:
+        - application/json
+      description: Create a new membership plan
+      parameters:
+        - description: Membership plan details
+          in: body
+          name: plan
+          required: true
+          schema:
+            $ref: '#/definitions/membership_plan.PlanRequestDto'
+      produces:
+        - application/json
+      responses:
+        "201":
+          description: Membership plan created successfully
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Create a new membership plan
+      tags:
+        - membership-plans
+  /memberships/plans/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a membership plan by ID
+      parameters:
+        - description: Plan ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Membership plan deleted successfully'
+        "400":
+          description: 'Bad Request: Invalid ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Membership plan not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+        - Bearer: [ ]
+      summary: Delete a membership plan
+      tags:
+        - membership-plans
+    put:
+      consumes:
+      - application/json
+      description: Update a membership plan
+      parameters:
+        - description: Plan ID
+        in: path
+        name: id
+        required: true
+        type: string
+        - description: Membership plan details
+        in: body
+          name: plan
+        required: true
+        schema:
+          $ref: '#/definitions/membership_plan.PlanRequestDto'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 'No Content: Membership plan updated successfully'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Membership plan not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Update a membership plan
+      tags:
+        - membership-plans
   /practices:
     get:
       consumes:

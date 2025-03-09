@@ -46,8 +46,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 	routeMappings := map[string]func(*di.Container) func(chi.Router){
 
 		// Membership-related routes
-		"/memberships":     RegisterMembershipRoutes,
-		"/membership-plan": RegisterMembershipPlansRoutes,
+		"/memberships": RegisterMembershipRoutes,
 
 		// Authentication & Registration routes
 		"/auth":     RegisterAuthRoutes,
@@ -96,7 +95,8 @@ func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 
 	return func(r chi.Router) {
 		r.Get("/", h.GetCustomers)
-		r.Patch("/customers/{customer_id}/stats", h.UpdateCustomerStats)
+		r.Get("/{id}/membership-plans", h.GetMembershipPlansByCustomer)
+		r.Patch("/{customer_id}/stats", h.UpdateCustomerStats)
 	}
 }
 
@@ -127,15 +127,19 @@ func RegisterHaircutEventsRoutes(container *di.Container) func(chi.Router) {
 }
 
 func RegisterMembershipRoutes(container *di.Container) func(chi.Router) {
-	h := membership.NewHandlers(container)
+	membershipsHandler := membership.NewHandlers(container)
+	membershipPlansHandler := membership.NewPlansHandlers(container)
 
 	return func(r chi.Router) {
-		r.Get("/", h.GetMemberships)
-		r.Get("/{id}", h.GetMembershipById)
+		r.Get("/", membershipsHandler.GetMemberships)
+		r.Get("/{id}", membershipsHandler.GetMembershipById)
 
-		r.With(allowAdminOnly).Post("/", h.CreateMembership)
-		r.With(allowAdminOnly).Put("/{id}", h.UpdateMembership)
-		r.With(allowAdminOnly).Delete("/{id}", h.DeleteMembership)
+		r.With(allowAdminOnly).Post("/", membershipsHandler.CreateMembership)
+		r.With(allowAdminOnly).Put("/{id}", membershipsHandler.UpdateMembership)
+		r.With(allowAdminOnly).Delete("/{id}", membershipsHandler.DeleteMembership)
+
+		r.Get("/{id}/plans", membershipPlansHandler.GetMembershipPlans)
+		r.Route("/plans", RegisterMembershipPlansRoutes(container))
 	}
 }
 
@@ -143,7 +147,6 @@ func RegisterMembershipPlansRoutes(container *di.Container) func(chi.Router) {
 	h := membership.NewPlansHandlers(container)
 
 	return func(r chi.Router) {
-		r.Get("/", h.GetMembershipPlans)
 
 		r.With(allowAdminOnly).Post("/", h.CreateMembershipPlan)
 		r.Put("/{id}", h.UpdateMembershipPlan)

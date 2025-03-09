@@ -55,15 +55,15 @@ func (h *Handlers) CreateMembership(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusCreated)
 }
 
-// GetMembershipById retrieves a membership by HubSpotId.
-// @Summary Get a membership by HubSpotId
-// @Description Get a membership by HubSpotId
+// GetMembershipById retrieves a membership by ID.
+// @Summary Get a membership by ID
+// @Description Get a membership by ID
 // @Tags memberships
 // @Accept json
 // @Produce json
 // @Param id path string true "Membership ID" example("f47ac10b-58cc-4372-a567-0e02b2c3d479")
 // @Success 200 {object} membership.Response "Membership retrieved successfully"
-// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid HubSpotId"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Membership not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /memberships/{id} [get]
@@ -151,16 +151,16 @@ func (h *Handlers) UpdateMembership(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-// DeleteMembership deletes a membership by HubSpotId.
+// DeleteMembership deletes a membership by ID.
 // @Summary Delete a membership
-// @Description Delete a membership by HubSpotId
+// @Description Delete a membership by ID
 // @Tags memberships
 // @Accept json
 // @Produce json
 // @Param id path string true "Membership ID" example("f47ac10b-58cc-4372-a567-0e02b2c3d479")
 // @Security Bearer
 // @Success 204 "No Content: Membership deleted successfully"
-// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid HubSpotId"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Membership not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /memberships/{id} [delete]

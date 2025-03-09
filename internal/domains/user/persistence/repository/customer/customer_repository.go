@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/google/uuid"
 	"log"
 	"net/http"
 )
@@ -16,8 +17,6 @@ import (
 type Repository struct {
 	Queries *db.Queries
 }
-
-var _ RepositoryInterface = (*Repository)(nil)
 
 // NewCustomerRepository creates a new instance of UserRepository with the provided dependency injection container.
 func NewCustomerRepository(queries *db.Queries) *Repository {
@@ -53,6 +52,39 @@ func (r *Repository) GetCustomers(ctx context.Context, hubspotIds []string) ([]u
 	}
 
 	return customers, nil
+}
+
+func (r *Repository) GetMembershipPlansByCustomer(ctx context.Context, customerID uuid.UUID) ([]user.CustomerMembershipPlansReadValue, *errLib.CommonError) {
+
+	dbPlans, err := r.Queries.GetMembershipPlansByCustomer(ctx, customerID)
+
+	if err != nil {
+		log.Println(fmt.Sprintf("Error getting membership plans by customer: %s", err))
+		return nil, errLib.New("internal error", http.StatusInternalServerError)
+	}
+
+	plans := make([]user.CustomerMembershipPlansReadValue, len(dbPlans))
+
+	for i, dbPlan := range dbPlans {
+		plan := user.CustomerMembershipPlansReadValue{
+			ID:               dbPlan.ID,
+			CustomerID:       dbPlan.CustomerID,
+			MembershipPlanID: dbPlan.MembershipPlanID,
+			StartDate:        dbPlan.StartDate,
+			Status:           string(dbPlan.Status),
+			CreatedAt:        dbPlan.CreatedAt,
+			UpdatedAt:        dbPlan.UpdatedAt,
+			MembershipName:   dbPlan.MembershipName,
+		}
+
+		if dbPlan.RenewalDate.Valid {
+			plan.RenewalDate = &dbPlan.RenewalDate.Time
+		}
+
+		plans[i] = plan
+	}
+
+	return plans, nil
 }
 
 func (r *Repository) UpdateStats(ctx context.Context, valuesToUpdate values.StatsUpdateValue) *errLib.CommonError {

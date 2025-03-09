@@ -16,7 +16,7 @@ import (
 
 type CustomersHandler struct {
 	HubspotService    *hubspot.Service
-	CustomerRepo      customerRepo.RepositoryInterface
+	CustomerRepo      *customerRepo.Repository
 	EnrollmentService *enrollmentService.Service
 }
 
@@ -134,6 +134,58 @@ func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) 
 					response.Email = &user.Properties.Email
 				}
 			}
+		}
+
+		result[i] = response
+	}
+
+	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
+
+}
+
+// GetMembershipPlansByCustomer retrieves a list of membership plans for a specific customer.
+// @Summary Get membership plans by customer
+// @Description Retrieves a list of membership plans associated with a specific customer, using the customer ID as a required parameter.
+// @Tags customers
+// @Accept json
+// @Produce json
+// @Param id path string true "Customer ID" // Customer ID is required as part of the URL path
+// @Success 200 {array} customer.MembershipPlansResponseDto "List of membership plans for the customer"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid customer ID"
+// @Failure 404 {object} map[string]interface{} "Not Found: Customer not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /customers/{id}/membership-plans [get]
+func (h *CustomersHandler) GetMembershipPlansByCustomer(w http.ResponseWriter, r *http.Request) {
+
+	customerIDStr := chi.URLParam(r, "id")
+
+	customerID, err := validators.ParseUUID(customerIDStr)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	dbPlans, err := h.CustomerRepo.GetMembershipPlansByCustomer(r.Context(), customerID)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	result := make([]customer.MembershipPlansResponseDto, len(dbPlans))
+
+	for i, dbPlan := range dbPlans {
+		response := customer.MembershipPlansResponseDto{
+			ID:               dbPlan.ID,
+			CustomerID:       dbPlan.CustomerID,
+			MembershipPlanID: dbPlan.MembershipPlanID,
+			StartDate:        dbPlan.StartDate,
+			RenewalDate:      dbPlan.RenewalDate,
+			Status:           dbPlan.Status,
+			CreatedAt:        dbPlan.CreatedAt,
+			UpdatedAt:        dbPlan.UpdatedAt,
+			MembershipName:   dbPlan.MembershipName,
 		}
 
 		result[i] = response

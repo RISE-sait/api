@@ -8,6 +8,7 @@ package db_user
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -40,6 +41,58 @@ func (q *Queries) GetCustomers(ctx context.Context, hubspotIds []string) ([]User
 			&i.Rebounds,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getMembershipPlansByCustomer = `-- name: GetMembershipPlansByCustomer :many
+SELECT cmp.id, cmp.customer_id, cmp.membership_plan_id, cmp.start_date, cmp.renewal_date, cmp.status, cmp.created_at, cmp.updated_at, m.name as membership_name FROM public.customer_membership_plans cmp
+JOIN membership.membership_plans mp  ON cmp.membership_plan_id = mp.id
+JOIN membership.memberships m ON m.id = mp.membership_id
+WHERE cmp.customer_id = $1
+`
+
+type GetMembershipPlansByCustomerRow struct {
+	ID               uuid.UUID        `json:"id"`
+	CustomerID       uuid.UUID        `json:"customer_id"`
+	MembershipPlanID uuid.UUID        `json:"membership_plan_id"`
+	StartDate        time.Time        `json:"start_date"`
+	RenewalDate      sql.NullTime     `json:"renewal_date"`
+	Status           MembershipStatus `json:"status"`
+	CreatedAt        time.Time        `json:"created_at"`
+	UpdatedAt        time.Time        `json:"updated_at"`
+	MembershipName   string           `json:"membership_name"`
+}
+
+func (q *Queries) GetMembershipPlansByCustomer(ctx context.Context, customerID uuid.UUID) ([]GetMembershipPlansByCustomerRow, error) {
+	rows, err := q.db.QueryContext(ctx, getMembershipPlansByCustomer, customerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetMembershipPlansByCustomerRow
+	for rows.Next() {
+		var i GetMembershipPlansByCustomerRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CustomerID,
+			&i.MembershipPlanID,
+			&i.StartDate,
+			&i.RenewalDate,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.MembershipName,
 		); err != nil {
 			return nil, err
 		}

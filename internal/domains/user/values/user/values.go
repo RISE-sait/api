@@ -13,6 +13,18 @@ type ReadValue struct {
 	UpdatedAt     time.Time
 }
 
+type CustomerMembershipPlansReadValue struct {
+	ID               uuid.UUID
+	CustomerID       uuid.UUID
+	MembershipPlanID uuid.UUID
+	StartDate        time.Time
+	RenewalDate      *time.Time
+	Status           string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	MembershipName   string
+}
+
 type StatsUpdateValue struct {
 	ID       uuid.UUID
 	Wins     *int32

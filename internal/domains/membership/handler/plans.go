@@ -3,7 +3,7 @@ package membership
 import (
 	"api/internal/di"
 	"api/internal/domains/membership/dto/membership_plan"
-	service "api/internal/domains/membership/services"
+	repo "api/internal/domains/membership/persistence/repositories"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
@@ -14,11 +14,11 @@ import (
 )
 
 type PlansHandlers struct {
-	MembershipPlansService *service.PlansService
+	MembershipPlansService *repo.PlansRepository
 }
 
 func NewPlansHandlers(container *di.Container) *PlansHandlers {
-	return &PlansHandlers{MembershipPlansService: service.NewMembershipPlansService(container)}
+	return &PlansHandlers{MembershipPlansService: repo.NewMembershipPlansRepository(container)}
 }
 
 // CreateMembershipPlan creates a new membership plan.
@@ -32,7 +32,7 @@ func NewPlansHandlers(container *di.Container) *PlansHandlers {
 // @Success 201 "Membership plan created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /membership-plan [post]
+// @Router /memberships/plans [post]
 func (h *PlansHandlers) CreateMembershipPlan(w http.ResponseWriter, r *http.Request) {
 
 	var requestDto membership_plan.PlanRequestDto
@@ -49,7 +49,7 @@ func (h *PlansHandlers) CreateMembershipPlan(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := h.MembershipPlansService.CreateMembershipPlan(r.Context(), plan); err != nil {
+	if err = h.MembershipPlansService.CreateMembershipPlan(r.Context(), plan); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -58,45 +58,30 @@ func (h *PlansHandlers) CreateMembershipPlan(w http.ResponseWriter, r *http.Requ
 }
 
 // GetMembershipPlans retrieves membership plans.
-// @Summary Get membership plans by membership HubSpotId
-// @Description Get membership plans by membership HubSpotId
+// @Summary Get membership plans by membership ID
+// @Description Get membership plans by membership ID
 // @Tags membership-plans
 // @Accept json
 // @Produce json
-// @Param customerId query string false "Filter by customer ID"
-// @Param membershipId query string false "Filter by membership ID"
+// @Param id path string true "Membership ID" example("f47ac10b-58cc-4372-a567-0e02b2c3d479")
 // @Success 200 {array} membership_plan.PlanResponse "GetMemberships of membership plans retrieved successfully"
-// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid membership HubSpotId"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid membership ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Membership plans not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /membership-plan [get]
+// @Router /memberships/{id}/plans [get]
 func (h *PlansHandlers) GetMembershipPlans(w http.ResponseWriter, r *http.Request) {
 
-	var customerId uuid.UUID
 	var membershipId uuid.UUID
 
-	customerIdStr := r.URL.Query().Get("customerId")
-	membershipIdStr := r.URL.Query().Get("membershipId")
+	membershipIdStr := chi.URLParam(r, "id")
 
-	//// Validate that at least one filter is provided
-	if customerIdStr == "" && membershipIdStr == "" {
-		responseHandlers.RespondWithError(w, errLib.New("At least one filter (customerId or membershipId) must be provided", http.StatusBadRequest))
-		return
-	}
-
-	customerId, err := parseUUIDIfNotEmpty(customerIdStr)
-	if err != nil {
-		responseHandlers.RespondWithError(w, errLib.New("Invalid customerId", http.StatusBadRequest))
-		return
-	}
-
-	membershipId, err = parseUUIDIfNotEmpty(membershipIdStr)
+	membershipId, err := validators.ParseUUID(membershipIdStr)
 	if err != nil {
 		responseHandlers.RespondWithError(w, errLib.New("Invalid membershipId", http.StatusBadRequest))
 		return
 	}
 
-	plans, err := h.MembershipPlansService.GetMembershipPlans(r.Context(), customerId, membershipId)
+	plans, err := h.MembershipPlansService.GetMembershipPlans(r.Context(), membershipId)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -125,7 +110,7 @@ func (h *PlansHandlers) GetMembershipPlans(w http.ResponseWriter, r *http.Reques
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 404 {object} map[string]interface{} "Not Found: Membership plan not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /membership-plan/{id} [put]
+// @Router /memberships/plans/{id} [put]
 func (h *PlansHandlers) UpdateMembershipPlan(w http.ResponseWriter, r *http.Request) {
 
 	idStr := chi.URLParam(r, "id")
@@ -152,19 +137,19 @@ func (h *PlansHandlers) UpdateMembershipPlan(w http.ResponseWriter, r *http.Requ
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-// DeleteMembershipPlan deletes a membership plan by HubSpotId.
+// DeleteMembershipPlan deletes a membership plan by ID.
 // @Summary Delete a membership plan
-// @Description Delete a membership plan by HubSpotId
+// @Description Delete a membership plan by ID
 // @Tags membership-plans
 // @Accept json
 // @Produce json
 // @Param id path string true "Plan ID"
 // @Security Bearer
 // @Success 204 "No Content: Membership plan deleted successfully"
-// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid HubSpotId"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Membership plan not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /membership-plan/{id} [delete]
+// @Router /memberships/plans/{id} [delete]
 func (h *PlansHandlers) DeleteMembershipPlan(w http.ResponseWriter, r *http.Request) {
 
 	idStr := chi.URLParam(r, "id")
@@ -176,17 +161,10 @@ func (h *PlansHandlers) DeleteMembershipPlan(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := h.MembershipPlansService.DeleteMembershipPlan(r.Context(), id); err != nil {
+	if err = h.MembershipPlansService.DeleteMembershipPlan(r.Context(), id); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
-}
-
-func parseUUIDIfNotEmpty(uuidStr string) (uuid.UUID, *errLib.CommonError) {
-	if uuidStr == "" {
-		return uuid.Nil, nil
-	}
-	return validators.ParseUUID(uuidStr)
 }

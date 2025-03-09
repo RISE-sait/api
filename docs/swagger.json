@@ -472,6 +472,62 @@
                 }
             }
         },
+      "/customers/{id}/membership-plans": {
+        "get": {
+          "description": "Retrieves a list of membership plans associated with a specific customer, using the customer ID as a required parameter.",
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "tags": [
+            "customers"
+          ],
+          "summary": "Get membership plans by customer",
+          "parameters": [
+            {
+              "type": "string",
+              "description": "Customer ID",
+              "name": "id",
+              "in": "path",
+              "required": true
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "List of membership plans for the customer",
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/customer.MembershipPlansResponseDto"
+                }
+              }
+            },
+            "400": {
+              "description": "Bad Request: Invalid customer ID",
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "404": {
+              "description": "Not Found: Customer not found",
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "500": {
+              "description": "Internal Server Error",
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/enrollments": {
             "get": {
                 "description": "Get enrollments by customer and event HubSpotId",
@@ -2199,9 +2255,9 @@
                 }
             }
         },
-        "/membership-plan": {
+      "/memberships": {
             "get": {
-                "description": "Get membership plans by membership HubSpotId",
+              "description": "Get a list of memberships",
                 "consumes": [
                     "application/json"
                 ],
@@ -2209,42 +2265,62 @@
                     "application/json"
                 ],
                 "tags": [
-                    "membership-plans"
+                  "memberships"
                 ],
-                "summary": "Get membership plans by membership HubSpotId",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by customer ID",
-                        "name": "customerId",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by membership ID",
-                        "name": "membershipId",
-                        "in": "query"
-                    }
-                ],
+              "summary": "Get a list of memberships",
                 "responses": {
                     "200": {
-                        "description": "GetMemberships of membership plans retrieved successfully",
+                      "description": "GetMemberships of memberships retrieved successfully",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/membership_plan.PlanResponse"
+                              "$ref": "#/definitions/membership.Response"
                             }
                         }
                     },
-                    "400": {
-                        "description": "Bad Request: Invalid membership HubSpotId",
+                  "500": {
+                    "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
-                    },
-                    "404": {
-                        "description": "Not Found: Membership plans not found",
+                  }
+                }
+            },
+        "post": {
+          "security": [
+            {
+              "Bearer": []
+            }
+          ],
+          "description": "Create a new membership",
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "tags": [
+            "memberships"
+          ],
+          "summary": "Create a new membership",
+          "parameters": [
+            {
+              "description": "Membership details",
+              "name": "membership",
+              "in": "body",
+              "required": true,
+              "schema": {
+                "$ref": "#/definitions/membership.RequestDto"
+              }
+            }
+          ],
+          "responses": {
+            "201": {
+              "description": "Membership created successfully"
+            },
+            "400": {
+              "description": "Bad Request: Invalid input",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2258,7 +2334,9 @@
                         }
                     }
                 }
-            },
+        }
+      },
+      "/memberships/plans": {
             "post": {
                 "security": [
                     {
@@ -2308,7 +2386,7 @@
                 }
             }
         },
-        "/membership-plan/{id}": {
+      "/memberships/plans/{id}": {
             "put": {
                 "security": [
                     {
@@ -2377,7 +2455,7 @@
                         "Bearer": []
                     }
                 ],
-                "description": "Delete a membership plan by HubSpotId",
+              "description": "Delete a membership plan by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -2402,7 +2480,7 @@
                         "description": "No Content: Membership plan deleted successfully"
                     },
                     "400": {
-                        "description": "Bad Request: Invalid HubSpotId",
+                      "description": "Bad Request: Invalid ID",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2425,90 +2503,9 @@
                 }
             }
         },
-        "/memberships": {
-            "get": {
-                "description": "Get a list of memberships",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "memberships"
-                ],
-                "summary": "Get a list of memberships",
-                "responses": {
-                    "200": {
-                        "description": "GetMemberships of memberships retrieved successfully",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/membership.Response"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "Create a new membership",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "memberships"
-                ],
-                "summary": "Create a new membership",
-                "parameters": [
-                    {
-                        "description": "Membership details",
-                        "name": "membership",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/membership.RequestDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Membership created successfully"
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/memberships/{id}": {
             "get": {
-                "description": "Get a membership by HubSpotId",
+              "description": "Get a membership by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -2518,7 +2515,7 @@
                 "tags": [
                     "memberships"
                 ],
-                "summary": "Get a membership by HubSpotId",
+              "summary": "Get a membership by ID",
                 "parameters": [
                     {
                         "type": "string",
@@ -2537,7 +2534,7 @@
                         }
                     },
                     "400": {
-                        "description": "Bad Request: Invalid HubSpotId",
+                      "description": "Bad Request: Invalid ID",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2628,7 +2625,7 @@
                         "Bearer": []
                     }
                 ],
-                "description": "Delete a membership by HubSpotId",
+              "description": "Delete a membership by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -2654,7 +2651,7 @@
                         "description": "No Content: Membership deleted successfully"
                     },
                     "400": {
-                        "description": "Bad Request: Invalid HubSpotId",
+                      "description": "Bad Request: Invalid ID",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2666,6 +2663,63 @@
                             "type": "object",
                             "additionalProperties": true
                         }
+                    },
+                  "500": {
+                    "description": "Internal Server Error",
+                    "schema": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+            }
+        },
+      "/memberships/{id}/plans": {
+        "get": {
+          "description": "Get membership plans by membership ID",
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "tags": [
+            "membership-plans"
+          ],
+          "summary": "Get membership plans by membership ID",
+          "parameters": [
+            {
+              "type": "string",
+              "example": "\"f47ac10b-58cc-4372-a567-0e02b2c3d479\"",
+              "description": "Membership ID",
+              "name": "id",
+              "in": "path",
+              "required": true
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "GetMemberships of membership plans retrieved successfully",
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/membership_plan.PlanResponse"
+                }
+              }
+            },
+            "400": {
+              "description": "Bad Request: Invalid membership ID",
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "404": {
+              "description": "Not Found: Membership plans not found",
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -3512,6 +3566,38 @@
                 }
             }
         },
+      "customer.MembershipPlansResponseDto": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "membership_name": {
+            "type": "string"
+          },
+          "membership_plan_id": {
+            "type": "string"
+          },
+          "renewal_date": {
+            "type": "string"
+          },
+          "start_date": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
         "customer.RegularCustomerRegistrationRequestDto": {
             "type": "object",
             "required": [

@@ -89,30 +89,12 @@ func (r *PlansRepository) GetMembershipPlanById(ctx context.Context, id uuid.UUI
 	return &plan, nil
 }
 
-func (r *PlansRepository) GetMembershipPlans(ctx context.Context, membershipId, customerId uuid.UUID) ([]values.PlanReadValues, *errLib.CommonError) {
+func (r *PlansRepository) GetMembershipPlans(ctx context.Context, membershipId uuid.UUID) ([]values.PlanReadValues, *errLib.CommonError) {
 
-	var params db.GetMembershipPlansParams
-
-	if customerId != uuid.Nil {
-		params.CustomerID = uuid.NullUUID{
-			UUID:  customerId,
-			Valid: true,
-		}
-	}
-
-	if membershipId != uuid.Nil {
-		params.MembershipID = uuid.NullUUID{
-			UUID:  membershipId,
-			Valid: true,
-		}
-	}
-
-	dbPlans, err := r.Queries.GetMembershipPlans(ctx, params)
+	dbPlans, err := r.Queries.GetMembershipPlans(ctx, membershipId)
 
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errLib.New("No membership plans found", http.StatusNotFound)
-		}
+		log.Printf("Failed to get plans: %+v. Error: %v", membershipId, err.Error())
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 

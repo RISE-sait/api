@@ -75,8 +75,8 @@ jobs:
 
       - name: Copy new Swagger files to mobile
         run: |
-          mkdir -p src/api
-          cp -rf swagger-output/* src/api/
+          mkdir -p app/api
+          cp -rf swagger-output/* app/api/
           
           git config --global user.email "klintlee1@gmail.com"
           git config --global user.name "KlintLee115"

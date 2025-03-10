@@ -96,27 +96,12 @@ func (h *Handler) GetCourseById(w http.ResponseWriter, r *http.Request) {
 // @Tags courses
 // @Accept json
 // @Produce json
-// @Param name query string false "Filter by course name"
-// @Param description query string false "Filter by course description"
 // @Success 200 {array} course.ResponseDto "GetMemberships of courses retrieved successfully"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /courses [get]
 func (h *Handler) GetCourses(w http.ResponseWriter, r *http.Request) {
 
-	nameStr := r.URL.Query().Get("name")
-	descriptionStr := r.URL.Query().Get("description")
-
-	var name, description *string
-
-	if nameStr != "" {
-		name = &nameStr
-	}
-
-	if descriptionStr != "" {
-		description = &descriptionStr
-	}
-
-	courses, err := h.Repo.GetCourses(r.Context(), name, description)
+	courses, err := h.Repo.GetCourses(r.Context())
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return

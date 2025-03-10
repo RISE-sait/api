@@ -19,8 +19,6 @@ type Repository struct {
 	Queries *db.Queries
 }
 
-var _ IEventsRepository = (*Repository)(nil)
-
 func NewEventsRepository(dbQueries *db.Queries) *Repository {
 	return &Repository{
 		Queries: dbQueries,
@@ -55,10 +53,7 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 			UUID:  eventDetails.CourseID,
 			Valid: eventDetails.CourseID != uuid.Nil,
 		},
-		LocationID: uuid.NullUUID{
-			UUID:  eventDetails.LocationID,
-			Valid: eventDetails.LocationID != uuid.Nil,
-		},
+		LocationID: eventDetails.LocationID,
 	}
 
 	eventDb, err := r.Queries.CreateEvent(c, dbParams)
@@ -119,33 +114,9 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 	return createdEvent, nil
 }
 
-func (r *Repository) GetEvents(ctx context.Context, courseId, locationId, practiceId, gameId uuid.UUID) ([]values.ReadEventValues, *errLib.CommonError) {
+func (r *Repository) GetEvents(ctx context.Context) ([]values.ReadEventValues, *errLib.CommonError) {
 
-	getEventsArgs := db.GetEventsParams{}
-
-	getEventsArgs.PracticeID = uuid.NullUUID{
-		Valid: practiceId != uuid.Nil,
-		UUID:  practiceId,
-	}
-
-	// Set the LocationID, assuming it's always provided as non-null
-	getEventsArgs.LocationID = uuid.NullUUID{
-		Valid: locationId != uuid.Nil,
-		UUID:  locationId,
-	}
-
-	// Set the CourseID if provided
-	getEventsArgs.CourseID = uuid.NullUUID{
-		Valid: courseId != uuid.Nil,
-		UUID:  courseId,
-	}
-
-	getEventsArgs.GameID = uuid.NullUUID{
-		Valid: gameId != uuid.Nil,
-		UUID:  gameId,
-	}
-
-	dbEvents, err := r.Queries.GetEvents(ctx, getEventsArgs)
+	dbEvents, err := r.Queries.GetEvents(ctx)
 
 	if err != nil {
 		log.Println("Failed to get events: ", err.Error())
@@ -166,7 +137,7 @@ func (r *Repository) GetEvents(ctx context.Context, courseId, locationId, practi
 				PracticeID:       dbEvent.PracticeID.UUID,
 				CourseID:         dbEvent.CourseID.UUID,
 				GameID:           dbEvent.GameID.UUID,
-				LocationID:       dbEvent.LocationID.UUID,
+				LocationID:       dbEvent.LocationID,
 			},
 		}
 
@@ -184,7 +155,7 @@ func (r *Repository) UpdateEvent(c context.Context, event values.UpdateEventValu
 		EventEndAt:       event.EventEndAt,
 		SessionStartTime: event.SessionStartTime,
 		SessionEndTime:   event.SessionEndTime,
-		LocationID:       uuid.NullUUID{UUID: event.LocationID, Valid: event.LocationID != uuid.Nil},
+		LocationID:       event.LocationID,
 		PracticeID:       uuid.NullUUID{UUID: event.PracticeID, Valid: event.PracticeID != uuid.Nil},
 		CourseID:         uuid.NullUUID{UUID: event.CourseID, Valid: event.CourseID != uuid.Nil},
 		GameID:           uuid.NullUUID{UUID: event.GameID, Valid: event.GameID != uuid.Nil},
@@ -203,7 +174,7 @@ func (r *Repository) UpdateEvent(c context.Context, event values.UpdateEventValu
 		CreatedAt: dbEvent.CreatedAt,
 		UpdatedAt: dbEvent.UpdatedAt,
 		Details: values.Details{
-			LocationID:       dbEvent.LocationID.UUID,
+			LocationID:       dbEvent.LocationID,
 			EventStartAt:     dbEvent.EventStartAt,
 			EventEndAt:       dbEvent.EventEndAt,
 			SessionStartTime: dbEvent.SessionStartTime,
@@ -248,7 +219,7 @@ func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEve
 		UpdatedAt: dbEvent.UpdatedAt,
 		Details: values.Details{
 			Day:              string(dbEvent.Day),
-			LocationID:       dbEvent.LocationID.UUID,
+			LocationID:       dbEvent.LocationID,
 			EventStartAt:     dbEvent.EventStartAt,
 			EventEndAt:       dbEvent.EventEndAt,
 			SessionStartTime: dbEvent.SessionStartTime,

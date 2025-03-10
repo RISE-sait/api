@@ -16,7 +16,7 @@ import (
 const createEvent = `-- name: CreateEvent :one
 INSERT INTO events (event_start_at, event_end_at, session_start_time, session_end_time, day, location_id, course_id, practice_id, game_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, event_start_at, event_end_at, practice_id, course_id, game_id, location_id, created_at, updated_at, day, session_start_time, session_end_time
+RETURNING id, event_start_at, event_end_at, session_start_time, session_end_time, day, practice_id, course_id, game_id, location_id, created_at, updated_at
 `
 
 type CreateEventParams struct {
@@ -25,7 +25,7 @@ type CreateEventParams struct {
 	SessionStartTime custom_types.TimeWithTimeZone `json:"session_start_time"`
 	SessionEndTime   custom_types.TimeWithTimeZone `json:"session_end_time"`
 	Day              DayEnum                       `json:"day"`
-	LocationID       uuid.NullUUID                 `json:"location_id"`
+	LocationID       uuid.UUID                     `json:"location_id"`
 	CourseID         uuid.NullUUID                 `json:"course_id"`
 	PracticeID       uuid.NullUUID                 `json:"practice_id"`
 	GameID           uuid.NullUUID                 `json:"game_id"`
@@ -48,15 +48,15 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Event
 		&i.ID,
 		&i.EventStartAt,
 		&i.EventEndAt,
+		&i.SessionStartTime,
+		&i.SessionEndTime,
+		&i.Day,
 		&i.PracticeID,
 		&i.CourseID,
 		&i.GameID,
 		&i.LocationID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Day,
-		&i.SessionStartTime,
-		&i.SessionEndTime,
 	)
 	return i, err
 }
@@ -74,7 +74,7 @@ func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) (int64, error) 
 }
 
 const getEventById = `-- name: GetEventById :one
-SELECT id, event_start_at, event_end_at, practice_id, course_id, game_id, location_id, created_at, updated_at, day, session_start_time, session_end_time
+SELECT id, event_start_at, event_end_at, session_start_time, session_end_time, day, practice_id, course_id, game_id, location_id, created_at, updated_at
 FROM events
 WHERE id = $1
 `
@@ -86,42 +86,26 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (Event, error)
 		&i.ID,
 		&i.EventStartAt,
 		&i.EventEndAt,
+		&i.SessionStartTime,
+		&i.SessionEndTime,
+		&i.Day,
 		&i.PracticeID,
 		&i.CourseID,
 		&i.GameID,
 		&i.LocationID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Day,
-		&i.SessionStartTime,
-		&i.SessionEndTime,
 	)
 	return i, err
 }
 
 const getEvents = `-- name: GetEvents :many
-SELECT id, event_start_at, event_end_at, practice_id, course_id, game_id, location_id, created_at, updated_at, day, session_start_time, session_end_time
-FROM events WHERE
-(course_id = $1 OR $1 IS NULL)
-    AND (practice_id = $2 or $2 IS NULL)
-        AND (game_id = $3 or $3 IS NULL)
-AND (location_id = $4 or $4 IS NULL)
+SELECT id, event_start_at, event_end_at, session_start_time, session_end_time, day, practice_id, course_id, game_id, location_id, created_at, updated_at
+FROM events
 `
 
-type GetEventsParams struct {
-	CourseID   uuid.NullUUID `json:"course_id"`
-	PracticeID uuid.NullUUID `json:"practice_id"`
-	GameID     uuid.NullUUID `json:"game_id"`
-	LocationID uuid.NullUUID `json:"location_id"`
-}
-
-func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]Event, error) {
-	rows, err := q.db.QueryContext(ctx, getEvents,
-		arg.CourseID,
-		arg.PracticeID,
-		arg.GameID,
-		arg.LocationID,
-	)
+func (q *Queries) GetEvents(ctx context.Context) ([]Event, error) {
+	rows, err := q.db.QueryContext(ctx, getEvents)
 	if err != nil {
 		return nil, err
 	}
@@ -133,15 +117,15 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]Event, 
 			&i.ID,
 			&i.EventStartAt,
 			&i.EventEndAt,
+			&i.SessionStartTime,
+			&i.SessionEndTime,
+			&i.Day,
 			&i.PracticeID,
 			&i.CourseID,
 			&i.GameID,
 			&i.LocationID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.Day,
-			&i.SessionStartTime,
-			&i.SessionEndTime,
 		); err != nil {
 			return nil, err
 		}
@@ -159,9 +143,9 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]Event, 
 const updateEvent = `-- name: UpdateEvent :one
 UPDATE events
 SET event_start_at = $1, event_end_at = $2, session_start_time = $3, session_end_time = $4,
-    location_id = $5, practice_id = $6, course_id = $7, game_id = $8, updated_at = current_timestamp
-WHERE id = $9
-RETURNING id, event_start_at, event_end_at, practice_id, course_id, game_id, location_id, created_at, updated_at, day, session_start_time, session_end_time
+    location_id = $5, practice_id = $6, course_id = $7, game_id = $8, day = $9, updated_at = current_timestamp
+WHERE id = $10
+RETURNING id, event_start_at, event_end_at, session_start_time, session_end_time, day, practice_id, course_id, game_id, location_id, created_at, updated_at
 `
 
 type UpdateEventParams struct {
@@ -169,10 +153,11 @@ type UpdateEventParams struct {
 	EventEndAt       time.Time                     `json:"event_end_at"`
 	SessionStartTime custom_types.TimeWithTimeZone `json:"session_start_time"`
 	SessionEndTime   custom_types.TimeWithTimeZone `json:"session_end_time"`
-	LocationID       uuid.NullUUID                 `json:"location_id"`
+	LocationID       uuid.UUID                     `json:"location_id"`
 	PracticeID       uuid.NullUUID                 `json:"practice_id"`
 	CourseID         uuid.NullUUID                 `json:"course_id"`
 	GameID           uuid.NullUUID                 `json:"game_id"`
+	Day              DayEnum                       `json:"day"`
 	ID               uuid.UUID                     `json:"id"`
 }
 
@@ -186,6 +171,7 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 		arg.PracticeID,
 		arg.CourseID,
 		arg.GameID,
+		arg.Day,
 		arg.ID,
 	)
 	var i Event
@@ -193,15 +179,15 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 		&i.ID,
 		&i.EventStartAt,
 		&i.EventEndAt,
+		&i.SessionStartTime,
+		&i.SessionEndTime,
+		&i.Day,
 		&i.PracticeID,
 		&i.CourseID,
 		&i.GameID,
 		&i.LocationID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Day,
-		&i.SessionStartTime,
-		&i.SessionEndTime,
 	)
 	return i, err
 }

@@ -6,10 +6,10 @@ import (
 	enrollmentDb "api/internal/domains/enrollment/persistence/sqlc/generated"
 	eventDb "api/internal/domains/event/persistence/sqlc/generated"
 	eventStaffDb "api/internal/domains/event_staff/persistence/sqlc/generated"
-	facilityDb "api/internal/domains/facility/persistence/sqlc/generated"
 	gameDb "api/internal/domains/game/persistence/sqlc/generated"
 	barberDb "api/internal/domains/haircut/persistence/sqlc/generated"
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
+	locationDb "api/internal/domains/location/persistence/sqlc/generated"
 	membershipDb "api/internal/domains/membership/persistence/sqlc/generated"
 	practiceDb "api/internal/domains/practice/persistence/sqlc/generated"
 	purchaseDb "api/internal/domains/purchase/persistence/sqlc/generated"
@@ -34,7 +34,7 @@ type QueriesType struct {
 	CoursesDb    *courseDb.Queries
 	PracticesDb  *practiceDb.Queries
 	MembershipDb *membershipDb.Queries
-	FacilityDb   *facilityDb.Queries
+	LocationDb   *locationDb.Queries
 	EventDb      *eventDb.Queries
 	EnrollmentDb *enrollmentDb.Queries
 	EventStaffDb *eventStaffDb.Queries
@@ -69,7 +69,7 @@ func initializeQueries(db *sql.DB) *QueriesType {
 		CoursesDb:    courseDb.New(db),
 		PracticesDb:  practiceDb.New(db),
 		MembershipDb: membershipDb.New(db),
-		FacilityDb:   facilityDb.New(db),
+		LocationDb:   locationDb.New(db),
 		EventDb:      eventDb.New(db),
 		EnrollmentDb: enrollmentDb.New(db),
 		EventStaffDb: eventStaffDb.New(db),

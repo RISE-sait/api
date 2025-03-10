@@ -9,21 +9,23 @@ import (
 	enrollmentService "api/internal/domains/enrollment/service"
 	"api/internal/domains/game"
 	gameRepo "api/internal/domains/game/persistence"
+	locationRepo "api/internal/domains/location/persistence"
+	practiceHandler "api/internal/domains/practice"
+	practiceRepo "api/internal/domains/practice/persistence"
+
 	userHandler "api/internal/domains/user/handler"
 
 	eventHandler "api/internal/domains/event/handler"
 	eventRepo "api/internal/domains/event/persistence/repository"
 	eventStaffHandler "api/internal/domains/event_staff/handler"
 	eventStaffRepo "api/internal/domains/event_staff/persistence/repository"
-	"api/internal/domains/facility/handler"
 	barber "api/internal/domains/haircut/handler/events"
 	haircut "api/internal/domains/haircut/handler/haircuts"
 	barberEventRepo "api/internal/domains/haircut/persistence/repository/event"
 	"api/internal/domains/identity/handler/authentication"
 	"api/internal/domains/identity/handler/registration"
+	locationsHandler "api/internal/domains/location/handler"
 	"api/internal/domains/membership/handler"
-	practiceHandler "api/internal/domains/practice/handler"
-	practiceRepo "api/internal/domains/practice/persistence/repository"
 	purchase "api/internal/domains/purchase/handler"
 	"api/internal/middlewares"
 
@@ -56,7 +58,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		"/courses":     RegisterCourseRoutes,
 		"/practices":   RegisterPracticeRoutes,
 		"/events":      RegisterEventRoutes,
-		"/facilities":  RegisterFacilityRoutes,
+		"/locations":   RegisterLocationsRoutes,
 		"/games":       RegisterGamesRoutes,
 		"/enrollments": RegisterEnrollmentRoutes,
 
@@ -170,29 +172,17 @@ func RegisterGamesRoutes(container *di.Container) func(chi.Router) {
 	}
 }
 
-func RegisterFacilityRoutes(container *di.Container) func(chi.Router) {
-	h := facility.NewFacilitiesHandler(container)
+func RegisterLocationsRoutes(container *di.Container) func(chi.Router) {
+
+	repo := locationRepo.NewLocationRepository(container.Queries.LocationDb)
+	h := locationsHandler.NewLocationsHandler(repo)
 
 	return func(r chi.Router) {
-		r.Get("/", h.GetFacilities)
-		r.Get("/{id}", h.GetFacilityById)
-		r.Post("/", h.CreateFacility)
-		r.With(allowAdminOnly).Put("/{id}", h.UpdateFacility)
-		r.With(allowAdminOnly).Delete("/{id}", h.DeleteFacility)
-
-		r.Route("/categories", RegisterFacilityCategoriesRoutes(container))
-	}
-}
-
-func RegisterFacilityCategoriesRoutes(container *di.Container) func(chi.Router) {
-	h := facility.NewFacilityCategoriesHandler(container)
-
-	return func(r chi.Router) {
-		r.Get("/", h.List)
-		r.Get("/{id}", h.GetById)
-		r.Post("/", h.Create)
-		r.With(allowAdminOnly).Put("/{id}", h.Update)
-		r.With(allowAdminOnly).Delete("/{id}", h.Delete)
+		r.Get("/", h.GetLocations)
+		r.Get("/{id}", h.GetLocationById)
+		r.Post("/", h.CreateLocation)
+		r.With(allowAdminOnly).Put("/{id}", h.UpdateLocation)
+		r.With(allowAdminOnly).Delete("/{id}", h.DeleteLocation)
 	}
 }
 

@@ -5,7 +5,7 @@ VALUES ($1, $2);
 -- name: GetMembershipById :one
 SELECT * FROM membership.memberships WHERE id = $1;
 
--- name: GetAllMemberships :many
+-- name: GetMemberships :many
 SELECT * FROM membership.memberships;
 
 -- name: UpdateMembership :execrows

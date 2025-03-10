@@ -1,7 +1,6 @@
 package dto
 
 import (
-	"api/internal/domains/practice/entity"
 	"api/internal/domains/practice/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
@@ -19,33 +18,37 @@ func (dto PracticeRequestDto) validate() *errLib.CommonError {
 	return nil
 }
 
-func (dto PracticeRequestDto) ToCreateValueObjects() (*values.PracticeDetails, *errLib.CommonError) {
+func (dto PracticeRequestDto) ToCreateValueObjects() (values.CreatePracticeValues, *errLib.CommonError) {
 
 	if err := dto.validate(); err != nil {
-		return nil, err
+		return values.CreatePracticeValues{}, err
 	}
 
-	return &values.PracticeDetails{
-		Name:        dto.Name,
-		Description: dto.Description,
+	return values.CreatePracticeValues{
+		PracticeDetails: values.PracticeDetails{
+			Name:        dto.Name,
+			Description: dto.Description,
+		},
 	}, nil
 }
 
-func (dto PracticeRequestDto) ToUpdateValueObjects(idStr string) (entity.Practice, *errLib.CommonError) {
+func (dto PracticeRequestDto) ToUpdateValueObjects(idStr string) (values.UpdatePracticeValues, *errLib.CommonError) {
 
 	id, err := validators.ParseUUID(idStr)
 
 	if err != nil {
-		return entity.Practice{}, err
+		return values.UpdatePracticeValues{}, err
 	}
 
 	if err = dto.validate(); err != nil {
-		return entity.Practice{}, err
+		return values.UpdatePracticeValues{}, err
 	}
 
-	return entity.Practice{
-		ID:          id,
-		Name:        dto.Name,
-		Description: dto.Description,
+	return values.UpdatePracticeValues{
+		ID: id,
+		PracticeDetails: values.PracticeDetails{
+			Name:        dto.Name,
+			Description: dto.Description,
+		},
 	}, nil
 }

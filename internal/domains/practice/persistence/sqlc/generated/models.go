@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.27.0
 
-package practice_db
+package db
 
 import (
 	"database/sql"
@@ -12,6 +12,53 @@ import (
 
 	"github.com/google/uuid"
 )
+
+type DayEnum string
+
+const (
+	DayEnumMONDAY    DayEnum = "MONDAY"
+	DayEnumTUESDAY   DayEnum = "TUESDAY"
+	DayEnumWEDNESDAY DayEnum = "WEDNESDAY"
+	DayEnumTHURSDAY  DayEnum = "THURSDAY"
+	DayEnumFRIDAY    DayEnum = "FRIDAY"
+	DayEnumSATURDAY  DayEnum = "SATURDAY"
+	DayEnumSUNDAY    DayEnum = "SUNDAY"
+)
+
+func (e *DayEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DayEnum(s)
+	case string:
+		*e = DayEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DayEnum: %T", src)
+	}
+	return nil
+}
+
+type NullDayEnum struct {
+	DayEnum DayEnum `json:"day_enum"`
+	Valid   bool    `json:"valid"` // Valid is true if DayEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDayEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.DayEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DayEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDayEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DayEnum), nil
+}
 
 type MembershipStatus string
 
@@ -35,8 +82,8 @@ func (e *MembershipStatus) Scan(src interface{}) error {
 }
 
 type NullMembershipStatus struct {
-	MembershipStatus MembershipStatus
-	Valid            bool // Valid is true if MembershipStatus is not NULL
+	MembershipStatus MembershipStatus `json:"membership_status"`
+	Valid            bool             `json:"valid"` // Valid is true if MembershipStatus is not NULL
 }
 
 // Scan implements the Scanner interface.
@@ -79,8 +126,8 @@ func (e *PaymentFrequency) Scan(src interface{}) error {
 }
 
 type NullPaymentFrequency struct {
-	PaymentFrequency PaymentFrequency
-	Valid            bool // Valid is true if PaymentFrequency is not NULL
+	PaymentFrequency PaymentFrequency `json:"payment_frequency"`
+	Valid            bool             `json:"valid"` // Valid is true if PaymentFrequency is not NULL
 }
 
 // Scan implements the Scanner interface.
@@ -123,8 +170,8 @@ func (e *PracticeLevel) Scan(src interface{}) error {
 }
 
 type NullPracticeLevel struct {
-	PracticeLevel PracticeLevel
-	Valid         bool // Valid is true if PracticeLevel is not NULL
+	PracticeLevel PracticeLevel `json:"practice_level"`
+	Valid         bool          `json:"valid"` // Valid is true if PracticeLevel is not NULL
 }
 
 // Scan implements the Scanner interface.
@@ -146,228 +193,228 @@ func (ns NullPracticeLevel) Value() (driver.Value, error) {
 }
 
 type BarberBarberEvent struct {
-	ID            uuid.UUID
-	BeginDateTime time.Time
-	EndDateTime   time.Time
-	CustomerID    uuid.UUID
-	BarberID      uuid.UUID
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ID            uuid.UUID `json:"id"`
+	BeginDateTime time.Time `json:"begin_date_time"`
+	EndDateTime   time.Time `json:"end_date_time"`
+	CustomerID    uuid.UUID `json:"customer_id"`
+	BarberID      uuid.UUID `json:"barber_id"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 type CourseCourse struct {
-	ID          uuid.UUID
-	Name        string
-	Description sql.NullString
-	Capacity    int32
-	CreatedAt   sql.NullTime
-	UpdatedAt   sql.NullTime
+	ID          uuid.UUID      `json:"id"`
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	Capacity    int32          `json:"capacity"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
 }
 
 type CourseMembership struct {
-	CourseID        uuid.UUID
-	MembershipID    uuid.UUID
-	PricePerBooking sql.NullString
-	IsEligible      bool
+	CourseID        uuid.UUID      `json:"course_id"`
+	MembershipID    uuid.UUID      `json:"membership_id"`
+	PricePerBooking sql.NullString `json:"price_per_booking"`
+	IsEligible      bool           `json:"is_eligible"`
 }
 
 type CustomerDiscountUsage struct {
-	CustomerID uuid.UUID
-	DiscountID uuid.UUID
-	UsageCount int32
-	LastUsedAt sql.NullTime
+	CustomerID uuid.UUID `json:"customer_id"`
+	DiscountID uuid.UUID `json:"discount_id"`
+	UsageCount int32     `json:"usage_count"`
+	LastUsedAt time.Time `json:"last_used_at"`
 }
 
 type CustomerEnrollment struct {
-	ID          uuid.UUID
-	CustomerID  uuid.UUID
-	EventID     uuid.UUID
-	CreatedAt   sql.NullTime
-	UpdatedAt   sql.NullTime
-	CheckedInAt sql.NullTime
-	IsCancelled bool
+	ID          uuid.UUID    `json:"id"`
+	CustomerID  uuid.UUID    `json:"customer_id"`
+	EventID     uuid.UUID    `json:"event_id"`
+	CreatedAt   time.Time    `json:"created_at"`
+	UpdatedAt   time.Time    `json:"updated_at"`
+	CheckedInAt sql.NullTime `json:"checked_in_at"`
+	IsCancelled bool         `json:"is_cancelled"`
 }
 
 type CustomerMembershipPlan struct {
-	ID               uuid.UUID
-	CustomerID       uuid.UUID
-	MembershipPlanID uuid.UUID
-	StartDate        sql.NullTime
-	RenewalDate      sql.NullTime
-	Status           MembershipStatus
-	CreatedAt        sql.NullTime
-	UpdatedAt        sql.NullTime
+	ID               uuid.UUID        `json:"id"`
+	CustomerID       uuid.UUID        `json:"customer_id"`
+	MembershipPlanID uuid.UUID        `json:"membership_plan_id"`
+	StartDate        time.Time        `json:"start_date"`
+	RenewalDate      sql.NullTime     `json:"renewal_date"`
+	Status           MembershipStatus `json:"status"`
+	CreatedAt        time.Time        `json:"created_at"`
+	UpdatedAt        time.Time        `json:"updated_at"`
 }
 
 type Discount struct {
-	ID              uuid.UUID
-	Name            string
-	Description     sql.NullString
-	DiscountPercent int32
-	IsUseUnlimited  bool
-	UsePerClient    sql.NullInt32
-	IsActive        bool
-	ValidFrom       time.Time
-	ValidTo         sql.NullTime
-	CreatedAt       sql.NullTime
-	UpdatedAt       sql.NullTime
+	ID              uuid.UUID      `json:"id"`
+	Name            string         `json:"name"`
+	Description     sql.NullString `json:"description"`
+	DiscountPercent int32          `json:"discount_percent"`
+	IsUseUnlimited  bool           `json:"is_use_unlimited"`
+	UsePerClient    sql.NullInt32  `json:"use_per_client"`
+	IsActive        bool           `json:"is_active"`
+	ValidFrom       time.Time      `json:"valid_from"`
+	ValidTo         sql.NullTime   `json:"valid_to"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
 }
 
 type DiscountRestrictedMembershipPlan struct {
-	DiscountID       uuid.UUID
-	MembershipPlanID uuid.UUID
-	CreatedAt        sql.NullTime
+	DiscountID       uuid.UUID `json:"discount_id"`
+	MembershipPlanID uuid.UUID `json:"membership_plan_id"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 type Event struct {
-	ID            uuid.UUID
-	BeginDateTime time.Time
-	EndDateTime   time.Time
-	PracticeID    uuid.NullUUID
-	CourseID      uuid.NullUUID
-	GameID        uuid.NullUUID
-	LocationID    uuid.UUID
-	CreatedAt     sql.NullTime
-	UpdatedAt     sql.NullTime
+	ID               uuid.UUID     `json:"id"`
+	EventStartAt     time.Time     `json:"event_start_at"`
+	EventEndAt       time.Time     `json:"event_end_at"`
+	SessionStartTime interface{}   `json:"session_start_time"`
+	SessionEndTime   interface{}   `json:"session_end_time"`
+	Day              DayEnum       `json:"day"`
+	PracticeID       uuid.NullUUID `json:"practice_id"`
+	CourseID         uuid.NullUUID `json:"course_id"`
+	GameID           uuid.NullUUID `json:"game_id"`
+	LocationID       uuid.UUID     `json:"location_id"`
+	CreatedAt        time.Time     `json:"created_at"`
+	UpdatedAt        time.Time     `json:"updated_at"`
 }
 
 type EventStaff struct {
-	EventID uuid.UUID
-	StaffID uuid.UUID
-}
-
-type FacilityFacility struct {
-	ID                 uuid.UUID
-	Name               string
-	Address            string
-	FacilityCategoryID uuid.UUID
-}
-
-type FacilityFacilityCategory struct {
-	ID   uuid.UUID
-	Name string
+	EventID uuid.UUID `json:"event_id"`
+	StaffID uuid.UUID `json:"staff_id"`
 }
 
 type Game struct {
-	ID        uuid.UUID
-	Name      string
-	VideoLink sql.NullString
+	ID        uuid.UUID      `json:"id"`
+	Name      string         `json:"name"`
+	VideoLink sql.NullString `json:"video_link"`
 }
 
-type Location struct {
-	ID         uuid.UUID
-	Name       string
-	FacilityID uuid.UUID
+type LocationLocation struct {
+	ID      uuid.UUID `json:"id"`
+	Name    string    `json:"name"`
+	Address string    `json:"address"`
 }
 
 type MembershipMembership struct {
-	ID          uuid.UUID
-	Name        string
-	Description sql.NullString
-	CreatedAt   sql.NullTime
-	UpdatedAt   sql.NullTime
+	ID          uuid.UUID      `json:"id"`
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	CreatedAt   sql.NullTime   `json:"created_at"`
+	UpdatedAt   sql.NullTime   `json:"updated_at"`
 }
 
 type MembershipMembershipPlan struct {
-	ID               uuid.UUID
-	Name             string
-	Price            int32
-	JoiningFee       sql.NullInt32
-	AutoRenew        bool
-	MembershipID     uuid.UUID
-	PaymentFrequency NullPaymentFrequency
-	AmtPeriods       sql.NullInt32
-	CreatedAt        sql.NullTime
-	UpdatedAt        sql.NullTime
+	ID               uuid.UUID            `json:"id"`
+	Name             string               `json:"name"`
+	Price            int32                `json:"price"`
+	JoiningFee       sql.NullInt32        `json:"joining_fee"`
+	AutoRenew        bool                 `json:"auto_renew"`
+	MembershipID     uuid.UUID            `json:"membership_id"`
+	PaymentFrequency NullPaymentFrequency `json:"payment_frequency"`
+	AmtPeriods       sql.NullInt32        `json:"amt_periods"`
+	CreatedAt        sql.NullTime         `json:"created_at"`
+	UpdatedAt        sql.NullTime         `json:"updated_at"`
 }
 
 type Practice struct {
-	ID                             uuid.UUID
-	Name                           string
-	Description                    sql.NullString
-	Level                          PracticeLevel
-	ShouldEmailBookingNotification sql.NullBool
-	Capacity                       int32
-	StartDate                      time.Time
-	EndDate                        sql.NullTime
-	CreatedAt                      time.Time
-	UpdatedAt                      time.Time
+	ID                             uuid.UUID      `json:"id"`
+	Name                           string         `json:"name"`
+	Description                    sql.NullString `json:"description"`
+	Level                          PracticeLevel  `json:"level"`
+	ShouldEmailBookingNotification sql.NullBool   `json:"should_email_booking_notification"`
+	Capacity                       int32          `json:"capacity"`
+	CreatedAt                      time.Time      `json:"created_at"`
+	UpdatedAt                      time.Time      `json:"updated_at"`
 }
 
 type PracticeMembership struct {
-	PracticeID      uuid.UUID
-	MembershipID    uuid.UUID
-	PricePerBooking sql.NullString
-	IsEligible      bool
+	PracticeID      uuid.UUID      `json:"practice_id"`
+	MembershipID    uuid.UUID      `json:"membership_id"`
+	PricePerBooking sql.NullString `json:"price_per_booking"`
+	IsEligible      bool           `json:"is_eligible"`
 }
 
-type StaffActivityLog struct {
-	ID         uuid.UUID
-	UserID     uuid.UUID
-	Activity   string
-	OccurredAt sql.NullTime
-}
-
-type StaffRole struct {
-	ID       uuid.UUID
-	RoleName string
+type UsersAthlete struct {
+	ID        uuid.UUID `json:"id"`
+	Wins      int32     `json:"wins"`
+	Losses    int32     `json:"losses"`
+	Points    int32     `json:"points"`
+	Steals    int32     `json:"steals"`
+	Assists   int32     `json:"assists"`
+	Rebounds  int32     `json:"rebounds"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type UsersCustomerCredit struct {
-	CustomerID uuid.UUID
-	Credits    int32
+	CustomerID uuid.UUID `json:"customer_id"`
+	Credits    int32     `json:"credits"`
 }
 
 type UsersPendingUser struct {
-	ID              uuid.UUID
-	FirstName       string
-	LastName        string
-	Email           sql.NullString
-	ParentHubspotID sql.NullString
-	Age             int32
-	CreatedAt       sql.NullTime
-	UpdatedAt       sql.NullTime
+	ID                       uuid.UUID      `json:"id"`
+	FirstName                string         `json:"first_name"`
+	LastName                 string         `json:"last_name"`
+	Email                    sql.NullString `json:"email"`
+	ParentHubspotID          sql.NullString `json:"parent_hubspot_id"`
+	Age                      int32          `json:"age"`
+	CreatedAt                sql.NullTime   `json:"created_at"`
+	UpdatedAt                sql.NullTime   `json:"updated_at"`
+	Phone                    sql.NullString `json:"phone"`
+	HasMarketingEmailConsent bool           `json:"has_marketing_email_consent"`
+	HasSmsConsent            bool           `json:"has_sms_consent"`
+	IsParent                 bool           `json:"is_parent"`
+	Alpha2CountryCode        sql.NullString `json:"alpha_2_country_code"`
 }
 
 type UsersStaff struct {
-	ID        uuid.UUID
-	IsActive  bool
-	CreatedAt sql.NullTime
-	UpdatedAt time.Time
-	RoleID    uuid.UUID
+	ID        uuid.UUID `json:"id"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	RoleID    uuid.UUID `json:"role_id"`
+}
+
+type UsersStaffActivityLog struct {
+	ID         uuid.UUID `json:"id"`
+	UserID     uuid.UUID `json:"user_id"`
+	Activity   string    `json:"activity"`
+	OccurredAt time.Time `json:"occurred_at"`
+}
+
+type UsersStaffRole struct {
+	ID       uuid.UUID `json:"id"`
+	RoleName string    `json:"role_name"`
 }
 
 type UsersUser struct {
-	ID            uuid.UUID
-	HubspotID     sql.NullString
-	ProfilePicUrl sql.NullString
-	Wins          int32
-	Losses        int32
-	Points        int32
-	Steals        int32
-	Assists       int32
-	Rebounds      int32
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ID        uuid.UUID `json:"id"`
+	HubspotID string    `json:"hubspot_id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type WaiverPendingUsersWaiverSigning struct {
-	UserID    uuid.UUID
-	WaiverID  uuid.UUID
-	IsSigned  bool
-	UpdatedAt time.Time
+	UserID    uuid.UUID `json:"user_id"`
+	WaiverID  uuid.UUID `json:"waiver_id"`
+	IsSigned  bool      `json:"is_signed"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type WaiverWaiver struct {
-	ID        uuid.UUID
-	WaiverUrl string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID         uuid.UUID `json:"id"`
+	WaiverUrl  string    `json:"waiver_url"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+	WaiverName string    `json:"waiver_name"`
 }
 
 type WaiverWaiverSigning struct {
-	UserID    uuid.UUID
-	WaiverID  uuid.UUID
-	IsSigned  bool
-	UpdatedAt time.Time
+	UserID    uuid.UUID `json:"user_id"`
+	WaiverID  uuid.UUID `json:"waiver_id"`
+	IsSigned  bool      `json:"is_signed"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

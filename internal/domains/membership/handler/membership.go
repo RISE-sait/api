@@ -47,7 +47,7 @@ func (h *Handlers) CreateMembership(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Service.Create(r.Context(), membership); err != nil {
+	if err = h.Service.Create(r.Context(), membership); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -143,7 +143,7 @@ func (h *Handlers) UpdateMembership(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Service.Update(r.Context(), membershipUpdate); err != nil {
+	if err = h.Service.Update(r.Context(), membershipUpdate); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -173,7 +173,7 @@ func (h *Handlers) DeleteMembership(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Service.Delete(r.Context(), id); err != nil {
+	if err = h.Service.Delete(r.Context(), id); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

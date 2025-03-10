@@ -55,7 +55,7 @@ package main
 //	}
 //
 //	for _, facility := range facilities {
-//		if _, err := q.CreateFacility(ctx, facility); err != nil {
+//		if _, err := q.CreateLocation(ctx, facility); err != nil {
 //			return err
 //		}
 //	}

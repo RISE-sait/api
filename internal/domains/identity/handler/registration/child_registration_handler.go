@@ -30,7 +30,7 @@ func NewChildRegistrationHandlers(container *di.Container) *ChildRegistrationHan
 // @Tags registration
 // @Accept json
 // @Produce json
-// @Param customer body customer.ChildRegistrationRequestDto true "Child account registration details" // Details for child account registration
+// @Param customer body customer.ChildRegistrationRequestDto true "Child account registration details" // BaseDetails for child account registration
 // @Param firebase_token header string true "Firebase token for user verification" // Firebase token in the Authorization header
 // @Success 201 {object} map[string]interface{} "Child account registered successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input or missing Firebase token"

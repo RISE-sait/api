@@ -70,17 +70,10 @@ func (q *Queries) GetCourseById(ctx context.Context, id uuid.UUID) (CourseCourse
 
 const getCourses = `-- name: GetCourses :many
 SELECT id, name, description, capacity, created_at, updated_at FROM course.courses
-WHERE (name ILIKE '%' || $1 || '%' OR $1 IS NULL)
-AND (description ILIKE '%' || $2 || '%' OR $2 IS NULL)
 `
 
-type GetCoursesParams struct {
-	Name        sql.NullString `json:"name"`
-	Description sql.NullString `json:"description"`
-}
-
-func (q *Queries) GetCourses(ctx context.Context, arg GetCoursesParams) ([]CourseCourse, error) {
-	rows, err := q.db.QueryContext(ctx, getCourses, arg.Name, arg.Description)
+func (q *Queries) GetCourses(ctx context.Context) ([]CourseCourse, error) {
+	rows, err := q.db.QueryContext(ctx, getCourses)
 	if err != nil {
 		return nil, err
 	}

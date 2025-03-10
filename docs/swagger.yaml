@@ -159,11 +159,15 @@ definitions:
     type: object
   dto.PracticeResponse:
     properties:
+      createdAt:
+        type: string
       description:
         type: string
       id:
         type: string
       name:
+        type: string
+      updatedAt:
         type: string
     type: object
   enrollment.CreateRequestDto:
@@ -263,44 +267,6 @@ definitions:
     properties:
       base:
         $ref: '#/definitions/event_staff.EventStaffBase'
-    type: object
-  facility.CategoryRequestDto:
-    properties:
-      name:
-        type: string
-    required:
-    - name
-    type: object
-  facility.CategoryResponseDto:
-    properties:
-      id:
-        type: string
-      name:
-        type: string
-    type: object
-  facility.RequestDto:
-    properties:
-      facility_type_id:
-        type: string
-      location:
-        type: string
-      name:
-        type: string
-    required:
-    - facility_type_id
-    - location
-    - name
-    type: object
-  facility.ResponseDto:
-    properties:
-      address:
-        type: string
-      facility_category:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
     type: object
   game.RequestDto:
     properties:
@@ -419,6 +385,25 @@ definitions:
       phone:
         type: string
       role:
+        type: string
+    type: object
+  location.RequestDto:
+    properties:
+      location:
+        type: string
+      name:
+        type: string
+    required:
+      - location
+      - name
+    type: object
+  location.ResponseDto:
+    properties:
+      address:
+        type: string
+      id:
+        type: string
+      name:
         type: string
     type: object
   membership.RequestDto:
@@ -636,15 +621,6 @@ paths:
       consumes:
       - application/json
       description: Get a list of courses
-      parameters:
-      - description: Filter by course name
-        in: query
-        name: name
-        type: string
-      - description: Filter by course description
-        in: query
-        name: description
-        type: string
       produces:
       - application/json
       responses:
@@ -1174,19 +1150,6 @@ paths:
       - application/json
       description: Retrieve all events, with optional filters by course, location,
         and practice.
-      parameters:
-      - description: Filter by course ID (UUID)
-        in: query
-        name: courseId
-        type: string
-      - description: Filter by location ID (UUID)
-        in: query
-        name: locationId
-        type: string
-      - description: Filter by practice ID (UUID)
-        in: query
-        name: practiceId
-        type: string
       produces:
       - application/json
       responses:
@@ -1355,348 +1318,6 @@ paths:
       summary: Update an event
       tags:
       - events
-  /facilities:
-    get:
-      consumes:
-      - application/json
-      description: Retrieves a list of all facilities, optionally filtered by name.
-      parameters:
-      - description: Facility name filter
-        in: query
-        name: name
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: GetMemberships of facilities retrieved successfully
-          schema:
-            items:
-              $ref: '#/definitions/facility.ResponseDto'
-            type: array
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get all facilities
-      tags:
-      - facilities
-    post:
-      consumes:
-      - application/json
-      description: Registers a new facility with the provided details.
-      parameters:
-      - description: Facility details
-        in: body
-        name: facility
-        required: true
-        schema:
-          $ref: '#/definitions/facility.RequestDto'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Facility created successfully
-          schema:
-            $ref: '#/definitions/facility.ResponseDto'
-        "400":
-          description: 'Bad Request: Invalid input'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Create a new facility
-      tags:
-      - facilities
-  /facilities/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Deletes a facility by its HubSpotId.
-      parameters:
-      - description: Facility HubSpotId
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: 'No Content: Facility deleted successfully'
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: 'Bad Request: Invalid HubSpotId'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Facility not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Delete a facility
-      tags:
-      - facilities
-    get:
-      consumes:
-      - application/json
-      description: Retrieves a facility by its HubSpotId.
-      parameters:
-      - description: Facility HubSpotId
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Facility retrieved successfully
-          schema:
-            $ref: '#/definitions/facility.ResponseDto'
-        "400":
-          description: 'Bad Request: Invalid HubSpotId'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Facility not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get a facility by HubSpotId
-      tags:
-      - facilities
-    put:
-      consumes:
-      - application/json
-      description: Updates the details of an existing facility by its HubSpotId.
-      parameters:
-      - description: Facility HubSpotId
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Updated facility details
-        in: body
-        name: facility
-        required: true
-        schema:
-          $ref: '#/definitions/facility.RequestDto'
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: 'No Content: Facility updated successfully'
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: 'Bad Request: Invalid input'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Facility not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Update a facility
-      tags:
-      - facilities
-  /facilities/categories:
-    get:
-      consumes:
-      - application/json
-      description: Retrieves a list of all facility categories.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: GetMemberships of facility categories retrieved successfully
-          schema:
-            items:
-              $ref: '#/definitions/facility.CategoryResponseDto'
-            type: array
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get all facility categories
-      tags:
-      - facility-categories
-    post:
-      consumes:
-      - application/json
-      description: Registers a new facility category with the provided name.
-      parameters:
-      - description: Facility Category details
-        in: body
-        name: facility_category
-        required: true
-        schema:
-          $ref: '#/definitions/facility.CategoryRequestDto'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Facility category created successfully
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: 'Bad Request: Invalid input'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - Bearer: []
-      summary: Create a new facility category
-      tags:
-      - facility-categories
-  /facilities/categories/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Deletes a facility category by its ID.
-      parameters:
-      - description: Facility Category ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: 'No Content: Facility category deleted successfully'
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: 'Bad Request: Invalid ID'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Facility category not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Delete a facility category
-      tags:
-      - facility-categories
-    get:
-      consumes:
-      - application/json
-      description: Retrieves a facility category by its ID.
-      parameters:
-      - description: Facility Category ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Facility category retrieved successfully
-          schema:
-            $ref: '#/definitions/facility.CategoryResponseDto'
-        "400":
-          description: 'Bad Request: Invalid ID'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Facility category not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get a facility category by ID
-      tags:
-      - facility-categories
-    put:
-      consumes:
-      - application/json
-      description: Updates the details of an existing facility category by ID.
-      parameters:
-      - description: Facility Category ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Updated facility category details
-        in: body
-        name: facility_category
-        required: true
-        schema:
-          $ref: '#/definitions/facility.CategoryRequestDto'
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: 'No Content: Facility category updated successfully'
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: 'Bad Request: Invalid input'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Facility category not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Update a facility category
-      tags:
-      - facility-categories
   /games:
     get:
       consumes:
@@ -2122,6 +1743,167 @@ paths:
       summary: Update a barber event
       tags:
       - haircut
+  /locations:
+    get:
+      consumes:
+        - application/json
+      description: Retrieves a list of all locations.
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: List of locations retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/location.ResponseDto'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all locations
+      tags:
+        - locations
+    post:
+      consumes:
+        - application/json
+      description: Registers a new Location with the provided details.
+      parameters:
+        - description: Location details
+          in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/location.RequestDto'
+      produces:
+        - application/json
+      responses:
+        "201":
+          description: Location created successfully
+          schema:
+            $ref: '#/definitions/location.ResponseDto'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new Location
+      tags:
+        - locations
+  /locations/{id}:
+    delete:
+      consumes:
+        - application/json
+      description: Deletes a Location by its UUID.
+      parameters:
+        - description: Location UUID
+          in: path
+          name: id
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        "204":
+          description: 'No Content: Location deleted successfully'
+        "400":
+          description: 'Bad Request: Invalid UUID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Location not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete a Location
+      tags:
+        - locations
+    get:
+      consumes:
+        - application/json
+      description: Retrieves a Location by its unique identifier.
+      parameters:
+        - description: Location UUID
+          in: path
+          name: id
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Location retrieved successfully
+          schema:
+            $ref: '#/definitions/location.ResponseDto'
+        "400":
+          description: 'Bad Request: Invalid UUID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Location not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a Location by ID
+      tags:
+        - locations
+    put:
+      consumes:
+        - application/json
+      description: Updates the details of an existing Location by its UUID.
+      parameters:
+        - description: Location UUID
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: Updated Location details
+          in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/location.RequestDto'
+      produces:
+        - application/json
+      responses:
+        "204":
+          description: 'No Content: Location updated successfully'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Location not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update a Location
+      tags:
+        - locations
   /memberships:
     get:
       consumes:

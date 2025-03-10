@@ -1,6 +1,7 @@
 package course
 
 import (
+	databaseErrors "api/internal/constants"
 	courseTestUtils "api/internal/domains/course/persistence/test_utils"
 	"api/utils/test_utils"
 	"context"
@@ -98,7 +99,7 @@ func TestCreateCourseUniqueNameConstraint(t *testing.T) {
 
 	var pgErr *pq.Error
 	require.True(t, errors.As(err, &pgErr))
-	require.Equal(t, "23505", string(pgErr.Code)) // 23505 is the error code for unique violation
+	require.Equal(t, databaseErrors.UniqueViolation, string(pgErr.Code)) // 23505 is the error code for unique violation
 }
 
 func TestGetAllCourses(t *testing.T) {
@@ -117,46 +118,10 @@ func TestGetAllCourses(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	params := db.GetCoursesParams{
-		Name:        sql.NullString{String: "", Valid: false},
-		Description: sql.NullString{String: "", Valid: false},
-	}
-
 	// Fetch all courses
-	courses, err := queries.GetCourses(context.Background(), params)
+	courses, err := queries.GetCourses(context.Background())
 	require.NoError(t, err)
 	require.EqualValues(t, 5, len(courses))
-}
-
-func TestGetCoursesWithFilter(t *testing.T) {
-
-	dbConn, _ := test_utils.SetupTestDB(t)
-
-	queries, _ := courseTestUtils.SetupCourseTestDb(t, dbConn)
-
-	// Create some courses
-	for i := 1; i <= 5; i++ {
-		createCourseParams := db.CreateCourseParams{
-			Name:        fmt.Sprintf("Course %d", i),
-			Description: sql.NullString{String: fmt.Sprintf("Description %d", i), Valid: true},
-		}
-		_, err := queries.CreateCourse(context.Background(), createCourseParams)
-		require.NoError(t, err)
-	}
-
-	// Set a filter (e.g., filter courses by name)
-	params := db.GetCoursesParams{
-		Name:        sql.NullString{String: "Course 1", Valid: true}, // Filter for "Course 1"
-		Description: sql.NullString{String: "", Valid: false},        // No filter on description
-	}
-
-	// Fetch courses with filter
-	courses, err := queries.GetCourses(context.Background(), params)
-	require.NoError(t, err)
-
-	// Ensure that only the filtered course(s) are returned
-	require.EqualValues(t, 1, len(courses))       // Only 1 course should match the filter ("Course 1")
-	require.Equal(t, "Course 1", courses[0].Name) // Ensure the filtered course is "Course 1"
 }
 
 func TestUpdateNonExistentCourse(t *testing.T) {

@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -21,7 +22,7 @@ type PurchaseMembershipParams struct {
 	CustomerID       uuid.UUID        `json:"customer_id"`
 	MembershipPlanID uuid.UUID        `json:"membership_plan_id"`
 	Status           MembershipStatus `json:"status"`
-	StartDate        sql.NullTime     `json:"start_date"`
+	StartDate        time.Time        `json:"start_date"`
 	RenewalDate      sql.NullTime     `json:"renewal_date"`
 }
 

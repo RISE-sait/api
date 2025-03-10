@@ -78,25 +78,9 @@ func (r *Repository) UpdateCourse(c context.Context, course values.UpdateCourseD
 	return nil
 }
 
-func (r *Repository) GetCourses(c context.Context, name, description *string) ([]values.ReadDetails, *errLib.CommonError) {
+func (r *Repository) GetCourses(ctx context.Context) ([]values.ReadDetails, *errLib.CommonError) {
 
-	dbParams := db.GetCoursesParams{}
-
-	if name != nil {
-		dbParams.Name = sql.NullString{
-			String: *name,
-			Valid:  true,
-		}
-	}
-
-	if description != nil {
-		dbParams.Description = sql.NullString{
-			String: *description,
-			Valid:  true,
-		}
-	}
-
-	dbCourses, err := r.Queries.GetCourses(c, dbParams)
+	dbCourses, err := r.Queries.GetCourses(ctx)
 
 	if err != nil {
 
@@ -153,7 +137,7 @@ func (r *Repository) CreateCourse(c context.Context, courseDetails values.Create
 	if err != nil {
 		// Check if the error is a unique violation (error code 23505)
 		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
 			// Return a custom error for unique violation
 			return createdCourse, errLib.New("Course name already exists", http.StatusConflict)
 		}

@@ -7,9 +7,8 @@ RETURNING *;
 SELECT * FROM course.courses WHERE id = $1;
 
 -- name: GetCourses :many
-SELECT * FROM course.courses
-WHERE (name ILIKE '%' || @name || '%' OR @name IS NULL)
-AND (description ILIKE '%' || sqlc.narg('description') || '%' OR sqlc.narg('description') IS NULL);
+SELECT *
+FROM course.courses;
 
 -- name: UpdateCourse :execrows
 UPDATE course.courses

@@ -26,7 +26,7 @@ func (r *Repository) Purchase(c context.Context, details *values.MembershipPlanP
 		CustomerID:       details.CustomerId,
 		MembershipPlanID: details.MembershipPlanId,
 		Status:           db.MembershipStatus(details.Status),
-		StartDate:        sql.NullTime{Time: details.StartDate, Valid: true},
+		StartDate:        details.StartDate,
 	}
 
 	if details.RenewalDate != nil {

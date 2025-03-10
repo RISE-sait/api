@@ -19,11 +19,8 @@ CREATE TABLE practices (
     level practice_level NOT NULL DEFAULT 'all',
     should_email_booking_notification BOOLEAN DEFAULT True,
     capacity INT NOT NULL,
-    start_date TIMESTAMP WITH TIME ZONE NOT NULL,
-    end_date TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT end_after_start CHECK (end_date > start_date)
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );`
 
 	_, err := testDb.Exec(migrationScript)

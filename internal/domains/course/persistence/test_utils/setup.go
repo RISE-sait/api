@@ -13,15 +13,18 @@ func SetupCourseTestDb(t *testing.T, testDb *sql.DB) (*db.Queries, func()) {
 
 CREATE SCHEMA IF NOT EXISTS course;
 
-	CREATE TABLE course.courses
+	create table course.courses
 (
-    id          UUID PRIMARY KEY         DEFAULT gen_random_uuid(),
-    name        VARCHAR(50) NOT NULL UNIQUE,
-    description TEXT,
-    capacity    INT         NOT NULL,
-    created_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);`
+    id          uuid                     default gen_random_uuid() not null
+        primary key,
+    name        varchar(50)                                        not null
+        unique,
+    description text,
+    capacity    integer                                            not null,
+    created_at  timestamp with time zone default CURRENT_TIMESTAMP not null,
+    updated_at  timestamp with time zone default CURRENT_TIMESTAMP not null
+);
+`
 
 	_, err := testDb.Exec(migrationScript)
 	require.NoError(t, err)

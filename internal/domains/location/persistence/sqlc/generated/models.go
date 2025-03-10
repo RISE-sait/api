@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.27.0
 
-package db
+package db_location
 
 import (
 	"database/sql"
@@ -60,32 +60,6 @@ func (ns NullDayEnum) Value() (driver.Value, error) {
 	return string(ns.DayEnum), nil
 }
 
-func (e DayEnum) Valid() bool {
-	switch e {
-	case DayEnumMONDAY,
-		DayEnumTUESDAY,
-		DayEnumWEDNESDAY,
-		DayEnumTHURSDAY,
-		DayEnumFRIDAY,
-		DayEnumSATURDAY,
-		DayEnumSUNDAY:
-		return true
-	}
-	return false
-}
-
-func AllDayEnumValues() []DayEnum {
-	return []DayEnum{
-		DayEnumMONDAY,
-		DayEnumTUESDAY,
-		DayEnumWEDNESDAY,
-		DayEnumTHURSDAY,
-		DayEnumFRIDAY,
-		DayEnumSATURDAY,
-		DayEnumSUNDAY,
-	}
-}
-
 type MembershipStatus string
 
 const (
@@ -128,26 +102,6 @@ func (ns NullMembershipStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.MembershipStatus), nil
-}
-
-func (e MembershipStatus) Valid() bool {
-	switch e {
-	case MembershipStatusActive,
-		MembershipStatusInactive,
-		MembershipStatusCanceled,
-		MembershipStatusExpired:
-		return true
-	}
-	return false
-}
-
-func AllMembershipStatusValues() []MembershipStatus {
-	return []MembershipStatus{
-		MembershipStatusActive,
-		MembershipStatusInactive,
-		MembershipStatusCanceled,
-		MembershipStatusExpired,
-	}
 }
 
 type PaymentFrequency string
@@ -194,26 +148,6 @@ func (ns NullPaymentFrequency) Value() (driver.Value, error) {
 	return string(ns.PaymentFrequency), nil
 }
 
-func (e PaymentFrequency) Valid() bool {
-	switch e {
-	case PaymentFrequencyOnce,
-		PaymentFrequencyWeek,
-		PaymentFrequencyMonth,
-		PaymentFrequencyDay:
-		return true
-	}
-	return false
-}
-
-func AllPaymentFrequencyValues() []PaymentFrequency {
-	return []PaymentFrequency{
-		PaymentFrequencyOnce,
-		PaymentFrequencyWeek,
-		PaymentFrequencyMonth,
-		PaymentFrequencyDay,
-	}
-}
-
 type PracticeLevel string
 
 const (
@@ -256,26 +190,6 @@ func (ns NullPracticeLevel) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.PracticeLevel), nil
-}
-
-func (e PracticeLevel) Valid() bool {
-	switch e {
-	case PracticeLevelBeginner,
-		PracticeLevelIntermediate,
-		PracticeLevelAdvanced,
-		PracticeLevelAll:
-		return true
-	}
-	return false
-}
-
-func AllPracticeLevelValues() []PracticeLevel {
-	return []PracticeLevel{
-		PracticeLevelBeginner,
-		PracticeLevelIntermediate,
-		PracticeLevelAdvanced,
-		PracticeLevelAll,
-	}
 }
 
 type BarberBarberEvent struct {

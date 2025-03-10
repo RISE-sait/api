@@ -1,31 +1,29 @@
 package test_utils
 
 import (
-	db "api/internal/domains/course/persistence/sqlc/generated"
+	db "api/internal/domains/game/persistence/sqlc/generated"
 	"database/sql"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
-func SetupCourseTestDb(t *testing.T, testDb *sql.DB) (*db.Queries, func()) {
+func SetupGameTestDb(t *testing.T, testDb *sql.DB) (*db.Queries, func()) {
 
 	migrationScript := `
-	CREATE TABLE courses
+	CREATE TABLE games
 (
-    id          UUID PRIMARY KEY         DEFAULT gen_random_uuid(),
-    name        VARCHAR(50) NOT NULL UNIQUE,
-    description TEXT,
-    capacity    INT         NOT NULL,
-    created_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);`
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name       VARCHAR(255) NOT NULL,
+    video_link TEXT
+);
+	`
 
 	_, err := testDb.Exec(migrationScript)
 	require.NoError(t, err)
 
 	// Return the repo and cleanup function
 	repo := db.New(testDb)
-	cleanUpScript := `DELETE FROM events`
+	cleanUpScript := `DELETE FROM games`
 
 	// Cleanup function to delete data after test
 	return repo, func() {

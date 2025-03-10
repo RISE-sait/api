@@ -58,7 +58,7 @@ func GetFilesInBucket(bucketName string, folderName string) ([]string, *errLib.C
 			break
 		}
 
-		fileURLs = append(fileURLs, generatePublicFileURL(bucket, objAttrs.Name))
+		fileURLs = append(fileURLs, generatePublicFileURL(bucket.BucketName(), objAttrs.Name))
 	}
 
 	return fileURLs, nil
@@ -98,14 +98,15 @@ func UploadImageToGCP(image io.Reader, fileName string) (string, *errLib.CommonE
 	}
 
 	// Return the public URL for the uploaded file
-	return generatePublicFileURL(bucket, fileName), nil
+	return generatePublicFileURL(bucket.BucketName(), fileName), nil
 }
 
-func generatePublicFileURL(bucket *storage.BucketHandle, fileName string) string {
+func generatePublicFileURL(bucketName string, fileName string) string {
 	parts := strings.Split(fileName, "/")
 	for i, part := range parts {
-		parts[i] = url.PathEscape(part)
+		parts[i] = url.QueryEscape(part)
 	}
-	encodedFileName := strings.Join(parts, "/") // Keep the `/` separator
-	return fmt.Sprintf("https://storage.googleapis.com/%s/%s", bucket.BucketName(), encodedFileName)
+	encodedFileName := strings.Join(parts, "/")                       // Preserve `/` separators
+	encodedFileName = strings.ReplaceAll(encodedFileName, "+", "%20") // Fix space encoding
+	return fmt.Sprintf("https://storage.googleapis.com/%s/%s", bucketName, encodedFileName)
 }

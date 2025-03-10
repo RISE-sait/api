@@ -4178,6 +4178,15 @@ const docTemplate = `{
                 "firstname": {
                     "type": "string"
                 },
+                "has_marketing_email_consent": {
+                    "type": "string"
+                },
+                "has_sms_consent": {
+                    "type": "string"
+                },
+                "hs_country_region_code": {
+                    "type": "string"
+                },
                 "lastname": {
                     "type": "string"
                 },
@@ -4211,6 +4220,9 @@ const docTemplate = `{
             "properties": {
                 "age": {
                     "type": "integer"
+                },
+                "country_code": {
+                    "type": "string"
                 },
                 "email": {
                     "type": "string"

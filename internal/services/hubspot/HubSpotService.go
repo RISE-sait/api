@@ -60,7 +60,7 @@ func (s *Service) GetUsersByIds(ids []string) ([]UserResponse, *errLib.CommonErr
 
 	// Construct the request body for batch retrieval
 	requestBody := map[string]interface{}{
-		"properties": []string{"firstName", "lastName", "email", "family_role", "phone", "age"},
+		"properties": []string{"firstName", "lastName", "email", "family_role", "phone", "age", "hs_country_region_code", "has_sms_consent", "has_marketing_email_consent"},
 		"inputs":     make([]map[string]string, len(ids)),
 	}
 
@@ -87,7 +87,7 @@ func (s *Service) GetUsersByIds(ids []string) ([]UserResponse, *errLib.CommonErr
 //   - *UserResponse: The user data from HubSpot.
 //   - *errLib.CommonError: An error if retrieval fails.
 func (s *Service) GetUserById(id string) (*UserResponse, *errLib.CommonError) {
-	url := fmt.Sprintf("%scrm/v3/objects/contacts/%s?associations=contacts&properties=firstName,lastName,family_role,email,phone,age", s.BaseURL, id)
+	url := fmt.Sprintf("%scrm/v3/objects/contacts/%s?associations=contacts&properties=firstName,lastName,family_role,email,phone,age,hs_country_region_code,has_sms_consent,has_marketing_email_consent", s.BaseURL, id)
 	response, err := executeHubSpotRequest[UserResponse](s, http.MethodGet, url, nil)
 
 	if err != nil {
@@ -108,7 +108,7 @@ func (s *Service) GetUserById(id string) (*UserResponse, *errLib.CommonError) {
 //   - *errLib.CommonError: An error if retrieval fails.
 func (s *Service) GetUserByEmail(email string) (*UserResponse, *errLib.CommonError) {
 
-	url := fmt.Sprintf("%scrm/v3/objects/contacts/%s?associations=contacts&idProperty=email&properties=firstName,lastName,phone,age", s.BaseURL, email)
+	url := fmt.Sprintf("%scrm/v3/objects/contacts/%s?associations=contacts&idProperty=email&properties=firstName,lastName,phone,age,hs_country_region_code,has_sms_consent,has_marketing_email_consent", s.BaseURL, email)
 	response, err := executeHubSpotRequest[UserResponse](s, http.MethodGet, url, nil)
 
 	if err != nil {

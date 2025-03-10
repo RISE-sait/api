@@ -14,6 +14,7 @@ type UserAuthenticationResponseInfo struct {
 	Age                        int
 	HasConsentToSms            bool
 	HasConsentToEmailMarketing bool
+	CountryCode                *string
 	FirstName                  string
 	LastName                   string
 	Email                      *string

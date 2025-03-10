@@ -87,6 +87,10 @@ func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string,
 		Age:       age,
 	}
 
+	if hubspotResponse.Properties.CountryCode != "" {
+		userInfo.CountryCode = &hubspotResponse.Properties.CountryCode
+	}
+
 	if hubspotResponse.Properties.Phone != "" {
 		userInfo.Phone = &hubspotResponse.Properties.Phone
 	}

@@ -21,10 +21,14 @@ func TestGetUserByID(t *testing.T) {
 
 	require.Nil(t, hubspotErr)
 
-	email := user.Properties.Email
-
 	// Assert course data
-	require.Equal(t, "klintlee1@gmail.com", email)
+	require.Equal(t, "klintlee1@gmail.com", user.Properties.Email)
+	require.Equal(t, "false", user.Properties.HasSmsConsent)
+	require.Equal(t, "true", user.Properties.HasMarketingEmailConsent)
+	require.Equal(t, "in", user.Properties.CountryCode)
+	require.Equal(t, "25", user.Properties.Age)
+	require.Equal(t, "+14034661009", user.Properties.Phone)
+
 }
 
 func TestGetUserByNonExistentID(t *testing.T) {

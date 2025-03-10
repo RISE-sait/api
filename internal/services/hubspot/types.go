@@ -26,11 +26,14 @@ type UserResponse struct {
 }
 
 type UserProps struct {
-	FirstName string `json:"firstname"`
-	LastName  string `json:"lastname"`
-	Email     string `json:"email"`
-	Phone     string `json:"phone"`
-	Age       string `json:"age"`
+	FirstName                string `json:"firstname"`
+	LastName                 string `json:"lastname"`
+	Email                    string `json:"email"`
+	Phone                    string `json:"phone"`
+	Age                      string `json:"age"`
+	HasMarketingEmailConsent string `json:"has_marketing_email_consent"`
+	HasSmsConsent            string `json:"has_sms_consent"`
+	CountryCode              string `json:"hs_country_region_code"`
 }
 
 type UserAssociations struct {

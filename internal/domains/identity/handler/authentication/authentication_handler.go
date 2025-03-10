@@ -51,11 +51,12 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responseBody := dto.UserAuthenticationResponseDto{
-		FirstName: userInfo.FirstName,
-		LastName:  userInfo.LastName,
-		Role:      userInfo.Role,
-		Phone:     userInfo.Phone,
-		Age:       userInfo.Age,
+		FirstName:   userInfo.FirstName,
+		LastName:    userInfo.LastName,
+		Role:        userInfo.Role,
+		Phone:       userInfo.Phone,
+		Age:         userInfo.Age,
+		CountryCode: userInfo.CountryCode,
 	}
 
 	w.Header().Set("Authorization", "Bearer "+jwtToken)

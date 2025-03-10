@@ -7,6 +7,7 @@ import (
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"log"
@@ -42,10 +43,6 @@ func (r *Repository) GetCustomers(ctx context.Context, hubspotIds []string) ([]u
 			HubspotID: dbCustomer.HubspotID,
 			CreatedAt: dbCustomer.CreatedAt,
 			UpdatedAt: dbCustomer.UpdatedAt,
-		}
-
-		if dbCustomer.ProfilePicUrl.Valid {
-			customer.ProfilePicUrl = &dbCustomer.ProfilePicUrl.String
 		}
 
 		customers[i] = customer
@@ -87,9 +84,43 @@ func (r *Repository) GetMembershipPlansByCustomer(ctx context.Context, customerI
 	return plans, nil
 }
 
+func (r *Repository) GetAthleteInfo(ctx context.Context, id uuid.UUID) (values.AthleteReadValue, *errLib.CommonError) {
+
+	var info values.AthleteReadValue
+
+	dbInfo, err := r.Queries.GetAthlete(ctx, id)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return info, errLib.New("Athlete not found", http.StatusNotFound)
+		}
+
+		log.Printf("Unhandled error: %v", err)
+		return info, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	info = values.AthleteReadValue{
+		ID:        dbInfo.ID,
+		Wins:      dbInfo.Wins,
+		Losses:    dbInfo.Losses,
+		Points:    dbInfo.Points,
+		Steals:    dbInfo.Steals,
+		Assists:   dbInfo.Assists,
+		Rebounds:  dbInfo.Rebounds,
+		CreatedAt: dbInfo.CreatedAt,
+		UpdatedAt: dbInfo.UpdatedAt,
+	}
+
+	if dbInfo.ProfilePicUrl.Valid {
+		info.ProfilePicUrl = &dbInfo.ProfilePicUrl.String
+	}
+
+	return info, nil
+}
+
 func (r *Repository) UpdateStats(ctx context.Context, valuesToUpdate values.StatsUpdateValue) *errLib.CommonError {
 
-	var args db.UpdateCustomerStatsParams
+	var args db.UpdateAthleteStatsParams
 
 	if valuesToUpdate.Wins != nil {
 		args.Wins = sql.NullInt32{
@@ -133,7 +164,7 @@ func (r *Repository) UpdateStats(ctx context.Context, valuesToUpdate values.Stat
 		}
 	}
 
-	updatedRows, err := r.Queries.UpdateCustomerStats(ctx, args)
+	updatedRows, err := r.Queries.UpdateAthleteStats(ctx, args)
 
 	if err != nil {
 

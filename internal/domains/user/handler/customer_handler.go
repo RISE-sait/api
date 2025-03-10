@@ -4,7 +4,7 @@ import (
 	"api/internal/di"
 	enrollmentRepo "api/internal/domains/enrollment/persistence"
 	enrollmentService "api/internal/domains/enrollment/service"
-	"api/internal/domains/user/dto/customer"
+	dto "api/internal/domains/user/dto/customer"
 	customerRepo "api/internal/domains/user/persistence/repository/customer"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
@@ -30,6 +30,53 @@ func NewCustomersHandler(container *di.Container) *CustomersHandler {
 	}
 }
 
+// GetAthleteInfo retrieves customer statistics based on the provided customer ID.
+// @Summary Get customer statistics
+// @Description Fetches customer statistics (wins, losses, etc.) for the specified customer ID.
+// @Tags customers
+// @Accept json
+// @Produce json
+// @Param customer_id path string true "Customer ID" // Customer ID to fetch stats for
+// @Success 200 {object} dto.AthleteResponseDto "Customer stats retrieved successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid parameters"
+// @Failure 404 {object} map[string]interface{} "Not Found: Customer does not exist"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /customers/{customer_id}/athlete [get]
+func (h *CustomersHandler) GetAthleteInfo(w http.ResponseWriter, r *http.Request) {
+
+	customerIdStr := chi.URLParam(r, "customer_id")
+
+	customerId, err := validators.ParseUUID(customerIdStr)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	info, err := h.CustomerRepo.GetAthleteInfo(r.Context(), customerId)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	response := dto.AthleteResponseDto{
+		ID:            info.ID,
+		ProfilePicUrl: info.ProfilePicUrl,
+		Wins:          info.Wins,
+		Losses:        info.Losses,
+		Points:        info.Points,
+		Steals:        info.Steals,
+		Assists:       info.Assists,
+		Rebounds:      info.Rebounds,
+		CreatedAt:     info.CreatedAt,
+		UpdatedAt:     info.UpdatedAt,
+	}
+
+	responseHandlers.RespondWithSuccess(w, response, http.StatusNoContent)
+
+}
+
 // UpdateCustomerStats updates customer statistics based on the provided customer ID.
 // @Summary Update customer statistics
 // @Description Updates customer statistics (wins, losses, etc.) for the specified customer ID
@@ -41,12 +88,12 @@ func NewCustomersHandler(container *di.Container) *CustomersHandler {
 // @Success 204 {object} map[string]interface{} "Customer stats updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid parameters"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /customers/{customer_id}/stats [patch]
+// @Router /customers/{customer_id}/athlete [patch]
 func (h *CustomersHandler) UpdateCustomerStats(w http.ResponseWriter, r *http.Request) {
 
 	customerIdStr := chi.URLParam(r, "customer_id")
 
-	var requestDto customer.StatsUpdateRequestDto
+	var requestDto dto.StatsUpdateRequestDto
 
 	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -60,7 +107,7 @@ func (h *CustomersHandler) UpdateCustomerStats(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if err := h.CustomerRepo.UpdateStats(r.Context(), details); err != nil {
+	if err = h.CustomerRepo.UpdateStats(r.Context(), details); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -116,10 +163,10 @@ func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	result := make([]customer.Response, len(hubspotUsers))
+	result := make([]dto.Response, len(hubspotUsers))
 
 	for i, staff := range dbCustomers {
-		response := customer.Response{
+		response := dto.Response{
 			UserID:     staff.ID,
 			HubspotId:  staff.HubspotID,
 			ProfilePic: staff.ProfilePicUrl,
@@ -173,10 +220,10 @@ func (h *CustomersHandler) GetMembershipPlansByCustomer(w http.ResponseWriter, r
 		return
 	}
 
-	result := make([]customer.MembershipPlansResponseDto, len(plans))
+	result := make([]dto.MembershipPlansResponseDto, len(plans))
 
 	for i, plan := range plans {
-		response := customer.MembershipPlansResponseDto{
+		response := dto.MembershipPlansResponseDto{
 			ID:               plan.ID,
 			CustomerID:       plan.CustomerID,
 			MembershipPlanID: plan.MembershipPlanID,

@@ -14,8 +14,31 @@ import (
 	"github.com/lib/pq"
 )
 
+const getAthlete = `-- name: GetAthlete :one
+SELECT id, profile_pic_url, wins, losses, points, steals, assists, rebounds, created_at, updated_at FROM users.athletes
+WHERE id = $1
+`
+
+func (q *Queries) GetAthlete(ctx context.Context, id uuid.UUID) (UsersAthlete, error) {
+	row := q.db.QueryRowContext(ctx, getAthlete, id)
+	var i UsersAthlete
+	err := row.Scan(
+		&i.ID,
+		&i.ProfilePicUrl,
+		&i.Wins,
+		&i.Losses,
+		&i.Points,
+		&i.Steals,
+		&i.Assists,
+		&i.Rebounds,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getCustomers = `-- name: GetCustomers :many
-SELECT id, hubspot_id, profile_pic_url, wins, losses, points, steals, assists, rebounds, created_at, updated_at FROM users.users
+SELECT id, hubspot_id, created_at, updated_at FROM users.users
 WHERE
     hubspot_id = ANY($1::text[]) OR $1 IS NULL
 `
@@ -32,13 +55,6 @@ func (q *Queries) GetCustomers(ctx context.Context, hubspotIds []string) ([]User
 		if err := rows.Scan(
 			&i.ID,
 			&i.HubspotID,
-			&i.ProfilePicUrl,
-			&i.Wins,
-			&i.Losses,
-			&i.Points,
-			&i.Steals,
-			&i.Assists,
-			&i.Rebounds,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -56,9 +72,10 @@ func (q *Queries) GetCustomers(ctx context.Context, hubspotIds []string) ([]User
 }
 
 const getMembershipPlansByCustomer = `-- name: GetMembershipPlansByCustomer :many
-SELECT cmp.id, cmp.customer_id, cmp.membership_plan_id, cmp.start_date, cmp.renewal_date, cmp.status, cmp.created_at, cmp.updated_at, m.name as membership_name FROM public.customer_membership_plans cmp
-JOIN membership.membership_plans mp  ON cmp.membership_plan_id = mp.id
-JOIN membership.memberships m ON m.id = mp.membership_id
+SELECT cmp.id, cmp.customer_id, cmp.membership_plan_id, cmp.start_date, cmp.renewal_date, cmp.status, cmp.created_at, cmp.updated_at, m.name as membership_name
+FROM public.customer_membership_plans cmp
+         JOIN membership.membership_plans mp ON cmp.membership_plan_id = mp.id
+         JOIN membership.memberships m ON m.id = mp.membership_id
 WHERE cmp.customer_id = $1
 `
 
@@ -107,8 +124,8 @@ func (q *Queries) GetMembershipPlansByCustomer(ctx context.Context, customerID u
 	return items, nil
 }
 
-const updateCustomerStats = `-- name: UpdateCustomerStats :execrows
-UPDATE users.users
+const updateAthleteStats = `-- name: UpdateAthleteStats :execrows
+UPDATE users.athletes
 SET
     wins = COALESCE($1, wins),
     losses = COALESCE($2, losses),
@@ -120,7 +137,7 @@ SET
 WHERE id = $7
 `
 
-type UpdateCustomerStatsParams struct {
+type UpdateAthleteStatsParams struct {
 	Wins     sql.NullInt32 `json:"wins"`
 	Losses   sql.NullInt32 `json:"losses"`
 	Points   sql.NullInt32 `json:"points"`
@@ -130,8 +147,8 @@ type UpdateCustomerStatsParams struct {
 	ID       uuid.UUID     `json:"id"`
 }
 
-func (q *Queries) UpdateCustomerStats(ctx context.Context, arg UpdateCustomerStatsParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateCustomerStats,
+func (q *Queries) UpdateAthleteStats(ctx context.Context, arg UpdateAthleteStatsParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateAthleteStats,
 		arg.Wins,
 		arg.Losses,
 		arg.Points,

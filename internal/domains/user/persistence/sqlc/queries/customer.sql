@@ -1,5 +1,5 @@
--- name: UpdateCustomerStats :execrows
-UPDATE users.users
+-- name: UpdateAthleteStats :execrows
+UPDATE users.athletes
 SET
     wins = COALESCE(sqlc.narg('wins'), wins),
     losses = COALESCE(sqlc.narg('losses'), losses),
@@ -14,6 +14,11 @@ WHERE id = sqlc.arg('id');
 SELECT * FROM users.users
 WHERE
     hubspot_id = ANY(sqlc.narg('hubspot_ids')::text[]) OR sqlc.narg('hubspot_ids') IS NULL;
+
+-- name: GetAthlete :one
+SELECT *
+FROM users.athletes
+WHERE id = $1;
 
 -- name: GetMembershipPlansByCustomer :many
 SELECT cmp.*, m.name as membership_name

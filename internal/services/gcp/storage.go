@@ -102,6 +102,10 @@ func UploadImageToGCP(image io.Reader, fileName string) (string, *errLib.CommonE
 }
 
 func generatePublicFileURL(bucket *storage.BucketHandle, fileName string) string {
-	encodedFileName := url.PathEscape(strings.Join(strings.Split(fileName, "/"), "/"))
+	parts := strings.Split(fileName, "/")
+	for i, part := range parts {
+		parts[i] = url.PathEscape(part)
+	}
+	encodedFileName := strings.Join(parts, "/") // Keep the `/` separator
 	return fmt.Sprintf("https://storage.googleapis.com/%s/%s", bucket.BucketName(), encodedFileName)
 }

@@ -60,7 +60,7 @@ func (s *CustomerRegistrationService) RegisterAthlete(
 		}
 	}()
 
-	userId, err := s.UserInfoTempRepo.CreatePendingUserInfoTx(ctx, tx, customer.FirstName, customer.LastName, customer.HasConsentToSms, customer.HasConsentToEmailMarketing, false, &customer.Phone, &customer.Email, nil, customer.Age)
+	userId, err := s.UserInfoTempRepo.CreatePendingUserInfoTx(ctx, tx, customer.FirstName, customer.LastName, customer.HasConsentToSms, customer.HasConsentToEmailMarketing, false, &customer.CountryCode, &customer.Phone, &customer.Email, nil, customer.Age)
 
 	if err != nil {
 		tx.Rollback()
@@ -108,7 +108,7 @@ func (s *CustomerRegistrationService) RegisterParent(
 		}
 	}()
 
-	_, err := s.UserInfoTempRepo.CreatePendingUserInfoTx(ctx, tx, customer.FirstName, customer.LastName, customer.HasConsentToSms, customer.HasConsentToEmailMarketing, true, &customer.Phone, &customer.Email, nil, customer.Age)
+	_, err := s.UserInfoTempRepo.CreatePendingUserInfoTx(ctx, tx, customer.FirstName, customer.LastName, customer.HasConsentToSms, customer.HasConsentToEmailMarketing, true, nil, &customer.Phone, &customer.Email, nil, customer.Age)
 
 	if err != nil {
 		tx.Rollback()

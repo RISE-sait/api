@@ -5,10 +5,13 @@ import (
 	values "api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
+	"api/utils/countries"
+	"net/http"
 )
 
-type AdultsRegistrationRequestDto struct {
+type RegistrationRequestDto struct {
 	identity.UserNecessaryInfoRequestDto
+	CountryCode                string                    `json:"country_code"`
 	CustomerWaiversSigningDto  []WaiverSigningRequestDto `json:"waivers"`
 	PhoneNumber                string                    `json:"phone_number" validate:"omitempty,e164" example:"+15141234567"`
 	HasConsentToSmS            bool                      `json:"has_consent_to_sms"`
@@ -16,9 +19,9 @@ type AdultsRegistrationRequestDto struct {
 	Role                       string                    `json:"role" validate:"required"`
 }
 
-// ToValueObject validates the DTO and converts waiver signing details into value objects.
+// ToParent validates the DTO and converts waiver signing details into value objects.
 // Returns a slice of CustomerWaiverSigning value objects and an error if validation fails.
-func (dto AdultsRegistrationRequestDto) ToValueObject(email string) (values.AdultCustomerRegistrationRequestInfo, *errLib.CommonError) {
+func (dto RegistrationRequestDto) ToParent(email string) (values.AdultCustomerRegistrationRequestInfo, *errLib.CommonError) {
 	if err := validators.ValidateDto(&dto); err != nil {
 		return values.AdultCustomerRegistrationRequestInfo{}, err
 	}
@@ -52,7 +55,57 @@ func (dto AdultsRegistrationRequestDto) ToValueObject(email string) (values.Adul
 		Phone:                      dto.PhoneNumber,
 		HasConsentToSms:            dto.HasConsentToSmS,
 		HasConsentToEmailMarketing: dto.HasConsentToEmailMarketing,
-		Waivers:                    waiversVo,
+	}, nil
+}
+
+// ToAthlete validates the DTO and converts waiver signing details into value objects.
+// Returns a slice of CustomerWaiverSigning value objects and an error if validation fails.
+func (dto RegistrationRequestDto) ToAthlete(email string) (values.AthleteRegistrationRequestInfo, *errLib.CommonError) {
+	if err := validators.ValidateDto(&dto); err != nil {
+		return values.AthleteRegistrationRequestInfo{}, err
+	}
+
+	if dto.CountryCode != "" && !countries.IsValidAlpha2Code(dto.CountryCode) {
+		return values.AthleteRegistrationRequestInfo{}, errLib.New("Invalid country code", http.StatusBadRequest)
+	}
+
+	if dto.CustomerWaiversSigningDto == nil || len(dto.CustomerWaiversSigningDto) == 0 {
+		return values.AthleteRegistrationRequestInfo{}, errLib.New("waivers: required", http.StatusBadRequest)
+	}
+
+	waiversVo := make([]values.CustomerWaiverSigning, len(dto.CustomerWaiversSigningDto))
+
+	if dto.CustomerWaiversSigningDto != nil {
+
+		for i, waiver := range dto.CustomerWaiversSigningDto {
+			vo, err := waiver.ToValueObjects()
+
+			if err != nil {
+				return values.AthleteRegistrationRequestInfo{}, err
+			}
+
+			waiversVo[i] = values.CustomerWaiverSigning{
+				IsWaiverSigned: vo.IsWaiverSigned,
+				WaiverUrl:      vo.WaiverUrl,
+			}
+
+		}
+	}
+
+	return values.AthleteRegistrationRequestInfo{
+		AdultCustomerRegistrationRequestInfo: values.AdultCustomerRegistrationRequestInfo{
+			UserRegistrationRequestNecessaryInfo: values.UserRegistrationRequestNecessaryInfo{
+				Age:       dto.Age,
+				FirstName: dto.FirstName,
+				LastName:  dto.LastName,
+			},
+			Email:                      email,
+			Phone:                      dto.PhoneNumber,
+			HasConsentToSms:            dto.HasConsentToSmS,
+			HasConsentToEmailMarketing: dto.HasConsentToEmailMarketing,
+		},
+		Waivers:     waiversVo,
+		CountryCode: dto.CountryCode,
 	}, nil
 }
 

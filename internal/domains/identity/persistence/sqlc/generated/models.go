@@ -436,16 +436,15 @@ type PracticeMembership struct {
 }
 
 type UsersAthlete struct {
-	ID            uuid.UUID      `json:"id"`
-	ProfilePicUrl sql.NullString `json:"profile_pic_url"`
-	Wins          int32          `json:"wins"`
-	Losses        int32          `json:"losses"`
-	Points        int32          `json:"points"`
-	Steals        int32          `json:"steals"`
-	Assists       int32          `json:"assists"`
-	Rebounds      int32          `json:"rebounds"`
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
+	ID        uuid.UUID `json:"id"`
+	Wins      int32     `json:"wins"`
+	Losses    int32     `json:"losses"`
+	Points    int32     `json:"points"`
+	Steals    int32     `json:"steals"`
+	Assists   int32     `json:"assists"`
+	Rebounds  int32     `json:"rebounds"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type UsersCustomerCredit struct {
@@ -466,6 +465,7 @@ type UsersPendingUser struct {
 	HasMarketingEmailConsent bool           `json:"has_marketing_email_consent"`
 	HasSmsConsent            bool           `json:"has_sms_consent"`
 	IsParent                 bool           `json:"is_parent"`
+	Alpha2CountryCode        sql.NullString `json:"alpha_2_country_code"`
 }
 
 type UsersStaff struct {

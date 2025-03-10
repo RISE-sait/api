@@ -42,7 +42,10 @@ func (q *Queries) CreateUser(ctx context.Context, hubspotID string) (UsersUser, 
 }
 
 const getAthleteInfoByUserID = `-- name: GetAthleteInfoByUserID :one
-SELECT id, profile_pic_url, wins, losses, points, steals, assists, rebounds, created_at, updated_at FROM users.athletes WHERE id = $1 limit 1
+SELECT id, wins, losses, points, steals, assists, rebounds, created_at, updated_at
+FROM users.athletes
+WHERE id = $1
+limit 1
 `
 
 func (q *Queries) GetAthleteInfoByUserID(ctx context.Context, id uuid.UUID) (UsersAthlete, error) {
@@ -50,7 +53,6 @@ func (q *Queries) GetAthleteInfoByUserID(ctx context.Context, id uuid.UUID) (Use
 	var i UsersAthlete
 	err := row.Scan(
 		&i.ID,
-		&i.ProfilePicUrl,
 		&i.Wins,
 		&i.Losses,
 		&i.Points,

@@ -416,7 +416,58 @@
                 }
             }
         },
-        "/customers/{customer_id}/stats": {
+      "/customers/{customer_id}/athlete": {
+        "get": {
+          "description": "Fetches customer statistics (wins, losses, etc.) for the specified customer ID.",
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "tags": [
+            "customers"
+          ],
+          "summary": "Get customer statistics",
+          "parameters": [
+            {
+              "type": "string",
+              "description": "Customer ID",
+              "name": "customer_id",
+              "in": "path",
+              "required": true
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Customer stats retrieved successfully",
+              "schema": {
+                "$ref": "#/definitions/customer.AthleteResponseDto"
+              }
+            },
+            "400": {
+              "description": "Bad Request: Invalid parameters",
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "404": {
+              "description": "Not Found: Customer does not exist",
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "500": {
+              "description": "Internal Server Error",
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
             "patch": {
                 "description": "Updates customer statistics (wins, losses, etc.) for the specified customer ID",
                 "consumes": [
@@ -3223,7 +3274,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/identity.StaffRegistrationRequestDto"
+                          "$ref": "#/definitions/staff.RegistrationRequestDto"
                         }
                     }
                 ],
@@ -3576,6 +3627,41 @@
                 }
             }
         },
+      "customer.AthleteResponseDto": {
+        "type": "object",
+        "properties": {
+          "assists": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "losses": {
+            "type": "integer"
+          },
+          "points": {
+            "type": "integer"
+          },
+          "profile_pic_url": {
+            "type": "string"
+          },
+          "rebounds": {
+            "type": "integer"
+          },
+          "steals": {
+            "type": "integer"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "wins": {
+            "type": "integer"
+                }
+            }
+        },
         "customer.ChildRegistrationRequestDto": {
             "type": "object",
             "required": [
@@ -3645,6 +3731,9 @@
                 "age": {
                     "type": "integer"
                 },
+              "country_code": {
+                "type": "string"
+              },
                 "first_name": {
                     "type": "string"
                 },
@@ -4107,36 +4196,6 @@
                 }
             }
         },
-        "identity.StaffRegistrationRequestDto": {
-            "type": "object",
-            "required": [
-                "age",
-                "first_name",
-                "last_name",
-                "role"
-            ],
-            "properties": {
-                "age": {
-                    "type": "integer"
-                },
-                "first_name": {
-                    "type": "string"
-                },
-                "is_active_staff": {
-                    "type": "boolean"
-                },
-                "last_name": {
-                    "type": "string"
-                },
-                "phone_number": {
-                    "type": "string",
-                    "example": "+15141234567"
-                },
-                "role": {
-                    "type": "string"
-                }
-            }
-        },
         "identity.UserAuthenticationResponseDto": {
             "type": "object",
             "properties": {
@@ -4257,6 +4316,36 @@
                 },
                 "status": {
                     "type": "string"
+                }
+            }
+        },
+      "staff.RegistrationRequestDto": {
+        "type": "object",
+        "required": [
+          "age",
+          "first_name",
+          "last_name",
+          "role"
+        ],
+        "properties": {
+          "age": {
+            "type": "integer"
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "is_active_staff": {
+            "type": "boolean"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "phone_number": {
+            "type": "string",
+            "example": "+15141234567"
+          },
+          "role": {
+            "type": "string"
                 }
             }
         },

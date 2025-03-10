@@ -5,7 +5,6 @@ import (
 	dto "api/internal/domains/identity/dto/customer"
 	service "api/internal/domains/identity/service/firebase"
 	"api/internal/domains/identity/service/registration"
-	values "api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
@@ -35,7 +34,7 @@ func NewCustomerRegistrationHandlers(container *di.Container) *CustomerRegistrat
 // @Tags registration
 // @Accept json
 // @Produce json
-// @Param customer body dto.AdultsRegistrationRequestDto true "Customer registration details" // The customer registration data, including name, age, email, phone, consent, etc.
+// @Param customer body dto.RegistrationRequestDto true "Customer registration details" // The customer registration data, including name, age, email, phone, consent, etc.
 // @Param firebase_token header string true "Firebase token for user verification" // Firebase token required for verifying the user
 // @Success 201 {object} map[string]interface{} "Customer registered successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Missing or invalid Firebase token or request body"
@@ -50,7 +49,7 @@ func (h *CustomerRegistrationHandlers) RegisterCustomer(w http.ResponseWriter, r
 		return
 	}
 
-	var requestDto dto.AdultsRegistrationRequestDto
+	var requestDto dto.RegistrationRequestDto
 
 	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -64,45 +63,30 @@ func (h *CustomerRegistrationHandlers) RegisterCustomer(w http.ResponseWriter, r
 		return
 	}
 
-	vo, err := requestDto.ToValueObject(email)
-
-	if err != nil {
-		responseHandlers.RespondWithError(w, err)
-		return
-	}
-
-	valueObject := values.AdultCustomerRegistrationRequestInfo{
-		UserRegistrationRequestNecessaryInfo: values.UserRegistrationRequestNecessaryInfo{
-			Age:       requestDto.Age,
-			FirstName: requestDto.FirstName,
-			LastName:  requestDto.LastName,
-		},
-		Email:                      email,
-		Phone:                      requestDto.PhoneNumber,
-		HasConsentToSms:            requestDto.HasConsentToSmS,
-		HasConsentToEmailMarketing: requestDto.HasConsentToEmailMarketing,
-	}
-
 	switch requestDto.Role {
 	case "athlete":
 		{
 
-			if vo.Waivers == nil || len(vo.Waivers) == 0 {
-				responseHandlers.RespondWithError(w, errLib.New("waivers: required", http.StatusBadRequest))
+			vo, athleteErr := requestDto.ToAthlete(email)
+
+			if athleteErr != nil {
+				responseHandlers.RespondWithError(w, athleteErr)
 				return
 			}
 
-			athleteValueObject := values.AthleteRegistrationRequestInfo{
-				AdultCustomerRegistrationRequestInfo: valueObject,
-				Waivers:                              vo.Waivers,
-			}
-
-			err = h.CustomerRegistrationService.RegisterAthlete(r.Context(), athleteValueObject)
+			err = h.CustomerRegistrationService.RegisterAthlete(r.Context(), vo)
 		}
 
 	case "parent":
 		{
-			err = h.CustomerRegistrationService.RegisterParent(r.Context(), valueObject)
+			vo, parentErr := requestDto.ToParent(email)
+
+			if parentErr != nil {
+				responseHandlers.RespondWithError(w, parentErr)
+				return
+			}
+
+			err = h.CustomerRegistrationService.RegisterParent(r.Context(), vo)
 		}
 
 	default:

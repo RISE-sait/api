@@ -25,7 +25,7 @@ func NewPendingUserInfoRepository(container *di.Container) *PendingUsersRepo {
 	}
 }
 
-func (r *PendingUsersRepo) CreatePendingUserInfoTx(ctx context.Context, tx *sql.Tx, firstName, lastName string, hasSmsConsent, hasEmailConsent, isParent bool, phone, email, parentHubspotId *string, age int) (uuid.UUID, *errLib.CommonError) {
+func (r *PendingUsersRepo) CreatePendingUserInfoTx(ctx context.Context, tx *sql.Tx, firstName, lastName string, hasSmsConsent, hasEmailConsent, isParent bool, countryCode, phone, email, parentHubspotId *string, age int) (uuid.UUID, *errLib.CommonError) {
 
 	queries := r.Queries
 	if tx != nil {
@@ -39,6 +39,10 @@ func (r *PendingUsersRepo) CreatePendingUserInfoTx(ctx context.Context, tx *sql.
 		HasMarketingEmailConsent: hasEmailConsent,
 		HasSmsConsent:            hasSmsConsent,
 		IsParent:                 isParent,
+	}
+
+	if countryCode != nil {
+		dbTempUserInfo.Alpha2CountryCode = sql.NullString{String: *countryCode, Valid: true}
 	}
 
 	if phone != nil {

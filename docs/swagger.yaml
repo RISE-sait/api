@@ -19,6 +19,29 @@ definitions:
       updatedAt:
         type: string
     type: object
+  customer.AthleteResponseDto:
+    properties:
+      assists:
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: string
+      losses:
+        type: integer
+      points:
+        type: integer
+      profile_pic_url:
+        type: string
+      rebounds:
+        type: integer
+      steals:
+        type: integer
+      updated_at:
+        type: string
+      wins:
+        type: integer
+    type: object
   customer.ChildRegistrationRequestDto:
     properties:
       age:
@@ -61,6 +84,8 @@ definitions:
     properties:
       age:
         type: integer
+      country_code:
+        type: string
       first_name:
         type: string
       has_consent_to_email_marketing:
@@ -373,27 +398,6 @@ definitions:
       updatedAt:
         type: string
     type: object
-  identity.StaffRegistrationRequestDto:
-    properties:
-      age:
-        type: integer
-      first_name:
-        type: string
-      is_active_staff:
-        type: boolean
-      last_name:
-        type: string
-      phone_number:
-        example: "+15141234567"
-        type: string
-      role:
-        type: string
-    required:
-    - age
-    - first_name
-    - last_name
-    - role
-    type: object
   identity.UserAuthenticationResponseDto:
     properties:
       age:
@@ -474,6 +478,27 @@ definitions:
         type: string
     required:
     - start_date
+    type: object
+  staff.RegistrationRequestDto:
+    properties:
+      age:
+        type: integer
+      first_name:
+        type: string
+      is_active_staff:
+        type: boolean
+      last_name:
+        type: string
+      phone_number:
+        example: "+15141234567"
+        type: string
+      role:
+        type: string
+    required:
+      - age
+      - first_name
+      - last_name
+      - role
     type: object
   staff.RequestDto:
     properties:
@@ -806,7 +831,43 @@ paths:
       summary: Get customers
       tags:
       - customers
-  /customers/{customer_id}/stats:
+  /customers/{customer_id}/athlete:
+    get:
+      consumes:
+        - application/json
+      description: Fetches customer statistics (wins, losses, etc.) for the specified
+        customer ID.
+      parameters:
+        - description: Customer ID
+          in: path
+          name: customer_id
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Customer stats retrieved successfully
+          schema:
+            $ref: '#/definitions/customer.AthleteResponseDto'
+        "400":
+          description: 'Bad Request: Invalid parameters'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Customer does not exist'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get customer statistics
+      tags:
+        - customers
     patch:
       consumes:
       - application/json
@@ -2703,7 +2764,7 @@ paths:
         name: staff
         required: true
         schema:
-          $ref: '#/definitions/identity.StaffRegistrationRequestDto'
+          $ref: '#/definitions/staff.RegistrationRequestDto'
       produces:
       - application/json
       responses:

@@ -60,7 +60,7 @@ func (s *ChildRegistrationService) CreateChildAccount(
 		return err
 	}
 
-	childId, err := s.PendingUsersRepository.CreatePendingUserInfoTx(ctx, tx, childRegistrationInfo.FirstName, childRegistrationInfo.LastName, false, false, false, nil, nil, &parent.HubSpotId, childRegistrationInfo.Age)
+	childId, err := s.PendingUsersRepository.CreatePendingUserInfoTx(ctx, tx, childRegistrationInfo.FirstName, childRegistrationInfo.LastName, false, false, false, nil, nil, nil, &parent.HubSpotId, childRegistrationInfo.Age)
 
 	if err != nil {
 		tx.Rollback()

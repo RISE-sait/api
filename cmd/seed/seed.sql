@@ -7,11 +7,11 @@ INSERT INTO users.staff_roles (id, role_name) VALUES
   (gen_random_uuid(), 'BARBER');
 
 -- Insert users
-INSERT INTO users.users (hubspot_id, has_marketing_email_consent, has_sms_consent)
-VALUES (103323445125, true, true),
-       (103322588816, true, false),
-       (103323445021, false, true),
-       (103322588701, true, true);
+INSERT INTO users.users (hubspot_id)
+VALUES (103323445125),
+       (103322588816),
+       (103323445021),
+       (103322588701);
 
 -- Insert staff members
 INSERT INTO users.staff (id, role_id, is_active)
@@ -25,40 +25,13 @@ VALUES ((SELECT id FROM users.users LIMIT 1 OFFSET 0),
         true)
 ON CONFLICT (id) DO NOTHING;
 
--- Insert facility types
-INSERT INTO location.facility_categories (name)
-VALUES ('Gym'),
-       ('Swimming Pool'),
-       ('Tennis Court'),
-       ('Basketball Court'),
-       ('Yoga Studio');
-
-
--- Insert facilities
-INSERT INTO location.facilities (name, address, facility_category_id)
-VALUES ('Downtown Gym', '123 Main St', (SELECT id FROM location.facility_categories WHERE name = 'Gym')),
-       ('City Pool', '456 Water Ave', (SELECT id FROM location.facility_categories WHERE name = 'Swimming Pool')),
-       ('Tennis Club', '789 Court St', (SELECT id FROM location.facility_categories WHERE name = 'Tennis Court')),
-       ('Basketball Arena', '321 Hoop Rd',
-        (SELECT id FROM location.facility_categories WHERE name = 'Basketball Court')),
-       ('Serenity Yoga', '654 Zen St', (SELECT id FROM location.facility_categories WHERE name = 'Yoga Studio'));
-
 -- Insert locations
-INSERT INTO location.locations (name, facility_id)
-VALUES ('Downtown Gym Location', (SELECT id FROM location.facilities WHERE name = 'Downtown Gym')),
-       ('City Pool Location', (SELECT id FROM location.facilities WHERE name = 'City Pool')),
-       ('Tennis Club Location', (SELECT id FROM location.facilities WHERE name = 'Tennis Club')),
-       ('Basketball Arena Location', (SELECT id FROM location.facilities WHERE name = 'Basketball Arena')),
-       ('Serenity Yoga Location', (SELECT id FROM location.facilities WHERE name = 'Serenity Yoga'));
-
-
--- Insert courses
-INSERT INTO course.courses (name, description, capacity)
-VALUES ('Beginner Yoga', 'A relaxing yoga course for beginners.', 20),
-       ('Advanced Swimming', 'Improve your swimming techniques with professional coaching.', 15),
-       ('Tennis Fundamentals', 'Learn the basics of tennis from experienced instructors.', 12),
-       ('Basketball Skills Camp', 'Enhance your basketball skills with expert guidance.', 25),
-       ('Strength Training 101', 'A foundational strength training program for all levels.', 18);
+INSERT INTO location.locations (name, address)
+VALUES ('Downtown Gym Location', '123 Main St, Downtown'),
+       ('City Pool Location', '456 Water Ave, City Center'),
+       ('Tennis Club Location', '789 Court Rd, Suburbia'),
+       ('Basketball Arena Location', '101 Hoops Ln, Sports District'),
+       ('Serenity Yoga Location', '202 Zen Blvd, Wellness Park');
 
 -- Insert practices
 INSERT INTO public.practices (name, description, level, capacity)
@@ -299,9 +272,9 @@ VALUES
 -- Mock data for 'Premium Membership' f
 
 
-INSERT INTO users.users (hubspot_id, has_sms_consent, has_marketing_email_consent)
-VALUES (103336460047, false, false),
-       (103324806199, true, true);
+INSERT INTO users.users (hubspot_id)
+VALUES (103336460047),
+       (103324806199);
 
 -- Insert staff members
 INSERT INTO users.staff (id, role_id, is_active)

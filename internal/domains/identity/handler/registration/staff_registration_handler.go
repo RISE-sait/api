@@ -4,7 +4,6 @@ import (
 	"api/internal/di"
 	dto "api/internal/domains/identity/dto/staff"
 	service "api/internal/domains/identity/service/registration"
-	values "api/internal/domains/identity/values"
 	responsehandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -44,19 +43,14 @@ func (h *StaffHandlers) CreateStaff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	valueObject := values.StaffRegistrationRequestInfo{
-		UserRegistrationRequestNecessaryInfo: values.UserRegistrationRequestNecessaryInfo{
-			Age:       requestDto.Age,
-			FirstName: requestDto.FirstName,
-			LastName:  requestDto.LastName,
-		},
-		StaffCreateValues: values.StaffCreateValues{
-			IsActive: requestDto.IsActiveStaff,
-			RoleName: requestDto.Role,
-		},
+	valueObject, err := requestDto.ToCreateStaffValues()
+
+	if err != nil {
+		responsehandlers.RespondWithError(w, err)
+		return
 	}
 
-	err := h.StaffRegistrationService.RegisterStaff(r.Context(), valueObject)
+	err = h.StaffRegistrationService.RegisterStaff(r.Context(), valueObject)
 	if err != nil {
 		responsehandlers.RespondWithError(w, err)
 		return

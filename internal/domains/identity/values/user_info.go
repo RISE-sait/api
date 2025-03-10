@@ -5,9 +5,10 @@ import (
 )
 
 type UserRegistrationRequestNecessaryInfo struct {
-	Age       int
-	FirstName string
-	LastName  string
+	Age         int
+	FirstName   string
+	LastName    string
+	CountryCode string
 }
 
 type UserAuthenticationResponseInfo struct {
@@ -32,8 +33,7 @@ type AdultCustomerRegistrationRequestInfo struct {
 
 type AthleteRegistrationRequestInfo struct {
 	AdultCustomerRegistrationRequestInfo
-	Waivers     []CustomerWaiverSigning
-	CountryCode string
+	Waivers []CustomerWaiverSigning
 }
 
 type ChildRegistrationRequestInfo struct {

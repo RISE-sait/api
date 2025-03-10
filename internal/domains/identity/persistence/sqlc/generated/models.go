@@ -378,22 +378,10 @@ type Game struct {
 	VideoLink sql.NullString `json:"video_link"`
 }
 
-type LocationFacility struct {
-	ID                 uuid.UUID `json:"id"`
-	Name               string    `json:"name"`
-	Address            string    `json:"address"`
-	FacilityCategoryID uuid.UUID `json:"facility_category_id"`
-}
-
-type LocationFacilityCategory struct {
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
-}
-
 type LocationLocation struct {
-	ID         uuid.UUID `json:"id"`
-	Name       string    `json:"name"`
-	FacilityID uuid.UUID `json:"facility_id"`
+	ID      uuid.UUID `json:"id"`
+	Name    string    `json:"name"`
+	Address string    `json:"address"`
 }
 
 type MembershipMembership struct {

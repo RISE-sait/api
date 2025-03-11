@@ -13,6 +13,9 @@ import (
 	membershipDb "api/internal/domains/membership/persistence/sqlc/generated"
 	practiceDb "api/internal/domains/practice/persistence/sqlc/generated"
 	purchaseDb "api/internal/domains/purchase/persistence/sqlc/generated"
+
+	outboxDb "api/internal/services/outbox/generated"
+
 	userDb "api/internal/domains/user/persistence/sqlc/generated"
 
 	"api/internal/services/gcp"
@@ -41,6 +44,7 @@ type QueriesType struct {
 	BarberDb     *barberDb.Queries
 	GameDb       *gameDb.Queries
 	UserDb       *userDb.Queries
+	OutboxDb     *outboxDb.Queries
 }
 
 func NewContainer() *Container {
@@ -75,6 +79,7 @@ func initializeQueries(db *sql.DB) *QueriesType {
 		EventStaffDb: eventStaffDb.New(db),
 		BarberDb:     barberDb.New(db),
 		GameDb:       gameDb.New(db),
+		OutboxDb:     outboxDb.New(db),
 	}
 }
 

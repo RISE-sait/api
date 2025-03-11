@@ -24,10 +24,13 @@ func NewStaffRegistrationService(
 	container *di.Container,
 ) *StaffsRegistrationService {
 
+	identityDb := container.Queries.IdentityDb
+	outboxDb := container.Queries.OutboxDb
+
 	return &StaffsRegistrationService{
-		StaffRepository: identityRepo.NewStaffRepository(container.Queries.IdentityDb),
+		StaffRepository: identityRepo.NewStaffRepository(identityDb, outboxDb),
 		DB:              container.DB,
-		UsersRepository: identityRepo.NewUserRepository(container.Queries.IdentityDb),
+		UsersRepository: identityRepo.NewUserRepository(identityDb, outboxDb),
 		HubSpotService:  container.HubspotService,
 	}
 }

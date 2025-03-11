@@ -21,10 +21,13 @@ type Service struct {
 
 func NewAuthenticationService(container *di.Container) *Service {
 
+	identityDb := container.Queries.IdentityDb
+	outboxDb := container.Queries.OutboxDb
+
 	return &Service{
 		FirebaseService: firebase.NewFirebaseService(container),
-		UserRepo:        identityRepo.NewUserRepository(container.Queries.IdentityDb),
-		StaffRepo:       identityRepo.NewStaffRepository(container.Queries.IdentityDb),
+		UserRepo:        identityRepo.NewUserRepository(identityDb, outboxDb),
+		StaffRepo:       identityRepo.NewStaffRepository(identityDb, outboxDb),
 	}
 }
 

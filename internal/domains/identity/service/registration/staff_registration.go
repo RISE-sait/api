@@ -25,9 +25,9 @@ func NewStaffRegistrationService(
 ) *StaffsRegistrationService {
 
 	return &StaffsRegistrationService{
-		StaffRepository: identityRepo.NewStaffRepository(container),
+		StaffRepository: identityRepo.NewStaffRepository(container.Queries.IdentityDb),
 		DB:              container.DB,
-		UsersRepository: identityRepo.NewUserRepository(container),
+		UsersRepository: identityRepo.NewUserRepository(container.Queries.IdentityDb),
 		HubSpotService:  container.HubspotService,
 	}
 }

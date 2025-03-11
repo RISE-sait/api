@@ -7,6 +7,10 @@ WHERE u.id = $1;
 -- name: GetStaffRoles :many
 SELECT * FROM users.staff_roles;
 
--- name: CreateStaff :execrows
+-- name: CreateApprovedStaff :execrows
 INSERT INTO users.staff (id, role_id, is_active) VALUES ($1,
 (SELECT id from users.staff_roles where role_name = $2), $3);
+
+-- name: CreatePendingStaff :execrows
+INSERT INTO audit.outbox (sql_statement, status)
+VALUES ($1, $2);

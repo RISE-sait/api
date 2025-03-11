@@ -3,28 +3,47 @@
 //   sqlc v1.27.0
 // source: staff_queries.sql
 
-package db
+package db_identity
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-const createStaff = `-- name: CreateStaff :execrows
+const createApprovedStaff = `-- name: CreateApprovedStaff :execrows
 INSERT INTO users.staff (id, role_id, is_active) VALUES ($1,
 (SELECT id from users.staff_roles where role_name = $2), $3)
 `
 
-type CreateStaffParams struct {
+type CreateApprovedStaffParams struct {
 	ID       uuid.UUID `json:"id"`
 	RoleName string    `json:"role_name"`
 	IsActive bool      `json:"is_active"`
 }
 
-func (q *Queries) CreateStaff(ctx context.Context, arg CreateStaffParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, createStaff, arg.ID, arg.RoleName, arg.IsActive)
+func (q *Queries) CreateApprovedStaff(ctx context.Context, arg CreateApprovedStaffParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, createApprovedStaff, arg.ID, arg.RoleName, arg.IsActive)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const createPendingStaff = `-- name: CreatePendingStaff :execrows
+INSERT INTO audit.outbox (sql_statement, status)
+VALUES ($1, $2)
+`
+
+type CreatePendingStaffParams struct {
+	SqlStatement string      `json:"sql_statement"`
+	Status       AuditStatus `json:"status"`
+}
+
+func (q *Queries) CreatePendingStaff(ctx context.Context, arg CreatePendingStaffParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, createPendingStaff, arg.SqlStatement, arg.Status)
 	if err != nil {
 		return 0, err
 	}
@@ -39,13 +58,13 @@ WHERE u.id = $1
 `
 
 type GetStaffByIdRow struct {
-	ID        uuid.UUID `json:"id"`
-	IsActive  bool      `json:"is_active"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	RoleID    uuid.UUID `json:"role_id"`
-	RoleName  string    `json:"role_name"`
-	HubspotID string    `json:"hubspot_id"`
+	ID        uuid.UUID      `json:"id"`
+	IsActive  bool           `json:"is_active"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	RoleID    uuid.UUID      `json:"role_id"`
+	RoleName  string         `json:"role_name"`
+	HubspotID sql.NullString `json:"hubspot_id"`
 }
 
 func (q *Queries) GetStaffById(ctx context.Context, id uuid.UUID) (GetStaffByIdRow, error) {

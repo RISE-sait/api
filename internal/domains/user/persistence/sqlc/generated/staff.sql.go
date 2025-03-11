@@ -75,13 +75,13 @@ type GetStaffsParams struct {
 }
 
 type GetStaffsRow struct {
-	ID        uuid.UUID `json:"id"`
-	IsActive  bool      `json:"is_active"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	RoleID    uuid.UUID `json:"role_id"`
-	HubspotID string    `json:"hubspot_id"`
-	RoleName  string    `json:"role_name"`
+	ID        uuid.UUID      `json:"id"`
+	IsActive  bool           `json:"is_active"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	RoleID    uuid.UUID      `json:"role_id"`
+	HubspotID sql.NullString `json:"hubspot_id"`
+	RoleName  string         `json:"role_name"`
 }
 
 func (q *Queries) GetStaffs(ctx context.Context, arg GetStaffsParams) ([]GetStaffsRow, error) {

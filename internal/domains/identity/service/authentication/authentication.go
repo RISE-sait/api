@@ -44,9 +44,9 @@ func NewAuthenticationService(container *di.Container) *Service {
 //   - *entity.UserInfo: The authenticated user's information.
 //   - string: The signed JWT token for authentication.
 //   - *errLib.CommonError: An error if authentication fails.
-func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string, identity.UserAuthenticationResponseInfo, *errLib.CommonError) {
+func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string, identity.UserReadInfo, *errLib.CommonError) {
 
-	var userInfo identity.UserAuthenticationResponseInfo
+	var userInfo identity.UserReadInfo
 
 	email, err := s.FirebaseService.GetUserEmail(ctx, idToken)
 
@@ -81,7 +81,7 @@ func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string,
 		HubspotID: hubspotId,
 	}
 
-	userInfo = identity.UserAuthenticationResponseInfo{
+	userInfo = identity.UserReadInfo{
 		FirstName: hubspotResponse.Properties.FirstName,
 		LastName:  hubspotResponse.Properties.LastName,
 		Age:       age,

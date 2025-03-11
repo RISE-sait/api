@@ -1,39 +1,49 @@
 package identity
 
-import (
-	"github.com/google/uuid"
-)
+import "github.com/google/uuid"
 
 type UserRegistrationRequestNecessaryInfo struct {
-	Age         int
+	Age         int32
 	FirstName   string
 	LastName    string
 	CountryCode string
 }
 
-type UserAuthenticationResponseInfo struct {
-	Age                        int
-	HasConsentToSms            bool
-	HasConsentToEmailMarketing bool
-	CountryCode                *string
-	FirstName                  string
-	LastName                   string
-	Email                      *string
-	Role                       string
-	Phone                      *string
+type UserReadInfo struct {
+	Age         int32
+	CountryCode string
+	FirstName   string
+	LastName    string
+	Email       *string
+	Role        string
+	Phone       *string
 }
 
-type AdultCustomerRegistrationRequestInfo struct {
+type StaffReadInfo struct {
+	Age         int32
+	CountryCode string
+	FirstName   string
+	LastName    string
+	Email       string
+	Role        string
+	Phone       string
+}
+
+type AthleteRegistrationRequestInfo struct {
 	UserRegistrationRequestNecessaryInfo
 	Email                      string
 	Phone                      string
 	HasConsentToSms            bool
 	HasConsentToEmailMarketing bool
+	Waivers                    []CustomerWaiverSigning
 }
 
-type AthleteRegistrationRequestInfo struct {
-	AdultCustomerRegistrationRequestInfo
-	Waivers []CustomerWaiverSigning
+type ParentRegistrationRequestInfo struct {
+	UserRegistrationRequestNecessaryInfo
+	Email                      string
+	Phone                      string
+	HasConsentToSms            bool
+	HasConsentToEmailMarketing bool
 }
 
 type ChildRegistrationRequestInfo struct {
@@ -42,26 +52,19 @@ type ChildRegistrationRequestInfo struct {
 	Waivers     []CustomerWaiverSigning
 }
 
-type StaffCreateValues struct {
+type StaffRegistrationRequestInfo struct {
+	UserRegistrationRequestNecessaryInfo
+	Email    string
+	Phone    string
 	IsActive bool
 	RoleName string
 }
 
-type StaffRegistrationRequestInfo struct {
-	UserRegistrationRequestNecessaryInfo
-	HubSpotID string
-	StaffCreateValues
+type ApprovedStaffRegistrationRequestInfo struct {
+	UserID uuid.UUID
+	StaffRegistrationRequestInfo
 }
 
-type PendingUserReadValues struct {
-	ID                         uuid.UUID
-	FirstName                  string
-	LastName                   string
-	Phone                      *string
-	HasConsentToSms            bool
-	HasConsentToEmailMarketing bool
-	Email                      *string
-}
-
-type AthleteInfo struct {
+type PendingStaffRegistrationRequestInfo struct {
+	StaffRegistrationRequestInfo
 }

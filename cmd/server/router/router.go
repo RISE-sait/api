@@ -294,7 +294,7 @@ func RegisterRegistrationRoutes(container *di.Container) func(chi.Router) {
 
 		r.Post("/customer", customerHandler.RegisterCustomer)
 
-		r.Post("/staff", staffHandler.CreateStaff)
+		r.With(allowAdminOnly).Post("/staff", staffHandler.CreateStaff)
 		//r.Post("/child", childRegistrationCtrl.RegisterChild)
 	}
 }

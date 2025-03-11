@@ -2,13 +2,14 @@ package identity
 
 import (
 	databaseErrors "api/internal/constants"
-	"api/internal/di"
-	"api/internal/domains/identity/persistence/sqlc/generated"
-	values "api/internal/domains/user/values/staff"
+	db "api/internal/domains/identity/persistence/sqlc/generated"
+	values "api/internal/domains/identity/values"
+	"api/internal/domains/user/values/staff"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"log"
@@ -19,26 +20,77 @@ type StaffRepository struct {
 	Queries *db.Queries
 }
 
-func NewStaffRepository(container *di.Container) *StaffRepository {
+func NewStaffRepository(db *db.Queries) *StaffRepository {
 	return &StaffRepository{
-		Queries: container.Queries.IdentityDb,
+		Queries: db,
 	}
 }
 
-func (r *StaffRepository) GetStaffByUserId(ctx context.Context, id uuid.UUID) (values.ReadValues, *errLib.CommonError) {
+func (r *StaffRepository) CreateApprovedStaff(ctx context.Context, input values.ApprovedStaffRegistrationRequestInfo) error {
+
+	args := db.CreateApprovedStaffParams{
+		ID:       input.UserID,
+		RoleName: input.RoleName,
+		IsActive: input.IsActive,
+	}
+
+	rows, err := r.Queries.CreateApprovedStaff(ctx, args)
+
+	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
+			return errLib.New("Staff with the ID already exists", http.StatusConflict)
+		}
+		return errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	if rows == 0 {
+		return errLib.New("Error: Staff not created", http.StatusInternalServerError)
+	}
+
+	return nil
+}
+
+func (r *StaffRepository) CreatePendingStaff(ctx context.Context, input values.PendingStaffRegistrationRequestInfo) error {
+
+	sqlStatement := fmt.Sprintf(
+		"INSERT staff (first_name, last_name, age, email, phone, role_name, is_active, country) VALUES ('%s', '%s', '%v', '%s', '%s', '%s', '%v', '%v')",
+		input.FirstName, input.LastName, input.Age, input.StaffRegistrationRequestInfo.Email, input.StaffRegistrationRequestInfo.Phone,
+		input.RoleName, input.IsActive, input.CountryCode,
+	)
+
+	args := db.CreatePendingStaffParams{
+		Status:       db.AuditStatusPENDING,
+		SqlStatement: sqlStatement,
+	}
+
+	rows, err := r.Queries.CreatePendingStaff(ctx, args)
+
+	if err != nil {
+		return errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	if rows == 0 {
+		return errLib.New("Error: Staff not registered", http.StatusInternalServerError)
+	}
+
+	return nil
+}
+
+func (r *StaffRepository) GetStaffByUserId(ctx context.Context, id uuid.UUID) (staff.ReadValues, error) {
 	dbStaff, err := r.Queries.GetStaffById(ctx, id)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return values.ReadValues{}, errLib.New("Staff not found", http.StatusNotFound)
+			return staff.ReadValues{}, errLib.New("Staff not found", http.StatusNotFound)
 		}
 		log.Printf("Error fetching staff by id: %v", err)
-		return values.ReadValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
+		return staff.ReadValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return values.ReadValues{
+	return staff.ReadValues{
 		ID:        dbStaff.ID,
-		HubspotID: dbStaff.HubspotID,
+		HubspotID: dbStaff.HubspotID.String,
 		IsActive:  dbStaff.IsActive,
 		CreatedAt: dbStaff.CreatedAt,
 		UpdatedAt: dbStaff.UpdatedAt,
@@ -47,7 +99,7 @@ func (r *StaffRepository) GetStaffByUserId(ctx context.Context, id uuid.UUID) (v
 	}, nil
 }
 
-func (r *StaffRepository) GetStaffRolesTx(ctx context.Context, tx *sql.Tx) ([]string, *errLib.CommonError) {
+func (r *StaffRepository) GetStaffRolesTx(ctx context.Context, tx *sql.Tx) ([]string, error) {
 	txQueries := r.Queries.WithTx(tx)
 
 	dbRoles, err := txQueries.GetStaffRoles(ctx)
@@ -64,36 +116,4 @@ func (r *StaffRepository) GetStaffRolesTx(ctx context.Context, tx *sql.Tx) ([]st
 	}
 
 	return roles, nil
-}
-
-func (r *StaffRepository) AssignStaffRoleAndStatusTx(ctx context.Context, tx *sql.Tx, id uuid.UUID, role string, isActive bool) *errLib.CommonError {
-
-	params := db.CreateStaffParams{
-		ID:       id,
-		RoleName: role,
-		IsActive: isActive,
-	}
-
-	txQueries := r.Queries.WithTx(tx)
-
-	rows, err := txQueries.CreateStaff(ctx, params)
-
-	if err != nil {
-		var pqErr *pq.Error
-		if errors.As(err, &pqErr) {
-			// Handle PostgreSQL unique violation errors (e.g., duplicate staff emails)
-			if pqErr.Code == databaseErrors.UniqueViolation { // Unique violation
-				return errLib.New("Staff with this email already exists", http.StatusConflict)
-			}
-		}
-		log.Printf("Error creating staff: %v", err)
-		return errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-
-	if rows == 0 {
-		log.Println("Error creating staff ", err)
-		return errLib.New("Failed to create staff", 500)
-	}
-
-	return nil
 }

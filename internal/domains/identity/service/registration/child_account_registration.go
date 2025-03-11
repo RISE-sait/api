@@ -20,8 +20,12 @@ type ChildRegistrationService struct {
 func NewChildAccountRegistrationService(
 	container *di.Container,
 ) *ChildRegistrationService {
+
+	identityDb := container.Queries.IdentityDb
+	outboxDb := container.Queries.OutboxDb
+
 	return &ChildRegistrationService{
-		UsersRepository:         repo.NewUserRepository(container.Queries.IdentityDb),
+		UsersRepository:         repo.NewUserRepository(identityDb, outboxDb),
 		WaiverSigningRepository: repo.NewWaiverSigningRepository(container.Queries.IdentityDb),
 		DB:                      container.DB,
 	}

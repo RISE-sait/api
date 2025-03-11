@@ -2,10 +2,11 @@ package identity
 
 import (
 	databaseErrors "api/internal/constants"
-	db "api/internal/domains/identity/persistence/sqlc/generated"
+	dbIdentity "api/internal/domains/identity/persistence/sqlc/generated"
 	identityValues "api/internal/domains/identity/values"
 	userValues "api/internal/domains/user/values"
 	errLib "api/internal/libs/errors"
+	dbOutbox "api/internal/services/outbox/generated"
 	"context"
 	"database/sql"
 	"errors"
@@ -17,24 +18,26 @@ import (
 )
 
 type StaffRepository struct {
-	Queries *db.Queries
+	IdentityQueries *dbIdentity.Queries
+	OutboxQueries   *dbOutbox.Queries
 }
 
-func NewStaffRepository(db *db.Queries) *StaffRepository {
+func NewStaffRepository(identityDb *dbIdentity.Queries, outboxDb *dbOutbox.Queries) *StaffRepository {
 	return &StaffRepository{
-		Queries: db,
+		IdentityQueries: identityDb,
+		OutboxQueries:   outboxDb,
 	}
 }
 
 func (r *StaffRepository) CreateApprovedStaff(ctx context.Context, input identityValues.ApprovedStaffRegistrationRequestInfo) *errLib.CommonError {
 
-	args := db.CreateApprovedStaffParams{
+	args := dbIdentity.CreateApprovedStaffParams{
 		ID:       input.UserID,
 		RoleName: input.RoleName,
 		IsActive: input.IsActive,
 	}
 
-	rows, err := r.Queries.CreateApprovedStaff(ctx, args)
+	rows, err := r.IdentityQueries.CreateApprovedStaff(ctx, args)
 
 	if err != nil {
 		var pqErr *pq.Error
@@ -53,10 +56,10 @@ func (r *StaffRepository) CreateApprovedStaff(ctx context.Context, input identit
 
 func (r *StaffRepository) CreatePendingStaff(ctx context.Context, tx *sql.Tx, input identityValues.PendingStaffRegistrationRequestInfo) *errLib.CommonError {
 
-	q := r.Queries
+	q := r.OutboxQueries
 
 	if tx != nil {
-		q = r.Queries.WithTx(tx)
+		q = r.OutboxQueries.WithTx(tx)
 	}
 
 	sqlStatement := fmt.Sprintf(
@@ -65,8 +68,8 @@ func (r *StaffRepository) CreatePendingStaff(ctx context.Context, tx *sql.Tx, in
 		input.RoleName, input.IsActive, input.CountryCode,
 	)
 
-	args := db.InsertIntoOutboxParams{
-		Status:       db.AuditStatusPENDING,
+	args := dbOutbox.InsertIntoOutboxParams{
+		Status:       dbOutbox.AuditStatusPENDING,
 		SqlStatement: sqlStatement,
 	}
 
@@ -85,7 +88,7 @@ func (r *StaffRepository) CreatePendingStaff(ctx context.Context, tx *sql.Tx, in
 }
 
 func (r *StaffRepository) GetStaffByUserId(ctx context.Context, id uuid.UUID) (userValues.ReadValues, *errLib.CommonError) {
-	dbStaff, err := r.Queries.GetStaffById(ctx, id)
+	dbStaff, err := r.IdentityQueries.GetStaffById(ctx, id)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -106,7 +109,7 @@ func (r *StaffRepository) GetStaffByUserId(ctx context.Context, id uuid.UUID) (u
 }
 
 func (r *StaffRepository) GetStaffRolesTx(ctx context.Context, tx *sql.Tx) ([]string, *errLib.CommonError) {
-	txQueries := r.Queries.WithTx(tx)
+	txQueries := r.IdentityQueries.WithTx(tx)
 
 	dbRoles, err := txQueries.GetStaffRoles(ctx)
 

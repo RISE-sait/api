@@ -28,3 +28,5 @@ qodana.yaml
 /config/gcp-service-account.json
 
 server.log
+
+cmd/seed/clients.csv

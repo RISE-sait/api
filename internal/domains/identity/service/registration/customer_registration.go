@@ -19,8 +19,12 @@ type CustomerRegistrationService struct {
 
 // NewCustomerRegistrationService initializes a new CustomerRegistrationService instance.
 func NewCustomerRegistrationService(container *di.Container) *CustomerRegistrationService {
+
+	identityDb := container.Queries.IdentityDb
+	outboxDb := container.Queries.OutboxDb
+
 	return &CustomerRegistrationService{
-		UserRepo:          repo.NewUserRepository(container.Queries.IdentityDb),
+		UserRepo:          repo.NewUserRepository(identityDb, outboxDb),
 		WaiverSigningRepo: repo.NewWaiverSigningRepository(container.Queries.IdentityDb),
 		DB:                container.DB,
 	}

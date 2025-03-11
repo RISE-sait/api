@@ -27,9 +27,10 @@ func (dto ParentRegistrationRequestDto) ToParent(email string) (values.ParentReg
 
 	return values.ParentRegistrationRequestInfo{
 		UserRegistrationRequestNecessaryInfo: values.UserRegistrationRequestNecessaryInfo{
-			Age:       dto.Age,
-			FirstName: dto.FirstName,
-			LastName:  dto.LastName,
+			Age:         dto.Age,
+			FirstName:   dto.FirstName,
+			LastName:    dto.LastName,
+			CountryCode: dto.CountryCode,
 		},
 		Email:                      email,
 		Phone:                      dto.PhoneNumber,

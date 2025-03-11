@@ -126,6 +126,7 @@ func (r *UsersRepository) CreateAthleteTx(ctx context.Context, tx *sql.Tx, input
 
 func (r *UsersRepository) CreateParentTx(ctx context.Context, tx *sql.Tx, input values.ParentRegistrationRequestInfo) (values.UserReadInfo, *errLib.CommonError) {
 	return r.createCustomerTx(ctx, tx, dbIdentity.CreateUserParams{
+		Email:                    sql.NullString{String: input.Email, Valid: true},
 		HubspotID:                sql.NullString{},
 		CountryAlpha2Code:        input.CountryCode,
 		Age:                      input.Age,

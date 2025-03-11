@@ -30,3 +30,4 @@ qodana.yaml
 server.log
 
 cmd/seed/clients.csv
+cmd/seed/classes.csv

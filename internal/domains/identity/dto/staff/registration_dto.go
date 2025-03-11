@@ -16,23 +16,25 @@ type RegistrationRequestDto struct {
 	IsActiveStaff bool   `json:"is_active_staff"`
 }
 
-func (dto RegistrationRequestDto) ToCreateStaffValues() (values.StaffRegistrationRequestInfo, *errLib.CommonError) {
+func (dto RegistrationRequestDto) ToCreateStaffValues(email string) (values.PendingStaffRegistrationRequestInfo, *errLib.CommonError) {
 	if err := validators.ValidateDto(&dto); err != nil {
-		return values.StaffRegistrationRequestInfo{}, err
+		return values.PendingStaffRegistrationRequestInfo{}, err
 	}
 
 	if dto.CountryCode != "" && !countries.IsValidAlpha2Code(dto.CountryCode) {
-		return values.StaffRegistrationRequestInfo{}, errLib.New("Invalid country code", http.StatusBadRequest)
+		return values.PendingStaffRegistrationRequestInfo{}, errLib.New("Invalid country code", http.StatusBadRequest)
 	}
 
-	return values.StaffRegistrationRequestInfo{
-		UserRegistrationRequestNecessaryInfo: values.UserRegistrationRequestNecessaryInfo{
-			Age:         dto.Age,
-			FirstName:   dto.FirstName,
-			LastName:    dto.LastName,
-			CountryCode: dto.CountryCode,
-		},
-		StaffCreateValues: values.StaffCreateValues{
+	return values.PendingStaffRegistrationRequestInfo{
+		StaffRegistrationRequestInfo: values.StaffRegistrationRequestInfo{
+			UserRegistrationRequestNecessaryInfo: values.UserRegistrationRequestNecessaryInfo{
+				Age:         dto.Age,
+				FirstName:   dto.FirstName,
+				LastName:    dto.LastName,
+				CountryCode: dto.CountryCode,
+			},
+			Email:    email,
+			Phone:    dto.PhoneNumber,
 			IsActive: dto.IsActiveStaff,
 			RoleName: dto.Role,
 		},

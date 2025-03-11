@@ -81,7 +81,7 @@ func GetHaircutImages(w http.ResponseWriter, r *http.Request) {
 		folderPath = fmt.Sprintf("haircut/%s", barberName)
 	}
 
-	images, err := gcp.GetFilesInBucket("rise-sports", folderPath)
+	images, err := gcp.GetFilesInBucket(folderPath)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error fetching images: %v", err), http.StatusInternalServerError)
 		return
@@ -91,7 +91,7 @@ func GetHaircutImages(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	// Respond with the images as a JSON array (You could format it however you want)
-	if err := json.NewEncoder(w).Encode(images); err != nil {
-		http.Error(w, fmt.Sprintf("Error encoding response: %v", err), http.StatusInternalServerError)
+	if encodingErr := json.NewEncoder(w).Encode(images); encodingErr != nil {
+		http.Error(w, fmt.Sprintf("Error encoding response: %v", encodingErr), http.StatusInternalServerError)
 	}
 }

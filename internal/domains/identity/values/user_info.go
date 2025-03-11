@@ -10,6 +10,7 @@ type UserRegistrationRequestNecessaryInfo struct {
 }
 
 type UserReadInfo struct {
+	ID          uuid.UUID
 	Age         int32
 	CountryCode string
 	FirstName   string

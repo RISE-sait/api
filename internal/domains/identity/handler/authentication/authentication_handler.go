@@ -6,6 +6,7 @@ import (
 	service "api/internal/domains/identity/service/authentication"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
+	"api/internal/libs/validators"
 	"api/internal/middlewares"
 	"github.com/go-chi/chi"
 	"net/http"
@@ -72,18 +73,25 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param hubspot_id path string true "Child HubSpotId"
+// @Param id path string true "Child ID"
 // @Success 200 {object} dto.UserAuthenticationResponseDto "User authenticated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid Firebase token"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /auth/child/{hubspot_id} [post]
+// @Router /auth/child/{id} [post]
 func (h *Handlers) LoginAsChild(w http.ResponseWriter, r *http.Request) {
 
-	childHubspotId := chi.URLParam(r, "hubspot_id")
+	childIdStr := chi.URLParam(r, "id")
+
+	childId, err := validators.ParseUUID(childIdStr)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
 
 	parentHubspotId := r.Context().Value(middlewares.HubspotIDKey).(string)
 
-	jwtToken, userInfo, err := h.AuthService.AuthenticateChild(r.Context(), childHubspotId, parentHubspotId)
+	jwtToken, userInfo, err := h.AuthService.AuthenticateChild(r.Context(), childId, parentHubspotId)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -91,9 +99,13 @@ func (h *Handlers) LoginAsChild(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responseBody := dto.UserAuthenticationResponseDto{
-		FirstName: userInfo.FirstName,
-		LastName:  userInfo.LastName,
-		Age:       0,
+		FirstName:   userInfo.FirstName,
+		LastName:    userInfo.LastName,
+		Email:       userInfo.Email,
+		Role:        userInfo.Role,
+		Phone:       userInfo.Phone,
+		Age:         userInfo.Age,
+		CountryCode: userInfo.CountryCode,
 	}
 
 	w.Header().Set("Authorization", "Bearer "+jwtToken)

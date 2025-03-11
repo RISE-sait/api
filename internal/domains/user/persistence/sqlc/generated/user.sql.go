@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/lib/pq"
 )
 
 const createAthleteInfo = `-- name: CreateAthleteInfo :execrows
@@ -90,14 +89,15 @@ func (q *Queries) GetAthleteInfoByUserID(ctx context.Context, id uuid.UUID) (Use
 	return i, err
 }
 
-const getCustomers = `-- name: GetCustomers :many
-SELECT id, hubspot_id, country_alpha2_code, first_name, last_name, age, parent_id, phone, has_marketing_email_consent, has_sms_consent, created_at, updated_at FROM users.users
-WHERE
-    hubspot_id = ANY($1::text[]) OR $1 IS NULL
+const getChildren = `-- name: GetChildren :many
+SELECT children.id, children.hubspot_id, children.country_alpha2_code, children.first_name, children.last_name, children.age, children.parent_id, children.phone, children.email, children.has_marketing_email_consent, children.has_sms_consent, children.created_at, children.updated_at
+FROM users.users parents JOIN users.users children
+ON parents.id = children.parent_id
+WHERE parents.id = $1
 `
 
-func (q *Queries) GetCustomers(ctx context.Context, hubspotIds []string) ([]UsersUser, error) {
-	rows, err := q.db.QueryContext(ctx, getCustomers, pq.Array(hubspotIds))
+func (q *Queries) GetChildren(ctx context.Context, id uuid.UUID) ([]UsersUser, error) {
+	rows, err := q.db.QueryContext(ctx, getChildren, id)
 	if err != nil {
 		return nil, err
 	}
@@ -114,6 +114,49 @@ func (q *Queries) GetCustomers(ctx context.Context, hubspotIds []string) ([]User
 			&i.Age,
 			&i.ParentID,
 			&i.Phone,
+			&i.Email,
+			&i.HasMarketingEmailConsent,
+			&i.HasSmsConsent,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCustomers = `-- name: GetCustomers :many
+SELECT id, hubspot_id, country_alpha2_code, first_name, last_name, age, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at
+FROM users.users
+`
+
+func (q *Queries) GetCustomers(ctx context.Context) ([]UsersUser, error) {
+	rows, err := q.db.QueryContext(ctx, getCustomers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UsersUser
+	for rows.Next() {
+		var i UsersUser
+		if err := rows.Scan(
+			&i.ID,
+			&i.HubspotID,
+			&i.CountryAlpha2Code,
+			&i.FirstName,
+			&i.LastName,
+			&i.Age,
+			&i.ParentID,
+			&i.Phone,
+			&i.Email,
 			&i.HasMarketingEmailConsent,
 			&i.HasSmsConsent,
 			&i.CreatedAt,
@@ -198,13 +241,12 @@ func (q *Queries) GetUserIDByHubSpotId(ctx context.Context, hubspotID sql.NullSt
 
 const updateAthleteStats = `-- name: UpdateAthleteStats :execrows
 UPDATE users.athletes
-SET
-    wins = COALESCE($1, wins),
-    losses = COALESCE($2, losses),
-    points = COALESCE($3, points),
-    steals = COALESCE($4, steals),
-    assists = COALESCE($5, assists),
-    rebounds = COALESCE($6, rebounds),
+SET wins       = COALESCE($1, wins),
+    losses     = COALESCE($2, losses),
+    points     = COALESCE($3, points),
+    steals     = COALESCE($4, steals),
+    assists    = COALESCE($5, assists),
+    rebounds   = COALESCE($6, rebounds),
     updated_at = NOW()
 WHERE id = $7
 `

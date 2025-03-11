@@ -32,16 +32,10 @@ func NewStaffRegistrationService(
 	}
 }
 
-func (s *StaffsRegistrationService) RegisterStaff(
+func (s *StaffsRegistrationService) RegisterPendingStaff(
 	ctx context.Context,
-	staffDetails identity.StaffRegistrationRequestInfo,
+	staffDetails identity.PendingStaffRegistrationRequestInfo,
 ) *errLib.CommonError {
-
-	_, err := s.HubSpotService.GetUserById(staffDetails.HubSpotID)
-
-	if err != nil {
-		return err
-	}
 
 	tx, txErr := s.DB.BeginTx(ctx, &sql.TxOptions{})
 	if txErr != nil {
@@ -56,16 +50,7 @@ func (s *StaffsRegistrationService) RegisterStaff(
 		}
 	}()
 
-	userId, err := s.UsersRepository.CreateUserTx(ctx, tx, staffDetails.HubSpotID)
-
-	if err != nil {
-		tx.Rollback()
-		log.Println("Failed to create account. Error: ", err)
-		return err
-	}
-
 	role := staffDetails.RoleName
-	isActive := staffDetails.IsActive
 
 	roleExists := false
 
@@ -90,13 +75,14 @@ func (s *StaffsRegistrationService) RegisterStaff(
 		return errLib.New("RoleName does not exist. Available roles: "+strings.Join(staffRoles, ", "), http.StatusBadRequest)
 	}
 
-	if err = s.StaffRepository.AssignStaffRoleAndStatusTx(ctx, tx, *userId, role, isActive); err != nil {
+	if err = s.StaffRepository.CreatePendingStaff(ctx, tx, staffDetails); err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	// Commit the transaction
-	if err := tx.Commit(); err != nil {
+	if txErr = tx.Commit(); txErr != nil {
+		tx.Rollback()
 		return errLib.New("Failed to commit transaction", http.StatusInternalServerError)
 	}
 

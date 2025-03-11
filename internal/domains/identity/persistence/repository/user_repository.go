@@ -2,12 +2,14 @@ package identity
 
 import (
 	databaseErrors "api/internal/constants"
-	db "api/internal/domains/identity/persistence/sqlc/generated"
+	dbIdentity "api/internal/domains/identity/persistence/sqlc/generated"
 	values "api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
+	dbOutbox "api/internal/services/outbox/generated"
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"log"
 	"net/http"
@@ -17,153 +19,251 @@ import (
 
 // UsersRepository provides methods to interact with the user data in the database.
 type UsersRepository struct {
-	Queries *db.Queries
+	IdentityQueries *dbIdentity.Queries
+	OutboxQueries   *dbOutbox.Queries
 }
 
 // NewUserRepository creates a new instance of UserRepository with the provided dependency injection container.
-func NewUserRepository(db *db.Queries) *UsersRepository {
+func NewUserRepository(identityDb *dbIdentity.Queries, outboxDb *dbOutbox.Queries) *UsersRepository {
 	return &UsersRepository{
-		Queries: db,
+		IdentityQueries: identityDb,
+		OutboxQueries:   outboxDb,
 	}
 }
 
-func (r *UsersRepository) CreateAthleteTx(ctx context.Context, tx *sql.Tx, input values.AthleteRegistrationRequestInfo) (values.UserReadInfo, error) {
-
-	var response values.UserReadInfo
-
-	queries := r.Queries
-
+func (r *UsersRepository) createCustomerTx(ctx context.Context, tx *sql.Tx, input dbIdentity.CreateUserParams, role string) (values.UserReadInfo, *errLib.CommonError) {
+	queries := r.IdentityQueries
 	if tx != nil {
 		queries = queries.WithTx(tx)
 	}
 
-	args := db.CreateUserParams{
-		HubspotID: sql.NullString{
-			String: "",
-			Valid:  false,
-		},
-		CountryAlpha2Code:        input.CountryCode,
-		Age:                      input.Age,
-		HasMarketingEmailConsent: input.HasConsentToEmailMarketing,
-		HasSmsConsent:            input.HasConsentToSms,
-		ParentID: uuid.NullUUID{
-			UUID:  uuid.Nil,
-			Valid: false,
-		},
-		FirstName: input.FirstName,
-		LastName:  input.LastName,
+	sqlStatement := fmt.Sprintf(
+		"CREATE user (first_name, last_name, age, email, phone, role_name, is_active, country) VALUES ('%s', '%s', '%v', '%v', '%v', '%s', '%v', '%v')",
+		input.FirstName, input.LastName, input.Age, input.Email, input.Phone,
+		role, false, input.CountryAlpha2Code,
+	)
+
+	args := dbOutbox.InsertIntoOutboxParams{
+		Status:       dbOutbox.AuditStatusPENDING,
+		SqlStatement: sqlStatement,
 	}
 
-	user, err := queries.CreateUser(ctx, args)
+	rows, err := r.OutboxQueries.InsertIntoOutbox(ctx, args)
 
+	if err != nil {
+		log.Println(err.Error())
+		return values.UserReadInfo{}, errLib.New("Failed to insert to outbox", http.StatusInternalServerError)
+	}
+
+	if rows == 0 {
+		return values.UserReadInfo{}, errLib.New("Failed to insert to outbox", http.StatusInternalServerError)
+	}
+
+	user, err := queries.CreateUser(ctx, input)
 	if err != nil {
 		var pqErr *pq.Error
-
-		if errors.As(err, &pqErr) {
-			// Handle unique constraint violation (e.g., duplicate email)
-			if pqErr.Code == databaseErrors.UniqueViolation { // Unique violation error code
-				log.Printf("Unique constraint violation: %v", pqErr.Message)
-				return response, errLib.New("Email or hubspot id already exists", http.StatusConflict)
-			}
+		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
+			log.Printf("Unique constraint violation: %v", pqErr.Message)
+			return values.UserReadInfo{}, errLib.New("Email already exists", http.StatusConflict)
 		}
-		log.Printf("Unhandled error: %v", err)
-		return response, errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-
-	return values.UserReadInfo{
-		Age:         user.Age,
-		CountryCode: user.CountryAlpha2Code,
-		FirstName:   user.FirstName,
-		LastName:    user.LastName,
-		Email:       user.E
-		Role:        "",
-		Phone:       nil,
-	}, nil
-}
-
-func (r *UsersRepository) GetUserInfoByID(ctx context.Context, id uuid.UUID) (values.UserReadInfo, error) {
-
-	user, err := r.Queries.GetUserByUserID(ctx, id)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return values.UserReadInfo{}, errLib.New("User not found", http.StatusNotFound)
-		}
-
 		log.Printf("Unhandled error: %v", err)
 		return values.UserReadInfo{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
 	return values.UserReadInfo{
-		Age:                        user.Age,
-		HasConsentToSms:            user.Hassmsconsent,
-		HasConsentToEmailMarketing: user.Hasmarketingemailconsent,
-		CountryCode:                user.Countryalpha2code,
-		FirstName:,
-		LastName:                   "",
-		Email:                      nil,
-		Role:                       "",
-		Phone:                      nil,
+		ID:          user.ID,
+		Age:         user.Age,
+		CountryCode: user.CountryAlpha2Code,
+		FirstName:   user.FirstName,
+		LastName:    user.LastName,
+		Email:       &user.Email.String,
+		Role:        role,
+		Phone:       &user.Phone.String,
 	}, nil
 }
 
-func (r *UsersRepository) GetUserByHubspotID(ctx context.Context, id string) (uuid.UUID, *errLib.CommonError) {
+func (r *UsersRepository) CreateAthleteTx(ctx context.Context, tx *sql.Tx, input values.AthleteRegistrationRequestInfo) (values.UserReadInfo, *errLib.CommonError) {
+	customer, qErr := r.createCustomerTx(ctx, tx, dbIdentity.CreateUserParams{
+		Email:                    sql.NullString{String: input.Email, Valid: true},
+		HubspotID:                sql.NullString{},
+		Phone:                    sql.NullString{String: input.Phone, Valid: true},
+		CountryAlpha2Code:        input.CountryCode,
+		Age:                      input.Age,
+		HasMarketingEmailConsent: input.HasConsentToEmailMarketing,
+		HasSmsConsent:            input.HasConsentToSms,
+		ParentEmail:              sql.NullString{Valid: false},
+		FirstName:                input.FirstName,
+		LastName:                 input.LastName,
+	}, "Athlete")
 
-	user, err := r.Queries.GetUserByHubSpotID(ctx, sql.NullString{String: id, Valid: true})
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return uuid.Nil, errLib.New("User not found", http.StatusNotFound)
-		}
-
-		log.Printf("Unhandled error: %v", err)
-		return uuid.Nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	if qErr != nil {
+		log.Println(qErr.Error())
+		return values.UserReadInfo{}, errLib.New("Failed to insert to athlete", http.StatusInternalServerError)
 	}
 
-	return user.ID, nil
-}
-
-func (r *UsersRepository) CreateAthlete(ctx context.Context, tx *sql.Tx, id uuid.UUID) *errLib.CommonError {
-
-	_, err := r.Queries.WithTx(tx).CreateAthleteInfo(ctx, id)
+	affectedRows, err := r.IdentityQueries.WithTx(tx).CreateAthlete(ctx, customer.ID)
 
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return errLib.New("User not found", http.StatusNotFound)
-		}
-
-		log.Printf("Unhandled error: %v", err)
-		return errLib.New("Internal server error", http.StatusInternalServerError)
+		log.Println(err.Error())
 	}
 
-	return nil
+	if err != nil || affectedRows == 0 {
+		return values.UserReadInfo{}, errLib.New("Failed to insert to athlete", http.StatusInternalServerError)
+	}
+
+	return values.UserReadInfo{
+		ID:          customer.ID,
+		Age:         customer.Age,
+		CountryCode: customer.CountryCode,
+		FirstName:   customer.FirstName,
+		LastName:    customer.LastName,
+		Email:       customer.Email,
+		Role:        "Athlete",
+		Phone:       customer.Phone,
+	}, nil
+
 }
 
-func (r *UsersRepository) GetIsAthleteByID(ctx context.Context, id uuid.UUID) (bool, error) {
+func (r *UsersRepository) CreateParentTx(ctx context.Context, tx *sql.Tx, input values.ParentRegistrationRequestInfo) (values.UserReadInfo, *errLib.CommonError) {
+	return r.createCustomerTx(ctx, tx, dbIdentity.CreateUserParams{
+		HubspotID:                sql.NullString{},
+		CountryAlpha2Code:        input.CountryCode,
+		Age:                      input.Age,
+		HasMarketingEmailConsent: input.HasConsentToEmailMarketing,
+		HasSmsConsent:            input.HasConsentToSms,
+		ParentEmail:              sql.NullString{},
+		FirstName:                input.FirstName,
+		LastName:                 input.LastName,
+	}, "Parent")
+}
 
-	_, err := r.Queries.GetAthleteInfoByUserID(ctx, id)
+func (r *UsersRepository) CreateChildTx(ctx context.Context, tx *sql.Tx, input values.ChildRegistrationRequestInfo) (values.UserReadInfo, *errLib.CommonError) {
+	createdCustomer, err := r.createCustomerTx(ctx, tx, dbIdentity.CreateUserParams{
+		HubspotID:                sql.NullString{},
+		CountryAlpha2Code:        input.CountryCode,
+		Age:                      input.Age,
+		HasMarketingEmailConsent: false,
+		HasSmsConsent:            false,
+		ParentEmail:              sql.NullString{String: input.ParentEmail, Valid: true},
+		FirstName:                input.FirstName,
+		LastName:                 input.LastName,
+	}, "Child")
 
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.ForeignKeyViolation {
+			log.Printf("Foreign key violation: %v", pqErr.Message)
+			return values.UserReadInfo{}, errLib.New("Parent not found for the provided user id", http.StatusBadRequest)
 		}
+	}
 
-		log.Printf("Unhandled error: %v", err)
+	return createdCustomer, err
+}
+
+func (r *UsersRepository) GetIsActualParentChild(ctx context.Context, childID uuid.UUID, parentEmail string) (bool, *errLib.CommonError) {
+	isConnected, err := r.IdentityQueries.GetIsActualParentChild(ctx, dbIdentity.GetIsActualParentChildParams{
+		ParentEmail: sql.NullString{
+			String: parentEmail,
+			Valid:  true,
+		},
+		ChildID: childID,
+	})
+
+	if err != nil {
+		log.Printf("Error verifying parent-child relationship: %v", err.Error())
 		return false, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return true, nil
+	return isConnected, nil
 }
 
-func (r *UsersRepository) UpdateUserHubspotIdTx(ctx context.Context, tx *sql.Tx, userId uuid.UUID, hubspotId string) error {
+func (r *UsersRepository) GetUserInfo(ctx context.Context, email string, id uuid.UUID) (values.UserReadInfo, *errLib.CommonError) {
 
-	queries := r.Queries
+	if email == "" && id == uuid.Nil {
+		return values.UserReadInfo{}, errLib.New("Either use email or id to get user info. One must be present", http.StatusBadRequest)
+	}
+
+	if email != "" && id != uuid.Nil {
+		return values.UserReadInfo{}, errLib.New("Either use email or id to get user info. Not both", http.StatusBadRequest)
+	}
+
+	var user dbIdentity.UsersUser
+	var err error
+
+	if email != "" {
+		user, err = r.IdentityQueries.GetUserByEmail(ctx, sql.NullString{String: email, Valid: true})
+	} else {
+		user, err = r.IdentityQueries.GetUserByID(ctx, id)
+	}
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return values.UserReadInfo{}, errLib.New("User not found", http.StatusNotFound)
+		}
+		log.Println(err.Error())
+		return values.UserReadInfo{}, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	response := values.UserReadInfo{
+		ID:          user.ID,
+		Age:         user.Age,
+		CountryCode: user.CountryAlpha2Code,
+		FirstName:   user.FirstName,
+		LastName:    user.LastName,
+		Email:       &email,
+		Phone:       &user.Phone.String,
+	}
+
+	if user.ParentID.Valid {
+		response.Role = "Child"
+		return response, nil
+	}
+
+	if staffInfo, err := r.IdentityQueries.GetStaffById(ctx, user.ID); err != nil {
+
+		if !errors.Is(err, sql.ErrNoRows) {
+
+			// Got error, but it's not because the staff doesn't exist
+			log.Println(err.Error())
+			return values.UserReadInfo{}, errLib.New("Internal server error", http.StatusInternalServerError)
+		}
+	} else {
+
+		// staff exists
+
+		response.Role = staffInfo.RoleName
+		return response, nil
+	}
+
+	if isParent, err := r.IdentityQueries.GetIsUserAParent(ctx, user.ID); err != nil {
+		log.Println(err.Error())
+		return values.UserReadInfo{}, errLib.New("Internal server error", http.StatusInternalServerError)
+	} else if isParent {
+		response.Role = "Parent"
+		return response, nil
+	}
+
+	if isAthlete, err := r.IdentityQueries.GetIsAthleteByID(ctx, user.ID); err != nil {
+		log.Println(err.Error())
+		return values.UserReadInfo{}, errLib.New("Internal server error", http.StatusInternalServerError)
+	} else if isAthlete {
+		response.Role = "Athlete"
+		return response, nil
+	}
+
+	log.Printf("error in getting user role with email %v", email)
+	return values.UserReadInfo{}, errLib.New("Internal server error in getting user role with email", http.StatusInternalServerError)
+}
+
+func (r *UsersRepository) UpdateUserHubspotIdTx(ctx context.Context, tx *sql.Tx, userId uuid.UUID, hubspotId string) *errLib.CommonError {
+
+	queries := r.IdentityQueries
 
 	if tx != nil {
 		queries = queries.WithTx(tx)
 	}
 
-	updatedRows, err := queries.UpdateUserHubspotId(ctx, db.UpdateUserHubspotIdParams{
+	updatedRows, err := queries.UpdateUserHubspotId(ctx, dbIdentity.UpdateUserHubspotIdParams{
 		HubspotID: sql.NullString{String: hubspotId, Valid: true},
 		ID:        userId,
 	})

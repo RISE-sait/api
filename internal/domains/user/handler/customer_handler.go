@@ -5,24 +5,20 @@ import (
 	enrollmentRepo "api/internal/domains/enrollment/persistence"
 	enrollmentService "api/internal/domains/enrollment/service"
 	dto "api/internal/domains/user/dto/customer"
-	customerRepo "api/internal/domains/user/persistence/repository/customer"
+	customerRepo "api/internal/domains/user/persistence/repository"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
-	"api/internal/services/hubspot"
 	"github.com/go-chi/chi"
 	"net/http"
-	"strings"
 )
 
 type CustomersHandler struct {
-	HubspotService    *hubspot.Service
-	CustomerRepo      *customerRepo.Repository
+	CustomerRepo      *customerRepo.CustomerRepository
 	EnrollmentService *enrollmentService.Service
 }
 
 func NewCustomersHandler(container *di.Container) *CustomersHandler {
 	return &CustomersHandler{
-		HubspotService: container.HubspotService,
 		EnrollmentService: enrollmentService.NewEnrollmentService(
 			enrollmentRepo.NewEnrollmentRepository(container.Queries.EnrollmentDb),
 		),
@@ -61,16 +57,16 @@ func (h *CustomersHandler) GetAthleteInfo(w http.ResponseWriter, r *http.Request
 	}
 
 	response := dto.AthleteResponseDto{
-		ID:            info.ID,
-		ProfilePicUrl: info.ProfilePicUrl,
-		Wins:          info.Wins,
-		Losses:        info.Losses,
-		Points:        info.Points,
-		Steals:        info.Steals,
-		Assists:       info.Assists,
-		Rebounds:      info.Rebounds,
-		CreatedAt:     info.CreatedAt,
-		UpdatedAt:     info.UpdatedAt,
+		ID:         info.ID,
+		ProfilePic: info.ProfilePicUrl,
+		Wins:       info.Wins,
+		Losses:     info.Losses,
+		Points:     info.Points,
+		Steals:     info.Steals,
+		Assists:    info.Assists,
+		Rebounds:   info.Rebounds,
+		CreatedAt:  info.CreatedAt,
+		UpdatedAt:  info.UpdatedAt,
 	}
 
 	responseHandlers.RespondWithSuccess(w, response, http.StatusNoContent)
@@ -122,65 +118,31 @@ func (h *CustomersHandler) UpdateCustomerStats(w http.ResponseWriter, r *http.Re
 // @Tags customers
 // @Accept json
 // @Produce json
-// @Param hubspot_ids query string false "Comma-separated list of HubSpot IDs to filter customers"
 // @Success 200 {array} customer.Response "List of customers"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid parameters"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /customers [get]
 func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) {
 
-	// get hubspot ids
-
-	hubspotIdsStr := r.URL.Query().Get("hubspot_ids")
-
-	var hubspotIds []string = nil
-
-	if hubspotIdsStr != "" {
-		hubspotIds = strings.Split(hubspotIdsStr, ",")
-	}
-
-	dbCustomers, err := h.CustomerRepo.GetCustomers(r.Context(), hubspotIds)
+	dbCustomers, err := h.CustomerRepo.GetCustomers(r.Context())
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	if hubspotIds == nil {
-		ids := make([]string, len(dbCustomers))
+	result := make([]dto.Response, len(dbCustomers))
 
-		for i, dbCustomer := range dbCustomers {
-			ids[i] = dbCustomer.HubspotID
-		}
-
-		hubspotIds = ids
-	}
-
-	hubspotUsers, err := h.HubspotService.GetUsersByIds(hubspotIds)
-
-	if err != nil {
-		responseHandlers.RespondWithError(w, err)
-		return
-	}
-
-	result := make([]dto.Response, len(hubspotUsers))
-
-	for i, staff := range dbCustomers {
+	for i, customer := range dbCustomers {
 		response := dto.Response{
-			UserID:     staff.ID,
-			HubspotId:  staff.HubspotID,
-			ProfilePic: staff.ProfilePicUrl,
-		}
-
-		for _, user := range hubspotUsers {
-			if user.HubSpotId == staff.HubspotID {
-				response.FirstName = user.Properties.FirstName
-				response.LastName = user.Properties.LastName
-
-				if user.Properties.Email != "" {
-					response.Email = &user.Properties.Email
-				}
-			}
+			UserID:      customer.ID,
+			FirstName:   customer.FirstName,
+			LastName:    customer.LastName,
+			Email:       customer.Email,
+			Phone:       customer.Phone,
+			CountryCode: customer.CountryCode,
+			HubspotId:   customer.HubspotID,
+			ProfilePic:  customer.ProfilePicUrl,
 		}
 
 		result[i] = response
@@ -188,6 +150,59 @@ func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) 
 
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
 
+}
+
+// GetChildrenByParentID retrieves a repository's children using the parent's ID.
+// @Summary Get a repository's children by parent ID
+// @Description Retrieves a repository's children using the parent's ID
+// @Tags customers
+// @Accept json
+// @Produce json
+// @Param email path string true "Parent ID"
+// @Success 200 {array} hubspot.UserResponse "Customer's children retrieved successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
+// @Failure 404 {object} map[string]interface{} "Not Found: Parent or children not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /customers/{id}/children [get]
+func (h *CustomersHandler) GetChildrenByParentID(w http.ResponseWriter, r *http.Request) {
+
+	idStr := chi.URLParam(r, "id")
+
+	id, err := validators.ParseUUID(idStr)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Fetch repository's children from HubSpot
+	children, err := h.CustomerRepo.GetChildrenByCustomerID(r.Context(), id)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	var childrenResponse []dto.Response
+
+	for _, child := range children {
+
+		response := dto.Response{
+			UserID:      child.ID,
+			FirstName:   child.FirstName,
+			LastName:    child.LastName,
+			Email:       child.Email,
+			Age:         child.Age,
+			Phone:       child.Phone,
+			HubspotId:   child.HubspotID,
+			CountryCode: child.CountryCode,
+			ProfilePic:  child.ProfilePicUrl,
+		}
+
+		childrenResponse = append(childrenResponse, response)
+	}
+
+	responseHandlers.RespondWithSuccess(w, children, http.StatusOK)
 }
 
 // GetMembershipPlansByCustomer retrieves a list of membership plans for a specific customer.

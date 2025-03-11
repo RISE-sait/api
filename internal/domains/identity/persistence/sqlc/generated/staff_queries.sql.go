@@ -14,8 +14,9 @@ import (
 )
 
 const createApprovedStaff = `-- name: CreateApprovedStaff :execrows
-INSERT INTO users.staff (id, role_id, is_active) VALUES ($1,
-(SELECT id from users.staff_roles where role_name = $2), $3)
+INSERT INTO users.staff (id, role_id, is_active)
+VALUES ($1,
+        (SELECT id from users.staff_roles where role_name = $2), $3)
 `
 
 type CreateApprovedStaffParams struct {
@@ -32,28 +33,11 @@ func (q *Queries) CreateApprovedStaff(ctx context.Context, arg CreateApprovedSta
 	return result.RowsAffected()
 }
 
-const createPendingStaff = `-- name: CreatePendingStaff :execrows
-INSERT INTO audit.outbox (sql_statement, status)
-VALUES ($1, $2)
-`
-
-type CreatePendingStaffParams struct {
-	SqlStatement string      `json:"sql_statement"`
-	Status       AuditStatus `json:"status"`
-}
-
-func (q *Queries) CreatePendingStaff(ctx context.Context, arg CreatePendingStaffParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, createPendingStaff, arg.SqlStatement, arg.Status)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
-}
-
 const getStaffById = `-- name: GetStaffById :one
-SELECT s.id, s.is_active, s.created_at, s.updated_at, s.role_id, sr.role_name, u.hubspot_id FROM users.staff s
-JOIN users.users u ON s.id = u.id
-JOIN users.staff_roles sr ON s.role_id = sr.id
+SELECT s.id, s.is_active, s.created_at, s.updated_at, s.role_id, sr.role_name, u.hubspot_id
+FROM users.staff s
+         JOIN users.users u ON s.id = u.id
+         JOIN users.staff_roles sr ON s.role_id = sr.id
 WHERE u.id = $1
 `
 
@@ -83,7 +67,8 @@ func (q *Queries) GetStaffById(ctx context.Context, id uuid.UUID) (GetStaffByIdR
 }
 
 const getStaffRoles = `-- name: GetStaffRoles :many
-SELECT id, role_name FROM users.staff_roles
+SELECT id, role_name
+FROM users.staff_roles
 `
 
 func (q *Queries) GetStaffRoles(ctx context.Context) ([]UsersStaffRole, error) {

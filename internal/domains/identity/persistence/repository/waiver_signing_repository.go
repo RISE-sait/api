@@ -14,17 +14,17 @@ import (
 	"github.com/lib/pq"
 )
 
-type Repository struct {
+type WaiverSigningRepository struct {
 	Queries *db.Queries
 }
 
-func NewWaiverSigningRepository(db *db.Queries) *Repository {
-	return &Repository{
+func NewWaiverSigningRepository(db *db.Queries) *WaiverSigningRepository {
+	return &WaiverSigningRepository{
 		Queries: db,
 	}
 }
 
-func (r *Repository) CreateWaiverSigningRecordTx(ctx context.Context, tx *sql.Tx, userId uuid.UUID, waiverUrl string, isSigned bool) error {
+func (r *WaiverSigningRepository) CreateWaiverSigningRecordTx(ctx context.Context, tx *sql.Tx, userId uuid.UUID, waiverUrl string, isSigned bool) *errLib.CommonError {
 
 	txQueries := r.Queries.WithTx(tx)
 

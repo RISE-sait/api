@@ -536,6 +536,7 @@ type UsersUser struct {
 	Age                      int32          `json:"age"`
 	ParentID                 uuid.NullUUID  `json:"parent_id"`
 	Phone                    sql.NullString `json:"phone"`
+	Email                    sql.NullString `json:"email"`
 	HasMarketingEmailConsent bool           `json:"has_marketing_email_consent"`
 	HasSmsConsent            bool           `json:"has_sms_consent"`
 	CreatedAt                time.Time      `json:"created_at"`

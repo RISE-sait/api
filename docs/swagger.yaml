@@ -19,6 +19,32 @@ definitions:
       updatedAt:
         type: string
     type: object
+  customer.AthleteRegistrationRequestDto:
+    properties:
+      age:
+        type: integer
+      country_code:
+        type: string
+      first_name:
+        type: string
+      has_consent_to_email_marketing:
+        type: boolean
+      has_consent_to_sms:
+        type: boolean
+      last_name:
+        type: string
+      phone_number:
+        example: "+15141234567"
+        type: string
+      waivers:
+        items:
+          $ref: '#/definitions/customer.WaiverSigningRequestDto'
+        type: array
+    required:
+      - age
+      - first_name
+      - last_name
+    type: object
   customer.AthleteResponseDto:
     properties:
       assists:
@@ -31,7 +57,7 @@ definitions:
         type: integer
       points:
         type: integer
-      profile_pic_url:
+      profile_pic:
         type: string
       rebounds:
         type: integer
@@ -46,6 +72,8 @@ definitions:
     properties:
       age:
         type: integer
+      country_code:
+        type: string
       first_name:
         type: string
       last_name:
@@ -80,7 +108,7 @@ definitions:
       updated_at:
         type: string
     type: object
-  customer.RegistrationRequestDto:
+  customer.ParentRegistrationRequestDto:
     properties:
       age:
         type: integer
@@ -97,20 +125,17 @@ definitions:
       phone_number:
         example: "+15141234567"
         type: string
-      role:
-        type: string
-      waivers:
-        items:
-          $ref: '#/definitions/customer.WaiverSigningRequestDto'
-        type: array
     required:
       - age
       - first_name
       - last_name
-      - role
     type: object
   customer.Response:
     properties:
+      age:
+        type: integer
+      country_code:
+        type: string
       email:
         type: string
       first_name:
@@ -476,6 +501,8 @@ definitions:
     properties:
       age:
         type: integer
+      country_code:
+        type: string
       first_name:
         type: string
       is_active_staff:
@@ -505,6 +532,8 @@ definitions:
     type: object
   staff.ResponseDto:
     properties:
+      country_code:
+        type: string
       created_at:
         type: string
       email:
@@ -516,34 +545,14 @@ definitions:
       id:
         type: string
       is_active:
-        description: Indicates if the staff is still an active employee
         type: boolean
       last_name:
         type: string
       phone:
         type: string
-      role_id:
-        type: string
       role_name:
         type: string
       updated_at:
-        type: string
-    type: object
-  user.Response:
-    properties:
-      email:
-        type: string
-      first_name:
-        type: string
-      hubspot_id:
-        type: string
-      last_name:
-        type: string
-      phone:
-        type: string
-      profile_pic:
-        type: string
-      user_id:
         type: string
     type: object
 host: localhost:80
@@ -582,16 +591,16 @@ paths:
       summary: Authenticate a user and return a JWT token
       tags:
       - authentication
-  /auth/child/{hubspot_id}:
+  /auth/child/{id}:
     post:
       consumes:
       - application/json
       description: Authenticates a user using Firebase token and returns a JWT token
         for the authenticated user
       parameters:
-      - description: Child HubSpotId
+        - description: Child ID
         in: path
-        name: hubspot_id
+          name: id
         required: true
         type: string
       produces:
@@ -788,11 +797,6 @@ paths:
       consumes:
       - application/json
       description: Retrieves a list of customers, optionally filtered by HubSpot IDs.
-      parameters:
-      - description: Comma-separated list of HubSpot IDs to filter customers
-        in: query
-        name: hubspot_ids
-        type: string
       produces:
       - application/json
       responses:
@@ -888,6 +892,44 @@ paths:
             additionalProperties: true
             type: object
       summary: Update customer statistics
+      tags:
+        - customers
+  /customers/{id}/children:
+    get:
+      consumes:
+        - application/json
+      description: Retrieves a repository's children using the parent's ID
+      parameters:
+        - description: Parent ID
+          in: path
+          name: email
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Customer's children retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/hubspot.UserResponse'
+            type: array
+        "400":
+          description: 'Bad Request: Invalid ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Parent or children not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a repository's children by parent ID
       tags:
         - customers
   /customers/{id}/membership-plans:
@@ -2456,6 +2498,46 @@ paths:
       summary: Purchase a membership plan
       tags:
       - purchases
+  /register/athlete:
+    post:
+      consumes:
+        - application/json
+      description: Registers a new athlete by verifying the Firebase token and creating
+        an account based on the provided details.
+      parameters:
+        - description: Athlete registration details
+          in: body
+          name: athlete
+          required: true
+          schema:
+            $ref: '#/definitions/customer.AthleteRegistrationRequestDto'
+        - description: Firebase token for user verification
+          in: header
+          name: firebase_token
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        "201":
+          description: Athlete registered successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Bad Request: Missing or invalid Firebase token or request
+            body'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'Internal Server Error: Failed to register athlete'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Register a new athlete
+      tags:
+        - registration
   /register/child:
     post:
       consumes:
@@ -2501,20 +2583,19 @@ paths:
       summary: Register a new child account and associate it with the parent
       tags:
         - registration
-  /register/customer:
+  /register/parent:
     post:
       consumes:
       - application/json
-      description: Registers a new customer by verifying the Firebase token and creating
-        an account based on the provided details. The registration can either be for
-        an athlete or a parent, depending on the specified role in the request.
+      description: Registers a new parent by verifying the Firebase token and creating
+        an account based on the provided details.
       parameters:
-      - description: Customer registration details
+        - description: Parent registration details
         in: body
-        name: customer
+          name: parent
         required: true
         schema:
-          $ref: '#/definitions/customer.RegistrationRequestDto'
+          $ref: '#/definitions/customer.ParentRegistrationRequestDto'
       - description: Firebase token for user verification
         in: header
         name: firebase_token
@@ -2524,7 +2605,7 @@ paths:
       - application/json
       responses:
         "201":
-          description: Customer registered successfully
+          description: Parent registered successfully
           schema:
             additionalProperties: true
             type: object
@@ -2535,11 +2616,11 @@ paths:
             additionalProperties: true
             type: object
         "500":
-          description: 'Internal Server Error: Failed to register customer'
+          description: 'Internal Server Error: Failed to register parent'
           schema:
             additionalProperties: true
             type: object
-      summary: Register a new customer
+      summary: Register a new parent
       tags:
       - registration
   /register/staff:
@@ -2549,6 +2630,11 @@ paths:
       description: Creates a new staff account in the system using the provided registration
         details.
       parameters:
+        - description: Firebase token for user verification
+          in: header
+          name: firebase_token
+          required: true
+          type: string
       - description: Staff registration details
         in: body
         name: staff
@@ -2585,18 +2671,12 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieves staff members based on optional filters like role or
-        HubSpot IDs.
+      description: Retrieves staff members based on optional role filter.
       parameters:
       - description: Role name to filter staff
         example: '"Coach"'
         in: query
         name: role
-        type: string
-      - description: Comma-separated HubSpot IDs
-        example: '"123,456,789"'
-        in: query
-        name: hubspot_ids
         type: string
       produces:
       - application/json
@@ -2662,7 +2742,7 @@ paths:
       - application/json
       description: Update a staff member
       parameters:
-      - description: Staff HubSpotId
+        - description: Staff ID
         example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
         in: path
         name: id
@@ -2699,80 +2779,6 @@ paths:
       summary: Update a staff member
       tags:
       - staff
-  /users/{email}:
-    get:
-      consumes:
-      - application/json
-      description: Retrieves a repository using their email address
-      parameters:
-      - description: Email
-        in: path
-        name: email
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Customer retrieved successfully
-          schema:
-            $ref: '#/definitions/user.Response'
-        "400":
-          description: 'Bad Request: Invalid Email'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Customer not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get a repository by email
-      tags:
-      - users
-  /users/{email}/children:
-    get:
-      consumes:
-      - application/json
-      description: Retrieves a repository's children using the parent's email address
-      parameters:
-      - description: Parent Email
-        in: path
-        name: email
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Customer's children retrieved successfully
-          schema:
-            items:
-              $ref: '#/definitions/hubspot.UserResponse'
-            type: array
-        "400":
-          description: 'Bad Request: Invalid Email'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Parent or children not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get a repository's children by parent email
-      tags:
-      - users
 securityDefinitions:
   Bearer:
     in: header

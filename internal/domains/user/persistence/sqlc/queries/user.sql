@@ -14,9 +14,14 @@ WHERE id = sqlc.arg('id');
 
 -- name: GetCustomers :many
 SELECT *
-FROM users.users
-WHERE hubspot_id = ANY (sqlc.narg('hubspot_ids')::text[])
-   OR sqlc.narg('hubspot_ids') IS NULL;
+FROM users.users;
+
+-- name: GetChildren :many
+SELECT children.*
+FROM users.users parents
+         JOIN users.users children
+              ON parents.id = children.parent_id
+WHERE parents.id = $1;
 
 -- name: GetAthlete :one
 SELECT *

@@ -2,11 +2,9 @@ package registration
 
 import (
 	"api/internal/di"
-	pendingUsers "api/internal/domains/identity/persistence/repository"
-	waiverSigningRepo "api/internal/domains/identity/persistence/repository/waiver_signing"
+	repo "api/internal/domains/identity/persistence/repository"
 	"api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
-	"api/internal/services/hubspot"
 	"context"
 	"database/sql"
 	"log"
@@ -14,9 +12,8 @@ import (
 )
 
 type ChildRegistrationService struct {
-	HubSpotService          *hubspot.Service
-	PendingUsersRepository  *pendingUsers.PendingUsersRepo
-	WaiverSigningRepository *waiverSigningRepo.PendingUserWaiverSigningRepository
+	UsersRepository         *repo.UsersRepository
+	WaiverSigningRepository *repo.WaiverSigningRepository
 	DB                      *sql.DB
 }
 
@@ -24,27 +21,28 @@ func NewChildAccountRegistrationService(
 	container *di.Container,
 ) *ChildRegistrationService {
 	return &ChildRegistrationService{
-		PendingUsersRepository:  pendingUsers.NewPendingUserInfoRepository(container),
-		WaiverSigningRepository: waiverSigningRepo.NewPendingUserWaiverSigningRepository(container),
+		UsersRepository:         repo.NewUserRepository(container.Queries.IdentityDb),
+		WaiverSigningRepository: repo.NewWaiverSigningRepository(container.Queries.IdentityDb),
 		DB:                      container.DB,
-		HubSpotService:          container.HubspotService,
 	}
 }
 
 func (s *ChildRegistrationService) CreateChildAccount(
 	ctx context.Context,
 	childRegistrationInfo identity.ChildRegistrationRequestInfo,
-) *errLib.CommonError {
+) (identity.UserReadInfo, *errLib.CommonError) {
+
+	var response identity.UserReadInfo
 
 	for _, waiver := range childRegistrationInfo.Waivers {
 		if !waiver.IsWaiverSigned {
-			return errLib.New("Waiver is not signed", http.StatusBadRequest)
+			return response, errLib.New("Waiver is not signed", http.StatusBadRequest)
 		}
 	}
 
 	tx, txErr := s.DB.BeginTx(ctx, &sql.TxOptions{})
 	if txErr != nil {
-		return errLib.New("Failed to begin transaction", http.StatusInternalServerError)
+		return response, errLib.New("Failed to begin transaction", http.StatusInternalServerError)
 	}
 
 	defer func() {
@@ -53,32 +51,25 @@ func (s *ChildRegistrationService) CreateChildAccount(
 		}
 	}()
 
-	parent, err := s.HubSpotService.GetUserByEmail(childRegistrationInfo.ParentEmail)
+	createdChild, err := s.UsersRepository.CreateChildTx(ctx, tx, childRegistrationInfo)
 
 	if err != nil {
 		tx.Rollback()
-		return err
-	}
-
-	childId, err := s.PendingUsersRepository.CreatePendingUserInfoTx(ctx, tx, childRegistrationInfo.FirstName, childRegistrationInfo.LastName, false, false, false, nil, nil, nil, &parent.HubSpotId, childRegistrationInfo.Age)
-
-	if err != nil {
-		tx.Rollback()
-		return err
+		return response, err
 	}
 
 	for _, waiver := range childRegistrationInfo.Waivers {
-		if err = s.WaiverSigningRepository.CreateWaiverSigningRecordTx(ctx, tx, childId, waiver.WaiverUrl, waiver.IsWaiverSigned); err != nil {
+		if err = s.WaiverSigningRepository.CreateWaiverSigningRecordTx(ctx, tx, createdChild.ID, waiver.WaiverUrl, waiver.IsWaiverSigned); err != nil {
 			tx.Rollback()
-			return err
+			return response, err
 		}
 	}
 
 	if txErr = tx.Commit(); txErr != nil {
 		log.Printf("Failed to commit transaction: %v", txErr)
-		return errLib.New("Failed to commit transaction but event is logged", http.StatusInternalServerError)
+		return response, errLib.New("Failed to commit transaction but event is logged", http.StatusInternalServerError)
 	}
 
-	return nil
+	return createdChild, nil
 
 }

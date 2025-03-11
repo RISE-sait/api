@@ -2,6 +2,7 @@ package registration
 
 import (
 	"api/internal/di"
+	commonDto "api/internal/domains/identity/dto/common"
 	dto "api/internal/domains/identity/dto/customer"
 	service "api/internal/domains/identity/service/firebase"
 	"api/internal/domains/identity/service/registration"
@@ -57,6 +58,7 @@ func (h *ChildRegistrationHandlers) RegisterChild(w http.ResponseWriter, r *http
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
+		return
 	}
 
 	valueObject, err := requestDto.ToCreateChildValueObject(parentEmail)
@@ -67,10 +69,21 @@ func (h *ChildRegistrationHandlers) RegisterChild(w http.ResponseWriter, r *http
 	}
 
 	// Step 3: Call the service to create the customer account
-	if err = h.ChildAccountRegistrationService.CreateChildAccount(r.Context(), valueObject); err != nil {
+	if userInfo, err := h.ChildAccountRegistrationService.CreateChildAccount(r.Context(), valueObject); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
+	} else {
+		responseBody := commonDto.UserAuthenticationResponseDto{
+			FirstName:   userInfo.FirstName,
+			LastName:    userInfo.LastName,
+			Email:       userInfo.Email,
+			Role:        userInfo.Role,
+			Phone:       userInfo.Phone,
+			Age:         userInfo.Age,
+			CountryCode: userInfo.CountryCode,
+		}
+
+		responseHandlers.RespondWithSuccess(w, responseBody, http.StatusCreated)
 	}
 
-	responseHandlers.RespondWithSuccess(w, nil, http.StatusCreated)
 }

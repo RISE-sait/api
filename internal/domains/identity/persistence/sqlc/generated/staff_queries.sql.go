@@ -3,28 +3,30 @@
 //   sqlc v1.27.0
 // source: staff_queries.sql
 
-package db
+package db_identity
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-const createStaff = `-- name: CreateStaff :execrows
-INSERT INTO users.staff (id, role_id, is_active) VALUES ($1,
-(SELECT id from users.staff_roles where role_name = $2), $3)
+const createApprovedStaff = `-- name: CreateApprovedStaff :execrows
+INSERT INTO users.staff (id, role_id, is_active)
+VALUES ($1,
+        (SELECT id from users.staff_roles where role_name = $2), $3)
 `
 
-type CreateStaffParams struct {
+type CreateApprovedStaffParams struct {
 	ID       uuid.UUID `json:"id"`
 	RoleName string    `json:"role_name"`
 	IsActive bool      `json:"is_active"`
 }
 
-func (q *Queries) CreateStaff(ctx context.Context, arg CreateStaffParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, createStaff, arg.ID, arg.RoleName, arg.IsActive)
+func (q *Queries) CreateApprovedStaff(ctx context.Context, arg CreateApprovedStaffParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, createApprovedStaff, arg.ID, arg.RoleName, arg.IsActive)
 	if err != nil {
 		return 0, err
 	}
@@ -32,20 +34,21 @@ func (q *Queries) CreateStaff(ctx context.Context, arg CreateStaffParams) (int64
 }
 
 const getStaffById = `-- name: GetStaffById :one
-SELECT s.id, s.is_active, s.created_at, s.updated_at, s.role_id, sr.role_name, u.hubspot_id FROM users.staff s
-JOIN users.users u ON s.id = u.id
-JOIN users.staff_roles sr ON s.role_id = sr.id
+SELECT s.id, s.is_active, s.created_at, s.updated_at, s.role_id, sr.role_name, u.hubspot_id
+FROM users.staff s
+         JOIN users.users u ON s.id = u.id
+         JOIN users.staff_roles sr ON s.role_id = sr.id
 WHERE u.id = $1
 `
 
 type GetStaffByIdRow struct {
-	ID        uuid.UUID `json:"id"`
-	IsActive  bool      `json:"is_active"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	RoleID    uuid.UUID `json:"role_id"`
-	RoleName  string    `json:"role_name"`
-	HubspotID string    `json:"hubspot_id"`
+	ID        uuid.UUID      `json:"id"`
+	IsActive  bool           `json:"is_active"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	RoleID    uuid.UUID      `json:"role_id"`
+	RoleName  string         `json:"role_name"`
+	HubspotID sql.NullString `json:"hubspot_id"`
 }
 
 func (q *Queries) GetStaffById(ctx context.Context, id uuid.UUID) (GetStaffByIdRow, error) {
@@ -64,7 +67,8 @@ func (q *Queries) GetStaffById(ctx context.Context, id uuid.UUID) (GetStaffByIdR
 }
 
 const getStaffRoles = `-- name: GetStaffRoles :many
-SELECT id, role_name FROM users.staff_roles
+SELECT id, role_name
+FROM users.staff_roles
 `
 
 func (q *Queries) GetStaffRoles(ctx context.Context) ([]UsersStaffRole, error) {

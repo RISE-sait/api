@@ -1,7 +1,7 @@
 package user
 
 import (
-	values "api/internal/domains/user/values/customer"
+	"api/internal/domains/user/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
 )
@@ -23,7 +23,7 @@ func (dto StatsUpdateRequestDto) ToUpdateValue(idStr string) (values.StatsUpdate
 		return values.StatsUpdateValue{}, err
 	}
 
-	if err := validators.ValidateDto(dto); err != nil {
+	if err = validators.ValidateDto(dto); err != nil {
 		return values.StatsUpdateValue{}, err
 	}
 

@@ -63,7 +63,6 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		"/enrollments": RegisterEnrollmentRoutes,
 
 		// Users & Staff routes
-		"/users":       RegisterUserRoutes,
 		"/customers":   RegisterCustomerRoutes,
 		"/staffs":      RegisterStaffRoutes,
 		"/event-staff": RegisterEventStaffRoutes,
@@ -80,23 +79,13 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 	}
 }
 
-func RegisterUserRoutes(container *di.Container) func(chi.Router) {
-
-	h := userHandler.NewUsersHandler(container)
-
-	return func(r chi.Router) {
-
-		r.Get("/{email}/children", h.GetChildrenByParentEmail)
-		r.Get("/{email}", h.GetUserByEmail)
-	}
-}
-
 func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 
 	h := userHandler.NewCustomersHandler(container)
 
 	return func(r chi.Router) {
 		r.Get("/", h.GetCustomers)
+		r.Get("/{id}/children", h.GetChildrenByParentID)
 		r.Get("/{id}/membership-plans", h.GetMembershipPlansByCustomer)
 		r.Patch("/{customer_id}/stats", h.GetAthleteInfo)
 	}
@@ -285,16 +274,18 @@ func RegisterAuthRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterRegistrationRoutes(container *di.Container) func(chi.Router) {
 
-	customerHandler := registration.NewCustomerRegistrationHandlers(container)
+	athleteHandler := registration.NewAthleteRegistrationHandlers(container)
 	staffHandler := registration.NewStaffRegistrationHandlers(container)
 
-	//childRegistrationCtrl := registration.NewChildRegistrationHandlers(container)
+	childRegistrationHandler := registration.NewChildRegistrationHandlers(container)
+	parentRegistrationHandler := registration.NewParentRegistrationHandlers(container)
 
 	return func(r chi.Router) {
 
-		r.Post("/customer", customerHandler.RegisterCustomer)
+		r.Post("/athlete", athleteHandler.RegisterAthlete)
 
-		r.Post("/staff", staffHandler.CreateStaff)
-		//r.Post("/child", childRegistrationCtrl.RegisterChild)
+		r.Post("/staff", staffHandler.RegisterStaff)
+		r.Post("/child", childRegistrationHandler.RegisterChild)
+		r.Post("/parent", parentRegistrationHandler.RegisterParent)
 	}
 }

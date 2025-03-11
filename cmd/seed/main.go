@@ -171,7 +171,7 @@ func seedCourses(ctx context.Context, q *courseSQLC.Queries) error {
 	return nil
 }
 
-//func seedFacilities(ctx context.Context, q *facilitySQLC.Queries) error {
+//func seedFacilities(ctx context.Context, q *facilitySQLC.IdentityQueries) error {
 //	facilities := []facilitySQLC.CreateFacilityParams{
 //		{
 //			Name:           "Main Gym",

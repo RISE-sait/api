@@ -1,7 +1,7 @@
 package staff
 
 import (
-	values "api/internal/domains/user/values/staff"
+	values "api/internal/domains/user/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
 )
@@ -26,7 +26,7 @@ func (dto *RequestDto) ToUpdateRequestValues(idStr string) (values.UpdateValues,
 		return values.UpdateValues{}, err
 	}
 
-	if err := validators.ValidateDto(dto); err != nil {
+	if err = validators.ValidateDto(dto); err != nil {
 		return values.UpdateValues{}, err
 	}
 

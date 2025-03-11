@@ -3,7 +3,7 @@ package staff
 import (
 	"api/internal/di"
 	identityRepo "api/internal/domains/identity/persistence/repository"
-	staffValues "api/internal/domains/user/values/staff"
+	staffValues "api/internal/domains/user/values"
 	"github.com/google/uuid"
 
 	"context"

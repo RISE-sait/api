@@ -15,6 +15,8 @@ import (
 	"strings"
 )
 
+const bucketName = "rise-sports"
+
 func getGCPClient() (*storage.Client, *errLib.CommonError) {
 	var opt option.ClientOption
 	if gcpServiceAccountCredentials := config.Envs.GcpServiceAccountCredentials; gcpServiceAccountCredentials != "" {
@@ -35,7 +37,7 @@ func getGCPClient() (*storage.Client, *errLib.CommonError) {
 	return client, nil
 }
 
-func GetFilesInBucket(bucketName string, folderName string) ([]string, *errLib.CommonError) {
+func GetFilesInBucket(folderName string) ([]string, *errLib.CommonError) {
 
 	client, err := getGCPClient()
 	if err != nil {
@@ -43,7 +45,7 @@ func GetFilesInBucket(bucketName string, folderName string) ([]string, *errLib.C
 	}
 
 	// Get a handle for the bucket
-	bucket := client.Bucket(bucketName)
+	bucket := client.Bucket("rise-sports")
 
 	// List the objects in the bucket
 	var fileURLs []string
@@ -58,7 +60,7 @@ func GetFilesInBucket(bucketName string, folderName string) ([]string, *errLib.C
 			break
 		}
 
-		fileURLs = append(fileURLs, generatePublicFileURL(bucket.BucketName(), objAttrs.Name))
+		fileURLs = append(fileURLs, GeneratePublicFileURL(objAttrs.Name))
 	}
 
 	return fileURLs, nil
@@ -72,7 +74,7 @@ func UploadImageToGCP(image io.Reader, fileName string) (string, *errLib.CommonE
 	}
 
 	// Get a handle for the bucket
-	bucket := client.Bucket("rise-sports") // Replace with your bucket name
+	bucket := client.Bucket(bucketName) // Replace with your bucket name
 
 	// Read the image data into a byte slice
 	imageData, ioErr := io.ReadAll(image)
@@ -98,10 +100,10 @@ func UploadImageToGCP(image io.Reader, fileName string) (string, *errLib.CommonE
 	}
 
 	// Return the public URL for the uploaded file
-	return generatePublicFileURL(bucket.BucketName(), fileName), nil
+	return GeneratePublicFileURL(fileName), nil
 }
 
-func generatePublicFileURL(bucketName string, fileName string) string {
+func GeneratePublicFileURL(fileName string) string {
 	parts := strings.Split(fileName, "/")
 	for i, part := range parts {
 		parts[i] = url.QueryEscape(part)

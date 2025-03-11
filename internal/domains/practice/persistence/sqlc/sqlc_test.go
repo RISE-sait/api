@@ -22,7 +22,7 @@ package course
 
 // var dbInstance *sql.DB
 
-// func setupTestDB(t *testing.T) (*db.Queries, func()) {
+// func setupTestDB(t *testing.T) (*db.IdentityQueries, func()) {
 // 	ctx := context.Background()
 
 // 	// Start a PostgreSQL container

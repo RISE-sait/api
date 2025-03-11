@@ -11,10 +11,10 @@ type UserNecessaryInfoRequestDto struct {
 	CountryCode string `json:"country_code"`
 	FirstName   string `json:"first_name" validate:"required,notwhitespace"`
 	LastName    string `json:"last_name" validate:"required,notwhitespace"`
-	Age         int    `json:"age" validate:"required,gt=0"`
+	Age         int32  `json:"age" validate:"required,gt=0"`
 }
 
-func (dto *UserNecessaryInfoRequestDto) Validate() *errLib.CommonError {
+func (dto UserNecessaryInfoRequestDto) Validate() *errLib.CommonError {
 	if err := validators.ValidateDto(&dto); err != nil {
 		return err
 	}

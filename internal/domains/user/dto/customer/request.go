@@ -1,7 +1,7 @@
 package customer
 
 import (
-	values "api/internal/domains/user/values/customer"
+	values "api/internal/domains/user/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
 )

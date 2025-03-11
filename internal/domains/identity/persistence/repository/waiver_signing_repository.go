@@ -1,8 +1,7 @@
-package waiver_signing
+package identity
 
 import (
 	databaseErrors "api/internal/constants"
-	"api/internal/di"
 	db "api/internal/domains/identity/persistence/sqlc/generated"
 	errLib "api/internal/libs/errors"
 	"context"
@@ -15,17 +14,17 @@ import (
 	"github.com/lib/pq"
 )
 
-type PendingUserWaiverSigningRepository struct {
+type WaiverSigningRepository struct {
 	Queries *db.Queries
 }
 
-func NewPendingUserWaiverSigningRepository(container *di.Container) *PendingUserWaiverSigningRepository {
-	return &PendingUserWaiverSigningRepository{
-		Queries: container.Queries.IdentityDb,
+func NewWaiverSigningRepository(db *db.Queries) *WaiverSigningRepository {
+	return &WaiverSigningRepository{
+		Queries: db,
 	}
 }
 
-func (r *PendingUserWaiverSigningRepository) CreateWaiverSigningRecordTx(ctx context.Context, tx *sql.Tx, userId uuid.UUID, waiverUrl string, isSigned bool) *errLib.CommonError {
+func (r *WaiverSigningRepository) CreateWaiverSigningRecordTx(ctx context.Context, tx *sql.Tx, userId uuid.UUID, waiverUrl string, isSigned bool) *errLib.CommonError {
 
 	txQueries := r.Queries.WithTx(tx)
 
@@ -39,14 +38,14 @@ func (r *PendingUserWaiverSigningRepository) CreateWaiverSigningRecordTx(ctx con
 		}
 	}
 
-	params := db.CreatePendingUserWaiverSignedStatusParams{
+	params := db.CreateWaiverSignedStatusParams{
 		UserID:   userId,
 		WaiverID: waiver.ID,
 		IsSigned: isSigned,
 	}
 
 	// Insert the waiver record
-	_, err = txQueries.CreatePendingUserWaiverSignedStatus(ctx, params)
+	_, err = txQueries.CreateWaiverSignedStatus(ctx, params)
 
 	if err != nil {
 		// Check if error is pq.Error (PostgreSQL specific errors)

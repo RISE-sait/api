@@ -7,17 +7,272 @@ package db_user
 
 import (
 	"context"
+	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
+
+const createAthleteInfo = `-- name: CreateAthleteInfo :execrows
+INSERT INTO users.athletes (id, rebounds, assists, losses, wins, points)
+VALUES ($1, $2, $3, $4, $5, $6)
+`
+
+type CreateAthleteInfoParams struct {
+	ID       uuid.UUID `json:"id"`
+	Rebounds int32     `json:"rebounds"`
+	Assists  int32     `json:"assists"`
+	Losses   int32     `json:"losses"`
+	Wins     int32     `json:"wins"`
+	Points   int32     `json:"points"`
+}
+
+func (q *Queries) CreateAthleteInfo(ctx context.Context, arg CreateAthleteInfoParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, createAthleteInfo,
+		arg.ID,
+		arg.Rebounds,
+		arg.Assists,
+		arg.Losses,
+		arg.Wins,
+		arg.Points,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const getAthlete = `-- name: GetAthlete :one
+SELECT id, wins, losses, points, steals, assists, rebounds, created_at, updated_at
+FROM users.athletes
+WHERE id = $1
+`
+
+func (q *Queries) GetAthlete(ctx context.Context, id uuid.UUID) (UsersAthlete, error) {
+	row := q.db.QueryRowContext(ctx, getAthlete, id)
+	var i UsersAthlete
+	err := row.Scan(
+		&i.ID,
+		&i.Wins,
+		&i.Losses,
+		&i.Points,
+		&i.Steals,
+		&i.Assists,
+		&i.Rebounds,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getAthleteInfoByUserID = `-- name: GetAthleteInfoByUserID :one
+SELECT id, wins, losses, points, steals, assists, rebounds, created_at, updated_at
+FROM users.athletes
+WHERE id = $1
+limit 1
+`
+
+func (q *Queries) GetAthleteInfoByUserID(ctx context.Context, id uuid.UUID) (UsersAthlete, error) {
+	row := q.db.QueryRowContext(ctx, getAthleteInfoByUserID, id)
+	var i UsersAthlete
+	err := row.Scan(
+		&i.ID,
+		&i.Wins,
+		&i.Losses,
+		&i.Points,
+		&i.Steals,
+		&i.Assists,
+		&i.Rebounds,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getChildren = `-- name: GetChildren :many
+SELECT children.id, children.hubspot_id, children.country_alpha2_code, children.first_name, children.last_name, children.age, children.parent_id, children.phone, children.email, children.has_marketing_email_consent, children.has_sms_consent, children.created_at, children.updated_at
+FROM users.users parents JOIN users.users children
+ON parents.id = children.parent_id
+WHERE parents.id = $1
+`
+
+func (q *Queries) GetChildren(ctx context.Context, id uuid.UUID) ([]UsersUser, error) {
+	rows, err := q.db.QueryContext(ctx, getChildren, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UsersUser
+	for rows.Next() {
+		var i UsersUser
+		if err := rows.Scan(
+			&i.ID,
+			&i.HubspotID,
+			&i.CountryAlpha2Code,
+			&i.FirstName,
+			&i.LastName,
+			&i.Age,
+			&i.ParentID,
+			&i.Phone,
+			&i.Email,
+			&i.HasMarketingEmailConsent,
+			&i.HasSmsConsent,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCustomers = `-- name: GetCustomers :many
+SELECT id, hubspot_id, country_alpha2_code, first_name, last_name, age, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at
+FROM users.users
+`
+
+func (q *Queries) GetCustomers(ctx context.Context) ([]UsersUser, error) {
+	rows, err := q.db.QueryContext(ctx, getCustomers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UsersUser
+	for rows.Next() {
+		var i UsersUser
+		if err := rows.Scan(
+			&i.ID,
+			&i.HubspotID,
+			&i.CountryAlpha2Code,
+			&i.FirstName,
+			&i.LastName,
+			&i.Age,
+			&i.ParentID,
+			&i.Phone,
+			&i.Email,
+			&i.HasMarketingEmailConsent,
+			&i.HasSmsConsent,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getMembershipPlansByCustomer = `-- name: GetMembershipPlansByCustomer :many
+SELECT cmp.id, cmp.customer_id, cmp.membership_plan_id, cmp.start_date, cmp.renewal_date, cmp.status, cmp.created_at, cmp.updated_at, m.name as membership_name
+FROM public.customer_membership_plans cmp
+         JOIN membership.membership_plans mp ON cmp.membership_plan_id = mp.id
+         JOIN membership.memberships m ON m.id = mp.membership_id
+WHERE cmp.customer_id = $1
+`
+
+type GetMembershipPlansByCustomerRow struct {
+	ID               uuid.UUID        `json:"id"`
+	CustomerID       uuid.UUID        `json:"customer_id"`
+	MembershipPlanID uuid.UUID        `json:"membership_plan_id"`
+	StartDate        time.Time        `json:"start_date"`
+	RenewalDate      sql.NullTime     `json:"renewal_date"`
+	Status           MembershipStatus `json:"status"`
+	CreatedAt        time.Time        `json:"created_at"`
+	UpdatedAt        time.Time        `json:"updated_at"`
+	MembershipName   string           `json:"membership_name"`
+}
+
+func (q *Queries) GetMembershipPlansByCustomer(ctx context.Context, customerID uuid.UUID) ([]GetMembershipPlansByCustomerRow, error) {
+	rows, err := q.db.QueryContext(ctx, getMembershipPlansByCustomer, customerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetMembershipPlansByCustomerRow
+	for rows.Next() {
+		var i GetMembershipPlansByCustomerRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CustomerID,
+			&i.MembershipPlanID,
+			&i.StartDate,
+			&i.RenewalDate,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.MembershipName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
 
 const getUserIDByHubSpotId = `-- name: GetUserIDByHubSpotId :one
 SELECT id FROM users.users WHERE hubspot_id = $1
 `
 
-func (q *Queries) GetUserIDByHubSpotId(ctx context.Context, hubspotID string) (uuid.UUID, error) {
+func (q *Queries) GetUserIDByHubSpotId(ctx context.Context, hubspotID sql.NullString) (uuid.UUID, error) {
 	row := q.db.QueryRowContext(ctx, getUserIDByHubSpotId, hubspotID)
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
+}
+
+const updateAthleteStats = `-- name: UpdateAthleteStats :execrows
+UPDATE users.athletes
+SET wins       = COALESCE($1, wins),
+    losses     = COALESCE($2, losses),
+    points     = COALESCE($3, points),
+    steals     = COALESCE($4, steals),
+    assists    = COALESCE($5, assists),
+    rebounds   = COALESCE($6, rebounds),
+    updated_at = NOW()
+WHERE id = $7
+`
+
+type UpdateAthleteStatsParams struct {
+	Wins     sql.NullInt32 `json:"wins"`
+	Losses   sql.NullInt32 `json:"losses"`
+	Points   sql.NullInt32 `json:"points"`
+	Steals   sql.NullInt32 `json:"steals"`
+	Assists  sql.NullInt32 `json:"assists"`
+	Rebounds sql.NullInt32 `json:"rebounds"`
+	ID       uuid.UUID     `json:"id"`
+}
+
+func (q *Queries) UpdateAthleteStats(ctx context.Context, arg UpdateAthleteStatsParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateAthleteStats,
+		arg.Wins,
+		arg.Losses,
+		arg.Points,
+		arg.Steals,
+		arg.Assists,
+		arg.Rebounds,
+		arg.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

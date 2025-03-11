@@ -2,8 +2,7 @@ package registration
 
 import (
 	"api/internal/di"
-	identityRepo "api/internal/domains/identity/persistence/repository"
-	waiverSigningRepo "api/internal/domains/identity/persistence/repository/waiver_signing"
+	repo "api/internal/domains/identity/persistence/repository"
 	"api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
 	"context"
@@ -13,19 +12,17 @@ import (
 
 // CustomerRegistrationService handles customer registration and related operations.
 type CustomerRegistrationService struct {
-	UserRepo                *identityRepo.UsersRepository
-	UserInfoTempRepo        *identityRepo.PendingUsersRepo
-	WaiverSigningRepository *waiverSigningRepo.PendingUserWaiverSigningRepository
-	DB                      *sql.DB
+	UserRepo          *repo.UsersRepository
+	WaiverSigningRepo *repo.WaiverSigningRepository
+	DB                *sql.DB
 }
 
 // NewCustomerRegistrationService initializes a new CustomerRegistrationService instance.
 func NewCustomerRegistrationService(container *di.Container) *CustomerRegistrationService {
 	return &CustomerRegistrationService{
-		UserRepo:                identityRepo.NewUserRepository(container),
-		WaiverSigningRepository: waiverSigningRepo.NewPendingUserWaiverSigningRepository(container),
-		UserInfoTempRepo:        identityRepo.NewPendingUserInfoRepository(container),
-		DB:                      container.DB,
+		UserRepo:          repo.NewUserRepository(container.Queries.IdentityDb),
+		WaiverSigningRepo: repo.NewWaiverSigningRepository(container.Queries.IdentityDb),
+		DB:                container.DB,
 	}
 }
 
@@ -40,47 +37,48 @@ func NewCustomerRegistrationService(container *di.Container) *CustomerRegistrati
 func (s *CustomerRegistrationService) RegisterAthlete(
 	ctx context.Context,
 	customer identity.AthleteRegistrationRequestInfo,
-) *errLib.CommonError {
+) (identity.UserReadInfo, *errLib.CommonError) {
+
+	var response identity.UserReadInfo
 
 	for _, waiver := range customer.Waivers {
 		if !waiver.IsWaiverSigned {
-			return errLib.New("Waiver is not signed", http.StatusBadRequest)
+			return response, errLib.New("Waiver is not signed", http.StatusBadRequest)
 		}
 	}
 
 	tx, txErr := s.DB.BeginTx(ctx, &sql.TxOptions{})
 	if txErr != nil {
-		return errLib.New("Failed to begin transaction", http.StatusInternalServerError)
+		return response, errLib.New("Failed to begin transaction", http.StatusInternalServerError)
 	}
 
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
-
 		}
 	}()
 
-	userId, err := s.UserInfoTempRepo.CreatePendingUserInfoTx(ctx, tx, customer.FirstName, customer.LastName, customer.HasConsentToSms, customer.HasConsentToEmailMarketing, false, &customer.CountryCode, &customer.Phone, &customer.Email, nil, customer.Age)
+	userInfo, err := s.UserRepo.CreateAthleteTx(ctx, tx, customer)
 
 	if err != nil {
 		tx.Rollback()
-		return err
+		return response, err
 	}
 
 	for _, waiver := range customer.Waivers {
-		if err = s.WaiverSigningRepository.CreateWaiverSigningRecordTx(ctx, tx, userId, waiver.WaiverUrl, waiver.IsWaiverSigned); err != nil {
+		if err = s.WaiverSigningRepo.CreateWaiverSigningRecordTx(ctx, tx, userInfo.ID, waiver.WaiverUrl, waiver.IsWaiverSigned); err != nil {
 			tx.Rollback()
-			return err
+			return response, err
 		}
 	}
 
 	// Commit the transaction
 	if txErr = tx.Commit(); txErr != nil {
 		tx.Rollback()
-		return errLib.New("Failed to commit transaction", http.StatusInternalServerError)
+		return response, errLib.New("Failed to commit transaction", http.StatusInternalServerError)
 	}
 
-	return nil
+	return userInfo, nil
 }
 
 // RegisterParent registers a new parent customer and creates user and temporary info records.
@@ -93,12 +91,14 @@ func (s *CustomerRegistrationService) RegisterAthlete(
 // - *errLib.CommonError: Returns an error if registration fails.
 func (s *CustomerRegistrationService) RegisterParent(
 	ctx context.Context,
-	customer identity.AdultCustomerRegistrationRequestInfo,
-) *errLib.CommonError {
+	customer identity.ParentRegistrationRequestInfo,
+) (identity.UserReadInfo, *errLib.CommonError) {
+
+	var response identity.UserReadInfo
 
 	tx, txErr := s.DB.BeginTx(ctx, &sql.TxOptions{})
 	if txErr != nil {
-		return errLib.New("Failed to begin transaction", http.StatusInternalServerError)
+		return response, errLib.New("Failed to begin transaction", http.StatusInternalServerError)
 	}
 
 	defer func() {
@@ -108,18 +108,18 @@ func (s *CustomerRegistrationService) RegisterParent(
 		}
 	}()
 
-	_, err := s.UserInfoTempRepo.CreatePendingUserInfoTx(ctx, tx, customer.FirstName, customer.LastName, customer.HasConsentToSms, customer.HasConsentToEmailMarketing, true, nil, &customer.Phone, &customer.Email, nil, customer.Age)
+	userInfo, err := s.UserRepo.CreateParentTx(ctx, tx, customer)
 
 	if err != nil {
 		tx.Rollback()
-		return err
+		return response, err
 	}
 
 	// Commit the transaction
 	if txErr = tx.Commit(); txErr != nil {
 		tx.Rollback()
-		return errLib.New("Failed to commit transaction", http.StatusInternalServerError)
+		return response, errLib.New("Failed to commit transaction", http.StatusInternalServerError)
 	}
 
-	return nil
+	return userInfo, nil
 }

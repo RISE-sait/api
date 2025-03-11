@@ -3,7 +3,7 @@ package event_staff
 import (
 	db "api/internal/domains/event_staff/persistence/sqlc/generated"
 	values "api/internal/domains/event_staff/values"
-	staffValues "api/internal/domains/user/values/staff"
+	staffValues "api/internal/domains/user/values"
 	errLib "api/internal/libs/errors"
 
 	"context"
@@ -60,7 +60,6 @@ func (r *EventStaffsRepository) GetStaffsAssignedToEvent(ctx context.Context, ev
 			IsActive:  dbStaff.IsActive,
 			CreatedAt: dbStaff.CreatedAt,
 			UpdatedAt: dbStaff.UpdatedAt,
-			RoleID:    dbStaff.RoleID,
 			RoleName:  dbStaff.RoleName,
 		}
 	}

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/lib/pq"
 )
 
 const deleteStaff = `-- name: DeleteStaff :execrows
@@ -27,20 +26,28 @@ func (q *Queries) DeleteStaff(ctx context.Context, id uuid.UUID) (int64, error) 
 }
 
 const getStaffByID = `-- name: GetStaffByID :one
-SELECT s.id, is_active, created_at, updated_at, role_id, sr.id, role_name, sr.role_name FROM users.staff s
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.first_name, u.last_name, u.age, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, s.is_active, sr.role_name FROM users.staff s
+    JOIN users.users u ON s.id = u.id
 JOIN users.staff_roles sr ON s.role_id = sr.id
 WHERE s.id = $1
 `
 
 type GetStaffByIDRow struct {
-	ID         uuid.UUID `json:"id"`
-	IsActive   bool      `json:"is_active"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
-	RoleID     uuid.UUID `json:"role_id"`
-	ID_2       uuid.UUID `json:"id_2"`
-	RoleName   string    `json:"role_name"`
-	RoleName_2 string    `json:"role_name_2"`
+	ID                       uuid.UUID      `json:"id"`
+	HubspotID                sql.NullString `json:"hubspot_id"`
+	CountryAlpha2Code        string         `json:"country_alpha2_code"`
+	FirstName                string         `json:"first_name"`
+	LastName                 string         `json:"last_name"`
+	Age                      int32          `json:"age"`
+	ParentID                 uuid.NullUUID  `json:"parent_id"`
+	Phone                    sql.NullString `json:"phone"`
+	Email                    sql.NullString `json:"email"`
+	HasMarketingEmailConsent bool           `json:"has_marketing_email_consent"`
+	HasSmsConsent            bool           `json:"has_sms_consent"`
+	CreatedAt                time.Time      `json:"created_at"`
+	UpdatedAt                time.Time      `json:"updated_at"`
+	IsActive                 bool           `json:"is_active"`
+	RoleName                 string         `json:"role_name"`
 }
 
 func (q *Queries) GetStaffByID(ctx context.Context, id uuid.UUID) (GetStaffByIDRow, error) {
@@ -48,44 +55,52 @@ func (q *Queries) GetStaffByID(ctx context.Context, id uuid.UUID) (GetStaffByIDR
 	var i GetStaffByIDRow
 	err := row.Scan(
 		&i.ID,
-		&i.IsActive,
+		&i.HubspotID,
+		&i.CountryAlpha2Code,
+		&i.FirstName,
+		&i.LastName,
+		&i.Age,
+		&i.ParentID,
+		&i.Phone,
+		&i.Email,
+		&i.HasMarketingEmailConsent,
+		&i.HasSmsConsent,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.RoleID,
-		&i.ID_2,
+		&i.IsActive,
 		&i.RoleName,
-		&i.RoleName_2,
 	)
 	return i, err
 }
 
 const getStaffs = `-- name: GetStaffs :many
-SELECT s.id, s.is_active, s.created_at, s.updated_at, s.role_id, u.hubspot_id, sr.role_name FROM users.staff s
+SELECT s.is_active, u.id, u.hubspot_id, u.country_alpha2_code, u.first_name, u.last_name, u.age, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, sr.role_name FROM users.staff s
 JOIN users.users u ON u.id = s.id
 JOIN users.staff_roles sr ON s.role_id = sr.id
 WHERE
 (sr.role_name = $1 OR $1 IS NULL)
-    AND
-    (hubspot_id = ANY($2::text[]) OR $2 IS NULL)
 `
 
-type GetStaffsParams struct {
-	Role       sql.NullString `json:"role"`
-	HubspotIds []string       `json:"hubspot_ids"`
-}
-
 type GetStaffsRow struct {
-	ID        uuid.UUID `json:"id"`
-	IsActive  bool      `json:"is_active"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	RoleID    uuid.UUID `json:"role_id"`
-	HubspotID string    `json:"hubspot_id"`
-	RoleName  string    `json:"role_name"`
+	IsActive                 bool           `json:"is_active"`
+	ID                       uuid.UUID      `json:"id"`
+	HubspotID                sql.NullString `json:"hubspot_id"`
+	CountryAlpha2Code        string         `json:"country_alpha2_code"`
+	FirstName                string         `json:"first_name"`
+	LastName                 string         `json:"last_name"`
+	Age                      int32          `json:"age"`
+	ParentID                 uuid.NullUUID  `json:"parent_id"`
+	Phone                    sql.NullString `json:"phone"`
+	Email                    sql.NullString `json:"email"`
+	HasMarketingEmailConsent bool           `json:"has_marketing_email_consent"`
+	HasSmsConsent            bool           `json:"has_sms_consent"`
+	CreatedAt                time.Time      `json:"created_at"`
+	UpdatedAt                time.Time      `json:"updated_at"`
+	RoleName                 string         `json:"role_name"`
 }
 
-func (q *Queries) GetStaffs(ctx context.Context, arg GetStaffsParams) ([]GetStaffsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getStaffs, arg.Role, pq.Array(arg.HubspotIds))
+func (q *Queries) GetStaffs(ctx context.Context, role sql.NullString) ([]GetStaffsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getStaffs, role)
 	if err != nil {
 		return nil, err
 	}
@@ -94,12 +109,20 @@ func (q *Queries) GetStaffs(ctx context.Context, arg GetStaffsParams) ([]GetStaf
 	for rows.Next() {
 		var i GetStaffsRow
 		if err := rows.Scan(
-			&i.ID,
 			&i.IsActive,
+			&i.ID,
+			&i.HubspotID,
+			&i.CountryAlpha2Code,
+			&i.FirstName,
+			&i.LastName,
+			&i.Age,
+			&i.ParentID,
+			&i.Phone,
+			&i.Email,
+			&i.HasMarketingEmailConsent,
+			&i.HasSmsConsent,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.RoleID,
-			&i.HubspotID,
 			&i.RoleName,
 		); err != nil {
 			return nil, err
@@ -115,18 +138,12 @@ func (q *Queries) GetStaffs(ctx context.Context, arg GetStaffsParams) ([]GetStaf
 	return items, nil
 }
 
-const updateStaff = `-- name: UpdateStaff :one
-WITH updated_staff AS (
-    UPDATE users.staff s
+const updateStaff = `-- name: UpdateStaff :execrows
+UPDATE users.staff s
     SET
         role_id = (SELECT id from users.staff_roles sr WHERE sr.role_name = $1),
         is_active = $2
     WHERE s.id = $3
-    RETURNING id, is_active, created_at, updated_at, role_id
-)
-SELECT us.id, us.is_active, us.created_at, us.updated_at, us.role_id, sr.role_name
-FROM updated_staff us
-JOIN users.staff_roles sr ON us.role_id = sr.id
 `
 
 type UpdateStaffParams struct {
@@ -135,25 +152,10 @@ type UpdateStaffParams struct {
 	ID       uuid.UUID `json:"id"`
 }
 
-type UpdateStaffRow struct {
-	ID        uuid.UUID `json:"id"`
-	IsActive  bool      `json:"is_active"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	RoleID    uuid.UUID `json:"role_id"`
-	RoleName  string    `json:"role_name"`
-}
-
-func (q *Queries) UpdateStaff(ctx context.Context, arg UpdateStaffParams) (UpdateStaffRow, error) {
-	row := q.db.QueryRowContext(ctx, updateStaff, arg.RoleName, arg.IsActive, arg.ID)
-	var i UpdateStaffRow
-	err := row.Scan(
-		&i.ID,
-		&i.IsActive,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.RoleID,
-		&i.RoleName,
-	)
-	return i, err
+func (q *Queries) UpdateStaff(ctx context.Context, arg UpdateStaffParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateStaff, arg.RoleName, arg.IsActive, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

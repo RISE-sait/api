@@ -7,29 +7,24 @@ import (
 	"api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/jwt"
-	"api/internal/services/hubspot"
 	"context"
+	"github.com/google/uuid"
 	"log"
 	"net/http"
-	"strconv"
 )
 
 type Service struct {
-	FirebaseService  *firebase.Service
-	HubSpotService   *hubspot.Service
-	UserRepo         *identityRepo.UsersRepository
-	StaffRepo        *identityRepo.StaffRepository
-	UserInfoTempRepo *identityRepo.PendingUsersRepo
+	FirebaseService *firebase.Service
+	UserRepo        *identityRepo.UsersRepository
+	StaffRepo       *identityRepo.StaffRepository
 }
 
 func NewAuthenticationService(container *di.Container) *Service {
 
 	return &Service{
-		FirebaseService:  firebase.NewFirebaseService(container),
-		UserRepo:         identityRepo.NewUserRepository(container),
-		StaffRepo:        identityRepo.NewStaffRepository(container),
-		UserInfoTempRepo: identityRepo.NewPendingUserInfoRepository(container),
-		HubSpotService:   container.HubspotService,
+		FirebaseService: firebase.NewFirebaseService(container),
+		UserRepo:        identityRepo.NewUserRepository(container.Queries.IdentityDb),
+		StaffRepo:       identityRepo.NewStaffRepository(container.Queries.IdentityDb),
 	}
 }
 
@@ -44,133 +39,77 @@ func NewAuthenticationService(container *di.Container) *Service {
 //   - *entity.UserInfo: The authenticated user's information.
 //   - string: The signed JWT token for authentication.
 //   - *errLib.CommonError: An error if authentication fails.
-func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string, identity.UserAuthenticationResponseInfo, *errLib.CommonError) {
+func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string, identity.UserReadInfo, *errLib.CommonError) {
 
-	var userInfo identity.UserAuthenticationResponseInfo
+	var responseUserInfo identity.UserReadInfo
 
 	email, err := s.FirebaseService.GetUserEmail(ctx, idToken)
 
 	if err != nil {
 		log.Println(err.Message)
-		return "", userInfo, err
+		return "", responseUserInfo, err
 	}
 
-	hubspotResponse, err := s.HubSpotService.GetUserByEmail(email)
+	userInfo, err := s.UserRepo.GetUserInfo(ctx, email, uuid.Nil)
 
 	if err != nil {
-		return "", userInfo, err
+		return "", responseUserInfo, err
 	}
-
-	hubspotId := hubspotResponse.HubSpotId
-
-	userId, newErr := s.UserRepo.GetUserIdByHubspotId(ctx, hubspotId)
-
-	if newErr != nil {
-		return "", userInfo, newErr
-	}
-
-	age, ageErr := strconv.Atoi(hubspotResponse.Properties.Age)
-	if ageErr != nil {
-		return "", userInfo, errLib.New("Invalid age. Internal error", http.StatusInternalServerError)
-	}
-
-	staffInfo, err := s.StaffRepo.GetStaffByUserId(ctx, userId)
 
 	jwtCustomClaims := jwtLib.CustomClaims{
-		UserID:    userId,
-		HubspotID: hubspotId,
+		UserID: userInfo.ID,
 	}
 
-	userInfo = identity.UserAuthenticationResponseInfo{
-		FirstName: hubspotResponse.Properties.FirstName,
-		LastName:  hubspotResponse.Properties.LastName,
-		Age:       age,
+	responseUserInfo = identity.UserReadInfo{
+		FirstName:   userInfo.FirstName,
+		LastName:    userInfo.LastName,
+		Age:         userInfo.Age,
+		CountryCode: userInfo.CountryCode,
+		Role:        userInfo.Role,
 	}
 
-	if hubspotResponse.Properties.CountryCode != "" {
-		userInfo.CountryCode = &hubspotResponse.Properties.CountryCode
-	}
-
-	if hubspotResponse.Properties.Phone != "" {
-		userInfo.Phone = &hubspotResponse.Properties.Phone
-	}
-
-	isParent := false
-
-	for _, result := range hubspotResponse.Associations.Contact.Result {
-		if result.Type == "child_parent" {
-			isParent = true
-			break
-		}
-	}
-
-	if err == nil {
-		jwtCustomClaims.StaffInfo = &jwtLib.StaffInfo{
-			Role:     staffInfo.RoleName,
-			IsActive: staffInfo.IsActive,
-		}
-
-		userInfo.Role = staffInfo.RoleName
-	} else if isParent {
-		userInfo.Role = "Parent"
-	} else {
-		userInfo.Role = "Athlete"
+	if responseUserInfo.Phone != nil {
+		responseUserInfo.Phone = userInfo.Phone
 	}
 
 	jwtToken, err := jwtLib.SignJWT(jwtCustomClaims)
 
 	if err != nil {
-		return "", userInfo, err
+		return "", responseUserInfo, err
 	}
 
-	return jwtToken, userInfo, nil
+	return jwtToken, responseUserInfo, nil
 }
 
-// AuthenticateChild authenticates a child user by verifying their association with a parent user in HubSpot.
+// AuthenticateChild authenticates a child user by verifying their association with a parent user.
 // It retrieves the child's user ID from the database and generates a JWT token.
 //
 // Parameters:
 //   - ctx: The request context.
-//   - childHubspotId: The HubSpot ID of the child user.
-//   - parentHubspotId: The HubSpot ID of the parent user.
+//   - childId: The ID of the child user.
+//   - parentEmail: The email of the parent user.
 //
 // Returns:
 //   - string: The signed JWT token for authentication.
 //   - *errLib.CommonError: An error if authentication fails.
-func (s *Service) AuthenticateChild(ctx context.Context, childHubspotId, parentHubspotId string) (string, identity.UserRegistrationRequestNecessaryInfo, *errLib.CommonError) {
+func (s *Service) AuthenticateChild(ctx context.Context, childId uuid.UUID, parentEmail string) (string, identity.UserReadInfo, *errLib.CommonError) {
 
-	var userInfo identity.UserRegistrationRequestNecessaryInfo
+	var userInfo identity.UserReadInfo
 
-	parentInfo, err := s.HubSpotService.GetUserById(parentHubspotId)
-
-	if err != nil {
+	if isConnected, err := s.UserRepo.GetIsActualParentChild(ctx, childId, parentEmail); err != nil {
 		return "", userInfo, err
-	}
-
-	if !isChildAssociated(parentInfo.Associations.Contact.Result, childHubspotId) {
+	} else if !isConnected {
 		return "", userInfo, errLib.New("child is not associated with the parent", http.StatusNotFound)
 	}
 
-	childId, newErr := s.UserRepo.GetUserIdByHubspotId(ctx, childHubspotId)
-
-	if newErr != nil {
-		return "", userInfo, newErr
-	}
-
-	childInfo, err := s.HubSpotService.GetUserById(childHubspotId)
+	userInfo, err := s.UserRepo.GetUserInfo(ctx, "", childId)
 
 	if err != nil {
 		return "", userInfo, err
 	}
 
-	userInfo = identity.UserRegistrationRequestNecessaryInfo{
-		FirstName: childInfo.Properties.FirstName,
-		LastName:  childInfo.Properties.LastName,
-	}
-
 	jwtCustomClaims := jwtLib.CustomClaims{
-		UserID:    childId,
-		HubspotID: childHubspotId,
+		UserID: childId,
 	}
 
 	jwtToken, err := jwtLib.SignJWT(jwtCustomClaims)
@@ -180,13 +119,4 @@ func (s *Service) AuthenticateChild(ctx context.Context, childHubspotId, parentH
 	}
 
 	return jwtToken, userInfo, nil
-}
-
-func isChildAssociated(contacts []hubspot.UserAssociationResult, childHubspotId string) bool {
-	for _, contact := range contacts {
-		if contact.Type == "child_parent" && contact.ID == childHubspotId {
-			return true
-		}
-	}
-	return false
 }

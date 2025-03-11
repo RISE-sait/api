@@ -97,6 +97,5 @@ func hasRequiredRole(staffInfo *jwtLib.StaffInfo, allowedRoles []string) bool {
 // addClaimsToContext adds the JWT claims to the request context.
 func addClaimsToContext(ctx context.Context, claims *jwtLib.JwtClaims) context.Context {
 	ctx = context.WithValue(ctx, UserIDKey, claims.UserID)
-	ctx = context.WithValue(ctx, HubspotIDKey, claims.HubspotID)
 	return ctx
 }

@@ -3,21 +3,22 @@
 //   sqlc v1.27.0
 // source: user_queries.sql
 
-package db
+package db_identity
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 )
 
-const createAthleteInfo = `-- name: CreateAthleteInfo :execrows
+const createAthlete = `-- name: CreateAthlete :execrows
 INSERT INTO users.athletes (id)
 VALUES ($1)
 `
 
-func (q *Queries) CreateAthleteInfo(ctx context.Context, id uuid.UUID) (int64, error) {
-	result, err := q.db.ExecContext(ctx, createAthleteInfo, id)
+func (q *Queries) CreateAthlete(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, createAthlete, id)
 	if err != nil {
 		return 0, err
 	}
@@ -25,56 +26,155 @@ func (q *Queries) CreateAthleteInfo(ctx context.Context, id uuid.UUID) (int64, e
 }
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users.users (hubspot_id) VALUES ($1)
-RETURNING id, hubspot_id, created_at, updated_at
+INSERT INTO users.users (hubspot_id, country_alpha2_code, email, age, phone, has_marketing_email_consent,
+                         has_sms_consent, parent_id, first_name, last_name)
+VALUES ($1, $2, $3, $4, $5,
+        $6, $7, (SELECT pu.id from users.users pu WHERE $10 = pu.email), $8, $9)
+RETURNING id, hubspot_id, country_alpha2_code, first_name, last_name, age, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at
 `
 
-func (q *Queries) CreateUser(ctx context.Context, hubspotID string) (UsersUser, error) {
-	row := q.db.QueryRowContext(ctx, createUser, hubspotID)
+type CreateUserParams struct {
+	HubspotID                sql.NullString `json:"hubspot_id"`
+	CountryAlpha2Code        string         `json:"country_alpha2_code"`
+	Email                    sql.NullString `json:"email"`
+	Age                      int32          `json:"age"`
+	Phone                    sql.NullString `json:"phone"`
+	HasMarketingEmailConsent bool           `json:"has_marketing_email_consent"`
+	HasSmsConsent            bool           `json:"has_sms_consent"`
+	FirstName                string         `json:"first_name"`
+	LastName                 string         `json:"last_name"`
+	ParentEmail              sql.NullString `json:"parent_email"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (UsersUser, error) {
+	row := q.db.QueryRowContext(ctx, createUser,
+		arg.HubspotID,
+		arg.CountryAlpha2Code,
+		arg.Email,
+		arg.Age,
+		arg.Phone,
+		arg.HasMarketingEmailConsent,
+		arg.HasSmsConsent,
+		arg.FirstName,
+		arg.LastName,
+		arg.ParentEmail,
+	)
 	var i UsersUser
 	err := row.Scan(
 		&i.ID,
 		&i.HubspotID,
+		&i.CountryAlpha2Code,
+		&i.FirstName,
+		&i.LastName,
+		&i.Age,
+		&i.ParentID,
+		&i.Phone,
+		&i.Email,
+		&i.HasMarketingEmailConsent,
+		&i.HasSmsConsent,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const getAthleteInfoByUserID = `-- name: GetAthleteInfoByUserID :one
-SELECT id, wins, losses, points, steals, assists, rebounds, created_at, updated_at
+const getIsActualParentChild = `-- name: GetIsActualParentChild :one
+SELECT COUNT(*) > 0
+FROM users.users parents
+         JOIN users.users children
+              ON children.parent_id = parents.id
+WHERE parents.email = $1
+AND children.id = $2
+`
+
+type GetIsActualParentChildParams struct {
+	ParentEmail sql.NullString `json:"parent_email"`
+	ChildID     uuid.UUID      `json:"child_id"`
+}
+
+func (q *Queries) GetIsActualParentChild(ctx context.Context, arg GetIsActualParentChildParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, getIsActualParentChild, arg.ParentEmail, arg.ChildID)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const getIsAthleteByID = `-- name: GetIsAthleteByID :one
+SELECT COUNT(*) > 0
 FROM users.athletes
 WHERE id = $1
-limit 1
 `
 
-func (q *Queries) GetAthleteInfoByUserID(ctx context.Context, id uuid.UUID) (UsersAthlete, error) {
-	row := q.db.QueryRowContext(ctx, getAthleteInfoByUserID, id)
-	var i UsersAthlete
+func (q *Queries) GetIsAthleteByID(ctx context.Context, id uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, getIsAthleteByID, id)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const getIsUserAParent = `-- name: GetIsUserAParent :one
+SELECT COUNT(*) > 0
+FROM users.users parents
+JOIN users.users children
+ON children.parent_id = parents.id
+WHERE parents.id = $1
+`
+
+func (q *Queries) GetIsUserAParent(ctx context.Context, id uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, getIsUserAParent, id)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, hubspot_id, country_alpha2_code, first_name, last_name, age, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at
+FROM users.users
+WHERE email = $1
+`
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email sql.NullString) (UsersUser, error) {
+	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	var i UsersUser
 	err := row.Scan(
 		&i.ID,
-		&i.Wins,
-		&i.Losses,
-		&i.Points,
-		&i.Steals,
-		&i.Assists,
-		&i.Rebounds,
+		&i.HubspotID,
+		&i.CountryAlpha2Code,
+		&i.FirstName,
+		&i.LastName,
+		&i.Age,
+		&i.ParentID,
+		&i.Phone,
+		&i.Email,
+		&i.HasMarketingEmailConsent,
+		&i.HasSmsConsent,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const getUserByHubSpotId = `-- name: GetUserByHubSpotId :one
-SELECT id, hubspot_id, created_at, updated_at FROM users.users WHERE hubspot_id = $1 LIMIT 1
+const getUserByID = `-- name: GetUserByID :one
+SELECT id, hubspot_id, country_alpha2_code, first_name, last_name, age, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at
+FROM users.users
+WHERE id = $1
 `
 
-func (q *Queries) GetUserByHubSpotId(ctx context.Context, hubspotID string) (UsersUser, error) {
-	row := q.db.QueryRowContext(ctx, getUserByHubSpotId, hubspotID)
+func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (UsersUser, error) {
+	row := q.db.QueryRowContext(ctx, getUserByID, id)
 	var i UsersUser
 	err := row.Scan(
 		&i.ID,
 		&i.HubspotID,
+		&i.CountryAlpha2Code,
+		&i.FirstName,
+		&i.LastName,
+		&i.Age,
+		&i.ParentID,
+		&i.Phone,
+		&i.Email,
+		&i.HasMarketingEmailConsent,
+		&i.HasSmsConsent,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -88,8 +188,8 @@ WHERE id = $2
 `
 
 type UpdateUserHubspotIdParams struct {
-	HubspotID string    `json:"hubspot_id"`
-	ID        uuid.UUID `json:"id"`
+	HubspotID sql.NullString `json:"hubspot_id"`
+	ID        uuid.UUID      `json:"id"`
 }
 
 func (q *Queries) UpdateUserHubspotId(ctx context.Context, arg UpdateUserHubspotIdParams) (int64, error) {

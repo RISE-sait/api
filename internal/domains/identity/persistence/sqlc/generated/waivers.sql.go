@@ -3,32 +3,13 @@
 //   sqlc v1.27.0
 // source: waivers.sql
 
-package db
+package db_identity
 
 import (
 	"context"
 
 	"github.com/google/uuid"
 )
-
-const createPendingUserWaiverSignedStatus = `-- name: CreatePendingUserWaiverSignedStatus :execrows
-INSERT INTO waiver.pending_users_waiver_signing (user_id, waiver_id, is_signed)
-VALUES ($1, $2, $3)
-`
-
-type CreatePendingUserWaiverSignedStatusParams struct {
-	UserID   uuid.UUID `json:"user_id"`
-	WaiverID uuid.UUID `json:"waiver_id"`
-	IsSigned bool      `json:"is_signed"`
-}
-
-func (q *Queries) CreatePendingUserWaiverSignedStatus(ctx context.Context, arg CreatePendingUserWaiverSignedStatusParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, createPendingUserWaiverSignedStatus, arg.UserID, arg.WaiverID, arg.IsSigned)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
-}
 
 const createWaiverSignedStatus = `-- name: CreateWaiverSignedStatus :execrows
 INSERT INTO waiver.waiver_signing (user_id, waiver_id, is_signed)
@@ -50,18 +31,18 @@ func (q *Queries) CreateWaiverSignedStatus(ctx context.Context, arg CreateWaiver
 }
 
 const getWaiver = `-- name: GetWaiver :one
-SELECT id, waiver_url, created_at, updated_at, waiver_name FROM waiver.waiver WHERE waiver_url = $1
+SELECT id, waiver_url, waiver_name, created_at, updated_at FROM waiver.waiver WHERE waiver_url = $1
 `
 
-func (q *Queries) GetWaiver(ctx context.Context, waiverUrl string) (Waiver, error) {
+func (q *Queries) GetWaiver(ctx context.Context, waiverUrl string) (WaiverWaiver, error) {
 	row := q.db.QueryRowContext(ctx, getWaiver, waiverUrl)
-	var i Waiver
+	var i WaiverWaiver
 	err := row.Scan(
 		&i.ID,
 		&i.WaiverUrl,
+		&i.WaiverName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.WaiverName,
 	)
 	return i, err
 }

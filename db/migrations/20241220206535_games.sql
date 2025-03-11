@@ -3,8 +3,7 @@
 CREATE TABLE games
 (
     id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name       VARCHAR(255) NOT NULL,
-    video_link TEXT
+    name VARCHAR(255) NOT NULL UNIQUE
 );
 -- +goose StatementEnd
 

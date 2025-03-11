@@ -2,7 +2,7 @@ package event_staff
 
 import (
 	values "api/internal/domains/event_staff/values"
-	staffValues "api/internal/domains/user/values/staff"
+	staffValues "api/internal/domains/user/values"
 	errLib "api/internal/libs/errors"
 	"context"
 	"github.com/google/uuid"

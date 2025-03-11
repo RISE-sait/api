@@ -14,7 +14,7 @@ type UserNecessaryInfoRequestDto struct {
 	Age         int    `json:"age" validate:"required,gt=0"`
 }
 
-func (dto *UserNecessaryInfoRequestDto) Validate() *errLib.CommonError {
+func (dto UserNecessaryInfoRequestDto) Validate() *errLib.CommonError {
 	if err := validators.ValidateDto(&dto); err != nil {
 		return err
 	}

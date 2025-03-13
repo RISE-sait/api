@@ -88,7 +88,7 @@ func (h *PlansHandlers) GetMembershipPlans(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	responseBody := make([]*membership_plan.PlanResponse, len(plans))
+	responseBody := make([]membership_plan.PlanResponse, len(plans))
 
 	for i, plan := range plans {
 		responseBody[i] = membership_plan.NewPlanResponse(plan)
@@ -146,7 +146,7 @@ func (h *PlansHandlers) UpdateMembershipPlan(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := h.Repo.UpdateMembershipPlan(r.Context(), plan); err != nil {
+	if err = h.Repo.UpdateMembershipPlan(r.Context(), plan); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

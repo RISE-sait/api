@@ -33,14 +33,10 @@ func (r *Repository) Create(c context.Context, membership *values.CreateValues) 
 		},
 	}
 
-	row, err := r.Queries.CreateMembership(c, dbParams)
+	_, err := r.Queries.CreateMembership(c, dbParams)
 
 	if err != nil {
 		return errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-
-	if row == 0 {
-		return errLib.New("Membership not created", http.StatusInternalServerError)
 	}
 
 	return nil
@@ -66,7 +62,7 @@ func (r *Repository) GetByID(c context.Context, id uuid.UUID) (*values.ReadValue
 }
 
 func (r *Repository) List(c context.Context) ([]values.ReadValues, *errLib.CommonError) {
-	dbMemberships, err := r.Queries.GetAllMemberships(c)
+	dbMemberships, err := r.Queries.GetMemberships(c)
 
 	if err != nil {
 		log.Println("Failed to get memberships: ", err.Error())

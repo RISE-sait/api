@@ -20,7 +20,7 @@ func NewRepository(container *di.Container) *Repository {
 	}
 }
 
-func (r *Repository) Purchase(c context.Context, details *values.MembershipPlanPurchaseInfo) *errLib.CommonError {
+func (r *Repository) Purchase(c context.Context, details values.MembershipPlanPurchaseInfo) *errLib.CommonError {
 
 	dbParams := db.PurchaseMembershipParams{
 		CustomerID:       details.CustomerId,

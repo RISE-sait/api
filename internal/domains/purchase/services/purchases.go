@@ -23,7 +23,7 @@ func NewPurchaseService(container *di.Container) *Service {
 		MembershipPlansRepo: membership.NewMembershipPlansRepository(container)}
 }
 
-func (s *Service) Purchase(ctx context.Context, details *values.MembershipPlanPurchaseInfo) *errLib.CommonError {
+func (s *Service) Purchase(ctx context.Context, details values.MembershipPlanPurchaseInfo) *errLib.CommonError {
 
 	plan, err := s.MembershipPlansRepo.GetMembershipPlanById(ctx, details.MembershipPlanId)
 
@@ -31,28 +31,25 @@ func (s *Service) Purchase(ctx context.Context, details *values.MembershipPlanPu
 		return err
 	}
 
-	amtPeriods := plan.AmtPeriods
+	amtPeriods := int(plan.AmtPeriods)
 	frequency := plan.PaymentFrequency
 
-	if frequency != nil && amtPeriods != nil {
+	startDate := details.StartDate
 
-		startDate := details.StartDate
+	var renewalDate time.Time
 
-		var renewalDate time.Time
-
-		switch *frequency {
-		case string(db.PaymentFrequencyDay):
-			renewalDate = startDate.AddDate(0, 0, *amtPeriods)
-		case string(db.PaymentFrequencyWeek):
-			renewalDate = startDate.AddDate(0, 0, *amtPeriods*7)
-		case string(db.PaymentFrequencyMonth):
-			renewalDate = startDate.AddDate(0, *amtPeriods, 0)
-		default:
-			return errLib.New("Invalid payment frequency", http.StatusBadRequest)
-		}
-
-		details.RenewalDate = &renewalDate
+	switch frequency {
+	case string(db.PaymentFrequencyDay):
+		renewalDate = startDate.AddDate(0, 0, amtPeriods)
+	case string(db.PaymentFrequencyWeek):
+		renewalDate = startDate.AddDate(0, 0, amtPeriods*7)
+	case string(db.PaymentFrequencyMonth):
+		renewalDate = startDate.AddDate(0, amtPeriods, 0)
+	default:
+		return errLib.New("Invalid payment frequency", http.StatusBadRequest)
 	}
+
+	details.RenewalDate = &renewalDate
 
 	return s.PurchaseRepo.Purchase(ctx, details)
 

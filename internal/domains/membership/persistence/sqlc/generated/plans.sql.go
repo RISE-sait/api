@@ -7,22 +7,26 @@ package db
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 const createMembershipPlan = `-- name: CreateMembershipPlan :execrows
-INSERT INTO membership.membership_plans (membership_id, name, price, payment_frequency, amt_periods)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO membership.membership_plans (membership_id, name, price, payment_frequency,
+                                         amt_periods, auto_renew, joining_fee)
+VALUES ($1, $2, $3, $4,
+        $5, $6, $7)
 `
 
 type CreateMembershipPlanParams struct {
-	MembershipID     uuid.UUID            `json:"membership_id"`
-	Name             string               `json:"name"`
-	Price            int32                `json:"price"`
-	PaymentFrequency NullPaymentFrequency `json:"payment_frequency"`
-	AmtPeriods       sql.NullInt32        `json:"amt_periods"`
+	MembershipID     uuid.UUID        `json:"membership_id"`
+	Name             string           `json:"name"`
+	Price            decimal.Decimal  `json:"price"`
+	PaymentFrequency PaymentFrequency `json:"payment_frequency"`
+	AmtPeriods       int32            `json:"amt_periods"`
+	AutoRenew        bool             `json:"auto_renew"`
+	JoiningFee       decimal.Decimal  `json:"joining_fee"`
 }
 
 func (q *Queries) CreateMembershipPlan(ctx context.Context, arg CreateMembershipPlanParams) (int64, error) {
@@ -32,6 +36,8 @@ func (q *Queries) CreateMembershipPlan(ctx context.Context, arg CreateMembership
 		arg.Price,
 		arg.PaymentFrequency,
 		arg.AmtPeriods,
+		arg.AutoRenew,
+		arg.JoiningFee,
 	)
 	if err != nil {
 		return 0, err
@@ -117,17 +123,20 @@ func (q *Queries) GetMembershipPlans(ctx context.Context, membershipID uuid.UUID
 
 const updateMembershipPlan = `-- name: UpdateMembershipPlan :execrows
 UPDATE membership.membership_plans
-SET name = $1, price = $2, payment_frequency = $3, amt_periods = $4, membership_id = $5
-WHERE id = $6
+SET name = $1, price = $2, payment_frequency = $3, amt_periods = $4, membership_id = $5,
+    auto_renew = $6, joining_fee = $7, updated_at = CURRENT_TIMESTAMP
+WHERE id = $8
 `
 
 type UpdateMembershipPlanParams struct {
-	Name             string               `json:"name"`
-	Price            int32                `json:"price"`
-	PaymentFrequency NullPaymentFrequency `json:"payment_frequency"`
-	AmtPeriods       sql.NullInt32        `json:"amt_periods"`
-	MembershipID     uuid.UUID            `json:"membership_id"`
-	ID               uuid.UUID            `json:"id"`
+	Name             string           `json:"name"`
+	Price            decimal.Decimal  `json:"price"`
+	PaymentFrequency PaymentFrequency `json:"payment_frequency"`
+	AmtPeriods       int32            `json:"amt_periods"`
+	MembershipID     uuid.UUID        `json:"membership_id"`
+	AutoRenew        bool             `json:"auto_renew"`
+	JoiningFee       decimal.Decimal  `json:"joining_fee"`
+	ID               uuid.UUID        `json:"id"`
 }
 
 func (q *Queries) UpdateMembershipPlan(ctx context.Context, arg UpdateMembershipPlanParams) (int64, error) {
@@ -137,6 +146,8 @@ func (q *Queries) UpdateMembershipPlan(ctx context.Context, arg UpdateMembership
 		arg.PaymentFrequency,
 		arg.AmtPeriods,
 		arg.MembershipID,
+		arg.AutoRenew,
+		arg.JoiningFee,
 		arg.ID,
 	)
 	if err != nil {

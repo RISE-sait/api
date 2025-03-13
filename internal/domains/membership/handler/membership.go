@@ -3,7 +3,7 @@ package membership
 import (
 	"api/internal/di"
 	dto "api/internal/domains/membership/dto/membership"
-	service "api/internal/domains/membership/services"
+	repo "api/internal/domains/membership/persistence/repositories"
 	values "api/internal/domains/membership/values"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
@@ -13,11 +13,11 @@ import (
 )
 
 type Handlers struct {
-	Service *service.Service
+	Repo *repo.Repository
 }
 
 func NewHandlers(container *di.Container) *Handlers {
-	return &Handlers{Service: service.NewMembershipService(container)}
+	return &Handlers{Repo: repo.NewMembershipsRepository(container)}
 }
 
 // CreateMembership creates a new membership.
@@ -47,7 +47,7 @@ func (h *Handlers) CreateMembership(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Service.Create(r.Context(), membership); err != nil {
+	if err = h.Repo.Create(r.Context(), membership); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -76,7 +76,7 @@ func (h *Handlers) GetMembershipById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	membership, err := h.Service.GetById(r.Context(), id)
+	membership, err := h.Repo.GetByID(r.Context(), id)
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
@@ -97,7 +97,7 @@ func (h *Handlers) GetMembershipById(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /memberships [get]
 func (h *Handlers) GetMemberships(w http.ResponseWriter, r *http.Request) {
-	memberships, err := h.Service.GetMemberships(r.Context())
+	memberships, err := h.Repo.List(r.Context())
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
@@ -143,7 +143,7 @@ func (h *Handlers) UpdateMembership(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Service.Update(r.Context(), membershipUpdate); err != nil {
+	if err = h.Repo.Update(r.Context(), membershipUpdate); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -173,7 +173,7 @@ func (h *Handlers) DeleteMembership(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Service.Delete(r.Context(), id); err != nil {
+	if err = h.Repo.Delete(r.Context(), id); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

@@ -24,16 +24,18 @@ func (dto *MembershipPlanRequestDto) validate() *errLib.CommonError {
 	return nil
 }
 
-func (dto *MembershipPlanRequestDto) ToPurchaseRequestInfo(customerId uuid.UUID) (*values.MembershipPlanPurchaseInfo, *errLib.CommonError) {
+func (dto *MembershipPlanRequestDto) ToPurchaseRequestInfo(customerId uuid.UUID) (values.MembershipPlanPurchaseInfo, *errLib.CommonError) {
+
+	var vo values.MembershipPlanPurchaseInfo
 
 	if err := dto.validate(); err != nil {
-		return nil, err
+		return vo, err
 	}
 
 	startDate, err := validators.ParseDateTime(dto.StartDate)
 
 	if err != nil {
-		return nil, err
+		return vo, err
 	}
 
 	if !db.MembershipStatus(dto.Status).Valid() {
@@ -44,13 +46,13 @@ func (dto *MembershipPlanRequestDto) ToPurchaseRequestInfo(customerId uuid.UUID)
 			validStatuses[i] = string(status)
 		}
 
-		return nil, errLib.New(
+		return vo, errLib.New(
 			fmt.Sprintf("invalid status: %s. valid statuses are: %s", dto.Status, strings.Join(validStatuses, ", ")),
 			http.StatusBadRequest,
 		)
 	}
 
-	return &values.MembershipPlanPurchaseInfo{
+	return values.MembershipPlanPurchaseInfo{
 		CustomerId:       customerId,
 		MembershipPlanId: dto.MembershipPlanID,
 		StartDate:        startDate,

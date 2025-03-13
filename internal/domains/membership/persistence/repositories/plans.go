@@ -8,10 +8,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/google/uuid"
 	"log"
 	"net/http"
-
-	"github.com/google/uuid"
 )
 
 type PlansRepository struct {
@@ -24,27 +23,18 @@ func NewMembershipPlansRepository(container *di.Container) *PlansRepository {
 	}
 }
 
-func (r *PlansRepository) CreateMembershipPlan(c context.Context, membershipPlan *values.PlanCreateValues) *errLib.CommonError {
-
-	var periods int32
-
-	if membershipPlan.AmtPeriods != nil {
-		periods = int32(*membershipPlan.AmtPeriods)
-	}
+func (r *PlansRepository) CreateMembershipPlan(c context.Context, membershipPlan values.PlanCreateValues) *errLib.CommonError {
 
 	dbParams := db.CreateMembershipPlanParams{
-		Name:  membershipPlan.Name,
-		Price: int32(membershipPlan.Price),
-		PaymentFrequency: db.NullPaymentFrequency{
-			PaymentFrequency: db.PaymentFrequency(*membershipPlan.PaymentFrequency),
-			Valid:            true,
-		},
-		AmtPeriods: sql.NullInt32{
-			Int32: periods,
-			Valid: membershipPlan.AmtPeriods != nil,
-		},
-		MembershipID: membershipPlan.MembershipID,
+		MembershipID:     membershipPlan.MembershipID,
+		Name:             membershipPlan.Name,
+		Price:            membershipPlan.Price,
+		PaymentFrequency: db.PaymentFrequency(membershipPlan.PaymentFrequency),
+		AmtPeriods:       membershipPlan.AmtPeriods,
+		AutoRenew:        membershipPlan.IsAutoRenew,
+		JoiningFee:       membershipPlan.JoiningFees,
 	}
+
 	row, err := r.Queries.CreateMembershipPlan(c, dbParams)
 
 	if err != nil {
@@ -59,34 +49,34 @@ func (r *PlansRepository) CreateMembershipPlan(c context.Context, membershipPlan
 	return nil
 }
 
-func (r *PlansRepository) GetMembershipPlanById(ctx context.Context, id uuid.UUID) (*values.PlanReadValues, *errLib.CommonError) {
+func (r *PlansRepository) GetMembershipPlanById(ctx context.Context, id uuid.UUID) (values.PlanReadValues, *errLib.CommonError) {
 	dbPlan, err := r.Queries.GetMembershipPlanById(ctx, id)
+
+	var response values.PlanReadValues
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errLib.New("Plan not found", http.StatusNotFound)
+			return response, errLib.New("Plan not found", http.StatusNotFound)
 		}
-		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+		return response, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
 	plan := values.PlanReadValues{
-		ID:           dbPlan.ID,
-		Name:         dbPlan.Name,
-		MembershipID: dbPlan.MembershipID,
-		Price:        int64(dbPlan.Price),
+		ID: dbPlan.ID,
+		PlanDetails: values.PlanDetails{
+			MembershipID:     dbPlan.MembershipID,
+			Name:             dbPlan.Name,
+			Price:            dbPlan.Price,
+			PaymentFrequency: string(dbPlan.PaymentFrequency),
+			AmtPeriods:       dbPlan.AmtPeriods,
+			IsAutoRenew:      dbPlan.AutoRenew,
+			JoiningFees:      dbPlan.JoiningFee,
+		},
+		CreatedAt: dbPlan.CreatedAt,
+		UpdatedAt: dbPlan.UpdatedAt,
 	}
 
-	if dbPlan.AmtPeriods.Valid {
-		amtPeriods := int(dbPlan.AmtPeriods.Int32)
-		plan.AmtPeriods = &amtPeriods
-	}
-
-	if dbPlan.PaymentFrequency.Valid {
-		freq := string(dbPlan.PaymentFrequency.PaymentFrequency)
-		plan.PaymentFrequency = &freq
-	}
-
-	return &plan, nil
+	return plan, nil
 }
 
 func (r *PlansRepository) GetMembershipPlanPaymentFrequencies() []string {
@@ -115,20 +105,18 @@ func (r *PlansRepository) GetMembershipPlans(ctx context.Context, membershipId u
 	for i, dbPlan := range dbPlans {
 
 		plan := values.PlanReadValues{
-			ID:           dbPlan.ID,
-			Name:         dbPlan.Name,
-			MembershipID: dbPlan.MembershipID,
-			Price:        int64(dbPlan.Price),
-		}
-
-		if dbPlan.AmtPeriods.Valid {
-			amtPeriods := int(dbPlan.AmtPeriods.Int32)
-			plan.AmtPeriods = &amtPeriods
-		}
-
-		if dbPlan.PaymentFrequency.Valid {
-			freq := string(dbPlan.PaymentFrequency.PaymentFrequency)
-			plan.PaymentFrequency = &freq
+			ID: dbPlan.ID,
+			PlanDetails: values.PlanDetails{
+				MembershipID:     dbPlan.MembershipID,
+				Name:             dbPlan.Name,
+				Price:            dbPlan.Price,
+				PaymentFrequency: string(dbPlan.PaymentFrequency),
+				AmtPeriods:       dbPlan.AmtPeriods,
+				JoiningFees:      dbPlan.JoiningFee,
+				IsAutoRenew:      dbPlan.AutoRenew,
+			},
+			CreatedAt: dbPlan.CreatedAt,
+			UpdatedAt: dbPlan.UpdatedAt,
 		}
 
 		plans[i] = plan
@@ -137,27 +125,15 @@ func (r *PlansRepository) GetMembershipPlans(ctx context.Context, membershipId u
 	return plans, nil
 }
 
-func (r *PlansRepository) UpdateMembershipPlan(c context.Context, plan *values.PlanUpdateValues) *errLib.CommonError {
-
-	var periods int32
-
-	if plan.AmtPeriods != nil {
-		periods = int32(*plan.AmtPeriods)
-	}
+func (r *PlansRepository) UpdateMembershipPlan(c context.Context, plan values.PlanUpdateValues) *errLib.CommonError {
 
 	dbMembershipParams := db.UpdateMembershipPlanParams{
-		Name:  plan.Name,
-		Price: int32(plan.Price),
-		PaymentFrequency: db.NullPaymentFrequency{
-			PaymentFrequency: db.PaymentFrequency(*plan.PaymentFrequency),
-			Valid:            true,
-		},
-		AmtPeriods: sql.NullInt32{
-			Int32: periods,
-			Valid: plan.AmtPeriods != nil,
-		},
-		MembershipID: plan.MembershipID,
-		ID:           plan.ID,
+		Name:             plan.Name,
+		Price:            plan.Price,
+		PaymentFrequency: db.PaymentFrequency(plan.PaymentFrequency),
+		AmtPeriods:       plan.AmtPeriods,
+		MembershipID:     plan.MembershipID,
+		ID:               plan.ID,
 	}
 
 	row, err := r.Queries.UpdateMembershipPlan(c, dbMembershipParams)

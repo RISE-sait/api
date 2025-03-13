@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.27.0
 
-package db
+package db_seed
 
 import (
 	"database/sql"
@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 )
 
 type AuditStatus string
@@ -463,8 +462,8 @@ type MembershipMembership struct {
 type MembershipMembershipPlan struct {
 	ID               uuid.UUID        `json:"id"`
 	Name             string           `json:"name"`
-	Price            decimal.Decimal  `json:"price"`
-	JoiningFee       decimal.Decimal  `json:"joining_fee"`
+	Price            string           `json:"price"`
+	JoiningFee       string           `json:"joining_fee"`
 	AutoRenew        bool             `json:"auto_renew"`
 	MembershipID     uuid.UUID        `json:"membership_id"`
 	PaymentFrequency PaymentFrequency `json:"payment_frequency"`
@@ -474,14 +473,13 @@ type MembershipMembershipPlan struct {
 }
 
 type Practice struct {
-	ID                             uuid.UUID     `json:"id"`
-	Name                           string        `json:"name"`
-	Description                    string        `json:"description"`
-	Level                          PracticeLevel `json:"level"`
-	ShouldEmailBookingNotification sql.NullBool  `json:"should_email_booking_notification"`
-	Capacity                       int32         `json:"capacity"`
-	CreatedAt                      time.Time     `json:"created_at"`
-	UpdatedAt                      time.Time     `json:"updated_at"`
+	ID          uuid.UUID     `json:"id"`
+	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	Level       PracticeLevel `json:"level"`
+	Capacity    int32         `json:"capacity"`
+	CreatedAt   time.Time     `json:"created_at"`
+	UpdatedAt   time.Time     `json:"updated_at"`
 }
 
 type PracticeMembership struct {
@@ -542,6 +540,7 @@ type UsersUser struct {
 	HasSmsConsent            bool           `json:"has_sms_consent"`
 	CreatedAt                time.Time      `json:"created_at"`
 	UpdatedAt                time.Time      `json:"updated_at"`
+	Gender                   sql.NullString `json:"gender"`
 }
 
 type WaiverWaiver struct {

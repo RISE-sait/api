@@ -2,30 +2,32 @@ package membership
 
 import (
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+	"time"
 )
 
-type PlanCreateValues struct {
+type PlanDetails struct {
 	MembershipID     uuid.UUID
 	Name             string
-	Price            int64
-	PaymentFrequency *string
-	AmtPeriods       *int
+	Price            decimal.Decimal
+	JoiningFees      decimal.Decimal
+	PaymentFrequency string
+	AmtPeriods       int32
+	IsAutoRenew      bool
+}
+
+type PlanCreateValues struct {
+	PlanDetails
 }
 
 type PlanUpdateValues struct {
-	ID               uuid.UUID
-	MembershipID     uuid.UUID
-	Name             string
-	Price            int64
-	PaymentFrequency *string
-	AmtPeriods       *int
+	ID uuid.UUID
+	PlanDetails
 }
 
 type PlanReadValues struct {
-	ID               uuid.UUID
-	MembershipID     uuid.UUID
-	Name             string
-	Price            int64
-	PaymentFrequency *string
-	AmtPeriods       *int
+	ID uuid.UUID
+	PlanDetails
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }

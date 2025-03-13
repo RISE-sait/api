@@ -1,4 +1,4 @@
-package main
+package data
 
 import (
 	"encoding/csv"
@@ -12,30 +12,19 @@ import (
 type Client struct {
 	FirstName        string
 	LastName         string
+	Age              int
+	CountryAlpha2    string
 	Email            string
 	Phone            string
 	Gender           string
-	DateOfBirth      time.Time
-	Street           string
-	State            string
-	City             string
-	Country          string
-	ZipCode          string
-	Source           string
-	LastContacted    time.Time
-	TotalBookings    int
-	LastBooking      time.Time
-	TotalAttendances int
-	MembershipName   string
-	MembershipPlan   string
+	MembershipName   *string
+	MembershipPlan   *string
 	MembershipExpiry time.Time
 	CreditsRemaining int
 	StudioWaiver     bool
 	EmailConsent     bool
 	SMSConsent       bool
 }
-
-var clients []Client
 
 // Function to parse integers safely
 func parseInt(s string) int {
@@ -51,8 +40,8 @@ func parseBool(s string) bool {
 	return s == "true" || s == "Yes"
 }
 
-// Function to extract data from the CSV file
-func extract() ([]Client, error) {
+// GetClients : extract clients data from the CSV file
+func GetClients() ([]Client, error) {
 	// Open the CSV file
 	file, err := os.Open("cmd/seed/clients.csv")
 	if err != nil {
@@ -80,15 +69,34 @@ func extract() ([]Client, error) {
 		}
 
 		// Parse date fields
-		dateOfBirth, _ := time.Parse("2006-01-02", record[6])
-		lastContacted, _ := time.Parse("2006-01-02", record[12])
-		lastBooking, _ := time.Parse("2006-01-02", record[15])
-		membershipExpiry, _ := time.Parse("2006-01-02", record[18])
+		membershipExpiry, _ := time.Parse("4/22/2025", record[21])
+
+		membershipName := record[19]
+		membershipPlan := record[20]
 
 		// Parse booleans
-		studioWaiver := parseBool(record[19])
-		emailConsent := parseBool(record[20])
-		smsConsent := parseBool(record[21])
+		studioWaiver := parseBool(record[23])
+		emailConsent := parseBool(record[24])
+		smsConsent := parseBool(record[25])
+
+		ageStr := record[6]
+
+		age, err := strconv.Atoi(ageStr)
+
+		if err != nil {
+			age = 0
+		}
+
+		var membershipNamePtr *string
+		var membershipPlanPtr *string
+
+		if membershipName != "" {
+			membershipNamePtr = &membershipName
+		}
+
+		if membershipPlan != "" {
+			membershipPlanPtr = &membershipPlan
+		}
 
 		// Create a new Client struct
 		client := Client{
@@ -96,20 +104,11 @@ func extract() ([]Client, error) {
 			LastName:         record[2],
 			Email:            record[3],
 			Phone:            record[4],
+			Age:              age,
 			Gender:           record[5],
-			DateOfBirth:      dateOfBirth,
-			Street:           record[7],
-			State:            record[8],
-			City:             record[9],
-			Country:          record[10],
-			ZipCode:          record[11],
-			Source:           record[12],
-			LastContacted:    lastContacted,
-			TotalBookings:    parseInt(record[13]),
-			LastBooking:      lastBooking,
-			TotalAttendances: parseInt(record[16]),
-			MembershipName:   record[17],
-			MembershipPlan:   record[18],
+			CountryAlpha2:    "CA",
+			MembershipName:   membershipNamePtr,
+			MembershipPlan:   membershipPlanPtr,
 			MembershipExpiry: membershipExpiry,
 			CreditsRemaining: parseInt(record[19]),
 			StudioWaiver:     studioWaiver,

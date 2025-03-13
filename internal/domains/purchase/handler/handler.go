@@ -50,6 +50,7 @@ func (h *Handlers) PurchaseMembership(w http.ResponseWriter, r *http.Request) {
 
 	if err = h.Service.Purchase(r.Context(), purchaseDetails); err != nil {
 		responseHandlers.RespondWithError(w, err)
+		return
 	}
 
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusOK)

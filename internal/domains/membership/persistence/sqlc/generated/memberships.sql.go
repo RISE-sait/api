@@ -12,9 +12,10 @@ import (
 	"github.com/google/uuid"
 )
 
-const createMembership = `-- name: CreateMembership :execrows
+const createMembership = `-- name: CreateMembership :one
 INSERT INTO membership.memberships (name, description)
 VALUES ($1, $2)
+RETURNING id, name, description, created_at, updated_at
 `
 
 type CreateMembershipParams struct {
@@ -22,12 +23,17 @@ type CreateMembershipParams struct {
 	Description sql.NullString `json:"description"`
 }
 
-func (q *Queries) CreateMembership(ctx context.Context, arg CreateMembershipParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, createMembership, arg.Name, arg.Description)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
+func (q *Queries) CreateMembership(ctx context.Context, arg CreateMembershipParams) (MembershipMembership, error) {
+	row := q.db.QueryRowContext(ctx, createMembership, arg.Name, arg.Description)
+	var i MembershipMembership
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const deleteMembership = `-- name: DeleteMembership :execrows
@@ -42,12 +48,29 @@ func (q *Queries) DeleteMembership(ctx context.Context, id uuid.UUID) (int64, er
 	return result.RowsAffected()
 }
 
-const getAllMemberships = `-- name: GetAllMemberships :many
+const getMembershipById = `-- name: GetMembershipById :one
+SELECT id, name, description, created_at, updated_at FROM membership.memberships WHERE id = $1
+`
+
+func (q *Queries) GetMembershipById(ctx context.Context, id uuid.UUID) (MembershipMembership, error) {
+	row := q.db.QueryRowContext(ctx, getMembershipById, id)
+	var i MembershipMembership
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getMemberships = `-- name: GetMemberships :many
 SELECT id, name, description, created_at, updated_at FROM membership.memberships
 `
 
-func (q *Queries) GetAllMemberships(ctx context.Context) ([]MembershipMembership, error) {
-	rows, err := q.db.QueryContext(ctx, getAllMemberships)
+func (q *Queries) GetMemberships(ctx context.Context) ([]MembershipMembership, error) {
+	rows, err := q.db.QueryContext(ctx, getMemberships)
 	if err != nil {
 		return nil, err
 	}
@@ -75,26 +98,9 @@ func (q *Queries) GetAllMemberships(ctx context.Context) ([]MembershipMembership
 	return items, nil
 }
 
-const getMembershipById = `-- name: GetMembershipById :one
-SELECT id, name, description, created_at, updated_at FROM membership.memberships WHERE id = $1
-`
-
-func (q *Queries) GetMembershipById(ctx context.Context, id uuid.UUID) (MembershipMembership, error) {
-	row := q.db.QueryRowContext(ctx, getMembershipById, id)
-	var i MembershipMembership
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const updateMembership = `-- name: UpdateMembership :execrows
 UPDATE membership.memberships
-SET name = $1, description = $2
+SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP
 WHERE id = $3
 `
 

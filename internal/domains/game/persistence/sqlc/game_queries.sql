@@ -1,6 +1,6 @@
 -- name: CreateGame :one
-INSERT INTO games (name, video_link)
-VALUES ($1, $2)
+INSERT INTO games (name)
+VALUES ($1)
 RETURNING *;
 
 -- name: GetGameById :one
@@ -12,8 +12,7 @@ WHERE (name ILIKE '%' || @name || '%' OR @name IS NULL);
 
 -- name: UpdateGame :one
 UPDATE games
-SET name = COALESCE(sqlc.narg('name'), name),
-    video_link = COALESCE(sqlc.narg('video_link'), video_link)
+SET name = COALESCE(sqlc.narg('name'), name)
 WHERE id = $1
 RETURNING *;
 

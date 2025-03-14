@@ -1,12 +1,15 @@
 package game
 
 import (
+	databaseErrors "api/internal/constants"
 	db "api/internal/domains/game/persistence/sqlc/generated"
 	values "api/internal/domains/game/values"
 	errLib "api/internal/libs/errors"
+	"api/internal/services/gcp"
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/lib/pq"
 	"log"
 	"net/http"
@@ -41,9 +44,9 @@ func (r *Repository) GetGameById(ctx context.Context, id uuid.UUID) (values.Read
 		},
 	}
 
-	if dbGame.VideoLink.Valid {
-		game.VideoLink = &dbGame.VideoLink.String
-	}
+	videoLink := gcp.GeneratePublicFileURL(fmt.Sprintf("games/%v", game.ID))
+
+	game.VideoLink = &videoLink
 
 	return game, nil
 }
@@ -56,13 +59,6 @@ func (r *Repository) UpdateGame(ctx context.Context, value values.UpdateGameValu
 			String: value.Name,
 			Valid:  true,
 		},
-	}
-
-	if value.VideoLink != nil {
-		updateParams.VideoLink = sql.NullString{
-			String: *value.VideoLink,
-			Valid:  true,
-		}
 	}
 
 	updatedGame, err := r.Queries.UpdateGame(ctx, updateParams)
@@ -79,8 +75,7 @@ func (r *Repository) UpdateGame(ctx context.Context, value values.UpdateGameValu
 	return values.ReadValue{
 		ID: updatedGame.ID,
 		BaseValue: values.BaseValue{
-			Name:      updatedGame.Name,
-			VideoLink: &updatedGame.VideoLink.String,
+			Name: updatedGame.Name,
 		},
 	}, nil
 }
@@ -105,8 +100,7 @@ func (r *Repository) GetGames(ctx context.Context) ([]values.ReadValue, *errLib.
 		games[i] = values.ReadValue{
 			ID: dbGame.ID,
 			BaseValue: values.BaseValue{
-				Name:      dbGame.Name,
-				VideoLink: &dbGame.VideoLink.String,
+				Name: dbGame.Name,
 			},
 		}
 	}
@@ -128,25 +122,25 @@ func (r *Repository) DeleteGame(c context.Context, id uuid.UUID) *errLib.CommonE
 	return nil
 }
 
-func (r *Repository) CreateGame(c context.Context, details values.CreateGameValue) (values.ReadValue, *errLib.CommonError) {
+func (r *Repository) CreateGame(c context.Context, name string) (values.ReadValue, *errLib.CommonError) {
 
-	params := db.CreateGameParams{
-		Name: details.Name,
-	}
+	//params := db.CreateGameParams{
+	//	Name: details.Name,
+	//}
+	//
+	//if details.VideoLink != nil {
+	//	params.VideoLink = sql.NullString{
+	//		String: *details.VideoLink,
+	//		Valid:  true,
+	//	}
+	//}
 
-	if details.VideoLink != nil {
-		params.VideoLink = sql.NullString{
-			String: *details.VideoLink,
-			Valid:  true,
-		}
-	}
-
-	createdGame, err := r.Queries.CreateGame(c, params)
+	createdGame, err := r.Queries.CreateGame(c, name)
 
 	if err != nil {
 		// Check if the error is a unique violation (error code 23505)
 		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
 			// Return a custom error for unique violation
 			return values.ReadValue{}, errLib.New("Game name already exists", http.StatusConflict)
 		}
@@ -159,8 +153,8 @@ func (r *Repository) CreateGame(c context.Context, details values.CreateGameValu
 	return values.ReadValue{
 		ID: createdGame.ID,
 		BaseValue: values.BaseValue{
-			Name:      createdGame.Name,
-			VideoLink: &createdGame.VideoLink.String,
+			Name: createdGame.Name,
+			//VideoLink: &createdGame.VideoLink.String,
 		},
 	}, nil
 }

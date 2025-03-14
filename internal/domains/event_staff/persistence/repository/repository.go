@@ -56,7 +56,7 @@ func (r *EventStaffsRepository) GetStaffsAssignedToEvent(ctx context.Context, ev
 
 		staffs[i] = staffValues.ReadValues{
 			ID:        dbStaff.ID,
-			HubspotID: dbStaff.HubspotID,
+			HubspotID: dbStaff.HubspotID.String,
 			IsActive:  dbStaff.IsActive,
 			CreatedAt: dbStaff.CreatedAt,
 			UpdatedAt: dbStaff.UpdatedAt,

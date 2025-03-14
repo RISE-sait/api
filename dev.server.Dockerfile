@@ -1,10 +1,11 @@
 # Use the official Golang image as a base image
 FROM golang:1.23.4-alpine AS builder
 
+RUN go install github.com/air-verse/air@latest
+
 # Set the working directory inside the container
 WORKDIR /app
 
-RUN go install github.com/air-verse/air@latest
 
 RUN apk add --no-cache coreutils
 

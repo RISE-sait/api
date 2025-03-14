@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
 )
@@ -19,9 +18,9 @@ RETURNING id, name, description, capacity, created_at, updated_at
 `
 
 type CreateCourseParams struct {
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
-	Capacity    int32          `json:"capacity"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Capacity    int32  `json:"capacity"`
 }
 
 func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (CourseCourse, error) {
@@ -69,7 +68,8 @@ func (q *Queries) GetCourseById(ctx context.Context, id uuid.UUID) (CourseCourse
 }
 
 const getCourses = `-- name: GetCourses :many
-SELECT id, name, description, capacity, created_at, updated_at FROM course.courses
+SELECT id, name, description, capacity, created_at, updated_at
+FROM course.courses
 `
 
 func (q *Queries) GetCourses(ctx context.Context) ([]CourseCourse, error) {
@@ -109,9 +109,9 @@ WHERE id = $3
 `
 
 type UpdateCourseParams struct {
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
-	ID          uuid.UUID      `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	ID          uuid.UUID `json:"id"`
 }
 
 func (q *Queries) UpdateCourse(ctx context.Context, arg UpdateCourseParams) (int64, error) {

@@ -38,14 +38,14 @@ func (h *Handler) CreateGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	details, err := requestDto.ToCreateGameValue()
+	name, err := requestDto.ToCreateGameName()
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	createdGame, err := h.Repo.CreateGame(r.Context(), details)
+	createdGame, err := h.Repo.CreateGame(r.Context(), name)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)

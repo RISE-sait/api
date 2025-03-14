@@ -13,20 +13,15 @@ import (
 )
 
 const createGame = `-- name: CreateGame :one
-INSERT INTO games (name, video_link)
-VALUES ($1, $2)
-RETURNING id, name, video_link
+INSERT INTO games (name)
+VALUES ($1)
+RETURNING id, name
 `
 
-type CreateGameParams struct {
-	Name      string         `json:"name"`
-	VideoLink sql.NullString `json:"video_link"`
-}
-
-func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (Game, error) {
-	row := q.db.QueryRowContext(ctx, createGame, arg.Name, arg.VideoLink)
+func (q *Queries) CreateGame(ctx context.Context, name string) (Game, error) {
+	row := q.db.QueryRowContext(ctx, createGame, name)
 	var i Game
-	err := row.Scan(&i.ID, &i.Name, &i.VideoLink)
+	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }
 
@@ -43,18 +38,18 @@ func (q *Queries) DeleteGame(ctx context.Context, id uuid.UUID) (int64, error) {
 }
 
 const getGameById = `-- name: GetGameById :one
-SELECT id, name, video_link FROM games WHERE id = $1
+SELECT id, name FROM games WHERE id = $1
 `
 
 func (q *Queries) GetGameById(ctx context.Context, id uuid.UUID) (Game, error) {
 	row := q.db.QueryRowContext(ctx, getGameById, id)
 	var i Game
-	err := row.Scan(&i.ID, &i.Name, &i.VideoLink)
+	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }
 
 const getGames = `-- name: GetGames :many
-SELECT id, name, video_link FROM games
+SELECT id, name FROM games
 WHERE (name ILIKE '%' || $1 || '%' OR $1 IS NULL)
 `
 
@@ -67,7 +62,7 @@ func (q *Queries) GetGames(ctx context.Context, name sql.NullString) ([]Game, er
 	var items []Game
 	for rows.Next() {
 		var i Game
-		if err := rows.Scan(&i.ID, &i.Name, &i.VideoLink); err != nil {
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -83,21 +78,19 @@ func (q *Queries) GetGames(ctx context.Context, name sql.NullString) ([]Game, er
 
 const updateGame = `-- name: UpdateGame :one
 UPDATE games
-SET name = COALESCE($2, name),
-    video_link = COALESCE($3, video_link)
+SET name = COALESCE($2, name)
 WHERE id = $1
-RETURNING id, name, video_link
+RETURNING id, name
 `
 
 type UpdateGameParams struct {
-	ID        uuid.UUID      `json:"id"`
-	Name      sql.NullString `json:"name"`
-	VideoLink sql.NullString `json:"video_link"`
+	ID   uuid.UUID      `json:"id"`
+	Name sql.NullString `json:"name"`
 }
 
 func (q *Queries) UpdateGame(ctx context.Context, arg UpdateGameParams) (Game, error) {
-	row := q.db.QueryRowContext(ctx, updateGame, arg.ID, arg.Name, arg.VideoLink)
+	row := q.db.QueryRowContext(ctx, updateGame, arg.ID, arg.Name)
 	var i Game
-	err := row.Scan(&i.ID, &i.Name, &i.VideoLink)
+	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }

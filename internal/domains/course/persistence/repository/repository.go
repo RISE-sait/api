@@ -44,7 +44,7 @@ func (r *Repository) GetCourseById(c context.Context, id uuid.UUID) (values.Read
 		UpdatedAt: dbCourse.UpdatedAt,
 		Details: values.Details{
 			Name:        dbCourse.Name,
-			Description: dbCourse.Description.String,
+			Description: dbCourse.Description,
 		},
 	}, nil
 }
@@ -52,12 +52,9 @@ func (r *Repository) GetCourseById(c context.Context, id uuid.UUID) (values.Read
 func (r *Repository) UpdateCourse(c context.Context, course values.UpdateCourseDetails) *errLib.CommonError {
 
 	dbCourseParams := db.UpdateCourseParams{
-		ID:   course.ID,
-		Name: course.Name,
-		Description: sql.NullString{
-			String: course.Description,
-			Valid:  course.Description != "",
-		},
+		ID:          course.ID,
+		Name:        course.Name,
+		Description: course.Description,
 	}
 
 	impactedRows, err := r.Queries.UpdateCourse(c, dbCourseParams)
@@ -99,7 +96,7 @@ func (r *Repository) GetCourses(ctx context.Context) ([]values.ReadDetails, *err
 			UpdatedAt: dbCourse.UpdatedAt,
 			Details: values.Details{
 				Name:        dbCourse.Name,
-				Description: dbCourse.Description.String,
+				Description: dbCourse.Description,
 			},
 		}
 	}
@@ -126,10 +123,7 @@ func (r *Repository) CreateCourse(c context.Context, courseDetails values.Create
 	var createdCourse values.ReadDetails
 
 	dbCourseParams := db.CreateCourseParams{
-		Name: courseDetails.Name, Description: sql.NullString{
-			String: courseDetails.Description,
-			Valid:  courseDetails.Description != "",
-		},
+		Name: courseDetails.Name, Description: courseDetails.Description,
 	}
 
 	course, err := r.Queries.CreateCourse(c, dbCourseParams)

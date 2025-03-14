@@ -53,8 +53,8 @@ func (r *Repository) GetEnrollments(c context.Context, eventId, customerId uuid.
 			ID:          enrollment.ID,
 			CustomerID:  enrollment.CustomerID,
 			EventID:     enrollment.EventID,
-			CreatedAt:   enrollment.CreatedAt.Time,
-			UpdatedAt:   enrollment.UpdatedAt.Time,
+			CreatedAt:   enrollment.CreatedAt,
+			UpdatedAt:   enrollment.UpdatedAt,
 			CheckedInAt: enrollment.CheckedInAt.Time,
 			IsCancelled: enrollment.IsCancelled,
 		}
@@ -109,8 +109,8 @@ func (r *Repository) EnrollCustomer(c context.Context, input values.EnrollmentCr
 		ID:          enrollment.ID,
 		CustomerID:  enrollment.CustomerID,
 		EventID:     enrollment.EventID,
-		CreatedAt:   enrollment.CreatedAt.Time,
-		UpdatedAt:   enrollment.UpdatedAt.Time,
+		CreatedAt:   enrollment.CreatedAt,
+		UpdatedAt:   enrollment.UpdatedAt,
 		CheckedInAt: enrollment.CheckedInAt.Time,
 	}, nil
 }

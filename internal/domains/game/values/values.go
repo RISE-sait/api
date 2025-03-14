@@ -11,8 +11,8 @@ type CreateGameValue struct {
 }
 
 type UpdateGameValue struct {
-	ID uuid.UUID
-	BaseValue
+	ID   uuid.UUID
+	Name string
 }
 
 type ReadValue struct {

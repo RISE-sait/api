@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -41,13 +42,13 @@ WHERE event_id = $1
 `
 
 type GetStaffsAssignedToEventRow struct {
-	ID        uuid.UUID `json:"id"`
-	IsActive  bool      `json:"is_active"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	RoleID    uuid.UUID `json:"role_id"`
-	RoleName  string    `json:"role_name"`
-	HubspotID string    `json:"hubspot_id"`
+	ID        uuid.UUID      `json:"id"`
+	IsActive  bool           `json:"is_active"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	RoleID    uuid.UUID      `json:"role_id"`
+	RoleName  string         `json:"role_name"`
+	HubspotID sql.NullString `json:"hubspot_id"`
 }
 
 // (begin_time >= $1 OR $1::text LIKE '%00:00:00%')

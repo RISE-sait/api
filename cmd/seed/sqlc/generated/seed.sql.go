@@ -14,7 +14,7 @@ import (
 	"github.com/lib/pq"
 )
 
-const insertClients = `-- name: InsertClients :exec
+const insertClients = `-- name: InsertClients :many
 WITH prepared_data AS (SELECT unnest($1::text[])            AS country_alpha2_code,
                               unnest($2::text[])                     AS first_name,
                               unnest($3::text[])                      AS last_name,
@@ -53,6 +53,7 @@ SELECT country_alpha2_code,
        has_marketing_email_consent,
        has_sms_consent
 FROM prepared_data
+RETURNING id
 `
 
 type InsertClientsParams struct {
@@ -67,8 +68,8 @@ type InsertClientsParams struct {
 	HasSmsConsentArray            []bool      `json:"has_sms_consent_array"`
 }
 
-func (q *Queries) InsertClients(ctx context.Context, arg InsertClientsParams) error {
-	_, err := q.db.ExecContext(ctx, insertClients,
+func (q *Queries) InsertClients(ctx context.Context, arg InsertClientsParams) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, insertClients,
 		pq.Array(arg.CountryAlpha2CodeArray),
 		pq.Array(arg.FirstNameArray),
 		pq.Array(arg.LastNameArray),
@@ -79,7 +80,69 @@ func (q *Queries) InsertClients(ctx context.Context, arg InsertClientsParams) er
 		pq.Array(arg.HasMarketingEmailConsentArray),
 		pq.Array(arg.HasSmsConsentArray),
 	)
-	return err
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const insertClientsMembershipPlans = `-- name: InsertClientsMembershipPlans :many
+INSERT INTO public.customer_membership_plans (customer_id, membership_plan_id, start_date, renewal_date)
+VALUES (unnest($1::uuid[]),
+        unnest($2::uuid[]),
+        unnest($3::timestamptz[]),
+        unnest($4::timestamptz[]))
+RETURNING id
+`
+
+type InsertClientsMembershipPlansParams struct {
+	CustomerID       []uuid.UUID `json:"customer_id"`
+	PlansArray       []uuid.UUID `json:"plans_array"`
+	StartDateArray   []time.Time `json:"start_date_array"`
+	RenewalDateArray []time.Time `json:"renewal_date_array"`
+}
+
+func (q *Queries) InsertClientsMembershipPlans(ctx context.Context, arg InsertClientsMembershipPlansParams) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, insertClientsMembershipPlans,
+		pq.Array(arg.CustomerID),
+		pq.Array(arg.PlansArray),
+		pq.Array(arg.StartDateArray),
+		pq.Array(arg.RenewalDateArray),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const insertCourses = `-- name: InsertCourses :many
@@ -120,47 +183,44 @@ func (q *Queries) InsertCourses(ctx context.Context, arg InsertCoursesParams) ([
 }
 
 const insertEvents = `-- name: InsertEvents :exec
-INSERT INTO public.events (
-    event_start_at, event_end_at, session_start_time, session_end_time,
-    day, practice_id, course_id, game_id, location_id
-)
-SELECT
-    unnest($1::timestamptz[]),
-    unnest($2::timestamptz[]),
-    unnest($3::timetz[]),
-    unnest($4::timetz[]),
-    unnest($5::day_enum[]),
-    unnest(
-            ARRAY(
-                    SELECT CASE
-                               WHEN practice_id = '00000000-0000-0000-0000-000000000000'
-                                   THEN NULL
-                               ELSE practice_id
-                               END
-                    FROM unnest($6::uuid[]) AS practice_id
-            )
-    ),
-    unnest(
-            ARRAY(
-                    SELECT CASE
-                               WHEN course_id = '00000000-0000-0000-0000-000000000000'
-                                   THEN NULL
-                               ELSE course_id
-                               END
-                    FROM unnest($7::uuid[]) AS course_id
-            )
-    ),
-    unnest(
-            ARRAY(
-                    SELECT CASE
-                               WHEN game_id = '00000000-0000-0000-0000-000000000000'
-                                   THEN NULL
-                               ELSE game_id
-                               END
-                    FROM unnest($8::uuid[]) AS game_id
-            )
-    ),
-    unnest($9::uuid[])
+INSERT INTO public.events (event_start_at, event_end_at, session_start_time, session_end_time,
+                           day, practice_id, course_id, game_id, location_id)
+SELECT unnest($1::timestamptz[]),
+       unnest($2::timestamptz[]),
+       unnest($3::timetz[]),
+       unnest($4::timetz[]),
+       unnest($5::day_enum[]),
+       unnest(
+               ARRAY(
+                       SELECT CASE
+                                  WHEN practice_id = '00000000-0000-0000-0000-000000000000'
+                                      THEN NULL
+                                  ELSE practice_id
+                                  END
+                       FROM unnest($6::uuid[]) AS practice_id
+               )
+       ),
+       unnest(
+               ARRAY(
+                       SELECT CASE
+                                  WHEN course_id = '00000000-0000-0000-0000-000000000000'
+                                      THEN NULL
+                                  ELSE course_id
+                                  END
+                       FROM unnest($7::uuid[]) AS course_id
+               )
+       ),
+       unnest(
+               ARRAY(
+                       SELECT CASE
+                                  WHEN game_id = '00000000-0000-0000-0000-000000000000'
+                                      THEN NULL
+                                  ELSE game_id
+                                  END
+                       FROM unnest($8::uuid[]) AS game_id
+               )
+       ),
+       unnest($9::uuid[])
 ON CONFLICT DO NOTHING
 `
 

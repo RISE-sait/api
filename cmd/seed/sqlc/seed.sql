@@ -95,7 +95,7 @@ FROM unnest(@name_array::text[]) WITH ORDINALITY AS n(name, ord)
 RETURNING id;
 
 
--- name: InsertClients :exec
+-- name: InsertClients :many
 WITH prepared_data AS (SELECT unnest(@country_alpha2_code_array::text[])            AS country_alpha2_code,
                               unnest(@first_name_array::text[])                     AS first_name,
                               unnest(@last_name_array::text[])                      AS last_name,
@@ -133,4 +133,13 @@ SELECT country_alpha2_code,
        email,
        has_marketing_email_consent,
        has_sms_consent
-FROM prepared_data;
+FROM prepared_data
+RETURNING id;
+
+-- name: InsertClientsMembershipPlans :many
+INSERT INTO public.customer_membership_plans (customer_id, membership_plan_id, start_date, renewal_date)
+VALUES (unnest(@customer_id::uuid[]),
+        unnest(@plans_array::uuid[]),
+        unnest(@start_date_array::timestamptz[]),
+        unnest(@renewal_date_array::timestamptz[]))
+RETURNING id;

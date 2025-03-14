@@ -65,10 +65,10 @@ func clearTables(ctx context.Context, db *sql.DB) error {
 	return err
 }
 
-func seedClients(ctx context.Context, db *sql.DB) error {
+func seedClients(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 	clients, err := data.GetClients()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	seedQueries := dbSeed.New(db)
@@ -96,7 +96,7 @@ func seedClients(ctx context.Context, db *sql.DB) error {
 		hasSMSConsentArray = append(hasSMSConsentArray, client.SMSConsent)
 	}
 
-	err = seedQueries.InsertClients(ctx, dbSeed.InsertClientsParams{
+	ids, err := seedQueries.InsertClients(ctx, dbSeed.InsertClientsParams{
 		CountryAlpha2CodeArray:        countryAlpha2CodeArray,
 		FirstNameArray:                firstNameArray,
 		LastNameArray:                 lastNameArray,
@@ -110,10 +110,10 @@ func seedClients(ctx context.Context, db *sql.DB) error {
 
 	if err != nil {
 		log.Fatalf("Failed to insert clients: %v", err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return ids, nil
 }
 
 func seedPractices(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
@@ -321,6 +321,19 @@ func seedEvents(ctx context.Context, db *sql.DB, practices, courses, games, loca
 	return nil
 }
 
+func seedClientsMembershipPlans(ctx context.Context, db *sql.DB, clients, plans []uuid.UUID) error {
+	seedQueries := dbSeed.New(db)
+
+	_, err := seedQueries.InsertClientsMembershipPlans(ctx, data.GetClientsMembershipPlans(clients, plans))
+
+	if err != nil {
+		log.Fatalf("Failed to insert client membership plans: %v", err)
+		return err
+	}
+
+	return nil
+}
+
 func main() {
 
 	ctx := context.Background()
@@ -376,18 +389,24 @@ func main() {
 		return
 	}
 
-	_, err = seedMembershipPlans(ctx, db)
+	plansIds, err := seedMembershipPlans(ctx, db)
 
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	err = seedClients(ctx, db)
+	clientIds, err := seedClients(ctx, db)
 
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
+	err = seedClientsMembershipPlans(ctx, db, clientIds, plansIds)
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
 }

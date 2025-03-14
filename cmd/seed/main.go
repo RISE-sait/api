@@ -189,6 +189,36 @@ func seedGames(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 	return createdGames, nil
 }
 
+func seedMembershipCoursesEligibility(ctx context.Context, db *sql.DB, membershipsIds, courseIds []uuid.UUID) error {
+	seedQueries := dbSeed.New(db)
+
+	eligibilityData := data.GetMembershipCoursesEligibility(membershipsIds, courseIds)
+
+	err := seedQueries.InsertCourseMembershipsEligibility(ctx, eligibilityData)
+
+	if err != nil {
+		log.Fatalf("Failed to insert membership courses eligibility: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func seedMembershipPracticeEligibility(ctx context.Context, db *sql.DB, membershipsIds, practiceIds []uuid.UUID) error {
+	seedQueries := dbSeed.New(db)
+
+	eligibilityData := data.GetMembershipPracticesEligibility(membershipsIds, practiceIds)
+
+	err := seedQueries.InsertPracticeMembershipsEligibility(ctx, eligibilityData)
+
+	if err != nil {
+		log.Fatalf("Failed to insert membership practices eligibility: %v", err)
+		return err
+	}
+
+	return nil
+}
+
 func seedLocations(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 
 	seedQueries := dbSeed.New(db)
@@ -227,8 +257,8 @@ func seedMembershipPlans(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 
 		var (
 			nameArray             []string
-			priceArray            []string
-			joiningFeeArray       []string
+			priceArray            []decimal.Decimal
+			joiningFeeArray       []decimal.Decimal
 			autoRenewArray        []bool
 			membershipNameArray   []string
 			paymentFrequencyArray []dbSeed.PaymentFrequency
@@ -243,11 +273,11 @@ func seedMembershipPlans(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 				periods = int32(hasEndDate.NoOfPeriods)
 			}
 
-			price := decimal.NewFromFloat(plan.PaymentFrequency.Price).String()
+			price := decimal.NewFromFloat(plan.PaymentFrequency.Price)
 
 			nameArray = append(nameArray, plan.PlanName)
 			priceArray = append(priceArray, price)
-			joiningFeeArray = append(joiningFeeArray, fmt.Sprintf("%f", plan.PaymentFrequency.JoiningFee))
+			joiningFeeArray = append(joiningFeeArray, decimal.NewFromFloat(plan.PaymentFrequency.JoiningFee))
 			autoRenewArray = append(autoRenewArray, plan.PaymentFrequency.HasEndDate.WillPlanAutoRenew)
 			membershipNameArray = append(membershipNameArray, membershipName)
 			paymentFrequencyArray = append(paymentFrequencyArray, dbSeed.PaymentFrequency(plan.PaymentFrequency.RecurringPeriod))
@@ -340,7 +370,7 @@ func seedClientsEnrollments(ctx context.Context, db *sql.DB, clients, events []u
 	_, err := seedQueries.InsertCustomersEnrollments(ctx, data.GetClientsEnrollments(clients, events))
 
 	if err != nil {
-		log.Fatalf("Failed to insert client membership plans: %v", err)
+		log.Fatalf("Failed to insert client enrollments: %v", err)
 		return err
 	}
 
@@ -395,7 +425,7 @@ func main() {
 		return
 	}
 
-	_, err = seedMemberships(ctx, db)
+	membershipIds, err := seedMemberships(ctx, db)
 
 	if err != nil {
 		log.Println(err)
@@ -424,6 +454,20 @@ func main() {
 	}
 
 	err = seedClientsEnrollments(ctx, db, clientIds, eventIds)
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	err = seedMembershipCoursesEligibility(ctx, db, membershipIds, courseIds)
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	err = seedMembershipPracticeEligibility(ctx, db, membershipIds, practiceIds)
 
 	if err != nil {
 		log.Println(err)

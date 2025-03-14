@@ -95,6 +95,20 @@ FROM unnest(@name_array::text[]) WITH ORDINALITY AS n(name, ord)
      unnest(@amt_periods_array::int[]) WITH ORDINALITY AS ap(amt_periods, ord) ON n.ord = ap.ord
 RETURNING id;
 
+-- name: InsertCourseMembershipsEligibility :exec
+INSERT INTO public.course_membership (course_id, membership_id, is_eligible, price_per_booking)
+VALUES (unnest(@course_id_array::uuid[]),
+        unnest(@membership_id_array::uuid[]),
+        unnest(@is_eligible_array::bool[]),
+        unnest(@price_per_booking_array::numeric[]));
+
+-- name: InsertPracticeMembershipsEligibility :exec
+INSERT INTO public.practice_membership (practice_id, membership_id, is_eligible, price_per_booking)
+VALUES (unnest(@practice_id_array::uuid[]),
+        unnest(@membership_id_array::uuid[]),
+        unnest(@is_eligible_array::bool[]),
+        unnest(@price_per_booking_array::numeric[]));
+
 
 -- name: InsertClients :many
 WITH prepared_data AS (SELECT unnest(@country_alpha2_code_array::text[])            AS country_alpha2_code,

@@ -15,3 +15,5 @@ sql:
             go_type:
               import: "api/internal/custom_types"
               type: "TimeWithTimeZone"
+          - db_type: "pg_catalog.numeric"
+            go_type: "github.com/shopspring/decimal.Decimal"

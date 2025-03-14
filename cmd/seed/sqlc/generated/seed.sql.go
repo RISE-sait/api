@@ -12,6 +12,7 @@ import (
 	"api/internal/custom_types"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"github.com/shopspring/decimal"
 )
 
 const insertClients = `-- name: InsertClients :many
@@ -145,6 +146,31 @@ func (q *Queries) InsertClientsMembershipPlans(ctx context.Context, arg InsertCl
 	return items, nil
 }
 
+const insertCourseMembershipsEligibility = `-- name: InsertCourseMembershipsEligibility :exec
+INSERT INTO public.course_membership (course_id, membership_id, is_eligible, price_per_booking)
+VALUES (unnest($1::uuid[]),
+        unnest($2::uuid[]),
+        unnest($3::bool[]),
+        unnest($4::numeric[]))
+`
+
+type InsertCourseMembershipsEligibilityParams struct {
+	CourseIDArray        []uuid.UUID       `json:"course_id_array"`
+	MembershipIDArray    []uuid.UUID       `json:"membership_id_array"`
+	IsEligibleArray      []bool            `json:"is_eligible_array"`
+	PricePerBookingArray []decimal.Decimal `json:"price_per_booking_array"`
+}
+
+func (q *Queries) InsertCourseMembershipsEligibility(ctx context.Context, arg InsertCourseMembershipsEligibilityParams) error {
+	_, err := q.db.ExecContext(ctx, insertCourseMembershipsEligibility,
+		pq.Array(arg.CourseIDArray),
+		pq.Array(arg.MembershipIDArray),
+		pq.Array(arg.IsEligibleArray),
+		pq.Array(arg.PricePerBookingArray),
+	)
+	return err
+}
+
 const insertCourses = `-- name: InsertCourses :many
 INSERT INTO course.courses (name, description, capacity)
 VALUES (unnest($1::text[]),
@@ -183,8 +209,8 @@ func (q *Queries) InsertCourses(ctx context.Context, arg InsertCoursesParams) ([
 }
 
 const insertCustomersEnrollments = `-- name: InsertCustomersEnrollments :many
-WITH prepared_data AS (SELECT unnest($1::uuid[]) AS customer_id,
-                              unnest($2::uuid[])    AS event_id,
+WITH prepared_data AS (SELECT unnest($1::uuid[])  AS customer_id,
+                              unnest($2::uuid[])     AS event_id,
                               unnest(
                                       ARRAY(
                                               SELECT CASE
@@ -194,9 +220,8 @@ WITH prepared_data AS (SELECT unnest($1::uuid[]) AS customer_id,
                                                          END
                                               FROM unnest($3::timestamptz[]) AS checked_in_at
                                       )
-                              )                                  AS checked_in_at,
-                              unnest($4::bool[])    AS is_cancelled
-                       )
+                              )                                   AS checked_in_at,
+                              unnest($4::bool[]) AS is_cancelled)
 INSERT
 INTO public.customer_enrollment(customer_id, event_id, checked_in_at, is_cancelled)
 SELECT customer_id,
@@ -421,8 +446,8 @@ RETURNING id
 
 type InsertMembershipPlansParams struct {
 	NameArray             []string           `json:"name_array"`
-	PriceArray            []string           `json:"price_array"`
-	JoiningFeeArray       []string           `json:"joining_fee_array"`
+	PriceArray            []decimal.Decimal  `json:"price_array"`
+	JoiningFeeArray       []decimal.Decimal  `json:"joining_fee_array"`
 	AutoRenewArray        []bool             `json:"auto_renew_array"`
 	MembershipNameArray   []string           `json:"membership_name_array"`
 	PaymentFrequencyArray []PaymentFrequency `json:"payment_frequency_array"`
@@ -492,6 +517,31 @@ func (q *Queries) InsertMemberships(ctx context.Context, arg InsertMembershipsPa
 		return nil, err
 	}
 	return items, nil
+}
+
+const insertPracticeMembershipsEligibility = `-- name: InsertPracticeMembershipsEligibility :exec
+INSERT INTO public.practice_membership (practice_id, membership_id, is_eligible, price_per_booking)
+VALUES (unnest($1::uuid[]),
+        unnest($2::uuid[]),
+        unnest($3::bool[]),
+        unnest($4::numeric[]))
+`
+
+type InsertPracticeMembershipsEligibilityParams struct {
+	PracticeIDArray      []uuid.UUID       `json:"practice_id_array"`
+	MembershipIDArray    []uuid.UUID       `json:"membership_id_array"`
+	IsEligibleArray      []bool            `json:"is_eligible_array"`
+	PricePerBookingArray []decimal.Decimal `json:"price_per_booking_array"`
+}
+
+func (q *Queries) InsertPracticeMembershipsEligibility(ctx context.Context, arg InsertPracticeMembershipsEligibilityParams) error {
+	_, err := q.db.ExecContext(ctx, insertPracticeMembershipsEligibility,
+		pq.Array(arg.PracticeIDArray),
+		pq.Array(arg.MembershipIDArray),
+		pq.Array(arg.IsEligibleArray),
+		pq.Array(arg.PricePerBookingArray),
+	)
+	return err
 }
 
 const insertPractices = `-- name: InsertPractices :many

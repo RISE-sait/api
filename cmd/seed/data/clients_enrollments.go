@@ -21,19 +21,34 @@ func GetClientsEnrollments(clientIds, eventIds []uuid.UUID) dbSeed.InsertCustome
 
 	for _, clientID := range clientIds {
 
+		assignedEvents := make([]uuid.UUID, 0)
+
 		// Decide randomly whether the client will have 1 or 2 events
 		numEvents := 1 + randomGenerator.Intn(2) // Randomly 1 or 2 events
 
 		for planIdx := 0; planIdx < numEvents; planIdx++ {
 
-			// Select a random event
-			randomEventID := eventIds[randomGenerator.Intn(len(eventIds))]
+			// Select a random event (ensure it's unique for this client)
+			var randomEventID uuid.UUID
+			for {
+				randomEventID = eventIds[randomGenerator.Intn(len(eventIds))]
+				alreadyAssigned := false
+				for _, assigned := range assignedEvents {
+					if assigned == randomEventID {
+						alreadyAssigned = true
+						break
+					}
+				}
+				if !alreadyAssigned {
+					assignedEvents = append(assignedEvents, randomEventID) // ✅ Store assigned event
+					break
+				}
+			}
 
-			isCancelled := randomGenerator.Intn(5) == 0
+			isCancelled := randomGenerator.Intn(4) == 0 // 25% probability of cancellation
 
 			var checkedInAt time.Time
-
-			if !isCancelled && randomGenerator.Intn(2) == 0 { // 50% probability if not cancelled
+			if !isCancelled && randomGenerator.Intn(2) == 0 { // 50% probability of checked in if not cancelled
 				daysAgo := randomGenerator.Intn(365) // Random day within the last year
 				checkedInAt = time.Now().AddDate(0, 0, -daysAgo)
 			}

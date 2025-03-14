@@ -2,10 +2,7 @@ package data
 
 import (
 	dbSeed "api/cmd/seed/sqlc/generated"
-	"api/internal/custom_types"
-	"api/internal/libs/validators"
 	"github.com/google/uuid"
-	"log"
 	"math/rand"
 	"time"
 )
@@ -18,15 +15,12 @@ func GetEvents(practices, courses, games, locations []uuid.UUID) dbSeed.InsertEv
 
 	// Placeholder for generated data
 	var (
-		eventStartAtArray     []time.Time
-		eventEndAtArray       []time.Time
-		sessionStartTimeArray []custom_types.TimeWithTimeZone
-		sessionEndTimeArray   []custom_types.TimeWithTimeZone
-		dayArray              []dbSeed.DayEnum
-		practiceIDArray       []uuid.UUID
-		courseIDArray         []uuid.UUID
-		gameIDArray           []uuid.UUID
-		locationIDArray       []uuid.UUID
+		eventStartAtArray []time.Time
+		eventEndAtArray   []time.Time
+		practiceIDArray   []uuid.UUID
+		courseIDArray     []uuid.UUID
+		gameIDArray       []uuid.UUID
+		locationIDArray   []uuid.UUID
 	)
 
 	numEvents := 10
@@ -54,27 +48,9 @@ func GetEvents(practices, courses, games, locations []uuid.UUID) dbSeed.InsertEv
 				sessionEnd := time.Date(sessionDate.Year(), sessionDate.Month(), sessionDate.Day(), sessionEndHour, sessionEndMinute, 0, 0, time.UTC)
 				sessionEnd = sessionEnd.Add(time.Duration(sessionDuration) * time.Minute) // Add session duration
 
-				// Append event data inside the loop
-				sessionStartTime, err := validators.ParseTime(sessionStart.Format(sessionTimeLayout))
-				if err != nil {
-					log.Fatalf("Error parsing session start time: %v", err)
-				}
-
-				sessionEndTime, err := validators.ParseTime(sessionEnd.Format(sessionTimeLayout))
-				if err != nil {
-					log.Fatalf("Error parsing session end time: %v", err)
-				}
-
 				eventStartAtArray = append(eventStartAtArray, eventStart)
 				eventEndAtArray = append(eventEndAtArray, eventEnd)
 
-				// Append data for this session
-				sessionStartTimeArray = append(sessionStartTimeArray, sessionStartTime)
-				sessionEndTimeArray = append(sessionEndTimeArray, sessionEndTime)
-
-				// Assign a random day and location (since the event spans months, assign each session a random day)
-				days := dbSeed.AllDayEnumValues()
-				dayArray = append(dayArray, days[rand.Intn(len(days))])                         // Random day assignment
 				locationIDArray = append(locationIDArray, locations[rand.Intn(len(locations))]) // Random location assignment
 
 				// Randomly assign foreign keys for practice, course, or game
@@ -97,15 +73,12 @@ func GetEvents(practices, courses, games, locations []uuid.UUID) dbSeed.InsertEv
 
 		// Return the generated events data
 		events = dbSeed.InsertEventsParams{
-			EventStartAtArray:     eventStartAtArray,
-			EventEndAtArray:       eventEndAtArray,
-			SessionStartTimeArray: sessionStartTimeArray,
-			SessionEndTimeArray:   sessionEndTimeArray,
-			DayArray:              dayArray,
-			PracticeIDArray:       practiceIDArray,
-			CourseIDArray:         courseIDArray,
-			GameIDArray:           gameIDArray,
-			LocationIDArray:       locationIDArray,
+			EventStartAtArray: eventStartAtArray,
+			EventEndAtArray:   eventEndAtArray,
+			PracticeIDArray:   practiceIDArray,
+			CourseIDArray:     courseIDArray,
+			GameIDArray:       gameIDArray,
+			LocationIDArray:   locationIDArray,
 		}
 
 	}

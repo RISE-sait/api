@@ -946,7 +946,7 @@
         },
         "/events": {
             "get": {
-                "description": "Retrieve all events, with optional filters by course, location, and practice.",
+              "description": "Retrieve all events within a specific date range, with optional filters by course, location, game, and practice.",
                 "consumes": [
                     "application/json"
                 ],
@@ -957,9 +957,55 @@
                     "events"
                 ],
                 "summary": "Get all events",
+              "parameters": [
+                {
+                  "type": "string",
+                  "example": "\"2024-05-01\"",
+                  "description": "Retrieve events after this date (format: YYYY-MM-DD)",
+                  "name": "after",
+                  "in": "query",
+                  "required": true
+                },
+                {
+                  "type": "string",
+                  "example": "\"2024-06-01\"",
+                  "description": "Retrieve events before this date (format: YYYY-MM-DD)",
+                  "name": "before",
+                  "in": "query",
+                  "required": true
+                },
+                {
+                  "type": "string",
+                  "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                  "description": "Filter by game ID (UUID format)",
+                  "name": "game_id",
+                  "in": "query"
+                },
+                {
+                  "type": "string",
+                  "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                  "description": "Filter by course ID (UUID format)",
+                  "name": "course_id",
+                  "in": "query"
+                },
+                {
+                  "type": "string",
+                  "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                  "description": "Filter by practice ID (UUID format)",
+                  "name": "practice_id",
+                  "in": "query"
+                },
+                {
+                  "type": "string",
+                  "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                  "description": "Filter by location ID (UUID format)",
+                  "name": "location_id",
+                  "in": "query"
+                }
+              ],
                 "responses": {
                     "200": {
-                        "description": "GetMemberships of events retrieved successfully",
+                      "description": "List of events retrieved successfully",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -968,7 +1014,7 @@
                         }
                     },
                     "400": {
-                        "description": "Bad Request: Invalid input",
+                      "description": "Bad Request: Invalid input format or missing required parameters",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1033,7 +1079,7 @@
         },
         "/events/{id}": {
             "get": {
-                "description": "Retrieves details of a specific event based on its HubSpotId.",
+              "description": "Retrieves details of a specific event based on its ID.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1061,7 +1107,7 @@
                         }
                     },
                     "400": {
-                        "description": "Bad Request: Invalid HubSpotId",
+                      "description": "Bad Request: Invalid ID",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1145,7 +1191,7 @@
                 }
             },
             "delete": {
-                "description": "Deletes an event by its HubSpotId.",
+              "description": "Deletes an event by its ID.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1174,7 +1220,7 @@
                         }
                     },
                     "400": {
-                        "description": "Bad Request: Invalid HubSpotId",
+                      "description": "Bad Request: Invalid ID",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1215,12 +1261,6 @@
                         "type": "string",
                         "description": "Filter by game name",
                         "name": "name",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by game description",
-                        "name": "description",
                         "in": "query"
                     }
                 ],
@@ -3644,20 +3684,13 @@
         "event.RequestDto": {
             "type": "object",
             "required": [
-                "day",
                 "event_end_at",
-                "event_start_at",
-                "session_end_time",
-                "session_start_time"
+              "event_start_at"
             ],
             "properties": {
                 "course_id": {
                     "type": "string",
                     "example": "00000000-0000-0000-0000-000000000000"
-                },
-                "day": {
-                    "type": "string",
-                    "example": "THURSDAY"
                 },
                 "event_end_at": {
                     "type": "string",
@@ -3678,14 +3711,6 @@
                 "practice_id": {
                     "type": "string",
                     "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
-                },
-                "session_end_time": {
-                    "type": "string",
-                    "example": "23:00:00+00:00"
-                },
-                "session_start_time": {
-                    "type": "string",
-                    "example": "23:00:00+00:00"
                 }
             }
         },
@@ -3693,9 +3718,6 @@
             "type": "object",
             "properties": {
                 "course_id": {
-                    "type": "string"
-                },
-                "day": {
                     "type": "string"
                 },
                 "event_end_at": {
@@ -3747,9 +3769,6 @@
             "type": "object",
             "properties": {
                 "name": {
-                    "type": "string"
-                },
-                "video_link": {
                     "type": "string"
                 }
             }

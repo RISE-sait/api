@@ -56,53 +56,6 @@ func (ns NullAuditStatus) Value() (driver.Value, error) {
 	return string(ns.AuditStatus), nil
 }
 
-type DayEnum string
-
-const (
-	DayEnumMONDAY    DayEnum = "MONDAY"
-	DayEnumTUESDAY   DayEnum = "TUESDAY"
-	DayEnumWEDNESDAY DayEnum = "WEDNESDAY"
-	DayEnumTHURSDAY  DayEnum = "THURSDAY"
-	DayEnumFRIDAY    DayEnum = "FRIDAY"
-	DayEnumSATURDAY  DayEnum = "SATURDAY"
-	DayEnumSUNDAY    DayEnum = "SUNDAY"
-)
-
-func (e *DayEnum) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = DayEnum(s)
-	case string:
-		*e = DayEnum(s)
-	default:
-		return fmt.Errorf("unsupported scan type for DayEnum: %T", src)
-	}
-	return nil
-}
-
-type NullDayEnum struct {
-	DayEnum DayEnum `json:"day_enum"`
-	Valid   bool    `json:"valid"` // Valid is true if DayEnum is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullDayEnum) Scan(value interface{}) error {
-	if value == nil {
-		ns.DayEnum, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.DayEnum.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullDayEnum) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.DayEnum), nil
-}
-
 type MembershipStatus string
 
 const (
@@ -317,18 +270,15 @@ type DiscountRestrictedMembershipPlan struct {
 }
 
 type Event struct {
-	ID               uuid.UUID     `json:"id"`
-	EventStartAt     time.Time     `json:"event_start_at"`
-	EventEndAt       time.Time     `json:"event_end_at"`
-	SessionStartTime interface{}   `json:"session_start_time"`
-	SessionEndTime   interface{}   `json:"session_end_time"`
-	Day              DayEnum       `json:"day"`
-	PracticeID       uuid.NullUUID `json:"practice_id"`
-	CourseID         uuid.NullUUID `json:"course_id"`
-	GameID           uuid.NullUUID `json:"game_id"`
-	LocationID       uuid.UUID     `json:"location_id"`
-	CreatedAt        time.Time     `json:"created_at"`
-	UpdatedAt        time.Time     `json:"updated_at"`
+	ID           uuid.UUID     `json:"id"`
+	EventStartAt time.Time     `json:"event_start_at"`
+	EventEndAt   time.Time     `json:"event_end_at"`
+	PracticeID   uuid.NullUUID `json:"practice_id"`
+	CourseID     uuid.NullUUID `json:"course_id"`
+	GameID       uuid.NullUUID `json:"game_id"`
+	LocationID   uuid.UUID     `json:"location_id"`
+	CreatedAt    time.Time     `json:"created_at"`
+	UpdatedAt    time.Time     `json:"updated_at"`
 }
 
 type EventStaff struct {
@@ -351,8 +301,8 @@ type MembershipMembership struct {
 	ID          uuid.UUID      `json:"id"`
 	Name        string         `json:"name"`
 	Description sql.NullString `json:"description"`
-	CreatedAt   sql.NullTime   `json:"created_at"`
-	UpdatedAt   sql.NullTime   `json:"updated_at"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
 }
 
 type MembershipMembershipPlan struct {
@@ -363,7 +313,7 @@ type MembershipMembershipPlan struct {
 	AutoRenew        bool             `json:"auto_renew"`
 	MembershipID     uuid.UUID        `json:"membership_id"`
 	PaymentFrequency PaymentFrequency `json:"payment_frequency"`
-	AmtPeriods       int32            `json:"amt_periods"`
+	AmtPeriods       sql.NullInt32    `json:"amt_periods"`
 	CreatedAt        time.Time        `json:"created_at"`
 	UpdatedAt        time.Time        `json:"updated_at"`
 }
@@ -426,6 +376,7 @@ type UsersUser struct {
 	ID                       uuid.UUID      `json:"id"`
 	HubspotID                sql.NullString `json:"hubspot_id"`
 	CountryAlpha2Code        string         `json:"country_alpha2_code"`
+	Gender                   sql.NullString `json:"gender"`
 	FirstName                string         `json:"first_name"`
 	LastName                 string         `json:"last_name"`
 	Age                      int32          `json:"age"`
@@ -436,7 +387,6 @@ type UsersUser struct {
 	HasSmsConsent            bool           `json:"has_sms_consent"`
 	CreatedAt                time.Time      `json:"created_at"`
 	UpdatedAt                time.Time      `json:"updated_at"`
-	Gender                   sql.NullString `json:"gender"`
 }
 
 type WaiverWaiver struct {

@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -29,22 +30,13 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 
 	var createdEvent values.ReadEventValues
 
-	if !db.DayEnum(eventDetails.Day).Valid() {
-
-		validDays := db.AllDayEnumValues()
-
-		return createdEvent, errLib.New(
-			fmt.Sprintf("Invalid day provided. Valid days are: %v", validDays),
-			http.StatusBadRequest,
-		)
-	}
-
 	dbParams := db.CreateEventParams{
-		Day:              db.DayEnum(eventDetails.Day),
-		EventStartAt:     eventDetails.EventStartAt,
-		EventEndAt:       eventDetails.EventEndAt,
-		SessionStartTime: eventDetails.SessionStartTime,
-		SessionEndTime:   eventDetails.SessionEndTime,
+		EventStartAt: eventDetails.EventStartAt,
+		EventEndAt:   eventDetails.EventEndAt,
+		GameID: uuid.NullUUID{
+			UUID:  eventDetails.GameID,
+			Valid: eventDetails.GameID != uuid.Nil,
+		},
 		PracticeID: uuid.NullUUID{
 			UUID:  eventDetails.PracticeID,
 			Valid: eventDetails.PracticeID != uuid.Nil,
@@ -114,9 +106,28 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 	return createdEvent, nil
 }
 
-func (r *Repository) GetEvents(ctx context.Context) ([]values.ReadEventValues, *errLib.CommonError) {
+func (r *Repository) GetEvents(ctx context.Context, after, before time.Time, courseID, practiceID, gameID, locationID uuid.UUID) ([]values.ReadEventValues, *errLib.CommonError) {
 
-	dbEvents, err := r.Queries.GetEvents(ctx)
+	dbEvents, err := r.Queries.GetEvents(ctx, db.GetEventsParams{
+		After:  after,
+		Before: before,
+		CourseID: uuid.NullUUID{
+			UUID:  courseID,
+			Valid: courseID != uuid.Nil,
+		},
+		GameID: uuid.NullUUID{
+			UUID:  gameID,
+			Valid: gameID != uuid.Nil,
+		},
+		PracticeID: uuid.NullUUID{
+			UUID:  practiceID,
+			Valid: practiceID != uuid.Nil,
+		},
+		LocationID: uuid.NullUUID{
+			UUID:  locationID,
+			Valid: locationID != uuid.Nil,
+		},
+	})
 
 	if err != nil {
 		log.Println("Failed to get events: ", err.Error())
@@ -129,15 +140,12 @@ func (r *Repository) GetEvents(ctx context.Context) ([]values.ReadEventValues, *
 		event := values.ReadEventValues{
 			ID: dbEvent.ID,
 			Details: values.Details{
-				Day:              string(dbEvent.Day),
-				EventStartAt:     dbEvent.EventStartAt,
-				EventEndAt:       dbEvent.EventEndAt,
-				SessionStartTime: dbEvent.SessionStartTime,
-				SessionEndTime:   dbEvent.SessionEndTime,
-				PracticeID:       dbEvent.PracticeID.UUID,
-				CourseID:         dbEvent.CourseID.UUID,
-				GameID:           dbEvent.GameID.UUID,
-				LocationID:       dbEvent.LocationID,
+				EventStartAt: dbEvent.EventStartAt,
+				EventEndAt:   dbEvent.EventEndAt,
+				PracticeID:   dbEvent.PracticeID.UUID,
+				CourseID:     dbEvent.CourseID.UUID,
+				GameID:       dbEvent.GameID.UUID,
+				LocationID:   dbEvent.LocationID,
 			},
 		}
 
@@ -151,15 +159,13 @@ func (r *Repository) GetEvents(ctx context.Context) ([]values.ReadEventValues, *
 func (r *Repository) UpdateEvent(c context.Context, event values.UpdateEventValues) (values.ReadEventValues, *errLib.CommonError) {
 
 	dbEventParams := db.UpdateEventParams{
-		EventStartAt:     event.EventStartAt,
-		EventEndAt:       event.EventEndAt,
-		SessionStartTime: event.SessionStartTime,
-		SessionEndTime:   event.SessionEndTime,
-		LocationID:       event.LocationID,
-		PracticeID:       uuid.NullUUID{UUID: event.PracticeID, Valid: event.PracticeID != uuid.Nil},
-		CourseID:         uuid.NullUUID{UUID: event.CourseID, Valid: event.CourseID != uuid.Nil},
-		GameID:           uuid.NullUUID{UUID: event.GameID, Valid: event.GameID != uuid.Nil},
-		ID:               event.ID,
+		EventStartAt: event.EventStartAt,
+		EventEndAt:   event.EventEndAt,
+		LocationID:   event.LocationID,
+		PracticeID:   uuid.NullUUID{UUID: event.PracticeID, Valid: event.PracticeID != uuid.Nil},
+		CourseID:     uuid.NullUUID{UUID: event.CourseID, Valid: event.CourseID != uuid.Nil},
+		GameID:       uuid.NullUUID{UUID: event.GameID, Valid: event.GameID != uuid.Nil},
+		ID:           event.ID,
 	}
 
 	dbEvent, err := r.Queries.UpdateEvent(c, dbEventParams)
@@ -174,14 +180,12 @@ func (r *Repository) UpdateEvent(c context.Context, event values.UpdateEventValu
 		CreatedAt: dbEvent.CreatedAt,
 		UpdatedAt: dbEvent.UpdatedAt,
 		Details: values.Details{
-			LocationID:       dbEvent.LocationID,
-			EventStartAt:     dbEvent.EventStartAt,
-			EventEndAt:       dbEvent.EventEndAt,
-			SessionStartTime: dbEvent.SessionStartTime,
-			SessionEndTime:   dbEvent.SessionEndTime,
-			PracticeID:       dbEvent.PracticeID.UUID,
-			CourseID:         dbEvent.CourseID.UUID,
-			GameID:           dbEvent.GameID.UUID,
+			LocationID:   dbEvent.LocationID,
+			EventStartAt: dbEvent.EventStartAt,
+			EventEndAt:   dbEvent.EventEndAt,
+			PracticeID:   dbEvent.PracticeID.UUID,
+			CourseID:     dbEvent.CourseID.UUID,
+			GameID:       dbEvent.GameID.UUID,
 		},
 	}
 
@@ -190,15 +194,11 @@ func (r *Repository) UpdateEvent(c context.Context, event values.UpdateEventValu
 }
 
 func (r *Repository) DeleteEvent(c context.Context, id uuid.UUID) *errLib.CommonError {
-	row, err := r.Queries.DeleteEvent(c, id)
+	err := r.Queries.DeleteEvent(c, id)
 
 	if err != nil {
 		log.Printf("Failed to delete event with HubSpotId: %s. Error: %s", id, err.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-
-	if row == 0 {
-		return errLib.New("Event not found", http.StatusNotFound)
 	}
 
 	return nil
@@ -218,15 +218,12 @@ func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEve
 		CreatedAt: dbEvent.CreatedAt,
 		UpdatedAt: dbEvent.UpdatedAt,
 		Details: values.Details{
-			Day:              string(dbEvent.Day),
-			LocationID:       dbEvent.LocationID,
-			EventStartAt:     dbEvent.EventStartAt,
-			EventEndAt:       dbEvent.EventEndAt,
-			SessionStartTime: dbEvent.SessionStartTime,
-			SessionEndTime:   dbEvent.SessionEndTime,
-			PracticeID:       dbEvent.PracticeID.UUID,
-			CourseID:         dbEvent.CourseID.UUID,
-			GameID:           dbEvent.GameID.UUID,
+			LocationID:   dbEvent.LocationID,
+			EventStartAt: dbEvent.EventStartAt,
+			EventEndAt:   dbEvent.EventEndAt,
+			PracticeID:   dbEvent.PracticeID.UUID,
+			CourseID:     dbEvent.CourseID.UUID,
+			GameID:       dbEvent.GameID.UUID,
 		},
 	}
 

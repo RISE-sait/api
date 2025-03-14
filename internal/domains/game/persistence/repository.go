@@ -150,11 +150,13 @@ func (r *Repository) CreateGame(c context.Context, name string) (values.ReadValu
 		return values.ReadValue{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
+	videoUrl := gcp.GeneratePublicFileURL(fmt.Sprintf("games/%v", createdGame.ID))
+
 	return values.ReadValue{
 		ID: createdGame.ID,
 		BaseValue: values.BaseValue{
-			Name: createdGame.Name,
-			//VideoLink: &createdGame.VideoLink.String,
+			Name:      createdGame.Name,
+			VideoLink: &videoUrl,
 		},
 	}, nil
 }

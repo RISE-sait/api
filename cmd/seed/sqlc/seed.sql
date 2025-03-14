@@ -24,13 +24,9 @@ VALUES (unnest(@name_array::text[]))
 RETURNING id;
 
 -- name: InsertEvents :many
-INSERT INTO public.events (event_start_at, event_end_at, session_start_time, session_end_time,
-                           day, practice_id, course_id, game_id, location_id)
+INSERT INTO public.events (event_start_at, event_end_at, practice_id, course_id, game_id, location_id)
 SELECT unnest(@event_start_at_array::timestamptz[]),
        unnest(@event_end_at_array::timestamptz[]),
-       unnest(@session_start_time_array::timetz[]),
-       unnest(@session_end_time_array::timetz[]),
-       unnest(@day_array::day_enum[]),
        unnest(
                ARRAY(
                        SELECT CASE

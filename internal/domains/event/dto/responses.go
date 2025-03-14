@@ -7,7 +7,6 @@ import (
 
 type ResponseDto struct {
 	ID           uuid.UUID  `json:"id"`
-	Day          string     `json:"day"`
 	EventStartAt string     `json:"event_start_at"`
 	EventEndAt   string     `json:"event_end_at"`
 	SessionStart string     `json:"session_start_at"`
@@ -21,11 +20,8 @@ type ResponseDto struct {
 func NewEventResponse(event values.ReadEventValues) ResponseDto {
 	response := ResponseDto{
 		ID:           event.ID,
-		Day:          event.Day,
 		EventStartAt: event.EventStartAt.String(),
 		EventEndAt:   event.EventEndAt.String(),
-		SessionStart: event.SessionStartTime.Time,
-		SessionEnd:   event.SessionEndTime.Time,
 	}
 
 	if event.GameID != uuid.Nil {

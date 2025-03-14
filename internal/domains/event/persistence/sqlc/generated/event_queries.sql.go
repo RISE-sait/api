@@ -9,35 +9,28 @@ import (
 	"context"
 	"time"
 
-	"api/internal/custom_types"
 	"github.com/google/uuid"
 )
 
 const createEvent = `-- name: CreateEvent :one
-INSERT INTO events (event_start_at, event_end_at, session_start_time, session_end_time, day, location_id, course_id, practice_id, game_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, event_start_at, event_end_at, session_start_time, session_end_time, day, practice_id, course_id, game_id, location_id, created_at, updated_at
+INSERT INTO events (event_start_at, event_end_at, location_id, course_id, practice_id, game_id)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, event_start_at, event_end_at, practice_id, course_id, game_id, location_id, created_at, updated_at
 `
 
 type CreateEventParams struct {
-	EventStartAt     time.Time                     `json:"event_start_at"`
-	EventEndAt       time.Time                     `json:"event_end_at"`
-	SessionStartTime custom_types.TimeWithTimeZone `json:"session_start_time"`
-	SessionEndTime   custom_types.TimeWithTimeZone `json:"session_end_time"`
-	Day              DayEnum                       `json:"day"`
-	LocationID       uuid.UUID                     `json:"location_id"`
-	CourseID         uuid.NullUUID                 `json:"course_id"`
-	PracticeID       uuid.NullUUID                 `json:"practice_id"`
-	GameID           uuid.NullUUID                 `json:"game_id"`
+	EventStartAt time.Time     `json:"event_start_at"`
+	EventEndAt   time.Time     `json:"event_end_at"`
+	LocationID   uuid.UUID     `json:"location_id"`
+	CourseID     uuid.NullUUID `json:"course_id"`
+	PracticeID   uuid.NullUUID `json:"practice_id"`
+	GameID       uuid.NullUUID `json:"game_id"`
 }
 
 func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Event, error) {
 	row := q.db.QueryRowContext(ctx, createEvent,
 		arg.EventStartAt,
 		arg.EventEndAt,
-		arg.SessionStartTime,
-		arg.SessionEndTime,
-		arg.Day,
 		arg.LocationID,
 		arg.CourseID,
 		arg.PracticeID,
@@ -48,9 +41,6 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Event
 		&i.ID,
 		&i.EventStartAt,
 		&i.EventEndAt,
-		&i.SessionStartTime,
-		&i.SessionEndTime,
-		&i.Day,
 		&i.PracticeID,
 		&i.CourseID,
 		&i.GameID,
@@ -61,20 +51,19 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Event
 	return i, err
 }
 
-const deleteEvent = `-- name: DeleteEvent :execrows
-DELETE FROM events WHERE id = $1
+const deleteEvent = `-- name: DeleteEvent :exec
+DELETE
+FROM events
+WHERE id = $1
 `
 
-func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) (int64, error) {
-	result, err := q.db.ExecContext(ctx, deleteEvent, id)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
+func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteEvent, id)
+	return err
 }
 
 const getEventById = `-- name: GetEventById :one
-SELECT id, event_start_at, event_end_at, session_start_time, session_end_time, day, practice_id, course_id, game_id, location_id, created_at, updated_at
+SELECT id, event_start_at, event_end_at, practice_id, course_id, game_id, location_id, created_at, updated_at
 FROM events
 WHERE id = $1
 `
@@ -86,9 +75,6 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (Event, error)
 		&i.ID,
 		&i.EventStartAt,
 		&i.EventEndAt,
-		&i.SessionStartTime,
-		&i.SessionEndTime,
-		&i.Day,
 		&i.PracticeID,
 		&i.CourseID,
 		&i.GameID,
@@ -100,12 +86,34 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (Event, error)
 }
 
 const getEvents = `-- name: GetEvents :many
-SELECT id, event_start_at, event_end_at, session_start_time, session_end_time, day, practice_id, course_id, game_id, location_id, created_at, updated_at
+SELECT id, event_start_at, event_end_at, practice_id, course_id, game_id, location_id, created_at, updated_at
 FROM events
+WHERE event_start_at >= $1
+  AND event_end_at <= $2
+  AND ($3 = course_id OR $3 IS NULL)
+  AND ($4 = game_id OR $4 IS NULL)
+    AND ($5 = practice_id OR $5 IS NULL)
+        AND ($6 = location_id OR $6 IS NULL)
 `
 
-func (q *Queries) GetEvents(ctx context.Context) ([]Event, error) {
-	rows, err := q.db.QueryContext(ctx, getEvents)
+type GetEventsParams struct {
+	After      time.Time     `json:"after"`
+	Before     time.Time     `json:"before"`
+	CourseID   uuid.NullUUID `json:"course_id"`
+	GameID     uuid.NullUUID `json:"game_id"`
+	PracticeID uuid.NullUUID `json:"practice_id"`
+	LocationID uuid.NullUUID `json:"location_id"`
+}
+
+func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]Event, error) {
+	rows, err := q.db.QueryContext(ctx, getEvents,
+		arg.After,
+		arg.Before,
+		arg.CourseID,
+		arg.GameID,
+		arg.PracticeID,
+		arg.LocationID,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -117,9 +125,6 @@ func (q *Queries) GetEvents(ctx context.Context) ([]Event, error) {
 			&i.ID,
 			&i.EventStartAt,
 			&i.EventEndAt,
-			&i.SessionStartTime,
-			&i.SessionEndTime,
-			&i.Day,
 			&i.PracticeID,
 			&i.CourseID,
 			&i.GameID,
@@ -142,36 +147,35 @@ func (q *Queries) GetEvents(ctx context.Context) ([]Event, error) {
 
 const updateEvent = `-- name: UpdateEvent :one
 UPDATE events
-SET event_start_at = $1, event_end_at = $2, session_start_time = $3, session_end_time = $4,
-    location_id = $5, practice_id = $6, course_id = $7, game_id = $8, day = $9, updated_at = current_timestamp
-WHERE id = $10
-RETURNING id, event_start_at, event_end_at, session_start_time, session_end_time, day, practice_id, course_id, game_id, location_id, created_at, updated_at
+SET event_start_at = $1,
+    event_end_at   = $2,
+    location_id    = $3,
+    practice_id    = $4,
+    course_id      = $5,
+    game_id        = $6,
+    updated_at     = current_timestamp
+WHERE id = $7
+RETURNING id, event_start_at, event_end_at, practice_id, course_id, game_id, location_id, created_at, updated_at
 `
 
 type UpdateEventParams struct {
-	EventStartAt     time.Time                     `json:"event_start_at"`
-	EventEndAt       time.Time                     `json:"event_end_at"`
-	SessionStartTime custom_types.TimeWithTimeZone `json:"session_start_time"`
-	SessionEndTime   custom_types.TimeWithTimeZone `json:"session_end_time"`
-	LocationID       uuid.UUID                     `json:"location_id"`
-	PracticeID       uuid.NullUUID                 `json:"practice_id"`
-	CourseID         uuid.NullUUID                 `json:"course_id"`
-	GameID           uuid.NullUUID                 `json:"game_id"`
-	Day              DayEnum                       `json:"day"`
-	ID               uuid.UUID                     `json:"id"`
+	EventStartAt time.Time     `json:"event_start_at"`
+	EventEndAt   time.Time     `json:"event_end_at"`
+	LocationID   uuid.UUID     `json:"location_id"`
+	PracticeID   uuid.NullUUID `json:"practice_id"`
+	CourseID     uuid.NullUUID `json:"course_id"`
+	GameID       uuid.NullUUID `json:"game_id"`
+	ID           uuid.UUID     `json:"id"`
 }
 
 func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event, error) {
 	row := q.db.QueryRowContext(ctx, updateEvent,
 		arg.EventStartAt,
 		arg.EventEndAt,
-		arg.SessionStartTime,
-		arg.SessionEndTime,
 		arg.LocationID,
 		arg.PracticeID,
 		arg.CourseID,
 		arg.GameID,
-		arg.Day,
 		arg.ID,
 	)
 	var i Event
@@ -179,9 +183,6 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 		&i.ID,
 		&i.EventStartAt,
 		&i.EventEndAt,
-		&i.SessionStartTime,
-		&i.SessionEndTime,
-		&i.Day,
 		&i.PracticeID,
 		&i.CourseID,
 		&i.GameID,

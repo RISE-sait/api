@@ -9,7 +9,6 @@ import (
 	"context"
 	"time"
 
-	"api/internal/custom_types"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/shopspring/decimal"
@@ -268,13 +267,9 @@ func (q *Queries) InsertCustomersEnrollments(ctx context.Context, arg InsertCust
 }
 
 const insertEvents = `-- name: InsertEvents :many
-INSERT INTO public.events (event_start_at, event_end_at, session_start_time, session_end_time,
-                           day, practice_id, course_id, game_id, location_id)
+INSERT INTO public.events (event_start_at, event_end_at, practice_id, course_id, game_id, location_id)
 SELECT unnest($1::timestamptz[]),
        unnest($2::timestamptz[]),
-       unnest($3::timetz[]),
-       unnest($4::timetz[]),
-       unnest($5::day_enum[]),
        unnest(
                ARRAY(
                        SELECT CASE
@@ -282,7 +277,7 @@ SELECT unnest($1::timestamptz[]),
                                       THEN NULL
                                   ELSE practice_id
                                   END
-                       FROM unnest($6::uuid[]) AS practice_id
+                       FROM unnest($3::uuid[]) AS practice_id
                )
        ),
        unnest(
@@ -292,7 +287,7 @@ SELECT unnest($1::timestamptz[]),
                                       THEN NULL
                                   ELSE course_id
                                   END
-                       FROM unnest($7::uuid[]) AS course_id
+                       FROM unnest($4::uuid[]) AS course_id
                )
        ),
        unnest(
@@ -302,33 +297,27 @@ SELECT unnest($1::timestamptz[]),
                                       THEN NULL
                                   ELSE game_id
                                   END
-                       FROM unnest($8::uuid[]) AS game_id
+                       FROM unnest($5::uuid[]) AS game_id
                )
        ),
-       unnest($9::uuid[])
+       unnest($6::uuid[])
 ON CONFLICT DO NOTHING
 RETURNING id
 `
 
 type InsertEventsParams struct {
-	EventStartAtArray     []time.Time                     `json:"event_start_at_array"`
-	EventEndAtArray       []time.Time                     `json:"event_end_at_array"`
-	SessionStartTimeArray []custom_types.TimeWithTimeZone `json:"session_start_time_array"`
-	SessionEndTimeArray   []custom_types.TimeWithTimeZone `json:"session_end_time_array"`
-	DayArray              []DayEnum                       `json:"day_array"`
-	PracticeIDArray       []uuid.UUID                     `json:"practice_id_array"`
-	CourseIDArray         []uuid.UUID                     `json:"course_id_array"`
-	GameIDArray           []uuid.UUID                     `json:"game_id_array"`
-	LocationIDArray       []uuid.UUID                     `json:"location_id_array"`
+	EventStartAtArray []time.Time `json:"event_start_at_array"`
+	EventEndAtArray   []time.Time `json:"event_end_at_array"`
+	PracticeIDArray   []uuid.UUID `json:"practice_id_array"`
+	CourseIDArray     []uuid.UUID `json:"course_id_array"`
+	GameIDArray       []uuid.UUID `json:"game_id_array"`
+	LocationIDArray   []uuid.UUID `json:"location_id_array"`
 }
 
 func (q *Queries) InsertEvents(ctx context.Context, arg InsertEventsParams) ([]uuid.UUID, error) {
 	rows, err := q.db.QueryContext(ctx, insertEvents,
 		pq.Array(arg.EventStartAtArray),
 		pq.Array(arg.EventEndAtArray),
-		pq.Array(arg.SessionStartTimeArray),
-		pq.Array(arg.SessionEndTimeArray),
-		pq.Array(arg.DayArray),
 		pq.Array(arg.PracticeIDArray),
 		pq.Array(arg.CourseIDArray),
 		pq.Array(arg.GameIDArray),

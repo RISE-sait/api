@@ -6,10 +6,13 @@ import (
 	enrollmentService "api/internal/domains/enrollment/service"
 	dto "api/internal/domains/user/dto/customer"
 	customerRepo "api/internal/domains/user/persistence/repository"
+	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
+	"fmt"
 	"github.com/go-chi/chi"
 	"net/http"
+	"strconv"
 )
 
 type CustomersHandler struct {
@@ -112,19 +115,56 @@ func (h *CustomersHandler) UpdateCustomerStats(w http.ResponseWriter, r *http.Re
 
 }
 
-// GetCustomers retrieves a list of customers with optional filtering by HubSpot IDs.
+// GetCustomers retrieves a list of customers with optional filtering and pagination.
 // @Summary Get customers
-// @Description Retrieves a list of customers, optionally filtered by HubSpot IDs.
+// @Description Retrieves a list of customers, optionally filtered by HubSpot IDs, with pagination support.
 // @Tags customers
 // @Accept json
 // @Produce json
+// @Param limit query int false "Number of customers to retrieve (default: 20)"
+// @Param offset query int false "Number of customers to skip (default: 0)"
 // @Success 200 {array} customer.Response "List of customers"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid parameters"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /customers [get]
 func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) {
 
-	dbCustomers, err := h.CustomerRepo.GetCustomers(r.Context())
+	query := r.URL.Query()
+
+	maxLimit := 20
+	offset := 0
+
+	if limitStr := query.Get("limit"); limitStr != "" {
+		parsedLimit, err := strconv.Atoi(limitStr)
+		if err != nil {
+			responseHandlers.RespondWithError(w, errLib.New(fmt.Sprintf("Error encountered parsing limit: %s", err.Error()), http.StatusBadRequest))
+			return
+		}
+		if parsedLimit <= 0 {
+			responseHandlers.RespondWithError(w, errLib.New("Limit must be greater than 0", http.StatusBadRequest))
+			return
+		}
+		if parsedLimit > maxLimit {
+			responseHandlers.RespondWithError(w, errLib.New(fmt.Sprintf("max limit is %d", maxLimit), http.StatusBadRequest))
+			return
+		}
+		maxLimit = parsedLimit
+	}
+
+	if offsetStr := query.Get("offset"); offsetStr != "" {
+		parsedOffset, err := strconv.Atoi(offsetStr)
+		if err != nil {
+			responseHandlers.RespondWithError(w, errLib.New(fmt.Sprintf("Error encountered parsing offset: %s", err.Error()), http.StatusBadRequest))
+			return
+		}
+		if parsedOffset < 0 {
+			responseHandlers.RespondWithError(w, errLib.New("Offset must be at least 0", http.StatusBadRequest))
+			return
+		}
+		offset = parsedOffset
+	}
+
+	dbCustomers, err := h.CustomerRepo.GetCustomers(r.Context(), int32(maxLimit), int32(offset))
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -136,6 +176,7 @@ func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) 
 	for i, customer := range dbCustomers {
 		response := dto.Response{
 			UserID:      customer.ID,
+			Age:         customer.Age,
 			FirstName:   customer.FirstName,
 			LastName:    customer.LastName,
 			Email:       customer.Email,

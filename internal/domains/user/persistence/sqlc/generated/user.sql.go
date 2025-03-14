@@ -90,9 +90,10 @@ func (q *Queries) GetAthleteInfoByUserID(ctx context.Context, id uuid.UUID) (Use
 }
 
 const getChildren = `-- name: GetChildren :many
-SELECT children.id, children.hubspot_id, children.country_alpha2_code, children.first_name, children.last_name, children.age, children.parent_id, children.phone, children.email, children.has_marketing_email_consent, children.has_sms_consent, children.created_at, children.updated_at
-FROM users.users parents JOIN users.users children
-ON parents.id = children.parent_id
+SELECT children.id, children.hubspot_id, children.country_alpha2_code, children.first_name, children.last_name, children.age, children.parent_id, children.phone, children.email, children.has_marketing_email_consent, children.has_sms_consent, children.created_at, children.updated_at, children.gender
+FROM users.users parents
+         JOIN users.users children
+              ON parents.id = children.parent_id
 WHERE parents.id = $1
 `
 
@@ -119,6 +120,7 @@ func (q *Queries) GetChildren(ctx context.Context, id uuid.UUID) ([]UsersUser, e
 			&i.HasSmsConsent,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Gender,
 		); err != nil {
 			return nil, err
 		}
@@ -134,12 +136,18 @@ func (q *Queries) GetChildren(ctx context.Context, id uuid.UUID) ([]UsersUser, e
 }
 
 const getCustomers = `-- name: GetCustomers :many
-SELECT id, hubspot_id, country_alpha2_code, first_name, last_name, age, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at
+SELECT id, hubspot_id, country_alpha2_code, first_name, last_name, age, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at, gender
 FROM users.users
+LIMIT $1 OFFSET $2
 `
 
-func (q *Queries) GetCustomers(ctx context.Context) ([]UsersUser, error) {
-	rows, err := q.db.QueryContext(ctx, getCustomers)
+type GetCustomersParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]UsersUser, error) {
+	rows, err := q.db.QueryContext(ctx, getCustomers, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -161,6 +169,7 @@ func (q *Queries) GetCustomers(ctx context.Context) ([]UsersUser, error) {
 			&i.HasSmsConsent,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Gender,
 		); err != nil {
 			return nil, err
 		}

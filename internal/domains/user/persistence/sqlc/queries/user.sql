@@ -14,7 +14,8 @@ WHERE id = sqlc.arg('id');
 
 -- name: GetCustomers :many
 SELECT *
-FROM users.users;
+FROM users.users
+LIMIT $1 OFFSET $2;
 
 -- name: GetChildren :many
 SELECT children.*

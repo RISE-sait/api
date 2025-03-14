@@ -366,7 +366,7 @@ const docTemplate = `{
         },
         "/customers": {
             "get": {
-                "description": "Retrieves a list of customers, optionally filtered by HubSpot IDs.",
+                "description": "Retrieves a list of customers, optionally filtered by HubSpot IDs, with pagination support.",
                 "consumes": [
                     "application/json"
                 ],
@@ -377,6 +377,20 @@ const docTemplate = `{
                     "customers"
                 ],
                 "summary": "Get customers",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Number of customers to retrieve (default: 20)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of customers to skip (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "List of customers",
@@ -3988,7 +4002,9 @@ const docTemplate = `{
         "membership_plan.PlanRequestDto": {
             "type": "object",
             "required": [
+                "amt_periods",
                 "membership_id",
+                "payment_frequency",
                 "price"
             ],
             "properties": {
@@ -4005,7 +4021,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "price": {
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
@@ -4015,7 +4031,13 @@ const docTemplate = `{
                 "amt_periods": {
                     "type": "integer"
                 },
+                "created_at": {
+                    "type": "string"
+                },
                 "id": {
+                    "type": "string"
+                },
+                "joining_fees": {
                     "type": "string"
                 },
                 "membership_id": {
@@ -4028,7 +4050,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "price": {
-                    "type": "integer"
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
                 }
             }
         },

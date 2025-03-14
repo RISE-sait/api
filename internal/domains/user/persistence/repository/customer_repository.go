@@ -26,9 +26,9 @@ func NewCustomerRepository(queries *db.Queries) *CustomerRepository {
 	}
 }
 
-func (r *CustomerRepository) GetCustomers(ctx context.Context) ([]customerValues.ReadValue, *errLib.CommonError) {
+func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int32) ([]customerValues.ReadValue, *errLib.CommonError) {
 
-	dbCustomers, err := r.Queries.GetCustomers(ctx)
+	dbCustomers, err := r.Queries.GetCustomers(ctx, db.GetCustomersParams{Limit: limit, Offset: offset})
 
 	if err != nil {
 		log.Println(fmt.Sprintf("Error getting dbCustomers: %s", err))
@@ -40,6 +40,7 @@ func (r *CustomerRepository) GetCustomers(ctx context.Context) ([]customerValues
 	for i, dbCustomer := range dbCustomers {
 		customer := customerValues.ReadValue{
 			ID:          dbCustomer.ID,
+			Age:         dbCustomer.Age,
 			FirstName:   dbCustomer.FirstName,
 			LastName:    dbCustomer.LastName,
 			CountryCode: dbCustomer.CountryAlpha2Code,

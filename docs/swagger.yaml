@@ -466,16 +466,22 @@ definitions:
       payment_frequency:
         type: string
       price:
-        type: integer
+        type: string
     required:
+      - amt_periods
     - membership_id
+      - payment_frequency
     - price
     type: object
   membership_plan.PlanResponse:
     properties:
       amt_periods:
         type: integer
+      created_at:
+        type: string
       id:
+        type: string
+      joining_fees:
         type: string
       membership_id:
         type: string
@@ -484,7 +490,9 @@ definitions:
       payment_frequency:
         type: string
       price:
-        type: integer
+        type: string
+      updated_at:
+        type: string
     type: object
   purchase.MembershipPlanRequestDto:
     properties:
@@ -796,7 +804,17 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieves a list of customers, optionally filtered by HubSpot IDs.
+      description: Retrieves a list of customers, optionally filtered by HubSpot IDs,
+        with pagination support.
+      parameters:
+        - description: 'Number of customers to retrieve (default: 20)'
+          in: query
+          name: limit
+          type: integer
+        - description: 'Number of customers to skip (default: 0)'
+          in: query
+          name: offset
+          type: integer
       produces:
       - application/json
       responses:

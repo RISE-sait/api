@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"time"
 
+	"api/internal/custom_types"
 	"github.com/google/uuid"
 )
 
@@ -421,18 +422,18 @@ type DiscountRestrictedMembershipPlan struct {
 }
 
 type Event struct {
-	ID               uuid.UUID     `json:"id"`
-	EventStartAt     time.Time     `json:"event_start_at"`
-	EventEndAt       time.Time     `json:"event_end_at"`
-	SessionStartTime interface{}   `json:"session_start_time"`
-	SessionEndTime   interface{}   `json:"session_end_time"`
-	Day              DayEnum       `json:"day"`
-	PracticeID       uuid.NullUUID `json:"practice_id"`
-	CourseID         uuid.NullUUID `json:"course_id"`
-	GameID           uuid.NullUUID `json:"game_id"`
-	LocationID       uuid.UUID     `json:"location_id"`
-	CreatedAt        time.Time     `json:"created_at"`
-	UpdatedAt        time.Time     `json:"updated_at"`
+	ID               uuid.UUID                     `json:"id"`
+	EventStartAt     time.Time                     `json:"event_start_at"`
+	EventEndAt       time.Time                     `json:"event_end_at"`
+	SessionStartTime custom_types.TimeWithTimeZone `json:"session_start_time"`
+	SessionEndTime   custom_types.TimeWithTimeZone `json:"session_end_time"`
+	Day              DayEnum                       `json:"day"`
+	PracticeID       uuid.NullUUID                 `json:"practice_id"`
+	CourseID         uuid.NullUUID                 `json:"course_id"`
+	GameID           uuid.NullUUID                 `json:"game_id"`
+	LocationID       uuid.UUID                     `json:"location_id"`
+	CreatedAt        time.Time                     `json:"created_at"`
+	UpdatedAt        time.Time                     `json:"updated_at"`
 }
 
 type EventStaff struct {

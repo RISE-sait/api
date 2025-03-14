@@ -2703,7 +2703,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Practice HubSpotId",
+                        "description": "Practice ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -2751,7 +2751,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Delete a practice by HubSpotId",
+                "description": "Delete a practice by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -2765,7 +2765,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Practice HubSpotId",
+                        "description": "Practice ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -2776,7 +2776,7 @@ const docTemplate = `{
                         "description": "No Content: Practice deleted successfully"
                     },
                     "400": {
-                        "description": "Bad Request: Invalid HubSpotId",
+                        "description": "Bad Request: Invalid ID",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true

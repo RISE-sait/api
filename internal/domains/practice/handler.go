@@ -125,7 +125,7 @@ func (h *Handler) GetPractices(w http.ResponseWriter, r *http.Request) {
 // @Tags practices
 // @Accept json
 // @Produce json
-// @Param id path string true "Practice HubSpotId"
+// @Param id path string true "Practice ID"
 // @Param practice body dto.PracticeRequestDto true "Practice details"
 // @Success 204 "No Content: Practice updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
@@ -160,16 +160,16 @@ func (h *Handler) UpdatePractice(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-// DeletePractice deletes a practice by HubSpotId.
+// DeletePractice deletes a practice by ID.
 // @Summary Delete a practice
-// @Description Delete a practice by HubSpotId
+// @Description Delete a practice by ID
 // @Tags practices
 // @Accept json
 // @Produce json
-// @Param id path string true "Practice HubSpotId"
+// @Param id path string true "Practice ID"
 // @Security Bearer
 // @Success 204 "No Content: Practice deleted successfully"
-// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid HubSpotId"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Practice not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /practices/{id} [delete]

@@ -1,19 +1,75 @@
--- name: InsertLocations :exec
+-- name: InsertLocations :many
 INSERT INTO location.locations (name, address)
-VALUES (unnest(@name_array::text[]), unnest(@address_array::text[]));
+VALUES (unnest(@name_array::text[]), unnest(@address_array::text[]))
+RETURNING id;
 
--- name: InsertPractices :exec
+-- name: InsertPractices :many
 INSERT INTO public.practices (name, description, level, capacity)
 VALUES (unnest(@name_array::text[]),
         unnest(@description_array::text[]),
         unnest(@level_array::practice_level[]),
-        unnest(@capacity_array::int[]));
+        unnest(@capacity_array::int[]))
+RETURNING id;
 
--- name: InsertMemberships :exec
+-- name: InsertCourses :many
+INSERT INTO course.courses (name, description, capacity)
+VALUES (unnest(@name_array::text[]),
+        unnest(@description_array::text[]),
+        unnest(@capacity_array::int[]))
+RETURNING id;
+
+-- name: InsertGames :many
+INSERT INTO public.games (name)
+VALUES (unnest(@name_array::text[]))
+RETURNING id;
+
+-- name: InsertEvents :exec
+INSERT INTO public.events (event_start_at, event_end_at, session_start_time, session_end_time,
+                           day, practice_id, course_id, game_id, location_id)
+SELECT unnest(@event_start_at_array::timestamptz[]),
+       unnest(@event_end_at_array::timestamptz[]),
+       unnest(@session_start_time_array::timetz[]),
+       unnest(@session_end_time_array::timetz[]),
+       unnest(@day_array::day_enum[]),
+       unnest(
+               ARRAY(
+                       SELECT CASE
+                                  WHEN practice_id = '00000000-0000-0000-0000-000000000000'
+                                      THEN NULL
+                                  ELSE practice_id
+                                  END
+                       FROM unnest(@practice_id_array::uuid[]) AS practice_id
+               )
+       ),
+       unnest(
+               ARRAY(
+                       SELECT CASE
+                                  WHEN course_id = '00000000-0000-0000-0000-000000000000'
+                                      THEN NULL
+                                  ELSE course_id
+                                  END
+                       FROM unnest(@course_id_array::uuid[]) AS course_id
+               )
+       ),
+       unnest(
+               ARRAY(
+                       SELECT CASE
+                                  WHEN game_id = '00000000-0000-0000-0000-000000000000'
+                                      THEN NULL
+                                  ELSE game_id
+                                  END
+                       FROM unnest(@game_id_array::uuid[]) AS game_id
+               )
+       ),
+       unnest(@location_id_array::uuid[])
+ON CONFLICT DO NOTHING;
+
+-- name: InsertMemberships :many
 INSERT INTO membership.memberships (name, description)
-VALUES (unnest(@name_array::text[]), unnest(@description_array::text[]));
+VALUES (unnest(@name_array::text[]), unnest(@description_array::text[]))
+RETURNING id;
 
--- name: InsertMembershipPlans :exec
+-- name: InsertMembershipPlans :many
 INSERT INTO membership.membership_plans (name, price, joining_fee, auto_renew, membership_id, payment_frequency,
                                          amt_periods)
 SELECT name,
@@ -35,7 +91,8 @@ FROM unnest(@name_array::text[]) WITH ORDINALITY AS n(name, ord)
          JOIN
      unnest(@payment_frequency_array::payment_frequency[]) WITH ORDINALITY AS f(payment_frequency, ord) ON n.ord = f.ord
          JOIN
-     unnest(@amt_periods_array::int[]) WITH ORDINALITY AS ap(amt_periods, ord) ON n.ord = ap.ord;
+     unnest(@amt_periods_array::int[]) WITH ORDINALITY AS ap(amt_periods, ord) ON n.ord = ap.ord
+RETURNING id;
 
 
 -- name: InsertClients :exec

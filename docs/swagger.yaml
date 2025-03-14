@@ -2373,9 +2373,9 @@ paths:
     delete:
       consumes:
       - application/json
-      description: Delete a practice by HubSpotId
+      description: Delete a practice by ID
       parameters:
-      - description: Practice HubSpotId
+        - description: Practice ID
         in: path
         name: id
         required: true
@@ -2386,7 +2386,7 @@ paths:
         "204":
           description: 'No Content: Practice deleted successfully'
         "400":
-          description: 'Bad Request: Invalid HubSpotId'
+          description: 'Bad Request: Invalid ID'
           schema:
             additionalProperties: true
             type: object
@@ -2410,7 +2410,7 @@ paths:
       - application/json
       description: Update a practice
       parameters:
-      - description: Practice HubSpotId
+        - description: Practice ID
         in: path
         name: id
         required: true

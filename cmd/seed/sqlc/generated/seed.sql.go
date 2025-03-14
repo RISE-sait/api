@@ -7,53 +7,51 @@ package db_seed
 
 import (
 	"context"
+	"time"
 
+	"api/internal/custom_types"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
 
 const insertClients = `-- name: InsertClients :exec
-WITH prepared_data AS (
-    SELECT
-        unnest($1::text[]) AS country_alpha2_code,
-        unnest($2::text[]) AS first_name,
-        unnest($3::text[]) AS last_name,
-        unnest($4::int[]) AS age,
-        unnest(
-                ARRAY(
-                        SELECT CASE
-                                   WHEN parent_id = '00000000-0000-0000-0000-000000000000' THEN NULL
-                                   ELSE parent_id
-                                   END
-                        FROM unnest($5::uuid[]) AS parent_id
-                )
-        ) AS parent_id,
-        unnest($6::text[]) AS phone,
-        unnest($7::text[]) AS email,
-        unnest($8::boolean[]) AS has_marketing_email_consent,
-        unnest($9::boolean[]) AS has_sms_consent
-)
-INSERT INTO users.users (
-    country_alpha2_code,
-    first_name,
-    last_name,
-    age,
-    parent_id,
-    phone,
-    email,
-    has_marketing_email_consent,
-    has_sms_consent
-)
-SELECT
-    country_alpha2_code,
-    first_name,
-    last_name,
-    age,
-    parent_id,
-    phone,
-    email,
-    has_marketing_email_consent,
-    has_sms_consent
+WITH prepared_data AS (SELECT unnest($1::text[])            AS country_alpha2_code,
+                              unnest($2::text[])                     AS first_name,
+                              unnest($3::text[])                      AS last_name,
+                              unnest($4::int[])                             AS age,
+                              unnest(
+                                      ARRAY(
+                                              SELECT CASE
+                                                         WHEN parent_id = '00000000-0000-0000-0000-000000000000'
+                                                             THEN NULL
+                                                         ELSE parent_id
+                                                         END
+                                              FROM unnest($5::uuid[]) AS parent_id
+                                      )
+                              )                                                     AS parent_id,
+                              unnest($6::text[])                          AS phone,
+                              unnest($7::text[])                          AS email,
+                              unnest($8::boolean[]) AS has_marketing_email_consent,
+                              unnest($9::boolean[])             AS has_sms_consent)
+INSERT
+INTO users.users (country_alpha2_code,
+                  first_name,
+                  last_name,
+                  age,
+                  parent_id,
+                  phone,
+                  email,
+                  has_marketing_email_consent,
+                  has_sms_consent)
+SELECT country_alpha2_code,
+       first_name,
+       last_name,
+       age,
+       parent_id,
+       phone,
+       email,
+       has_marketing_email_consent,
+       has_sms_consent
 FROM prepared_data
 `
 
@@ -84,9 +82,148 @@ func (q *Queries) InsertClients(ctx context.Context, arg InsertClientsParams) er
 	return err
 }
 
-const insertLocations = `-- name: InsertLocations :exec
+const insertCourses = `-- name: InsertCourses :many
+INSERT INTO course.courses (name, description, capacity)
+VALUES (unnest($1::text[]),
+        unnest($2::text[]),
+        unnest($3::int[]))
+RETURNING id
+`
+
+type InsertCoursesParams struct {
+	NameArray        []string `json:"name_array"`
+	DescriptionArray []string `json:"description_array"`
+	CapacityArray    []int32  `json:"capacity_array"`
+}
+
+func (q *Queries) InsertCourses(ctx context.Context, arg InsertCoursesParams) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, insertCourses, pq.Array(arg.NameArray), pq.Array(arg.DescriptionArray), pq.Array(arg.CapacityArray))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const insertEvents = `-- name: InsertEvents :exec
+INSERT INTO public.events (
+    event_start_at, event_end_at, session_start_time, session_end_time,
+    day, practice_id, course_id, game_id, location_id
+)
+SELECT
+    unnest($1::timestamptz[]),
+    unnest($2::timestamptz[]),
+    unnest($3::timetz[]),
+    unnest($4::timetz[]),
+    unnest($5::day_enum[]),
+    unnest(
+            ARRAY(
+                    SELECT CASE
+                               WHEN practice_id = '00000000-0000-0000-0000-000000000000'
+                                   THEN NULL
+                               ELSE practice_id
+                               END
+                    FROM unnest($6::uuid[]) AS practice_id
+            )
+    ),
+    unnest(
+            ARRAY(
+                    SELECT CASE
+                               WHEN course_id = '00000000-0000-0000-0000-000000000000'
+                                   THEN NULL
+                               ELSE course_id
+                               END
+                    FROM unnest($7::uuid[]) AS course_id
+            )
+    ),
+    unnest(
+            ARRAY(
+                    SELECT CASE
+                               WHEN game_id = '00000000-0000-0000-0000-000000000000'
+                                   THEN NULL
+                               ELSE game_id
+                               END
+                    FROM unnest($8::uuid[]) AS game_id
+            )
+    ),
+    unnest($9::uuid[])
+ON CONFLICT DO NOTHING
+`
+
+type InsertEventsParams struct {
+	EventStartAtArray     []time.Time                     `json:"event_start_at_array"`
+	EventEndAtArray       []time.Time                     `json:"event_end_at_array"`
+	SessionStartTimeArray []custom_types.TimeWithTimeZone `json:"session_start_time_array"`
+	SessionEndTimeArray   []custom_types.TimeWithTimeZone `json:"session_end_time_array"`
+	DayArray              []DayEnum                       `json:"day_array"`
+	PracticeIDArray       []uuid.UUID                     `json:"practice_id_array"`
+	CourseIDArray         []uuid.UUID                     `json:"course_id_array"`
+	GameIDArray           []uuid.UUID                     `json:"game_id_array"`
+	LocationIDArray       []uuid.UUID                     `json:"location_id_array"`
+}
+
+func (q *Queries) InsertEvents(ctx context.Context, arg InsertEventsParams) error {
+	_, err := q.db.ExecContext(ctx, insertEvents,
+		pq.Array(arg.EventStartAtArray),
+		pq.Array(arg.EventEndAtArray),
+		pq.Array(arg.SessionStartTimeArray),
+		pq.Array(arg.SessionEndTimeArray),
+		pq.Array(arg.DayArray),
+		pq.Array(arg.PracticeIDArray),
+		pq.Array(arg.CourseIDArray),
+		pq.Array(arg.GameIDArray),
+		pq.Array(arg.LocationIDArray),
+	)
+	return err
+}
+
+const insertGames = `-- name: InsertGames :many
+INSERT INTO public.games (name)
+VALUES (unnest($1::text[]))
+RETURNING id
+`
+
+func (q *Queries) InsertGames(ctx context.Context, nameArray []string) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, insertGames, pq.Array(nameArray))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const insertLocations = `-- name: InsertLocations :many
 INSERT INTO location.locations (name, address)
 VALUES (unnest($1::text[]), unnest($2::text[]))
+RETURNING id
 `
 
 type InsertLocationsParams struct {
@@ -94,12 +231,30 @@ type InsertLocationsParams struct {
 	AddressArray []string `json:"address_array"`
 }
 
-func (q *Queries) InsertLocations(ctx context.Context, arg InsertLocationsParams) error {
-	_, err := q.db.ExecContext(ctx, insertLocations, pq.Array(arg.NameArray), pq.Array(arg.AddressArray))
-	return err
+func (q *Queries) InsertLocations(ctx context.Context, arg InsertLocationsParams) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, insertLocations, pq.Array(arg.NameArray), pq.Array(arg.AddressArray))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
-const insertMembershipPlans = `-- name: InsertMembershipPlans :exec
+const insertMembershipPlans = `-- name: InsertMembershipPlans :many
 INSERT INTO membership.membership_plans (name, price, joining_fee, auto_renew, membership_id, payment_frequency,
                                          amt_periods)
 SELECT name,
@@ -122,6 +277,7 @@ FROM unnest($1::text[]) WITH ORDINALITY AS n(name, ord)
      unnest($6::payment_frequency[]) WITH ORDINALITY AS f(payment_frequency, ord) ON n.ord = f.ord
          JOIN
      unnest($7::int[]) WITH ORDINALITY AS ap(amt_periods, ord) ON n.ord = ap.ord
+RETURNING id
 `
 
 type InsertMembershipPlansParams struct {
@@ -134,8 +290,8 @@ type InsertMembershipPlansParams struct {
 	AmtPeriodsArray       []int32            `json:"amt_periods_array"`
 }
 
-func (q *Queries) InsertMembershipPlans(ctx context.Context, arg InsertMembershipPlansParams) error {
-	_, err := q.db.ExecContext(ctx, insertMembershipPlans,
+func (q *Queries) InsertMembershipPlans(ctx context.Context, arg InsertMembershipPlansParams) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, insertMembershipPlans,
 		pq.Array(arg.NameArray),
 		pq.Array(arg.PriceArray),
 		pq.Array(arg.JoiningFeeArray),
@@ -144,12 +300,31 @@ func (q *Queries) InsertMembershipPlans(ctx context.Context, arg InsertMembershi
 		pq.Array(arg.PaymentFrequencyArray),
 		pq.Array(arg.AmtPeriodsArray),
 	)
-	return err
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
-const insertMemberships = `-- name: InsertMemberships :exec
+const insertMemberships = `-- name: InsertMemberships :many
 INSERT INTO membership.memberships (name, description)
 VALUES (unnest($1::text[]), unnest($2::text[]))
+RETURNING id
 `
 
 type InsertMembershipsParams struct {
@@ -157,17 +332,36 @@ type InsertMembershipsParams struct {
 	DescriptionArray []string `json:"description_array"`
 }
 
-func (q *Queries) InsertMemberships(ctx context.Context, arg InsertMembershipsParams) error {
-	_, err := q.db.ExecContext(ctx, insertMemberships, pq.Array(arg.NameArray), pq.Array(arg.DescriptionArray))
-	return err
+func (q *Queries) InsertMemberships(ctx context.Context, arg InsertMembershipsParams) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, insertMemberships, pq.Array(arg.NameArray), pq.Array(arg.DescriptionArray))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
-const insertPractices = `-- name: InsertPractices :exec
+const insertPractices = `-- name: InsertPractices :many
 INSERT INTO public.practices (name, description, level, capacity)
 VALUES (unnest($1::text[]),
         unnest($2::text[]),
         unnest($3::practice_level[]),
         unnest($4::int[]))
+RETURNING id
 `
 
 type InsertPracticesParams struct {
@@ -177,12 +371,30 @@ type InsertPracticesParams struct {
 	CapacityArray    []int32         `json:"capacity_array"`
 }
 
-func (q *Queries) InsertPractices(ctx context.Context, arg InsertPracticesParams) error {
-	_, err := q.db.ExecContext(ctx, insertPractices,
+func (q *Queries) InsertPractices(ctx context.Context, arg InsertPracticesParams) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, insertPractices,
 		pq.Array(arg.NameArray),
 		pq.Array(arg.DescriptionArray),
 		pq.Array(arg.LevelArray),
 		pq.Array(arg.CapacityArray),
 	)
-	return err
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

@@ -2693,7 +2693,7 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Practice HubSpotId",
+                      "description": "Practice ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -2741,7 +2741,7 @@
                         "Bearer": []
                     }
                 ],
-                "description": "Delete a practice by HubSpotId",
+              "description": "Delete a practice by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -2755,7 +2755,7 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Practice HubSpotId",
+                      "description": "Practice ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -2766,7 +2766,7 @@
                         "description": "No Content: Practice deleted successfully"
                     },
                     "400": {
-                        "description": "Bad Request: Invalid HubSpotId",
+                      "description": "Bad Request: Invalid ID",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true

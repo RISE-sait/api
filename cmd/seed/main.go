@@ -177,7 +177,7 @@ func getGames(numGames int) []string {
 func seedGames(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 	seedQueries := dbSeed.New(db)
 
-	gamesData := getGames(20) // Generate 20 games
+	gamesData := getGames(10) // Generate 20 games
 
 	createdGames, err := seedQueries.InsertGames(ctx, gamesData)
 

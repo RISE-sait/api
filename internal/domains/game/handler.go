@@ -97,7 +97,6 @@ func (h *Handler) GetGameById(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param name query string false "Filter by game name"
-// @Param description query string false "Filter by game description"
 // @Success 200 {array} game.ResponseDto "List of games retrieved successfully"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /games [get]

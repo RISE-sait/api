@@ -26,6 +26,6 @@ type EnrollmentReadDetails struct {
 	EventID     uuid.UUID
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
-	CheckedInAt time.Time
+	CheckedInAt *time.Time
 	IsCancelled bool
 }

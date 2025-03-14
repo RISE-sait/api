@@ -49,15 +49,20 @@ func (r *Repository) GetEnrollments(c context.Context, eventId, customerId uuid.
 	enrollments := make([]values.EnrollmentReadDetails, len(dbEnrollments))
 
 	for i, enrollment := range dbEnrollments {
-		enrollments[i] = values.EnrollmentReadDetails{
+		response := values.EnrollmentReadDetails{
 			ID:          enrollment.ID,
 			CustomerID:  enrollment.CustomerID,
 			EventID:     enrollment.EventID,
 			CreatedAt:   enrollment.CreatedAt,
 			UpdatedAt:   enrollment.UpdatedAt,
-			CheckedInAt: enrollment.CheckedInAt.Time,
 			IsCancelled: enrollment.IsCancelled,
 		}
+
+		if enrollment.CheckedInAt.Valid {
+			response.CheckedInAt = &enrollment.CheckedInAt.Time
+		}
+
+		enrollments[i] = response
 	}
 
 	return enrollments, nil
@@ -105,14 +110,19 @@ func (r *Repository) EnrollCustomer(c context.Context, input values.EnrollmentCr
 		return returnedValues, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return values.EnrollmentReadDetails{
-		ID:          enrollment.ID,
-		CustomerID:  enrollment.CustomerID,
-		EventID:     enrollment.EventID,
-		CreatedAt:   enrollment.CreatedAt,
-		UpdatedAt:   enrollment.UpdatedAt,
-		CheckedInAt: enrollment.CheckedInAt.Time,
-	}, nil
+	response := values.EnrollmentReadDetails{
+		ID:         enrollment.ID,
+		CustomerID: enrollment.CustomerID,
+		EventID:    enrollment.EventID,
+		CreatedAt:  enrollment.CreatedAt,
+		UpdatedAt:  enrollment.UpdatedAt,
+	}
+
+	if enrollment.CheckedInAt.Valid {
+		response.CheckedInAt = &enrollment.CheckedInAt.Time
+	}
+
+	return response, nil
 }
 
 func (r *Repository) GetEventIsFull(c context.Context, eventId uuid.UUID) (*bool, *errLib.CommonError) {

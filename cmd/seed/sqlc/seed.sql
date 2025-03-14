@@ -23,7 +23,7 @@ INSERT INTO public.games (name)
 VALUES (unnest(@name_array::text[]))
 RETURNING id;
 
--- name: InsertEvents :exec
+-- name: InsertEvents :many
 INSERT INTO public.events (event_start_at, event_end_at, session_start_time, session_end_time,
                            day, practice_id, course_id, game_id, location_id)
 SELECT unnest(@event_start_at_array::timestamptz[]),
@@ -62,7 +62,8 @@ SELECT unnest(@event_start_at_array::timestamptz[]),
                )
        ),
        unnest(@location_id_array::uuid[])
-ON CONFLICT DO NOTHING;
+ON CONFLICT DO NOTHING
+RETURNING id;
 
 -- name: InsertMemberships :many
 INSERT INTO membership.memberships (name, description)
@@ -142,4 +143,27 @@ VALUES (unnest(@customer_id::uuid[]),
         unnest(@plans_array::uuid[]),
         unnest(@start_date_array::timestamptz[]),
         unnest(@renewal_date_array::timestamptz[]))
+RETURNING id;
+
+-- name: InsertCustomersEnrollments :many
+WITH prepared_data AS (SELECT unnest(@customer_id_array::uuid[])  AS customer_id,
+                              unnest(@event_id_array::uuid[])     AS event_id,
+                              unnest(
+                                      ARRAY(
+                                              SELECT CASE
+                                                         WHEN checked_in_at = '0001-01-01 00:00:00 UTC'
+                                                             THEN NULL
+                                                         ELSE checked_in_at
+                                                         END
+                                              FROM unnest(@checked_in_at_array::timestamptz[]) AS checked_in_at
+                                      )
+                              )                                   AS checked_in_at,
+                              unnest(@is_cancelled_array::bool[]) AS is_cancelled)
+INSERT
+INTO public.customer_enrollment(customer_id, event_id, checked_in_at, is_cancelled)
+SELECT customer_id,
+       event_id,
+       checked_in_at,
+       is_cancelled
+FROM prepared_data
 RETURNING id;

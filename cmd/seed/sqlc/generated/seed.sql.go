@@ -182,7 +182,67 @@ func (q *Queries) InsertCourses(ctx context.Context, arg InsertCoursesParams) ([
 	return items, nil
 }
 
-const insertEvents = `-- name: InsertEvents :exec
+const insertCustomersEnrollments = `-- name: InsertCustomersEnrollments :many
+WITH prepared_data AS (SELECT unnest($1::uuid[]) AS customer_id,
+                              unnest($2::uuid[])    AS event_id,
+                              unnest(
+                                      ARRAY(
+                                              SELECT CASE
+                                                         WHEN checked_in_at = '0001-01-01 00:00:00 UTC'
+                                                             THEN NULL
+                                                         ELSE checked_in_at
+                                                         END
+                                              FROM unnest($3::timestamptz[]) AS checked_in_at
+                                      )
+                              )                                  AS checked_in_at,
+                              unnest($4::bool[])    AS is_cancelled
+                       )
+INSERT
+INTO public.customer_enrollment(customer_id, event_id, checked_in_at, is_cancelled)
+SELECT customer_id,
+       event_id,
+       checked_in_at,
+       is_cancelled
+FROM prepared_data
+RETURNING id
+`
+
+type InsertCustomersEnrollmentsParams struct {
+	CustomerIDArray  []uuid.UUID `json:"customer_id_array"`
+	EventIDArray     []uuid.UUID `json:"event_id_array"`
+	CheckedInAtArray []time.Time `json:"checked_in_at_array"`
+	IsCancelledArray []bool      `json:"is_cancelled_array"`
+}
+
+func (q *Queries) InsertCustomersEnrollments(ctx context.Context, arg InsertCustomersEnrollmentsParams) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, insertCustomersEnrollments,
+		pq.Array(arg.CustomerIDArray),
+		pq.Array(arg.EventIDArray),
+		pq.Array(arg.CheckedInAtArray),
+		pq.Array(arg.IsCancelledArray),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const insertEvents = `-- name: InsertEvents :many
 INSERT INTO public.events (event_start_at, event_end_at, session_start_time, session_end_time,
                            day, practice_id, course_id, game_id, location_id)
 SELECT unnest($1::timestamptz[]),
@@ -222,6 +282,7 @@ SELECT unnest($1::timestamptz[]),
        ),
        unnest($9::uuid[])
 ON CONFLICT DO NOTHING
+RETURNING id
 `
 
 type InsertEventsParams struct {
@@ -236,8 +297,8 @@ type InsertEventsParams struct {
 	LocationIDArray       []uuid.UUID                     `json:"location_id_array"`
 }
 
-func (q *Queries) InsertEvents(ctx context.Context, arg InsertEventsParams) error {
-	_, err := q.db.ExecContext(ctx, insertEvents,
+func (q *Queries) InsertEvents(ctx context.Context, arg InsertEventsParams) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, insertEvents,
 		pq.Array(arg.EventStartAtArray),
 		pq.Array(arg.EventEndAtArray),
 		pq.Array(arg.SessionStartTimeArray),
@@ -248,7 +309,25 @@ func (q *Queries) InsertEvents(ctx context.Context, arg InsertEventsParams) erro
 		pq.Array(arg.GameIDArray),
 		pq.Array(arg.LocationIDArray),
 	)
-	return err
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const insertGames = `-- name: InsertGames :many

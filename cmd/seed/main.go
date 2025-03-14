@@ -303,28 +303,41 @@ func seedMemberships(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 	return memberships, nil
 }
 
-func seedEvents(ctx context.Context, db *sql.DB, practices, courses, games, locations []uuid.UUID) error {
+func seedEvents(ctx context.Context, db *sql.DB, practices, courses, games, locations []uuid.UUID) ([]uuid.UUID, error) {
 	seedQueries := dbSeed.New(db)
 
 	if len(practices) == 0 || len(courses) == 0 || len(games) == 0 || len(locations) == 0 {
-		return fmt.Errorf("missing required foreign key data")
+		return nil, fmt.Errorf("missing required foreign key data")
 	}
 
 	// Insert events and sessions into the database
-	err := seedQueries.InsertEvents(ctx, data.GetEvents(practices, courses, games, locations))
+	ids, err := seedQueries.InsertEvents(ctx, data.GetEvents(practices, courses, games, locations))
 
 	if err != nil {
 		log.Fatalf("Failed to insert events: %v", err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return ids, nil
 }
 
 func seedClientsMembershipPlans(ctx context.Context, db *sql.DB, clients, plans []uuid.UUID) error {
 	seedQueries := dbSeed.New(db)
 
 	_, err := seedQueries.InsertClientsMembershipPlans(ctx, data.GetClientsMembershipPlans(clients, plans))
+
+	if err != nil {
+		log.Fatalf("Failed to insert client membership plans: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func seedClientsEnrollments(ctx context.Context, db *sql.DB, clients, events []uuid.UUID) error {
+	seedQueries := dbSeed.New(db)
+
+	_, err := seedQueries.InsertCustomersEnrollments(ctx, data.GetClientsEnrollments(clients, events))
 
 	if err != nil {
 		log.Fatalf("Failed to insert client membership plans: %v", err)
@@ -347,35 +360,35 @@ func main() {
 		return
 	}
 
-	practices, err := seedPractices(ctx, db)
+	practiceIds, err := seedPractices(ctx, db)
 
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	courses, err := seedCourses(ctx, db)
+	courseIds, err := seedCourses(ctx, db)
 
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	games, err := seedGames(ctx, db)
+	gameIds, err := seedGames(ctx, db)
 
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	locations, err := seedLocations(ctx, db)
+	locationIds, err := seedLocations(ctx, db)
 
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	err = seedEvents(ctx, db, practices, courses, games, locations)
+	eventIds, err := seedEvents(ctx, db, practiceIds, courseIds, gameIds, locationIds)
 
 	if err != nil {
 		log.Println(err)
@@ -404,6 +417,13 @@ func main() {
 	}
 
 	err = seedClientsMembershipPlans(ctx, db, clientIds, plansIds)
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	err = seedClientsEnrollments(ctx, db, clientIds, eventIds)
 
 	if err != nil {
 		log.Println(err)

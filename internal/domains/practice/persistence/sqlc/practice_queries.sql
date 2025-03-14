@@ -1,6 +1,6 @@
 -- name: CreatePractice :one
-INSERT INTO practices (name, description, level, should_email_booking_notification, capacity)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO practices (name, description, level, capacity)
+VALUES ($1, $2, $3, $4)
 RETURNING *;
 
 -- name: GetPractices :many
@@ -18,10 +18,9 @@ SET
     name = $1,
     description = $2,
     level = $3,
-    should_email_booking_notification = $4,
-    capacity = $5,
+    capacity = $4,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $6;
+WHERE id = $5;
 
 -- name: DeletePractice :execrows
 DELETE FROM practices WHERE id = $1;

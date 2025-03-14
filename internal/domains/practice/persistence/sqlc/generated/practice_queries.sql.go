@@ -7,23 +7,21 @@ package db
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
 )
 
 const createPractice = `-- name: CreatePractice :one
-INSERT INTO practices (name, description, level, should_email_booking_notification, capacity)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, name, description, level, should_email_booking_notification, capacity, created_at, updated_at
+INSERT INTO practices (name, description, level, capacity)
+VALUES ($1, $2, $3, $4)
+RETURNING id, name, description, level, capacity, created_at, updated_at
 `
 
 type CreatePracticeParams struct {
-	Name                           string         `json:"name"`
-	Description                    sql.NullString `json:"description"`
-	Level                          PracticeLevel  `json:"level"`
-	ShouldEmailBookingNotification sql.NullBool   `json:"should_email_booking_notification"`
-	Capacity                       int32          `json:"capacity"`
+	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	Level       PracticeLevel `json:"level"`
+	Capacity    int32         `json:"capacity"`
 }
 
 func (q *Queries) CreatePractice(ctx context.Context, arg CreatePracticeParams) (Practice, error) {
@@ -31,7 +29,6 @@ func (q *Queries) CreatePractice(ctx context.Context, arg CreatePracticeParams) 
 		arg.Name,
 		arg.Description,
 		arg.Level,
-		arg.ShouldEmailBookingNotification,
 		arg.Capacity,
 	)
 	var i Practice
@@ -40,7 +37,6 @@ func (q *Queries) CreatePractice(ctx context.Context, arg CreatePracticeParams) 
 		&i.Name,
 		&i.Description,
 		&i.Level,
-		&i.ShouldEmailBookingNotification,
 		&i.Capacity,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -61,7 +57,7 @@ func (q *Queries) DeletePractice(ctx context.Context, id uuid.UUID) (int64, erro
 }
 
 const getPracticeById = `-- name: GetPracticeById :one
-SELECT id, name, description, level, should_email_booking_notification, capacity, created_at, updated_at FROM practices WHERE id = $1
+SELECT id, name, description, level, capacity, created_at, updated_at FROM practices WHERE id = $1
 `
 
 func (q *Queries) GetPracticeById(ctx context.Context, id uuid.UUID) (Practice, error) {
@@ -72,7 +68,6 @@ func (q *Queries) GetPracticeById(ctx context.Context, id uuid.UUID) (Practice, 
 		&i.Name,
 		&i.Description,
 		&i.Level,
-		&i.ShouldEmailBookingNotification,
 		&i.Capacity,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -81,7 +76,7 @@ func (q *Queries) GetPracticeById(ctx context.Context, id uuid.UUID) (Practice, 
 }
 
 const getPracticeByName = `-- name: GetPracticeByName :one
-SELECT id, name, description, level, should_email_booking_notification, capacity, created_at, updated_at FROM practices WHERE name = $1 LIMIT 1
+SELECT id, name, description, level, capacity, created_at, updated_at FROM practices WHERE name = $1 LIMIT 1
 `
 
 func (q *Queries) GetPracticeByName(ctx context.Context, name string) (Practice, error) {
@@ -92,7 +87,6 @@ func (q *Queries) GetPracticeByName(ctx context.Context, name string) (Practice,
 		&i.Name,
 		&i.Description,
 		&i.Level,
-		&i.ShouldEmailBookingNotification,
 		&i.Capacity,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -101,7 +95,7 @@ func (q *Queries) GetPracticeByName(ctx context.Context, name string) (Practice,
 }
 
 const getPractices = `-- name: GetPractices :many
-SELECT id, name, description, level, should_email_booking_notification, capacity, created_at, updated_at FROM practices
+SELECT id, name, description, level, capacity, created_at, updated_at FROM practices
 `
 
 func (q *Queries) GetPractices(ctx context.Context) ([]Practice, error) {
@@ -118,7 +112,6 @@ func (q *Queries) GetPractices(ctx context.Context) ([]Practice, error) {
 			&i.Name,
 			&i.Description,
 			&i.Level,
-			&i.ShouldEmailBookingNotification,
 			&i.Capacity,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -142,19 +135,17 @@ SET
     name = $1,
     description = $2,
     level = $3,
-    should_email_booking_notification = $4,
-    capacity = $5,
+    capacity = $4,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $6
+WHERE id = $5
 `
 
 type UpdatePracticeParams struct {
-	Name                           string         `json:"name"`
-	Description                    sql.NullString `json:"description"`
-	Level                          PracticeLevel  `json:"level"`
-	ShouldEmailBookingNotification sql.NullBool   `json:"should_email_booking_notification"`
-	Capacity                       int32          `json:"capacity"`
-	ID                             uuid.UUID      `json:"id"`
+	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	Level       PracticeLevel `json:"level"`
+	Capacity    int32         `json:"capacity"`
+	ID          uuid.UUID     `json:"id"`
 }
 
 func (q *Queries) UpdatePractice(ctx context.Context, arg UpdatePracticeParams) (int64, error) {
@@ -162,7 +153,6 @@ func (q *Queries) UpdatePractice(ctx context.Context, arg UpdatePracticeParams) 
 		arg.Name,
 		arg.Description,
 		arg.Level,
-		arg.ShouldEmailBookingNotification,
 		arg.Capacity,
 		arg.ID,
 	)

@@ -41,7 +41,7 @@ func (r *Repository) GetPracticeByName(c context.Context, name string) (values.G
 	return values.GetPracticeValues{
 		PracticeDetails: values.PracticeDetails{
 			Name:        practice.Name,
-			Description: practice.Description.String,
+			Description: practice.Description,
 		},
 		ID:        practice.ID,
 		CreatedAt: practice.CreatedAt,
@@ -52,12 +52,9 @@ func (r *Repository) GetPracticeByName(c context.Context, name string) (values.G
 func (r *Repository) Update(ctx context.Context, practice values.UpdatePracticeValues) *errLib.CommonError {
 
 	dbCourseParams := db.UpdatePracticeParams{
-		ID:   practice.ID,
-		Name: practice.PracticeDetails.Name,
-		Description: sql.NullString{
-			String: practice.PracticeDetails.Description,
-			Valid:  practice.PracticeDetails.Description != "",
-		},
+		ID:          practice.ID,
+		Name:        practice.PracticeDetails.Name,
+		Description: practice.PracticeDetails.Description,
 	}
 
 	row, err := r.Queries.UpdatePractice(ctx, dbCourseParams)
@@ -103,7 +100,7 @@ func (r *Repository) List(ctx context.Context) ([]values.GetPracticeValues, *err
 			UpdatedAt: dbCourse.UpdatedAt,
 			PracticeDetails: values.PracticeDetails{
 				Name:        dbCourse.Name,
-				Description: dbCourse.Description.String,
+				Description: dbCourse.Description,
 			},
 		}
 	}
@@ -130,10 +127,7 @@ func (r *Repository) Create(c context.Context, courseDetails values.CreatePracti
 	var response values.GetPracticeValues
 
 	dbPracticeParams := db.CreatePracticeParams{
-		Name: courseDetails.Name, Description: sql.NullString{
-			String: courseDetails.Description,
-			Valid:  courseDetails.Description != "",
-		},
+		Name: courseDetails.Name, Description: courseDetails.Description,
 	}
 
 	course, err := r.Queries.CreatePractice(c, dbPracticeParams)

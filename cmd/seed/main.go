@@ -123,6 +123,12 @@ func seedClients(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 		log.Fatalf("Failed to insert clients: %v", err)
 		return nil, err
 	}
+	seedQueries.InsertClientsMembershipPlans(ctx, dbSeed.InsertClientsMembershipPlansParams{
+		CustomerID:       nil,
+		PlansArray:       nil,
+		StartDateArray:   nil,
+		RenewalDateArray: nil,
+	})
 
 	seedQueries.InsertClients(ctx, staffs)
 

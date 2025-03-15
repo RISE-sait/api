@@ -1,4 +1,4 @@
-name: Update Swagger in Frontend
+name: Update Swagger in Mobile
 
 on:
   push:

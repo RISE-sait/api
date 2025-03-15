@@ -19,7 +19,7 @@ CREATE SCHEMA IF NOT EXISTS course;
         primary key,
     name        varchar(50)                                        not null
         unique,
-    description text,
+    description text not null,
     capacity    integer                                            not null,
     created_at  timestamp with time zone default CURRENT_TIMESTAMP not null,
     updated_at  timestamp with time zone default CURRENT_TIMESTAMP not null

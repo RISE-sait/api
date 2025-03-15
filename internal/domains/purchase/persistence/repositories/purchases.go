@@ -7,6 +7,7 @@ import (
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
+	"github.com/google/uuid"
 	"net/http"
 )
 
@@ -23,10 +24,13 @@ func NewRepository(container *di.Container) *Repository {
 func (r *Repository) Purchase(c context.Context, details values.MembershipPlanPurchaseInfo) *errLib.CommonError {
 
 	dbParams := db.PurchaseMembershipParams{
-		CustomerID:       details.CustomerId,
-		MembershipPlanID: details.MembershipPlanId,
-		Status:           db.MembershipStatus(details.Status),
-		StartDate:        details.StartDate,
+		CustomerID: details.CustomerId,
+		MembershipPlanID: uuid.NullUUID{
+			UUID:  details.MembershipPlanId,
+			Valid: true,
+		},
+		Status:    db.MembershipStatus(details.Status),
+		StartDate: details.StartDate,
 	}
 
 	if details.RenewalDate != nil {

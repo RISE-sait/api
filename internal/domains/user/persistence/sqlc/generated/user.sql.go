@@ -90,7 +90,7 @@ func (q *Queries) GetAthleteInfoByUserID(ctx context.Context, id uuid.UUID) (Use
 }
 
 const getChildren = `-- name: GetChildren :many
-SELECT children.id, children.hubspot_id, children.country_alpha2_code, children.first_name, children.last_name, children.age, children.parent_id, children.phone, children.email, children.has_marketing_email_consent, children.has_sms_consent, children.created_at, children.updated_at, children.gender
+SELECT children.id, children.hubspot_id, children.country_alpha2_code, children.gender, children.first_name, children.last_name, children.age, children.parent_id, children.phone, children.email, children.has_marketing_email_consent, children.has_sms_consent, children.created_at, children.updated_at
 FROM users.users parents
          JOIN users.users children
               ON parents.id = children.parent_id
@@ -110,6 +110,7 @@ func (q *Queries) GetChildren(ctx context.Context, id uuid.UUID) ([]UsersUser, e
 			&i.ID,
 			&i.HubspotID,
 			&i.CountryAlpha2Code,
+			&i.Gender,
 			&i.FirstName,
 			&i.LastName,
 			&i.Age,
@@ -120,7 +121,6 @@ func (q *Queries) GetChildren(ctx context.Context, id uuid.UUID) ([]UsersUser, e
 			&i.HasSmsConsent,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.Gender,
 		); err != nil {
 			return nil, err
 		}
@@ -136,7 +136,7 @@ func (q *Queries) GetChildren(ctx context.Context, id uuid.UUID) ([]UsersUser, e
 }
 
 const getCustomers = `-- name: GetCustomers :many
-SELECT id, hubspot_id, country_alpha2_code, first_name, last_name, age, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at, gender
+SELECT id, hubspot_id, country_alpha2_code, gender, first_name, last_name, age, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at
 FROM users.users
 LIMIT $1 OFFSET $2
 `
@@ -159,6 +159,7 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]U
 			&i.ID,
 			&i.HubspotID,
 			&i.CountryAlpha2Code,
+			&i.Gender,
 			&i.FirstName,
 			&i.LastName,
 			&i.Age,
@@ -169,7 +170,6 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]U
 			&i.HasSmsConsent,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.Gender,
 		); err != nil {
 			return nil, err
 		}
@@ -195,7 +195,7 @@ WHERE cmp.customer_id = $1
 type GetMembershipPlansByCustomerRow struct {
 	ID               uuid.UUID        `json:"id"`
 	CustomerID       uuid.UUID        `json:"customer_id"`
-	MembershipPlanID uuid.UUID        `json:"membership_plan_id"`
+	MembershipPlanID uuid.NullUUID    `json:"membership_plan_id"`
 	StartDate        time.Time        `json:"start_date"`
 	RenewalDate      sql.NullTime     `json:"renewal_date"`
 	Status           MembershipStatus `json:"status"`

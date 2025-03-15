@@ -12,7 +12,7 @@ type PlanResponse struct {
 	Name             string    `json:"name"`
 	Price            string    `json:"price"`
 	PaymentFrequency string    `json:"payment_frequency"`
-	AmtPeriods       int32     `json:"amt_periods"`
+	AmtPeriods       *int32    `json:"amt_periods,omitempty"`
 	JoiningFees      string    `json:"joining_fees"`
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at"`

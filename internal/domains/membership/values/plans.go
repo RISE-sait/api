@@ -12,7 +12,7 @@ type PlanDetails struct {
 	Price            decimal.Decimal
 	JoiningFees      decimal.Decimal
 	PaymentFrequency string
-	AmtPeriods       int32
+	AmtPeriods       *int32
 	IsAutoRenew      bool
 }
 

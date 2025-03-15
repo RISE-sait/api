@@ -30,9 +30,15 @@ func (r *PlansRepository) CreateMembershipPlan(c context.Context, membershipPlan
 		Name:             membershipPlan.Name,
 		Price:            membershipPlan.Price,
 		PaymentFrequency: db.PaymentFrequency(membershipPlan.PaymentFrequency),
-		AmtPeriods:       membershipPlan.AmtPeriods,
 		AutoRenew:        membershipPlan.IsAutoRenew,
 		JoiningFee:       membershipPlan.JoiningFees,
+	}
+
+	if membershipPlan.AmtPeriods != nil {
+		dbParams.AmtPeriods = sql.NullInt32{
+			Int32: *membershipPlan.AmtPeriods,
+			Valid: true,
+		}
 	}
 
 	row, err := r.Queries.CreateMembershipPlan(c, dbParams)
@@ -68,12 +74,15 @@ func (r *PlansRepository) GetMembershipPlanById(ctx context.Context, id uuid.UUI
 			Name:             dbPlan.Name,
 			Price:            dbPlan.Price,
 			PaymentFrequency: string(dbPlan.PaymentFrequency),
-			AmtPeriods:       dbPlan.AmtPeriods,
 			IsAutoRenew:      dbPlan.AutoRenew,
 			JoiningFees:      dbPlan.JoiningFee,
 		},
 		CreatedAt: dbPlan.CreatedAt,
 		UpdatedAt: dbPlan.UpdatedAt,
+	}
+
+	if dbPlan.AmtPeriods.Valid {
+		plan.AmtPeriods = &dbPlan.AmtPeriods.Int32
 	}
 
 	return plan, nil
@@ -111,12 +120,15 @@ func (r *PlansRepository) GetMembershipPlans(ctx context.Context, membershipId u
 				Name:             dbPlan.Name,
 				Price:            dbPlan.Price,
 				PaymentFrequency: string(dbPlan.PaymentFrequency),
-				AmtPeriods:       dbPlan.AmtPeriods,
 				JoiningFees:      dbPlan.JoiningFee,
 				IsAutoRenew:      dbPlan.AutoRenew,
 			},
 			CreatedAt: dbPlan.CreatedAt,
 			UpdatedAt: dbPlan.UpdatedAt,
+		}
+
+		if dbPlan.AmtPeriods.Valid {
+			plan.AmtPeriods = &dbPlan.AmtPeriods.Int32
 		}
 
 		plans[i] = plan
@@ -131,9 +143,15 @@ func (r *PlansRepository) UpdateMembershipPlan(c context.Context, plan values.Pl
 		Name:             plan.Name,
 		Price:            plan.Price,
 		PaymentFrequency: db.PaymentFrequency(plan.PaymentFrequency),
-		AmtPeriods:       plan.AmtPeriods,
 		MembershipID:     plan.MembershipID,
 		ID:               plan.ID,
+	}
+
+	if plan.AmtPeriods != nil {
+		dbMembershipParams.AmtPeriods = sql.NullInt32{
+			Int32: *plan.AmtPeriods,
+			Valid: true,
+		}
 	}
 
 	row, err := r.Queries.UpdateMembershipPlan(c, dbMembershipParams)

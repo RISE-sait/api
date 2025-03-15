@@ -56,8 +56,8 @@ func (r *Repository) GetByID(c context.Context, id uuid.UUID) (*values.ReadValue
 		ID:          membership.ID,
 		Name:        membership.Name,
 		Description: membership.Description.String,
-		UpdatedAt:   membership.UpdatedAt.Time,
-		CreatedAt:   membership.CreatedAt.Time,
+		UpdatedAt:   membership.UpdatedAt,
+		CreatedAt:   membership.CreatedAt,
 	}, nil
 }
 
@@ -74,8 +74,8 @@ func (r *Repository) List(c context.Context) ([]values.ReadValues, *errLib.Commo
 			ID:          dbMembership.ID,
 			Name:        dbMembership.Name,
 			Description: dbMembership.Description.String,
-			UpdatedAt:   dbMembership.UpdatedAt.Time,
-			CreatedAt:   dbMembership.CreatedAt.Time,
+			UpdatedAt:   dbMembership.UpdatedAt,
+			CreatedAt:   dbMembership.CreatedAt,
 		}
 	}
 

@@ -100,7 +100,9 @@ func (q *Queries) GetMemberships(ctx context.Context) ([]MembershipMembership, e
 
 const updateMembership = `-- name: UpdateMembership :execrows
 UPDATE membership.memberships
-SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP
+SET name        = $1,
+    description = $2,
+    updated_at  = CURRENT_TIMESTAMP
 WHERE id = $3
 `
 

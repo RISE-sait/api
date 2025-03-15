@@ -104,6 +104,8 @@ func parseValidationErrors(err error, structType reflect.Type) *errLib.CommonErr
 				customMessage = fmt.Sprintf("%s: cannot be empty or whitespace", fieldName)
 			case "url":
 				customMessage = fmt.Sprintf("%s: must be a valid URL", fieldName)
+			case "gt":
+				customMessage = fmt.Sprintf("%s: must be greater than %s", fieldName, getJSONFieldNameForParam(e.Param(), structType))
 			case "gtcsfield":
 				customMessage = fmt.Sprintf("%s: must be greater than %s", fieldName, getJSONFieldNameForParam(e.Param(), structType))
 			default:

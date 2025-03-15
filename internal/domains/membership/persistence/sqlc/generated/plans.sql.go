@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
@@ -24,7 +25,7 @@ type CreateMembershipPlanParams struct {
 	Name             string           `json:"name"`
 	Price            decimal.Decimal  `json:"price"`
 	PaymentFrequency PaymentFrequency `json:"payment_frequency"`
-	AmtPeriods       int32            `json:"amt_periods"`
+	AmtPeriods       sql.NullInt32    `json:"amt_periods"`
 	AutoRenew        bool             `json:"auto_renew"`
 	JoiningFee       decimal.Decimal  `json:"joining_fee"`
 }
@@ -123,8 +124,14 @@ func (q *Queries) GetMembershipPlans(ctx context.Context, membershipID uuid.UUID
 
 const updateMembershipPlan = `-- name: UpdateMembershipPlan :execrows
 UPDATE membership.membership_plans
-SET name = $1, price = $2, payment_frequency = $3, amt_periods = $4, membership_id = $5,
-    auto_renew = $6, joining_fee = $7, updated_at = CURRENT_TIMESTAMP
+SET name              = $1,
+    price             = $2,
+    payment_frequency = $3,
+    amt_periods       = $4,
+    membership_id     = $5,
+    auto_renew        = $6,
+    joining_fee       = $7,
+    updated_at        = CURRENT_TIMESTAMP
 WHERE id = $8
 `
 
@@ -132,7 +139,7 @@ type UpdateMembershipPlanParams struct {
 	Name             string           `json:"name"`
 	Price            decimal.Decimal  `json:"price"`
 	PaymentFrequency PaymentFrequency `json:"payment_frequency"`
-	AmtPeriods       int32            `json:"amt_periods"`
+	AmtPeriods       sql.NullInt32    `json:"amt_periods"`
 	MembershipID     uuid.UUID        `json:"membership_id"`
 	AutoRenew        bool             `json:"auto_renew"`
 	JoiningFee       decimal.Decimal  `json:"joining_fee"`

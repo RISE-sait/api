@@ -15,10 +15,10 @@ type PlanRequestDto struct {
 	Name             string    `json:"name" validate:"notwhitespace"`
 	Price            string    `json:"price" validate:"required"`
 	PaymentFrequency string    `json:"payment_frequency" validate:"required,notwhitespace"`
-	AmtPeriods       int32     `json:"amt_periods" validate:"required,gt=0"`
+	AmtPeriods       *int32    `json:"amt_periods" validate:"omitempty,gt=0"`
 }
 
-func (dto *PlanRequestDto) ToCreateValueObjects() (values.PlanCreateValues, *errLib.CommonError) {
+func (dto PlanRequestDto) ToCreateValueObjects() (values.PlanCreateValues, *errLib.CommonError) {
 
 	var vo values.PlanCreateValues
 
@@ -33,7 +33,7 @@ func (dto *PlanRequestDto) ToCreateValueObjects() (values.PlanCreateValues, *err
 		return vo, errLib.New("price: Invalid price format", http.StatusBadRequest)
 	}
 
-	return values.PlanCreateValues{
+	value := values.PlanCreateValues{
 		PlanDetails: values.PlanDetails{
 			Name:             dto.Name,
 			Price:            priceDecimal,
@@ -41,10 +41,12 @@ func (dto *PlanRequestDto) ToCreateValueObjects() (values.PlanCreateValues, *err
 			PaymentFrequency: dto.PaymentFrequency,
 			AmtPeriods:       dto.AmtPeriods,
 		},
-	}, nil
+	}
+
+	return value, nil
 }
 
-func (dto *PlanRequestDto) ToUpdateValueObjects(planIdStr string) (values.PlanUpdateValues, *errLib.CommonError) {
+func (dto PlanRequestDto) ToUpdateValueObjects(planIdStr string) (values.PlanUpdateValues, *errLib.CommonError) {
 
 	var vo values.PlanUpdateValues
 

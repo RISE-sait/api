@@ -4,14 +4,14 @@ FROM golang:1.23.4-alpine AS builder
 # Set the working directory inside the container
 WORKDIR /app
 
-# Copy go.mod and go.sum files
-COPY go.mod .
-COPY go.sum .
+RUN go mod init api
 
-# Download Go dependencies
-RUN go mod download
+RUN go get github.com/google/uuid && \
+    go get github.com/lib/pq && \
+    go get github.com/shopspring/decimal
 
 # Copy everything else
-COPY . .
+COPY ./cmd/seed ./cmd/seed
+COPY ./config ./config
 
 ENTRYPOINT ["go", "run", "cmd/seed/main.go"]

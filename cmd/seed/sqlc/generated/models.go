@@ -320,7 +320,7 @@ type CustomerEnrollment struct {
 type CustomerMembershipPlan struct {
 	ID               uuid.UUID        `json:"id"`
 	CustomerID       uuid.UUID        `json:"customer_id"`
-	MembershipPlanID uuid.UUID        `json:"membership_plan_id"`
+	MembershipPlanID uuid.NullUUID    `json:"membership_plan_id"`
 	StartDate        time.Time        `json:"start_date"`
 	RenewalDate      sql.NullTime     `json:"renewal_date"`
 	Status           MembershipStatus `json:"status"`

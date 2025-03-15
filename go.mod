@@ -114,9 +114,7 @@ require (
 	firebase.google.com/go v3.13.0+incompatible
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-playground/validator v9.31.0+incompatible
-	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
-	github.com/pressly/goose v2.7.0+incompatible
 	github.com/stretchr/testify v1.10.0
 	github.com/swaggo/http-swagger v1.3.4
 	github.com/swaggo/swag v1.16.4

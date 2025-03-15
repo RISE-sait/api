@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -79,6 +80,21 @@ func GetClients() ([]Client, error) {
 		emailConsent := parseBool(record[24])
 		smsConsent := parseBool(record[25])
 
+		var gender string
+
+		genderStr := strings.ToLower(record[5])
+
+		switch genderStr {
+		case "male":
+			{
+				gender = "M"
+			}
+		case "female":
+			gender = "F"
+		default:
+			gender = "N"
+		}
+
 		ageStr := record[6]
 
 		age, err := strconv.Atoi(ageStr)
@@ -105,7 +121,7 @@ func GetClients() ([]Client, error) {
 			Email:            record[3],
 			Phone:            record[4],
 			Age:              age,
-			Gender:           record[5],
+			Gender:           gender,
 			CountryAlpha2:    "CA",
 			MembershipName:   membershipNamePtr,
 			MembershipPlan:   membershipPlanPtr,

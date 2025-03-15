@@ -1,13 +1,10 @@
 # Use the official Golang image as a base image
 FROM golang:1.23.4-alpine AS builder
 
-RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+RUN apk add --no-cache coreutils
 
 # Set the working directory inside the container
 WORKDIR /app
-
-# Install necessary dependencies
-RUN apk add --no-cache coreutils
 
 # Copy go.mod and go.sum files
 COPY go.mod go.sum ./

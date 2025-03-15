@@ -1,13 +1,12 @@
 # Use the official Golang image as a base image
 FROM golang:1.23.4-alpine AS builder
 
-RUN go install github.com/air-verse/air@latest
+RUN go install github.com/air-verse/air@latest && \
+    apk add --no-cache coreutils && \
+    rm -rf /var/cache/apk/*
 
 # Set the working directory inside the container
 WORKDIR /app
-
-
-RUN apk add --no-cache coreutils
 
 # Copy go.mod and go.sum files
 COPY go.mod .

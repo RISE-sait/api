@@ -10,7 +10,8 @@ WORKDIR /app
 COPY go.mod go.sum ./
 
 # Download dependencies
-RUN go mod download
+RUN go mod download && \
+    go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 
 # Copy the rest of the application code
 COPY . .

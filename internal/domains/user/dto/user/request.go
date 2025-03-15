@@ -1,7 +1,7 @@
 package user
 
 import (
-	"api/internal/domains/user/values"
+	values "api/internal/domains/user/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
 )

@@ -19,7 +19,7 @@ func TestGeneratePublicFileURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.fileName, func(t *testing.T) {
-			result := GeneratePublicFileURL("rise-sports", tt.fileName)
+			result := GeneratePublicFileURL(tt.fileName)
 
 			if result != tt.expected {
 				t.Errorf("Expected %s, but got %s", tt.expected, result)

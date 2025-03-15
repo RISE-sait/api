@@ -81,6 +81,7 @@ func seedClients(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 		parentIDArray               []uuid.UUID
 		phoneArray                  []string
 		emailArray                  []string
+		genderArray                 []string
 		hasMarketingEmailConsentArr []bool
 		hasSMSConsentArray          []bool
 	)
@@ -89,8 +90,10 @@ func seedClients(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 		countryAlpha2CodeArray = append(countryAlpha2CodeArray, client.CountryAlpha2)
 		firstNameArray = append(firstNameArray, client.FirstName)
 		lastNameArray = append(lastNameArray, client.LastName)
+		genderArray = append(genderArray, client.Gender)
 		ageArray = append(ageArray, int32(client.Age))
 		parentIDArray = append(parentIDArray, uuid.Nil)
+		phoneArray = append(phoneArray, client.Phone)
 		emailArray = append(emailArray, client.Email)
 		hasMarketingEmailConsentArr = append(hasMarketingEmailConsentArr, client.EmailConsent)
 		hasSMSConsentArray = append(hasSMSConsentArray, client.SMSConsent)
@@ -101,6 +104,7 @@ func seedClients(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 		FirstNameArray:                firstNameArray,
 		LastNameArray:                 lastNameArray,
 		AgeArray:                      ageArray,
+		GenderArray:                   genderArray,
 		ParentIDArray:                 parentIDArray,
 		PhoneArray:                    phoneArray,
 		EmailArray:                    emailArray,
@@ -112,6 +116,12 @@ func seedClients(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 		log.Fatalf("Failed to insert clients: %v", err)
 		return nil, err
 	}
+	seedQueries.InsertClientsMembershipPlans(ctx, dbSeed.InsertClientsMembershipPlansParams{
+		CustomerID:       nil,
+		PlansArray:       nil,
+		StartDateArray:   nil,
+		RenewalDateArray: nil,
+	})
 
 	return ids, nil
 }
@@ -149,6 +159,36 @@ func seedPractices(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 	}
 
 	return createdPractices, nil
+}
+
+func seedStaffRoles(ctx context.Context, db *sql.DB) error {
+
+	seedQueries := dbSeed.New(db)
+
+	err := seedQueries.InsertStaffRoles(ctx)
+
+	if err != nil {
+		log.Fatalf("Failed to insert roles: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func seedStaff(ctx context.Context, db *sql.DB) error {
+
+	seedQueries := dbSeed.New(db)
+
+	staffs := data.GetStaffs()
+
+	err := seedQueries.InsertStaff(ctx, staffs)
+
+	if err != nil {
+		log.Fatalf("Failed to insert roles: %v", err)
+		return err
+	}
+
+	return nil
 }
 
 func seedCourses(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
@@ -468,6 +508,20 @@ func main() {
 	}
 
 	err = seedMembershipPracticeEligibility(ctx, db, membershipIds, practiceIds)
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	err = seedStaffRoles(ctx, db)
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	err = seedStaff(ctx, db)
 
 	if err != nil {
 		log.Println(err)

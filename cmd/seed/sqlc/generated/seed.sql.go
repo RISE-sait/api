@@ -29,15 +29,26 @@ WITH prepared_data AS (SELECT unnest($1::text[])            AS country_alpha2_co
                                               FROM unnest($5::uuid[]) AS parent_id
                                       )
                               )                                                     AS parent_id,
-                              unnest($6::text[])                          AS phone,
-                              unnest($7::text[])                          AS email,
-                              unnest($8::boolean[]) AS has_marketing_email_consent,
-                              unnest($9::boolean[])             AS has_sms_consent)
+                              unnest(
+                                      ARRAY(
+                                              SELECT CASE
+                                                         WHEN gender = 'N'
+                                                             THEN NULL
+                                                         ELSE gender
+                                                         END
+                                              FROM unnest($6::char[]) AS gender
+                                      )
+                              )                                                     AS gender,
+                              unnest($7::text[])                          AS phone,
+                              unnest($8::text[])                          AS email,
+                              unnest($9::boolean[]) AS has_marketing_email_consent,
+                              unnest($10::boolean[])             AS has_sms_consent)
 INSERT
 INTO users.users (country_alpha2_code,
                   first_name,
                   last_name,
                   age,
+                  gender,
                   parent_id,
                   phone,
                   email,
@@ -47,6 +58,7 @@ SELECT country_alpha2_code,
        first_name,
        last_name,
        age,
+       gender,
        parent_id,
        phone,
        email,
@@ -62,6 +74,7 @@ type InsertClientsParams struct {
 	LastNameArray                 []string    `json:"last_name_array"`
 	AgeArray                      []int32     `json:"age_array"`
 	ParentIDArray                 []uuid.UUID `json:"parent_id_array"`
+	GenderArray                   []string    `json:"gender_array"`
 	PhoneArray                    []string    `json:"phone_array"`
 	EmailArray                    []string    `json:"email_array"`
 	HasMarketingEmailConsentArray []bool      `json:"has_marketing_email_consent_array"`
@@ -75,6 +88,7 @@ func (q *Queries) InsertClients(ctx context.Context, arg InsertClientsParams) ([
 		pq.Array(arg.LastNameArray),
 		pq.Array(arg.AgeArray),
 		pq.Array(arg.ParentIDArray),
+		pq.Array(arg.GenderArray),
 		pq.Array(arg.PhoneArray),
 		pq.Array(arg.EmailArray),
 		pq.Array(arg.HasMarketingEmailConsentArray),
@@ -102,6 +116,7 @@ func (q *Queries) InsertClients(ctx context.Context, arg InsertClientsParams) ([
 }
 
 const insertClientsMembershipPlans = `-- name: InsertClientsMembershipPlans :many
+
 INSERT INTO public.customer_membership_plans (customer_id, membership_plan_id, start_date, renewal_date)
 VALUES (unnest($1::uuid[]),
         unnest($2::uuid[]),
@@ -117,6 +132,42 @@ type InsertClientsMembershipPlansParams struct {
 	RenewalDateArray []time.Time `json:"renewal_date_array"`
 }
 
+// -- name: InsertClientsMembershipPlans :exec
+// WITH prepared_data AS (SELECT unnest(@customer_id_array::uuid[])  AS customer_id,
+//
+//	unnest(
+//	        ARRAY(
+//	                SELECT CASE
+//	                           WHEN membership_plan_id = '00000000-0000-0000-0000-000000000000'
+//	                               THEN NULL
+//	                           ELSE membership_plan_id
+//	                           END
+//	                FROM unnest(@membership_plan_id_array::uuid[]) AS membership_plan_id
+//	        )
+//	),
+//	    unnest(
+//	        ARRAY(
+//	                SELECT CASE
+//	                           WHEN start_date = '0001-01-01 00:00:00 UTC'
+//	                               THEN NULL
+//	                           ELSE start_date
+//	                           END
+//	                FROM unnest(@start_date_array::timestamptz[]) AS start_date
+//	        )
+//	)                                   AS start_date,
+//	unnest(
+//	        ARRAY(
+//	                SELECT CASE
+//	                           WHEN renewal_date = '0001-01-01 00:00:00 UTC'
+//	                               THEN NULL
+//	                           ELSE renewal_date
+//	                           END
+//	                FROM unnest(@renewal_date_array::timestamptz[]) AS renewal_date
+//	        )
+//	)                                   AS renewal_date)
+//
+// INSERT INTO public.customer_membership_plans (customer_id, membership_plan_id, start_date, renewal_date)
+// VALUES (  customer_id, membership_plan_id, start_date, renewal_date);
 func (q *Queries) InsertClientsMembershipPlans(ctx context.Context, arg InsertClientsMembershipPlansParams) ([]uuid.UUID, error) {
 	rows, err := q.db.QueryContext(ctx, insertClientsMembershipPlans,
 		pq.Array(arg.CustomerID),
@@ -575,4 +626,57 @@ func (q *Queries) InsertPractices(ctx context.Context, arg InsertPracticesParams
 		return nil, err
 	}
 	return items, nil
+}
+
+const insertStaff = `-- name: InsertStaff :exec
+WITH staff_data AS (
+    SELECT
+        e.email,
+        ia.is_active,
+        rn.role_name
+    FROM
+        unnest($1::text[]) WITH ORDINALITY AS e(email, idx)
+            JOIN
+        unnest($2::bool[]) WITH ORDINALITY AS ia(is_active, idx)
+        ON e.idx = ia.idx
+            JOIN
+        unnest($3::text[]) WITH ORDINALITY AS rn(role_name, idx)
+        ON e.idx = rn.idx
+)
+INSERT INTO users.staff (id, is_active, role_id)
+SELECT
+    u.id,
+    sd.is_active,
+    sr.id
+FROM
+    staff_data sd
+        JOIN
+    users.users u ON u.email = sd.email
+        JOIN
+    users.staff_roles sr ON sr.role_name = sd.role_name
+`
+
+type InsertStaffParams struct {
+	Emails        []string `json:"emails"`
+	IsActiveArray []bool   `json:"is_active_array"`
+	RoleNameArray []string `json:"role_name_array"`
+}
+
+func (q *Queries) InsertStaff(ctx context.Context, arg InsertStaffParams) error {
+	_, err := q.db.ExecContext(ctx, insertStaff, pq.Array(arg.Emails), pq.Array(arg.IsActiveArray), pq.Array(arg.RoleNameArray))
+	return err
+}
+
+const insertStaffRoles = `-- name: InsertStaffRoles :exec
+INSERT INTO users.staff_roles (role_name)
+VALUES ('admin'),
+       ('superadmin'),
+       ('coach'),
+       ('instructor'),
+       ('barber')
+`
+
+func (q *Queries) InsertStaffRoles(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, insertStaffRoles)
+	return err
 }

@@ -121,6 +121,16 @@ WITH prepared_data AS (SELECT unnest(@country_alpha2_code_array::text[])        
                                               FROM unnest(@parent_id_array::uuid[]) AS parent_id
                                       )
                               )                                                     AS parent_id,
+                              unnest(
+                                      ARRAY(
+                                              SELECT CASE
+                                                         WHEN gender = 'N'
+                                                             THEN NULL
+                                                         ELSE gender
+                                                         END
+                                              FROM unnest(@gender_array::char[]) AS gender
+                                      )
+                              ) AS gender,
                               unnest(@phone_array::text[])                          AS phone,
                               unnest(@email_array::text[])                          AS email,
                               unnest(@has_marketing_email_consent_array::boolean[]) AS has_marketing_email_consent,
@@ -130,6 +140,7 @@ INTO users.users (country_alpha2_code,
                   first_name,
                   last_name,
                   age,
+                  gender,
                   parent_id,
                   phone,
                   email,
@@ -139,6 +150,7 @@ SELECT country_alpha2_code,
        first_name,
        last_name,
        age,
+       gender,
        parent_id,
        phone,
        email,
@@ -146,6 +158,41 @@ SELECT country_alpha2_code,
        has_sms_consent
 FROM prepared_data
 RETURNING id;
+
+-- -- name: InsertClientsMembershipPlans :exec
+-- WITH prepared_data AS (SELECT unnest(@customer_id_array::uuid[])  AS customer_id,
+--                               unnest(
+--                                       ARRAY(
+--                                               SELECT CASE
+--                                                          WHEN membership_plan_id = '00000000-0000-0000-0000-000000000000'
+--                                                              THEN NULL
+--                                                          ELSE membership_plan_id
+--                                                          END
+--                                               FROM unnest(@membership_plan_id_array::uuid[]) AS membership_plan_id
+--                                       )
+--                               ),
+--                                   unnest(
+--                                       ARRAY(
+--                                               SELECT CASE
+--                                                          WHEN start_date = '0001-01-01 00:00:00 UTC'
+--                                                              THEN NULL
+--                                                          ELSE start_date
+--                                                          END
+--                                               FROM unnest(@start_date_array::timestamptz[]) AS start_date
+--                                       )
+--                               )                                   AS start_date,
+--                               unnest(
+--                                       ARRAY(
+--                                               SELECT CASE
+--                                                          WHEN renewal_date = '0001-01-01 00:00:00 UTC'
+--                                                              THEN NULL
+--                                                          ELSE renewal_date
+--                                                          END
+--                                               FROM unnest(@renewal_date_array::timestamptz[]) AS renewal_date
+--                                       )
+--                               )                                   AS renewal_date)
+-- INSERT INTO public.customer_membership_plans (customer_id, membership_plan_id, start_date, renewal_date)
+-- VALUES (  customer_id, membership_plan_id, start_date, renewal_date);
 
 -- name: InsertClientsMembershipPlans :many
 INSERT INTO public.customer_membership_plans (customer_id, membership_plan_id, start_date, renewal_date)
@@ -177,3 +224,34 @@ SELECT customer_id,
        is_cancelled
 FROM prepared_data
 RETURNING id;
+
+-- name: InsertStaffRoles :exec
+INSERT INTO users.staff_roles (role_name)
+VALUES ('admin'),
+       ('superadmin'),
+       ('coach'),
+       ('instructor'),
+       ('receptionist'),
+       ('barber');
+
+-- name: InsertStaff :exec
+WITH staff_data AS (SELECT e.email,
+                           ia.is_active,
+                           rn.role_name
+                    FROM unnest(@emails::text[]) WITH ORDINALITY AS e(email, idx)
+                             JOIN
+                         unnest(@is_active_array::bool[]) WITH ORDINALITY AS ia(is_active, idx)
+                         ON e.idx = ia.idx
+                             JOIN
+                         unnest(@role_name_array::text[]) WITH ORDINALITY AS rn(role_name, idx)
+                         ON e.idx = rn.idx)
+INSERT
+INTO users.staff (id, is_active, role_id)
+SELECT u.id,
+       sd.is_active,
+       sr.id
+FROM staff_data sd
+         JOIN
+     users.users u ON u.email = sd.email
+         JOIN
+     users.staff_roles sr ON sr.role_name = sd.role_name;

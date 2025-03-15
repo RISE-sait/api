@@ -29,7 +29,7 @@ func GetMembershipCoursesEligibility(membershipIds, courseIds []uuid.UUID) dbSee
 			var price decimal.Decimal
 			if isEligible {
 				// Generate a random price between 10 and 100
-				price = decimal.NewFromFloat(10 + randomGenerator.Float64()*90)
+				price = decimal.NewFromFloat(10 + randomGenerator.Float64()*90).Round(2)
 			}
 
 			courseArray = append(courseArray, courseID)

@@ -37,7 +37,7 @@ func SetupTestDB(t *testing.T) (*sql.DB, func()) {
 				"POSTGRES_DB":       "testdb",
 			},
 			WaitingFor: wait.ForLog("database system is ready to accept connections").
-				WithStartupTimeout(30 * time.Second)}
+				WithStartupTimeout(60 * time.Second)}
 
 		_ = os.Setenv("TESTCONTAINERS_RYUK_DISABLED", "true")
 		_ = os.Setenv("TESTCONTAINERS_CHECK_CONTAINERS", "false") // Reduce resource usage

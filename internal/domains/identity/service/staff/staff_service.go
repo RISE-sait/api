@@ -18,7 +18,7 @@ func NewStaffRegistrationService(
 ) *RegistrationService {
 
 	return &RegistrationService{
-		StaffRepository: identityRepo.NewStaffRepository(container),
+		StaffRepository: identityRepo.NewStaffRepository(container.Queries.IdentityDb, container.Queries.OutboxDb),
 	}
 }
 

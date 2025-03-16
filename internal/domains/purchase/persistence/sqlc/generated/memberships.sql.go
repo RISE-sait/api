@@ -20,7 +20,7 @@ VALUES ($1, $2, $3, $4, $5)
 
 type PurchaseMembershipParams struct {
 	CustomerID       uuid.UUID        `json:"customer_id"`
-	MembershipPlanID uuid.UUID        `json:"membership_plan_id"`
+	MembershipPlanID uuid.NullUUID    `json:"membership_plan_id"`
 	Status           MembershipStatus `json:"status"`
 	StartDate        time.Time        `json:"start_date"`
 	RenewalDate      sql.NullTime     `json:"renewal_date"`

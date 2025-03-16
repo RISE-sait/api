@@ -3,6 +3,8 @@ package course
 import (
 	"api/internal/libs/validators"
 	"bytes"
+	"github.com/google/uuid"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -62,40 +64,86 @@ func TestDecodeRequestBody(t *testing.T) {
 	}
 }
 
-func TestRequestDto_Validation(t *testing.T) {
-	tests := []struct {
-		name                 string
-		dto                  *RequestDto
-		expectErr            bool
-		expectedErrorMessage string
-	}{
-		{
-			name: "Valid DTO",
-			dto: &RequestDto{
-				Name:        "Go Programming Basics",
-				Description: "Learn Go Programming",
-			},
-			expectErr: false,
-		},
-		{
-			name: "Missing Name",
-			dto: &RequestDto{
-				Name:        "",
-				Description: "Learn Go Programming",
-			},
-			expectErr:            true,
-			expectedErrorMessage: "name: required",
-		},
+// Validate Dto
+
+func TestValidRequestDto(t *testing.T) {
+
+	dto := RequestDto{
+		Name:        "Go Programming Basics",
+		Description: "Learn Go Programming",
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			err := validators.ValidateDto(tc.dto)
-			if tc.expectErr {
-				assert.NotNil(t, err)
-			} else {
-				assert.Nil(t, err)
-			}
-		})
+	createRequestDto, err := dto.ToCreateCourseDetails()
+
+	assert.Nil(t, err)
+
+	assert.Equal(t, createRequestDto.Name, "Go Programming Basics")
+	assert.Equal(t, createRequestDto.Description, "Learn Go Programming")
+}
+
+func TestMissingNameRequestDto(t *testing.T) {
+
+	dto := RequestDto{
+		Description: "Learn Go Programming",
 	}
+
+	createRequestDto, err := dto.ToCreateCourseDetails()
+
+	assert.NotNil(t, err)
+
+	assert.Equal(t, err.Message, "name: required")
+	assert.Equal(t, err.HTTPCode, http.StatusBadRequest)
+	assert.Equal(t, createRequestDto.Name, "")
+}
+
+func TestBlankNameRequestDto(t *testing.T) {
+
+	dto := RequestDto{
+		Name:        "          ",
+		Description: "Learn Go Programming",
+	}
+
+	createRequestDto, err := dto.ToCreateCourseDetails()
+
+	assert.NotNil(t, err)
+
+	assert.Contains(t, err.Message, "name: cannot be empty or whitespace")
+	assert.Equal(t, err.HTTPCode, http.StatusBadRequest)
+	assert.Equal(t, createRequestDto.Name, "")
+}
+
+func TestUpdateRequestDtoValidUUID(t *testing.T) {
+
+	dto := RequestDto{
+		Name:        "Learn Go Programming Name",
+		Description: "Learn Go Programming Description",
+	}
+
+	id := uuid.New()
+
+	updateRequestDto, err := dto.ToUpdateCourseDetails(id.String())
+
+	assert.Nil(t, err)
+
+	assert.Equal(t, updateRequestDto.Name, "Learn Go Programming Name")
+	assert.Equal(t, updateRequestDto.Description, "Learn Go Programming Description")
+
+	assert.Equal(t, updateRequestDto.ID.String(), id.String())
+}
+
+func TestUpdateRequestDtoInvalidUUID(t *testing.T) {
+
+	dto := RequestDto{
+		Name:        "Learn Go Programming Name",
+		Description: "Learn Go Programming Description",
+	}
+
+	updateRequestDto, err := dto.ToUpdateCourseDetails("wefwfwefew")
+
+	assert.NotNil(t, err)
+
+	assert.Contains(t, err.Message, "invalid UUID: wefwfwefew")
+
+	assert.Equal(t, updateRequestDto.Name, "")
+	assert.Equal(t, updateRequestDto.Description, "")
 }

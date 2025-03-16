@@ -5,6 +5,8 @@ import (
 	values "api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
+	"net/http"
+	"net/mail"
 )
 
 type ParentRegistrationRequestDto struct {
@@ -23,6 +25,10 @@ func (dto ParentRegistrationRequestDto) ToParent(email string) (values.ParentReg
 
 	if err := dto.Validate(); err != nil {
 		return values.ParentRegistrationRequestInfo{}, err
+	}
+
+	if _, err := mail.ParseAddress(email); err != nil {
+		return values.ParentRegistrationRequestInfo{}, errLib.New("Invalid email format", http.StatusBadRequest)
 	}
 
 	return values.ParentRegistrationRequestInfo{

@@ -3,7 +3,7 @@
 //   sqlc v1.27.0
 // source: course_queries.sql
 
-package db
+package db_course
 
 import (
 	"context"

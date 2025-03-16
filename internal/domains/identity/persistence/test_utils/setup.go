@@ -13,20 +13,35 @@ func SetupUsersTestDb(t *testing.T, testDb *sql.DB) (*db.Queries, func()) {
 CREATE SCHEMA IF NOT EXISTS users;
 
 -- Create the 'users' table
-CREATE TABLE users.users
+create table if not exists users.users
 (
-    id              UUID PRIMARY KEY     DEFAULT gen_random_uuid(), -- Auto-generate UUID for primary key
-    hubspot_id      TEXT        NOT NULL UNIQUE,                    -- Unique identifier from HubSpot
-    profile_pic_url TEXT,
-    wins            INT         NOT NULL DEFAULT 0,                 -- Number of games won
-    losses          INT         NOT NULL DEFAULT 0,                 -- Number of games lost
-    points          INT         NOT NULL DEFAULT 0,                 -- Total points scored
-    steals          INT         NOT NULL DEFAULT 0,                 -- Total steals
-    assists         INT         NOT NULL DEFAULT 0,                 -- Total assists
-    rebounds        INT         NOT NULL DEFAULT 0,                 -- Total rebounds
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Timestamp with time zone
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP  -- Track last update time
-);`
+    id                          uuid                     default gen_random_uuid() not null
+        primary key,
+    hubspot_id                  text
+        unique,
+    country_alpha2_code         char(2)                                            not null,
+    gender                      char
+        constraint users_gender_check
+            check (gender = ANY (ARRAY ['M'::bpchar, 'F'::bpchar])),
+    first_name                  varchar(20)                                        not null,
+    last_name                   varchar(20)                                        not null,
+    age                         integer                                            not null,
+    parent_id                   uuid
+        references users.users,
+    phone                       varchar(25),
+    email                       varchar(255)
+        unique,
+    has_marketing_email_consent boolean                                            not null,
+    has_sms_consent             boolean                                            not null,
+    created_at                  timestamp with time zone default CURRENT_TIMESTAMP not null,
+    updated_at                  timestamp with time zone default CURRENT_TIMESTAMP not null
+);
+
+alter table users.users
+    owner to postgres;
+
+
+`
 
 	_, err := testDb.Exec(migrationScript)
 	require.NoError(t, err)

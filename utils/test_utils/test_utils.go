@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/docker/docker/api/types/container"
 	"os"
 	"sync"
 	"testing"
@@ -36,6 +37,11 @@ func SetupTestDB(t *testing.T) (*sql.DB, func()) {
 				"POSTGRES_PASSWORD": "root",
 				"POSTGRES_DB":       "testdb",
 			},
+			//HostConfigModifier:
+			HostConfigModifier: func(config *container.HostConfig) {
+				config.Memory = 512 * 1024 * 1024 // 512MB memory limit
+				config.CPUCount = 2               // Use 2 CPU cores
+			},
 			WaitingFor: wait.ForLog("database system is ready to accept connections").
 				WithStartupTimeout(60 * time.Second)}
 
@@ -61,7 +67,7 @@ func SetupTestDB(t *testing.T) (*sql.DB, func()) {
 		dbInstance, err = sql.Open("postgres", dsn)
 		require.NoError(t, err)
 
-		require.NoError(t, dbInstance.Ping())
+		require.NoError(t, retryConnection(dbInstance, 5, 2*time.Second))
 
 		// Return cleanup function to stop and remove the container after tests
 		cleanup = func() {
@@ -76,4 +82,14 @@ func SetupTestDB(t *testing.T) (*sql.DB, func()) {
 	}
 
 	return dbInstance, cleanup
+}
+
+func retryConnection(db *sql.DB, retries int, delay time.Duration) error {
+	for i := 0; i < retries; i++ {
+		if err := db.Ping(); err == nil {
+			return nil
+		}
+		time.Sleep(delay)
+	}
+	return fmt.Errorf("failed to connect to database after %d retries", retries)
 }

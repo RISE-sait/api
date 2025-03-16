@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/lib/pq"
 	"log"
 	"net/http"
@@ -25,17 +26,27 @@ func NewCourseRepository(dbQueries *db.Queries) *Repository {
 	}
 }
 
-func (r *Repository) GetCourseById(c context.Context, id uuid.UUID) (values.ReadDetails, *errLib.CommonError) {
+// handleDBError centralizes database error handling for common cases
+func handleDBError(err error, entity string) *errLib.CommonError {
+	if errors.Is(err, sql.ErrNoRows) {
+		return errLib.New(fmt.Sprintf("%s not found", entity), http.StatusNotFound)
+	}
 
-	var course values.ReadDetails
+	var pqErr *pq.Error
+	if errors.As(err, &pqErr) && string(pqErr.Code) == databaseErrors.UniqueViolation {
+		return errLib.New(fmt.Sprintf("%s already exists", entity), http.StatusConflict)
+	}
+
+	log.Printf("Database error on %s: %v", entity, err)
+	return errLib.New("Internal server error", http.StatusInternalServerError)
+}
+
+func (r *Repository) GetCourseById(c context.Context, id uuid.UUID) (values.ReadDetails, *errLib.CommonError) {
 
 	dbCourse, err := r.Queries.GetCourseById(c, id)
 
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return course, errLib.New("Course not found", http.StatusNotFound)
-		}
-		return course, errLib.New("Internal server error", http.StatusInternalServerError)
+		return values.ReadDetails{}, handleDBError(err, "Course")
 	}
 
 	return values.ReadDetails{
@@ -60,12 +71,7 @@ func (r *Repository) UpdateCourse(c context.Context, course values.UpdateCourseD
 	impactedRows, err := r.Queries.UpdateCourse(c, dbCourseParams)
 
 	if err != nil {
-		// Check if the error is a unique violation (duplicate name)
-		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
-			return errLib.New("Course name already exists", http.StatusConflict)
-		}
-		return errLib.New("Internal server error", http.StatusInternalServerError)
+		return handleDBError(err, "Course")
 	}
 
 	if impactedRows == 0 {
@@ -80,11 +86,7 @@ func (r *Repository) GetCourses(ctx context.Context) ([]values.ReadDetails, *err
 	dbCourses, err := r.Queries.GetCourses(ctx)
 
 	if err != nil {
-
-		log.Println("Error getting courses: ", err)
-		dbErr := errLib.New("Internal server error", http.StatusInternalServerError)
-
-		return nil, dbErr
+		return nil, handleDBError(err, "Courses")
 	}
 
 	courses := make([]values.ReadDetails, len(dbCourses))
@@ -108,7 +110,7 @@ func (r *Repository) DeleteCourse(c context.Context, id uuid.UUID) *errLib.Commo
 	row, err := r.Queries.DeleteCourse(c, id)
 
 	if err != nil {
-		return errLib.New("Internal server error", http.StatusInternalServerError)
+		return handleDBError(err, "Course")
 	}
 
 	if row == 0 {
@@ -120,8 +122,6 @@ func (r *Repository) DeleteCourse(c context.Context, id uuid.UUID) *errLib.Commo
 
 func (r *Repository) CreateCourse(c context.Context, courseDetails values.CreateCourseDetails) (values.ReadDetails, *errLib.CommonError) {
 
-	var createdCourse values.ReadDetails
-
 	dbCourseParams := db.CreateCourseParams{
 		Name: courseDetails.Name, Description: courseDetails.Description,
 	}
@@ -129,16 +129,7 @@ func (r *Repository) CreateCourse(c context.Context, courseDetails values.Create
 	course, err := r.Queries.CreateCourse(c, dbCourseParams)
 
 	if err != nil {
-		// Check if the error is a unique violation (error code 23505)
-		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
-			// Return a custom error for unique violation
-			return createdCourse, errLib.New("Course name already exists", http.StatusConflict)
-		}
-
-		// Return a generic internal server error for other cases
-		log.Println("error creating course: ", err)
-		return createdCourse, errLib.New("Internal server error", http.StatusInternalServerError)
+		return values.ReadDetails{}, handleDBError(err, "Course")
 	}
 
 	return values.ReadDetails{

@@ -7,7 +7,7 @@ import (
 )
 
 type RequestDto struct {
-	Name        string `json:"name" validate:"notwhitespace"`
+	Name        string `json:"name" validate:"required,notwhitespace"`
 	Description string `json:"description"`
 }
 

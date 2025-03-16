@@ -1,19 +1,23 @@
 name: Migrate Database
 
 on:
-  push:
-    branches:
-      - main  # Runs on every push to the main branch
-    paths:
-      - 'db/**'
+  workflow_run:
+    workflows: [ "Run Tests with Testcontainers" ]
+    types:
+      - completed
+
 
 jobs:
   migrate:
+    if: >
+      ${{ github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.head_branch == 'main' &&
+          contains(github.event.workflow_run.head_commit.modified, 'db/') }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1

@@ -1,15 +1,19 @@
 name: Update Swagger in Frontend and Mobile
 
 on:
-  push:
-    branches:
-      - main  # Change this to match your API repo's default branch
-    paths:
-      - 'docs/**'
-      - '.github/workflows/update-swagger.yml'
+  workflow_run:
+    workflows: [ "Run Tests with Testcontainers" ]
+    types:
+      - completed
+
 
 jobs:
   update-swagger:
+    if: >
+      ${{ github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.head_branch == 'main' &&
+          (contains(github.event.workflow_run.head_commit.modified, 'docs/') ||
+           contains(github.event.workflow_run.head_commit.modified, '.github/workflows/update-swagger.yml')) }}
     runs-on: ubuntu-latest
 
     steps:
@@ -50,38 +54,38 @@ jobs:
           name: swagger-docs
           path: swagger-output
 
-update-frontend:
-  runs-on: ubuntu-latest
-  needs: update-swagger  # Ensures that the update-swagger job runs first
+  update-frontend:
+    runs-on: ubuntu-latest
+    needs: update-swagger  # Ensures that the update-swagger job runs first
 
-  steps:
-    - name: Checkout Frontend Repository
-      uses: actions/checkout@v4
-      with:
-        repository: RISE-sait/Rise-Admin-Shad-Version
-        token: ${{ secrets.FRONTEND_REPO_PAT }}
+    steps:
+      - name: Checkout Frontend Repository
+        uses: actions/checkout@v4
+        with:
+          repository: RISE-sait/Rise-Admin-Shad-Version
+          token: ${{ secrets.FRONTEND_REPO_PAT }}
 
-    - name: Download Swagger docs artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: swagger-docs
-        path: swagger-output
+      - name: Download Swagger docs artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: swagger-docs
+          path: swagger-output
 
-    - name: Copy new Swagger files to frontend
-      run: |
-        mkdir -p app/api/docs
-        
-        echo "Files in swagger-output before copying:"
-        ls -l swagger-output
-        
-        # Directly copy files from swagger-output to frontend repo
-        cp -rf swagger-output/* app/api/docs/
-        
-        git config --global user.email "klintlee1@gmail.com"
-        git config --global user.name "KlintLee115"
-        git add app/api/docs/
-        git commit -m "Updated Swagger docs from API repo" || echo "No changes to commit"
-        git push
+      - name: Copy new Swagger files to frontend
+        run: |
+          mkdir -p app/api/docs
+          
+          echo "Files in swagger-output before copying:"
+          ls -l swagger-output
+          
+          # Directly copy files from swagger-output to frontend repo
+          cp -rf swagger-output/* app/api/docs/
+          
+          git config --global user.email "klintlee1@gmail.com"
+          git config --global user.name "KlintLee115"
+          git add app/api/docs/
+          git commit -m "Updated Swagger docs from API repo" || echo "No changes to commit"
+          git push
 
   update-mobile:
     runs-on: ubuntu-latest

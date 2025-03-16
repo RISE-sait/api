@@ -36,8 +36,8 @@ func SetupTestDB(t *testing.T) (*sql.DB, func()) {
 				"POSTGRES_PASSWORD": "root",
 				"POSTGRES_DB":       "testdb",
 			},
-			WaitingFor: wait.ForListeningPort("5432/tcp").WithStartupTimeout(30 * time.Second),
-		}
+			WaitingFor: wait.ForLog("database system is ready to accept connections").
+				WithStartupTimeout(30 * time.Second)}
 
 		_ = os.Setenv("TESTCONTAINERS_RYUK_DISABLED", "true")
 		_ = os.Setenv("TESTCONTAINERS_CHECK_CONTAINERS", "false") // Reduce resource usage
@@ -58,7 +58,7 @@ func SetupTestDB(t *testing.T) (*sql.DB, func()) {
 		dsn := fmt.Sprintf("postgresql://postgres:root@%s:%s/testdb?sslmode=disable", host, port.Port())
 
 		// Open DB connection
-		dbInstance, err := sql.Open("postgres", dsn)
+		dbInstance, err = sql.Open("postgres", dsn)
 		require.NoError(t, err)
 
 		require.NoError(t, dbInstance.Ping())
@@ -67,8 +67,13 @@ func SetupTestDB(t *testing.T) (*sql.DB, func()) {
 		cleanup = func() {
 
 			postgresC.Terminate(ctx)
+			dbInstance.Close()
 		}
 	})
+
+	if dbInstance == nil {
+		t.Fatal("Database connection is nil. SetupTestDB failed.")
+	}
 
 	return dbInstance, cleanup
 }

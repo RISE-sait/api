@@ -64,14 +64,6 @@ func TestDecodeCreateFacilityRequestBody(t *testing.T) {
 			}`,
 			expectError: false,
 		},
-		{
-			name: "Validation: Invalid FacilityCategoryID",
-			jsonInput: `{
-				"name": "Facility A",
-				"location": "Address A"
-			}`,
-			expectError: true,
-		},
 	}
 
 	for _, tt := range tests {

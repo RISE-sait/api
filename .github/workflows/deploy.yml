@@ -26,7 +26,7 @@ jobs:
 
       - name: Build and Push Docker Image
         run: |
-          docker build -t us-west2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/rise-api:$GITHUB_SHA server.Dockerfile .
+          docker build -t us-west2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/rise-api:$GITHUB_SHA -f server.Dockerfile .
 
           docker push us-west2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/rise-api:$GITHUB_SHA
 

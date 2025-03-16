@@ -20,7 +20,9 @@ func TestCreateCourse(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, _ := courseTestUtils.SetupCourseTestDb(t, dbConn)
+	queries, cleanup := courseTestUtils.SetupCourseTestDb(t, dbConn)
+
+	defer cleanup()
 
 	name := "Go Course"
 	description := "Learn Go programming"
@@ -44,7 +46,9 @@ func TestUpdateCourse(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, _ := courseTestUtils.SetupCourseTestDb(t, dbConn)
+	queries, cleanup := courseTestUtils.SetupCourseTestDb(t, dbConn)
+
+	defer cleanup()
 
 	// Create a course to update
 	name := "Go Course"
@@ -79,7 +83,9 @@ func TestCreateCourseUniqueNameConstraint(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, _ := courseTestUtils.SetupCourseTestDb(t, dbConn)
+	queries, cleanup := courseTestUtils.SetupCourseTestDb(t, dbConn)
+
+	defer cleanup()
 
 	// Create a course
 	name := "Go Course"
@@ -105,7 +111,9 @@ func TestGetAllCourses(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, _ := courseTestUtils.SetupCourseTestDb(t, dbConn)
+	queries, cleanup := courseTestUtils.SetupCourseTestDb(t, dbConn)
+
+	defer cleanup()
 
 	// Create some courses
 	for i := 1; i <= 5; i++ {
@@ -127,7 +135,9 @@ func TestUpdateNonExistentCourse(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, _ := courseTestUtils.SetupCourseTestDb(t, dbConn)
+	queries, cleanup := courseTestUtils.SetupCourseTestDb(t, dbConn)
+
+	defer cleanup()
 
 	// Attempt to update a course that doesn't exist
 	nonExistentId := uuid.New() // Random UUID
@@ -149,7 +159,9 @@ func TestCreateCourseWithNullDescription(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, _ := courseTestUtils.SetupCourseTestDb(t, dbConn)
+	queries, cleanup := courseTestUtils.SetupCourseTestDb(t, dbConn)
+
+	defer cleanup()
 
 	// Create a course with a null description
 	createCourseParams := db.CreateCourseParams{
@@ -168,7 +180,9 @@ func TestDeleteCourse(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, _ := courseTestUtils.SetupCourseTestDb(t, dbConn)
+	queries, cleanup := courseTestUtils.SetupCourseTestDb(t, dbConn)
+
+	defer cleanup()
 
 	// Create a course to delete
 	name := "Go Course"

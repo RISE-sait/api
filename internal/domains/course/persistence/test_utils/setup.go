@@ -13,7 +13,7 @@ func SetupCourseTestDb(t *testing.T, testDb *sql.DB) (*db.Queries, func()) {
 
 CREATE SCHEMA IF NOT EXISTS course;
 
-	create table course.courses
+	create table if not exists course.courses
 (
     id          uuid                     default gen_random_uuid() not null
         primary key,
@@ -35,7 +35,7 @@ CREATE SCHEMA IF NOT EXISTS course;
 
 	// Cleanup function to delete data after test
 	return repo, func() {
-		_, err := testDb.Exec(cleanUpScript)
+		_, err = testDb.Exec(cleanUpScript)
 		require.NoError(t, err)
 	}
 }

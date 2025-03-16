@@ -8,7 +8,6 @@ import (
 	dto "api/internal/domains/location/dto"
 	"api/internal/libs/validators"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -100,9 +99,6 @@ func TestDecodeCreateFacilityRequestBody(t *testing.T) {
 				}
 				if strings.TrimSpace(target.Location) != "" {
 					assert.Equal(t, "Address A", target.Location)
-				}
-				if target.FacilityTypeID != uuid.Nil {
-					assert.Equal(t, uuid.MustParse("b2f6ae19-62ff-4e64-aecc-08b432a8b593"), target.FacilityTypeID)
 				}
 			}
 		})

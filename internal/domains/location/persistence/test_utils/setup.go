@@ -13,35 +13,26 @@ func SetupFacilityTestDbQueries(t *testing.T, testDb *sql.DB) (*db.Queries, func
 
 CREATE SCHEMA IF NOT EXISTS location;
 
-CREATE TABLE location.facility_categories
+create table location.locations
 (
-    id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL
+    id      uuid default gen_random_uuid() not null
+        primary key,
+    name    varchar(100)                   not null
+        unique,
+    address varchar(255)                   not null
 );
 
-CREATE TABLE location.facilities
-(
-    id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name                 VARCHAR(255) UNIQUE NOT NULL,
-    address              VARCHAR(255)        NOT NULL,
-    facility_category_id UUID                NOT NULL,
-    FOREIGN KEY (facility_category_id) REFERENCES location.facility_categories (id) ON DELETE CASCADE
-);
+alter table location.locations
+    owner to postgres;
 
-CREATE TABLE location.locations
-(
-    id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name                 VARCHAR(100) UNIQUE NOT NULL,
-    facility_id UUID                NOT NULL,
-    FOREIGN KEY (facility_id) REFERENCES location.facilities (id) ON DELETE CASCADE
-);`
+`
 
 	_, err := testDb.Exec(migrationScript)
 	require.NoError(t, err)
 
 	// Return the repo and cleanup function
 	repo := db.New(testDb)
-	cleanUpScript := `DELETE FROM location.facilities`
+	cleanUpScript := `DELETE FROM location.locations`
 
 	// Cleanup function to delete data after test
 	return repo, func() {

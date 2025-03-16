@@ -67,6 +67,13 @@ func clearTables(ctx context.Context, db *sql.DB) error {
 
 func seedClients(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 	clients, err := data.GetClients()
+
+	if err != nil {
+		return nil, err
+	}
+
+	staffs := data.GetStaffsAsClients()
+
 	if err != nil {
 		return nil, err
 	}
@@ -122,6 +129,8 @@ func seedClients(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 		StartDateArray:   nil,
 		RenewalDateArray: nil,
 	})
+
+	seedQueries.InsertClients(ctx, staffs)
 
 	return ids, nil
 }

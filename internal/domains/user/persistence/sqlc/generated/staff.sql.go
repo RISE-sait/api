@@ -26,7 +26,7 @@ func (q *Queries) DeleteStaff(ctx context.Context, id uuid.UUID) (int64, error) 
 }
 
 const getStaffByID = `-- name: GetStaffByID :one
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.first_name, u.last_name, u.age, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.gender, s.is_active, sr.role_name
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.age, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, s.is_active, sr.role_name
 FROM users.staff s
          JOIN users.users u ON s.id = u.id
 JOIN users.staff_roles sr ON s.role_id = sr.id
@@ -37,6 +37,7 @@ type GetStaffByIDRow struct {
 	ID                       uuid.UUID      `json:"id"`
 	HubspotID                sql.NullString `json:"hubspot_id"`
 	CountryAlpha2Code        string         `json:"country_alpha2_code"`
+	Gender                   sql.NullString `json:"gender"`
 	FirstName                string         `json:"first_name"`
 	LastName                 string         `json:"last_name"`
 	Age                      int32          `json:"age"`
@@ -47,7 +48,6 @@ type GetStaffByIDRow struct {
 	HasSmsConsent            bool           `json:"has_sms_consent"`
 	CreatedAt                time.Time      `json:"created_at"`
 	UpdatedAt                time.Time      `json:"updated_at"`
-	Gender                   sql.NullString `json:"gender"`
 	IsActive                 bool           `json:"is_active"`
 	RoleName                 string         `json:"role_name"`
 }
@@ -59,6 +59,7 @@ func (q *Queries) GetStaffByID(ctx context.Context, id uuid.UUID) (GetStaffByIDR
 		&i.ID,
 		&i.HubspotID,
 		&i.CountryAlpha2Code,
+		&i.Gender,
 		&i.FirstName,
 		&i.LastName,
 		&i.Age,
@@ -69,7 +70,6 @@ func (q *Queries) GetStaffByID(ctx context.Context, id uuid.UUID) (GetStaffByIDR
 		&i.HasSmsConsent,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Gender,
 		&i.IsActive,
 		&i.RoleName,
 	)
@@ -77,7 +77,7 @@ func (q *Queries) GetStaffByID(ctx context.Context, id uuid.UUID) (GetStaffByIDR
 }
 
 const getStaffs = `-- name: GetStaffs :many
-SELECT s.is_active, u.id, u.hubspot_id, u.country_alpha2_code, u.first_name, u.last_name, u.age, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.gender, sr.role_name
+SELECT s.is_active, u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.age, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, sr.role_name
 FROM users.staff s
 JOIN users.users u ON u.id = s.id
 JOIN users.staff_roles sr ON s.role_id = sr.id
@@ -89,6 +89,7 @@ type GetStaffsRow struct {
 	ID                       uuid.UUID      `json:"id"`
 	HubspotID                sql.NullString `json:"hubspot_id"`
 	CountryAlpha2Code        string         `json:"country_alpha2_code"`
+	Gender                   sql.NullString `json:"gender"`
 	FirstName                string         `json:"first_name"`
 	LastName                 string         `json:"last_name"`
 	Age                      int32          `json:"age"`
@@ -99,7 +100,6 @@ type GetStaffsRow struct {
 	HasSmsConsent            bool           `json:"has_sms_consent"`
 	CreatedAt                time.Time      `json:"created_at"`
 	UpdatedAt                time.Time      `json:"updated_at"`
-	Gender                   sql.NullString `json:"gender"`
 	RoleName                 string         `json:"role_name"`
 }
 
@@ -117,6 +117,7 @@ func (q *Queries) GetStaffs(ctx context.Context, role sql.NullString) ([]GetStaf
 			&i.ID,
 			&i.HubspotID,
 			&i.CountryAlpha2Code,
+			&i.Gender,
 			&i.FirstName,
 			&i.LastName,
 			&i.Age,
@@ -127,7 +128,6 @@ func (q *Queries) GetStaffs(ctx context.Context, role sql.NullString) ([]GetStaf
 			&i.HasSmsConsent,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.Gender,
 			&i.RoleName,
 		); err != nil {
 			return nil, err

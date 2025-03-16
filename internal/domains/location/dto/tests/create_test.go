@@ -8,7 +8,6 @@ import (
 	dto "api/internal/domains/location/dto"
 	"api/internal/libs/validators"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,8 +22,7 @@ func TestDecodeCreateFacilityRequestBody(t *testing.T) {
 			name: "Valid JSON",
 			jsonInput: `{
 				"name": "Facility A",
-				"location": "Address A",
-				"facility_type_id": "b2f6ae19-62ff-4e64-aecc-08b432a8b593"
+				"location": "Address A"
 			}`,
 			expectError: false,
 		},
@@ -32,16 +30,14 @@ func TestDecodeCreateFacilityRequestBody(t *testing.T) {
 			name: "Invalid JSON",
 			jsonInput: `{
 				"name": "Facility A",
-				"location": "Address A",
-				"facility_type_id": "b2f6ae19-62ff-4e64-aecc-08b432a8b593"
-			`, // Missing closing brace
+				"location": "Address A"
+			`,
 			expectError: true,
 		},
 		{
 			name: "Validation: Missing Name",
 			jsonInput: `{
-				"location": "Address A",
-				"facility_type_id": "b2f6ae19-62ff-4e64-aecc-08b432a8b593"
+				"location": "Address A"
 			}`,
 			expectError: false,
 		},
@@ -49,16 +45,14 @@ func TestDecodeCreateFacilityRequestBody(t *testing.T) {
 			name: "Validation: Whitespace Name",
 			jsonInput: `{
 				"name": "   ",
-				"location": "Address A",
-				"facility_type_id": "b2f6ae19-62ff-4e64-aecc-08b432a8b593"
+				"location": "Address A"
 			}`,
 			expectError: false,
 		},
 		{
 			name: "Validation: Missing Address",
 			jsonInput: `{
-				"name": "Facility A",
-				"facility_type_id": "b2f6ae19-62ff-4e64-aecc-08b432a8b593"
+				"name": "Facility A"
 			}`,
 			expectError: false,
 		},
@@ -69,15 +63,6 @@ func TestDecodeCreateFacilityRequestBody(t *testing.T) {
 				"location": "Address A"
 			}`,
 			expectError: false,
-		},
-		{
-			name: "Validation: Invalid FacilityCategoryID",
-			jsonInput: `{
-				"name": "Facility A",
-				"location": "Address A",
-				"facility_type_id": "invalid-uuid"
-			}`,
-			expectError: true,
 		},
 	}
 
@@ -100,9 +85,6 @@ func TestDecodeCreateFacilityRequestBody(t *testing.T) {
 				}
 				if strings.TrimSpace(target.Location) != "" {
 					assert.Equal(t, "Address A", target.Location)
-				}
-				if target.FacilityTypeID != uuid.Nil {
-					assert.Equal(t, uuid.MustParse("b2f6ae19-62ff-4e64-aecc-08b432a8b593"), target.FacilityTypeID)
 				}
 			}
 		})

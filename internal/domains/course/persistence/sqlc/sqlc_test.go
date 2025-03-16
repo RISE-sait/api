@@ -5,7 +5,6 @@ import (
 	courseTestUtils "api/internal/domains/course/persistence/test_utils"
 	"api/utils/test_utils"
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -21,14 +20,16 @@ func TestCreateCourse(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, _ := courseTestUtils.SetupCourseTestDb(t, dbConn)
+	queries, cleanup := courseTestUtils.SetupCourseTestDb(t, dbConn)
+
+	defer cleanup()
 
 	name := "Go Course"
 	description := "Learn Go programming"
 
 	createCourseParams := db.CreateCourseParams{
 		Name:        name,
-		Description: sql.NullString{String: description, Valid: true},
+		Description: description,
 		Capacity:    50,
 	}
 
@@ -38,21 +39,23 @@ func TestCreateCourse(t *testing.T) {
 
 	// Assert course data
 	require.Equal(t, name, course.Name)
-	require.Equal(t, description, course.Description.String)
+	require.Equal(t, description, course.Description)
 }
 
 func TestUpdateCourse(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, _ := courseTestUtils.SetupCourseTestDb(t, dbConn)
+	queries, cleanup := courseTestUtils.SetupCourseTestDb(t, dbConn)
+
+	defer cleanup()
 
 	// Create a course to update
 	name := "Go Course"
 	description := "Learn Go programming"
 	createCourseParams := db.CreateCourseParams{
 		Name:        name,
-		Description: sql.NullString{String: description, Valid: true},
+		Description: description,
 	}
 
 	course, err := queries.CreateCourse(context.Background(), createCourseParams)
@@ -63,7 +66,7 @@ func TestUpdateCourse(t *testing.T) {
 	updateParams := db.UpdateCourseParams{
 		ID:          course.ID,
 		Name:        newName,
-		Description: sql.NullString{String: "Learn advanced Go programming", Valid: true},
+		Description: "Learn advanced Go programming",
 	}
 
 	_, err = queries.UpdateCourse(context.Background(), updateParams)
@@ -73,21 +76,23 @@ func TestUpdateCourse(t *testing.T) {
 	updatedCourse, err := queries.GetCourseById(context.Background(), course.ID)
 	require.NoError(t, err)
 	require.Equal(t, newName, updatedCourse.Name)
-	require.Equal(t, "Learn advanced Go programming", updatedCourse.Description.String)
+	require.Equal(t, "Learn advanced Go programming", updatedCourse.Description)
 }
 
 func TestCreateCourseUniqueNameConstraint(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, _ := courseTestUtils.SetupCourseTestDb(t, dbConn)
+	queries, cleanup := courseTestUtils.SetupCourseTestDb(t, dbConn)
+
+	defer cleanup()
 
 	// Create a course
 	name := "Go Course"
 	description := "Learn Go programming"
 	createCourseParams := db.CreateCourseParams{
 		Name:        name,
-		Description: sql.NullString{String: description, Valid: true},
+		Description: description,
 	}
 
 	_, err := queries.CreateCourse(context.Background(), createCourseParams)
@@ -106,13 +111,15 @@ func TestGetAllCourses(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, _ := courseTestUtils.SetupCourseTestDb(t, dbConn)
+	queries, cleanup := courseTestUtils.SetupCourseTestDb(t, dbConn)
+
+	defer cleanup()
 
 	// Create some courses
 	for i := 1; i <= 5; i++ {
 		createCourseParams := db.CreateCourseParams{
 			Name:        fmt.Sprintf("Course %d", i),
-			Description: sql.NullString{String: fmt.Sprintf("Description %d", i), Valid: true},
+			Description: fmt.Sprintf("Description %d", i),
 		}
 		_, err := queries.CreateCourse(context.Background(), createCourseParams)
 		require.NoError(t, err)
@@ -128,7 +135,9 @@ func TestUpdateNonExistentCourse(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, _ := courseTestUtils.SetupCourseTestDb(t, dbConn)
+	queries, cleanup := courseTestUtils.SetupCourseTestDb(t, dbConn)
+
+	defer cleanup()
 
 	// Attempt to update a course that doesn't exist
 	nonExistentId := uuid.New() // Random UUID
@@ -136,7 +145,7 @@ func TestUpdateNonExistentCourse(t *testing.T) {
 	updateParams := db.UpdateCourseParams{
 		ID:          nonExistentId,
 		Name:        "Updated Course",
-		Description: sql.NullString{String: "Updated course description", Valid: true},
+		Description: "Updated course description",
 	}
 
 	rows, err := queries.UpdateCourse(context.Background(), updateParams)
@@ -150,33 +159,36 @@ func TestCreateCourseWithNullDescription(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, _ := courseTestUtils.SetupCourseTestDb(t, dbConn)
+	queries, cleanup := courseTestUtils.SetupCourseTestDb(t, dbConn)
+
+	defer cleanup()
 
 	// Create a course with a null description
 	createCourseParams := db.CreateCourseParams{
 		Name:        "Go Course",
-		Description: sql.NullString{String: "", Valid: false},
+		Description: "",
 	}
 
-	course, err := queries.CreateCourse(context.Background(), createCourseParams)
+	_, err := queries.CreateCourse(context.Background(), createCourseParams)
 	require.NoError(t, err)
 
 	// Fetch the course and check if description is null
 	require.NoError(t, err)
-	require.False(t, course.Description.Valid) // Should be null
 }
 
 func TestDeleteCourse(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, _ := courseTestUtils.SetupCourseTestDb(t, dbConn)
+	queries, cleanup := courseTestUtils.SetupCourseTestDb(t, dbConn)
+
+	defer cleanup()
 
 	// Create a course to delete
 	name := "Go Course"
 	createCourseParams := db.CreateCourseParams{
 		Name:        name,
-		Description: sql.NullString{String: "Learn Go programming", Valid: true},
+		Description: "Learn Go programming",
 	}
 
 	course, err := queries.CreateCourse(context.Background(), createCourseParams)

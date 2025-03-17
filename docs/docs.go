@@ -2742,14 +2742,11 @@ const docTemplate = `{
                 "summary": "Get practice levels",
                 "responses": {
                     "200": {
-                        "description": "List of practice levels",
+                        "description": "Get practice levels retrieved successfully",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.PracticeLevelsResponse"
                             }
                         }
                     },
@@ -2853,59 +2850,6 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request: Invalid ID",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Practice not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/practices/{name}": {
-            "get": {
-                "description": "Get a practice by name",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "practices"
-                ],
-                "summary": "Get a practice by name",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Practice Name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Practice retrieved successfully",
-                        "schema": {
-                            "$ref": "#/definitions/dto.PracticeResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid Name",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3658,10 +3602,27 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.PracticeRequestDto": {
+        "dto.PracticeLevelsResponse": {
             "type": "object",
             "properties": {
+                "levels": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dto.PracticeRequestDto": {
+            "type": "object",
+            "required": [
+                "level"
+            ],
+            "properties": {
                 "description": {
+                    "type": "string"
+                },
+                "level": {
                     "type": "string"
                 },
                 "name": {
@@ -3679,6 +3640,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
+                    "type": "string"
+                },
+                "level": {
                     "type": "string"
                 },
                 "name": {

@@ -4,10 +4,8 @@ import (
 	"api/internal/domains/practice/dto"
 	repository "api/internal/domains/practice/persistence"
 	"api/internal/domains/practice/values"
-	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
-	"log"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -55,40 +53,9 @@ func (h *Handler) CreatePractice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseBody := mapEntityToResponse(course)
+	responseBody := mapReadValuesToResponse(course)
 
 	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusCreated)
-}
-
-// GetPracticeByName retrieves a practice by name.
-// @Summary Get a practice by name
-// @Description Get a practice by name
-// @Tags practices
-// @Accept json
-// @Produce json
-// @Param name path string true "Practice Name"
-// @Success 200 {object} dto.PracticeResponse "Practice retrieved successfully"
-// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid Name"
-// @Failure 404 {object} map[string]interface{} "Not Found: Practice not found"
-// @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /practices/{name} [get]
-func (h *Handler) GetPracticeByName(w http.ResponseWriter, r *http.Request) {
-	name := chi.URLParam(r, "name")
-
-	if name == "" {
-		responseHandlers.RespondWithError(w, errLib.New("Name cannot be empty", http.StatusBadRequest))
-	}
-
-	course, err := h.Repo.GetPracticeByName(r.Context(), name)
-
-	if err != nil {
-		responseHandlers.RespondWithError(w, err)
-		return
-	}
-
-	response := mapEntityToResponse(course)
-
-	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 }
 
 // GetPractices retrieves a list of practices.
@@ -113,7 +80,7 @@ func (h *Handler) GetPractices(w http.ResponseWriter, r *http.Request) {
 	result := make([]dto.PracticeResponse, len(practices))
 
 	for i, course := range practices {
-		result[i] = mapEntityToResponse(course)
+		result[i] = mapReadValuesToResponse(course)
 	}
 
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
@@ -125,13 +92,13 @@ func (h *Handler) GetPractices(w http.ResponseWriter, r *http.Request) {
 // @Tags practices
 // @Accept json
 // @Produce json
-// @Success 200 {object} map[string][]string "List of practice levels"
+// @Success 200 {array} dto.PracticeLevelsResponse "Get practice levels retrieved successfully"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /practices/levels [get]
 func (h *Handler) GetPracticeLevels(w http.ResponseWriter, _ *http.Request) {
 	levels := h.Repo.GetPracticeLevels()
 
-	response := map[string][]string{"practice_levels": levels}
+	response := dto.PracticeLevelsResponse{Name: levels}
 
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 }
@@ -172,8 +139,6 @@ func (h *Handler) UpdatePractice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("no")
-
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
@@ -207,12 +172,13 @@ func (h *Handler) DeletePractice(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-func mapEntityToResponse(course values.GetPracticeValues) dto.PracticeResponse {
+func mapReadValuesToResponse(practice values.GetPracticeValues) dto.PracticeResponse {
 	return dto.PracticeResponse{
-		ID:          course.ID,
-		Name:        course.PracticeDetails.Name,
-		Description: course.PracticeDetails.Description,
-		CreatedAt:   course.CreatedAt,
-		UpdatedAt:   course.UpdatedAt,
+		ID:          practice.ID,
+		Name:        practice.PracticeDetails.Name,
+		Description: practice.PracticeDetails.Description,
+		Level:       practice.PracticeDetails.Level,
+		CreatedAt:   practice.CreatedAt,
+		UpdatedAt:   practice.UpdatedAt,
 	}
 }

@@ -177,12 +177,23 @@ definitions:
     required:
     - waiver_url
     type: object
+  dto.PracticeLevelsResponse:
+    properties:
+      levels:
+        items:
+          type: string
+        type: array
+    type: object
   dto.PracticeRequestDto:
     properties:
       description:
         type: string
+      level:
+        type: string
       name:
         type: string
+    required:
+      - level
     type: object
   dto.PracticeResponse:
     properties:
@@ -191,6 +202,8 @@ definitions:
       description:
         type: string
       id:
+        type: string
+      level:
         type: string
       name:
         type: string
@@ -2458,40 +2471,26 @@ paths:
       summary: Update a practice
       tags:
       - practices
-  /practices/{name}:
+  /practices/levels:
     get:
       consumes:
       - application/json
-      description: Get a practice by name
-      parameters:
-      - description: Practice Name
-        in: path
-        name: name
-        required: true
-        type: string
+      description: Retrieves a list of available practice levels.
       produces:
       - application/json
       responses:
         "200":
-          description: Practice retrieved successfully
+          description: Get practice levels retrieved successfully
           schema:
-            $ref: '#/definitions/dto.PracticeResponse'
-        "400":
-          description: 'Bad Request: Invalid Name'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Practice not found'
-          schema:
-            additionalProperties: true
-            type: object
+            items:
+              $ref: '#/definitions/dto.PracticeLevelsResponse'
+            type: array
         "500":
           description: Internal Server Error
           schema:
             additionalProperties: true
             type: object
-      summary: Get a practice by name
+      summary: Get practice levels
       tags:
       - practices
   /practices/levels:

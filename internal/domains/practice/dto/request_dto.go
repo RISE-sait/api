@@ -9,6 +9,7 @@ import (
 type PracticeRequestDto struct {
 	Name        string `json:"name" validate:"notwhitespace"`
 	Description string `json:"description"`
+	Level       string `json:"level" validate:"required,notwhitespace"`
 }
 
 func (dto PracticeRequestDto) validate() *errLib.CommonError {
@@ -28,6 +29,7 @@ func (dto PracticeRequestDto) ToCreateValueObjects() (values.CreatePracticeValue
 		PracticeDetails: values.PracticeDetails{
 			Name:        dto.Name,
 			Description: dto.Description,
+			Level:       dto.Level,
 		},
 	}, nil
 }
@@ -49,6 +51,7 @@ func (dto PracticeRequestDto) ToUpdateValueObjects(idStr string) (values.UpdateP
 		PracticeDetails: values.PracticeDetails{
 			Name:        dto.Name,
 			Description: dto.Description,
+			Level:       dto.Level,
 		},
 	}, nil
 }

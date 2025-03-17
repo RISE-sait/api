@@ -103,21 +103,22 @@ func (r *Repository) List(ctx context.Context) ([]values.GetPracticeValues, *err
 		return nil, dbErr
 	}
 
-	courses := make([]values.GetPracticeValues, len(dbPractices))
+	practices := make([]values.GetPracticeValues, len(dbPractices))
 
-	for i, dbCourse := range dbPractices {
-		courses[i] = values.GetPracticeValues{
-			ID:        dbCourse.ID,
-			CreatedAt: dbCourse.CreatedAt,
-			UpdatedAt: dbCourse.UpdatedAt,
+	for i, dbPractice := range dbPractices {
+		practices[i] = values.GetPracticeValues{
+			ID:        dbPractice.ID,
+			CreatedAt: dbPractice.CreatedAt,
+			UpdatedAt: dbPractice.UpdatedAt,
 			PracticeDetails: values.PracticeDetails{
-				Name:        dbCourse.Name,
-				Description: dbCourse.Description,
+				Name:        dbPractice.Name,
+				Description: dbPractice.Description,
+				Level:       string(dbPractice.Level),
 			},
 		}
 	}
 
-	return courses, nil
+	return practices, nil
 }
 
 func (r *Repository) Delete(c context.Context, id uuid.UUID) *errLib.CommonError {

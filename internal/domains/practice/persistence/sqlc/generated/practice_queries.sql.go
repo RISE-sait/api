@@ -75,25 +75,6 @@ func (q *Queries) GetPracticeById(ctx context.Context, id uuid.UUID) (Practice, 
 	return i, err
 }
 
-const getPracticeByName = `-- name: GetPracticeByName :one
-SELECT id, name, description, level, capacity, created_at, updated_at FROM practices WHERE name = $1 LIMIT 1
-`
-
-func (q *Queries) GetPracticeByName(ctx context.Context, name string) (Practice, error) {
-	row := q.db.QueryRowContext(ctx, getPracticeByName, name)
-	var i Practice
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.Level,
-		&i.Capacity,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const getPractices = `-- name: GetPractices :many
 SELECT id, name, description, level, capacity, created_at, updated_at FROM practices
 `

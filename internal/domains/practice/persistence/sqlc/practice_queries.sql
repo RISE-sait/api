@@ -9,9 +9,6 @@ SELECT * FROM practices;
 -- name: GetPracticeById :one
 SELECT * FROM practices WHERE id = $1;
 
--- name: GetPracticeByName :one
-SELECT * FROM practices WHERE name = $1 LIMIT 1;
-
 -- name: UpdatePractice :execrows
 UPDATE practices
 SET

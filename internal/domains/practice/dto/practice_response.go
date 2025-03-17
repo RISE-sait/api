@@ -10,6 +10,7 @@ type PracticeResponse struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description,omitempty"`
 	Level       string    `json:"level"`
+	Capacity    int32     `json:"capacity"`
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 }

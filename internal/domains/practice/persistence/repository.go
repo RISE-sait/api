@@ -6,7 +6,6 @@ import (
 	"api/internal/domains/practice/values"
 	errLib "api/internal/libs/errors"
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -23,30 +22,6 @@ func NewPracticeRepository(dbQueries *db.Queries) *Repository {
 	return &Repository{
 		Queries: dbQueries,
 	}
-}
-
-func (r *Repository) GetPracticeByName(c context.Context, name string) (values.GetPracticeValues, *errLib.CommonError) {
-
-	var response values.GetPracticeValues
-
-	practice, err := r.Queries.GetPracticeByName(c, name)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return response, errLib.New("Practice not found", http.StatusNotFound)
-		}
-		return response, errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-
-	return values.GetPracticeValues{
-		PracticeDetails: values.PracticeDetails{
-			Name:        practice.Name,
-			Description: practice.Description,
-		},
-		ID:        practice.ID,
-		CreatedAt: practice.CreatedAt,
-		UpdatedAt: practice.UpdatedAt,
-	}, nil
 }
 
 func (r *Repository) GetPracticeLevels() []string {
@@ -67,6 +42,8 @@ func (r *Repository) Update(ctx context.Context, practice values.UpdatePracticeV
 		ID:          practice.ID,
 		Name:        practice.PracticeDetails.Name,
 		Description: practice.PracticeDetails.Description,
+		Level:       db.PracticeLevel(practice.PracticeDetails.Level),
+		Capacity:    practice.PracticeDetails.Capacity,
 	}
 
 	row, err := r.Queries.UpdatePractice(ctx, dbCourseParams)
@@ -114,6 +91,7 @@ func (r *Repository) List(ctx context.Context) ([]values.GetPracticeValues, *err
 				Name:        dbPractice.Name,
 				Description: dbPractice.Description,
 				Level:       string(dbPractice.Level),
+				Capacity:    dbPractice.Capacity,
 			},
 		}
 	}
@@ -135,12 +113,15 @@ func (r *Repository) Delete(c context.Context, id uuid.UUID) *errLib.CommonError
 	return nil
 }
 
-func (r *Repository) Create(c context.Context, courseDetails values.CreatePracticeValues) (values.GetPracticeValues, *errLib.CommonError) {
+func (r *Repository) Create(c context.Context, practiceDetails values.CreatePracticeValues) (values.GetPracticeValues, *errLib.CommonError) {
 
 	var response values.GetPracticeValues
 
 	dbPracticeParams := db.CreatePracticeParams{
-		Name: courseDetails.Name, Description: courseDetails.Description,
+		Name:        practiceDetails.Name,
+		Description: practiceDetails.Description,
+		Level:       db.PracticeLevel(practiceDetails.Level),
+		Capacity:    practiceDetails.Capacity,
 	}
 
 	course, err := r.Queries.CreatePractice(c, dbPracticeParams)
@@ -162,8 +143,9 @@ func (r *Repository) Create(c context.Context, courseDetails values.CreatePracti
 		CreatedAt: course.CreatedAt,
 		UpdatedAt: course.UpdatedAt,
 		PracticeDetails: values.PracticeDetails{
-			Name:        courseDetails.Name,
-			Description: courseDetails.Description,
+			Name:        practiceDetails.Name,
+			Description: practiceDetails.Description,
+			Capacity:    practiceDetails.Capacity,
 		},
 	}, nil
 }

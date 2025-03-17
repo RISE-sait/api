@@ -9,6 +9,7 @@ type PracticeDetails struct {
 	Name        string
 	Description string
 	Level       string
+	Capacity    int32
 }
 
 type CreatePracticeValues struct {

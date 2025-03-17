@@ -188,7 +188,7 @@
         },
         "/courses/{id}": {
             "get": {
-                "description": "Get a course by HubSpotId",
+                "description": "Get a course by Id",
                 "consumes": [
                     "application/json"
                 ],
@@ -198,11 +198,11 @@
                 "tags": [
                     "courses"
                 ],
-                "summary": "Get a course by HubSpotId",
+                "summary": "Get a course by Id",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Course HubSpotId",
+                        "description": "Course Id",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -216,7 +216,7 @@
                         }
                     },
                     "400": {
-                        "description": "Bad Request: Invalid HubSpotId",
+                        "description": "Bad Request: Invalid Id",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -306,7 +306,7 @@
                         "Bearer": []
                     }
                 ],
-                "description": "Delete a course by HubSpotId",
+                "description": "Delete a course by Id",
                 "consumes": [
                     "application/json"
                 ],
@@ -320,7 +320,7 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Course HubSpotId",
+                        "description": "Course Id",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -331,7 +331,7 @@
                         "description": "No Content"
                     },
                     "400": {
-                        "description": "Bad Request: Invalid HubSpotId",
+                        "description": "Bad Request: Invalid Id",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3327,9 +3327,13 @@
         "course.RequestDto": {
             "type": "object",
             "required": [
+                "capacity",
                 "name"
             ],
             "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -3341,6 +3345,9 @@
         "course.ResponseDto": {
             "type": "object",
             "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
                 "createdAt": {
                     "type": "string"
                 },
@@ -3606,9 +3613,13 @@
         "dto.PracticeRequestDto": {
             "type": "object",
             "required": [
+                "capacity",
                 "level"
             ],
             "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -3623,6 +3634,9 @@
         "dto.PracticeResponse": {
             "type": "object",
             "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
                 "createdAt": {
                     "type": "string"
                 },

@@ -198,7 +198,7 @@ const docTemplate = `{
         },
         "/courses/{id}": {
             "get": {
-                "description": "Get a course by HubSpotId",
+                "description": "Get a course by Id",
                 "consumes": [
                     "application/json"
                 ],
@@ -208,11 +208,11 @@ const docTemplate = `{
                 "tags": [
                     "courses"
                 ],
-                "summary": "Get a course by HubSpotId",
+                "summary": "Get a course by Id",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Course HubSpotId",
+                        "description": "Course Id",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -226,7 +226,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request: Invalid HubSpotId",
+                        "description": "Bad Request: Invalid Id",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -316,7 +316,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Delete a course by HubSpotId",
+                "description": "Delete a course by Id",
                 "consumes": [
                     "application/json"
                 ],
@@ -330,7 +330,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Course HubSpotId",
+                        "description": "Course Id",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -341,7 +341,7 @@ const docTemplate = `{
                         "description": "No Content"
                     },
                     "400": {
-                        "description": "Bad Request: Invalid HubSpotId",
+                        "description": "Bad Request: Invalid Id",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3337,9 +3337,13 @@ const docTemplate = `{
         "course.RequestDto": {
             "type": "object",
             "required": [
+                "capacity",
                 "name"
             ],
             "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -3351,6 +3355,9 @@ const docTemplate = `{
         "course.ResponseDto": {
             "type": "object",
             "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
                 "createdAt": {
                     "type": "string"
                 },
@@ -3616,9 +3623,13 @@ const docTemplate = `{
         "dto.PracticeRequestDto": {
             "type": "object",
             "required": [
+                "capacity",
                 "level"
             ],
             "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -3633,6 +3644,9 @@ const docTemplate = `{
         "dto.PracticeResponse": {
             "type": "object",
             "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
                 "createdAt": {
                     "type": "string"
                 },

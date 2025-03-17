@@ -104,18 +104,24 @@ func (q *Queries) GetCourses(ctx context.Context) ([]CourseCourse, error) {
 
 const updateCourse = `-- name: UpdateCourse :execrows
 UPDATE course.courses
-SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP
-WHERE id = $3
+SET name = $1, description = $2, capacity = $3, updated_at = CURRENT_TIMESTAMP
+WHERE id = $4
 `
 
 type UpdateCourseParams struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
+	Capacity    int32     `json:"capacity"`
 	ID          uuid.UUID `json:"id"`
 }
 
 func (q *Queries) UpdateCourse(ctx context.Context, arg UpdateCourseParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateCourse, arg.Name, arg.Description, arg.ID)
+	result, err := q.db.ExecContext(ctx, updateCourse,
+		arg.Name,
+		arg.Description,
+		arg.Capacity,
+		arg.ID,
+	)
 	if err != nil {
 		return 0, err
 	}

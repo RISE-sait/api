@@ -178,6 +178,7 @@ func mapReadValuesToResponse(practice values.GetPracticeValues) dto.PracticeResp
 		Name:        practice.PracticeDetails.Name,
 		Description: practice.PracticeDetails.Description,
 		Level:       practice.PracticeDetails.Level,
+		Capacity:    practice.PracticeDetails.Capacity,
 		CreatedAt:   practice.CreatedAt,
 		UpdatedAt:   practice.UpdatedAt,
 	}

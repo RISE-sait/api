@@ -8,6 +8,7 @@ import (
 type Details struct {
 	Name        string
 	Description string
+	Capacity    int32
 }
 
 type CreateCourseDetails struct {

@@ -57,15 +57,15 @@ func (h *Handler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusCreated)
 }
 
-// GetCourseById retrieves a course by HubSpotId.
-// @Summary Get a course by HubSpotId
-// @Description Get a course by HubSpotId
+// GetCourseById retrieves a course by Id.
+// @Summary Get a course by Id
+// @Description Get a course by Id
 // @Tags courses
 // @Accept json
 // @Produce json
-// @Param id path string true "Course HubSpotId"
+// @Param id path string true "Course Id"
 // @Success 200 {object} course.ResponseDto "Course retrieved successfully"
-// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid HubSpotId"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid Id"
 // @Failure 404 {object} map[string]interface{} "Not Found: Course not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /courses/{id} [get]
@@ -155,16 +155,16 @@ func (h *Handler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-// DeleteCourse deletes a course by HubSpotId.
+// DeleteCourse deletes a course by Id.
 // @Summary Delete a course
-// @Description Delete a course by HubSpotId
+// @Description Delete a course by Id
 // @Tags courses
 // @Accept json
 // @Produce json
-// @Param id path string true "Course HubSpotId"
+// @Param id path string true "Course Id"
 // @Security Bearer
 // @Success 204
-// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid HubSpotId"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid Id"
 // @Failure 404 {object} map[string]interface{} "Not Found: Course not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /courses/{id} [delete]

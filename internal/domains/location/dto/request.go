@@ -9,8 +9,8 @@ import (
 // RequestDto represents the data transfer object for facility-related requests.
 // It is used to validate and map incoming JSON data to domain value objects.
 type RequestDto struct {
-	Name     string `json:"name" validate:"required,notwhitespace"`
-	Location string `json:"location" validate:"required,notwhitespace"`
+	Name    string `json:"name" validate:"required,notwhitespace"`
+	Address string `json:"address" validate:"required,notwhitespace"`
 }
 
 // ToCreateDetails converts the FacilityRequestDto into a FacilityCreate value object.
@@ -24,13 +24,13 @@ func (dto *RequestDto) ToCreateDetails() (values.CreateDetails, *errLib.CommonEr
 	return values.CreateDetails{
 		BaseDetails: values.BaseDetails{
 			Name:    dto.Name,
-			Address: dto.Location,
+			Address: dto.Address,
 		},
 	}, nil
 }
 
 // ToUpdateDetails converts the FacilityRequestDto into a FacilityUpdate value object.
-// It parses and validates the provided HubSpotId string and ensures the DTO passes validation before conversion.
+// It parses and validates the provided ID string and ensures the DTO passes validation before conversion.
 func (dto *RequestDto) ToUpdateDetails(idStr string) (values.UpdateDetails, *errLib.CommonError) {
 
 	id, err := validators.ParseUUID(idStr)
@@ -46,7 +46,7 @@ func (dto *RequestDto) ToUpdateDetails(idStr string) (values.UpdateDetails, *err
 		ID: id,
 		BaseDetails: values.BaseDetails{
 			Name:    dto.Name,
-			Address: dto.Location,
+			Address: dto.Address,
 		},
 	}, nil
 }

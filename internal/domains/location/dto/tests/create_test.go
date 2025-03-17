@@ -22,7 +22,7 @@ func TestDecodeCreateFacilityRequestBody(t *testing.T) {
 			name: "Valid JSON",
 			jsonInput: `{
 				"name": "Facility A",
-				"location": "Address A"
+				"address": "Address A"
 			}`,
 			expectError: false,
 		},
@@ -30,14 +30,14 @@ func TestDecodeCreateFacilityRequestBody(t *testing.T) {
 			name: "Invalid JSON",
 			jsonInput: `{
 				"name": "Facility A",
-				"location": "Address A"
+				"address": "Address A"
 			`,
 			expectError: true,
 		},
 		{
 			name: "Validation: Missing Name",
 			jsonInput: `{
-				"location": "Address A"
+				"address": "Address A"
 			}`,
 			expectError: false,
 		},
@@ -45,7 +45,7 @@ func TestDecodeCreateFacilityRequestBody(t *testing.T) {
 			name: "Validation: Whitespace Name",
 			jsonInput: `{
 				"name": "   ",
-				"location": "Address A"
+				"address": "Address A"
 			}`,
 			expectError: false,
 		},
@@ -53,14 +53,6 @@ func TestDecodeCreateFacilityRequestBody(t *testing.T) {
 			name: "Validation: Missing Address",
 			jsonInput: `{
 				"name": "Facility A"
-			}`,
-			expectError: false,
-		},
-		{
-			name: "Validation: Missing FacilityCategoryID",
-			jsonInput: `{
-				"name": "Facility A",
-				"location": "Address A"
 			}`,
 			expectError: false,
 		},
@@ -83,8 +75,8 @@ func TestDecodeCreateFacilityRequestBody(t *testing.T) {
 				if strings.TrimSpace(target.Name) != "" {
 					assert.Equal(t, "Facility A", target.Name)
 				}
-				if strings.TrimSpace(target.Location) != "" {
-					assert.Equal(t, "Address A", target.Location)
+				if strings.TrimSpace(target.Address) != "" {
+					assert.Equal(t, "Address A", target.Address)
 				}
 			}
 		})

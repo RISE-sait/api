@@ -89,6 +89,7 @@ func setupMiddlewares(router *chi.Mux) {
 		AllowedOrigins:   []string{"https://rise-web-461776259687.us-west2.run.app", "http://localhost:3000"}, // Allow this specific origin
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},                                 // Allowed HTTP methods
 		AllowedHeaders:   []string{"Content-Type", "Authorization", "firebase_token"},                         // Allowed headers
+		ExposedHeaders:   []string{"Authorization"},                                                           // Add this line
 		AllowCredentials: true,                                                                                // Allow cookies and credentials
 		Debug:            true,                                                                                // Enable CORS debugging
 	}).Handler)

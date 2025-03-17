@@ -61,6 +61,10 @@ func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string,
 
 	jwtCustomClaims := jwtLib.CustomClaims{
 		UserID: userInfo.ID,
+		RoleInfo: &jwtLib.RoleInfo{
+			Role:     userInfo.Role,
+			IsActive: true,
+		},
 	}
 
 	responseUserInfo = identity.UserReadInfo{

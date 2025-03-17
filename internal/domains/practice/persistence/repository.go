@@ -49,6 +49,18 @@ func (r *Repository) GetPracticeByName(c context.Context, name string) (values.G
 	}, nil
 }
 
+func (r *Repository) GetPracticeLevels() []string {
+	dbLevels := db.AllPracticeLevelValues()
+
+	var levels []string
+
+	for _, dbLevel := range dbLevels {
+		levels = append(levels, string(dbLevel))
+	}
+
+	return levels
+}
+
 func (r *Repository) Update(ctx context.Context, practice values.UpdatePracticeValues) *errLib.CommonError {
 
 	dbCourseParams := db.UpdatePracticeParams{

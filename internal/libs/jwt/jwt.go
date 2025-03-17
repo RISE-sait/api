@@ -11,14 +11,14 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
-type StaffInfo struct {
+type RoleInfo struct {
 	Role     string `json:"role"`
 	IsActive bool   `json:"isActive"`
 }
 
 type CustomClaims struct {
-	UserID    uuid.UUID  `json:"user_id"`
-	StaffInfo *StaffInfo `json:"staff_info,omitempty"`
+	UserID   uuid.UUID `json:"user_id"`
+	RoleInfo *RoleInfo `json:"role_info,omitempty"`
 }
 
 type JwtClaims struct {

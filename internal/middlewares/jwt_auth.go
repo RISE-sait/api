@@ -42,7 +42,7 @@ func JWTAuthMiddleware(isAllowAnyoneWithValidToken bool, allowedRoles ...string)
 				return
 			}
 
-			if !isAllowAnyoneWithValidToken && !hasRequiredRole(claims.StaffInfo, allowedRoles) {
+			if !isAllowAnyoneWithValidToken && !hasRequiredRole(claims.RoleInfo, allowedRoles) {
 				responseHandlers.RespondWithError(w, errLib.New("You do not have permission to access this resource", http.StatusForbidden))
 				return
 			}
@@ -71,7 +71,7 @@ func extractToken(r *http.Request) (string, *errLib.CommonError) {
 }
 
 // hasRequiredRole checks if the user's role matches any of the allowed roles or is SUPERADMIN.
-func hasRequiredRole(staffInfo *jwtLib.StaffInfo, allowedRoles []string) bool {
+func hasRequiredRole(staffInfo *jwtLib.RoleInfo, allowedRoles []string) bool {
 
 	if staffInfo == nil {
 		return false

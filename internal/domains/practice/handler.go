@@ -119,6 +119,23 @@ func (h *Handler) GetPractices(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
 }
 
+// GetPracticeLevels retrieves available practice levels.
+// @Summary Get practice levels
+// @Description Retrieves a list of available practice levels.
+// @Tags practices
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string][]string "List of practice levels"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /practices/levels [get]
+func (h *Handler) GetPracticeLevels(w http.ResponseWriter, _ *http.Request) {
+	levels := h.Repo.GetPracticeLevels()
+
+	response := map[string][]string{"practice_levels": levels}
+
+	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
+}
+
 // UpdatePractice updates an existing practice.
 // @Summary Update a practice
 // @Description Update a practice

@@ -2727,6 +2727,42 @@ const docTemplate = `{
                 }
             }
         },
+        "/practices/levels": {
+            "get": {
+                "description": "Retrieves a list of available practice levels.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "practices"
+                ],
+                "summary": "Get practice levels",
+                "responses": {
+                    "200": {
+                        "description": "List of practice levels",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/practices/{id}": {
             "put": {
                 "description": "Update a practice",

@@ -2494,6 +2494,30 @@ paths:
       summary: Get a practice by name
       tags:
       - practices
+  /practices/levels:
+    get:
+      consumes:
+        - application/json
+      description: Retrieves a list of available practice levels.
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: List of practice levels
+          schema:
+            additionalProperties:
+              items:
+                type: string
+              type: array
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get practice levels
+      tags:
+        - practices
   /purchases/memberships:
     post:
       consumes:

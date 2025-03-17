@@ -196,6 +196,7 @@ func RegisterPracticeRoutes(container *di.Container) func(chi.Router) {
 
 	return func(r chi.Router) {
 		r.Get("/", h.GetPractices)
+		r.Get("/levels", h.GetPracticeLevels)
 		r.Post("/", h.CreatePractice)
 		r.Put("/{id}", h.UpdatePractice)
 		r.With(allowAdminOnly).Delete("/{id}", h.DeletePractice)

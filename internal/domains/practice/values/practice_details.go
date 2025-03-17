@@ -8,6 +8,7 @@ import (
 type PracticeDetails struct {
 	Name        string
 	Description string
+	Level       string
 }
 
 type CreatePracticeValues struct {

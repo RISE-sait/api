@@ -5,6 +5,8 @@ definitions:
         type: string
       name:
         type: string
+    required:
+      - name
     type: object
   course.ResponseDto:
     properties:
@@ -398,12 +400,12 @@ definitions:
     type: object
   location.RequestDto:
     properties:
-      location:
+      address:
         type: string
       name:
         type: string
     required:
-      - location
+      - address
       - name
     type: object
   location.ResponseDto:
@@ -452,9 +454,8 @@ definitions:
       price:
         type: string
     required:
-      - amt_periods
     - membership_id
-      - payment_frequency
+    - payment_frequency
     - price
     type: object
   membership_plan.PlanResponse:

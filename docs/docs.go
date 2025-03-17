@@ -3356,6 +3356,9 @@ const docTemplate = `{
     "definitions": {
         "course.RequestDto": {
             "type": "object",
+            "required": [
+                "name"
+            ],
             "properties": {
                 "description": {
                     "type": "string"
@@ -3956,11 +3959,11 @@ const docTemplate = `{
         "location.RequestDto": {
             "type": "object",
             "required": [
-                "location",
+                "address",
                 "name"
             ],
             "properties": {
-                "location": {
+                "address": {
                     "type": "string"
                 },
                 "name": {
@@ -4021,7 +4024,6 @@ const docTemplate = `{
         "membership_plan.PlanRequestDto": {
             "type": "object",
             "required": [
-                "amt_periods",
                 "membership_id",
                 "payment_frequency",
                 "price"

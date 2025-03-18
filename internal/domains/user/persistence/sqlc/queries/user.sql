@@ -39,11 +39,6 @@ FROM users.users parents
               ON parents.id = children.parent_id
 WHERE parents.id = $1;
 
--- name: GetAthlete :one
-SELECT *
-FROM users.athletes
-WHERE id = $1;
-
 -- name: GetMembershipPlansByCustomer :many
 SELECT cmp.*, m.name as membership_name
 FROM public.customer_membership_plans cmp

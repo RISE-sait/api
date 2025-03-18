@@ -154,7 +154,7 @@ func (r *CustomerRepository) GetAthleteInfo(ctx context.Context, id uuid.UUID) (
 
 	var response customerValues.AthleteReadValue
 
-	dbAthleteInfo, err := r.Queries.GetAthlete(ctx, id)
+	dbAthleteInfo, err := r.Queries.GetAthleteInfoByUserID(ctx, id)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

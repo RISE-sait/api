@@ -960,22 +960,6 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "example": "\"2024-05-01\"",
-                        "description": "Retrieve events after this date (format: YYYY-MM-DD)",
-                        "name": "after",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "example": "\"2024-06-01\"",
-                        "description": "Retrieve events before this date (format: YYYY-MM-DD)",
-                        "name": "before",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
                         "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
                         "description": "Filter by game ID (UUID format)",
                         "name": "game_id",
@@ -3635,21 +3619,20 @@
         "event.RequestDto": {
             "type": "object",
             "required": [
-                "event_end_at",
-                "event_start_at"
+                "day",
+                "program_end_at",
+                "program_start_at",
+                "session_end_time",
+                "session_start_time"
             ],
             "properties": {
                 "course_id": {
                     "type": "string",
                     "example": "00000000-0000-0000-0000-000000000000"
                 },
-                "event_end_at": {
+                "day": {
                     "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
-                "event_start_at": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
+                    "example": "THURSDAY"
                 },
                 "game_id": {
                     "type": "string",
@@ -3662,6 +3645,22 @@
                 "practice_id": {
                     "type": "string",
                     "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+                },
+                "program_end_at": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "program_start_at": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "session_end_time": {
+                    "type": "string",
+                    "example": "23:00:00+00:00"
+                },
+                "session_start_time": {
+                    "type": "string",
+                    "example": "23:00:00+00:00"
                 }
             }
         },
@@ -3671,10 +3670,7 @@
                 "course_id": {
                     "type": "string"
                 },
-                "event_end_at": {
-                    "type": "string"
-                },
-                "event_start_at": {
+                "day": {
                     "type": "string"
                 },
                 "game_id": {
@@ -3687,6 +3683,12 @@
                     "type": "string"
                 },
                 "practice_id": {
+                    "type": "string"
+                },
+                "program_end_at": {
+                    "type": "string"
+                },
+                "program_start_at": {
                     "type": "string"
                 },
                 "session_end_at": {

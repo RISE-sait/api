@@ -9,7 +9,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"net/http"
-	"time"
 )
 
 // EventsHandler provides HTTP handlers for managing events.
@@ -25,8 +24,6 @@ func NewEventsHandler(repo *repository.Repository) *EventsHandler {
 // @Summary Get all events
 // @Description Retrieve all events within a specific date range, with optional filters by course, location, game, and practice.
 // @Tags events
-// @Param after query string true "Retrieve events after this date (format: YYYY-MM-DD)" example("2024-05-01")
-// @Param before query string true "Retrieve events before this date (format: YYYY-MM-DD)" example("2024-06-01")
 // @Param game_id query string false "Filter by game ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
 // @Param course_id query string false "Filter by course ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
 // @Param practice_id query string false "Filter by practice ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
@@ -41,33 +38,33 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 
 	query := r.URL.Query()
 
-	var after, before time.Time
+	//var after, before time.Time
 
 	var courseID, gameID, locationID, practiceID uuid.UUID
 
-	if afterStr := query.Get("after"); afterStr != "" {
-		afterDate, err := time.Parse("2006-01-02", afterStr)
-		if err != nil {
-			responseHandlers.RespondWithError(w, errLib.New("invalid 'after' date format, expected YYYY-MM-DD", http.StatusBadRequest))
-			return
-		}
-		after = afterDate
-	} else {
-		responseHandlers.RespondWithError(w, errLib.New("'after' date is required", http.StatusBadRequest))
-		return
-	}
-
-	if beforeStr := query.Get("before"); beforeStr != "" {
-		beforeDate, err := time.Parse("2006-01-02", beforeStr)
-		if err != nil {
-			responseHandlers.RespondWithError(w, errLib.New("invalid 'before' date format, expected YYYY-MM-DD", http.StatusBadRequest))
-			return
-		}
-		before = beforeDate
-	} else {
-		responseHandlers.RespondWithError(w, errLib.New("'before' date is required", http.StatusBadRequest))
-		return
-	}
+	//if afterStr := query.Get("after"); afterStr != "" {
+	//	afterDate, err := time.Parse("2006-01-02", afterStr)
+	//	if err != nil {
+	//		responseHandlers.RespondWithError(w, errLib.New("invalid 'after' date format, expected YYYY-MM-DD", http.StatusBadRequest))
+	//		return
+	//	}
+	//	after = afterDate
+	//} else {
+	//	responseHandlers.RespondWithError(w, errLib.New("'after' date is required", http.StatusBadRequest))
+	//	return
+	//}
+	//
+	//if beforeStr := query.Get("before"); beforeStr != "" {
+	//	beforeDate, err := time.Parse("2006-01-02", beforeStr)
+	//	if err != nil {
+	//		responseHandlers.RespondWithError(w, errLib.New("invalid 'before' date format, expected YYYY-MM-DD", http.StatusBadRequest))
+	//		return
+	//	}
+	//	before = beforeDate
+	//} else {
+	//	responseHandlers.RespondWithError(w, errLib.New("'before' date is required", http.StatusBadRequest))
+	//	return
+	//}
 
 	if gameIDStr := query.Get("game_id"); gameIDStr != "" {
 		id, err := validators.ParseUUID(gameIDStr)
@@ -107,7 +104,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		locationID = id
 	}
 
-	events, err := h.Repo.GetEvents(r.Context(), after, before, courseID, practiceID, gameID, locationID)
+	events, err := h.Repo.GetEvents(r.Context(), courseID, practiceID, gameID, locationID)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -191,16 +188,12 @@ func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	createdEvent, err := h.Repo.CreateEvent(r.Context(), eventCreate)
-
-	if err != nil {
+	if err = h.Repo.CreateEvent(r.Context(), eventCreate); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	responseBody := dto.NewEventResponse(createdEvent)
-
-	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusCreated)
+	responseHandlers.RespondWithSuccess(w, nil, http.StatusCreated)
 }
 
 // UpdateEvent updates an existing event by ID.
@@ -234,16 +227,12 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	event, err := h.Repo.UpdateEvent(r.Context(), params)
-
-	if err != nil {
+	if err = h.Repo.UpdateEvent(r.Context(), params); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	responseBody := dto.NewEventResponse(event)
-
-	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusNoContent)
+	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
 // DeleteEvent deletes an event by ID.

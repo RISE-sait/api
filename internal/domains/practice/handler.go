@@ -1,7 +1,7 @@
 package practice
 
 import (
-	"api/internal/domains/practice/dto"
+	dto "api/internal/domains/practice/dto"
 	repository "api/internal/domains/practice/persistence"
 	"api/internal/domains/practice/values"
 	responseHandlers "api/internal/libs/responses"
@@ -25,14 +25,14 @@ func NewHandler(repo *repository.Repository) *Handler {
 // @Tags practices
 // @Accept json
 // @Produce json
-// @Param practice body dto.PracticeRequestDto true "Practice details"
+// @Param practice body dto.RequestDto true "Practice details"
 // @Security Bearer
 // @Success 201 {object} dto.PracticeResponse "Practice created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /practices [post]
 func (h *Handler) CreatePractice(w http.ResponseWriter, r *http.Request) {
-	var requestDto dto.PracticeRequestDto
+	var requestDto dto.RequestDto
 
 	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -64,9 +64,7 @@ func (h *Handler) CreatePractice(w http.ResponseWriter, r *http.Request) {
 // @Tags practices
 // @Accept json
 // @Produce json
-// @Param name query string false "Filter by practice name"
-// @Param description query string false "Filter by practice description"
-// @Success 200 {array} dto.PracticeResponse "GetMemberships of practices retrieved successfully"
+// @Success 200 {array} dto.Response "GetMemberships of practices retrieved successfully"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /practices [get]
 func (h *Handler) GetPractices(w http.ResponseWriter, r *http.Request) {
@@ -77,7 +75,7 @@ func (h *Handler) GetPractices(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := make([]dto.PracticeResponse, len(practices))
+	result := make([]dto.Response, len(practices))
 
 	for i, course := range practices {
 		result[i] = mapReadValuesToResponse(course)
@@ -92,13 +90,13 @@ func (h *Handler) GetPractices(w http.ResponseWriter, r *http.Request) {
 // @Tags practices
 // @Accept json
 // @Produce json
-// @Success 200 {array} dto.PracticeLevelsResponse "Get practice levels retrieved successfully"
+// @Success 200 {array} dto.LevelsResponse "Get practice levels retrieved successfully"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /practices/levels [get]
 func (h *Handler) GetPracticeLevels(w http.ResponseWriter, _ *http.Request) {
 	levels := h.Repo.GetPracticeLevels()
 
-	response := dto.PracticeLevelsResponse{Name: levels}
+	response := dto.LevelsResponse{Name: levels}
 
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 }
@@ -110,7 +108,7 @@ func (h *Handler) GetPracticeLevels(w http.ResponseWriter, _ *http.Request) {
 // @Accept json
 // @Produce json
 // @Param id path string true "Practice ID"
-// @Param practice body dto.PracticeRequestDto true "Practice details"
+// @Param practice body dto.RequestDto true "Practice details"
 // @Success 204 "No Content: Practice updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 404 {object} map[string]interface{} "Not Found: Practice not found"
@@ -120,7 +118,7 @@ func (h *Handler) UpdatePractice(w http.ResponseWriter, r *http.Request) {
 
 	idStr := chi.URLParam(r, "id")
 
-	var requestDto dto.PracticeRequestDto
+	var requestDto dto.RequestDto
 
 	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -172,8 +170,8 @@ func (h *Handler) DeletePractice(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-func mapReadValuesToResponse(practice values.GetPracticeValues) dto.PracticeResponse {
-	return dto.PracticeResponse{
+func mapReadValuesToResponse(practice values.GetPracticeValues) dto.Response {
+	return dto.Response{
 		ID:          practice.ID,
 		Name:        practice.PracticeDetails.Name,
 		Description: practice.PracticeDetails.Description,

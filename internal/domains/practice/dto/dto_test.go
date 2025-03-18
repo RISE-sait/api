@@ -1,148 +1,198 @@
-package dto
+package practice
 
-// import (
-// 	"bytes"
-// 	"testing"
-// 	"time"
+import (
+	"api/internal/libs/validators"
+	"bytes"
+	"github.com/google/uuid"
+	"net/http"
+	"testing"
 
-// 	"api/internal/libs/validators"
+	"github.com/stretchr/testify/assert"
+)
 
-// 	"github.com/stretchr/testify/assert"
-// )
+func TestDecodeRequestBody(t *testing.T) {
+	tests := []struct {
+		name           string
+		jsonBody       string
+		expectError    bool
+		expectedValues *RequestDto
+	}{
+		{
+			name: "Valid Input",
+			jsonBody: `{
+				"name": "Go Programming Basics",
+				"description": "Learn the basics of Go programming",
+"capacity":32
+			}`,
+			expectError: false,
+			expectedValues: &RequestDto{
+				Name:        "Go Programming Basics",
+				Description: "Learn the basics of Go programming",
+				Capacity:    int32(32),
+			},
+		},
+		{
+			name: "Invalid JSON - Missing closing brace",
+			jsonBody: `{
+				"name": "Go Programming Basics"
+			`,
+			expectError: true,
+		},
+		{
+			name: "Missing Name",
+			jsonBody: `{
+				"description": "Learn the basics of Go programming"
+			}`,
+			expectError: false, // Expecting validation error for missing name
+		},
+	}
 
-// func TestDecodeRequestBody(t *testing.T) {
-// 	tests := []struct {
-// 		name           string
-// 		jsonBody       string
-// 		expectError    bool
-// 		expectedValues *PracticeRequestDto
-// 	}{
-// 		{
-// 			name: "Valid Input",
-// 			jsonBody: `{
-// 				"name": "Go Programming Basics",
-// 				"description": "Learn the basics of Go programming",
-// 				"start_date": "2025-01-15T00:00:00Z",
-// 				"end_date": "2025-02-15T00:00:00Z"
-// 			}`,
-// 			expectError: false,
-// 			expectedValues: &PracticeRequestDto{
-// 				Name:        "Go Programming Basics",
-// 				Description: "Learn the basics of Go programming",
-// 				StartDate:   time.Date(2025, time.January, 15, 0, 0, 0, 0, time.UTC),
-// 				EndDate:     time.Date(2025, time.February, 15, 0, 0, 0, 0, time.UTC),
-// 			},
-// 		},
-// 		{
-// 			name: "Invalid JSON - Missing closing brace",
-// 			jsonBody: `{
-// 				"name": "Go Programming Basics",
-// 				"start_date": "2025-01-15T00:00:00Z",
-// 				"end_date": "2025-02-15T00:00:00Z"
-// 			`,
-// 			expectError: true,
-// 		},
-// 		{
-// 			name: "Missing Name",
-// 			jsonBody: `{
-// 				"description": "Learn the basics of Go programming",
-// 				"start_date": "2025-01-15T00:00:00Z",
-// 				"end_date": "2025-02-15T00:00:00Z"
-// 			}`,
-// 			expectError: false, // Expecting validation error for missing name
-// 		},
-// 		{
-// 			name: "Invalid Date Format",
-// 			jsonBody: `{
-// 				"name": "Go Programming Basics",
-// 				"description": "Learn the basics of Go programming",
-// 				"start_date": "invalid-date-format",
-// 				"end_date": "2025-02-15T00:00:00Z"
-// 			}`,
-// 			expectError: true, // Invalid date format
-// 		},
-// 		{
-// 			name: "End Date Before Start Date",
-// 			jsonBody: `{
-// 				"name": "Go Programming Basics",
-// 				"description": "Learn the basics of Go programming",
-// 				"start_date": "2025-02-15T00:00:00Z",
-// 				"end_date": "2025-01-15T00:00:00Z"
-// 			}`,
-// 			expectError: false, // End date should be after start date
-// 		},
-// 	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			reqBody := bytes.NewReader([]byte(tc.jsonBody))
+			var target RequestDto
 
-// 	for _, tc := range tests {
-// 		t.Run(tc.name, func(t *testing.T) {
-// 			reqBody := bytes.NewReader([]byte(tc.jsonBody))
-// 			var target PracticeRequestDto
+			err := validators.ParseJSON(reqBody, &target)
+			if tc.expectError {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+				if tc.expectedValues != nil {
+					assert.Equal(t, tc.expectedValues.Name, target.Name)
+					assert.Equal(t, tc.expectedValues.Description, target.Description)
+				}
+			}
+		})
+	}
+}
 
-// 			err := validators.ParseJSON(reqBody, &target)
-// 			if tc.expectError {
-// 				assert.NotNil(t, err)
-// 			} else {
-// 				assert.Nil(t, err)
-// 				if tc.expectedValues != nil {
-// 					assert.Equal(t, tc.expectedValues.StartDate, target.StartDate)
-// 					assert.Equal(t, tc.expectedValues.EndDate, target.EndDate)
-// 					assert.Equal(t, tc.expectedValues.Name, target.Name)
-// 					assert.Equal(t, tc.expectedValues.Description, target.Description)
-// 				}
-// 			}
-// 		})
-// 	}
-// }
+// Validate Dto
 
-// func TestCourseRequestDto_Validation(t *testing.T) {
-// 	tests := []struct {
-// 		name                 string
-// 		dto                  *PracticeRequestDto
-// 		expectErr            bool
-// 		expectedErrorMessage string
-// 	}{
-// 		{
-// 			name: "Valid DTO",
-// 			dto: &PracticeRequestDto{
-// 				Name:        "Go Programming Basics",
-// 				Description: "Learn Go Programming",
-// 				StartDate:   time.Date(2025, time.January, 15, 0, 0, 0, 0, time.UTC),
-// 				EndDate:     time.Date(2025, time.February, 15, 0, 0, 0, 0, time.UTC),
-// 			},
-// 			expectErr: false,
-// 		},
-// 		{
-// 			name: "Missing Name",
-// 			dto: &PracticeRequestDto{
-// 				Name:        "",
-// 				Description: "Learn Go Programming",
-// 				StartDate:   time.Date(2025, time.January, 15, 0, 0, 0, 0, time.UTC),
-// 				EndDate:     time.Date(2025, time.February, 15, 0, 0, 0, 0, time.UTC),
-// 			},
-// 			expectErr:            true,
-// 			expectedErrorMessage: "name: required",
-// 		},
-// 		{
-// 			name: "Invalid End Date",
-// 			dto: &PracticeRequestDto{
-// 				Name:        "Go Programming Basics",
-// 				Description: "Learn Go Programming",
-// 				StartDate:   time.Date(2025, time.January, 15, 0, 0, 0, 0, time.UTC),
-// 				EndDate:     time.Date(2025, time.January, 10, 0, 0, 0, 0, time.UTC), // End date before Start date
-// 			},
-// 			expectErr:            true,
-// 			expectedErrorMessage: "end_date: must be greater than start_date", // The expected error message for invalid date range
-// 		},
-// 	}
+func TestValidRequestDto(t *testing.T) {
 
-// 	for _, tc := range tests {
-// 		t.Run(tc.name, func(t *testing.T) {
-// 			err := tc.dto.validate()
-// 			if tc.expectErr {
-// 				assert.NotNil(t, err)
-// 			} else {
-// 				assert.Nil(t, err)
-// 			}
-// 		})
-// 	}
-// }
+	requestDto := RequestDto{
+		Name:        "Go Programming Basics",
+		Description: "Learn Go Programming",
+		Capacity:    int32(50),
+		Level:       "all",
+	}
+
+	createRequestDto, err := requestDto.ToCreateValueObjects()
+
+	assert.Nil(t, err)
+
+	assert.Equal(t, createRequestDto.Name, "Go Programming Basics")
+	assert.Equal(t, createRequestDto.Description, "Learn Go Programming")
+	assert.Equal(t, createRequestDto.Capacity, int32(50))
+}
+
+func TestMissingNameRequestDto(t *testing.T) {
+
+	requestDto := RequestDto{
+		Description: "Learn Go Programming",
+		Capacity:    int32(50),
+		Level:       "all",
+	}
+
+	createRequestDto, err := requestDto.ToCreateValueObjects()
+
+	assert.NotNil(t, err)
+
+	assert.Equal(t, err.Message, "name: required")
+	assert.Equal(t, err.HTTPCode, http.StatusBadRequest)
+	assert.Equal(t, createRequestDto.Name, "")
+}
+
+func TestBlankNameRequestDto(t *testing.T) {
+
+	requestDto := RequestDto{
+		Name:        "          ",
+		Description: "Learn Go Programming",
+		Capacity:    int32(50),
+	}
+
+	createRequestDto, err := requestDto.ToCreateValueObjects()
+
+	assert.NotNil(t, err)
+
+	assert.Contains(t, err.Message, "name: cannot be empty or whitespace")
+	assert.Equal(t, err.HTTPCode, http.StatusBadRequest)
+	assert.Equal(t, createRequestDto.Name, "")
+}
+
+func TestUpdateRequestDtoValidUUID(t *testing.T) {
+
+	requestDto := RequestDto{
+		Name:        "Learn Go Programming Name",
+		Description: "Learn Go Programming Description",
+		Capacity:    int32(50),
+		Level:       "all",
+	}
+
+	id := uuid.New()
+
+	updateRequestDto, err := requestDto.ToUpdateValueObjects(id.String())
+
+	assert.Nil(t, err)
+
+	assert.Equal(t, updateRequestDto.PracticeDetails.Name, "Learn Go Programming Name")
+	assert.Equal(t, updateRequestDto.PracticeDetails.Description, "Learn Go Programming Description")
+
+	assert.Equal(t, updateRequestDto.ID.String(), id.String())
+}
+
+func TestUpdateRequestDtoInvalidUUID(t *testing.T) {
+
+	requestDto := RequestDto{
+		Name:        "Learn Go Programming Name",
+		Description: "Learn Go Programming Description",
+	}
+
+	updateRequestDto, err := requestDto.ToUpdateValueObjects("wefwfwefew")
+
+	assert.NotNil(t, err)
+
+	assert.Contains(t, err.Message, "invalid UUID: wefwfwefew")
+
+	assert.Equal(t, updateRequestDto.PracticeDetails.Name, "")
+	assert.Equal(t, updateRequestDto.PracticeDetails.Description, "")
+}
+
+func TestUpdateRequestDtoMissingCapacity(t *testing.T) {
+
+	requestDto := RequestDto{
+		Name:        "Learn Go Programming Name",
+		Description: "Learn Go Programming Description",
+	}
+
+	id := uuid.New()
+
+	updateRequestDto, err := requestDto.ToUpdateValueObjects(id.String())
+
+	assert.NotNil(t, err)
+
+	assert.Contains(t, err.Message, "capacity: required")
+
+	assert.Equal(t, updateRequestDto.PracticeDetails.Name, "")
+	assert.Equal(t, updateRequestDto.PracticeDetails.Description, "")
+}
+
+func TestUpdateRequestDtoCapacity0(t *testing.T) {
+
+	requestDto := RequestDto{
+		Name:        "Learn Go Programming Name",
+		Description: "Learn Go Programming Description",
+		Capacity:    int32(0),
+	}
+
+	id := uuid.New()
+
+	updateRequestDto, err := requestDto.ToUpdateValueObjects(id.String())
+
+	assert.NotNil(t, err)
+
+	assert.Contains(t, err.Message, "capacity: required")
+
+	assert.Equal(t, updateRequestDto.PracticeDetails.Name, "")
+	assert.Equal(t, updateRequestDto.PracticeDetails.Description, "")
+}

@@ -175,15 +175,17 @@ func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) 
 
 	for i, customer := range dbCustomers {
 		response := dto.Response{
-			UserID:      customer.ID,
-			Age:         customer.Age,
-			FirstName:   customer.FirstName,
-			LastName:    customer.LastName,
-			Email:       customer.Email,
-			Phone:       customer.Phone,
-			CountryCode: customer.CountryCode,
-			HubspotId:   customer.HubspotID,
-			ProfilePic:  customer.ProfilePicUrl,
+			UserID:              customer.ID,
+			Age:                 customer.Age,
+			FirstName:           customer.FirstName,
+			LastName:            customer.LastName,
+			Email:               customer.Email,
+			Phone:               customer.Phone,
+			MembershipName:      customer.MembershipName,
+			MembershipStartDate: customer.MembershipStartDate,
+			CountryCode:         customer.CountryCode,
+			HubspotId:           customer.HubspotID,
+			ProfilePic:          customer.ProfilePicUrl,
 		}
 
 		result[i] = response

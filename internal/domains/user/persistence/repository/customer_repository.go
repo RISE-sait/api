@@ -60,6 +60,14 @@ func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int
 			customer.Email = &dbCustomer.Email.String
 		}
 
+		if dbCustomer.MembershipName.Valid {
+			customer.MembershipName = &dbCustomer.MembershipName.String
+		}
+
+		if dbCustomer.MembershipStartDate.Valid {
+			customer.MembershipStartDate = &dbCustomer.MembershipStartDate.Time
+		}
+
 		customer.ProfilePicUrl = gcp.GeneratePublicFileURL(fmt.Sprintf("athletes/%v", dbCustomer.ID))
 
 		customers[i] = customer

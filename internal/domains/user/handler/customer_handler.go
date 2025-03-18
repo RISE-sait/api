@@ -72,7 +72,7 @@ func (h *CustomersHandler) GetAthleteInfo(w http.ResponseWriter, r *http.Request
 		UpdatedAt:  info.UpdatedAt,
 	}
 
-	responseHandlers.RespondWithSuccess(w, response, http.StatusNoContent)
+	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 
 }
 

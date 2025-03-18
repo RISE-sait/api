@@ -218,11 +218,8 @@ definitions:
       course_id:
         example: 00000000-0000-0000-0000-000000000000
         type: string
-      event_end_at:
-        example: "2023-10-05T07:00:00Z"
-        type: string
-      event_start_at:
-        example: "2023-10-05T07:00:00Z"
+      day:
+        example: THURSDAY
         type: string
       game_id:
         example: 00000000-0000-0000-0000-000000000000
@@ -233,17 +230,30 @@ definitions:
       practice_id:
         example: f0e21457-75d4-4de6-b765-5ee13221fd72
         type: string
+      program_end_at:
+        example: "2023-10-05T07:00:00Z"
+        type: string
+      program_start_at:
+        example: "2023-10-05T07:00:00Z"
+        type: string
+      session_end_time:
+        example: 23:00:00+00:00
+        type: string
+      session_start_time:
+        example: 23:00:00+00:00
+        type: string
     required:
-    - event_end_at
-    - event_start_at
+      - day
+      - program_end_at
+      - program_start_at
+      - session_end_time
+      - session_start_time
     type: object
   event.ResponseDto:
     properties:
       course_id:
         type: string
-      event_end_at:
-        type: string
-      event_start_at:
+      day:
         type: string
       game_id:
         type: string
@@ -252,6 +262,10 @@ definitions:
       location_id:
         type: string
       practice_id:
+        type: string
+      program_end_at:
+        type: string
+      program_start_at:
         type: string
       session_end_at:
         type: string
@@ -1224,18 +1238,6 @@ paths:
       description: Retrieve all events within a specific date range, with optional
         filters by course, location, game, and practice.
       parameters:
-        - description: 'Retrieve events after this date (format: YYYY-MM-DD)'
-          example: '"2024-05-01"'
-          in: query
-          name: after
-          required: true
-          type: string
-        - description: 'Retrieve events before this date (format: YYYY-MM-DD)'
-          example: '"2024-06-01"'
-          in: query
-          name: before
-          required: true
-          type: string
         - description: Filter by game ID (UUID format)
           example: '"550e8400-e29b-41d4-a716-446655440000"'
           in: query

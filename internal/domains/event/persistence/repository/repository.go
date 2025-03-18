@@ -7,13 +7,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"log"
 	"net/http"
 	"strings"
-	"time"
-
-	"github.com/google/uuid"
 )
 
 type Repository struct {
@@ -26,29 +24,43 @@ func NewEventsRepository(dbQueries *db.Queries) *Repository {
 	}
 }
 
-func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEventValues) (values.ReadEventValues, *errLib.CommonError) {
+func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEventValues) *errLib.CommonError {
 
-	var createdEvent values.ReadEventValues
+	if !db.DayEnum(eventDetails.Day).Valid() {
+
+		validDaysDbValues := db.AllDayEnumValues()
+
+		validDays := make([]string, len(validDaysDbValues))
+
+		for i, value := range validDaysDbValues {
+			validDays[i] = string(value)
+		}
+
+		return errLib.New("Invalid day provided. Valid days are: "+strings.Join(validDays, ", "), http.StatusBadRequest)
+	}
 
 	dbParams := db.CreateEventParams{
-		EventStartAt: eventDetails.EventStartAt,
-		EventEndAt:   eventDetails.EventEndAt,
-		GameID: uuid.NullUUID{
-			UUID:  eventDetails.GameID,
-			Valid: eventDetails.GameID != uuid.Nil,
+		ProgramStartAt:   eventDetails.ProgramStartAt,
+		ProgramEndAt:     eventDetails.ProgramEndAt,
+		SessionStartTime: eventDetails.SessionStartTime,
+		SessionEndTime:   eventDetails.SessionEndTime,
+		Day:              db.DayEnum(eventDetails.Day),
+		LocationID:       eventDetails.LocationID,
+		CourseID: uuid.NullUUID{
+			UUID:  eventDetails.CourseID,
+			Valid: eventDetails.CourseID != uuid.Nil,
 		},
 		PracticeID: uuid.NullUUID{
 			UUID:  eventDetails.PracticeID,
 			Valid: eventDetails.PracticeID != uuid.Nil,
 		},
-		CourseID: uuid.NullUUID{
-			UUID:  eventDetails.CourseID,
-			Valid: eventDetails.CourseID != uuid.Nil,
+		GameID: uuid.NullUUID{
+			UUID:  eventDetails.GameID,
+			Valid: eventDetails.GameID != uuid.Nil,
 		},
-		LocationID: eventDetails.LocationID,
 	}
 
-	eventDb, err := r.Queries.CreateEvent(c, dbParams)
+	err := r.Queries.CreateEvent(c, dbParams)
 
 	if err != nil {
 
@@ -63,54 +75,34 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 			}
 
 			if msg, found := foreignKeyErrors[pqErr.Constraint]; found {
-				return createdEvent, errLib.New(msg, http.StatusBadRequest)
+				return errLib.New(msg, http.StatusBadRequest)
 			}
 
 			switch pqErr.Constraint {
 			case "check_end_time":
-				return createdEvent, errLib.New(pqErr.Message, http.StatusBadRequest)
+				return errLib.New(pqErr.Message, http.StatusBadRequest)
 			case "check_session_times", "check_event_times":
-				return createdEvent, errLib.New("End time/date must be after Begin time/date", http.StatusBadRequest)
+				return errLib.New("End time/date must be after Begin time/date", http.StatusBadRequest)
 			}
 
 			if strings.Contains(pqErr.Message, "overlaps") {
-				return createdEvent, errLib.New(pqErr.Message, http.StatusBadRequest)
+				return errLib.New(pqErr.Message, http.StatusBadRequest)
 			}
 
 			log.Println(fmt.Sprintf("Error creating event: %v", pqErr.Error()))
-			return createdEvent, errLib.New("Internal db error", http.StatusInternalServerError)
+			return errLib.New("Internal db error", http.StatusInternalServerError)
 		}
 
 		log.Printf("Failed to create eventDetails: %+v. Error: %v", eventDetails, err.Error())
-		return createdEvent, errLib.New("Internal server error", http.StatusInternalServerError)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	createdEvent = values.ReadEventValues{
-		ID:        eventDb.ID,
-		CreatedAt: eventDb.CreatedAt,
-		UpdatedAt: eventDb.UpdatedAt,
-	}
-
-	if eventDb.PracticeID.Valid {
-		createdEvent.PracticeID = eventDb.PracticeID.UUID
-	}
-
-	if eventDb.CourseID.Valid {
-		createdEvent.CourseID = eventDb.CourseID.UUID
-	}
-
-	if eventDb.GameID.Valid {
-		createdEvent.GameID = eventDb.CourseID.UUID
-	}
-
-	return createdEvent, nil
+	return nil
 }
 
-func (r *Repository) GetEvents(ctx context.Context, after, before time.Time, courseID, practiceID, gameID, locationID uuid.UUID) ([]values.ReadEventValues, *errLib.CommonError) {
+func (r *Repository) GetEvents(ctx context.Context, courseID, practiceID, gameID, locationID uuid.UUID) ([]values.ReadEventValues, *errLib.CommonError) {
 
 	dbEvents, err := r.Queries.GetEvents(ctx, db.GetEventsParams{
-		After:  after,
-		Before: before,
 		CourseID: uuid.NullUUID{
 			UUID:  courseID,
 			Valid: courseID != uuid.Nil,
@@ -140,12 +132,15 @@ func (r *Repository) GetEvents(ctx context.Context, after, before time.Time, cou
 		event := values.ReadEventValues{
 			ID: dbEvent.ID,
 			Details: values.Details{
-				EventStartAt: dbEvent.EventStartAt,
-				EventEndAt:   dbEvent.EventEndAt,
-				PracticeID:   dbEvent.PracticeID.UUID,
-				CourseID:     dbEvent.CourseID.UUID,
-				GameID:       dbEvent.GameID.UUID,
-				LocationID:   dbEvent.LocationID,
+				Day:              string(dbEvent.Day),
+				ProgramStartAt:   dbEvent.ProgramStartAt,
+				ProgramEndAt:     dbEvent.ProgramEndAt,
+				SessionStartTime: dbEvent.SessionStartTime,
+				SessionEndTime:   dbEvent.SessionEndTime,
+				PracticeID:       dbEvent.PracticeID.UUID,
+				CourseID:         dbEvent.CourseID.UUID,
+				GameID:           dbEvent.GameID.UUID,
+				LocationID:       dbEvent.LocationID,
 			},
 		}
 
@@ -156,40 +151,42 @@ func (r *Repository) GetEvents(ctx context.Context, after, before time.Time, cou
 	return events, nil
 }
 
-func (r *Repository) UpdateEvent(c context.Context, event values.UpdateEventValues) (values.ReadEventValues, *errLib.CommonError) {
+func (r *Repository) UpdateEvent(c context.Context, event values.UpdateEventValues) *errLib.CommonError {
 
-	dbEventParams := db.UpdateEventParams{
-		EventStartAt: event.EventStartAt,
-		EventEndAt:   event.EventEndAt,
-		LocationID:   event.LocationID,
-		PracticeID:   uuid.NullUUID{UUID: event.PracticeID, Valid: event.PracticeID != uuid.Nil},
-		CourseID:     uuid.NullUUID{UUID: event.CourseID, Valid: event.CourseID != uuid.Nil},
-		GameID:       uuid.NullUUID{UUID: event.GameID, Valid: event.GameID != uuid.Nil},
-		ID:           event.ID,
+	if !db.DayEnum(event.Day).Valid() {
+
+		validDaysDbValues := db.AllDayEnumValues()
+
+		validDays := make([]string, len(validDaysDbValues))
+
+		for i, value := range validDaysDbValues {
+			validDays[i] = string(value)
+		}
+
+		return errLib.New("Invalid day provided. Valid days are: "+strings.Join(validDays, ", "), http.StatusBadRequest)
 	}
 
-	dbEvent, err := r.Queries.UpdateEvent(c, dbEventParams)
+	dbEventParams := db.UpdateEventParams{
+		ProgramStartAt:   event.ProgramStartAt,
+		ProgramEndAt:     event.ProgramEndAt,
+		LocationID:       event.LocationID,
+		PracticeID:       uuid.NullUUID{UUID: event.PracticeID, Valid: event.PracticeID != uuid.Nil},
+		CourseID:         uuid.NullUUID{UUID: event.CourseID, Valid: event.CourseID != uuid.Nil},
+		GameID:           uuid.NullUUID{UUID: event.GameID, Valid: event.GameID != uuid.Nil},
+		SessionStartTime: event.SessionStartTime,
+		SessionEndTime:   event.SessionEndTime,
+		Day:              db.DayEnum(event.Day),
+		ID:               event.ID,
+	}
+
+	err := r.Queries.UpdateEvent(c, dbEventParams)
 
 	if err != nil {
 		log.Printf("Failed to update event: %+v. Error: %v", event, err.Error())
-		return values.ReadEventValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	updatedEvent := values.ReadEventValues{
-		ID:        dbEvent.ID,
-		CreatedAt: dbEvent.CreatedAt,
-		UpdatedAt: dbEvent.UpdatedAt,
-		Details: values.Details{
-			LocationID:   dbEvent.LocationID,
-			EventStartAt: dbEvent.EventStartAt,
-			EventEndAt:   dbEvent.EventEndAt,
-			PracticeID:   dbEvent.PracticeID.UUID,
-			CourseID:     dbEvent.CourseID.UUID,
-			GameID:       dbEvent.GameID.UUID,
-		},
-	}
-
-	return updatedEvent, nil
+	return nil
 
 }
 
@@ -218,12 +215,15 @@ func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEve
 		CreatedAt: dbEvent.CreatedAt,
 		UpdatedAt: dbEvent.UpdatedAt,
 		Details: values.Details{
-			LocationID:   dbEvent.LocationID,
-			EventStartAt: dbEvent.EventStartAt,
-			EventEndAt:   dbEvent.EventEndAt,
-			PracticeID:   dbEvent.PracticeID.UUID,
-			CourseID:     dbEvent.CourseID.UUID,
-			GameID:       dbEvent.GameID.UUID,
+			Day:              string(dbEvent.Day),
+			ProgramStartAt:   dbEvent.ProgramStartAt,
+			ProgramEndAt:     dbEvent.ProgramEndAt,
+			SessionStartTime: dbEvent.SessionStartTime,
+			SessionEndTime:   dbEvent.SessionEndTime,
+			PracticeID:       dbEvent.PracticeID.UUID,
+			CourseID:         dbEvent.CourseID.UUID,
+			GameID:           dbEvent.GameID.UUID,
+			LocationID:       dbEvent.LocationID,
 		},
 	}
 

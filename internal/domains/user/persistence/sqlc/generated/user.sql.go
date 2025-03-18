@@ -136,8 +136,35 @@ func (q *Queries) GetChildren(ctx context.Context, id uuid.UUID) ([]UsersUser, e
 }
 
 const getCustomers = `-- name: GetCustomers :many
-SELECT id, hubspot_id, country_alpha2_code, gender, first_name, last_name, age, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at
-FROM users.users
+WITH latest_membership AS (
+    SELECT
+        cmp.customer_id,
+        m.name AS membership_name,
+        cmp.start_date AS membership_start_date
+    FROM
+        public.customer_membership_plans cmp
+            JOIN
+        membership.membership_plans mp
+        ON mp.id = cmp.membership_plan_id
+            JOIN
+        membership.memberships m
+        ON m.id = mp.membership_id
+    WHERE
+        cmp.start_date = (
+            SELECT MAX(cmp2.start_date)
+            FROM public.customer_membership_plans cmp2
+            WHERE cmp2.customer_id = cmp.customer_id
+        )
+)
+SELECT
+    u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.age, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at,
+    lm.membership_name, -- This will be NULL if no membership exists
+    lm.membership_start_date -- This will be NULL if no membership exists
+FROM
+    users.users u
+        LEFT JOIN
+    latest_membership lm
+    ON lm.customer_id = u.id
 LIMIT $1 OFFSET $2
 `
 
@@ -146,15 +173,34 @@ type GetCustomersParams struct {
 	Offset int32 `json:"offset"`
 }
 
-func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]UsersUser, error) {
+type GetCustomersRow struct {
+	ID                       uuid.UUID      `json:"id"`
+	HubspotID                sql.NullString `json:"hubspot_id"`
+	CountryAlpha2Code        string         `json:"country_alpha2_code"`
+	Gender                   sql.NullString `json:"gender"`
+	FirstName                string         `json:"first_name"`
+	LastName                 string         `json:"last_name"`
+	Age                      int32          `json:"age"`
+	ParentID                 uuid.NullUUID  `json:"parent_id"`
+	Phone                    sql.NullString `json:"phone"`
+	Email                    sql.NullString `json:"email"`
+	HasMarketingEmailConsent bool           `json:"has_marketing_email_consent"`
+	HasSmsConsent            bool           `json:"has_sms_consent"`
+	CreatedAt                time.Time      `json:"created_at"`
+	UpdatedAt                time.Time      `json:"updated_at"`
+	MembershipName           sql.NullString `json:"membership_name"`
+	MembershipStartDate      sql.NullTime   `json:"membership_start_date"`
+}
+
+func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]GetCustomersRow, error) {
 	rows, err := q.db.QueryContext(ctx, getCustomers, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []UsersUser
+	var items []GetCustomersRow
 	for rows.Next() {
-		var i UsersUser
+		var i GetCustomersRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.HubspotID,
@@ -170,6 +216,8 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]U
 			&i.HasSmsConsent,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.MembershipName,
+			&i.MembershipStartDate,
 		); err != nil {
 			return nil, err
 		}
@@ -235,17 +283,6 @@ func (q *Queries) GetMembershipPlansByCustomer(ctx context.Context, customerID u
 		return nil, err
 	}
 	return items, nil
-}
-
-const getUserIDByHubSpotId = `-- name: GetUserIDByHubSpotId :one
-SELECT id FROM users.users WHERE hubspot_id = $1
-`
-
-func (q *Queries) GetUserIDByHubSpotId(ctx context.Context, hubspotID sql.NullString) (uuid.UUID, error) {
-	row := q.db.QueryRowContext(ctx, getUserIDByHubSpotId, hubspotID)
-	var id uuid.UUID
-	err := row.Scan(&id)
-	return id, err
 }
 
 const updateAthleteStats = `-- name: UpdateAthleteStats :execrows

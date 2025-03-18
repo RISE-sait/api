@@ -1,4 +1,4 @@
-package dto
+package practice
 
 import (
 	"api/internal/domains/practice/values"
@@ -6,21 +6,21 @@ import (
 	"api/internal/libs/validators"
 )
 
-type PracticeRequestDto struct {
-	Name        string `json:"name" validate:"notwhitespace"`
+type RequestDto struct {
+	Name        string `json:"name" validate:"required,notwhitespace"`
 	Description string `json:"description"`
 	Level       string `json:"level" validate:"required,notwhitespace"`
 	Capacity    int32  `json:"capacity" validate:"required,gt=0"`
 }
 
-func (dto PracticeRequestDto) validate() *errLib.CommonError {
+func (dto RequestDto) validate() *errLib.CommonError {
 	if err := validators.ValidateDto(&dto); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (dto PracticeRequestDto) ToCreateValueObjects() (values.CreatePracticeValues, *errLib.CommonError) {
+func (dto RequestDto) ToCreateValueObjects() (values.CreatePracticeValues, *errLib.CommonError) {
 
 	if err := dto.validate(); err != nil {
 		return values.CreatePracticeValues{}, err
@@ -36,7 +36,7 @@ func (dto PracticeRequestDto) ToCreateValueObjects() (values.CreatePracticeValue
 	}, nil
 }
 
-func (dto PracticeRequestDto) ToUpdateValueObjects(idStr string) (values.UpdatePracticeValues, *errLib.CommonError) {
+func (dto RequestDto) ToUpdateValueObjects(idStr string) (values.UpdatePracticeValues, *errLib.CommonError) {
 
 	id, err := validators.ParseUUID(idStr)
 

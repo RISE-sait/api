@@ -1,11 +1,11 @@
-package dto
+package practice
 
 import (
 	"github.com/google/uuid"
 	"time"
 )
 
-type PracticeResponse struct {
+type Response struct {
 	ID          uuid.UUID `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description,omitempty"`
@@ -15,6 +15,6 @@ type PracticeResponse struct {
 	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
-type PracticeLevelsResponse struct {
+type LevelsResponse struct {
 	Name []string `json:"levels"`
 }

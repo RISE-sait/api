@@ -27,7 +27,7 @@ func NewHandler(repo *repository.Repository) *Handler {
 // @Produce json
 // @Param practice body dto.RequestDto true "Practice details"
 // @Security Bearer
-// @Success 201 {object} dto.PracticeResponse "Practice created successfully"
+// @Success 201 {object} dto.Response "Practice created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /practices [post]

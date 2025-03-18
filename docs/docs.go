@@ -2642,27 +2642,13 @@ const docTemplate = `{
                     "practices"
                 ],
                 "summary": "Get a list of practices",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by practice name",
-                        "name": "name",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by practice description",
-                        "name": "description",
-                        "in": "query"
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "GetMemberships of practices retrieved successfully",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/dto.PracticeResponse"
+                                "$ref": "#/definitions/practice.Response"
                             }
                         }
                     },
@@ -2699,7 +2685,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.PracticeRequestDto"
+                            "$ref": "#/definitions/practice.RequestDto"
                         }
                     }
                 ],
@@ -2707,7 +2693,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Practice created successfully",
                         "schema": {
-                            "$ref": "#/definitions/dto.PracticeResponse"
+                            "$ref": "#/definitions/practice.Response"
                         }
                     },
                     "400": {
@@ -2746,7 +2732,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/dto.PracticeLevelsResponse"
+                                "$ref": "#/definitions/practice.LevelsResponse"
                             }
                         }
                     },
@@ -2787,7 +2773,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.PracticeRequestDto"
+                            "$ref": "#/definitions/practice.RequestDto"
                         }
                     }
                 ],
@@ -3561,6 +3547,12 @@ const docTemplate = `{
                 "last_name": {
                     "type": "string"
                 },
+                "membership_name": {
+                    "type": "string"
+                },
+                "membership_start_date": {
+                    "type": "string"
+                },
                 "phone": {
                     "type": "string"
                 },
@@ -3605,64 +3597,6 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "waiver_url": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.PracticeLevelsResponse": {
-            "type": "object",
-            "properties": {
-                "levels": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "dto.PracticeRequestDto": {
-            "type": "object",
-            "required": [
-                "capacity",
-                "level"
-            ],
-            "properties": {
-                "capacity": {
-                    "type": "integer"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "level": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.PracticeResponse": {
-            "type": "object",
-            "properties": {
-                "capacity": {
-                    "type": "integer"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "level": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "updatedAt": {
                     "type": "string"
                 }
             }
@@ -4088,6 +4022,65 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "practice.LevelsResponse": {
+            "type": "object",
+            "properties": {
+                "levels": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "practice.RequestDto": {
+            "type": "object",
+            "required": [
+                "capacity",
+                "level",
+                "name"
+            ],
+            "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "level": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "practice.Response": {
+            "type": "object",
+            "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "level": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updatedAt": {
                     "type": "string"
                 }
             }

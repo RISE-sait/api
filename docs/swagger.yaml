@@ -151,6 +151,10 @@ definitions:
         type: string
       last_name:
         type: string
+      membership_name:
+        type: string
+      membership_start_date:
+        type: string
       phone:
         type: string
       profile_pic:
@@ -181,44 +185,6 @@ definitions:
         type: string
     required:
     - waiver_url
-    type: object
-  dto.PracticeLevelsResponse:
-    properties:
-      levels:
-        items:
-          type: string
-        type: array
-    type: object
-  dto.PracticeRequestDto:
-    properties:
-      capacity:
-        type: integer
-      description:
-        type: string
-      level:
-        type: string
-      name:
-        type: string
-    required:
-      - capacity
-      - level
-    type: object
-  dto.PracticeResponse:
-    properties:
-      capacity:
-        type: integer
-      createdAt:
-        type: string
-      description:
-        type: string
-      id:
-        type: string
-      level:
-        type: string
-      name:
-        type: string
-      updatedAt:
-        type: string
     type: object
   enrollment.CreateRequestDto:
     properties:
@@ -500,6 +466,45 @@ definitions:
       price:
         type: string
       updated_at:
+        type: string
+    type: object
+  practice.LevelsResponse:
+    properties:
+      levels:
+        items:
+          type: string
+        type: array
+    type: object
+  practice.RequestDto:
+    properties:
+      capacity:
+        type: integer
+      description:
+        type: string
+      level:
+        type: string
+      name:
+        type: string
+    required:
+      - capacity
+      - level
+      - name
+    type: object
+  practice.Response:
+    properties:
+      capacity:
+        type: integer
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      level:
+        type: string
+      name:
+        type: string
+      updatedAt:
         type: string
     type: object
   purchase.MembershipPlanRequestDto:
@@ -2347,15 +2352,6 @@ paths:
       consumes:
       - application/json
       description: Get a list of practices
-      parameters:
-      - description: Filter by practice name
-        in: query
-        name: name
-        type: string
-      - description: Filter by practice description
-        in: query
-        name: description
-        type: string
       produces:
       - application/json
       responses:
@@ -2363,7 +2359,7 @@ paths:
           description: GetMemberships of practices retrieved successfully
           schema:
             items:
-              $ref: '#/definitions/dto.PracticeResponse'
+              $ref: '#/definitions/practice.Response'
             type: array
         "500":
           description: Internal Server Error
@@ -2383,14 +2379,14 @@ paths:
         name: practice
         required: true
         schema:
-          $ref: '#/definitions/dto.PracticeRequestDto'
+          $ref: '#/definitions/practice.RequestDto'
       produces:
       - application/json
       responses:
         "201":
           description: Practice created successfully
           schema:
-            $ref: '#/definitions/dto.PracticeResponse'
+            $ref: '#/definitions/practice.Response'
         "400":
           description: 'Bad Request: Invalid input'
           schema:
@@ -2457,7 +2453,7 @@ paths:
         name: practice
         required: true
         schema:
-          $ref: '#/definitions/dto.PracticeRequestDto'
+          $ref: '#/definitions/practice.RequestDto'
       produces:
       - application/json
       responses:
@@ -2493,7 +2489,7 @@ paths:
           description: Get practice levels retrieved successfully
           schema:
             items:
-              $ref: '#/definitions/dto.PracticeLevelsResponse'
+              $ref: '#/definitions/practice.LevelsResponse'
             type: array
         "500":
           description: Internal Server Error

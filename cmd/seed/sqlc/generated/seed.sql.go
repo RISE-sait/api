@@ -347,84 +347,6 @@ func (q *Queries) InsertCustomersEnrollments(ctx context.Context, arg InsertCust
 	return items, nil
 }
 
-const insertEvents = `-- name: InsertEvents :many
-INSERT INTO public.events (event_start_at, event_end_at, practice_id, course_id, game_id, location_id)
-SELECT unnest($1::timestamptz[]),
-       unnest($2::timestamptz[]),
-       unnest(
-               ARRAY(
-                       SELECT CASE
-                                  WHEN practice_id = '00000000-0000-0000-0000-000000000000'
-                                      THEN NULL
-                                  ELSE practice_id
-                                  END
-                       FROM unnest($3::uuid[]) AS practice_id
-               )
-       ),
-       unnest(
-               ARRAY(
-                       SELECT CASE
-                                  WHEN course_id = '00000000-0000-0000-0000-000000000000'
-                                      THEN NULL
-                                  ELSE course_id
-                                  END
-                       FROM unnest($4::uuid[]) AS course_id
-               )
-       ),
-       unnest(
-               ARRAY(
-                       SELECT CASE
-                                  WHEN game_id = '00000000-0000-0000-0000-000000000000'
-                                      THEN NULL
-                                  ELSE game_id
-                                  END
-                       FROM unnest($5::uuid[]) AS game_id
-               )
-       ),
-       unnest($6::uuid[])
-ON CONFLICT DO NOTHING
-RETURNING id
-`
-
-type InsertEventsParams struct {
-	EventStartAtArray []time.Time `json:"event_start_at_array"`
-	EventEndAtArray   []time.Time `json:"event_end_at_array"`
-	PracticeIDArray   []uuid.UUID `json:"practice_id_array"`
-	CourseIDArray     []uuid.UUID `json:"course_id_array"`
-	GameIDArray       []uuid.UUID `json:"game_id_array"`
-	LocationIDArray   []uuid.UUID `json:"location_id_array"`
-}
-
-func (q *Queries) InsertEvents(ctx context.Context, arg InsertEventsParams) ([]uuid.UUID, error) {
-	rows, err := q.db.QueryContext(ctx, insertEvents,
-		pq.Array(arg.EventStartAtArray),
-		pq.Array(arg.EventEndAtArray),
-		pq.Array(arg.PracticeIDArray),
-		pq.Array(arg.CourseIDArray),
-		pq.Array(arg.GameIDArray),
-		pq.Array(arg.LocationIDArray),
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []uuid.UUID
-	for rows.Next() {
-		var id uuid.UUID
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		items = append(items, id)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const insertGames = `-- name: InsertGames :many
 INSERT INTO public.games (name)
 VALUES (unnest($1::text[]))
@@ -556,6 +478,7 @@ func (q *Queries) InsertMembershipPlans(ctx context.Context, arg InsertMembershi
 }
 
 const insertMemberships = `-- name: InsertMemberships :many
+
 INSERT INTO membership.memberships (name, description)
 VALUES (unnest($1::text[]), unnest($2::text[]))
 RETURNING id
@@ -566,6 +489,45 @@ type InsertMembershipsParams struct {
 	DescriptionArray []string `json:"description_array"`
 }
 
+// -- name: InsertEvents :many
+// INSERT INTO public.events (event_start_at, event_end_at, practice_id, course_id, game_id, location_id)
+// SELECT unnest(@event_start_at_array::timestamptz[]),
+//
+//	unnest(@event_end_at_array::timestamptz[]),
+//	unnest(
+//	        ARRAY(
+//	                SELECT CASE
+//	                           WHEN practice_id = '00000000-0000-0000-0000-000000000000'
+//	                               THEN NULL
+//	                           ELSE practice_id
+//	                           END
+//	                FROM unnest(@practice_id_array::uuid[]) AS practice_id
+//	        )
+//	),
+//	unnest(
+//	        ARRAY(
+//	                SELECT CASE
+//	                           WHEN course_id = '00000000-0000-0000-0000-000000000000'
+//	                               THEN NULL
+//	                           ELSE course_id
+//	                           END
+//	                FROM unnest(@course_id_array::uuid[]) AS course_id
+//	        )
+//	),
+//	unnest(
+//	        ARRAY(
+//	                SELECT CASE
+//	                           WHEN game_id = '00000000-0000-0000-0000-000000000000'
+//	                               THEN NULL
+//	                           ELSE game_id
+//	                           END
+//	                FROM unnest(@game_id_array::uuid[]) AS game_id
+//	        )
+//	),
+//	unnest(@location_id_array::uuid[])
+//
+// ON CONFLICT DO NOTHING
+// RETURNING id;
 func (q *Queries) InsertMemberships(ctx context.Context, arg InsertMembershipsParams) ([]uuid.UUID, error) {
 	rows, err := q.db.QueryContext(ctx, insertMemberships, pq.Array(arg.NameArray), pq.Array(arg.DescriptionArray))
 	if err != nil {

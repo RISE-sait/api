@@ -23,43 +23,43 @@ INSERT INTO public.games (name)
 VALUES (unnest(@name_array::text[]))
 RETURNING id;
 
--- name: InsertEvents :many
-INSERT INTO public.events (event_start_at, event_end_at, practice_id, course_id, game_id, location_id)
-SELECT unnest(@event_start_at_array::timestamptz[]),
-       unnest(@event_end_at_array::timestamptz[]),
-       unnest(
-               ARRAY(
-                       SELECT CASE
-                                  WHEN practice_id = '00000000-0000-0000-0000-000000000000'
-                                      THEN NULL
-                                  ELSE practice_id
-                                  END
-                       FROM unnest(@practice_id_array::uuid[]) AS practice_id
-               )
-       ),
-       unnest(
-               ARRAY(
-                       SELECT CASE
-                                  WHEN course_id = '00000000-0000-0000-0000-000000000000'
-                                      THEN NULL
-                                  ELSE course_id
-                                  END
-                       FROM unnest(@course_id_array::uuid[]) AS course_id
-               )
-       ),
-       unnest(
-               ARRAY(
-                       SELECT CASE
-                                  WHEN game_id = '00000000-0000-0000-0000-000000000000'
-                                      THEN NULL
-                                  ELSE game_id
-                                  END
-                       FROM unnest(@game_id_array::uuid[]) AS game_id
-               )
-       ),
-       unnest(@location_id_array::uuid[])
-ON CONFLICT DO NOTHING
-RETURNING id;
+-- -- name: InsertEvents :many
+-- INSERT INTO public.events (event_start_at, event_end_at, practice_id, course_id, game_id, location_id)
+-- SELECT unnest(@event_start_at_array::timestamptz[]),
+--        unnest(@event_end_at_array::timestamptz[]),
+--        unnest(
+--                ARRAY(
+--                        SELECT CASE
+--                                   WHEN practice_id = '00000000-0000-0000-0000-000000000000'
+--                                       THEN NULL
+--                                   ELSE practice_id
+--                                   END
+--                        FROM unnest(@practice_id_array::uuid[]) AS practice_id
+--                )
+--        ),
+--        unnest(
+--                ARRAY(
+--                        SELECT CASE
+--                                   WHEN course_id = '00000000-0000-0000-0000-000000000000'
+--                                       THEN NULL
+--                                   ELSE course_id
+--                                   END
+--                        FROM unnest(@course_id_array::uuid[]) AS course_id
+--                )
+--        ),
+--        unnest(
+--                ARRAY(
+--                        SELECT CASE
+--                                   WHEN game_id = '00000000-0000-0000-0000-000000000000'
+--                                       THEN NULL
+--                                   ELSE game_id
+--                                   END
+--                        FROM unnest(@game_id_array::uuid[]) AS game_id
+--                )
+--        ),
+--        unnest(@location_id_array::uuid[])
+-- ON CONFLICT DO NOTHING
+-- RETURNING id;
 
 -- name: InsertMemberships :many
 INSERT INTO membership.memberships (name, description)

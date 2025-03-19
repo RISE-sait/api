@@ -17,7 +17,6 @@ const docTemplate = `{
     "paths": {
         "/auth": {
             "post": {
-                "description": "Authenticates a user using Firebase token and returns a JWT token for the authenticated user",
                 "consumes": [
                     "application/json"
                 ],
@@ -27,12 +26,11 @@ const docTemplate = `{
                 "tags": [
                     "authentication"
                 ],
-                "summary": "Authenticate a user and return a JWT token",
                 "parameters": [
                     {
                         "type": "string",
                         "description": "Firebase token for user verification",
-                        "name": "firebase_token",
+                        "name": "Authorization",
                         "in": "header",
                         "required": true
                     }
@@ -2628,7 +2626,7 @@ const docTemplate = `{
                 "summary": "Get a list of practices",
                 "responses": {
                     "200": {
-                        "description": "GetMemberships of practices retrieved successfully",
+                        "description": "Practices retrieved successfully",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -2677,7 +2675,8 @@ const docTemplate = `{
                     "201": {
                         "description": "Practice created successfully",
                         "schema": {
-                            "$ref": "#/definitions/practice.Response"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -3328,7 +3327,7 @@ const docTemplate = `{
                 "capacity": {
                     "type": "integer"
                 },
-                "createdAt": {
+                "created_at": {
                     "type": "string"
                 },
                 "description": {
@@ -3340,7 +3339,7 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "updatedAt": {
+                "updated_at": {
                     "type": "string"
                 }
             }
@@ -3880,6 +3879,23 @@ const docTemplate = `{
                 }
             }
         },
+        "identity.MembershipReadResponseDto": {
+            "type": "object",
+            "properties": {
+                "membership_name": {
+                    "type": "string"
+                },
+                "plan_name": {
+                    "type": "string"
+                },
+                "renewal_date": {
+                    "type": "string"
+                },
+                "start_date": {
+                    "type": "string"
+                }
+            }
+        },
         "identity.UserAuthenticationResponseDto": {
             "type": "object",
             "properties": {
@@ -3895,8 +3911,14 @@ const docTemplate = `{
                 "first_name": {
                     "type": "string"
                 },
+                "id": {
+                    "type": "string"
+                },
                 "last_name": {
                     "type": "string"
+                },
+                "membership_info": {
+                    "$ref": "#/definitions/identity.MembershipReadResponseDto"
                 },
                 "phone": {
                     "type": "string"
@@ -4067,7 +4089,7 @@ const docTemplate = `{
                 "capacity": {
                     "type": "integer"
                 },
-                "createdAt": {
+                "created_at": {
                     "type": "string"
                 },
                 "description": {
@@ -4082,7 +4104,7 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "updatedAt": {
+                "updated_at": {
                     "type": "string"
                 }
             }

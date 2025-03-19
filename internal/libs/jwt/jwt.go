@@ -12,13 +12,13 @@ import (
 )
 
 type RoleInfo struct {
-	Role     string `json:"role"`
-	IsActive bool   `json:"isActive"`
+	Role          string `json:"role"`
+	IsActiveStaff *bool  `json:"isActiveStaff,omitempty"`
 }
 
 type CustomClaims struct {
-	UserID   uuid.UUID `json:"user_id"`
-	RoleInfo *RoleInfo `json:"role_info,omitempty"`
+	UserID uuid.UUID `json:"user_id"`
+	*RoleInfo
 }
 
 type JwtClaims struct {

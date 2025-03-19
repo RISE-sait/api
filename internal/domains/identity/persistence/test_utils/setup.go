@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func SetupUsersTestDb(t *testing.T, testDb *sql.DB) (*db.Queries, func()) {
+func SetupIdentityTestDb(t *testing.T, testDb *sql.DB) (*db.Queries, func()) {
 
 	migrationScript := `
 CREATE SCHEMA IF NOT EXISTS users;
@@ -40,9 +40,82 @@ create table if not exists users.users
 alter table users.users
     owner to postgres;
 
+CREATE SCHEMA IF NOT EXISTS membership;
+
+create table if not exists membership.memberships
+(
+    id          uuid                     default gen_random_uuid() not null
+        primary key,
+    name        varchar(150)                                       not null,
+    description text,
+    created_at  timestamp with time zone default CURRENT_TIMESTAMP not null,
+    updated_at  timestamp with time zone default CURRENT_TIMESTAMP not null
+);
+
+alter table membership.memberships
+    owner to postgres;
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_frequency') THEN
+        CREATE TYPE public.payment_frequency AS ENUM ('once', 'week', 'month', 'day');
+    END IF;
+END $$;
+
+alter type public.payment_frequency owner to postgres;
+
+create table if not exists  membership.membership_plans
+(
+    id                uuid                     default gen_random_uuid() not null
+        primary key,
+    name              varchar(150)                                       not null,
+    price             numeric(6, 2)                                      not null,
+    joining_fee       numeric(6, 2)                                      not null,
+    auto_renew        boolean                  default false             not null,
+    membership_id     uuid                                               not null
+        constraint fk_membership
+            references membership.memberships,
+    payment_frequency payment_frequency                                  not null,
+    amt_periods       integer,
+    created_at        timestamp with time zone default CURRENT_TIMESTAMP not null,
+    updated_at        timestamp with time zone default CURRENT_TIMESTAMP not null,
+    constraint unique_membership_name
+        unique (membership_id, name)
+);
+
+alter table membership.membership_plans
+    owner to postgres;
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'membership_status') THEN
+        create type public.membership_status as enum ('active', 'inactive', 'canceled', 'expired');
+    END IF;
+END $$;
+
+alter type public.membership_status owner to postgres;
+
+create table if not exists  public.customer_membership_plans
+(
+    id                 uuid                     default gen_random_uuid()           not null
+        primary key,
+    customer_id        uuid                                                         not null
+        constraint fk_customer
+            references users.users,
+    membership_plan_id uuid
+        constraint fk_membership_plan
+            references membership.membership_plans,
+    start_date         timestamp with time zone default CURRENT_TIMESTAMP           not null,
+    renewal_date       timestamp with time zone,
+    status             membership_status        default 'active'::membership_status not null,
+    created_at         timestamp with time zone default CURRENT_TIMESTAMP           not null,
+    updated_at         timestamp with time zone default CURRENT_TIMESTAMP           not null
+);
+
+alter table public.customer_membership_plans
+    owner to postgres;
 
 `
-
 	_, err := testDb.Exec(migrationScript)
 	require.NoError(t, err)
 

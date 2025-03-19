@@ -270,7 +270,7 @@ func RegisterAuthRoutes(container *di.Container) func(chi.Router) {
 
 	return func(r chi.Router) {
 		r.Post("/", h.Login)
-		r.With(allowAnyoneWithValidToken).Post("/child/{hubspot_id}", h.LoginAsChild)
+		r.With(allowAnyoneWithValidToken).Post("/child/{id}", h.LoginAsChild)
 	}
 }
 

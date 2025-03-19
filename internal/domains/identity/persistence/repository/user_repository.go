@@ -11,10 +11,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"log"
 	"net/http"
-
-	"github.com/lib/pq"
 )
 
 // UsersRepository provides methods to interact with the user data in the database.
@@ -97,18 +96,13 @@ func (r *UsersRepository) CreateAthleteTx(ctx context.Context, tx *sql.Tx, input
 	}, "Athlete")
 
 	if qErr != nil {
-		log.Println(qErr.Error())
-		return values.UserReadInfo{}, errLib.New("Failed to insert to athlete", http.StatusInternalServerError)
+		log.Println(fmt.Errorf("failed to create customer: %v", qErr.Error()))
+		return values.UserReadInfo{}, errLib.New("Failed to insert to customer", http.StatusInternalServerError)
 	}
 
-	affectedRows, err := r.IdentityQueries.WithTx(tx).CreateAthlete(ctx, customer.ID)
-
-	if err != nil {
+	if err := r.IdentityQueries.WithTx(tx).CreateAthlete(ctx, customer.ID); err != nil {
 		log.Println(err.Error())
-	}
-
-	if err != nil || affectedRows == 0 {
-		return values.UserReadInfo{}, errLib.New("Failed to insert to athlete", http.StatusInternalServerError)
+		return values.UserReadInfo{}, errLib.New("Failed to insert to customer", http.StatusInternalServerError)
 	}
 
 	return values.UserReadInfo{
@@ -161,11 +155,11 @@ func (r *UsersRepository) CreateChildTx(ctx context.Context, tx *sql.Tx, input v
 	return createdCustomer, err
 }
 
-func (r *UsersRepository) GetIsActualParentChild(ctx context.Context, childID uuid.UUID, parentEmail string) (bool, *errLib.CommonError) {
+func (r *UsersRepository) GetIsActualParentChild(ctx context.Context, childID, parentID uuid.UUID) (bool, *errLib.CommonError) {
 	isConnected, err := r.IdentityQueries.GetIsActualParentChild(ctx, dbIdentity.GetIsActualParentChildParams{
-		ParentEmail: sql.NullString{
-			String: parentEmail,
-			Valid:  true,
+		ParentID: uuid.NullUUID{
+			UUID:  parentID,
+			Valid: true,
 		},
 		ChildID: childID,
 	})
@@ -180,22 +174,22 @@ func (r *UsersRepository) GetIsActualParentChild(ctx context.Context, childID uu
 
 func (r *UsersRepository) GetUserInfo(ctx context.Context, email string, id uuid.UUID) (values.UserReadInfo, *errLib.CommonError) {
 
-	if email == "" && id == uuid.Nil {
-		return values.UserReadInfo{}, errLib.New("Either use email or id to get user info. One must be present", http.StatusBadRequest)
-	}
-
 	if email != "" && id != uuid.Nil {
 		return values.UserReadInfo{}, errLib.New("Either use email or id to get user info. Not both", http.StatusBadRequest)
 	}
 
-	var user dbIdentity.UsersUser
-	var err error
+	var params dbIdentity.GetUserByIdOrEmailParams
 
-	if email != "" {
-		user, err = r.IdentityQueries.GetUserByEmail(ctx, sql.NullString{String: email, Valid: true})
-	} else {
-		user, err = r.IdentityQueries.GetUserByID(ctx, id)
+	switch {
+	case email != "":
+		params.Email = sql.NullString{String: email, Valid: true}
+	case id != uuid.Nil:
+		params.ID = uuid.NullUUID{UUID: id, Valid: true}
+	default:
+		return values.UserReadInfo{}, errLib.New("Either use email or id to get user info. One must be present", http.StatusBadRequest)
 	}
+
+	user, err := r.IdentityQueries.GetUserByIdOrEmail(ctx, params)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -215,8 +209,28 @@ func (r *UsersRepository) GetUserInfo(ctx context.Context, email string, id uuid
 		Phone:       &user.Phone.String,
 	}
 
+	if user.Gender.Valid {
+		response.Gender = &user.Gender.String
+	}
+
+	var membershipInfo *values.MembershipReadInfo
+
+	if user.MembershipName.Valid {
+		membershipInfo = &values.MembershipReadInfo{
+			MembershipName: user.MembershipName.String,
+			PlanName:       user.MembershipPlanName.String,
+			StartDate:      user.MembershipPlanStartDate.Time,
+		}
+
+		if user.MembershipPlanRenewalDate.Valid {
+			membershipInfo.RenewalDate = &user.MembershipPlanRenewalDate.Time
+		}
+
+		response.MembershipInfo = membershipInfo
+	}
+
 	if user.ParentID.Valid {
-		response.Role = "Child"
+		response.Role = "child"
 		return response, nil
 	}
 
@@ -233,14 +247,15 @@ func (r *UsersRepository) GetUserInfo(ctx context.Context, email string, id uuid
 		// staff exists
 
 		response.Role = staffInfo.RoleName
+		response.IsActiveStaff = &staffInfo.IsActive
 		return response, nil
 	}
 
-	if isParent, err := r.IdentityQueries.GetIsUserAParent(ctx, user.ID); err != nil {
+	if isParent, err := r.IdentityQueries.GetIsUserAParent(ctx, uuid.NullUUID{UUID: user.ID, Valid: user.ID != uuid.Nil}); err != nil {
 		log.Println(err.Error())
 		return values.UserReadInfo{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	} else if isParent {
-		response.Role = "Parent"
+		response.Role = "parent"
 		return response, nil
 	}
 
@@ -248,12 +263,12 @@ func (r *UsersRepository) GetUserInfo(ctx context.Context, email string, id uuid
 		log.Println(err.Error())
 		return values.UserReadInfo{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	} else if isAthlete {
-		response.Role = "Athlete"
+		response.Role = "athlete"
 		return response, nil
 	}
 
 	log.Printf("error in getting user role with email %v", email)
-	return values.UserReadInfo{}, errLib.New("Internal server error in getting user role with email", http.StatusInternalServerError)
+	return values.UserReadInfo{}, errLib.New("Unexpected error: User role is missing. Please contact support.", http.StatusInternalServerError)
 }
 
 func (r *UsersRepository) UpdateUserHubspotIdTx(ctx context.Context, tx *sql.Tx, userId uuid.UUID, hubspotId string) *errLib.CommonError {

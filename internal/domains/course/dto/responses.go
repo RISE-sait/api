@@ -11,8 +11,8 @@ type ResponseDto struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description,omitempty"`
 	Capacity    int32     `json:"capacity"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 func NewCourseResponse(course values.ReadDetails) ResponseDto {

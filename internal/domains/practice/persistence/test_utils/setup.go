@@ -10,9 +10,14 @@ import (
 func SetupPracticeTestDbQueries(t *testing.T, testDb *sql.DB) (*db.Queries, func()) {
 
 	migrationScript := `
-CREATE TYPE practice_level AS ENUM ('beginner', 'intermediate', 'advanced', 'all');
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'practice_level') THEN
+        CREATE TYPE practice_level AS ENUM ('beginner', 'intermediate', 'advanced', 'all');
+    END IF;
+END $$;
 
-CREATE TABLE practices (
+CREATE TABLE IF NOT EXISTS practices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(50) NOT NULL UNIQUE, 
     description TEXT,

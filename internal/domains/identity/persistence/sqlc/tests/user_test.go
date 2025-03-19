@@ -20,7 +20,7 @@ func TestCreateValidUser(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := identityTestUtils.SetupUsersTestDb(t, dbConn)
+	queries, cleanup := identityTestUtils.SetupIdentityTestDb(t, dbConn)
 
 	defer cleanup()
 
@@ -59,7 +59,7 @@ func TestCreateValidUser(t *testing.T) {
 
 func TestCreateUserViolateUniqueEmailConstraint(t *testing.T) {
 	dbConn, _ := test_utils.SetupTestDB(t)
-	queries, cleanup := identityTestUtils.SetupUsersTestDb(t, dbConn)
+	queries, cleanup := identityTestUtils.SetupIdentityTestDb(t, dbConn)
 	defer cleanup()
 
 	// Define test data
@@ -97,7 +97,7 @@ func TestCreateUserViolateUniqueEmailConstraint(t *testing.T) {
 
 func TestUpdateUser(t *testing.T) {
 	dbConn, _ := test_utils.SetupTestDB(t)
-	queries, cleanup := identityTestUtils.SetupUsersTestDb(t, dbConn)
+	queries, cleanup := identityTestUtils.SetupIdentityTestDb(t, dbConn)
 	defer cleanup()
 
 	// Define test data for creating a user
@@ -143,7 +143,13 @@ func TestUpdateUser(t *testing.T) {
 	require.NoError(t, err)
 
 	// Fetch the updated user
-	updatedUser, err := queries.GetUserByID(context.Background(), createdUser.ID)
+	updatedUser, err := queries.GetUserByIdOrEmail(context.Background(), db.GetUserByIdOrEmailParams{
+		ID: uuid.NullUUID{
+			UUID:  createdUser.ID,
+			Valid: true,
+		},
+		Email: sql.NullString{Valid: false},
+	})
 	require.NoError(t, err)
 
 	// Assert the updated fields
@@ -161,11 +167,17 @@ func TestGetNonExistingUser(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := identityTestUtils.SetupUsersTestDb(t, dbConn)
+	queries, cleanup := identityTestUtils.SetupIdentityTestDb(t, dbConn)
 
 	defer cleanup()
 
-	_, err := queries.GetUserByID(context.Background(), uuid.Nil)
+	_, err := queries.GetUserByIdOrEmail(context.Background(), db.GetUserByIdOrEmailParams{
+		ID: uuid.NullUUID{
+			UUID:  uuid.Nil,
+			Valid: true,
+		},
+		Email: sql.NullString{Valid: false},
+	})
 
 	require.Equal(t, sql.ErrNoRows, err)
 }
@@ -174,7 +186,7 @@ func TestUpdateNonExistentUser(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := identityTestUtils.SetupUsersTestDb(t, dbConn)
+	queries, cleanup := identityTestUtils.SetupIdentityTestDb(t, dbConn)
 
 	defer cleanup()
 

@@ -3,7 +3,6 @@ package practice
 import (
 	dto "api/internal/domains/practice/dto"
 	repository "api/internal/domains/practice/persistence"
-	"api/internal/domains/practice/values"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -27,7 +26,7 @@ func NewHandler(repo *repository.Repository) *Handler {
 // @Produce json
 // @Param practice body dto.RequestDto true "Practice details"
 // @Security Bearer
-// @Success 201 {object} dto.Response "Practice created successfully"
+// @Success 201 {object} map[string]interface{} "Practice created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /practices [post]
@@ -46,16 +45,12 @@ func (h *Handler) CreatePractice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	course, err := h.Repo.Create(r.Context(), courseCreate)
-
-	if err != nil {
+	if err = h.Repo.Create(r.Context(), courseCreate); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	responseBody := mapReadValuesToResponse(course)
-
-	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusCreated)
+	responseHandlers.RespondWithSuccess(w, nil, http.StatusCreated)
 }
 
 // GetPractices retrieves a list of practices.
@@ -64,7 +59,7 @@ func (h *Handler) CreatePractice(w http.ResponseWriter, r *http.Request) {
 // @Tags practices
 // @Accept json
 // @Produce json
-// @Success 200 {array} dto.Response "GetMemberships of practices retrieved successfully"
+// @Success 200 {array} dto.Response "Practices retrieved successfully"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /practices [get]
 func (h *Handler) GetPractices(w http.ResponseWriter, r *http.Request) {
@@ -77,8 +72,16 @@ func (h *Handler) GetPractices(w http.ResponseWriter, r *http.Request) {
 
 	result := make([]dto.Response, len(practices))
 
-	for i, course := range practices {
-		result[i] = mapReadValuesToResponse(course)
+	for i, practice := range practices {
+		result[i] = dto.Response{
+			ID:          practice.ID,
+			Name:        practice.PracticeDetails.Name,
+			Description: practice.PracticeDetails.Description,
+			Level:       practice.PracticeDetails.Level,
+			Capacity:    practice.PracticeDetails.Capacity,
+			CreatedAt:   practice.CreatedAt,
+			UpdatedAt:   practice.UpdatedAt,
+		}
 	}
 
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
@@ -168,16 +171,4 @@ func (h *Handler) DeletePractice(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
-}
-
-func mapReadValuesToResponse(practice values.GetPracticeValues) dto.Response {
-	return dto.Response{
-		ID:          practice.ID,
-		Name:        practice.PracticeDetails.Name,
-		Description: practice.PracticeDetails.Description,
-		Level:       practice.PracticeDetails.Level,
-		Capacity:    practice.PracticeDetails.Capacity,
-		CreatedAt:   practice.CreatedAt,
-		UpdatedAt:   practice.UpdatedAt,
-	}
 }

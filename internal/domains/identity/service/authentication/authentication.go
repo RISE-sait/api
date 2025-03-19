@@ -62,21 +62,26 @@ func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string,
 	jwtCustomClaims := jwtLib.CustomClaims{
 		UserID: userInfo.ID,
 		RoleInfo: &jwtLib.RoleInfo{
-			Role:     userInfo.Role,
-			IsActive: true,
+			Role: userInfo.Role,
 		},
 	}
 
-	responseUserInfo = identity.UserReadInfo{
-		FirstName:   userInfo.FirstName,
-		LastName:    userInfo.LastName,
-		Age:         userInfo.Age,
-		CountryCode: userInfo.CountryCode,
-		Role:        userInfo.Role,
+	if userInfo.IsActiveStaff != nil {
+		jwtCustomClaims.IsActiveStaff = userInfo.IsActiveStaff
 	}
 
-	if responseUserInfo.Phone != nil {
-		responseUserInfo.Phone = userInfo.Phone
+	responseUserInfo = identity.UserReadInfo{
+		ID:             userInfo.ID,
+		Age:            userInfo.Age,
+		Gender:         userInfo.Gender,
+		CountryCode:    userInfo.CountryCode,
+		FirstName:      userInfo.FirstName,
+		LastName:       userInfo.LastName,
+		Email:          userInfo.Email,
+		Role:           userInfo.Role,
+		IsActiveStaff:  userInfo.IsActiveStaff,
+		Phone:          userInfo.Phone,
+		MembershipInfo: userInfo.MembershipInfo,
 	}
 
 	jwtToken, err := jwtLib.SignJWT(jwtCustomClaims)
@@ -99,11 +104,11 @@ func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string,
 // Returns:
 //   - string: The signed JWT token for authentication.
 //   - *errLib.CommonError: An error if authentication fails.
-func (s *Service) AuthenticateChild(ctx context.Context, childId uuid.UUID, parentEmail string) (string, identity.UserReadInfo, *errLib.CommonError) {
+func (s *Service) AuthenticateChild(ctx context.Context, childId, parentID uuid.UUID) (string, identity.UserReadInfo, *errLib.CommonError) {
 
 	var userInfo identity.UserReadInfo
 
-	if isConnected, err := s.UserRepo.GetIsActualParentChild(ctx, childId, parentEmail); err != nil {
+	if isConnected, err := s.UserRepo.GetIsActualParentChild(ctx, childId, parentID); err != nil {
 		return "", userInfo, err
 	} else if !isConnected {
 		return "", userInfo, errLib.New("child is not associated with the parent", http.StatusNotFound)

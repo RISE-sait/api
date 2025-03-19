@@ -11,10 +11,9 @@ import (
 	"github.com/google/uuid"
 )
 
-const createPractice = `-- name: CreatePractice :one
+const createPractice = `-- name: CreatePractice :exec
 INSERT INTO practices (name, description, level, capacity)
 VALUES ($1, $2, $3, $4)
-RETURNING id, name, description, level, capacity, created_at, updated_at
 `
 
 type CreatePracticeParams struct {
@@ -24,24 +23,14 @@ type CreatePracticeParams struct {
 	Capacity    int32         `json:"capacity"`
 }
 
-func (q *Queries) CreatePractice(ctx context.Context, arg CreatePracticeParams) (Practice, error) {
-	row := q.db.QueryRowContext(ctx, createPractice,
+func (q *Queries) CreatePractice(ctx context.Context, arg CreatePracticeParams) error {
+	_, err := q.db.ExecContext(ctx, createPractice,
 		arg.Name,
 		arg.Description,
 		arg.Level,
 		arg.Capacity,
 	)
-	var i Practice
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.Level,
-		&i.Capacity,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+	return err
 }
 
 const deletePractice = `-- name: DeletePractice :execrows
@@ -110,7 +99,7 @@ func (q *Queries) GetPractices(ctx context.Context) ([]Practice, error) {
 	return items, nil
 }
 
-const updatePractice = `-- name: UpdatePractice :execrows
+const updatePractice = `-- name: UpdatePractice :exec
 UPDATE practices
 SET
     name = $1,
@@ -129,16 +118,13 @@ type UpdatePracticeParams struct {
 	ID          uuid.UUID     `json:"id"`
 }
 
-func (q *Queries) UpdatePractice(ctx context.Context, arg UpdatePracticeParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updatePractice,
+func (q *Queries) UpdatePractice(ctx context.Context, arg UpdatePracticeParams) error {
+	_, err := q.db.ExecContext(ctx, updatePractice,
 		arg.Name,
 		arg.Description,
 		arg.Level,
 		arg.Capacity,
 		arg.ID,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
+	return err
 }

@@ -1,7 +1,6 @@
--- name: CreatePractice :one
+-- name: CreatePractice :exec
 INSERT INTO practices (name, description, level, capacity)
-VALUES ($1, $2, $3, $4)
-RETURNING *;
+VALUES ($1, $2, $3, $4);
 
 -- name: GetPractices :many
 SELECT * FROM practices;
@@ -9,7 +8,7 @@ SELECT * FROM practices;
 -- name: GetPracticeById :one
 SELECT * FROM practices WHERE id = $1;
 
--- name: UpdatePractice :execrows
+-- name: UpdatePractice :exec
 UPDATE practices
 SET
     name = $1,

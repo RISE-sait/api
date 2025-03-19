@@ -15,7 +15,7 @@ definitions:
     properties:
       capacity:
         type: integer
-      createdAt:
+      created_at:
         type: string
       description:
         type: string
@@ -23,7 +23,7 @@ definitions:
         type: string
       name:
         type: string
-      updatedAt:
+      updated_at:
         type: string
     type: object
   customer.AthleteRegistrationRequestDto:
@@ -384,6 +384,17 @@ definitions:
       updatedAt:
         type: string
     type: object
+  identity.MembershipReadResponseDto:
+    properties:
+      membership_name:
+        type: string
+      plan_name:
+        type: string
+      renewal_date:
+        type: string
+      start_date:
+        type: string
+    type: object
   identity.UserAuthenticationResponseDto:
     properties:
       age:
@@ -394,8 +405,12 @@ definitions:
         type: string
       first_name:
         type: string
+      id:
+        type: string
       last_name:
         type: string
+      membership_info:
+        $ref: '#/definitions/identity.MembershipReadResponseDto'
       phone:
         type: string
       role:
@@ -508,7 +523,7 @@ definitions:
     properties:
       capacity:
         type: integer
-      createdAt:
+      created_at:
         type: string
       description:
         type: string
@@ -518,7 +533,7 @@ definitions:
         type: string
       name:
         type: string
-      updatedAt:
+      updated_at:
         type: string
     type: object
   purchase.MembershipPlanRequestDto:
@@ -598,12 +613,10 @@ paths:
     post:
       consumes:
       - application/json
-      description: Authenticates a user using Firebase token and returns a JWT token
-        for the authenticated user
       parameters:
       - description: Firebase token for user verification
         in: header
-        name: firebase_token
+        name: Authorization
         required: true
         type: string
       produces:
@@ -623,7 +636,6 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Authenticate a user and return a JWT token
       tags:
       - authentication
   /auth/child/{id}:
@@ -2358,7 +2370,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: GetMemberships of practices retrieved successfully
+          description: Practices retrieved successfully
           schema:
             items:
               $ref: '#/definitions/practice.Response'
@@ -2388,7 +2400,8 @@ paths:
         "201":
           description: Practice created successfully
           schema:
-            $ref: '#/definitions/practice.Response'
+            additionalProperties: true
+            type: object
         "400":
           description: 'Bad Request: Invalid input'
           schema:

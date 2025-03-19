@@ -11,8 +11,8 @@ type Response struct {
 	Description string    `json:"description,omitempty"`
 	Level       string    `json:"level"`
 	Capacity    int32     `json:"capacity"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type LevelsResponse struct {

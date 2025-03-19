@@ -46,9 +46,7 @@ func (r *Repository) Update(ctx context.Context, practice values.UpdatePracticeV
 		Capacity:    practice.PracticeDetails.Capacity,
 	}
 
-	row, err := r.Queries.UpdatePractice(ctx, dbCourseParams)
-
-	if err != nil {
+	if err := r.Queries.UpdatePractice(ctx, dbCourseParams); err != nil {
 		// Check if the error is a unique violation (duplicate name)
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
@@ -59,10 +57,6 @@ func (r *Repository) Update(ctx context.Context, practice values.UpdatePracticeV
 			return errLib.New("Database error", http.StatusInternalServerError)
 		}
 		return errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-
-	if row == 0 {
-		return errLib.New("Practice not found", http.StatusNotFound)
 	}
 
 	return nil
@@ -113,9 +107,7 @@ func (r *Repository) Delete(c context.Context, id uuid.UUID) *errLib.CommonError
 	return nil
 }
 
-func (r *Repository) Create(c context.Context, practiceDetails values.CreatePracticeValues) (values.GetPracticeValues, *errLib.CommonError) {
-
-	var response values.GetPracticeValues
+func (r *Repository) Create(c context.Context, practiceDetails values.CreatePracticeValues) *errLib.CommonError {
 
 	dbPracticeParams := db.CreatePracticeParams{
 		Name:        practiceDetails.Name,
@@ -124,28 +116,17 @@ func (r *Repository) Create(c context.Context, practiceDetails values.CreatePrac
 		Capacity:    practiceDetails.Capacity,
 	}
 
-	course, err := r.Queries.CreatePractice(c, dbPracticeParams)
-
-	if err != nil {
+	if err := r.Queries.CreatePractice(c, dbPracticeParams); err != nil {
 		// Check if the error is a unique violation (error code 23505)
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
 			// Return a custom error for unique violation
-			return response, errLib.New("Practice name already exists", http.StatusConflict)
+			return errLib.New("Practice name already exists", http.StatusConflict)
 		}
 
 		// Return a generic internal server error for other cases
-		return response, errLib.New("Internal server error", http.StatusInternalServerError)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return values.GetPracticeValues{
-		ID:        course.ID,
-		CreatedAt: course.CreatedAt,
-		UpdatedAt: course.UpdatedAt,
-		PracticeDetails: values.PracticeDetails{
-			Name:        practiceDetails.Name,
-			Description: practiceDetails.Description,
-			Capacity:    practiceDetails.Capacity,
-		},
-	}, nil
+	return nil
 }

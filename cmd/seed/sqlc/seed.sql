@@ -106,7 +106,7 @@ VALUES (unnest(@practice_id_array::uuid[]),
         unnest(@price_per_booking_array::numeric[]));
 
 
--- name: InsertClients :many
+-- name: InsertUsers :many
 WITH prepared_data AS (SELECT unnest(@country_alpha2_code_array::text[])            AS country_alpha2_code,
                               unnest(@first_name_array::text[])                     AS first_name,
                               unnest(@last_name_array::text[])                      AS last_name,
@@ -157,6 +157,7 @@ SELECT country_alpha2_code,
        has_marketing_email_consent,
        has_sms_consent
 FROM prepared_data
+ON CONFLICT DO NOTHING
 RETURNING id;
 
 

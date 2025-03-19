@@ -65,7 +65,7 @@ func clearTables(ctx context.Context, db *sql.DB) error {
 	return err
 }
 
-func seedClients(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
+func seedUsers(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 	clients, err := data.GetClients()
 
 	if err != nil {
@@ -106,7 +106,7 @@ func seedClients(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 		hasSMSConsentArray = append(hasSMSConsentArray, client.SMSConsent)
 	}
 
-	ids, err := seedQueries.InsertClients(ctx, dbSeed.InsertClientsParams{
+	ids, err := seedQueries.InsertUsers(ctx, dbSeed.InsertUsersParams{
 		CountryAlpha2CodeArray:        countryAlpha2CodeArray,
 		FirstNameArray:                firstNameArray,
 		LastNameArray:                 lastNameArray,
@@ -123,14 +123,13 @@ func seedClients(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 		log.Fatalf("Failed to insert clients: %v", err)
 		return nil, err
 	}
-	seedQueries.InsertClientsMembershipPlans(ctx, dbSeed.InsertClientsMembershipPlansParams{
-		CustomerID:       nil,
-		PlansArray:       nil,
-		StartDateArray:   nil,
-		RenewalDateArray: nil,
-	})
 
-	seedQueries.InsertClients(ctx, staffs)
+	_, err = seedQueries.InsertUsers(ctx, staffs)
+
+	if err != nil {
+		log.Fatalf("Failed to insert staff as clients: %v", err)
+		return nil, err
+	}
 
 	return ids, nil
 }
@@ -142,7 +141,7 @@ func seedAthletes(ctx context.Context, db *sql.DB, ids []uuid.UUID) ([]uuid.UUID
 	ids, err := seedQueries.InsertAthletes(ctx, ids)
 
 	if err != nil {
-		log.Fatalf("Failed to insert clients: %v", err)
+		log.Fatalf("Failed to insert athletes: %v", err)
 		return nil, err
 	}
 
@@ -501,7 +500,7 @@ func main() {
 		return
 	}
 
-	clientIds, err := seedClients(ctx, db)
+	clientIds, err := seedUsers(ctx, db)
 
 	if err != nil {
 		log.Println(err)

@@ -17,113 +17,12 @@ import (
 const insertAthletes = `-- name: InsertAthletes :many
 INSERT
 INTO users.athletes (id)
-VALUES(unnest($1::uuid[]))
+VALUES (unnest($1::uuid[]))
 RETURNING id
 `
 
 func (q *Queries) InsertAthletes(ctx context.Context, idArray []uuid.UUID) ([]uuid.UUID, error) {
 	rows, err := q.db.QueryContext(ctx, insertAthletes, pq.Array(idArray))
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []uuid.UUID
-	for rows.Next() {
-		var id uuid.UUID
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		items = append(items, id)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const insertClients = `-- name: InsertClients :many
-WITH prepared_data AS (SELECT unnest($1::text[])            AS country_alpha2_code,
-                              unnest($2::text[])                     AS first_name,
-                              unnest($3::text[])                      AS last_name,
-                              unnest($4::int[])                             AS age,
-                              unnest(
-                                      ARRAY(
-                                              SELECT CASE
-                                                         WHEN parent_id = '00000000-0000-0000-0000-000000000000'
-                                                             THEN NULL
-                                                         ELSE parent_id
-                                                         END
-                                              FROM unnest($5::uuid[]) AS parent_id
-                                      )
-                              )                                                     AS parent_id,
-                              unnest(
-                                      ARRAY(
-                                              SELECT CASE
-                                                         WHEN gender = 'N'
-                                                             THEN NULL
-                                                         ELSE gender
-                                                         END
-                                              FROM unnest($6::char[]) AS gender
-                                      )
-                              ) AS gender,
-                              unnest($7::text[])                          AS phone,
-                              unnest($8::text[])                          AS email,
-                              unnest($9::boolean[]) AS has_marketing_email_consent,
-                              unnest($10::boolean[])             AS has_sms_consent)
-INSERT
-INTO users.users (country_alpha2_code,
-                  first_name,
-                  last_name,
-                  age,
-                  gender,
-                  parent_id,
-                  phone,
-                  email,
-                  has_marketing_email_consent,
-                  has_sms_consent)
-SELECT country_alpha2_code,
-       first_name,
-       last_name,
-       age,
-       gender,
-       parent_id,
-       phone,
-       email,
-       has_marketing_email_consent,
-       has_sms_consent
-FROM prepared_data
-RETURNING id
-`
-
-type InsertClientsParams struct {
-	CountryAlpha2CodeArray        []string    `json:"country_alpha2_code_array"`
-	FirstNameArray                []string    `json:"first_name_array"`
-	LastNameArray                 []string    `json:"last_name_array"`
-	AgeArray                      []int32     `json:"age_array"`
-	ParentIDArray                 []uuid.UUID `json:"parent_id_array"`
-	GenderArray                   []string    `json:"gender_array"`
-	PhoneArray                    []string    `json:"phone_array"`
-	EmailArray                    []string    `json:"email_array"`
-	HasMarketingEmailConsentArray []bool      `json:"has_marketing_email_consent_array"`
-	HasSmsConsentArray            []bool      `json:"has_sms_consent_array"`
-}
-
-func (q *Queries) InsertClients(ctx context.Context, arg InsertClientsParams) ([]uuid.UUID, error) {
-	rows, err := q.db.QueryContext(ctx, insertClients,
-		pq.Array(arg.CountryAlpha2CodeArray),
-		pq.Array(arg.FirstNameArray),
-		pq.Array(arg.LastNameArray),
-		pq.Array(arg.AgeArray),
-		pq.Array(arg.ParentIDArray),
-		pq.Array(arg.GenderArray),
-		pq.Array(arg.PhoneArray),
-		pq.Array(arg.EmailArray),
-		pq.Array(arg.HasMarketingEmailConsentArray),
-		pq.Array(arg.HasSmsConsentArray),
-	)
 	if err != nil {
 		return nil, err
 	}
@@ -667,4 +566,106 @@ VALUES ('admin'),
 func (q *Queries) InsertStaffRoles(ctx context.Context) error {
 	_, err := q.db.ExecContext(ctx, insertStaffRoles)
 	return err
+}
+
+const insertUsers = `-- name: InsertUsers :many
+WITH prepared_data AS (SELECT unnest($1::text[])            AS country_alpha2_code,
+                              unnest($2::text[])                     AS first_name,
+                              unnest($3::text[])                      AS last_name,
+                              unnest($4::int[])                             AS age,
+                              unnest(
+                                      ARRAY(
+                                              SELECT CASE
+                                                         WHEN parent_id = '00000000-0000-0000-0000-000000000000'
+                                                             THEN NULL
+                                                         ELSE parent_id
+                                                         END
+                                              FROM unnest($5::uuid[]) AS parent_id
+                                      )
+                              )                                                     AS parent_id,
+                              unnest(
+                                      ARRAY(
+                                              SELECT CASE
+                                                         WHEN gender = 'N'
+                                                             THEN NULL
+                                                         ELSE gender
+                                                         END
+                                              FROM unnest($6::char[]) AS gender
+                                      )
+                              ) AS gender,
+                              unnest($7::text[])                          AS phone,
+                              unnest($8::text[])                          AS email,
+                              unnest($9::boolean[]) AS has_marketing_email_consent,
+                              unnest($10::boolean[])             AS has_sms_consent)
+INSERT
+INTO users.users (country_alpha2_code,
+                  first_name,
+                  last_name,
+                  age,
+                  gender,
+                  parent_id,
+                  phone,
+                  email,
+                  has_marketing_email_consent,
+                  has_sms_consent)
+SELECT country_alpha2_code,
+       first_name,
+       last_name,
+       age,
+       gender,
+       parent_id,
+       phone,
+       email,
+       has_marketing_email_consent,
+       has_sms_consent
+FROM prepared_data
+ON CONFLICT DO NOTHING
+RETURNING id
+`
+
+type InsertUsersParams struct {
+	CountryAlpha2CodeArray        []string    `json:"country_alpha2_code_array"`
+	FirstNameArray                []string    `json:"first_name_array"`
+	LastNameArray                 []string    `json:"last_name_array"`
+	AgeArray                      []int32     `json:"age_array"`
+	ParentIDArray                 []uuid.UUID `json:"parent_id_array"`
+	GenderArray                   []string    `json:"gender_array"`
+	PhoneArray                    []string    `json:"phone_array"`
+	EmailArray                    []string    `json:"email_array"`
+	HasMarketingEmailConsentArray []bool      `json:"has_marketing_email_consent_array"`
+	HasSmsConsentArray            []bool      `json:"has_sms_consent_array"`
+}
+
+func (q *Queries) InsertUsers(ctx context.Context, arg InsertUsersParams) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, insertUsers,
+		pq.Array(arg.CountryAlpha2CodeArray),
+		pq.Array(arg.FirstNameArray),
+		pq.Array(arg.LastNameArray),
+		pq.Array(arg.AgeArray),
+		pq.Array(arg.ParentIDArray),
+		pq.Array(arg.GenderArray),
+		pq.Array(arg.PhoneArray),
+		pq.Array(arg.EmailArray),
+		pq.Array(arg.HasMarketingEmailConsentArray),
+		pq.Array(arg.HasSmsConsentArray),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

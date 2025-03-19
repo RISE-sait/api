@@ -112,13 +112,6 @@ var staff = []Staff{
 		Email:       "coach@test.com",
 		Country:     "IR",
 	},
-	{
-		FirstName:   "Coach",
-		LastName:    "John",
-		Role:        "Coach",
-		PhoneNumber: "403 466 1009",
-		Email:       "coach@test.com",
-	},
 }
 
 func GetStaffs() dbSeed.InsertStaffParams {
@@ -143,7 +136,7 @@ func GetStaffs() dbSeed.InsertStaffParams {
 	}
 }
 
-func GetStaffsAsClients() dbSeed.InsertClientsParams {
+func GetStaffsAsClients() dbSeed.InsertUsersParams {
 
 	var (
 		firstNameArray           []string
@@ -172,7 +165,7 @@ func GetStaffsAsClients() dbSeed.InsertClientsParams {
 	}
 
 	// Return staff insert parameters
-	return dbSeed.InsertClientsParams{
+	return dbSeed.InsertUsersParams{
 		CountryAlpha2CodeArray:        countryArray,
 		FirstNameArray:                firstNameArray,
 		LastNameArray:                 lastNameArray,

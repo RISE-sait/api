@@ -42,7 +42,7 @@ alter table users.users
 
 CREATE SCHEMA IF NOT EXISTS membership;
 
-create table membership.memberships
+create table if not exists membership.memberships
 (
     id          uuid                     default gen_random_uuid() not null
         primary key,
@@ -55,11 +55,16 @@ create table membership.memberships
 alter table membership.memberships
     owner to postgres;
 
-create type public.payment_frequency as enum ('once', 'week', 'month', 'day');
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_frequency') THEN
+        CREATE TYPE public.payment_frequency AS ENUM ('once', 'week', 'month', 'day');
+    END IF;
+END $$;
 
 alter type public.payment_frequency owner to postgres;
 
-create table membership.membership_plans
+create table if not exists  membership.membership_plans
 (
     id                uuid                     default gen_random_uuid() not null
         primary key,
@@ -81,11 +86,16 @@ create table membership.membership_plans
 alter table membership.membership_plans
     owner to postgres;
 
-create type public.membership_status as enum ('active', 'inactive', 'canceled', 'expired');
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'membership_status') THEN
+        create type public.membership_status as enum ('active', 'inactive', 'canceled', 'expired');
+    END IF;
+END $$;
 
 alter type public.membership_status owner to postgres;
 
-create table public.customer_membership_plans
+create table if not exists  public.customer_membership_plans
 (
     id                 uuid                     default gen_random_uuid()           not null
         primary key,
@@ -106,7 +116,6 @@ alter table public.customer_membership_plans
     owner to postgres;
 
 `
-
 	_, err := testDb.Exec(migrationScript)
 	require.NoError(t, err)
 

@@ -13,5 +13,6 @@ RUN go get github.com/google/uuid && \
 # Copy everything else
 COPY ./cmd/seed ./cmd/seed
 COPY ./config ./config
+COPY ./internal/custom_types ./internal/custom_types
 
 ENTRYPOINT ["go", "run", "cmd/seed/main.go"]

@@ -55,6 +55,10 @@ create table membership.memberships
 alter table membership.memberships
     owner to postgres;
 
+create type public.payment_frequency as enum ('once', 'week', 'month', 'day');
+
+alter type public.payment_frequency owner to postgres;
+
 create table membership.membership_plans
 (
     id                uuid                     default gen_random_uuid() not null
@@ -76,6 +80,10 @@ create table membership.membership_plans
 
 alter table membership.membership_plans
     owner to postgres;
+
+create type public.membership_status as enum ('active', 'inactive', 'canceled', 'expired');
+
+alter type public.membership_status owner to postgres;
 
 create table public.customer_membership_plans
 (

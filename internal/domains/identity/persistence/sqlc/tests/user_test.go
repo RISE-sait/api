@@ -20,7 +20,7 @@ func TestCreateValidUser(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := identityTestUtils.SetupUsersTestDb(t, dbConn)
+	queries, cleanup := identityTestUtils.SetupIdentityTestDb(t, dbConn)
 
 	defer cleanup()
 
@@ -59,7 +59,7 @@ func TestCreateValidUser(t *testing.T) {
 
 func TestCreateUserViolateUniqueEmailConstraint(t *testing.T) {
 	dbConn, _ := test_utils.SetupTestDB(t)
-	queries, cleanup := identityTestUtils.SetupUsersTestDb(t, dbConn)
+	queries, cleanup := identityTestUtils.SetupIdentityTestDb(t, dbConn)
 	defer cleanup()
 
 	// Define test data
@@ -97,7 +97,7 @@ func TestCreateUserViolateUniqueEmailConstraint(t *testing.T) {
 
 func TestUpdateUser(t *testing.T) {
 	dbConn, _ := test_utils.SetupTestDB(t)
-	queries, cleanup := identityTestUtils.SetupUsersTestDb(t, dbConn)
+	queries, cleanup := identityTestUtils.SetupIdentityTestDb(t, dbConn)
 	defer cleanup()
 
 	// Define test data for creating a user
@@ -167,7 +167,7 @@ func TestGetNonExistingUser(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := identityTestUtils.SetupUsersTestDb(t, dbConn)
+	queries, cleanup := identityTestUtils.SetupIdentityTestDb(t, dbConn)
 
 	defer cleanup()
 
@@ -186,7 +186,7 @@ func TestUpdateNonExistentUser(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := identityTestUtils.SetupUsersTestDb(t, dbConn)
+	queries, cleanup := identityTestUtils.SetupIdentityTestDb(t, dbConn)
 
 	defer cleanup()
 

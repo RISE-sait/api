@@ -12,6 +12,7 @@ type Staff struct {
 	Role        string
 	PhoneNumber string
 	Email       string
+	Country     string
 }
 
 var staff = []Staff{
@@ -21,6 +22,7 @@ var staff = []Staff{
 		Role:        "Receptionist",
 		PhoneNumber: "",
 		Email:       "gurkaran@risesportscomplex.com",
+		Country:     "CA",
 	},
 	{
 		FirstName:   "Jenelle",
@@ -28,6 +30,7 @@ var staff = []Staff{
 		Role:        "SuperAdmin",
 		PhoneNumber: "604-813-7589",
 		Email:       "jenelle.hawrys@treewalk.com",
+		Country:     "CA",
 	},
 	{
 		FirstName:   "Kelvin",
@@ -35,6 +38,7 @@ var staff = []Staff{
 		Role:        "SuperAdmin",
 		PhoneNumber: "403-479-2965",
 		Email:       "info@riseup-hoops.com",
+		Country:     "CA",
 	},
 	{
 		FirstName:   "Rise Front Desk",
@@ -42,6 +46,7 @@ var staff = []Staff{
 		Role:        "Receptionist",
 		PhoneNumber: "",
 		Email:       "bre@risesportscomplex.com",
+		Country:     "CA",
 	},
 	{
 		FirstName:   "Sait",
@@ -49,6 +54,7 @@ var staff = []Staff{
 		Role:        "SuperAdmin",
 		PhoneNumber: "",
 		Email:       "rise.development@outlook.com",
+		Country:     "CA",
 	},
 	{
 		FirstName:   "Steve",
@@ -56,6 +62,7 @@ var staff = []Staff{
 		Role:        "SuperAdmin",
 		PhoneNumber: "",
 		Email:       "ssnider236@gmail.com",
+		Country:     "CA",
 	},
 	{
 		FirstName:   "Steve",
@@ -63,6 +70,7 @@ var staff = []Staff{
 		Role:        "Receptionist",
 		PhoneNumber: "587-834-5823",
 		Email:       "s75snider@gmail.com",
+		Country:     "CA",
 	},
 	{
 		FirstName:   "Sunny",
@@ -70,6 +78,7 @@ var staff = []Staff{
 		Role:        "Admin",
 		PhoneNumber: "",
 		Email:       "sunny@risesportscomplex.com",
+		Country:     "CA",
 	},
 	{
 		FirstName:   "Test",
@@ -77,6 +86,31 @@ var staff = []Staff{
 		Role:        "Coach",
 		PhoneNumber: "",
 		Email:       "viktor.djurasic+1@abcfitness.com",
+		Country:     "CA",
+	},
+	{
+		FirstName:   "Klint",
+		LastName:    "Lee",
+		Role:        "Admin",
+		PhoneNumber: "",
+		Email:       "klintlee1@gmail.com",
+		Country:     "CA",
+	},
+	{
+		FirstName:   "Sukhdeep",
+		LastName:    "Singh",
+		Role:        "Admin",
+		PhoneNumber: "",
+		Email:       "sukhdeepboparai2005@gmail.com",
+		Country:     "CA",
+	},
+	{
+		FirstName:   "Coach",
+		LastName:    "Mike",
+		Role:        "Coach",
+		PhoneNumber: "",
+		Email:       "coach@test.com",
+		Country:     "IR",
 	},
 	{
 		FirstName:   "Coach",
@@ -127,7 +161,7 @@ func GetStaffsAsClients() dbSeed.InsertClientsParams {
 	for _, s := range staff {
 		firstNameArray = append(firstNameArray, s.FirstName)
 		lastNameArray = append(lastNameArray, s.LastName)
-		countryArray = append(countryArray, "CA")
+		countryArray = append(countryArray, s.Country)
 		genderArray = append(genderArray, "N")
 		phoneArray = append(phoneArray, s.PhoneNumber)
 		ageArray = append(ageArray, 1)

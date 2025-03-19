@@ -159,6 +159,13 @@ SELECT country_alpha2_code,
 FROM prepared_data
 RETURNING id;
 
+
+-- name: InsertAthletes :many
+INSERT
+INTO users.athletes (id)
+VALUES (unnest(@id_array::uuid[]))
+RETURNING id;
+
 -- -- name: InsertClientsMembershipPlans :exec
 -- WITH prepared_data AS (SELECT unnest(@customer_id_array::uuid[])  AS customer_id,
 --                               unnest(

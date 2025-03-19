@@ -135,6 +135,20 @@ func seedClients(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 	return ids, nil
 }
 
+func seedAthletes(ctx context.Context, db *sql.DB, ids []uuid.UUID) ([]uuid.UUID, error) {
+
+	seedQueries := dbSeed.New(db)
+
+	ids, err := seedQueries.InsertAthletes(ctx, ids)
+
+	if err != nil {
+		log.Fatalf("Failed to insert clients: %v", err)
+		return nil, err
+	}
+
+	return ids, nil
+}
+
 func seedPractices(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 
 	seedQueries := dbSeed.New(db)
@@ -488,6 +502,13 @@ func main() {
 	}
 
 	clientIds, err := seedClients(ctx, db)
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	_, err = seedAthletes(ctx, db, clientIds)
 
 	if err != nil {
 		log.Println(err)

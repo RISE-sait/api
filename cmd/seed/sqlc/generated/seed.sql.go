@@ -14,6 +14,36 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+const insertAthletes = `-- name: InsertAthletes :many
+INSERT
+INTO users.athletes (id)
+VALUES(unnest($1::uuid[]))
+RETURNING id
+`
+
+func (q *Queries) InsertAthletes(ctx context.Context, idArray []uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, insertAthletes, pq.Array(idArray))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertClients = `-- name: InsertClients :many
 WITH prepared_data AS (SELECT unnest($1::text[])            AS country_alpha2_code,
                               unnest($2::text[])                     AS first_name,
@@ -38,7 +68,7 @@ WITH prepared_data AS (SELECT unnest($1::text[])            AS country_alpha2_co
                                                          END
                                               FROM unnest($6::char[]) AS gender
                                       )
-                              )                                                     AS gender,
+                              ) AS gender,
                               unnest($7::text[])                          AS phone,
                               unnest($8::text[])                          AS email,
                               unnest($9::boolean[]) AS has_marketing_email_consent,
@@ -629,31 +659,26 @@ func (q *Queries) InsertPractices(ctx context.Context, arg InsertPracticesParams
 }
 
 const insertStaff = `-- name: InsertStaff :exec
-WITH staff_data AS (
-    SELECT
-        e.email,
-        ia.is_active,
-        rn.role_name
-    FROM
-        unnest($1::text[]) WITH ORDINALITY AS e(email, idx)
-            JOIN
-        unnest($2::bool[]) WITH ORDINALITY AS ia(is_active, idx)
-        ON e.idx = ia.idx
-            JOIN
-        unnest($3::text[]) WITH ORDINALITY AS rn(role_name, idx)
-        ON e.idx = rn.idx
-)
-INSERT INTO users.staff (id, is_active, role_id)
-SELECT
-    u.id,
-    sd.is_active,
-    sr.id
-FROM
-    staff_data sd
-        JOIN
-    users.users u ON u.email = sd.email
-        JOIN
-    users.staff_roles sr ON sr.role_name = sd.role_name
+WITH staff_data AS (SELECT e.email,
+                           ia.is_active,
+                           rn.role_name
+                    FROM unnest($1::text[]) WITH ORDINALITY AS e(email, idx)
+                             JOIN
+                         unnest($2::bool[]) WITH ORDINALITY AS ia(is_active, idx)
+                         ON e.idx = ia.idx
+                             JOIN
+                         unnest($3::text[]) WITH ORDINALITY AS rn(role_name, idx)
+                         ON e.idx = rn.idx)
+INSERT
+INTO users.staff (id, is_active, role_id)
+SELECT u.id,
+       sd.is_active,
+       sr.id
+FROM staff_data sd
+         JOIN
+     users.users u ON u.email = sd.email
+         JOIN
+     users.staff_roles sr ON sr.role_name = sd.role_name
 `
 
 type InsertStaffParams struct {
@@ -673,6 +698,7 @@ VALUES ('admin'),
        ('superadmin'),
        ('coach'),
        ('instructor'),
+       ('receptionist'),
        ('barber')
 `
 

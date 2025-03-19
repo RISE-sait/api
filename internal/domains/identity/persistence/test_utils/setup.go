@@ -40,6 +40,8 @@ create table if not exists users.users
 alter table users.users
     owner to postgres;
 
+CREATE SCHEMA IF NOT EXISTS membership;
+
 create table membership.memberships
 (
     id          uuid                     default gen_random_uuid() not null
@@ -94,9 +96,6 @@ create table public.customer_membership_plans
 
 alter table public.customer_membership_plans
     owner to postgres;
-
-
-
 
 `
 

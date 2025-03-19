@@ -122,7 +122,7 @@ func GetClients() ([]Client, error) {
 			Phone:            record[4],
 			Age:              age,
 			Gender:           gender,
-			CountryAlpha2:    "CA",
+			CountryAlpha2:    record[8],
 			MembershipName:   membershipNamePtr,
 			MembershipPlan:   membershipPlanPtr,
 			MembershipExpiry: membershipExpiry,

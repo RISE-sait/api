@@ -111,7 +111,8 @@ func (q *Queries) GetIsAthleteByID(ctx context.Context, id uuid.UUID) (bool, err
 
 const getIsUserAParent = `-- name: GetIsUserAParent :one
 SELECT COUNT(*) > 0
-FROM users.users WHERE parent_id = $1
+FROM users.users
+WHERE parent_id = $1
 `
 
 func (q *Queries) GetIsUserAParent(ctx context.Context, parentID uuid.NullUUID) (bool, error) {
@@ -123,28 +124,26 @@ func (q *Queries) GetIsUserAParent(ctx context.Context, parentID uuid.NullUUID) 
 
 const getUserByIdOrEmail = `-- name: GetUserByIdOrEmail :one
 WITH u
-    as (SELECT id, hubspot_id, country_alpha2_code, gender, first_name, last_name, age, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at
-        FROM users.users u2
-        WHERE (u2.id = $1 OR $1 IS NULL)
-          AND (u2.email = $2 OR $2 IS NULL)
-        LIMIT 1
-),
-     latest_cmp AS (
-         SELECT DISTINCT ON (customer_id) id, customer_id, membership_plan_id, start_date, renewal_date, status, created_at, updated_at
-         FROM public.customer_membership_plans
-         WHERE customer_id = (SELECT id FROM u)
-         ORDER BY customer_id, start_date DESC
-     )
-    SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.age, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at,
-         mp.name as membership_plan_name,
-         mp.auto_renew as membership_plan_auto_renew,
-         cmp.start_date as membership_plan_start_date,
-         cmp.renewal_date as membership_plan_renewal_date,
-         m.name as membership_name
-  from u LEFT JOIN
-       latest_cmp cmp ON cmp.customer_id = u.id
-LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
-LEFT JOIN membership.memberships m ON m.id = mp.membership_id
+         as (SELECT id, hubspot_id, country_alpha2_code, gender, first_name, last_name, age, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at
+             FROM users.users u2
+             WHERE (u2.id = $1 OR $1 IS NULL)
+               AND (u2.email = $2 OR $2 IS NULL)
+             LIMIT 1),
+     latest_cmp AS (SELECT DISTINCT ON (customer_id) id, customer_id, membership_plan_id, start_date, renewal_date, status, created_at, updated_at
+                    FROM public.customer_membership_plans
+                    WHERE customer_id = (SELECT id FROM u)
+                    ORDER BY customer_id, start_date DESC)
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.age, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at,
+       mp.name          as membership_plan_name,
+       mp.auto_renew    as membership_plan_auto_renew,
+       cmp.start_date   as membership_plan_start_date,
+       cmp.renewal_date as membership_plan_renewal_date,
+       m.name           as membership_name
+from u
+         LEFT JOIN
+     latest_cmp cmp ON cmp.customer_id = u.id
+         LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
+         LEFT JOIN membership.memberships m ON m.id = mp.membership_id
 `
 
 type GetUserByIdOrEmailParams struct {

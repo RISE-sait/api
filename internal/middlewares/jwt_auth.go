@@ -13,12 +13,11 @@ import (
 type ContextKey string
 
 const (
-	UserIDKey    ContextKey = "userId"
-	HubspotIDKey ContextKey = "hubspotId"
+	UserIDKey ContextKey = "userId"
 )
 
 // JWTAuthMiddleware validates JWT tokens and checks user roles.
-// It allows SUPERADMIN access to all routes and grants access if the user's role matches any allowed role (case-insensitive).
+// It allows superadmin access to all routes and grants access if the user's role matches any allowed role (case-insensitive).
 // If isAllowAnyoneWithValidToken is true, any user with a valid token is allowed, regardless of roles.
 // Responds with 401 for missing/invalid tokens and 403 for unauthorized roles.
 // Adds token claims to the request context.

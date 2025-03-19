@@ -143,7 +143,13 @@ func TestUpdateUser(t *testing.T) {
 	require.NoError(t, err)
 
 	// Fetch the updated user
-	updatedUser, err := queries.GetUserByID(context.Background(), createdUser.ID)
+	updatedUser, err := queries.GetUserByIdOrEmail(context.Background(), db.GetUserByIdOrEmailParams{
+		ID: uuid.NullUUID{
+			UUID:  createdUser.ID,
+			Valid: true,
+		},
+		Email: sql.NullString{Valid: false},
+	})
 	require.NoError(t, err)
 
 	// Assert the updated fields
@@ -165,7 +171,13 @@ func TestGetNonExistingUser(t *testing.T) {
 
 	defer cleanup()
 
-	_, err := queries.GetUserByID(context.Background(), uuid.Nil)
+	_, err := queries.GetUserByIdOrEmail(context.Background(), db.GetUserByIdOrEmailParams{
+		ID: uuid.NullUUID{
+			UUID:  uuid.Nil,
+			Valid: true,
+		},
+		Email: sql.NullString{Valid: false},
+	})
 
 	require.Equal(t, sql.ErrNoRows, err)
 }

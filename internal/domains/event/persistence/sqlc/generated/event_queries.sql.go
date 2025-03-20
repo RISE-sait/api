@@ -7,6 +7,7 @@ package event_db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"api/internal/custom_types"
@@ -14,7 +15,8 @@ import (
 )
 
 const createEvent = `-- name: CreateEvent :exec
-INSERT INTO events (program_start_at, program_end_at, session_start_time, session_end_time, day, location_id, course_id, practice_id, game_id)
+INSERT INTO events (program_start_at, program_end_at, session_start_time, session_end_time, day, location_id, course_id,
+                    practice_id, game_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 `
 
@@ -85,11 +87,12 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (Event, error)
 const getEvents = `-- name: GetEvents :many
 SELECT id, program_start_at, program_end_at, practice_id, course_id, game_id, location_id, created_at, updated_at, day, session_start_time, session_end_time
 FROM events
-WHERE
-  ($1 = course_id OR $1 IS NULL)
+WHERE ($1 = course_id OR $1 IS NULL)
   AND ($2 = game_id OR $2 IS NULL)
   AND ($3 = practice_id OR $3 IS NULL)
   AND ($4 = location_id OR $4 IS NULL)
+AND ($5 >= events.program_start_at OR $5 IS NULL) -- within boundary
+  AND ($6 <= events.program_end_at OR $6 IS NULL)
 `
 
 type GetEventsParams struct {
@@ -97,6 +100,8 @@ type GetEventsParams struct {
 	GameID     uuid.NullUUID `json:"game_id"`
 	PracticeID uuid.NullUUID `json:"practice_id"`
 	LocationID uuid.NullUUID `json:"location_id"`
+	Before     sql.NullTime  `json:"before"`
+	After      sql.NullTime  `json:"after"`
 }
 
 func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]Event, error) {
@@ -105,6 +110,8 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]Event, 
 		arg.GameID,
 		arg.PracticeID,
 		arg.LocationID,
+		arg.Before,
+		arg.After,
 	)
 	if err != nil {
 		return nil, err
@@ -142,15 +149,15 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]Event, 
 
 const updateEvent = `-- name: UpdateEvent :exec
 UPDATE events
-SET program_start_at = $1,
-    program_end_at   = $2,
+SET program_start_at   = $1,
+    program_end_at     = $2,
     location_id    = $3,
     practice_id    = $4,
     course_id      = $5,
     game_id        = $6,
     session_start_time = $7,
-    session_end_time = $8,
-    day = $9,
+    session_end_time   = $8,
+    day                = $9,
     updated_at     = current_timestamp
 WHERE id = $10
 `

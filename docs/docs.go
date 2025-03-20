@@ -964,8 +964,22 @@ const docTemplate = `{
                 "tags": [
                     "events"
                 ],
-                "summary": "Get all events",
+                "summary": "Get events",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "example": "\"2025-03-01\"",
+                        "description": "Start date of the events range (YYYY-MM-DD)",
+                        "name": "after",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"2025-03-31\"",
+                        "description": "End date of the events range (YYYY-MM-DD)",
+                        "name": "before",
+                        "in": "query"
+                    },
                     {
                         "type": "string",
                         "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
@@ -3911,8 +3925,14 @@ const docTemplate = `{
                 "first_name": {
                     "type": "string"
                 },
+                "gender": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
+                },
+                "is_active_staff": {
+                    "type": "boolean"
                 },
                 "last_name": {
                     "type": "string"

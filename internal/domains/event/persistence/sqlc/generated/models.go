@@ -358,12 +358,13 @@ type BarberBarberEvent struct {
 }
 
 type CourseCourse struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Capacity    int32     `json:"capacity"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID          uuid.UUID      `json:"id"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Capacity    int32          `json:"capacity"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	PaygPrice   sql.NullString `json:"payg_price"`
 }
 
 type CourseMembership struct {
@@ -436,11 +437,6 @@ type Event struct {
 	SessionEndTime   custom_types.TimeWithTimeZone `json:"session_end_time"`
 }
 
-type EventStaff struct {
-	EventID uuid.UUID `json:"event_id"`
-	StaffID uuid.UUID `json:"staff_id"`
-}
-
 type Game struct {
 	ID   uuid.UUID `json:"id"`
 	Name string    `json:"name"`
@@ -474,13 +470,14 @@ type MembershipMembershipPlan struct {
 }
 
 type Practice struct {
-	ID          uuid.UUID     `json:"id"`
-	Name        string        `json:"name"`
-	Description string        `json:"description"`
-	Level       PracticeLevel `json:"level"`
-	Capacity    int32         `json:"capacity"`
-	CreatedAt   time.Time     `json:"created_at"`
-	UpdatedAt   time.Time     `json:"updated_at"`
+	ID          uuid.UUID      `json:"id"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Level       PracticeLevel  `json:"level"`
+	Capacity    int32          `json:"capacity"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	PaygPrice   sql.NullString `json:"payg_price"`
 }
 
 type PracticeMembership struct {
@@ -488,6 +485,11 @@ type PracticeMembership struct {
 	MembershipID    uuid.UUID      `json:"membership_id"`
 	PricePerBooking sql.NullString `json:"price_per_booking"`
 	IsEligible      bool           `json:"is_eligible"`
+}
+
+type SessionStaff struct {
+	EventID uuid.UUID `json:"event_id"`
+	StaffID uuid.UUID `json:"staff_id"`
 }
 
 type UsersAthlete struct {

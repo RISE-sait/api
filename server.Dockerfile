@@ -19,7 +19,6 @@ COPY . .
 RUN cd internal/domains/course/persistence/sqlc && sqlc generate
 RUN cd internal/domains/enrollment/persistence/sqlc && sqlc generate
 RUN cd internal/domains/event/persistence/sqlc && sqlc generate
-RUN cd internal/domains/event_staff/persistence/sqlc && sqlc generate
 RUN cd internal/domains/game/persistence/sqlc && sqlc generate
 RUN cd internal/domains/haircut/persistence/sqlc && sqlc generate
 RUN cd internal/domains/identity/persistence/sqlc && sqlc generate

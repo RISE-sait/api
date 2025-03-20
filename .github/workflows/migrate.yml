@@ -1,10 +1,11 @@
 name: Migrate Database
 
 on:
-  workflow_run:
-    workflows: [ "Run Tests with Testcontainers" ]
-    types:
-      - completed
+  push:
+    branches:
+      - main  # Change this to match your API repo's default branch
+    paths:
+      - 'db/migrations/**/*'
 
 
 jobs:

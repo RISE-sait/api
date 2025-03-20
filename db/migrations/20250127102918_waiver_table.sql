@@ -4,7 +4,7 @@
 
 CREATE SCHEMA IF NOT EXISTS waiver;
 
-CREATE TABLE waiver.waiver
+CREATE TABLE IF NOT EXISTS waiver.waiver
 (
     id          UUID PRIMARY KEY     DEFAULT gen_random_uuid(),
     waiver_url  TEXT        NOT NULL UNIQUE,
@@ -13,7 +13,7 @@ CREATE TABLE waiver.waiver
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE waiver.waiver_signing
+CREATE TABLE IF NOT EXISTS waiver.waiver_signing
 (
     user_id    UUID        NOT NULL,
     waiver_id  UUID        NOT NULL,

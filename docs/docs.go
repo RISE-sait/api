@@ -110,6 +110,57 @@ const docTemplate = `{
                 }
             }
         },
+        "/checkout/membership_plans/{id}": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Generates a payment link for purchasing a membership plan.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "purchases"
+                ],
+                "summary": "Checkout a membership plan",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Membership plan ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Payment link generated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/purchase.CheckoutResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error: Failed to process checkout",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/courses": {
             "get": {
                 "description": "Get a list of courses",
@@ -196,7 +247,7 @@ const docTemplate = `{
         },
         "/courses/{id}": {
             "get": {
-                "description": "Get a course by Id",
+                "description": "Get a course by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -206,11 +257,11 @@ const docTemplate = `{
                 "tags": [
                     "courses"
                 ],
-                "summary": "Get a course by Id",
+                "summary": "Get a course by ID",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Course Id",
+                        "description": "Course ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -224,7 +275,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request: Invalid Id",
+                        "description": "Bad Request: Invalid ID",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -802,156 +853,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/event-staff": {
-            "get": {
-                "description": "Retrieve all staff assigned to an event using event_id as a query parameter.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "event_staff"
-                ],
-                "summary": "Get staff assigned to an event",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Event ID (UUID)",
-                        "name": "event_id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "GetMemberships of staff assigned to the event",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/staff.ResponseDto"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Event not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Assign a staff member to an event using event_id and staff_id in the request body.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "event_staff"
-                ],
-                "summary": "Assign a staff member to an event",
-                "parameters": [
-                    {
-                        "description": "Event and staff assignment details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/event_staff.RequestDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Staff successfully assigned to event",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "description": "Remove a staff member from an event using event_id and staff_id in the request body.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "event_staff"
-                ],
-                "summary": "Unassign a staff member from an event",
-                "parameters": [
-                    {
-                        "description": "Event and staff unassignment details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/event_staff.RequestDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Staff successfully unassigned from event",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/events": {
             "get": {
                 "description": "Retrieve all events within a specific date range, with optional filters by course, location, game, and practice.",
@@ -1061,6 +962,168 @@ const docTemplate = `{
                 "responses": {
                     "201": {
                         "description": "Event created successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/events/{event_id}/staffs": {
+            "get": {
+                "description": "Retrieve all staff assigned to an event using event_id as a query parameter.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "event_staff"
+                ],
+                "summary": "Get staff assigned to an event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Event ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "GetMemberships of staff assigned to the event",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/staff.ResponseDto"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Event not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/events/{event_id}/staffs/{staff_id}": {
+            "post": {
+                "description": "Assign a staff member to an event using event_id and staff_id in the request body.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "event_staff"
+                ],
+                "summary": "Assign a staff member to an event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Event ID",
+                        "name": "event_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Staff ID",
+                        "name": "staff_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Staff successfully assigned to event",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Remove a staff member from an event using event_id and staff_id in the request body.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "event_staff"
+                ],
+                "summary": "Unassign a staff member from an event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Event ID",
+                        "name": "event_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Staff ID",
+                        "name": "staff_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Staff successfully unassigned from event",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2855,14 +2918,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/purchases/memberships": {
+        "/purchases/square/webhook": {
             "post": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "Allows a customer to purchase a membership plan by providing the plan details.",
+                "description": "Receives and processes payment updates from Square.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2872,21 +2930,21 @@ const docTemplate = `{
                 "tags": [
                     "purchases"
                 ],
-                "summary": "Purchase a membership plan",
+                "summary": "Handle Square Webhook",
                 "parameters": [
                     {
-                        "description": "Membership purchase details",
+                        "description": "Square Webhook Event",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/purchase.MembershipPlanRequestDto"
+                            "$ref": "#/definitions/purchase.SquareWebhookEventDto"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Membership purchased successfully",
+                        "description": "Webhook processed successfully",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2900,7 +2958,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error: Failed to process membership purchase",
+                        "description": "Internal Server Error: Failed to process webhook event",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3722,25 +3780,6 @@ const docTemplate = `{
                 }
             }
         },
-        "event_staff.EventStaffBase": {
-            "type": "object",
-            "properties": {
-                "event_id": {
-                    "type": "string"
-                },
-                "staff_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "event_staff.RequestDto": {
-            "type": "object",
-            "properties": {
-                "base": {
-                    "$ref": "#/definitions/event_staff.EventStaffBase"
-                }
-            }
-        },
         "game.RequestDto": {
             "type": "object",
             "properties": {
@@ -4129,22 +4168,16 @@ const docTemplate = `{
                 }
             }
         },
-        "purchase.MembershipPlanRequestDto": {
+        "purchase.CheckoutResponseDto": {
             "type": "object",
-            "required": [
-                "start_date"
-            ],
             "properties": {
-                "membership_plan_id": {
-                    "type": "string"
-                },
-                "start_date": {
-                    "type": "string"
-                },
-                "status": {
+                "payment_url": {
                     "type": "string"
                 }
             }
+        },
+        "purchase.SquareWebhookEventDto": {
+            "type": "object"
         },
         "staff.RegistrationRequestDto": {
             "type": "object",

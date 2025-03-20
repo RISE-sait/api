@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE TYPE practice_level AS ENUM ('beginner', 'intermediate', 'advanced', 'all');
 
-CREATE TABLE practices
+CREATE TABLE IF NOT EXISTS practices
 (
     id                                UUID PRIMARY KEY                  DEFAULT gen_random_uuid(),
     name VARCHAR(150) NOT NULL UNIQUE,

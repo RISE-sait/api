@@ -1,11 +1,11 @@
 -- +goose Up
-CREATE TABLE users.staff_roles
+CREATE TABLE IF NOT EXISTS users.staff_roles
 (
     id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     role_name TEXT NOT NULL UNIQUE
 );
 
-CREATE Table users.staff
+CREATE Table IF NOT EXISTS users.staff
 (
     id         UUID PRIMARY KEY REFERENCES users.users (id),
     is_active  BOOLEAN                  NOT NULL DEFAULT TRUE,
@@ -14,7 +14,7 @@ CREATE Table users.staff
     role_id    UUID                     NOT NULL REFERENCES users.staff_roles (id)
 );
 
-CREATE TABLE users.staff_activity_logs
+CREATE TABLE IF NOT EXISTS users.staff_activity_logs
 (
     id          UUID PRIMARY KEY       DEFAULT gen_random_uuid(),
     user_id     UUID          NOT NULL,

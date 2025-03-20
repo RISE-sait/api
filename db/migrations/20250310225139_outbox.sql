@@ -6,7 +6,7 @@ CREATE SCHEMA IF NOT EXISTS audit;
 
 CREATE TYPE audit_status AS ENUM ('PENDING', 'COMPLETED', 'FAILED');
 
-CREATE TABLE audit.outbox
+CREATE TABLE IF NOT EXISTS audit.outbox
 (
     id            UUID PRIMARY KEY      DEFAULT gen_random_uuid(),
     sql_statement TEXT         NOT NULL,                   -- SQL statement for admin review

@@ -1,6 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE customer_enrollment (
+CREATE TABLE IF NOT EXISTS customer_enrollment
+(
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_id UUID NOT NUll,
     event_id UUID NOT NULL,
@@ -16,7 +17,8 @@ CREATE TABLE customer_enrollment (
     )
 );
 
-CREATE TABLE event_staff (
+CREATE TABLE IF NOT EXISTS event_staff
+(
     event_id UUID NOT NULL,
     staff_id UUID NOT NULL,
     PRIMARY KEY (event_id, staff_id),

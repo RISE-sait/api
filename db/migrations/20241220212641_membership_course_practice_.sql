@@ -1,6 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE course_membership (
+CREATE TABLE IF NOT EXISTS course_membership
+(
     course_id UUID NOT NULL,
     membership_id UUID NOT NULL,
     price_per_booking DECIMAL(4, 2),
@@ -19,7 +20,8 @@ CREATE TABLE course_membership (
     )
 );
 
-CREATE TABLE practice_membership (
+CREATE TABLE IF NOT EXISTS practice_membership
+(
     practice_id UUID NOT NULL,
     membership_id UUID NOT NULL,
     price_per_booking DECIMAL(4, 2) NULL,

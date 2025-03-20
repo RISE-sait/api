@@ -17,8 +17,6 @@ import (
 
 	eventHandler "api/internal/domains/event/handler"
 	eventRepo "api/internal/domains/event/persistence/repository"
-	eventStaffHandler "api/internal/domains/event_staff/handler"
-	eventStaffRepo "api/internal/domains/event_staff/persistence/repository"
 	barber "api/internal/domains/haircut/handler/events"
 	haircut "api/internal/domains/haircut/handler/haircuts"
 	barberEventRepo "api/internal/domains/haircut/persistence/repository/event"
@@ -63,15 +61,17 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		"/enrollments": RegisterEnrollmentRoutes,
 
 		// Users & Staff routes
-		"/customers":   RegisterCustomerRoutes,
-		"/staffs":      RegisterStaffRoutes,
-		"/event-staff": RegisterEventStaffRoutes,
+		"/customers": RegisterCustomerRoutes,
+		"/staffs":    RegisterStaffRoutes,
 
 		// Haircut routes
 		"/haircuts": RegisterHaircutRoutes,
 
 		// Purchase-related routes
-		"/purchases": RegisterPurchasesRoutes,
+		"/checkout": RegisterCheckoutRoutes,
+
+		// Webhooks
+		"/webhooks": RegisterWebhooksRoutes,
 	}
 
 	for path, handler := range routeMappings {
@@ -211,9 +211,11 @@ func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Get("/", handler.GetEvents)
 		r.Get("/{id}", handler.GetEvent)
-		r.Post("/", handler.CreateEvent)
+		r.With(allowAdminOnly).Post("/", handler.CreateEvent)
 		r.With(allowAdminOnly).Put("/{id}", handler.UpdateEvent)
 		r.With(allowAdminOnly).Delete("/{id}", handler.DeleteEvent)
+
+		r.Route("/{event_id}/staffs", RegisterEventStaffRoutes(container))
 	}
 }
 
@@ -230,14 +232,13 @@ func RegisterStaffRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterEventStaffRoutes(container *di.Container) func(chi.Router) {
 
-	repo := eventStaffRepo.NewEventStaffsRepository(container.Queries.EventStaffDb)
-	h := eventStaffHandler.NewEventStaffsHandler(repo)
+	repo := eventRepo.NewEventStaffsRepository(container.Queries.EventDb)
+	h := eventHandler.NewEventStaffsHandler(repo)
 
 	return func(r chi.Router) {
-		r.Get("/{id}", h.GetStaffsAssignedToEvent)
-
-		r.With(allowAdminOnly).Post("/", h.AssignStaffToEvent)
-		r.With(allowAdminOnly).Delete("/", h.UnassignStaffFromEvent)
+		r.Get("/", h.GetStaffsAssignedToEvent)
+		r.With(allowAdminOnly).Post("/{staff_id}", h.AssignStaffToEvent)
+		r.With(allowAdminOnly).Delete("/{staff_id}", h.UnassignStaffFromEvent)
 	}
 }
 
@@ -255,12 +256,21 @@ func RegisterEnrollmentRoutes(container *di.Container) func(chi.Router) {
 	}
 }
 
-func RegisterPurchasesRoutes(container *di.Container) func(chi.Router) {
+func RegisterCheckoutRoutes(container *di.Container) func(chi.Router) {
 
 	h := purchase.NewPurchaseHandlers(container)
 
 	return func(r chi.Router) {
-		r.With(allowAdminOnly).Post("/memberships", h.PurchaseMembership)
+		r.With(allowAnyoneWithValidToken).Post("/membership_plans/{id}", h.CheckoutMembership)
+	}
+}
+
+func RegisterWebhooksRoutes(container *di.Container) func(chi.Router) {
+
+	h := purchase.NewPurchaseHandlers(container)
+
+	return func(r chi.Router) {
+		r.Post("/square", h.HandleSquareWebhook)
 	}
 }
 

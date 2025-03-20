@@ -57,15 +57,15 @@ func (h *Handler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusCreated)
 }
 
-// GetCourseById retrieves a course by Id.
-// @Summary Get a course by Id
-// @Description Get a course by Id
+// GetCourseById retrieves a course by ID.
+// @Summary Get a course by ID
+// @Description Get a course by ID
 // @Tags courses
 // @Accept json
 // @Produce json
-// @Param id path string true "Course Id"
+// @Param id path string true "Course ID"
 // @Success 200 {object} course.ResponseDto "Course retrieved successfully"
-// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid Id"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Course not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /courses/{id} [get]

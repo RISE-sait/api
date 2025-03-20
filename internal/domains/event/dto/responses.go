@@ -23,8 +23,8 @@ func NewEventResponse(event values.ReadEventValues) ResponseDto {
 		ID:             event.ID,
 		ProgramStartAt: event.ProgramStartAt.String(),
 		ProgramEndAt:   event.ProgramStartAt.String(),
-		SessionStart:   event.SessionStartTime.Time,
-		SessionEnd:     event.SessionEndTime.Time,
+		SessionStart:   event.EventStartTime.Time,
+		SessionEnd:     event.EventEndTime.Time,
 		Day:            event.Day,
 	}
 

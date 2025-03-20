@@ -1,6 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE customer_discount_usage (
+CREATE TABLE IF NOT EXISTS customer_discount_usage
+(
     customer_id UUID NOT NULL,
     discount_id UUID NOT NULL,
     usage_count INT NOT NULL DEFAULT 1,

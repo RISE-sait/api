@@ -1,4 +1,4 @@
-package event_sqlc_test
+package tests_test
 
 //
 //import (
@@ -58,10 +58,10 @@ package event_sqlc_test
 //	createEventParams := eventDb.CreateEventParams{
 //		EventStartAt: now,
 //		EventEndAt:   now.Add(time.Hour * 24),
-//		SessionStartTime: custom_types.TimeWithTimeZone{
+//		EventStartTime: custom_types.TimeWithTimeZone{
 //			Time: now.Add(1 * time.Hour).UTC().Format("15:04:05+00:00"),
 //		},
-//		SessionEndTime: custom_types.TimeWithTimeZone{
+//		EventEndTime: custom_types.TimeWithTimeZone{
 //			Time: now.Add(2 * time.Hour).UTC().Format("15:04:05+00:00"),
 //		},
 //		LocationID: facility.ID,
@@ -73,8 +73,8 @@ package event_sqlc_test
 //
 //	require.NoError(t, err)
 //
-//	require.Equal(t, createEventParams.SessionStartTime.Time, event.SessionStartTime.Time)
-//	require.Equal(t, createEventParams.SessionEndTime.Time, event.SessionEndTime.Time)
+//	require.Equal(t, createEventParams.EventStartTime.Time, event.EventStartTime.Time)
+//	require.Equal(t, createEventParams.EventEndTime.Time, event.EventEndTime.Time)
 //
 //	require.Equal(t, createEventParams.LocationID, event.LocationID)
 //	require.Equal(t, createEventParams.PracticeID, event.PracticeID)
@@ -105,10 +105,10 @@ package event_sqlc_test
 //
 //	// Create an event to update
 //	createEventParams := eventDb.CreateEventParams{
-//		SessionStartTime: custom_types.TimeWithTimeZone{
+//		EventStartTime: custom_types.TimeWithTimeZone{
 //			Time: now.Add(1 * time.Hour).UTC().Format("15:04:05+00:00"),
 //		},
-//		SessionEndTime: custom_types.TimeWithTimeZone{
+//		EventEndTime: custom_types.TimeWithTimeZone{
 //			Time: now.Add(2 * time.Hour).UTC().Format("15:04:05+00:00"),
 //		},
 //		LocationID: facility.ID,
@@ -125,8 +125,8 @@ package event_sqlc_test
 //
 //	updateEventParams := eventDb.UpdateEventParams{
 //		ID:               event.ID,
-//		SessionStartTime: custom_types.TimeWithTimeZone{Time: newBeginTime},
-//		SessionEndTime:   custom_types.TimeWithTimeZone{Time: newEndTime},
+//		EventStartTime: custom_types.TimeWithTimeZone{Time: newBeginTime},
+//		EventEndTime:   custom_types.TimeWithTimeZone{Time: newEndTime},
 //		LocationID:       event.LocationID,
 //		PracticeID:       event.PracticeID,
 //		Day:              event.Day,
@@ -136,8 +136,8 @@ package event_sqlc_test
 //	require.NoError(t, err)
 //
 //	// Assert updated event data (only comparing time)
-//	require.Equal(t, newBeginTime, updatedEvent.SessionStartTime.Time)
-//	require.Equal(t, newEndTime, updatedEvent.SessionEndTime.Time)
+//	require.Equal(t, newBeginTime, updatedEvent.EventStartTime.Time)
+//	require.Equal(t, newEndTime, updatedEvent.EventEndTime.Time)
 //}
 //
 //func TestDeleteEvent(t *testing.T) {
@@ -174,10 +174,10 @@ package event_sqlc_test
 //
 //	// Create an event to delete
 //	createEventParams := eventDb.CreateEventParams{
-//		SessionStartTime: custom_types.TimeWithTimeZone{
+//		EventStartTime: custom_types.TimeWithTimeZone{
 //			Time: now.Add(1 * time.Hour).UTC().Format("15:04:05+00:00"),
 //		},
-//		SessionEndTime: custom_types.TimeWithTimeZone{
+//		EventEndTime: custom_types.TimeWithTimeZone{
 //			Time: now.Add(2 * time.Hour).UTC().Format("15:04:05+00:00"),
 //		},
 //		LocationID: facility.ID,
@@ -233,10 +233,10 @@ package event_sqlc_test
 //
 //	// Create an event
 //	createEventParams := eventDb.CreateEventParams{
-//		SessionStartTime: custom_types.TimeWithTimeZone{
+//		EventStartTime: custom_types.TimeWithTimeZone{
 //			Time: now.Add(1 * time.Hour).UTC().Format("15:04:05+00:00"),
 //		},
-//		SessionEndTime: custom_types.TimeWithTimeZone{
+//		EventEndTime: custom_types.TimeWithTimeZone{
 //			Time: now.Add(2 * time.Hour).UTC().Format("15:04:05+00:00"),
 //		},
 //		LocationID: facility.ID,
@@ -253,8 +253,8 @@ package event_sqlc_test
 //
 //	// Assert fetched event matches created event
 //	require.Equal(t, event.ID, fetchedEvent.ID)
-//	require.Equal(t, event.SessionStartTime.Time, fetchedEvent.SessionStartTime.Time)
-//	require.Equal(t, event.SessionEndTime.Time, fetchedEvent.SessionEndTime.Time)
+//	require.Equal(t, event.EventStartTime.Time, fetchedEvent.EventStartTime.Time)
+//	require.Equal(t, event.EventEndTime.Time, fetchedEvent.EventEndTime.Time)
 //}
 //
 //func TestGetEvents(t *testing.T) {
@@ -300,10 +300,10 @@ package event_sqlc_test
 //		log.Println("end ", endTime)
 //
 //		createEventParams := eventDb.CreateEventParams{
-//			SessionStartTime: custom_types.TimeWithTimeZone{
+//			EventStartTime: custom_types.TimeWithTimeZone{
 //				Time: beginTime,
 //			},
-//			SessionEndTime: custom_types.TimeWithTimeZone{
+//			EventEndTime: custom_types.TimeWithTimeZone{
 //				Time: endTime,
 //			},
 //			LocationID: facility.ID,

@@ -1,4 +1,4 @@
-package event_sqlc_test
+package tests_test
 
 //
 //import (

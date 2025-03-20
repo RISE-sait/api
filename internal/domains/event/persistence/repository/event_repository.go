@@ -42,12 +42,12 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 	}
 
 	dbParams := db.CreateEventParams{
-		ProgramStartAt:   eventDetails.ProgramStartAt,
-		ProgramEndAt:     eventDetails.ProgramEndAt,
-		SessionStartTime: eventDetails.SessionStartTime,
-		SessionEndTime:   eventDetails.SessionEndTime,
-		Day:              db.DayEnum(eventDetails.Day),
-		LocationID:       eventDetails.LocationID,
+		ProgramStartAt: eventDetails.ProgramStartAt,
+		ProgramEndAt:   eventDetails.ProgramEndAt,
+		EventStartTime: eventDetails.EventStartTime,
+		EventEndTime:   eventDetails.EventEndTime,
+		Day:            db.DayEnum(eventDetails.Day),
+		LocationID:     eventDetails.LocationID,
 		CourseID: uuid.NullUUID{
 			UUID:  eventDetails.CourseID,
 			Valid: eventDetails.CourseID != uuid.Nil,
@@ -140,15 +140,15 @@ func (r *Repository) GetEvents(ctx context.Context, courseID, practiceID, gameID
 		event := values.ReadEventValues{
 			ID: dbEvent.ID,
 			Details: values.Details{
-				Day:              string(dbEvent.Day),
-				ProgramStartAt:   dbEvent.ProgramStartAt,
-				ProgramEndAt:     dbEvent.ProgramEndAt,
-				SessionStartTime: dbEvent.SessionStartTime,
-				SessionEndTime:   dbEvent.SessionEndTime,
-				PracticeID:       dbEvent.PracticeID.UUID,
-				CourseID:         dbEvent.CourseID.UUID,
-				GameID:           dbEvent.GameID.UUID,
-				LocationID:       dbEvent.LocationID,
+				Day:            string(dbEvent.Day),
+				ProgramStartAt: dbEvent.ProgramStartAt,
+				ProgramEndAt:   dbEvent.ProgramEndAt,
+				EventStartTime: dbEvent.EventStartTime,
+				EventEndTime:   dbEvent.EventEndTime,
+				PracticeID:     dbEvent.PracticeID.UUID,
+				CourseID:       dbEvent.CourseID.UUID,
+				GameID:         dbEvent.GameID.UUID,
+				LocationID:     dbEvent.LocationID,
 			},
 		}
 
@@ -175,16 +175,16 @@ func (r *Repository) UpdateEvent(c context.Context, event values.UpdateEventValu
 	}
 
 	dbEventParams := db.UpdateEventParams{
-		ProgramStartAt:   event.ProgramStartAt,
-		ProgramEndAt:     event.ProgramEndAt,
-		LocationID:       event.LocationID,
-		PracticeID:       uuid.NullUUID{UUID: event.PracticeID, Valid: event.PracticeID != uuid.Nil},
-		CourseID:         uuid.NullUUID{UUID: event.CourseID, Valid: event.CourseID != uuid.Nil},
-		GameID:           uuid.NullUUID{UUID: event.GameID, Valid: event.GameID != uuid.Nil},
-		SessionStartTime: event.SessionStartTime,
-		SessionEndTime:   event.SessionEndTime,
-		Day:              db.DayEnum(event.Day),
-		ID:               event.ID,
+		ProgramStartAt: event.ProgramStartAt,
+		ProgramEndAt:   event.ProgramEndAt,
+		LocationID:     event.LocationID,
+		PracticeID:     uuid.NullUUID{UUID: event.PracticeID, Valid: event.PracticeID != uuid.Nil},
+		CourseID:       uuid.NullUUID{UUID: event.CourseID, Valid: event.CourseID != uuid.Nil},
+		GameID:         uuid.NullUUID{UUID: event.GameID, Valid: event.GameID != uuid.Nil},
+		EventStartTime: event.EventStartTime,
+		EventEndTime:   event.EventEndTime,
+		Day:            db.DayEnum(event.Day),
+		ID:             event.ID,
 	}
 
 	err := r.Queries.UpdateEvent(c, dbEventParams)
@@ -223,15 +223,15 @@ func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEve
 		CreatedAt: dbEvent.CreatedAt,
 		UpdatedAt: dbEvent.UpdatedAt,
 		Details: values.Details{
-			Day:              string(dbEvent.Day),
-			ProgramStartAt:   dbEvent.ProgramStartAt,
-			ProgramEndAt:     dbEvent.ProgramEndAt,
-			SessionStartTime: dbEvent.SessionStartTime,
-			SessionEndTime:   dbEvent.SessionEndTime,
-			PracticeID:       dbEvent.PracticeID.UUID,
-			CourseID:         dbEvent.CourseID.UUID,
-			GameID:           dbEvent.GameID.UUID,
-			LocationID:       dbEvent.LocationID,
+			Day:            string(dbEvent.Day),
+			ProgramStartAt: dbEvent.ProgramStartAt,
+			ProgramEndAt:   dbEvent.ProgramEndAt,
+			EventStartTime: dbEvent.EventStartTime,
+			EventEndTime:   dbEvent.EventEndTime,
+			PracticeID:     dbEvent.PracticeID.UUID,
+			CourseID:       dbEvent.CourseID.UUID,
+			GameID:         dbEvent.GameID.UUID,
+			LocationID:     dbEvent.LocationID,
 		},
 	}
 

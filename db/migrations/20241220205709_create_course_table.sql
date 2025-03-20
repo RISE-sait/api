@@ -3,7 +3,7 @@
 
 CREATE SCHEMA IF NOT EXISTS course;
 
-CREATE TABLE course.courses
+CREATE TABLE IF NOT EXISTS course.courses
 (
     id          UUID PRIMARY KEY         DEFAULT gen_random_uuid(),
     name        VARCHAR(50) NOT NULL UNIQUE,

@@ -8,7 +8,6 @@ import (
 type MembershipPlanPurchaseInfo struct {
 	CustomerId       uuid.UUID
 	MembershipPlanId uuid.UUID
-	StartDate        time.Time
 	Status           string
 	RenewalDate      *time.Time
 }

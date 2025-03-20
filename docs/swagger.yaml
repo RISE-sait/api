@@ -272,18 +272,6 @@ definitions:
       session_start_at:
         type: string
     type: object
-  event_staff.EventStaffBase:
-    properties:
-      event_id:
-        type: string
-      staff_id:
-        type: string
-    type: object
-  event_staff.RequestDto:
-    properties:
-      base:
-        $ref: '#/definitions/event_staff.EventStaffBase'
-    type: object
   game.RequestDto:
     properties:
       name:
@@ -540,16 +528,12 @@ definitions:
       updated_at:
         type: string
     type: object
-  purchase.MembershipPlanRequestDto:
+  purchase.CheckoutResponseDto:
     properties:
-      membership_plan_id:
+      payment_url:
         type: string
-      start_date:
-        type: string
-      status:
-        type: string
-    required:
-    - start_date
+    type: object
+  purchase.SquareWebhookEventDto:
     type: object
   staff.RegistrationRequestDto:
     properties:
@@ -676,6 +660,39 @@ paths:
       summary: Authenticate a user and return a JWT token
       tags:
       - authentication
+  /checkout/membership_plans/{id}:
+    post:
+      consumes:
+        - application/json
+      description: Generates a payment link for purchasing a membership plan.
+      parameters:
+        - description: Membership plan ID
+          in: path
+          name: id
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Payment link generated successfully
+          schema:
+            $ref: '#/definitions/purchase.CheckoutResponseDto'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'Internal Server Error: Failed to process checkout'
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+        - Bearer: [ ]
+      summary: Checkout a membership plan
+      tags:
+        - purchases
   /courses:
     get:
       consumes:
@@ -770,9 +787,9 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get a course by Id
+      description: Get a course by ID
       parameters:
-      - description: Course Id
+        - description: Course ID
         in: path
         name: id
         required: true
@@ -785,7 +802,7 @@ paths:
           schema:
             $ref: '#/definitions/course.ResponseDto'
         "400":
-          description: 'Bad Request: Invalid Id'
+          description: 'Bad Request: Invalid ID'
           schema:
             additionalProperties: true
             type: object
@@ -799,7 +816,7 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Get a course by Id
+      summary: Get a course by ID
       tags:
       - courses
     put:
@@ -1142,24 +1159,81 @@ paths:
       summary: Delete an enrollment
       tags:
       - enrollments
-  /event-staff:
-    delete:
+  /events:
+    get:
       consumes:
       - application/json
-      description: Remove a staff member from an event using event_id and staff_id
-        in the request body.
+      description: Retrieve all events within a specific date range, with optional
+        filters by course, location, game, and practice.
       parameters:
-      - description: Event and staff unassignment details
+        - description: Start date of the events range (YYYY-MM-DD)
+          example: '"2025-03-01"'
+          in: query
+          name: after
+          type: string
+        - description: End date of the events range (YYYY-MM-DD)
+          example: '"2025-03-31"'
+          in: query
+          name: before
+          type: string
+        - description: Filter by game ID (UUID format)
+          example: '"550e8400-e29b-41d4-a716-446655440000"'
+          in: query
+          name: game_id
+          type: string
+        - description: Filter by course ID (UUID format)
+          example: '"550e8400-e29b-41d4-a716-446655440000"'
+          in: query
+          name: course_id
+          type: string
+        - description: Filter by practice ID (UUID format)
+          example: '"550e8400-e29b-41d4-a716-446655440000"'
+          in: query
+          name: practice_id
+          type: string
+        - description: Filter by location ID (UUID format)
+          example: '"550e8400-e29b-41d4-a716-446655440000"'
+          in: query
+          name: location_id
+          type: string
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: List of events retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/event.ResponseDto'
+            type: array
+        "400":
+          description: 'Bad Request: Invalid input format or missing required parameters'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get events
+      tags:
+        - events
+    post:
+      consumes:
+        - application/json
+      description: Registers a new event with the provided details.
+      parameters:
+        - description: Event details
         in: body
-        name: request
+          name: event
         required: true
         schema:
-          $ref: '#/definitions/event_staff.RequestDto'
+          $ref: '#/definitions/event.RequestDto'
       produces:
       - application/json
       responses:
-        "200":
-          description: Staff successfully unassigned from event
+        "201":
+          description: Event created successfully
           schema:
             additionalProperties: true
             type: object
@@ -1173,18 +1247,19 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Unassign a staff member from an event
+      summary: Create a new event
       tags:
-      - event_staff
+        - events
+  /events/{event_id}/staffs:
     get:
       consumes:
       - application/json
       description: Retrieve all staff assigned to an event using event_id as a query
         parameter.
       parameters:
-      - description: Event ID (UUID)
-        in: query
-        name: event_id
+        - description: Event ID
+          in: path
+          name: id
         required: true
         type: string
       produces:
@@ -1214,18 +1289,60 @@ paths:
       summary: Get staff assigned to an event
       tags:
       - event_staff
+  /events/{event_id}/staffs/{staff_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a staff member from an event using event_id and staff_id
+        in the request body.
+      parameters:
+        - description: Event ID
+          in: path
+          name: event_id
+        required: true
+          type: string
+        - description: Staff ID
+          in: path
+          name: staff_id
+          required: true
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Staff successfully unassigned from event
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Unassign a staff member from an event
+      tags:
+      - event_staff
     post:
       consumes:
       - application/json
       description: Assign a staff member to an event using event_id and staff_id in
         the request body.
       parameters:
-      - description: Event and staff assignment details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/event_staff.RequestDto'
+        - description: Event ID
+          in: path
+          name: event_id
+          required: true
+        type: string
+        - description: Staff ID
+          in: path
+          name: staff_id
+          required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -1246,98 +1363,7 @@ paths:
             type: object
       summary: Assign a staff member to an event
       tags:
-      - event_staff
-  /events:
-    get:
-      consumes:
-      - application/json
-      description: Retrieve all events within a specific date range, with optional
-        filters by course, location, game, and practice.
-      parameters:
-      - description: Start date of the events range (YYYY-MM-DD)
-        example: '"2025-03-01"'
-        in: query
-        name: after
-        type: string
-      - description: End date of the events range (YYYY-MM-DD)
-        example: '"2025-03-31"'
-        in: query
-        name: before
-        type: string
-      - description: Filter by game ID (UUID format)
-        example: '"550e8400-e29b-41d4-a716-446655440000"'
-        in: query
-        name: game_id
-        type: string
-      - description: Filter by course ID (UUID format)
-        example: '"550e8400-e29b-41d4-a716-446655440000"'
-        in: query
-        name: course_id
-        type: string
-      - description: Filter by practice ID (UUID format)
-        example: '"550e8400-e29b-41d4-a716-446655440000"'
-        in: query
-        name: practice_id
-        type: string
-      - description: Filter by location ID (UUID format)
-        example: '"550e8400-e29b-41d4-a716-446655440000"'
-        in: query
-        name: location_id
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of events retrieved successfully
-          schema:
-            items:
-              $ref: '#/definitions/event.ResponseDto'
-            type: array
-        "400":
-          description: 'Bad Request: Invalid input format or missing required parameters'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get events
-      tags:
-      - events
-    post:
-      consumes:
-      - application/json
-      description: Registers a new event with the provided details.
-      parameters:
-      - description: Event details
-        in: body
-        name: event
-        required: true
-        schema:
-          $ref: '#/definitions/event.RequestDto'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Event created successfully
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: 'Bad Request: Invalid input'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Create a new event
-      tags:
-      - events
+        - event_staff
   /events/{id}:
     delete:
       consumes:
@@ -2528,24 +2554,23 @@ paths:
       summary: Get practice levels
       tags:
       - practices
-  /purchases/memberships:
+  /purchases/square/webhook:
     post:
       consumes:
       - application/json
-      description: Allows a customer to purchase a membership plan by providing the
-        plan details.
+      description: Receives and processes payment updates from Square.
       parameters:
-      - description: Membership purchase details
+        - description: Square Webhook Event
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/purchase.MembershipPlanRequestDto'
+          $ref: '#/definitions/purchase.SquareWebhookEventDto'
       produces:
       - application/json
       responses:
         "200":
-          description: Membership purchased successfully
+          description: Webhook processed successfully
           schema:
             additionalProperties: true
             type: object
@@ -2555,13 +2580,11 @@ paths:
             additionalProperties: true
             type: object
         "500":
-          description: 'Internal Server Error: Failed to process membership purchase'
+          description: 'Internal Server Error: Failed to process webhook event'
           schema:
             additionalProperties: true
             type: object
-      security:
-      - Bearer: []
-      summary: Purchase a membership plan
+      summary: Handle Square Webhook
       tags:
       - purchases
   /register/athlete:

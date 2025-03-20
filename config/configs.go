@@ -26,6 +26,7 @@ type config struct {
 	HubSpotApiKey                string
 	GmailSmtpPassword            string
 	GcpServiceAccountCredentials string
+	SquareAccessToken            string
 }
 
 var Envs = initConfig()
@@ -41,6 +42,7 @@ func initConfig() *config {
 		},
 		GmailSmtpPassword:            getEnv("GMAIL_SMTP_PWD", ""),
 		GcpServiceAccountCredentials: getEnv("GCP_SERVICE_ACCOUNT_CREDENTIALS", ""),
+		SquareAccessToken:            getEnv("SQUARE_ACCESS_TOKEN", ""),
 	}
 }
 

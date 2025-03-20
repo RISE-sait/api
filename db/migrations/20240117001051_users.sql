@@ -3,7 +3,7 @@
 CREATE SCHEMA IF NOT EXISTS users;
 
 -- Create the 'users' table
-CREATE TABLE users.users
+CREATE TABLE IF NOT EXISTS users.users
 (
     id                          UUID PRIMARY KEY     DEFAULT gen_random_uuid(), -- Auto-generate UUID for primary key
     hubspot_id                  TEXT UNIQUE,                                    -- Unique identifier from HubSpot

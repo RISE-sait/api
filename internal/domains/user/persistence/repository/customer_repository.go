@@ -4,10 +4,8 @@ import (
 	db "api/internal/domains/user/persistence/sqlc/generated"
 	customerValues "api/internal/domains/user/values"
 	errLib "api/internal/libs/errors"
-	"api/internal/services/gcp"
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"log"
@@ -60,15 +58,21 @@ func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int
 			customer.Email = &dbCustomer.Email.String
 		}
 
-		if dbCustomer.MembershipName.Valid {
-			customer.MembershipName = &dbCustomer.MembershipName.String
+		if dbCustomer.MembershipName.Valid && dbCustomer.MembershipStartDate.Valid {
+			customer.CustomerInfo.MembershipName = dbCustomer.MembershipName.String
+			customer.CustomerInfo.MembershipStartDate = dbCustomer.MembershipStartDate.Time
 		}
 
-		if dbCustomer.MembershipStartDate.Valid {
-			customer.MembershipStartDate = &dbCustomer.MembershipStartDate.Time
+		if dbCustomer.Rebounds.Valid && dbCustomer.Wins.Valid && dbCustomer.Points.Valid && dbCustomer.Steals.Valid && dbCustomer.Assists.Valid && dbCustomer.Losses.Valid {
+			customer.AthleteInfo = &customerValues.AthleteReadValue{
+				Wins:     dbCustomer.Wins.Int32,
+				Losses:   dbCustomer.Losses.Int32,
+				Points:   dbCustomer.Points.Int32,
+				Steals:   dbCustomer.Steals.Int32,
+				Assists:  dbCustomer.Assists.Int32,
+				Rebounds: dbCustomer.Rebounds.Int32,
+			}
 		}
-
-		customer.ProfilePicUrl = gcp.GeneratePublicFileURL(fmt.Sprintf("athletes/%v", dbCustomer.ID))
 
 		customers[i] = customer
 	}
@@ -109,8 +113,6 @@ func (r *CustomerRepository) GetChildrenByCustomerID(ctx context.Context, id uui
 			customer.Email = &dbCustomer.Email.String
 		}
 
-		customer.ProfilePicUrl = gcp.GeneratePublicFileURL(fmt.Sprintf("athletes/%v", dbCustomer.ID))
-
 		customers[i] = customer
 	}
 
@@ -148,38 +150,6 @@ func (r *CustomerRepository) GetMembershipPlansByCustomer(ctx context.Context, c
 	}
 
 	return plans, nil
-}
-
-func (r *CustomerRepository) GetAthleteInfo(ctx context.Context, id uuid.UUID) (customerValues.AthleteReadValue, *errLib.CommonError) {
-
-	var response customerValues.AthleteReadValue
-
-	dbAthleteInfo, err := r.Queries.GetAthleteInfoByUserID(ctx, id)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return response, errLib.New("Athlete not found", http.StatusNotFound)
-		}
-
-		log.Printf("Unhandled error: %v", err)
-		return response, errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-
-	response = customerValues.AthleteReadValue{
-		ID:        dbAthleteInfo.ID,
-		Wins:      dbAthleteInfo.Wins,
-		Losses:    dbAthleteInfo.Losses,
-		Points:    dbAthleteInfo.Points,
-		Steals:    dbAthleteInfo.Steals,
-		Assists:   dbAthleteInfo.Assists,
-		Rebounds:  dbAthleteInfo.Rebounds,
-		CreatedAt: dbAthleteInfo.CreatedAt,
-		UpdatedAt: dbAthleteInfo.UpdatedAt,
-	}
-
-	response.ProfilePicUrl = gcp.GeneratePublicFileURL(fmt.Sprintf("athletes/%v", response.ID))
-
-	return response, nil
 }
 
 func (r *CustomerRepository) UpdateStats(ctx context.Context, valuesToUpdate customerValues.StatsUpdateValue) *errLib.CommonError {

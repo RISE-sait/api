@@ -29,53 +29,6 @@ func NewCustomersHandler(container *di.Container) *CustomersHandler {
 	}
 }
 
-// GetAthleteInfo retrieves customer statistics based on the provided customer ID.
-// @Summary Get customer statistics
-// @Description Fetches customer statistics (wins, losses, etc.) for the specified customer ID.
-// @Tags customers
-// @Accept json
-// @Produce json
-// @Param customer_id path string true "Customer ID" // Customer ID to fetch stats for
-// @Success 200 {object} dto.AthleteResponseDto "Customer stats retrieved successfully"
-// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid parameters"
-// @Failure 404 {object} map[string]interface{} "Not Found: Customer does not exist"
-// @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /customers/{customer_id}/athlete [get]
-func (h *CustomersHandler) GetAthleteInfo(w http.ResponseWriter, r *http.Request) {
-
-	customerIdStr := chi.URLParam(r, "customer_id")
-
-	customerId, err := validators.ParseUUID(customerIdStr)
-
-	if err != nil {
-		responseHandlers.RespondWithError(w, err)
-		return
-	}
-
-	info, err := h.CustomerRepo.GetAthleteInfo(r.Context(), customerId)
-
-	if err != nil {
-		responseHandlers.RespondWithError(w, err)
-		return
-	}
-
-	response := dto.AthleteResponseDto{
-		ID:         info.ID,
-		ProfilePic: info.ProfilePicUrl,
-		Wins:       info.Wins,
-		Losses:     info.Losses,
-		Points:     info.Points,
-		Steals:     info.Steals,
-		Assists:    info.Assists,
-		Rebounds:   info.Rebounds,
-		CreatedAt:  info.CreatedAt,
-		UpdatedAt:  info.UpdatedAt,
-	}
-
-	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
-
-}
-
 // UpdateCustomerStats updates customer statistics based on the provided customer ID.
 // @Summary Update customer statistics
 // @Description Updates customer statistics (wins, losses, etc.) for the specified customer ID
@@ -175,17 +128,30 @@ func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) 
 
 	for i, customer := range dbCustomers {
 		response := dto.Response{
-			UserID:              customer.ID,
-			Age:                 customer.Age,
-			FirstName:           customer.FirstName,
-			LastName:            customer.LastName,
-			Email:               customer.Email,
-			Phone:               customer.Phone,
-			MembershipName:      customer.MembershipName,
-			MembershipStartDate: customer.MembershipStartDate,
-			CountryCode:         customer.CountryCode,
-			HubspotId:           customer.HubspotID,
-			ProfilePic:          customer.ProfilePicUrl,
+			UserID:      customer.ID,
+			Age:         customer.Age,
+			FirstName:   customer.FirstName,
+			LastName:    customer.LastName,
+			Email:       customer.Email,
+			Phone:       customer.Phone,
+			CountryCode: customer.CountryCode,
+			HubspotId:   customer.HubspotID,
+		}
+
+		if customer.CustomerInfo != nil {
+			response.MembershipName = &customer.CustomerInfo.MembershipName
+			response.MembershipStartDate = &customer.CustomerInfo.MembershipStartDate
+		}
+
+		if athleteInfo := customer.AthleteInfo; athleteInfo != nil {
+			response.AthleteInfo = &dto.AthleteResponseDto{
+				Wins:     athleteInfo.Wins,
+				Losses:   athleteInfo.Losses,
+				Points:   athleteInfo.Points,
+				Steals:   athleteInfo.Steals,
+				Assists:  athleteInfo.Assists,
+				Rebounds: athleteInfo.Rebounds,
+			}
 		}
 
 		result[i] = response
@@ -239,7 +205,6 @@ func (h *CustomersHandler) GetChildrenByParentID(w http.ResponseWriter, r *http.
 			Phone:       child.Phone,
 			HubspotId:   child.HubspotID,
 			CountryCode: child.CountryCode,
-			ProfilePic:  child.ProfilePicUrl,
 		}
 
 		childrenResponse = append(childrenResponse, response)
@@ -259,7 +224,7 @@ func (h *CustomersHandler) GetChildrenByParentID(w http.ResponseWriter, r *http.
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid customer ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Customer not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /customers/{id}/membership-plans [get]
+// @Router /customers/{id}/memberships [get]
 func (h *CustomersHandler) GetMembershipPlansByCustomer(w http.ResponseWriter, r *http.Request) {
 
 	customerIDStr := chi.URLParam(r, "id")

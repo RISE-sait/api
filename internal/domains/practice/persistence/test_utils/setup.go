@@ -17,16 +17,25 @@ BEGIN
     END IF;
 END $$;
 
-CREATE TABLE IF NOT EXISTS practices (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(50) NOT NULL UNIQUE, 
-    description TEXT,
-    level practice_level NOT NULL DEFAULT 'all',
-    should_email_booking_notification BOOLEAN DEFAULT True,
-    capacity INT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);`
+create table if not exists public.practices
+(
+    id          uuid                     default gen_random_uuid()     not null
+        primary key,
+    name        varchar(150)                                           not null
+        unique,
+    description text                                                   not null,
+    level       practice_level           default 'all'::practice_level not null,
+    capacity    integer                                                not null,
+    created_at  timestamp with time zone default CURRENT_TIMESTAMP     not null,
+    updated_at  timestamp with time zone default CURRENT_TIMESTAMP     not null,
+    payg_price  numeric(6, 2)
+);
+
+alter table public.practices
+    owner to postgres;
+
+
+`
 
 	_, err := testDb.Exec(migrationScript)
 	require.NoError(t, err)

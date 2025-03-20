@@ -15,11 +15,40 @@ jobs:
         with:
           go-version: '1.23.4'
 
+      - name: Install sqlc
+        run: |
+          # Download and install sqlc
+          go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
       - name: Set up Testcontainers environment
         run: echo "TESTCONTAINERS_RYUK_DISABLED=true" >> $GITHUB_ENV
 
       - name: Download Dependencies
         run: go mod tidy
+
+      - name: Run sqlc generate
+        run: |
+          cd internal/domains/course/persistence/sqlc && sqlc generate
+          cd ../../../../../
+          cd internal/domains/enrollment/persistence/sqlc && sqlc generate
+          cd ../../../../../
+          cd internal/domains/event/persistence/sqlc && sqlc generate
+          cd ../../../../../
+          cd internal/domains/game/persistence/sqlc && sqlc generate
+          cd ../../../../../
+          cd internal/domains/haircut/persistence/sqlc && sqlc generate
+          cd ../../../../../
+          cd internal/domains/identity/persistence/sqlc && sqlc generate
+          cd ../../../../../
+          cd internal/domains/location/persistence/sqlc && sqlc generate
+          cd ../../../../../
+          cd internal/domains/membership/persistence/sqlc && sqlc generate
+          cd ../../../../../
+          cd internal/domains/practice/persistence/sqlc && sqlc generate
+          cd ../../../../../
+          cd internal/domains/purchase/persistence/sqlc && sqlc generate
+          cd ../../../../../
+          cd internal/domains/user/persistence/sqlc && sqlc generate
 
       - name: Run Tests
         env:

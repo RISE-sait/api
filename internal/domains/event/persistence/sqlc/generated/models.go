@@ -429,7 +429,7 @@ type Event struct {
 	PracticeID     uuid.NullUUID                 `json:"practice_id"`
 	CourseID       uuid.NullUUID                 `json:"course_id"`
 	GameID         uuid.NullUUID                 `json:"game_id"`
-	LocationID     uuid.UUID                     `json:"location_id"`
+	LocationID     uuid.NullUUID                 `json:"location_id"`
 	CreatedAt      time.Time                     `json:"created_at"`
 	UpdatedAt      time.Time                     `json:"updated_at"`
 	Day            DayEnum                       `json:"day"`

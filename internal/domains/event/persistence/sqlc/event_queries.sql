@@ -9,7 +9,9 @@ FROM events
 WHERE (sqlc.narg('course_id') = course_id OR sqlc.narg('course_id') IS NULL)
   AND (sqlc.narg('game_id') = game_id OR sqlc.narg('game_id') IS NULL)
   AND (sqlc.narg('practice_id') = practice_id OR sqlc.narg('practice_id') IS NULL)
-  AND (sqlc.narg('location_id') = location_id OR sqlc.narg('location_id') IS NULL);
+  AND (sqlc.narg('location_id') = location_id OR sqlc.narg('location_id') IS NULL)
+  AND (sqlc.narg('before') >= events.program_start_at OR sqlc.narg('before') IS NULL) -- within boundary
+  AND (sqlc.narg('after') <= events.program_end_at OR sqlc.narg('after') IS NULL);
 
 -- name: GetEventById :one
 SELECT *

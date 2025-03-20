@@ -8,8 +8,8 @@ definitions:
       name:
         type: string
     required:
-      - capacity
-      - name
+    - capacity
+    - name
     type: object
   course.ResponseDto:
     properties:
@@ -48,9 +48,9 @@ definitions:
           $ref: '#/definitions/customer.WaiverSigningRequestDto'
         type: array
     required:
-      - age
-      - first_name
-      - last_name
+    - age
+    - first_name
+    - last_name
     type: object
   customer.AthleteResponseDto:
     properties:
@@ -90,9 +90,9 @@ definitions:
           $ref: '#/definitions/customer.WaiverSigningRequestDto'
         type: array
     required:
-      - age
-      - first_name
-      - last_name
+    - age
+    - first_name
+    - last_name
     type: object
   customer.MembershipPlansResponseDto:
     properties:
@@ -133,9 +133,9 @@ definitions:
         example: "+15141234567"
         type: string
     required:
-      - age
-      - first_name
-      - last_name
+    - age
+    - first_name
+    - last_name
     type: object
   customer.Response:
     properties:
@@ -243,11 +243,11 @@ definitions:
         example: 23:00:00+00:00
         type: string
     required:
-      - day
-      - program_end_at
-      - program_start_at
-      - session_end_time
-      - session_start_time
+    - day
+    - program_end_at
+    - program_start_at
+    - session_end_time
+    - session_start_time
     type: object
   event.ResponseDto:
     properties:
@@ -405,8 +405,12 @@ definitions:
         type: string
       first_name:
         type: string
+      gender:
+        type: string
       id:
         type: string
+      is_active_staff:
+        type: boolean
       last_name:
         type: string
       membership_info:
@@ -423,8 +427,8 @@ definitions:
       name:
         type: string
     required:
-      - address
-      - name
+    - address
+    - name
     type: object
   location.ResponseDto:
     properties:
@@ -515,9 +519,9 @@ definitions:
       name:
         type: string
     required:
-      - capacity
-      - level
-      - name
+    - capacity
+    - level
+    - name
     type: object
   practice.Response:
     properties:
@@ -565,10 +569,10 @@ definitions:
       role:
         type: string
     required:
-      - age
-      - first_name
-      - last_name
-      - role
+    - age
+    - first_name
+    - last_name
+    - role
     type: object
   staff.RequestDto:
     properties:
@@ -645,9 +649,9 @@ paths:
       description: Authenticates a user using Firebase token and returns a JWT token
         for the authenticated user
       parameters:
-        - description: Child ID
+      - description: Child ID
         in: path
-          name: id
+        name: id
         required: true
         type: string
       produces:
@@ -733,7 +737,7 @@ paths:
       - application/json
       description: Delete a course by Id
       parameters:
-        - description: Course Id
+      - description: Course Id
         in: path
         name: id
         required: true
@@ -768,7 +772,7 @@ paths:
       - application/json
       description: Get a course by Id
       parameters:
-        - description: Course Id
+      - description: Course Id
         in: path
         name: id
         required: true
@@ -846,14 +850,14 @@ paths:
       description: Retrieves a list of customers, optionally filtered by HubSpot IDs,
         with pagination support.
       parameters:
-        - description: 'Number of customers to retrieve (default: 20)'
-          in: query
-          name: limit
-          type: integer
-        - description: 'Number of customers to skip (default: 0)'
-          in: query
-          name: offset
-          type: integer
+      - description: 'Number of customers to retrieve (default: 20)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Number of customers to skip (default: 0)'
+        in: query
+        name: offset
+        type: integer
       produces:
       - application/json
       responses:
@@ -879,17 +883,17 @@ paths:
   /customers/{customer_id}/athlete:
     get:
       consumes:
-        - application/json
+      - application/json
       description: Fetches customer statistics (wins, losses, etc.) for the specified
         customer ID.
       parameters:
-        - description: Customer ID
-          in: path
-          name: customer_id
-          required: true
-          type: string
+      - description: Customer ID
+        in: path
+        name: customer_id
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: Customer stats retrieved successfully
@@ -912,7 +916,7 @@ paths:
             type: object
       summary: Get customer statistics
       tags:
-        - customers
+      - customers
     patch:
       consumes:
       - application/json
@@ -950,20 +954,20 @@ paths:
             type: object
       summary: Update customer statistics
       tags:
-        - customers
+      - customers
   /customers/{id}/children:
     get:
       consumes:
-        - application/json
+      - application/json
       description: Retrieves a repository's children using the parent's ID
       parameters:
-        - description: Parent ID
-          in: path
-          name: email
-          required: true
-          type: string
+      - description: Parent ID
+        in: path
+        name: email
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: Customer's children retrieved successfully
@@ -988,21 +992,21 @@ paths:
             type: object
       summary: Get a repository's children by parent ID
       tags:
-        - customers
+      - customers
   /customers/{id}/membership-plans:
     get:
       consumes:
-        - application/json
+      - application/json
       description: Retrieves a list of membership plans associated with a specific
         customer, using the customer ID as a required parameter.
       parameters:
-        - description: Customer ID
-          in: path
-          name: id
-          required: true
-          type: string
+      - description: Customer ID
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: List of membership plans for the customer
@@ -1250,26 +1254,36 @@ paths:
       description: Retrieve all events within a specific date range, with optional
         filters by course, location, game, and practice.
       parameters:
-        - description: Filter by game ID (UUID format)
-          example: '"550e8400-e29b-41d4-a716-446655440000"'
-          in: query
-          name: game_id
-          type: string
-        - description: Filter by course ID (UUID format)
-          example: '"550e8400-e29b-41d4-a716-446655440000"'
-          in: query
-          name: course_id
-          type: string
-        - description: Filter by practice ID (UUID format)
-          example: '"550e8400-e29b-41d4-a716-446655440000"'
-          in: query
-          name: practice_id
-          type: string
-        - description: Filter by location ID (UUID format)
-          example: '"550e8400-e29b-41d4-a716-446655440000"'
-          in: query
-          name: location_id
-          type: string
+      - description: Start date of the events range (YYYY-MM-DD)
+        example: '"2025-03-01"'
+        in: query
+        name: after
+        type: string
+      - description: End date of the events range (YYYY-MM-DD)
+        example: '"2025-03-31"'
+        in: query
+        name: before
+        type: string
+      - description: Filter by game ID (UUID format)
+        example: '"550e8400-e29b-41d4-a716-446655440000"'
+        in: query
+        name: game_id
+        type: string
+      - description: Filter by course ID (UUID format)
+        example: '"550e8400-e29b-41d4-a716-446655440000"'
+        in: query
+        name: course_id
+        type: string
+      - description: Filter by practice ID (UUID format)
+        example: '"550e8400-e29b-41d4-a716-446655440000"'
+        in: query
+        name: practice_id
+        type: string
+      - description: Filter by location ID (UUID format)
+        example: '"550e8400-e29b-41d4-a716-446655440000"'
+        in: query
+        name: location_id
+        type: string
       produces:
       - application/json
       responses:
@@ -1289,7 +1303,7 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Get all events
+      summary: Get events
       tags:
       - events
     post:
@@ -1862,10 +1876,10 @@ paths:
   /locations:
     get:
       consumes:
-        - application/json
+      - application/json
       description: Retrieves a list of all locations.
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: List of locations retrieved successfully
@@ -1880,20 +1894,20 @@ paths:
             type: object
       summary: Get all locations
       tags:
-        - locations
+      - locations
     post:
       consumes:
-        - application/json
+      - application/json
       description: Registers a new Location with the provided details.
       parameters:
-        - description: Location details
-          in: body
-          name: body
-          required: true
-          schema:
-            $ref: '#/definitions/location.RequestDto'
+      - description: Location details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/location.RequestDto'
       produces:
-        - application/json
+      - application/json
       responses:
         "201":
           description: Location created successfully
@@ -1911,20 +1925,20 @@ paths:
             type: object
       summary: Create a new Location
       tags:
-        - locations
+      - locations
   /locations/{id}:
     delete:
       consumes:
-        - application/json
+      - application/json
       description: Deletes a Location by its UUID.
       parameters:
-        - description: Location UUID
-          in: path
-          name: id
-          required: true
-          type: string
+      - description: Location UUID
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
         "204":
           description: 'No Content: Location deleted successfully'
@@ -1945,19 +1959,19 @@ paths:
             type: object
       summary: Delete a Location
       tags:
-        - locations
+      - locations
     get:
       consumes:
-        - application/json
+      - application/json
       description: Retrieves a Location by its unique identifier.
       parameters:
-        - description: Location UUID
-          in: path
-          name: id
-          required: true
-          type: string
+      - description: Location UUID
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: Location retrieved successfully
@@ -1980,25 +1994,25 @@ paths:
             type: object
       summary: Get a Location by ID
       tags:
-        - locations
+      - locations
     put:
       consumes:
-        - application/json
+      - application/json
       description: Updates the details of an existing Location by its UUID.
       parameters:
-        - description: Location UUID
-          in: path
-          name: id
-          required: true
-          type: string
-        - description: Updated Location details
-          in: body
-          name: body
-          required: true
-          schema:
-            $ref: '#/definitions/location.RequestDto'
+      - description: Location UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated Location details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/location.RequestDto'
       produces:
-        - application/json
+      - application/json
       responses:
         "204":
           description: 'No Content: Location updated successfully'
@@ -2019,7 +2033,7 @@ paths:
             type: object
       summary: Update a Location
       tags:
-        - locations
+      - locations
   /memberships:
     get:
       consumes:
@@ -2041,15 +2055,15 @@ paths:
             type: object
       summary: Get a list of memberships
       tags:
-        - memberships
+      - memberships
     post:
       consumes:
       - application/json
       description: Create a new membership
       parameters:
-        - description: Membership details
+      - description: Membership details
         in: body
-          name: membership
+        name: membership
         required: true
         schema:
           $ref: '#/definitions/membership.RequestDto'
@@ -2072,15 +2086,15 @@ paths:
       - Bearer: []
       summary: Create a new membership
       tags:
-        - memberships
+      - memberships
   /memberships/{id}:
     delete:
       consumes:
       - application/json
       description: Delete a membership by ID
       parameters:
-        - description: Membership ID
-          example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
+      - description: Membership ID
+        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
         in: path
         name: id
         required: true
@@ -2109,14 +2123,14 @@ paths:
       - Bearer: []
       summary: Delete a membership
       tags:
-        - memberships
+      - memberships
     get:
       consumes:
       - application/json
       description: Get a membership by ID
       parameters:
-        - description: Membership ID
-          example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
+      - description: Membership ID
+        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
         in: path
         name: id
         required: true
@@ -2151,12 +2165,12 @@ paths:
       - application/json
       description: Update a membership
       parameters:
-        - description: Membership ID
-          example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
-          in: path
-          name: id
-          required: true
-          type: string
+      - description: Membership ID
+        example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
+        in: path
+        name: id
+        required: true
+        type: string
       - description: Membership details
         in: body
         name: membership
@@ -2226,21 +2240,21 @@ paths:
             type: object
       summary: Get membership plans by membership ID
       tags:
-        - membership-plans
+      - membership-plans
   /memberships/plans:
     post:
       consumes:
-        - application/json
+      - application/json
       description: Create a new membership plan
       parameters:
-        - description: Membership plan details
-          in: body
-          name: plan
-          required: true
-          schema:
-            $ref: '#/definitions/membership_plan.PlanRequestDto'
+      - description: Membership plan details
+        in: body
+        name: plan
+        required: true
+        schema:
+          $ref: '#/definitions/membership_plan.PlanRequestDto'
       produces:
-        - application/json
+      - application/json
       responses:
         "201":
           description: Membership plan created successfully
@@ -2258,14 +2272,14 @@ paths:
       - Bearer: []
       summary: Create a new membership plan
       tags:
-        - membership-plans
+      - membership-plans
   /memberships/plans/{id}:
     delete:
       consumes:
       - application/json
       description: Delete a membership plan by ID
       parameters:
-        - description: Plan ID
+      - description: Plan ID
         in: path
         name: id
         required: true
@@ -2291,23 +2305,23 @@ paths:
             additionalProperties: true
             type: object
       security:
-        - Bearer: [ ]
+      - Bearer: []
       summary: Delete a membership plan
       tags:
-        - membership-plans
+      - membership-plans
     put:
       consumes:
       - application/json
       description: Update a membership plan
       parameters:
-        - description: Plan ID
+      - description: Plan ID
         in: path
         name: id
         required: true
         type: string
-        - description: Membership plan details
+      - description: Membership plan details
         in: body
-          name: plan
+        name: plan
         required: true
         schema:
           $ref: '#/definitions/membership_plan.PlanRequestDto'
@@ -2335,15 +2349,15 @@ paths:
       - Bearer: []
       summary: Update a membership plan
       tags:
-        - membership-plans
+      - membership-plans
   /memberships/plans/payment-frequencies:
     get:
       consumes:
-        - application/json
+      - application/json
       description: Retrieves a list of available payment frequencies for membership
         plans.
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: List of payment frequencies
@@ -2360,7 +2374,7 @@ paths:
             type: object
       summary: Get payment frequencies for membership plans
       tags:
-        - membership-plans
+      - membership-plans
   /practices:
     get:
       consumes:
@@ -2423,7 +2437,7 @@ paths:
       - application/json
       description: Delete a practice by ID
       parameters:
-        - description: Practice ID
+      - description: Practice ID
         in: path
         name: id
         required: true
@@ -2458,7 +2472,7 @@ paths:
       - application/json
       description: Update a practice
       parameters:
-        - description: Practice ID
+      - description: Practice ID
         in: path
         name: id
         required: true
@@ -2513,7 +2527,7 @@ paths:
             type: object
       summary: Get practice levels
       tags:
-        - practices
+      - practices
   /purchases/memberships:
     post:
       consumes:
@@ -2553,23 +2567,23 @@ paths:
   /register/athlete:
     post:
       consumes:
-        - application/json
+      - application/json
       description: Registers a new athlete by verifying the Firebase token and creating
         an account based on the provided details.
       parameters:
-        - description: Athlete registration details
-          in: body
-          name: athlete
-          required: true
-          schema:
-            $ref: '#/definitions/customer.AthleteRegistrationRequestDto'
-        - description: Firebase token for user verification
-          in: header
-          name: firebase_token
-          required: true
-          type: string
+      - description: Athlete registration details
+        in: body
+        name: athlete
+        required: true
+        schema:
+          $ref: '#/definitions/customer.AthleteRegistrationRequestDto'
+      - description: Firebase token for user verification
+        in: header
+        name: firebase_token
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
         "201":
           description: Athlete registered successfully
@@ -2589,27 +2603,27 @@ paths:
             type: object
       summary: Register a new athlete
       tags:
-        - registration
+      - registration
   /register/child:
     post:
       consumes:
-        - application/json
+      - application/json
       description: Registers a new child account using the provided details and associates
         it with the parent based on the Firebase authentication token.
       parameters:
-        - description: Child account registration details
-          in: body
-          name: customer
-          required: true
-          schema:
-            $ref: '#/definitions/customer.ChildRegistrationRequestDto'
-        - description: Firebase token for user verification
-          in: header
-          name: firebase_token
-          required: true
-          type: string
+      - description: Child account registration details
+        in: body
+        name: customer
+        required: true
+        schema:
+          $ref: '#/definitions/customer.ChildRegistrationRequestDto'
+      - description: Firebase token for user verification
+        in: header
+        name: firebase_token
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
         "201":
           description: Child account registered successfully
@@ -2634,7 +2648,7 @@ paths:
             type: object
       summary: Register a new child account and associate it with the parent
       tags:
-        - registration
+      - registration
   /register/parent:
     post:
       consumes:
@@ -2642,9 +2656,9 @@ paths:
       description: Registers a new parent by verifying the Firebase token and creating
         an account based on the provided details.
       parameters:
-        - description: Parent registration details
+      - description: Parent registration details
         in: body
-          name: parent
+        name: parent
         required: true
         schema:
           $ref: '#/definitions/customer.ParentRegistrationRequestDto'
@@ -2682,11 +2696,11 @@ paths:
       description: Creates a new staff account in the system using the provided registration
         details.
       parameters:
-        - description: Firebase token for user verification
-          in: header
-          name: firebase_token
-          required: true
-          type: string
+      - description: Firebase token for user verification
+        in: header
+        name: firebase_token
+        required: true
+        type: string
       - description: Staff registration details
         in: body
         name: staff
@@ -2794,7 +2808,7 @@ paths:
       - application/json
       description: Update a staff member
       parameters:
-        - description: Staff ID
+      - description: Staff ID
         example: '"f47ac10b-58cc-4372-a567-0e02b2c3d479"'
         in: path
         name: id

@@ -5,6 +5,7 @@ import (
 	values "api/internal/domains/event/values"
 	errLib "api/internal/libs/errors"
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -12,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type Repository struct {
@@ -60,9 +62,7 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 		},
 	}
 
-	err := r.Queries.CreateEvent(c, dbParams)
-
-	if err != nil {
+	if err := r.Queries.CreateEvent(c, dbParams); err != nil {
 
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
@@ -100,7 +100,7 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 	return nil
 }
 
-func (r *Repository) GetEvents(ctx context.Context, courseID, practiceID, gameID, locationID uuid.UUID) ([]values.ReadEventValues, *errLib.CommonError) {
+func (r *Repository) GetEvents(ctx context.Context, courseID, practiceID, gameID, locationID uuid.UUID, before, after time.Time) ([]values.ReadEventValues, *errLib.CommonError) {
 
 	dbEvents, err := r.Queries.GetEvents(ctx, db.GetEventsParams{
 		CourseID: uuid.NullUUID{
@@ -118,6 +118,14 @@ func (r *Repository) GetEvents(ctx context.Context, courseID, practiceID, gameID
 		LocationID: uuid.NullUUID{
 			UUID:  locationID,
 			Valid: locationID != uuid.Nil,
+		},
+		Before: sql.NullTime{
+			Time:  before,
+			Valid: !before.IsZero(),
+		},
+		After: sql.NullTime{
+			Time:  after,
+			Valid: !after.IsZero(),
 		},
 	})
 

@@ -112,6 +112,14 @@ var staff = []Staff{
 		Email:       "coach@test.com",
 		Country:     "IR",
 	},
+	{
+		FirstName:   "Barber",
+		LastName:    "Dan",
+		Role:        "Barber",
+		PhoneNumber: "",
+		Email:       "barber@test.com",
+		Country:     "IQ",
+	},
 }
 
 func GetStaffs() dbSeed.InsertStaffParams {

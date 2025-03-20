@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"net/http"
+	"time"
 )
 
 // EventsHandler provides HTTP handlers for managing events.
@@ -21,9 +22,11 @@ func NewEventsHandler(repo *repository.Repository) *EventsHandler {
 }
 
 // GetEvents retrieves all events based on filter criteria.
-// @Summary Get all events
+// @Summary Get events
 // @Description Retrieve all events within a specific date range, with optional filters by course, location, game, and practice.
 // @Tags events
+// @Param after query string false "Start date of the events range (YYYY-MM-DD)" example("2025-03-01")
+// @Param before query string false "End date of the events range (YYYY-MM-DD)" example("2025-03-31")
 // @Param game_id query string false "Filter by game ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
 // @Param course_id query string false "Filter by course ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
 // @Param practice_id query string false "Filter by practice ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
@@ -38,73 +41,78 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 
 	query := r.URL.Query()
 
-	//var after, before time.Time
+	var (
+		after, before                            time.Time
+		courseID, gameID, locationID, practiceID uuid.UUID
+		err                                      *errLib.CommonError
+	)
 
-	var courseID, gameID, locationID, practiceID uuid.UUID
+	afterStr := query.Get("after")
+	if afterStr != "" {
+		if afterDate, formatErr := time.Parse("2006-01-02", afterStr); formatErr != nil {
+			responseHandlers.RespondWithError(w, errLib.New("invalid 'after' date format, expected YYYY-MM-DD", http.StatusBadRequest))
+			return
+		} else {
+			after = afterDate
+		}
+	}
 
-	//if afterStr := query.Get("after"); afterStr != "" {
-	//	afterDate, err := time.Parse("2006-01-02", afterStr)
-	//	if err != nil {
-	//		responseHandlers.RespondWithError(w, errLib.New("invalid 'after' date format, expected YYYY-MM-DD", http.StatusBadRequest))
-	//		return
-	//	}
-	//	after = afterDate
-	//} else {
-	//	responseHandlers.RespondWithError(w, errLib.New("'after' date is required", http.StatusBadRequest))
-	//	return
-	//}
-	//
-	//if beforeStr := query.Get("before"); beforeStr != "" {
-	//	beforeDate, err := time.Parse("2006-01-02", beforeStr)
-	//	if err != nil {
-	//		responseHandlers.RespondWithError(w, errLib.New("invalid 'before' date format, expected YYYY-MM-DD", http.StatusBadRequest))
-	//		return
-	//	}
-	//	before = beforeDate
-	//} else {
-	//	responseHandlers.RespondWithError(w, errLib.New("'before' date is required", http.StatusBadRequest))
-	//	return
-	//}
+	beforeStr := query.Get("before")
+	if beforeStr != "" {
+		if beforeDate, formatErr := time.Parse("2006-01-02", beforeStr); formatErr != nil {
+			responseHandlers.RespondWithError(w, errLib.New("invalid 'before' date format, expected YYYY-MM-DD", http.StatusBadRequest))
+			return
+		} else {
+			before = beforeDate
+		}
+	}
 
-	if gameIDStr := query.Get("game_id"); gameIDStr != "" {
-		id, err := validators.ParseUUID(gameIDStr)
+	gameIDStr := query.Get("game_id")
+	courseIDStr := query.Get("course_id")
+	practiceIDStr := query.Get("practice_id")
+	locationIDStr := query.Get("location_id")
 
-		if err != nil {
+	switch {
+	case gameIDStr != "":
+		if id, err := validators.ParseUUID(gameIDStr); err != nil {
 			responseHandlers.RespondWithError(w, errLib.New("invalid 'game_id' format, expected uuid format", http.StatusBadRequest))
 			return
+		} else {
+			gameID = id
 		}
 
-		gameID = id
-	}
-
-	if courseIDStr := query.Get("course_id"); courseIDStr != "" {
-		id, err := validators.ParseUUID(courseIDStr)
-		if err != nil {
+	case courseIDStr != "":
+		if id, err := validators.ParseUUID(courseIDStr); err != nil {
 			responseHandlers.RespondWithError(w, errLib.New("invalid 'course_id' format, expected uuid format", http.StatusBadRequest))
 			return
+		} else {
+			courseID = id
 		}
-		courseID = id
-	}
 
-	if practiceIDStr := query.Get("practice_id"); practiceIDStr != "" {
-		id, err := validators.ParseUUID(practiceIDStr)
-		if err != nil {
+	case practiceIDStr != "":
+		if id, err := validators.ParseUUID(practiceIDStr); err != nil {
 			responseHandlers.RespondWithError(w, errLib.New("invalid practice_id format, expected uuid format", http.StatusBadRequest))
 			return
+		} else {
+			practiceID = id
 		}
-		practiceID = id
 	}
 
-	if locationIDStr := query.Get("location_id"); locationIDStr != "" {
-		id, err := validators.ParseUUID(locationIDStr)
-		if err != nil {
+	if locationIDStr != "" {
+		if id, err := validators.ParseUUID(locationIDStr); err != nil {
 			responseHandlers.RespondWithError(w, errLib.New("invalid 'location_id' format, expected uuid format", http.StatusBadRequest))
 			return
+		} else {
+			locationID = id
 		}
-		locationID = id
 	}
 
-	events, err := h.Repo.GetEvents(r.Context(), courseID, practiceID, gameID, locationID)
+	if (after.IsZero() || before.IsZero()) && (courseID == uuid.Nil && practiceID == uuid.Nil && gameID == uuid.Nil) {
+		responseHandlers.RespondWithError(w, errLib.New("at least one of (before and after) or one of (course_id, practice_id, game_id) must be provided", http.StatusBadRequest))
+		return
+	}
+
+	events, err := h.Repo.GetEvents(r.Context(), courseID, practiceID, gameID, locationID, before, after)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)

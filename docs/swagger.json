@@ -20,7 +20,7 @@
                     {
                         "type": "string",
                         "description": "Firebase token for user verification",
-                      "name": "Authorization",
+                        "name": "Authorization",
                         "in": "header",
                         "required": true
                     }
@@ -954,8 +954,22 @@
                 "tags": [
                     "events"
                 ],
-                "summary": "Get all events",
+                "summary": "Get events",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "example": "\"2025-03-01\"",
+                        "description": "Start date of the events range (YYYY-MM-DD)",
+                        "name": "after",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"2025-03-31\"",
+                        "description": "End date of the events range (YYYY-MM-DD)",
+                        "name": "before",
+                        "in": "query"
+                    },
                     {
                         "type": "string",
                         "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
@@ -2616,7 +2630,7 @@
                 "summary": "Get a list of practices",
                 "responses": {
                     "200": {
-                      "description": "Practices retrieved successfully",
+                        "description": "Practices retrieved successfully",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -2665,8 +2679,8 @@
                     "201": {
                         "description": "Practice created successfully",
                         "schema": {
-                          "type": "object",
-                          "additionalProperties": true
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -3317,7 +3331,7 @@
                 "capacity": {
                     "type": "integer"
                 },
-              "created_at": {
+                "created_at": {
                     "type": "string"
                 },
                 "description": {
@@ -3329,7 +3343,7 @@
                 "name": {
                     "type": "string"
                 },
-              "updated_at": {
+                "updated_at": {
                     "type": "string"
                 }
             }
@@ -3869,23 +3883,23 @@
                 }
             }
         },
-      "identity.MembershipReadResponseDto": {
-        "type": "object",
-        "properties": {
-          "membership_name": {
-            "type": "string"
-          },
-          "plan_name": {
-            "type": "string"
-          },
-          "renewal_date": {
-            "type": "string"
-          },
-          "start_date": {
-            "type": "string"
-          }
-        }
-      },
+        "identity.MembershipReadResponseDto": {
+            "type": "object",
+            "properties": {
+                "membership_name": {
+                    "type": "string"
+                },
+                "plan_name": {
+                    "type": "string"
+                },
+                "renewal_date": {
+                    "type": "string"
+                },
+                "start_date": {
+                    "type": "string"
+                }
+            }
+        },
         "identity.UserAuthenticationResponseDto": {
             "type": "object",
             "properties": {
@@ -3901,15 +3915,21 @@
                 "first_name": {
                     "type": "string"
                 },
-              "id": {
-                "type": "string"
+                "gender": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_active_staff": {
+                    "type": "boolean"
                 },
                 "last_name": {
                     "type": "string"
                 },
-              "membership_info": {
-                "$ref": "#/definitions/identity.MembershipReadResponseDto"
-              },
+                "membership_info": {
+                    "$ref": "#/definitions/identity.MembershipReadResponseDto"
+                },
                 "phone": {
                     "type": "string"
                 },
@@ -4079,7 +4099,7 @@
                 "capacity": {
                     "type": "integer"
                 },
-              "created_at": {
+                "created_at": {
                     "type": "string"
                 },
                 "description": {
@@ -4094,7 +4114,7 @@
                 "name": {
                     "type": "string"
                 },
-              "updated_at": {
+                "updated_at": {
                     "type": "string"
                 }
             }

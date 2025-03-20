@@ -56,22 +56,14 @@ definitions:
     properties:
       assists:
         type: integer
-      created_at:
-        type: string
-      id:
-        type: string
       losses:
         type: integer
       points:
         type: integer
-      profile_pic:
-        type: string
       rebounds:
         type: integer
       steals:
         type: integer
-      updated_at:
-        type: string
       wins:
         type: integer
     type: object
@@ -141,6 +133,8 @@ definitions:
     properties:
       age:
         type: integer
+      athlete_info:
+        $ref: '#/definitions/customer.AthleteResponseDto'
       country_code:
         type: string
       email:
@@ -156,8 +150,6 @@ definitions:
       membership_start_date:
         type: string
       phone:
-        type: string
-      profile_pic:
         type: string
       user_id:
         type: string
@@ -253,15 +245,25 @@ definitions:
     properties:
       course_id:
         type: string
+      course_name:
+        type: string
       day:
         type: string
       game_id:
         type: string
+      game_name:
+        type: string
       id:
+        type: string
+      location_address:
         type: string
       location_id:
         type: string
+      location_name:
+        type: string
       practice_id:
+        type: string
+      practice_name:
         type: string
       program_end_at:
         type: string
@@ -898,42 +900,6 @@ paths:
       tags:
       - customers
   /customers/{customer_id}/athlete:
-    get:
-      consumes:
-      - application/json
-      description: Fetches customer statistics (wins, losses, etc.) for the specified
-        customer ID.
-      parameters:
-      - description: Customer ID
-        in: path
-        name: customer_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Customer stats retrieved successfully
-          schema:
-            $ref: '#/definitions/customer.AthleteResponseDto'
-        "400":
-          description: 'Bad Request: Invalid parameters'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Customer does not exist'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get customer statistics
-      tags:
-      - customers
     patch:
       consumes:
       - application/json
@@ -1010,7 +976,7 @@ paths:
       summary: Get a repository's children by parent ID
       tags:
       - customers
-  /customers/{id}/membership-plans:
+  /customers/{id}/memberships:
     get:
       consumes:
       - application/json

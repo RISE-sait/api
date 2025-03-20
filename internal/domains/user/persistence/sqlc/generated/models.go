@@ -357,12 +357,13 @@ type BarberBarberEvent struct {
 }
 
 type CourseCourse struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Capacity    int32     `json:"capacity"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID          uuid.UUID      `json:"id"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Capacity    int32          `json:"capacity"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	PaygPrice   sql.NullString `json:"payg_price"`
 }
 
 type CourseMembership struct {
@@ -421,18 +422,18 @@ type DiscountRestrictedMembershipPlan struct {
 }
 
 type Event struct {
-	ID               uuid.UUID     `json:"id"`
-	ProgramStartAt   time.Time     `json:"program_start_at"`
-	ProgramEndAt     time.Time     `json:"program_end_at"`
-	PracticeID       uuid.NullUUID `json:"practice_id"`
-	CourseID         uuid.NullUUID `json:"course_id"`
-	GameID           uuid.NullUUID `json:"game_id"`
-	LocationID       uuid.UUID     `json:"location_id"`
-	CreatedAt        time.Time     `json:"created_at"`
-	UpdatedAt        time.Time     `json:"updated_at"`
-	Day              DayEnum       `json:"day"`
-	SessionStartTime interface{}   `json:"session_start_time"`
-	SessionEndTime   interface{}   `json:"session_end_time"`
+	ID             uuid.UUID     `json:"id"`
+	ProgramStartAt time.Time     `json:"program_start_at"`
+	ProgramEndAt   time.Time     `json:"program_end_at"`
+	PracticeID     uuid.NullUUID `json:"practice_id"`
+	CourseID       uuid.NullUUID `json:"course_id"`
+	GameID         uuid.NullUUID `json:"game_id"`
+	LocationID     uuid.NullUUID `json:"location_id"`
+	CreatedAt      time.Time     `json:"created_at"`
+	UpdatedAt      time.Time     `json:"updated_at"`
+	Day            DayEnum       `json:"day"`
+	EventStartTime interface{}   `json:"event_start_time"`
+	EventEndTime   interface{}   `json:"event_end_time"`
 }
 
 type EventStaff struct {
@@ -473,13 +474,14 @@ type MembershipMembershipPlan struct {
 }
 
 type Practice struct {
-	ID          uuid.UUID     `json:"id"`
-	Name        string        `json:"name"`
-	Description string        `json:"description"`
-	Level       PracticeLevel `json:"level"`
-	Capacity    int32         `json:"capacity"`
-	CreatedAt   time.Time     `json:"created_at"`
-	UpdatedAt   time.Time     `json:"updated_at"`
+	ID          uuid.UUID      `json:"id"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Level       PracticeLevel  `json:"level"`
+	Capacity    int32          `json:"capacity"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	PaygPrice   sql.NullString `json:"payg_price"`
 }
 
 type PracticeMembership struct {

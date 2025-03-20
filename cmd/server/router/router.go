@@ -86,8 +86,7 @@ func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Get("/", h.GetCustomers)
 		r.Get("/{id}/children", h.GetChildrenByParentID)
-		r.Get("/{id}/membership-plans", h.GetMembershipPlansByCustomer)
-		r.Get("/{customer_id}/athlete", h.GetAthleteInfo)
+		r.Get("/{id}/memberships", h.GetMembershipPlansByCustomer)
 		r.Patch("/{customer_id}/athlete", h.UpdateCustomerStats)
 	}
 }

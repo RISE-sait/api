@@ -468,57 +468,6 @@ const docTemplate = `{
             }
         },
         "/customers/{customer_id}/athlete": {
-            "get": {
-                "description": "Fetches customer statistics (wins, losses, etc.) for the specified customer ID.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "customers"
-                ],
-                "summary": "Get customer statistics",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Customer ID",
-                        "name": "customer_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Customer stats retrieved successfully",
-                        "schema": {
-                            "$ref": "#/definitions/customer.AthleteResponseDto"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid parameters",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Customer does not exist",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
             "patch": {
                 "description": "Updates customer statistics (wins, losses, etc.) for the specified customer ID",
                 "consumes": [
@@ -630,7 +579,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/customers/{id}/membership-plans": {
+        "/customers/{id}/memberships": {
             "get": {
                 "description": "Retrieves a list of membership plans associated with a specific customer, using the customer ID as a required parameter.",
                 "consumes": [
@@ -3460,29 +3409,17 @@ const docTemplate = `{
                 "assists": {
                     "type": "integer"
                 },
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
                 "losses": {
                     "type": "integer"
                 },
                 "points": {
                     "type": "integer"
                 },
-                "profile_pic": {
-                    "type": "string"
-                },
                 "rebounds": {
                     "type": "integer"
                 },
                 "steals": {
                     "type": "integer"
-                },
-                "updated_at": {
-                    "type": "string"
                 },
                 "wins": {
                     "type": "integer"
@@ -3587,6 +3524,9 @@ const docTemplate = `{
                 "age": {
                     "type": "integer"
                 },
+                "athlete_info": {
+                    "$ref": "#/definitions/customer.AthleteResponseDto"
+                },
                 "country_code": {
                     "type": "string"
                 },
@@ -3609,9 +3549,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "phone": {
-                    "type": "string"
-                },
-                "profile_pic": {
                     "type": "string"
                 },
                 "user_id": {
@@ -3751,19 +3688,34 @@ const docTemplate = `{
                 "course_id": {
                     "type": "string"
                 },
+                "course_name": {
+                    "type": "string"
+                },
                 "day": {
                     "type": "string"
                 },
                 "game_id": {
                     "type": "string"
                 },
+                "game_name": {
+                    "type": "string"
+                },
                 "id": {
+                    "type": "string"
+                },
+                "location_address": {
                     "type": "string"
                 },
                 "location_id": {
                     "type": "string"
                 },
+                "location_name": {
+                    "type": "string"
+                },
                 "practice_id": {
+                    "type": "string"
+                },
+                "practice_name": {
                     "type": "string"
                 },
                 "program_end_at": {

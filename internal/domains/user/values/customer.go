@@ -5,6 +5,11 @@ import (
 	"time"
 )
 
+type CustomerReadValue struct {
+	MembershipName      string
+	MembershipStartDate time.Time
+}
+
 type MembershipPlansReadValue struct {
 	ID               uuid.UUID
 	CustomerID       uuid.UUID
@@ -28,14 +33,10 @@ type StatsUpdateValue struct {
 }
 
 type AthleteReadValue struct {
-	ID            uuid.UUID
-	ProfilePicUrl string
-	Wins          int32
-	Losses        int32
-	Points        int32
-	Steals        int32
-	Assists       int32
-	Rebounds      int32
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	Wins     int32
+	Losses   int32
+	Points   int32
+	Steals   int32
+	Assists  int32
+	Rebounds int32
 }

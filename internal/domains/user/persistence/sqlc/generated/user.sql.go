@@ -128,11 +128,13 @@ WITH latest_membership AS (SELECT cmp.customer_id,
                                                    WHERE cmp2.customer_id = cmp.customer_id))
 SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.age, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at,
        lm.membership_name,      -- This will be NULL if no membership exists
-       lm.membership_start_date -- This will be NULL if no membership exists
+       lm.membership_start_date, -- This will be NULL if no membership exists
+a.points, a.wins, a.losses, a.assists, a.rebounds, a.steals
 FROM users.users u
          LEFT JOIN
      latest_membership lm
      ON lm.customer_id = u.id
+LEFT JOIN users.athletes a ON u.id = a.id
 LIMIT $1 OFFSET $2
 `
 
@@ -158,6 +160,12 @@ type GetCustomersRow struct {
 	UpdatedAt                time.Time      `json:"updated_at"`
 	MembershipName           sql.NullString `json:"membership_name"`
 	MembershipStartDate      sql.NullTime   `json:"membership_start_date"`
+	Points                   sql.NullInt32  `json:"points"`
+	Wins                     sql.NullInt32  `json:"wins"`
+	Losses                   sql.NullInt32  `json:"losses"`
+	Assists                  sql.NullInt32  `json:"assists"`
+	Rebounds                 sql.NullInt32  `json:"rebounds"`
+	Steals                   sql.NullInt32  `json:"steals"`
 }
 
 func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]GetCustomersRow, error) {
@@ -186,6 +194,12 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]G
 			&i.UpdatedAt,
 			&i.MembershipName,
 			&i.MembershipStartDate,
+			&i.Points,
+			&i.Wins,
+			&i.Losses,
+			&i.Assists,
+			&i.Rebounds,
+			&i.Steals,
 		); err != nil {
 			return nil, err
 		}

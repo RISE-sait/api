@@ -69,7 +69,7 @@ func (dto RequestDto) ToCreateEventValues() (values.CreateEventValues, *errLib.C
 	}
 
 	return values.CreateEventValues{
-		Details: values.Details{
+		MutationDetails: values.MutationDetails{
 			ProgramStartAt: programBeginDateTime,
 			ProgramEndAt:   programEndDateTime,
 			EventStartTime: sessionBeginTime,
@@ -101,14 +101,14 @@ func (dto RequestDto) ToUpdateEventValues(idStr string) (values.UpdateEventValue
 
 	return values.UpdateEventValues{
 		ID: id,
-		Details: values.Details{
+		MutationDetails: values.MutationDetails{
 			ProgramStartAt: programBeginDateTime,
 			ProgramEndAt:   programEndDateTime,
 			EventStartTime: sessionBeginTime,
 			EventEndTime:   sessionEndTime,
 			Day:            dto.Day,
 			PracticeID:     dto.PracticeID,
-			CourseID:       dto.CourseID, // Assuming you want to keep this
+			CourseID:       dto.CourseID,
 			GameID:         dto.GameID,
 			LocationID:     dto.LocationID,
 		},

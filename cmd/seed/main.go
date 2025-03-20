@@ -68,17 +68,17 @@ func clearTables(ctx context.Context, db *sql.DB) error {
 	return err
 }
 
-func seedUsers(ctx context.Context, db *sql.DB) error {
+func seedUsers(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 	clients, err := data.GetClients()
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	staffs := data.GetStaffsAsClients()
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	seedQueries := dbSeed.New(db)
@@ -109,7 +109,7 @@ func seedUsers(ctx context.Context, db *sql.DB) error {
 		hasSMSConsentArray = append(hasSMSConsentArray, client.SMSConsent)
 	}
 
-	if _, err = seedQueries.InsertUsers(ctx, dbSeed.InsertUsersParams{
+	ids, err := seedQueries.InsertUsers(ctx, dbSeed.InsertUsersParams{
 		CountryAlpha2CodeArray:        countryAlpha2CodeArray,
 		FirstNameArray:                firstNameArray,
 		LastNameArray:                 lastNameArray,
@@ -120,19 +120,21 @@ func seedUsers(ctx context.Context, db *sql.DB) error {
 		EmailArray:                    emailArray,
 		HasMarketingEmailConsentArray: hasMarketingEmailConsentArr,
 		HasSmsConsentArray:            hasSMSConsentArray,
-	}); err != nil {
+	})
+
+	if err != nil {
 		log.Fatalf("Failed to insert clients: %v", err)
-		return err
+		return nil, err
 	}
 
 	_, err = seedQueries.InsertUsers(ctx, staffs)
 
 	if err != nil {
 		log.Fatalf("Failed to insert staff as clients: %v", err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return ids, nil
 }
 
 func seedAthletes(ctx context.Context, db *sql.DB, ids []uuid.UUID) ([]uuid.UUID, error) {
@@ -561,17 +563,17 @@ func main() {
 		return
 	}
 
-	if err := seedUsers(ctx, db); err != nil {
+	clientIds, err := seedUsers(ctx, db)
+
+	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	//_, err = seedAthletes(ctx, db, clientIds)
-	//
-	//if err != nil {
-	//	log.Println(err)
-	//	return
-	//}
+	if _, err = seedAthletes(ctx, db, clientIds); err != nil {
+		log.Println(err)
+		return
+	}
 
 	//err = seedClientsMembershipPlans(ctx, db, clientIds, plansIds)
 	//
@@ -579,7 +581,7 @@ func main() {
 	//	log.Println(err)
 	//	return
 	//}
-
+	//
 	//err = seedClientsEnrollments(ctx, db, clientIds, eventIds)
 	//
 	//if err != nil {
@@ -594,17 +596,17 @@ func main() {
 	//	return
 	//}
 
-	if err := seedMembershipPracticeEligibility(ctx, db); err != nil {
+	if err = seedMembershipPracticeEligibility(ctx, db); err != nil {
 		log.Println(err)
 		return
 	}
 
-	if err := seedStaffRoles(ctx, db); err != nil {
+	if err = seedStaffRoles(ctx, db); err != nil {
 		log.Println(err)
 		return
 	}
 
-	if err := seedStaff(ctx, db); err != nil {
+	if err = seedStaff(ctx, db); err != nil {
 		log.Println(err)
 		return
 	}

@@ -57,6 +57,7 @@ func main() {
 	}()
 
 	log.Printf("Server starting on %s", server.Addr)
+
 	if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("HTTP server error: %v", err)
 	}

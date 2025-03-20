@@ -1,4 +1,4 @@
-package event_staff
+package event
 
 //
 //import (

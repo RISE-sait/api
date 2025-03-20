@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS btree_gist;
 
 CREATE SCHEMA IF NOT EXISTS barber;
 
-CREATE TABLE barber.barber_events
+CREATE TABLE IF NOT EXISTS barber.barber_events
 (
     id              UUID PRIMARY KEY                  DEFAULT gen_random_uuid(),
     begin_date_time TIMESTAMP WITH TIME ZONE NOT NULL,

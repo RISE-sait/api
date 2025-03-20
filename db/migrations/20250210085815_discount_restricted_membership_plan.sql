@@ -1,6 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE discount_restricted_membership_plans (
+CREATE TABLE IF NOT EXISTS discount_restricted_membership_plans
+(
     discount_id UUID NOT NULL,
     membership_plan_id UUID NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,

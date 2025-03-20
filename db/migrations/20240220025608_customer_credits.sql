@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE users.customer_credits
+CREATE TABLE IF NOT EXISTS users.customer_credits
 (
     customer_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     credits     INT NOT NULL     DEFAULT 0,

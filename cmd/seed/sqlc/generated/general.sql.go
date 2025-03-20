@@ -34,10 +34,10 @@ func (q *Queries) InsertCourses(ctx context.Context, arg InsertCoursesParams) er
 }
 
 const insertCustomersEnrollments = `-- name: InsertCustomersEnrollments :many
-WITH prepared_data AS (SELECT unnest($1::uuid[])  AS customer_id,
-                              unnest($2::uuid[])     AS event_id,
+WITH prepared_data AS (SELECT unnest($1::uuid[])          AS customer_id,
+                              unnest($2::uuid[])             AS event_id,
                               unnest($3::timestamptz[]) AS raw_checked_in_at,
-                              unnest($4::bool[]) AS is_cancelled)
+                              unnest($4::bool[])         AS is_cancelled)
 INSERT
 INTO public.customer_enrollment(customer_id, event_id, checked_in_at, is_cancelled)
 SELECT customer_id,
@@ -85,25 +85,26 @@ func (q *Queries) InsertCustomersEnrollments(ctx context.Context, arg InsertCust
 
 const insertEvents = `-- name: InsertEvents :exec
 WITH events_data AS (SELECT unnest($1::timestamptz[]) as program_start_at,
-                           unnest($2::timestamptz[]) as program_end_at,
-                           unnest($3::timetz[]) AS session_start_time,
-                           unnest($4::timetz[]) AS session_end_time,
-                           unnest($5::day_enum[]) AS day,
-                           unnest($6::text[]) AS practice_name,
-                           unnest($7::text[]) AS course_name,
-                           unnest($8::text[]) AS game_name,
-                           unnest($9::text[]) as location_name)
-INSERT INTO public.events (program_start_at, program_end_at, session_start_time, session_end_time, day, practice_id, course_id, game_id, location_id)
-SELECT
-    e.program_start_at,
-    e.program_end_at,
-    e.session_start_time,
-    e.session_end_time,
-    e.day,
-    p.id AS practice_id,
-    c.id AS course_id,
-    g.id AS game_id,
-    l.id AS location_id
+                            unnest($2::timestamptz[])   as program_end_at,
+                            unnest($3::timetz[])    AS event_start_time,
+                            unnest($4::timetz[])      AS event_end_time,
+                            unnest($5::day_enum[])                 AS day,
+                            unnest($6::text[])           AS practice_name,
+                            unnest($7::text[])             AS course_name,
+                            unnest($8::text[])               AS game_name,
+                            unnest($9::text[])           as location_name)
+INSERT
+INTO public.events (program_start_at, program_end_at, event_start_time, event_end_time, day, practice_id, course_id,
+                    game_id, location_id)
+SELECT e.program_start_at,
+       e.program_end_at,
+       e.event_start_time,
+       e.event_end_time,
+       e.day,
+       p.id AS practice_id,
+       c.id AS course_id,
+       g.id AS game_id,
+       l.id AS location_id
 FROM events_data e
          LEFT JOIN LATERAL (SELECT id FROM public.practices WHERE name = e.practice_name) p ON TRUE
          LEFT JOIN LATERAL (SELECT id FROM course.courses WHERE name = e.course_name) c ON TRUE
@@ -112,23 +113,23 @@ FROM events_data e
 `
 
 type InsertEventsParams struct {
-	ProgramStartAtArray   []time.Time                     `json:"program_start_at_array"`
-	ProgramEndAtArray     []time.Time                     `json:"program_end_at_array"`
-	SessionStartTimeArray []custom_types.TimeWithTimeZone `json:"session_start_time_array"`
-	SessionEndTimeArray   []custom_types.TimeWithTimeZone `json:"session_end_time_array"`
-	DayArray              []DayEnum                       `json:"day_array"`
-	PracticeNameArray     []string                        `json:"practice_name_array"`
-	CourseNameArray       []string                        `json:"course_name_array"`
-	GameNameArray         []string                        `json:"game_name_array"`
-	LocationNameArray     []string                        `json:"location_name_array"`
+	ProgramStartAtArray []time.Time                     `json:"program_start_at_array"`
+	ProgramEndAtArray   []time.Time                     `json:"program_end_at_array"`
+	EventStartTimeArray []custom_types.TimeWithTimeZone `json:"event_start_time_array"`
+	EventEndTimeArray   []custom_types.TimeWithTimeZone `json:"event_end_time_array"`
+	DayArray            []DayEnum                       `json:"day_array"`
+	PracticeNameArray   []string                        `json:"practice_name_array"`
+	CourseNameArray     []string                        `json:"course_name_array"`
+	GameNameArray       []string                        `json:"game_name_array"`
+	LocationNameArray   []string                        `json:"location_name_array"`
 }
 
 func (q *Queries) InsertEvents(ctx context.Context, arg InsertEventsParams) error {
 	_, err := q.db.ExecContext(ctx, insertEvents,
 		pq.Array(arg.ProgramStartAtArray),
 		pq.Array(arg.ProgramEndAtArray),
-		pq.Array(arg.SessionStartTimeArray),
-		pq.Array(arg.SessionEndTimeArray),
+		pq.Array(arg.EventStartTimeArray),
+		pq.Array(arg.EventEndTimeArray),
 		pq.Array(arg.DayArray),
 		pq.Array(arg.PracticeNameArray),
 		pq.Array(arg.CourseNameArray),

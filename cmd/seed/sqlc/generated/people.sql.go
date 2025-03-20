@@ -79,7 +79,6 @@ func (q *Queries) InsertStaff(ctx context.Context, arg InsertStaffParams) error 
 const insertStaffRoles = `-- name: InsertStaffRoles :exec
 
 
-
 INSERT INTO users.staff_roles (role_name)
 VALUES ('admin'),
        ('superadmin'),
@@ -154,7 +153,7 @@ WITH prepared_data AS (SELECT unnest($1::text[])            AS country_alpha2_co
                                                          END
                                               FROM unnest($6::char[]) AS gender
                                       )
-                              ) AS gender,
+                              )                                                     AS gender,
                               unnest($7::text[])                          AS phone,
                               unnest($8::text[])                          AS email,
                               unnest($9::boolean[]) AS has_marketing_email_consent,

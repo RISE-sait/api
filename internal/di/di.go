@@ -5,7 +5,6 @@ import (
 	courseDb "api/internal/domains/course/persistence/sqlc/generated"
 	enrollmentDb "api/internal/domains/enrollment/persistence/sqlc/generated"
 	eventDb "api/internal/domains/event/persistence/sqlc/generated"
-	eventStaffDb "api/internal/domains/event_staff/persistence/sqlc/generated"
 	gameDb "api/internal/domains/game/persistence/sqlc/generated"
 	barberDb "api/internal/domains/haircut/persistence/sqlc/generated"
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
@@ -13,6 +12,7 @@ import (
 	membershipDb "api/internal/domains/membership/persistence/sqlc/generated"
 	practiceDb "api/internal/domains/practice/persistence/sqlc/generated"
 	purchaseDb "api/internal/domains/purchase/persistence/sqlc/generated"
+	"api/internal/services/square"
 
 	outboxDb "api/internal/services/outbox/generated"
 
@@ -21,6 +21,8 @@ import (
 	"api/internal/services/gcp"
 	"api/internal/services/hubspot"
 	"database/sql"
+
+	squareClient "github.com/square/square-go-sdk/client"
 )
 
 type Container struct {
@@ -29,6 +31,7 @@ type Container struct {
 	Queries         *QueriesType
 	HubspotService  *hubspot.Service
 	FirebaseService *gcp.Service
+	SquareClient    *squareClient.Client
 }
 
 type QueriesType struct {
@@ -40,7 +43,6 @@ type QueriesType struct {
 	LocationDb   *locationDb.Queries
 	EventDb      *eventDb.Queries
 	EnrollmentDb *enrollmentDb.Queries
-	EventStaffDb *eventStaffDb.Queries
 	BarberDb     *barberDb.Queries
 	GameDb       *gameDb.Queries
 	UserDb       *userDb.Queries
@@ -54,7 +56,13 @@ func NewContainer() *Container {
 	firebaseService, err := gcp.NewFirebaseService()
 
 	if err != nil {
-		panic("Failed to get firebase auth client")
+		panic(err.Error())
+	}
+
+	localSquareClient, err := square.GetSquareClient()
+
+	if err != nil {
+		panic(err.Error())
 	}
 
 	return &Container{
@@ -62,6 +70,7 @@ func NewContainer() *Container {
 		Queries:         queries,
 		HubspotService:  hubspotService,
 		FirebaseService: firebaseService,
+		SquareClient:    localSquareClient,
 	}
 }
 
@@ -76,7 +85,6 @@ func initializeQueries(db *sql.DB) *QueriesType {
 		LocationDb:   locationDb.New(db),
 		EventDb:      eventDb.New(db),
 		EnrollmentDb: enrollmentDb.New(db),
-		EventStaffDb: eventStaffDb.New(db),
 		BarberDb:     barberDb.New(db),
 		GameDb:       gameDb.New(db),
 		OutboxDb:     outboxDb.New(db),

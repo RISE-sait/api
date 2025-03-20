@@ -7,7 +7,10 @@ import (
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"net/http"
 )
 
@@ -21,34 +24,47 @@ func NewRepository(container *di.Container) *Repository {
 	}
 }
 
-func (r *Repository) Purchase(c context.Context, details values.MembershipPlanPurchaseInfo) *errLib.CommonError {
+func (r *Repository) GetJoiningFees(ctx context.Context, planID uuid.UUID) (decimal.Decimal, *errLib.CommonError) {
 
-	dbParams := db.PurchaseMembershipParams{
-		CustomerID: details.CustomerId,
-		MembershipPlanID: uuid.NullUUID{
-			UUID:  details.MembershipPlanId,
-			Valid: true,
-		},
-		Status:    db.MembershipStatus(details.Status),
-		StartDate: details.StartDate,
+	if joiningFees, err := r.Queries.GetMembershipPlanJoiningFee(ctx, planID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return decimal.NewFromInt(0), nil
+		}
+		return decimal.Decimal{}, errLib.New(fmt.Sprintf("error getting joining fee for membership plan: %v", joiningFees), http.StatusBadRequest)
+	} else {
+		return joiningFees, nil
 	}
+}
 
-	if details.RenewalDate != nil {
-		dbParams.RenewalDate = sql.NullTime{
-			Time:  *details.RenewalDate,
-			Valid: true,
+func (r *Repository) Checkout(ctx context.Context, details values.MembershipPlanPurchaseInfo) *errLib.CommonError {
+
+	if joiningFees, err := r.Queries.GetMembershipPlanJoiningFee(ctx, details.CustomerId); err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return errLib.New(fmt.Sprintf("error getting joining fee for membership plan: %v", joiningFees), http.StatusBadRequest)
 		}
 	}
 
-	row, err := r.Queries.PurchaseMembership(c, dbParams)
-
-	if err != nil {
-		return errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-
-	if row == 0 {
-		return errLib.New("Purchase failed", http.StatusInternalServerError)
-	}
+	//dbParams := db.CreateCustomerMembershipPlanParams{
+	//	CustomerID: details.CustomerId,
+	//	MembershipPlanID: uuid.NullUUID{
+	//		UUID:  details.MembershipPlanId,
+	//		Valid: true,
+	//	},
+	//	Status:    db.MembershipStatus(details.Status),
+	//	StartDate: details.StartDate,
+	//}
+	//
+	//if details.RenewalDate != nil {
+	//	dbParams.RenewalDate = sql.NullTime{
+	//		Time:  *details.RenewalDate,
+	//		Valid: true,
+	//	}
+	//}
+	//
+	//if err := r.Queries.CreateCustomerMembershipPlan(c, dbParams); err != nil {
+	//	log.Println("error creating customer-membership-plan", err)
+	//	return errLib.New("Internal server error", http.StatusInternalServerError)
+	//}
 
 	return nil
 }

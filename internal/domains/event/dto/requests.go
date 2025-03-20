@@ -70,15 +70,15 @@ func (dto RequestDto) ToCreateEventValues() (values.CreateEventValues, *errLib.C
 
 	return values.CreateEventValues{
 		Details: values.Details{
-			ProgramStartAt:   programBeginDateTime,
-			ProgramEndAt:     programEndDateTime,
-			SessionStartTime: sessionBeginTime,
-			SessionEndTime:   sessionEndTime,
-			PracticeID:       dto.PracticeID,
-			CourseID:         dto.CourseID, // Assuming you need to map this
-			GameID:           dto.GameID,
-			LocationID:       dto.LocationID,
-			Day:              dto.Day,
+			ProgramStartAt: programBeginDateTime,
+			ProgramEndAt:   programEndDateTime,
+			EventStartTime: sessionBeginTime,
+			EventEndTime:   sessionEndTime,
+			PracticeID:     dto.PracticeID,
+			CourseID:       dto.CourseID, // Assuming you need to map this
+			GameID:         dto.GameID,
+			LocationID:     dto.LocationID,
+			Day:            dto.Day,
 		},
 	}, nil
 }
@@ -102,15 +102,15 @@ func (dto RequestDto) ToUpdateEventValues(idStr string) (values.UpdateEventValue
 	return values.UpdateEventValues{
 		ID: id,
 		Details: values.Details{
-			ProgramStartAt:   programBeginDateTime,
-			ProgramEndAt:     programEndDateTime,
-			SessionStartTime: sessionBeginTime,
-			SessionEndTime:   sessionEndTime,
-			Day:              dto.Day,
-			PracticeID:       dto.PracticeID,
-			CourseID:         dto.CourseID, // Assuming you want to keep this
-			GameID:           dto.GameID,
-			LocationID:       dto.LocationID,
+			ProgramStartAt: programBeginDateTime,
+			ProgramEndAt:   programEndDateTime,
+			EventStartTime: sessionBeginTime,
+			EventEndTime:   sessionEndTime,
+			Day:            dto.Day,
+			PracticeID:     dto.PracticeID,
+			CourseID:       dto.CourseID, // Assuming you want to keep this
+			GameID:         dto.GameID,
+			LocationID:     dto.LocationID,
 		},
 	}, nil
 }

@@ -2,7 +2,8 @@
 -- +goose StatementBegin
 CREATE TYPE membership_status AS ENUM ('active', 'inactive', 'canceled', 'expired');
 
-CREATE TABLE customer_membership_plans (
+CREATE TABLE IF NOT EXISTS customer_membership_plans
+(
     id uuid NOT NULL DEFAULT gen_random_uuid(),
     customer_id uuid NOT NULL,
     membership_plan_id uuid NOT NULL,

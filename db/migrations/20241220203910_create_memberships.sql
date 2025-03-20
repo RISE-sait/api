@@ -3,7 +3,7 @@
 
 CREATE SCHEMA IF NOT EXISTS membership;
 
-CREATE TABLE membership.memberships
+CREATE TABLE IF NOT EXISTS membership.memberships
 (
     id          UUID PRIMARY KEY         DEFAULT gen_random_uuid(),
     name       VARCHAR(150)             NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE membership.memberships
 
 CREATE TYPE payment_frequency AS ENUM ('once', 'week', 'month', 'day');
 
-CREATE TABLE membership.membership_plans
+CREATE TABLE IF NOT EXISTS membership.membership_plans
 (
     id                UUID PRIMARY KEY         DEFAULT gen_random_uuid(),
     name              VARCHAR(150)             NOT NULL,

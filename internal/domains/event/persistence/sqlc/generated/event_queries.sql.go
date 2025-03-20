@@ -15,29 +15,29 @@ import (
 )
 
 const createEvent = `-- name: CreateEvent :exec
-INSERT INTO events (program_start_at, program_end_at, session_start_time, session_end_time, day, location_id, course_id,
+INSERT INTO events (program_start_at, program_end_at, event_start_time, event_end_time, day, location_id, course_id,
                     practice_id, game_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 `
 
 type CreateEventParams struct {
-	ProgramStartAt   time.Time                     `json:"program_start_at"`
-	ProgramEndAt     time.Time                     `json:"program_end_at"`
-	SessionStartTime custom_types.TimeWithTimeZone `json:"session_start_time"`
-	SessionEndTime   custom_types.TimeWithTimeZone `json:"session_end_time"`
-	Day              DayEnum                       `json:"day"`
-	LocationID       uuid.UUID                     `json:"location_id"`
-	CourseID         uuid.NullUUID                 `json:"course_id"`
-	PracticeID       uuid.NullUUID                 `json:"practice_id"`
-	GameID           uuid.NullUUID                 `json:"game_id"`
+	ProgramStartAt time.Time                     `json:"program_start_at"`
+	ProgramEndAt   time.Time                     `json:"program_end_at"`
+	EventStartTime custom_types.TimeWithTimeZone `json:"event_start_time"`
+	EventEndTime   custom_types.TimeWithTimeZone `json:"event_end_time"`
+	Day            DayEnum                       `json:"day"`
+	LocationID     uuid.UUID                     `json:"location_id"`
+	CourseID       uuid.NullUUID                 `json:"course_id"`
+	PracticeID     uuid.NullUUID                 `json:"practice_id"`
+	GameID         uuid.NullUUID                 `json:"game_id"`
 }
 
 func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) error {
 	_, err := q.db.ExecContext(ctx, createEvent,
 		arg.ProgramStartAt,
 		arg.ProgramEndAt,
-		arg.SessionStartTime,
-		arg.SessionEndTime,
+		arg.EventStartTime,
+		arg.EventEndTime,
 		arg.Day,
 		arg.LocationID,
 		arg.CourseID,
@@ -59,7 +59,7 @@ func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) error {
 }
 
 const getEventById = `-- name: GetEventById :one
-SELECT id, program_start_at, program_end_at, practice_id, course_id, game_id, location_id, created_at, updated_at, day, session_start_time, session_end_time
+SELECT id, program_start_at, program_end_at, practice_id, course_id, game_id, location_id, created_at, updated_at, day, event_start_time, event_end_time
 FROM events
 WHERE id = $1
 `
@@ -78,20 +78,20 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (Event, error)
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Day,
-		&i.SessionStartTime,
-		&i.SessionEndTime,
+		&i.EventStartTime,
+		&i.EventEndTime,
 	)
 	return i, err
 }
 
 const getEvents = `-- name: GetEvents :many
-SELECT id, program_start_at, program_end_at, practice_id, course_id, game_id, location_id, created_at, updated_at, day, session_start_time, session_end_time
+SELECT id, program_start_at, program_end_at, practice_id, course_id, game_id, location_id, created_at, updated_at, day, event_start_time, event_end_time
 FROM events
 WHERE ($1 = course_id OR $1 IS NULL)
   AND ($2 = game_id OR $2 IS NULL)
   AND ($3 = practice_id OR $3 IS NULL)
   AND ($4 = location_id OR $4 IS NULL)
-AND ($5 >= events.program_start_at OR $5 IS NULL) -- within boundary
+  AND ($5 >= events.program_start_at OR $5 IS NULL) -- within boundary
   AND ($6 <= events.program_end_at OR $6 IS NULL)
 `
 
@@ -131,8 +131,8 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]Event, 
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Day,
-			&i.SessionStartTime,
-			&i.SessionEndTime,
+			&i.EventStartTime,
+			&i.EventEndTime,
 		); err != nil {
 			return nil, err
 		}
@@ -155,24 +155,24 @@ SET program_start_at   = $1,
     practice_id    = $4,
     course_id      = $5,
     game_id        = $6,
-    session_start_time = $7,
-    session_end_time   = $8,
+    event_start_time = $7,
+    event_end_time   = $8,
     day                = $9,
     updated_at     = current_timestamp
 WHERE id = $10
 `
 
 type UpdateEventParams struct {
-	ProgramStartAt   time.Time                     `json:"program_start_at"`
-	ProgramEndAt     time.Time                     `json:"program_end_at"`
-	LocationID       uuid.UUID                     `json:"location_id"`
-	PracticeID       uuid.NullUUID                 `json:"practice_id"`
-	CourseID         uuid.NullUUID                 `json:"course_id"`
-	GameID           uuid.NullUUID                 `json:"game_id"`
-	SessionStartTime custom_types.TimeWithTimeZone `json:"session_start_time"`
-	SessionEndTime   custom_types.TimeWithTimeZone `json:"session_end_time"`
-	Day              DayEnum                       `json:"day"`
-	ID               uuid.UUID                     `json:"id"`
+	ProgramStartAt time.Time                     `json:"program_start_at"`
+	ProgramEndAt   time.Time                     `json:"program_end_at"`
+	LocationID     uuid.UUID                     `json:"location_id"`
+	PracticeID     uuid.NullUUID                 `json:"practice_id"`
+	CourseID       uuid.NullUUID                 `json:"course_id"`
+	GameID         uuid.NullUUID                 `json:"game_id"`
+	EventStartTime custom_types.TimeWithTimeZone `json:"event_start_time"`
+	EventEndTime   custom_types.TimeWithTimeZone `json:"event_end_time"`
+	Day            DayEnum                       `json:"day"`
+	ID             uuid.UUID                     `json:"id"`
 }
 
 func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) error {
@@ -183,8 +183,8 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) error 
 		arg.PracticeID,
 		arg.CourseID,
 		arg.GameID,
-		arg.SessionStartTime,
-		arg.SessionEndTime,
+		arg.EventStartTime,
+		arg.EventEndTime,
 		arg.Day,
 		arg.ID,
 	)

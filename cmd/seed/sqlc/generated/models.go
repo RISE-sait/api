@@ -424,18 +424,23 @@ type DiscountRestrictedMembershipPlan struct {
 }
 
 type Event struct {
-	ID               uuid.UUID                     `json:"id"`
-	ProgramStartAt   time.Time                     `json:"program_start_at"`
-	ProgramEndAt     time.Time                     `json:"program_end_at"`
-	PracticeID       uuid.NullUUID                 `json:"practice_id"`
-	CourseID         uuid.NullUUID                 `json:"course_id"`
-	GameID           uuid.NullUUID                 `json:"game_id"`
-	LocationID       uuid.UUID                     `json:"location_id"`
-	CreatedAt        time.Time                     `json:"created_at"`
-	UpdatedAt        time.Time                     `json:"updated_at"`
-	Day              DayEnum                       `json:"day"`
-	SessionStartTime custom_types.TimeWithTimeZone `json:"session_start_time"`
-	SessionEndTime   custom_types.TimeWithTimeZone `json:"session_end_time"`
+	ID             uuid.UUID                     `json:"id"`
+	ProgramStartAt time.Time                     `json:"program_start_at"`
+	ProgramEndAt   time.Time                     `json:"program_end_at"`
+	PracticeID     uuid.NullUUID                 `json:"practice_id"`
+	CourseID       uuid.NullUUID                 `json:"course_id"`
+	GameID         uuid.NullUUID                 `json:"game_id"`
+	LocationID     uuid.UUID                     `json:"location_id"`
+	CreatedAt      time.Time                     `json:"created_at"`
+	UpdatedAt      time.Time                     `json:"updated_at"`
+	Day            DayEnum                       `json:"day"`
+	EventStartTime custom_types.TimeWithTimeZone `json:"event_start_time"`
+	EventEndTime   custom_types.TimeWithTimeZone `json:"event_end_time"`
+}
+
+type EventStaff struct {
+	EventID uuid.UUID `json:"event_id"`
+	StaffID uuid.UUID `json:"staff_id"`
 }
 
 type Game struct {
@@ -486,11 +491,6 @@ type PracticeMembership struct {
 	MembershipID    uuid.UUID      `json:"membership_id"`
 	PricePerBooking sql.NullString `json:"price_per_booking"`
 	IsEligible      bool           `json:"is_eligible"`
-}
-
-type SessionStaff struct {
-	EventID uuid.UUID `json:"event_id"`
-	StaffID uuid.UUID `json:"staff_id"`
 }
 
 type UsersAthlete struct {

@@ -11,14 +11,15 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
-const purchaseMembership = `-- name: PurchaseMembership :execrows
+const createCustomerMembershipPlan = `-- name: CreateCustomerMembershipPlan :exec
 INSERT INTO customer_membership_plans (customer_id, membership_plan_id, status, start_date, renewal_date)
 VALUES ($1, $2, $3, $4, $5)
 `
 
-type PurchaseMembershipParams struct {
+type CreateCustomerMembershipPlanParams struct {
 	CustomerID       uuid.UUID        `json:"customer_id"`
 	MembershipPlanID uuid.NullUUID    `json:"membership_plan_id"`
 	Status           MembershipStatus `json:"status"`
@@ -26,16 +27,24 @@ type PurchaseMembershipParams struct {
 	RenewalDate      sql.NullTime     `json:"renewal_date"`
 }
 
-func (q *Queries) PurchaseMembership(ctx context.Context, arg PurchaseMembershipParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, purchaseMembership,
+func (q *Queries) CreateCustomerMembershipPlan(ctx context.Context, arg CreateCustomerMembershipPlanParams) error {
+	_, err := q.db.ExecContext(ctx, createCustomerMembershipPlan,
 		arg.CustomerID,
 		arg.MembershipPlanID,
 		arg.Status,
 		arg.StartDate,
 		arg.RenewalDate,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
+	return err
+}
+
+const getMembershipPlanJoiningFee = `-- name: GetMembershipPlanJoiningFee :one
+SELECT joining_fee FROM membership.membership_plans WHERE id = $1
+`
+
+func (q *Queries) GetMembershipPlanJoiningFee(ctx context.Context, id uuid.UUID) (decimal.Decimal, error) {
+	row := q.db.QueryRowContext(ctx, getMembershipPlanJoiningFee, id)
+	var joining_fee decimal.Decimal
+	err := row.Scan(&joining_fee)
+	return joining_fee, err
 }

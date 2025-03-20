@@ -26,20 +26,20 @@ RETURNING id;
 -- name: InsertEvents :exec
 WITH events_data AS (SELECT unnest(@program_start_at_array::timestamptz[]) as program_start_at,
                             unnest(@program_end_at_array::timestamptz[])   as program_end_at,
-                            unnest(@session_start_time_array::timetz[])    AS session_start_time,
-                            unnest(@session_end_time_array::timetz[])      AS session_end_time,
+                            unnest(@event_start_time_array::timetz[]) AS event_start_time,
+                            unnest(@event_end_time_array::timetz[])   AS event_end_time,
                             unnest(@day_array::day_enum[])                 AS day,
                             unnest(@practice_name_array::text[])           AS practice_name,
                             unnest(@course_name_array::text[])             AS course_name,
                             unnest(@game_name_array::text[])               AS game_name,
                             unnest(@location_name_array::text[])           as location_name)
 INSERT
-INTO public.events (program_start_at, program_end_at, session_start_time, session_end_time, day, practice_id, course_id,
+INTO public.events (program_start_at, program_end_at, event_start_time, event_end_time, day, practice_id, course_id,
                     game_id, location_id)
 SELECT e.program_start_at,
        e.program_end_at,
-       e.session_start_time,
-       e.session_end_time,
+       e.event_start_time,
+       e.event_end_time,
        e.day,
        p.id AS practice_id,
        c.id AS course_id,

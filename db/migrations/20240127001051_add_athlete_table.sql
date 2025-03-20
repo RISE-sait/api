@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE users.athletes
+CREATE TABLE IF NOT EXISTS users.athletes
 (
     id              UUID PRIMARY KEY REFERENCES users.users (id),
     wins            INT         NOT NULL DEFAULT 0,                 -- Number of games won

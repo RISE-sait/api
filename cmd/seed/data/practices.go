@@ -21,8 +21,8 @@ type Schedule struct {
 	ProgramStartDate string
 	ProgramEndDate   string
 	Day              string
-	SessionStartTime string
-	SessionEndTime   string
+	EventStartTime   string
+	EventEndTime     string
 	Location         string
 	TrainerNames     []string
 }
@@ -51,16 +51,16 @@ var Practices = []Practice{
 		},
 		Schedules: []Schedule{
 			{
-				Day:              "Monday",
-				SessionStartTime: "17:30",
-				SessionEndTime:   "18:30",
+				Day:            "Monday",
+				EventStartTime: "17:30",
+				EventEndTime:   "18:30",
 				//Location:         "Check out Tryout location via website",
 				TrainerNames: []string{"Test_Trainer"},
 			},
 			{
-				Day:              "Monday",
-				SessionStartTime: "18:30",
-				SessionEndTime:   "19:30",
+				Day:            "Monday",
+				EventStartTime: "18:30",
+				EventEndTime:   "19:30",
 				//Location:         "Check out Tryout location via website",
 				TrainerNames: []string{"Test_Trainer"},
 			},
@@ -89,18 +89,18 @@ var Practices = []Practice{
 		},
 		Schedules: []Schedule{
 			{
-				Day:              "Wednesday",
-				SessionStartTime: "16:00",
-				SessionEndTime:   "23:00",
-				Location:         "Rise Facility- Calgary Central Sportsplex",
-				TrainerNames:     []string{"Test_Trainer"},
+				Day:            "Wednesday",
+				EventStartTime: "16:00",
+				EventEndTime:   "23:00",
+				Location:       "Rise Facility- Calgary Central Sportsplex",
+				TrainerNames:   []string{"Test_Trainer"},
 			},
 			{
-				Day:              "Saturday",
-				SessionStartTime: "13:00",
-				SessionEndTime:   "23:00",
-				Location:         "Rise Facility- Calgary Central Sportsplex",
-				TrainerNames:     []string{"Test_Trainer"},
+				Day:            "Saturday",
+				EventStartTime: "13:00",
+				EventEndTime:   "23:00",
+				Location:       "Rise Facility- Calgary Central Sportsplex",
+				TrainerNames:   []string{"Test_Trainer"},
 			},
 		},
 	},
@@ -127,16 +127,16 @@ var Practices = []Practice{
 		},
 		Schedules: []Schedule{
 			{
-				Day:              "Thursday",
-				SessionStartTime: "17:30",
-				SessionEndTime:   "18:30",
+				Day:            "Thursday",
+				EventStartTime: "17:30",
+				EventEndTime:   "18:30",
 				//Location:         "Check out Tryout location via website",
 				TrainerNames: []string{"Test_Trainer"},
 			},
 			{
-				Day:              "Thursday",
-				SessionStartTime: "18:30",
-				SessionEndTime:   "19:30",
+				Day:            "Thursday",
+				EventStartTime: "18:30",
+				EventEndTime:   "19:30",
 				//Location:         "Check out Tryout location via website",
 				TrainerNames: []string{"Test_Trainer"},
 			},
@@ -165,16 +165,16 @@ var Practices = []Practice{
 		},
 		Schedules: []Schedule{
 			{
-				Day:              "Tuesday",
-				SessionStartTime: "17:30",
-				SessionEndTime:   "18:30",
+				Day:            "Tuesday",
+				EventStartTime: "17:30",
+				EventEndTime:   "18:30",
 				//Location:         "Check out Tryout location via website",
 				TrainerNames: []string{"Test_Trainer"},
 			},
 			{
-				Day:              "Tuesday",
-				SessionStartTime: "18:30",
-				SessionEndTime:   "19:30",
+				Day:            "Tuesday",
+				EventStartTime: "18:30",
+				EventEndTime:   "19:30",
 				//Location:         "Check out Tryout location via website",
 				TrainerNames: []string{"Test_Trainer"},
 			},
@@ -206,8 +206,8 @@ var Practices = []Practice{
 				ProgramStartDate: "2025-03-10",
 				ProgramEndDate:   "2025-03-10",
 				Day:              "Monday",
-				SessionStartTime: "18:00",
-				SessionEndTime:   "20:00",
+				EventStartTime:   "18:00",
+				EventEndTime:     "20:00",
 				Location:         "Rise Facility- Calgary Central Sportsplex",
 				TrainerNames:     []string{"Test_Trainer"},
 			},

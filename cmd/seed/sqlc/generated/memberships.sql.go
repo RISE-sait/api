@@ -149,19 +149,19 @@ func (q *Queries) InsertMemberships(ctx context.Context, arg InsertMembershipsPa
 }
 
 const insertPracticeMembershipsEligibility = `-- name: InsertPracticeMembershipsEligibility :exec
-WITH prepared_data as (SELECT unnest($1::text[]) as practice_names,
-                              unnest($2::text[]) as membership_names,
-                              unnest($3::bool[]) as is_eligible,
+WITH prepared_data as (SELECT unnest($1::text[])       as practice_names,
+                              unnest($2::text[])     as membership_names,
+                              unnest($3::bool[])          as is_eligible,
                               unnest($4::numeric[]) as price_per_booking)
-INSERT INTO public.practice_membership (practice_id, membership_id, is_eligible, price_per_booking)
-SELECT
-    p.id,
-    m.id,
-    is_eligible,
-    CASE
-        WHEN is_eligible = false THEN NULL::numeric
-        ELSE price_per_booking
-        END AS price_per_booking
+INSERT
+INTO public.practice_membership (practice_id, membership_id, is_eligible, price_per_booking)
+SELECT p.id,
+       m.id,
+       is_eligible,
+       CASE
+           WHEN is_eligible = false THEN NULL::numeric
+           ELSE price_per_booking
+           END AS price_per_booking
 FROM prepared_data
          JOIN membership.memberships m ON m.name = membership_names
          JOIN public.practices p ON p.name = practice_names

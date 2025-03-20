@@ -7,15 +7,15 @@ import (
 )
 
 type Details struct {
-	Day              string
-	ProgramStartAt   time.Time
-	ProgramEndAt     time.Time
-	SessionStartTime custom_types.TimeWithTimeZone
-	SessionEndTime   custom_types.TimeWithTimeZone
-	PracticeID       uuid.UUID
-	CourseID         uuid.UUID
-	GameID           uuid.UUID
-	LocationID       uuid.UUID
+	Day            string
+	ProgramStartAt time.Time
+	ProgramEndAt   time.Time
+	EventStartTime custom_types.TimeWithTimeZone
+	EventEndTime   custom_types.TimeWithTimeZone
+	PracticeID     uuid.UUID
+	CourseID       uuid.UUID
+	GameID         uuid.UUID
+	LocationID     uuid.UUID
 }
 
 type CreateEventValues struct {

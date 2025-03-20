@@ -3,7 +3,7 @@
 
 CREATE SCHEMA IF NOT EXISTS location;
 
-CREATE TABLE location.locations
+CREATE TABLE IF NOT EXISTS location.locations
 (
     id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name                 VARCHAR(100) UNIQUE NOT NULL,

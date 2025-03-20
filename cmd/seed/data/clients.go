@@ -38,7 +38,7 @@ func parseInt(s string) int {
 
 // Function to parse booleans safely
 func parseBool(s string) bool {
-	return s == "true" || s == "Yes"
+	return s == "true" || s == "false"
 }
 
 // GetClients : extract clients data from the CSV file

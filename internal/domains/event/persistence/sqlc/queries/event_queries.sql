@@ -1,5 +1,5 @@
 -- name: CreateEvent :exec
-INSERT INTO events (program_start_at, program_end_at, session_start_time, session_end_time, day, location_id, course_id,
+INSERT INTO events (program_start_at, program_end_at, event_start_time, event_end_time, day, location_id, course_id,
                     practice_id, game_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
 
@@ -26,8 +26,8 @@ SET program_start_at   = $1,
     practice_id    = $4,
     course_id      = $5,
     game_id        = $6,
-    session_start_time = $7,
-    session_end_time   = $8,
+    event_start_time = $7,
+    event_end_time   = $8,
     day                = $9,
     updated_at     = current_timestamp
 WHERE id = $10;

@@ -415,12 +415,12 @@ func seedEvents(ctx context.Context, db *sql.DB) error {
 	practices := data.Practices
 
 	var (
-		programStartAtArray   []time.Time
-		programEndAtArray     []time.Time
-		sessionStartTimeArray []custom_types.TimeWithTimeZone
-		sessionEndTimeArray   []custom_types.TimeWithTimeZone
-		dayArray              []dbSeed.DayEnum
-		practiceNameArray     []string
+		programStartAtArray []time.Time
+		programEndAtArray   []time.Time
+		eventStartTimeArray []custom_types.TimeWithTimeZone
+		eventEndTimeArray   []custom_types.TimeWithTimeZone
+		dayArray            []dbSeed.DayEnum
+		practiceNameArray   []string
 		//courseNameArray       []string
 		//gameNameArray         []string
 		//locationNameArray     []string
@@ -433,22 +433,22 @@ func seedEvents(ctx context.Context, db *sql.DB) error {
 			programStartAtArray = append(programStartAtArray, time.Now())
 			programEndAtArray = append(programEndAtArray, time.Now().Add(time.Hour*2440))
 
-			sessionStartTime, err := validators.ParseTime(schedule.SessionStartTime + ":00+00:00")
+			eventStartTime, err := validators.ParseTime(schedule.EventStartTime + ":00+00:00")
 
 			if err != nil {
 				log.Fatalf("Failed to parse session start time: %v", err)
 				return err
 			}
 
-			sessionEndTime, err := validators.ParseTime(schedule.SessionEndTime + ":00+00:00")
+			eventEndTime, err := validators.ParseTime(schedule.EventEndTime + ":00+00:00")
 
 			if err != nil {
 				log.Fatalf("Failed to parse session end time: %v", err)
 				return err
 			}
 
-			sessionStartTimeArray = append(sessionStartTimeArray, sessionStartTime)
-			sessionEndTimeArray = append(sessionEndTimeArray, sessionEndTime)
+			eventStartTimeArray = append(eventStartTimeArray, eventStartTime)
+			eventEndTimeArray = append(eventEndTimeArray, eventEndTime)
 
 			day := dbSeed.DayEnum(strings.ToUpper(schedule.Day))
 
@@ -465,15 +465,15 @@ func seedEvents(ctx context.Context, db *sql.DB) error {
 	}
 
 	arg := dbSeed.InsertEventsParams{
-		ProgramStartAtArray:   programStartAtArray,
-		ProgramEndAtArray:     programEndAtArray,
-		SessionStartTimeArray: sessionStartTimeArray,
-		SessionEndTimeArray:   sessionEndTimeArray,
-		DayArray:              dayArray,
-		PracticeNameArray:     practiceNameArray,
-		CourseNameArray:       nil,
-		GameNameArray:         nil,
-		LocationNameArray:     nil,
+		ProgramStartAtArray: programStartAtArray,
+		ProgramEndAtArray:   programEndAtArray,
+		EventStartTimeArray: eventStartTimeArray,
+		EventEndTimeArray:   eventEndTimeArray,
+		DayArray:            dayArray,
+		PracticeNameArray:   practiceNameArray,
+		CourseNameArray:     nil,
+		GameNameArray:       nil,
+		LocationNameArray:   nil,
 	}
 
 	// Insert events and sessions into the database

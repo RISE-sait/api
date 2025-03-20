@@ -1,6 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE table discounts (
+CREATE table IF NOT EXISTS discounts
+(
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(50) NOT NULL,
     description TEXT,

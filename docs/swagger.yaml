@@ -288,6 +288,27 @@ definitions:
       video_link:
         type: string
     type: object
+  haircut.EventResponseDto:
+    properties:
+      barber_id:
+        type: string
+      barber_name:
+        type: string
+      created_at:
+        type: string
+      customer_id:
+        type: string
+      customer_name:
+        type: string
+      end_at:
+        type: string
+      id:
+        type: string
+      start_at:
+        type: string
+      updated_at:
+        type: string
+    type: object
   haircut.RequestDto:
     properties:
       barber_id:
@@ -303,25 +324,8 @@ definitions:
         example: "2023-10-05T07:00:00Z"
         type: string
     required:
-    - begin_time
-    - end_time
-    type: object
-  haircut.ResponseDto:
-    properties:
-      barber_id:
-        type: string
-      begin_time:
-        type: string
-      created_at:
-        type: string
-      customer_id:
-        type: string
-      end_time:
-        type: string
-      id:
-        type: string
-      updated_at:
-        type: string
+      - begin_time
+      - end_time
     type: object
   hubspot.UserAssociation:
     properties:
@@ -1694,6 +1698,16 @@ paths:
       description: Retrieve all barber events, with optional filters by barber ID
         and customer ID.
       parameters:
+        - description: Start date of the events range (YYYY-MM-DD)
+          example: '"2025-03-01"'
+          in: query
+          name: after
+          type: string
+        - description: End date of the events range (YYYY-MM-DD)
+          example: '"2025-03-31"'
+          in: query
+          name: before
+          type: string
       - description: Filter by barber ID
         in: query
         name: barber_id
@@ -1709,7 +1723,7 @@ paths:
           description: List of barber events retrieved successfully
           schema:
             items:
-              $ref: '#/definitions/haircut.ResponseDto'
+              $ref: '#/definitions/haircut.EventResponseDto'
             type: array
         "400":
           description: 'Bad Request: Invalid input'
@@ -1741,7 +1755,7 @@ paths:
         "201":
           description: Barber event created successfully
           schema:
-            $ref: '#/definitions/haircut.ResponseDto'
+            $ref: '#/definitions/haircut.EventResponseDto'
         "400":
           description: 'Bad Request: Invalid input'
           schema:
@@ -1805,7 +1819,7 @@ paths:
         "200":
           description: Barber event details retrieved successfully
           schema:
-            $ref: '#/definitions/haircut.ResponseDto'
+            $ref: '#/definitions/haircut.EventResponseDto'
         "400":
           description: 'Bad Request: Invalid ID'
           schema:
@@ -1846,7 +1860,7 @@ paths:
         "200":
           description: Barber event updated successfully
           schema:
-            $ref: '#/definitions/haircut.ResponseDto'
+            $ref: '#/definitions/haircut.EventResponseDto'
         "400":
           description: 'Bad Request: Invalid input'
           schema:

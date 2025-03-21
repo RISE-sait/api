@@ -1643,6 +1643,20 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "example": "\"2025-03-01\"",
+                        "description": "Start date of the events range (YYYY-MM-DD)",
+                        "name": "after",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"2025-03-31\"",
+                        "description": "End date of the events range (YYYY-MM-DD)",
+                        "name": "before",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
                         "description": "Filter by barber ID",
                         "name": "barber_id",
                         "in": "query"
@@ -1660,7 +1674,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/haircut.ResponseDto"
+                                "$ref": "#/definitions/haircut.EventResponseDto"
                             }
                         }
                     },
@@ -1707,7 +1721,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Barber event created successfully",
                         "schema": {
-                            "$ref": "#/definitions/haircut.ResponseDto"
+                            "$ref": "#/definitions/haircut.EventResponseDto"
                         }
                     },
                     "400": {
@@ -1753,7 +1767,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Barber event details retrieved successfully",
                         "schema": {
-                            "$ref": "#/definitions/haircut.ResponseDto"
+                            "$ref": "#/definitions/haircut.EventResponseDto"
                         }
                     },
                     "400": {
@@ -1813,7 +1827,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Barber event updated successfully",
                         "schema": {
-                            "$ref": "#/definitions/haircut.ResponseDto"
+                            "$ref": "#/definitions/haircut.EventResponseDto"
                         }
                     },
                     "400": {
@@ -3754,6 +3768,38 @@ const docTemplate = `{
                 }
             }
         },
+        "haircut.EventResponseDto": {
+            "type": "object",
+            "properties": {
+                "barber_id": {
+                    "type": "string"
+                },
+                "barber_name": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "customer_id": {
+                    "type": "string"
+                },
+                "customer_name": {
+                    "type": "string"
+                },
+                "end_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "start_at": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "haircut.RequestDto": {
             "type": "object",
             "required": [
@@ -3776,32 +3822,6 @@ const docTemplate = `{
                 "end_time": {
                     "type": "string",
                     "example": "2023-10-05T07:00:00Z"
-                }
-            }
-        },
-        "haircut.ResponseDto": {
-            "type": "object",
-            "properties": {
-                "barber_id": {
-                    "type": "string"
-                },
-                "begin_time": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "customer_id": {
-                    "type": "string"
-                },
-                "end_time": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
                 }
             }
         },

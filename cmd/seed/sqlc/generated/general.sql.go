@@ -14,6 +14,53 @@ import (
 	"github.com/lib/pq"
 )
 
+const insertBarberEvents = `-- name: InsertBarberEvents :exec
+WITH prepared_data AS (SELECT unnest($1::timestamptz[])          AS begin_date_time,
+                              unnest($2::timestamptz[])             AS end_date_time,
+                              unnest($3::uuid[]) AS customer_id,
+                              unnest($4::text[]) AS barber_email),
+     user_data AS (
+         SELECT
+             pd.begin_date_time,
+             pd.end_date_time,
+             pd.customer_id,
+             ub.id AS barber_id
+         FROM
+             prepared_data pd
+                 LEFT JOIN
+             users.users ub ON pd.barber_email = ub.email
+     )
+INSERT INTO barber.barber_events (begin_date_time, end_date_time, customer_id, barber_id)
+SELECT
+    begin_date_time,
+    end_date_time,
+    customer_id,
+    barber_id
+FROM
+    user_data
+WHERE
+    customer_id IS NOT NULL
+  AND barber_id IS NOT NULL
+ON CONFLICT DO NOTHING
+`
+
+type InsertBarberEventsParams struct {
+	BeginDateTimeArray []time.Time `json:"begin_date_time_array"`
+	EndDateTimeArray   []time.Time `json:"end_date_time_array"`
+	CustomerIDArray    []uuid.UUID `json:"customer_id_array"`
+	BarberEmailArray   []string    `json:"barber_email_array"`
+}
+
+func (q *Queries) InsertBarberEvents(ctx context.Context, arg InsertBarberEventsParams) error {
+	_, err := q.db.ExecContext(ctx, insertBarberEvents,
+		pq.Array(arg.BeginDateTimeArray),
+		pq.Array(arg.EndDateTimeArray),
+		pq.Array(arg.CustomerIDArray),
+		pq.Array(arg.BarberEmailArray),
+	)
+	return err
+}
+
 const insertCourses = `-- name: InsertCourses :exec
 INSERT INTO course.courses (name, description, capacity)
 VALUES (unnest($1::text[]),
@@ -83,11 +130,11 @@ func (q *Queries) InsertCustomersEnrollments(ctx context.Context, arg InsertCust
 	return items, nil
 }
 
-const insertEvents = `-- name: InsertEvents :exec
+const insertEvents = `-- name: InsertEvents :many
 WITH events_data AS (SELECT unnest($1::timestamptz[]) as program_start_at,
                             unnest($2::timestamptz[])   as program_end_at,
-                            unnest($3::timetz[])    AS event_start_time,
-                            unnest($4::timetz[])      AS event_end_time,
+                            unnest($3::timetz[]) AS event_start_time,
+                            unnest($4::timetz[])   AS event_end_time,
                             unnest($5::day_enum[])                 AS day,
                             unnest($6::text[])           AS practice_name,
                             unnest($7::text[])             AS course_name,
@@ -110,6 +157,7 @@ FROM events_data e
          LEFT JOIN LATERAL (SELECT id FROM course.courses WHERE name = e.course_name) c ON TRUE
          LEFT JOIN LATERAL (SELECT id FROM public.games WHERE name = e.game_name) g ON TRUE
          LEFT JOIN LATERAL (SELECT id FROM location.locations WHERE name = e.location_name) l ON TRUE
+RETURNING id
 `
 
 type InsertEventsParams struct {
@@ -124,8 +172,8 @@ type InsertEventsParams struct {
 	LocationNameArray   []string                        `json:"location_name_array"`
 }
 
-func (q *Queries) InsertEvents(ctx context.Context, arg InsertEventsParams) error {
-	_, err := q.db.ExecContext(ctx, insertEvents,
+func (q *Queries) InsertEvents(ctx context.Context, arg InsertEventsParams) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, insertEvents,
 		pq.Array(arg.ProgramStartAtArray),
 		pq.Array(arg.ProgramEndAtArray),
 		pq.Array(arg.EventStartTimeArray),
@@ -136,7 +184,25 @@ func (q *Queries) InsertEvents(ctx context.Context, arg InsertEventsParams) erro
 		pq.Array(arg.GameNameArray),
 		pq.Array(arg.LocationNameArray),
 	)
-	return err
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const insertGames = `-- name: InsertGames :exec

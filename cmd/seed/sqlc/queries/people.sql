@@ -3,26 +3,8 @@ WITH prepared_data AS (SELECT unnest(@country_alpha2_code_array::text[])        
                               unnest(@first_name_array::text[])                     AS first_name,
                               unnest(@last_name_array::text[])                      AS last_name,
                               unnest(@age_array::int[])                             AS age,
-                              unnest(
-                                      ARRAY(
-                                              SELECT CASE
-                                                         WHEN parent_id = '00000000-0000-0000-0000-000000000000'
-                                                             THEN NULL
-                                                         ELSE parent_id
-                                                         END
-                                              FROM unnest(@parent_id_array::uuid[]) AS parent_id
-                                      )
-                              )                                                     AS parent_id,
-                              unnest(
-                                      ARRAY(
-                                              SELECT CASE
-                                                         WHEN gender = 'N'
-                                                             THEN NULL
-                                                         ELSE gender
-                                                         END
-                                              FROM unnest(@gender_array::char[]) AS gender
-                                      )
-                              )                                                     AS gender,
+                              unnest(@parent_id_array::uuid[]) AS parent_id,
+                              unnest(@gender_array::char[])    AS gender,
                               unnest(@phone_array::text[])                          AS phone,
                               unnest(@email_array::text[])                          AS email,
                               unnest(@has_marketing_email_consent_array::boolean[]) AS has_marketing_email_consent,
@@ -42,8 +24,8 @@ SELECT country_alpha2_code,
        first_name,
        last_name,
        age,
-       gender,
-       parent_id,
+       NULLIF(gender, 'N')                                       AS gender,    -- Replace 'N' with NULL
+       NULLIF(parent_id, '00000000-0000-0000-0000-000000000000') AS parent_id, -- Replace default UUID with NULL
        phone,
        email,
        has_marketing_email_consent,
@@ -58,42 +40,6 @@ INSERT
 INTO users.athletes (id)
 VALUES (unnest(@id_array::uuid[]))
 RETURNING id;
-
--- -- name: InsertClientsMembershipPlans :exec
--- WITH prepared_data AS (SELECT unnest(@customer_id_array::uuid[])  AS customer_id,
---                               unnest(
---                                       ARRAY(
---                                               SELECT CASE
---                                                          WHEN membership_plan_id = '00000000-0000-0000-0000-000000000000'
---                                                              THEN NULL
---                                                          ELSE membership_plan_id
---                                                          END
---                                               FROM unnest(@membership_plan_id_array::uuid[]) AS membership_plan_id
---                                       )
---                               ),
---                                   unnest(
---                                       ARRAY(
---                                               SELECT CASE
---                                                          WHEN start_date = '0001-01-01 00:00:00 UTC'
---                                                              THEN NULL
---                                                          ELSE start_date
---                                                          END
---                                               FROM unnest(@start_date_array::timestamptz[]) AS start_date
---                                       )
---                               )                                   AS start_date,
---                               unnest(
---                                       ARRAY(
---                                               SELECT CASE
---                                                          WHEN renewal_date = '0001-01-01 00:00:00 UTC'
---                                                              THEN NULL
---                                                          ELSE renewal_date
---                                                          END
---                                               FROM unnest(@renewal_date_array::timestamptz[]) AS renewal_date
---                                       )
---                               )                                   AS renewal_date)
--- INSERT INTO public.customer_membership_plans (customer_id, membership_plan_id, start_date, renewal_date)
--- VALUES (  customer_id, membership_plan_id, start_date, renewal_date);
-
 
 -- name: InsertStaffRoles :exec
 INSERT INTO users.staff_roles (role_name)
@@ -125,3 +71,8 @@ FROM staff_data sd
      users.users u ON u.email = sd.email
          JOIN
      users.staff_roles sr ON sr.role_name = sd.role_name;
+
+-- name: UpdateParents :execrows
+UPDATE users.users
+SET parent_id = (SELECT id from users.users WHERE email = 'parent@gmail.com')
+WHERE email IN ('klintlee1@gmail.com', 'sukhdeepboparai2005@gmail.com');

@@ -529,6 +529,23 @@ func seedClientsEnrollments(ctx context.Context, db *sql.DB, clients, events []u
 	return nil
 }
 
+func updateParents(ctx context.Context, db *sql.DB) error {
+	seedQueries := dbSeed.New(db)
+
+	rows, err := seedQueries.UpdateParents(ctx)
+
+	if err != nil {
+		log.Fatalf("Failed to insert client enrollments: %v", err)
+		return err
+	}
+
+	if rows == 0 {
+		log.Fatalf("Failed to update parents. Rows affected: %d", rows)
+	}
+
+	return nil
+}
+
 func main() {
 
 	ctx := context.Background()
@@ -582,6 +599,11 @@ func main() {
 	clientIds, err := seedUsers(ctx, db)
 
 	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	if err := updateParents(ctx, db); err != nil {
 		log.Println(err)
 		return
 	}

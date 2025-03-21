@@ -77,8 +77,6 @@ func (q *Queries) InsertStaff(ctx context.Context, arg InsertStaffParams) error 
 }
 
 const insertStaffRoles = `-- name: InsertStaffRoles :exec
-
-
 INSERT INTO users.staff_roles (role_name)
 VALUES ('admin'),
        ('superadmin'),
@@ -88,42 +86,6 @@ VALUES ('admin'),
        ('barber')
 `
 
-// -- name: InsertClientsMembershipPlans :exec
-// WITH prepared_data AS (SELECT unnest(@customer_id_array::uuid[])  AS customer_id,
-//
-//	unnest(
-//	        ARRAY(
-//	                SELECT CASE
-//	                           WHEN membership_plan_id = '00000000-0000-0000-0000-000000000000'
-//	                               THEN NULL
-//	                           ELSE membership_plan_id
-//	                           END
-//	                FROM unnest(@membership_plan_id_array::uuid[]) AS membership_plan_id
-//	        )
-//	),
-//	    unnest(
-//	        ARRAY(
-//	                SELECT CASE
-//	                           WHEN start_date = '0001-01-01 00:00:00 UTC'
-//	                               THEN NULL
-//	                           ELSE start_date
-//	                           END
-//	                FROM unnest(@start_date_array::timestamptz[]) AS start_date
-//	        )
-//	)                                   AS start_date,
-//	unnest(
-//	        ARRAY(
-//	                SELECT CASE
-//	                           WHEN renewal_date = '0001-01-01 00:00:00 UTC'
-//	                               THEN NULL
-//	                           ELSE renewal_date
-//	                           END
-//	                FROM unnest(@renewal_date_array::timestamptz[]) AS renewal_date
-//	        )
-//	)                                   AS renewal_date)
-//
-// INSERT INTO public.customer_membership_plans (customer_id, membership_plan_id, start_date, renewal_date)
-// VALUES (  customer_id, membership_plan_id, start_date, renewal_date);
 func (q *Queries) InsertStaffRoles(ctx context.Context) error {
 	_, err := q.db.ExecContext(ctx, insertStaffRoles)
 	return err
@@ -134,26 +96,8 @@ WITH prepared_data AS (SELECT unnest($1::text[])            AS country_alpha2_co
                               unnest($2::text[])                     AS first_name,
                               unnest($3::text[])                      AS last_name,
                               unnest($4::int[])                             AS age,
-                              unnest(
-                                      ARRAY(
-                                              SELECT CASE
-                                                         WHEN parent_id = '00000000-0000-0000-0000-000000000000'
-                                                             THEN NULL
-                                                         ELSE parent_id
-                                                         END
-                                              FROM unnest($5::uuid[]) AS parent_id
-                                      )
-                              )                                                     AS parent_id,
-                              unnest(
-                                      ARRAY(
-                                              SELECT CASE
-                                                         WHEN gender = 'N'
-                                                             THEN NULL
-                                                         ELSE gender
-                                                         END
-                                              FROM unnest($6::char[]) AS gender
-                                      )
-                              )                                                     AS gender,
+                              unnest($5::uuid[]) AS parent_id,
+                              unnest($6::char[]) AS gender,
                               unnest($7::text[])                          AS phone,
                               unnest($8::text[])                          AS email,
                               unnest($9::boolean[]) AS has_marketing_email_consent,
@@ -173,8 +117,8 @@ SELECT country_alpha2_code,
        first_name,
        last_name,
        age,
-       gender,
-       parent_id,
+       NULLIF(gender, 'N') AS gender, -- Replace 'N' with NULL
+       NULLIF(parent_id, '00000000-0000-0000-0000-000000000000') AS parent_id, -- Replace default UUID with NULL
        phone,
        email,
        has_marketing_email_consent,
@@ -229,4 +173,18 @@ func (q *Queries) InsertUsers(ctx context.Context, arg InsertUsersParams) ([]uui
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateParents = `-- name: UpdateParents :execrows
+UPDATE users.users
+SET parent_id = (SELECT id from users.users WHERE email = 'parent@gmail.com')
+WHERE email IN ('klintlee1@gmail.com', 'sukhdeepboparai2005@gmail.com')
+`
+
+func (q *Queries) UpdateParents(ctx context.Context) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateParents)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

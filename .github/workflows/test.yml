@@ -1,6 +1,10 @@
 name: Run Tests with Testcontainers
 
-on: [ push ]
+on:
+  push:
+    branches:
+      - '**'           # Run on all branches
+      - '!main'
 
 jobs:
   test:

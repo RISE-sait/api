@@ -137,6 +137,20 @@ func seedUsers(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 	return ids, nil
 }
 
+func seedBarberEvents(ctx context.Context, db *sql.DB, clientIds []uuid.UUID) error {
+
+	seedQueries := dbSeed.New(db)
+
+	events := data.GetBarberEvents(clientIds)
+
+	if err := seedQueries.InsertBarberEvents(ctx, events); err != nil {
+		log.Fatalf("Failed to insert athletes: %v", err)
+		return err
+	}
+
+	return nil
+}
+
 func seedAthletes(ctx context.Context, db *sql.DB, ids []uuid.UUID) ([]uuid.UUID, error) {
 
 	seedQueries := dbSeed.New(db)
@@ -411,7 +425,7 @@ func seedMemberships(ctx context.Context, db *sql.DB) error {
 	return nil
 }
 
-func seedEvents(ctx context.Context, db *sql.DB) error {
+func seedEvents(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 	seedQueries := dbSeed.New(db)
 
 	practices := data.Practices
@@ -439,14 +453,14 @@ func seedEvents(ctx context.Context, db *sql.DB) error {
 
 			if err != nil {
 				log.Fatalf("Failed to parse session start time: %v", err)
-				return err
+				return nil, err
 			}
 
 			eventEndTime, err := validators.ParseTime(schedule.EventEndTime + ":00+00:00")
 
 			if err != nil {
 				log.Fatalf("Failed to parse session end time: %v", err)
-				return err
+				return nil, err
 			}
 
 			eventStartTimeArray = append(eventStartTimeArray, eventStartTime)
@@ -456,7 +470,7 @@ func seedEvents(ctx context.Context, db *sql.DB) error {
 
 			if !day.Valid() {
 				log.Fatalf("Invalid day: %v", schedule.Day)
-				return err
+				return nil, err
 			}
 
 			dayArray = append(dayArray, day)
@@ -479,14 +493,14 @@ func seedEvents(ctx context.Context, db *sql.DB) error {
 	}
 
 	// Insert events and sessions into the database
-	err := seedQueries.InsertEvents(ctx, arg)
+	ids, err := seedQueries.InsertEvents(ctx, arg)
 
 	if err != nil {
 		log.Fatalf("Failed to insert events: %v", err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return ids, nil
 }
 
 func seedClientsMembershipPlans(ctx context.Context, db *sql.DB, clients, plans []uuid.UUID) error {
@@ -548,7 +562,9 @@ func main() {
 		return
 	}
 
-	if err := seedEvents(ctx, db); err != nil {
+	eventIds, err := seedEvents(ctx, db)
+
+	if err != nil {
 		log.Println(err)
 		return
 	}
@@ -582,12 +598,12 @@ func main() {
 	//	return
 	//}
 	//
-	//err = seedClientsEnrollments(ctx, db, clientIds, eventIds)
-	//
-	//if err != nil {
-	//	log.Println(err)
-	//	return
-	//}
+	err = seedClientsEnrollments(ctx, db, clientIds, eventIds)
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
 	//err = seedMembershipCoursesEligibility(ctx, db, membershipIds, courseIds)
 	//
@@ -607,6 +623,11 @@ func main() {
 	}
 
 	if err = seedStaff(ctx, db); err != nil {
+		log.Println(err)
+		return
+	}
+
+	if err = seedBarberEvents(ctx, db, clientIds); err != nil {
 		log.Println(err)
 		return
 	}

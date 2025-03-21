@@ -23,7 +23,7 @@ INSERT INTO public.games (name)
 VALUES (unnest(@name_array::text[]))
 RETURNING id;
 
--- name: InsertEvents :exec
+-- name: InsertEvents :many
 WITH events_data AS (SELECT unnest(@program_start_at_array::timestamptz[]) as program_start_at,
                             unnest(@program_end_at_array::timestamptz[])   as program_end_at,
                             unnest(@event_start_time_array::timetz[]) AS event_start_time,
@@ -49,7 +49,8 @@ FROM events_data e
          LEFT JOIN LATERAL (SELECT id FROM public.practices WHERE name = e.practice_name) p ON TRUE
          LEFT JOIN LATERAL (SELECT id FROM course.courses WHERE name = e.course_name) c ON TRUE
          LEFT JOIN LATERAL (SELECT id FROM public.games WHERE name = e.game_name) g ON TRUE
-         LEFT JOIN LATERAL (SELECT id FROM location.locations WHERE name = e.location_name) l ON TRUE;
+         LEFT JOIN LATERAL (SELECT id FROM location.locations WHERE name = e.location_name) l ON TRUE
+RETURNING id;
 
 -- name: InsertCustomersEnrollments :many
 WITH prepared_data AS (SELECT unnest(@customer_id_array::uuid[])          AS customer_id,
@@ -64,3 +65,26 @@ SELECT customer_id,
        is_cancelled
 FROM prepared_data
 RETURNING id;
+
+-- name: InsertBarberEvents :exec
+WITH prepared_data AS (SELECT unnest(@begin_date_time_array::timestamptz[]) AS begin_date_time,
+                              unnest(@end_date_time_array::timestamptz[])   AS end_date_time,
+                              unnest(@customer_id_array::uuid[])            AS customer_id,
+                              unnest(@barber_email_array::text[])           AS barber_email),
+     user_data AS (SELECT pd.begin_date_time,
+                          pd.end_date_time,
+                          pd.customer_id,
+                          ub.id AS barber_id
+                   FROM prepared_data pd
+                            LEFT JOIN
+                        users.users ub ON pd.barber_email = ub.email)
+INSERT
+INTO barber.barber_events (begin_date_time, end_date_time, customer_id, barber_id)
+SELECT begin_date_time,
+       end_date_time,
+       customer_id,
+       barber_id
+FROM user_data
+WHERE customer_id IS NOT NULL
+  AND barber_id IS NOT NULL
+ON CONFLICT DO NOTHING;

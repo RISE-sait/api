@@ -25,19 +25,22 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-// @host localhost:80
-
 // @SecurityDefinitions.apiKey Bearer
 // @in header
 // @name Authorization
 func main() {
+
+	swaggerUrl := os.Getenv("SWAGGER_URL")
+	if swaggerUrl == "" {
+		swaggerUrl = "http://localhost/swagger/doc.json"
+	}
 
 	diContainer := di.NewContainer()
 	defer diContainer.Cleanup()
 
 	server := &http.Server{
 		Addr:         ":80",
-		Handler:      setupServer(diContainer),
+		Handler:      setupServer(diContainer, swaggerUrl),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
@@ -63,7 +66,7 @@ func main() {
 	}
 }
 
-func setupServer(container *di.Container) http.Handler {
+func setupServer(container *di.Container, swaggerUrl string) http.Handler {
 	r := chi.NewRouter()
 	setupMiddlewares(r)
 
@@ -75,7 +78,9 @@ func setupServer(container *di.Container) http.Handler {
 		})
 	})
 
-	r.Get("/swagger/*", httpSwagger.WrapHandler)
+	r.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL(swaggerUrl), // Use the dynamic host
+	))
 
 	router.RegisterRoutes(r, container)
 	return r

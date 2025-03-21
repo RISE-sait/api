@@ -3,7 +3,6 @@
     "info": {
         "contact": {}
     },
-    "host": "localhost:80",
     "paths": {
         "/auth": {
             "post": {

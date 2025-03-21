@@ -599,7 +599,6 @@ definitions:
       updated_at:
         type: string
     type: object
-host: localhost:80
 info:
   contact: {}
 paths:

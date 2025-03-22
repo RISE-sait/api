@@ -317,9 +317,6 @@ definitions:
       begin_time:
         example: "2023-10-05T07:00:00Z"
         type: string
-      customer_id:
-        example: 00000000-0000-0000-0000-000000000000
-        type: string
       end_time:
         example: "2023-10-05T07:00:00Z"
         type: string
@@ -1694,7 +1691,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieve all barber events, with optional filters by barber ID
+      description: Retrieve all haircut events, with optional filters by barber ID
         and customer ID.
       parameters:
         - description: Start date of the events range (YYYY-MM-DD)
@@ -1719,7 +1716,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: List of barber events retrieved successfully
+          description: List of haircut events retrieved successfully
           schema:
             items:
               $ref: '#/definitions/haircut.EventResponseDto'
@@ -1734,15 +1731,17 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Get all barber events
+      summary: Get all haircut events
       tags:
       - haircut
     post:
       consumes:
       - application/json
-      description: Registers a new barber event with the provided details.
+      description: |-
+        Registers a new haircut event with the provided details from request body.
+        Requires an Authorization header containing the customer's JWT, ensuring only logged-in customers can make the request.
       parameters:
-      - description: Barber event details
+        - description: Haircut event details
         in: body
         name: event
         required: true
@@ -1752,7 +1751,7 @@ paths:
       - application/json
       responses:
         "201":
-          description: Barber event created successfully
+          description: Haircut event created successfully
           schema:
             $ref: '#/definitions/haircut.EventResponseDto'
         "400":
@@ -1765,16 +1764,17 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Create a new barber event
+      security:
+        - Bearer: [ ]
       tags:
       - haircut
   /haircuts/events/{id}:
     delete:
       consumes:
       - application/json
-      description: Deletes a barber event by its ID.
+      description: Deletes a haircut event by its ID.
       parameters:
-      - description: Barber event ID
+        - description: Haircut event ID
         in: path
         name: id
         required: true
@@ -1783,14 +1783,14 @@ paths:
       - application/json
       responses:
         "204":
-          description: 'No Content: Barber event deleted successfully'
+          description: 'No Content: Haircut event deleted successfully'
         "400":
           description: 'Bad Request: Invalid ID'
           schema:
             additionalProperties: true
             type: object
         "404":
-          description: 'Not Found: Barber event not found'
+          description: 'Not Found: Haircut event not found'
           schema:
             additionalProperties: true
             type: object
@@ -1799,15 +1799,14 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Delete a barber event
       tags:
       - haircut
     get:
       consumes:
       - application/json
-      description: Retrieves details of a specific barber event based on its ID.
+      description: Retrieves details of a specific haircut event based on its ID.
       parameters:
-      - description: Barber event ID
+        - description: Haircut event ID
         in: path
         name: id
         required: true
@@ -1816,7 +1815,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Barber event details retrieved successfully
+          description: Haircut event details retrieved successfully
           schema:
             $ref: '#/definitions/haircut.EventResponseDto'
         "400":
@@ -1825,7 +1824,7 @@ paths:
             additionalProperties: true
             type: object
         "404":
-          description: 'Not Found: Barber event not found'
+          description: 'Not Found: Haircut event not found'
           schema:
             additionalProperties: true
             type: object
@@ -1834,48 +1833,6 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Get barber event details
-      tags:
-      - haircut
-    put:
-      consumes:
-      - application/json
-      description: Updates the details of an existing barber event.
-      parameters:
-      - description: Barber event ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Updated barber event details
-        in: body
-        name: event
-        required: true
-        schema:
-          $ref: '#/definitions/haircut.RequestDto'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Barber event updated successfully
-          schema:
-            $ref: '#/definitions/haircut.EventResponseDto'
-        "400":
-          description: 'Bad Request: Invalid input'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Barber event not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Update a barber event
       tags:
       - haircut
   /locations:

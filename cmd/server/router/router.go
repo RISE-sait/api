@@ -110,9 +110,8 @@ func RegisterHaircutEventsRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 
 		r.Get("/", h.GetEvents)
-		r.Get("/{id}", h.GetEventDetails)
-		r.Post("/", h.CreateEvent)
-		r.Put("/{id}", h.UpdateEvent)
+		r.Get("/{id}", h.GetEvent)
+		r.With(allowAnyoneWithValidToken).Post("/", h.CreateEvent)
 		r.Delete("/{id}", h.DeleteEvent)
 	}
 }

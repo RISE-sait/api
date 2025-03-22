@@ -6,16 +6,16 @@ import (
 )
 
 type ReadValue struct {
-	ID           uuid.UUID
-	Age          int32
-	HubspotID    *string
-	CountryCode  string
-	FirstName    string
-	LastName     string
-	Email        *string
-	Phone        *string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	CustomerInfo *CustomerReadValue
-	AthleteInfo  *AthleteReadValue
+	ID             uuid.UUID
+	Age            int32
+	HubspotID      *string
+	CountryCode    string
+	FirstName      string
+	LastName       string
+	Email          *string
+	Phone          *string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	MembershipInfo *MembershipReadValue
+	AthleteInfo    *AthleteReadValue
 }

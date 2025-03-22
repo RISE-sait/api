@@ -5,21 +5,26 @@ import (
 	"time"
 )
 
-type CustomerReadValue struct {
-	MembershipName      string
-	MembershipStartDate time.Time
+type MembershipReadValue struct {
+	MembershipPlanID      uuid.UUID
+	MembershipPlanName    string
+	MembershipName        string
+	MembershipStartDate   time.Time
+	MembershipRenewalDate time.Time
 }
 
 type MembershipPlansReadValue struct {
-	ID               uuid.UUID
-	CustomerID       uuid.UUID
-	MembershipPlanID uuid.UUID
-	StartDate        time.Time
-	RenewalDate      *time.Time
-	Status           string
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
-	MembershipName   string
+	ID                 uuid.UUID
+	CustomerID         uuid.UUID
+	StartDate          time.Time
+	RenewalDate        *time.Time
+	Status             string
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+	MembershipID       uuid.UUID
+	MembershipPlanID   uuid.UUID
+	MembershipName     string
+	MembershipPlanName string
 }
 
 type StatsUpdateValue struct {

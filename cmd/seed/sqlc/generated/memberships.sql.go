@@ -14,48 +14,36 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-const insertClientsMembershipPlans = `-- name: InsertClientsMembershipPlans :many
+const insertClientsMembershipPlans = `-- name: InsertClientsMembershipPlans :exec
+WITH prepared_data as (SELECT unnest($1::text[])       as customer_email,
+                              unnest($2::text[])     as membership_plan_name,
+                              unnest($3::timestamptz[])          as start_date,
+                              unnest($4::timestamptz[]) as renewal_date)
 INSERT INTO public.customer_membership_plans (customer_id, membership_plan_id, start_date, renewal_date)
-VALUES (unnest($1::uuid[]),
-        unnest($2::uuid[]),
-        unnest($3::timestamptz[]),
-        unnest($4::timestamptz[]))
-RETURNING id
+SELECT u.id,
+mp.id,
+p.start_date,
+       NULLIF(p.renewal_date, '1970-01-01 00:00:00+00'::timestamptz)
+FROM prepared_data p
+                 JOIN users.users u ON u.email = p.customer_email
+JOIN membership.membership_plans mp ON mp.name = membership_plan_name
 `
 
 type InsertClientsMembershipPlansParams struct {
-	CustomerID       []uuid.UUID `json:"customer_id"`
-	PlansArray       []uuid.UUID `json:"plans_array"`
-	StartDateArray   []time.Time `json:"start_date_array"`
-	RenewalDateArray []time.Time `json:"renewal_date_array"`
+	CustomerEmailArray []string    `json:"customer_email_array"`
+	MembershipPlanName []string    `json:"membership_plan_name"`
+	StartDateArray     []time.Time `json:"start_date_array"`
+	RenewalDateArray   []time.Time `json:"renewal_date_array"`
 }
 
-func (q *Queries) InsertClientsMembershipPlans(ctx context.Context, arg InsertClientsMembershipPlansParams) ([]uuid.UUID, error) {
-	rows, err := q.db.QueryContext(ctx, insertClientsMembershipPlans,
-		pq.Array(arg.CustomerID),
-		pq.Array(arg.PlansArray),
+func (q *Queries) InsertClientsMembershipPlans(ctx context.Context, arg InsertClientsMembershipPlansParams) error {
+	_, err := q.db.ExecContext(ctx, insertClientsMembershipPlans,
+		pq.Array(arg.CustomerEmailArray),
+		pq.Array(arg.MembershipPlanName),
 		pq.Array(arg.StartDateArray),
 		pq.Array(arg.RenewalDateArray),
 	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []uuid.UUID
-	for rows.Next() {
-		var id uuid.UUID
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		items = append(items, id)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+	return err
 }
 
 const insertCourseMembershipsEligibility = `-- name: InsertCourseMembershipsEligibility :exec

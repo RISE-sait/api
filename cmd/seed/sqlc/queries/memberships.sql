@@ -53,10 +53,16 @@ FROM prepared_data
          JOIN membership.memberships m ON m.name = membership_names
          JOIN public.practices p ON p.name = practice_names;
 
--- name: InsertClientsMembershipPlans :many
+-- name: InsertClientsMembershipPlans :exec
+WITH prepared_data as (SELECT unnest(@customer_email_array::text[])       as customer_email,
+                              unnest(@membership_plan_name::text[])     as membership_plan_name,
+                              unnest(@start_date_array::timestamptz[])          as start_date,
+                              unnest(@renewal_date_array::timestamptz[]) as renewal_date)
 INSERT INTO public.customer_membership_plans (customer_id, membership_plan_id, start_date, renewal_date)
-VALUES (unnest(@customer_id::uuid[]),
-        unnest(@plans_array::uuid[]),
-        unnest(@start_date_array::timestamptz[]),
-        unnest(@renewal_date_array::timestamptz[]))
-RETURNING id;
+SELECT u.id,
+mp.id,
+p.start_date,
+       NULLIF(p.renewal_date, '1970-01-01 00:00:00+00'::timestamptz)
+FROM prepared_data p
+                 JOIN users.users u ON u.email = p.customer_email
+JOIN membership.membership_plans mp ON mp.name = membership_plan_name;

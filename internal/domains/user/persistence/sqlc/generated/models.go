@@ -346,16 +346,6 @@ type AuditOutbox struct {
 	CreatedAt    time.Time   `json:"created_at"`
 }
 
-type BarberBarberEvent struct {
-	ID            uuid.UUID `json:"id"`
-	BeginDateTime time.Time `json:"begin_date_time"`
-	EndDateTime   time.Time `json:"end_date_time"`
-	CustomerID    uuid.UUID `json:"customer_id"`
-	BarberID      uuid.UUID `json:"barber_id"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
-}
-
 type CourseCourse struct {
 	ID          uuid.UUID      `json:"id"`
 	Name        string         `json:"name"`
@@ -444,6 +434,35 @@ type EventStaff struct {
 type Game struct {
 	ID   uuid.UUID `json:"id"`
 	Name string    `json:"name"`
+}
+
+type HaircutBarberService struct {
+	ID        uuid.UUID `json:"id"`
+	BarberID  uuid.UUID `json:"barber_id"`
+	ServiceID uuid.UUID `json:"service_id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type HaircutEvent struct {
+	ID            uuid.UUID `json:"id"`
+	BeginDateTime time.Time `json:"begin_date_time"`
+	EndDateTime   time.Time `json:"end_date_time"`
+	CustomerID    uuid.UUID `json:"customer_id"`
+	BarberID      uuid.UUID `json:"barber_id"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+	ServiceTypeID uuid.UUID `json:"service_type_id"`
+}
+
+type HaircutHaircutService struct {
+	ID            uuid.UUID      `json:"id"`
+	Name          string         `json:"name"`
+	Description   sql.NullString `json:"description"`
+	Price         string         `json:"price"`
+	DurationInMin int32          `json:"duration_in_min"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
 }
 
 type LocationLocation struct {

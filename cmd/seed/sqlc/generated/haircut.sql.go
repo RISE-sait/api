@@ -42,14 +42,14 @@ WITH prepared_data AS (SELECT unnest($1::timestamptz[]) AS begin_date_time,
                               unnest($4::text[])           AS barber_email,
                               unnest($5::text[])           AS haircut_name),
      haircut_data AS (SELECT pd.begin_date_time,
-                          pd.end_date_time,
-                          pd.customer_id,
-                          ub.id AS barber_id,
-                          h.id as haircut_id
-                   FROM prepared_data pd
-                            LEFT JOIN
-                        users.users ub ON ub.email = pd.barber_email
-                   JOIN haircut.haircut_services h ON h.name = pd.haircut_name)
+                             pd.end_date_time,
+                             pd.customer_id,
+                             ub.id AS barber_id,
+                             h.id  as haircut_id
+                      FROM prepared_data pd
+                               LEFT JOIN
+                           users.users ub ON ub.email = pd.barber_email
+                               JOIN haircut.haircut_services h ON h.name = pd.haircut_name)
 INSERT
 INTO haircut.events (begin_date_time, end_date_time, customer_id, barber_id, service_type_id)
 SELECT begin_date_time,

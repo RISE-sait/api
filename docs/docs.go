@@ -3553,6 +3553,26 @@ const docTemplate = `{
                 }
             }
         },
+        "customer.MembershipResponseDto": {
+            "type": "object",
+            "properties": {
+                "membership_name": {
+                    "type": "string"
+                },
+                "membership_plan_id": {
+                    "type": "string"
+                },
+                "membership_plan_name": {
+                    "type": "string"
+                },
+                "membership_renewal_date": {
+                    "type": "string"
+                },
+                "membership_start_date": {
+                    "type": "string"
+                }
+            }
+        },
         "customer.ParentRegistrationRequestDto": {
             "type": "object",
             "required": [
@@ -3609,11 +3629,8 @@ const docTemplate = `{
                 "last_name": {
                     "type": "string"
                 },
-                "membership_name": {
-                    "type": "string"
-                },
-                "membership_start_date": {
-                    "type": "string"
+                "membership_info": {
+                    "$ref": "#/definitions/customer.MembershipResponseDto"
                 },
                 "phone": {
                     "type": "string"

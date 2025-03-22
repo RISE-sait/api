@@ -27,7 +27,7 @@ WORKDIR /root/
 RUN apk --no-cache add ca-certificates
 
 # Copy the compiled binary from the builder stage
-COPY --from=builder /app/server/server .
+COPY --from=builder /app/server .
 
 # Expose the port your Go server listens on
 EXPOSE 80

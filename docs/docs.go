@@ -1629,7 +1629,7 @@ const docTemplate = `{
         },
         "/haircuts/events": {
             "get": {
-                "description": "Retrieve all barber events, with optional filters by barber ID and customer ID.",
+                "description": "Retrieve all haircut events, with optional filters by barber ID and customer ID.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1639,7 +1639,7 @@ const docTemplate = `{
                 "tags": [
                     "haircut"
                 ],
-                "summary": "Get all barber events",
+                "summary": "Get all haircut events",
                 "parameters": [
                     {
                         "type": "string",
@@ -1670,7 +1670,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "List of barber events retrieved successfully",
+                        "description": "List of haircut events retrieved successfully",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -1695,7 +1695,12 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Registers a new barber event with the provided details.",
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Registers a new haircut event with the provided details from request body.\nRequires an Authorization header containing the customer's JWT, ensuring only logged-in customers can make the request.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1705,10 +1710,9 @@ const docTemplate = `{
                 "tags": [
                     "haircut"
                 ],
-                "summary": "Create a new barber event",
                 "parameters": [
                     {
-                        "description": "Barber event details",
+                        "description": "Haircut event details",
                         "name": "event",
                         "in": "body",
                         "required": true,
@@ -1719,7 +1723,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Barber event created successfully",
+                        "description": "Haircut event created successfully",
                         "schema": {
                             "$ref": "#/definitions/haircut.EventResponseDto"
                         }
@@ -1743,7 +1747,7 @@ const docTemplate = `{
         },
         "/haircuts/events/{id}": {
             "get": {
-                "description": "Retrieves details of a specific barber event based on its ID.",
+                "description": "Retrieves details of a specific haircut event based on its ID.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1753,11 +1757,10 @@ const docTemplate = `{
                 "tags": [
                     "haircut"
                 ],
-                "summary": "Get barber event details",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Barber event ID",
+                        "description": "Haircut event ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1765,7 +1768,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Barber event details retrieved successfully",
+                        "description": "Haircut event details retrieved successfully",
                         "schema": {
                             "$ref": "#/definitions/haircut.EventResponseDto"
                         }
@@ -1778,67 +1781,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Not Found: Barber event not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "put": {
-                "description": "Updates the details of an existing barber event.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "haircut"
-                ],
-                "summary": "Update a barber event",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Barber event ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated barber event details",
-                        "name": "event",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/haircut.RequestDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Barber event updated successfully",
-                        "schema": {
-                            "$ref": "#/definitions/haircut.EventResponseDto"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Barber event not found",
+                        "description": "Not Found: Haircut event not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1854,7 +1797,7 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Deletes a barber event by its ID.",
+                "description": "Deletes a haircut event by its ID.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1864,11 +1807,10 @@ const docTemplate = `{
                 "tags": [
                     "haircut"
                 ],
-                "summary": "Delete a barber event",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Barber event ID",
+                        "description": "Haircut event ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1876,7 +1818,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "204": {
-                        "description": "No Content: Barber event deleted successfully"
+                        "description": "No Content: Haircut event deleted successfully"
                     },
                     "400": {
                         "description": "Bad Request: Invalid ID",
@@ -1886,7 +1828,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Not Found: Barber event not found",
+                        "description": "Not Found: Haircut event not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3814,10 +3756,6 @@ const docTemplate = `{
                 "begin_time": {
                     "type": "string",
                     "example": "2023-10-05T07:00:00Z"
-                },
-                "customer_id": {
-                    "type": "string",
-                    "example": "00000000-0000-0000-0000-000000000000"
                 },
                 "end_time": {
                     "type": "string",

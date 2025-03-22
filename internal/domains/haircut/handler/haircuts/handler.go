@@ -8,9 +8,8 @@ import (
 	"net/http"
 )
 
-// UploadHaircutImage handles the upload of a haircut image to S3.
-// @Summary Upload a haircut image
-// @Description Uploads a haircut image to S3 and returns the object URL.
+// UploadHaircutImage handles the upload of a haircut image to Google Cloud Storage.
+// @Description Uploads a haircut image to Google Cloud Storage and returns the object URL.
 // @Tags haircut
 // @Accept multipart/form-data
 // @Produce json
@@ -54,14 +53,13 @@ func UploadHaircutImage(w http.ResponseWriter, r *http.Request) {
 
 	// Using json.NewEncoder directly to encode the response to JSON
 	response := map[string]string{"message": successMessage}
-	if err := json.NewEncoder(w).Encode(response); err != nil {
+	if err = json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Failed to encode success message", http.StatusInternalServerError)
 	}
 }
 
-// GetHaircutImages retrieves haircut images from the specified folder in S3.
-// @Summary Retrieve haircut images
-// @Description Retrieves all haircut images from a folder in S3. Optionally, specify a barber name to get images from that barber's folder.
+// GetHaircutImages retrieves haircut images from Google Cloud Storage.
+// @Description Retrieves all haircut images from a folder in Google Cloud Storage. Optionally, specify a barber name to get images from that barber's folder.
 // @Tags haircut
 // @Accept json
 // @Produce json
@@ -90,7 +88,7 @@ func GetHaircutImages(w http.ResponseWriter, r *http.Request) {
 	// Respond with the list of image URLs
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	// Respond with the images as a JSON array (You could format it however you want)
+
 	if encodingErr := json.NewEncoder(w).Encode(images); encodingErr != nil {
 		http.Error(w, fmt.Sprintf("Error encoding response: %v", encodingErr), http.StatusInternalServerError)
 	}

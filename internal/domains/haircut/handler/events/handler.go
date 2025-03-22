@@ -6,6 +6,7 @@ import (
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
+	"api/internal/middlewares"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"net/http"
@@ -21,9 +22,9 @@ func NewEventsHandler(repo *repository.Repository) *EventsHandler {
 	return &EventsHandler{Repo: repo}
 }
 
-// GetEvents retrieves all barber events based on filter criteria.
-// @Summary Get all barber events
-// @Description Retrieve all barber events, with optional filters by barber ID and customer ID.
+// GetEvents retrieves all haircut events based on filter criteria.
+// @Summary Get all haircut events
+// @Description Retrieve all haircut events, with optional filters by barber ID and customer ID.
 // @Tags haircut
 // @Accept json
 // @Produce json
@@ -31,7 +32,7 @@ func NewEventsHandler(repo *repository.Repository) *EventsHandler {
 // @Param before query string false "End date of the events range (YYYY-MM-DD)" example("2025-03-31")
 // @Param barber_id query string false "Filter by barber ID"
 // @Param customer_id query string false "Filter by customer ID"
-// @Success 200 {array} haircut.EventResponseDto "List of barber events retrieved successfully"
+// @Success 200 {array} haircut.EventResponseDto "List of haircut events retrieved successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /haircuts/events [get]
@@ -101,34 +102,45 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
 }
 
-// CreateEvent creates a new barber event.
-// @Summary Create a new barber event
-// @Description Registers a new barber event with the provided details.
+// CreateEvent creates a new haircut event.
+// @Description Registers a new haircut event with the provided details from request body.
+// @Description Requires an Authorization header containing the customer's JWT, ensuring only logged-in customers can make the request.
 // @Tags haircut
 // @Accept json
 // @Produce json
-// @Param event body dto.RequestDto true "Barber event details"
-// @Success 201 {object} haircut.EventResponseDto "Barber event created successfully"
+// @Security Bearer
+// @Param event body dto.RequestDto true "Haircut event details"
+// @Success 201 {object} haircut.EventResponseDto "Haircut event created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /haircuts/events [post]
 func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 
-	var targetBody dto.RequestDto
+	var (
+		targetBody dto.RequestDto
+		customerId uuid.UUID
+	)
 
 	if err := validators.ParseJSON(r.Body, &targetBody); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	eventCreate, err := targetBody.ToCreateEventValue()
+	if ctxUserId := r.Context().Value(middlewares.UserIDKey); ctxUserId == nil {
+		responseHandlers.RespondWithError(w, errLib.New("User ( Customer ) ID not found", http.StatusUnauthorized))
+		return
+	} else {
+		customerId = ctxUserId.(uuid.UUID)
+	}
+
+	eventCreateValues, err := targetBody.ToCreateEventValue(customerId)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	createdEvent, err := h.Repo.CreateEvent(r.Context(), eventCreate)
+	createdEvent, err := h.Repo.CreateEvent(r.Context(), eventCreateValues)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -140,59 +152,15 @@ func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusCreated)
 }
 
-// UpdateEvent updates an existing barber event by ID.
-// @Summary Update a barber event
-// @Description Updates the details of an existing barber event.
+// DeleteEvent deletes a haircut event by ID.
+// @Description Deletes a haircut event by its ID.
 // @Tags haircut
 // @Accept json
 // @Produce json
-// @Param id path string true "Barber event ID"
-// @Param event body dto.RequestDto true "Updated barber event details"
-// @Success 200 {object} haircut.EventResponseDto "Barber event updated successfully"
-// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
-// @Failure 404 {object} map[string]interface{} "Not Found: Barber event not found"
-// @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /haircuts/events/{id} [put]
-func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
-
-	idStr := chi.URLParam(r, "id")
-
-	var targetBody dto.RequestDto
-
-	if err := validators.ParseJSON(r.Body, &targetBody); err != nil {
-		responseHandlers.RespondWithError(w, err)
-		return
-	}
-
-	params, err := targetBody.ToUpdateEventValue(idStr)
-
-	if err != nil {
-		responseHandlers.RespondWithError(w, err)
-		return
-	}
-
-	event, err := h.Repo.UpdateEvent(r.Context(), params)
-
-	if err != nil {
-		responseHandlers.RespondWithError(w, err)
-		return
-	}
-
-	responseBody := dto.NewEventResponse(event)
-
-	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusNoContent)
-}
-
-// DeleteEvent deletes a barber event by ID.
-// @Summary Delete a barber event
-// @Description Deletes a barber event by its ID.
-// @Tags haircut
-// @Accept json
-// @Produce json
-// @Param id path string true "Barber event ID"
-// @Success 204 "No Content: Barber event deleted successfully"
+// @Param id path string true "Haircut event ID"
+// @Success 204 "No Content: Haircut event deleted successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
-// @Failure 404 {object} map[string]interface{} "Not Found: Barber event not found"
+// @Failure 404 {object} map[string]interface{} "Not Found: Haircut event not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /haircuts/events/{id} [delete]
 func (h *EventsHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
@@ -213,25 +181,22 @@ func (h *EventsHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-// GetEventDetails retrieves detailed information about a specific barber event.
-// @Summary Get barber event details
-// @Description Retrieves details of a specific barber event based on its ID.
+// GetEvent retrieves information about a specific haircut event.
+// @Description Retrieves details of a specific haircut event based on its ID.
 // @Tags haircut
 // @Accept json
 // @Produce json
-// @Param id path string true "Barber event ID"
-// @Success 200 {object} haircut.EventResponseDto "Barber event details retrieved successfully"
+// @Param id path string true "Haircut event ID"
+// @Success 200 {object} haircut.EventResponseDto "Haircut event details retrieved successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
-// @Failure 404 {object} map[string]interface{} "Not Found: Barber event not found"
+// @Failure 404 {object} map[string]interface{} "Not Found: Haircut event not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /haircuts/events/{id} [get]
-func (h *EventsHandler) GetEventDetails(w http.ResponseWriter, r *http.Request) {
-
-	eventIdStr := chi.URLParam(r, "id")
+func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 
 	var eventId uuid.UUID
 
-	if eventIdStr != "" {
+	if eventIdStr := chi.URLParam(r, "id"); eventIdStr != "" {
 		id, err := validators.ParseUUID(eventIdStr)
 
 		if err != nil {

@@ -6,9 +6,10 @@ import (
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
+	"errors"
+	"github.com/lib/pq"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -26,6 +27,8 @@ func NewEventsRepository(dbQueries *db.Queries) *Repository {
 
 func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEventValues) (values.EventReadValues, *errLib.CommonError) {
 
+	var response values.EventReadValues
+
 	dbParams := db.CreateBarberEventParams{
 		BeginDateTime: eventDetails.BeginDateTime,
 		EndDateTime:   eventDetails.EndDateTime,
@@ -37,8 +40,19 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 
 	if err != nil {
 
-		if strings.Contains(err.Error(), "overlaps with an existing event") {
-			return values.EventReadValues{}, errLib.New("An event at this location on the selected day overlaps with an existing event. Please choose a different time.", http.StatusBadRequest)
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+
+			constraintErrors := map[string]string{
+				"fk_barber":              "Barber with the associated ID doesn't exist",
+				"fk_customer":            "Customer with the associated ID doesn't exist",
+				"check_end_time":         "end_time must be after start_time",
+				"unique_barber_schedule": "An event at this schedule overlaps with an existing event. Please choose a different schedule.",
+			}
+
+			if msg, found := constraintErrors[pqErr.Constraint]; found {
+				return response, errLib.New(msg, http.StatusBadRequest)
+			}
 		}
 
 		log.Printf("Failed to create eventDetails: %+v. Error: %v", eventDetails, err.Error())
@@ -96,13 +110,13 @@ func (r *Repository) GetEvents(ctx context.Context, barberID, customerID uuid.UU
 			EventValuesBase: values.EventValuesBase{
 				BarberID:      dbEvent.BarberID,
 				CustomerID:    dbEvent.CustomerID,
-				BarberName:    dbEvent.BarberName,
-				CustomerName:  dbEvent.CustomerName,
 				BeginDateTime: dbEvent.BeginDateTime,
 				EndDateTime:   dbEvent.EndDateTime,
 			},
-			CreatedAt: dbEvent.CreatedAt,
-			UpdatedAt: dbEvent.UpdatedAt,
+			BarberName:   dbEvent.BarberName,
+			CustomerName: dbEvent.CustomerName,
+			CreatedAt:    dbEvent.CreatedAt,
+			UpdatedAt:    dbEvent.UpdatedAt,
 		}
 
 		events[i] = event
@@ -112,39 +126,39 @@ func (r *Repository) GetEvents(ctx context.Context, barberID, customerID uuid.UU
 	return events, nil
 }
 
-func (r *Repository) UpdateEvent(c context.Context, event values.UpdateEventValues) (values.EventReadValues, *errLib.CommonError) {
-	dbEventParams := db.UpdateEventParams{
-		BeginDateTime: event.BeginDateTime,
-		EndDateTime:   event.EndDateTime,
-		BarberID:      event.BarberID,
-		CustomerID:    event.CustomerID,
-		ID:            event.ID,
-	}
-
-	dbEvent, err := r.Queries.UpdateEvent(c, dbEventParams)
-
-	if err != nil {
-		log.Printf("Failed to update event: %+v. Error: %v", event, err.Error())
-		return values.EventReadValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-
-	var updatedEvent values.EventReadValues
-
-	updatedEvent = values.EventReadValues{
-		ID: dbEvent.ID,
-		EventValuesBase: values.EventValuesBase{
-			BarberID:      dbEvent.BarberID,
-			CustomerID:    dbEvent.CustomerID,
-			BeginDateTime: dbEvent.BeginDateTime,
-			EndDateTime:   dbEvent.EndDateTime,
-		},
-		CreatedAt: dbEvent.CreatedAt,
-		UpdatedAt: dbEvent.UpdatedAt,
-	}
-
-	return updatedEvent, nil
-
-}
+//func (r *Repository) UpdateEvent(c context.Context, event values.UpdateEventValues) (values.EventReadValues, *errLib.CommonError) {
+//	dbEventParams := db.UpdateEventParams{
+//		BeginDateTime: event.BeginDateTime,
+//		EndDateTime:   event.EndDateTime,
+//		BarberID:      event.BarberID,
+//		CustomerID:    event.CustomerID,
+//		ID:            event.ID,
+//	}
+//
+//	dbEvent, err := r.Queries.UpdateEvent(c, dbEventParams)
+//
+//	if err != nil {
+//		log.Printf("Failed to update event: %+v. Error: %v", event, err.Error())
+//		return values.EventReadValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
+//	}
+//
+//	var updatedEvent values.EventReadValues
+//
+//	updatedEvent = values.EventReadValues{
+//		ID: dbEvent.ID,
+//		EventValuesBase: values.EventValuesBase{
+//			BarberID:      dbEvent.BarberID,
+//			CustomerID:    dbEvent.CustomerID,
+//			BeginDateTime: dbEvent.BeginDateTime,
+//			EndDateTime:   dbEvent.EndDateTime,
+//		},
+//		CreatedAt: dbEvent.CreatedAt,
+//		UpdatedAt: dbEvent.UpdatedAt,
+//	}
+//
+//	return updatedEvent, nil
+//
+//}
 
 func (r *Repository) DeleteEvent(c context.Context, id uuid.UUID) *errLib.CommonError {
 	row, err := r.Queries.DeleteEvent(c, id)
@@ -176,14 +190,14 @@ func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.EventRe
 		ID: dbEvent.ID,
 		EventValuesBase: values.EventValuesBase{
 			BarberID:      dbEvent.BarberID,
-			BarberName:    dbEvent.BarberName,
-			CustomerName:  dbEvent.CustomerName,
 			CustomerID:    dbEvent.CustomerID,
 			BeginDateTime: dbEvent.BeginDateTime,
 			EndDateTime:   dbEvent.EndDateTime,
 		},
-		CreatedAt: dbEvent.CreatedAt,
-		UpdatedAt: dbEvent.UpdatedAt,
+		BarberName:   dbEvent.BarberName,
+		CustomerName: dbEvent.CustomerName,
+		CreatedAt:    dbEvent.CreatedAt,
+		UpdatedAt:    dbEvent.UpdatedAt,
 	}
 
 	return event, nil

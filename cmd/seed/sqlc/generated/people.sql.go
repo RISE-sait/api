@@ -97,7 +97,7 @@ WITH prepared_data AS (SELECT unnest($1::text[])            AS country_alpha2_co
                               unnest($3::text[])                      AS last_name,
                               unnest($4::int[])                             AS age,
                               unnest($5::uuid[]) AS parent_id,
-                              unnest($6::char[]) AS gender,
+                              unnest($6::char[])    AS gender,
                               unnest($7::text[])                          AS phone,
                               unnest($8::text[])                          AS email,
                               unnest($9::boolean[]) AS has_marketing_email_consent,
@@ -117,7 +117,7 @@ SELECT country_alpha2_code,
        first_name,
        last_name,
        age,
-       NULLIF(gender, 'N') AS gender, -- Replace 'N' with NULL
+       NULLIF(gender, 'N')                                       AS gender,    -- Replace 'N' with NULL
        NULLIF(parent_id, '00000000-0000-0000-0000-000000000000') AS parent_id, -- Replace default UUID with NULL
        phone,
        email,

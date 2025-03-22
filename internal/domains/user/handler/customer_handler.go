@@ -168,7 +168,7 @@ func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) 
 // @Accept json
 // @Produce json
 // @Param email path string true "Parent ID"
-// @Success 200 {array} hubspot.UserResponse "Customer's children retrieved successfully"
+// @Success 200 {array} dto.Response "Customer's children retrieved successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Parent or children not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
@@ -210,7 +210,7 @@ func (h *CustomersHandler) GetChildrenByParentID(w http.ResponseWriter, r *http.
 		childrenResponse = append(childrenResponse, response)
 	}
 
-	responseHandlers.RespondWithSuccess(w, children, http.StatusOK)
+	responseHandlers.RespondWithSuccess(w, childrenResponse, http.StatusOK)
 }
 
 // GetMembershipPlansByCustomer retrieves a list of membership plans for a specific customer.

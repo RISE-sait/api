@@ -1,8 +1,8 @@
 [build]
-main = "cmd/server/main.go"
-cmd = "go build -o bin/api.exe cmd/server/main.go"
+main = "cmd/server/server/main.go"
+cmd = "go build -o bin/api.exe cmd/server/server/main.go"
 bin = "bin/api.exe"
 poll = true  # Enable polling
 
 [watch]
-dirs = ["cmd", "internal"]  # Directories to watch
+dirs = ["cmd", "internal, docs"]  # Directories to watch

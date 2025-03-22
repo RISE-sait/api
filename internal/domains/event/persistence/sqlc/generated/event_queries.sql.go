@@ -124,7 +124,7 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdR
 	return i, err
 }
 
-const getEvents = `-- name: GetEvents :many
+const getEvents = `-- name: GetBarberServices :many
 SELECT e.id, e.program_start_at, e.program_end_at, e.practice_id, e.course_id, e.game_id, e.location_id, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time,
        p.name as practice_name,
        p.description as practice_description,

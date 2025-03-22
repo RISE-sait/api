@@ -14,47 +14,6 @@ import (
 	"github.com/lib/pq"
 )
 
-const insertBarberEvents = `-- name: InsertBarberEvents :exec
-WITH prepared_data AS (SELECT unnest($1::timestamptz[]) AS begin_date_time,
-                              unnest($2::timestamptz[])   AS end_date_time,
-                              unnest($3::uuid[])            AS customer_id,
-                              unnest($4::text[])           AS barber_email),
-     user_data AS (SELECT pd.begin_date_time,
-                          pd.end_date_time,
-                          pd.customer_id,
-                          ub.id AS barber_id
-                   FROM prepared_data pd
-                            LEFT JOIN
-                        users.users ub ON pd.barber_email = ub.email)
-INSERT
-INTO barber.barber_events (begin_date_time, end_date_time, customer_id, barber_id)
-SELECT begin_date_time,
-       end_date_time,
-       customer_id,
-       barber_id
-FROM user_data
-WHERE customer_id IS NOT NULL
-  AND barber_id IS NOT NULL
-ON CONFLICT DO NOTHING
-`
-
-type InsertBarberEventsParams struct {
-	BeginDateTimeArray []time.Time `json:"begin_date_time_array"`
-	EndDateTimeArray   []time.Time `json:"end_date_time_array"`
-	CustomerIDArray    []uuid.UUID `json:"customer_id_array"`
-	BarberEmailArray   []string    `json:"barber_email_array"`
-}
-
-func (q *Queries) InsertBarberEvents(ctx context.Context, arg InsertBarberEventsParams) error {
-	_, err := q.db.ExecContext(ctx, insertBarberEvents,
-		pq.Array(arg.BeginDateTimeArray),
-		pq.Array(arg.EndDateTimeArray),
-		pq.Array(arg.CustomerIDArray),
-		pq.Array(arg.BarberEmailArray),
-	)
-	return err
-}
-
 const insertCourses = `-- name: InsertCourses :exec
 INSERT INTO course.courses (name, description, capacity)
 VALUES (unnest($1::text[]),

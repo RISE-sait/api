@@ -92,7 +92,7 @@ var staff = []Staff{
 		FirstName:   "Klint",
 		LastName:    "Lee",
 		Role:        "Admin",
-		PhoneNumber: "",
+		PhoneNumber: "403 466 1009",
 		Email:       "klintlee1@gmail.com",
 		Country:     "CA",
 	},

@@ -150,6 +150,8 @@ func (r *UsersRepository) CreateChildTx(ctx context.Context, tx *sql.Tx, input v
 			log.Printf("Foreign key violation: %v", pqErr.Message)
 			return values.UserReadInfo{}, errLib.New("Parent not found for the provided user id", http.StatusBadRequest)
 		}
+		log.Printf("Error creating child: %v", pqErr.Message)
+		return values.UserReadInfo{}, errLib.New("Internal server error while creating child", http.StatusInternalServerError)
 	}
 
 	return createdCustomer, err

@@ -29,14 +29,14 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 
 	var response values.EventReadValues
 
-	dbParams := db.CreateBarberEventParams{
+	dbParams := db.CreateHaircutEventParams{
 		BeginDateTime: eventDetails.BeginDateTime,
 		EndDateTime:   eventDetails.EndDateTime,
 		BarberID:      eventDetails.BarberID,
 		CustomerID:    eventDetails.CustomerID,
 	}
 
-	eventDb, err := r.Queries.CreateBarberEvent(c, dbParams)
+	eventDb, err := r.Queries.CreateHaircutEvent(c, dbParams)
 
 	if err != nil {
 
@@ -76,7 +76,7 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 
 func (r *Repository) GetEvents(ctx context.Context, barberID, customerID uuid.UUID, before, after time.Time) ([]values.EventReadValues, *errLib.CommonError) {
 
-	getEventsArgs := db.GetBarberEventsParams{
+	getEventsArgs := db.GetHaircutEventsParams{
 		BarberID: uuid.NullUUID{
 			UUID:  barberID,
 			Valid: barberID != uuid.Nil,
@@ -95,7 +95,7 @@ func (r *Repository) GetEvents(ctx context.Context, barberID, customerID uuid.UU
 		},
 	}
 
-	dbEvents, err := r.Queries.GetBarberEvents(ctx, getEventsArgs)
+	dbEvents, err := r.Queries.GetHaircutEvents(ctx, getEventsArgs)
 
 	if err != nil {
 		log.Println("Failed to get events: ", err.Error())

@@ -155,16 +155,16 @@ func (h *Handler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-// DeleteCourse deletes a course by Id.
+// DeleteCourse deletes a course by ID.
 // @Summary Delete a course
-// @Description Delete a course by Id
+// @Description Delete a course by ID
 // @Tags courses
 // @Accept json
 // @Produce json
-// @Param id path string true "Course Id"
+// @Param id path string true "Course ID"
 // @Security Bearer
 // @Success 204
-// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid Id"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Course not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /courses/{id} [delete]

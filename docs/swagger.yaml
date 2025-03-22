@@ -288,6 +288,32 @@ definitions:
       video_link:
         type: string
     type: object
+  haircut.BarberServiceResponseDto:
+    properties:
+      barber_id:
+        type: string
+      barber_name:
+        type: string
+      created_at:
+        type: string
+      haircut_name:
+        type: string
+      id:
+        type: string
+      service_type_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  haircut.CreateBarberServiceRequestDto:
+    properties:
+      barber_id:
+        example: f0e21457-75d4-4de6-b765-5ee13221fd72
+        type: string
+      haircut_service_id:
+        example: f0e21457-75d4-4de6-b765-5ee13221fd72
+        type: string
+    type: object
   haircut.EventResponseDto:
     properties:
       barber_id:
@@ -323,57 +349,6 @@ definitions:
     required:
       - begin_time
       - end_time
-    type: object
-  hubspot.UserAssociation:
-    properties:
-      results:
-        items:
-          $ref: '#/definitions/hubspot.UserAssociationResult'
-        type: array
-    type: object
-  hubspot.UserAssociationResult:
-    properties:
-      id:
-        type: string
-      type:
-        type: string
-    type: object
-  hubspot.UserAssociations:
-    properties:
-      contacts:
-        $ref: '#/definitions/hubspot.UserAssociation'
-    type: object
-  hubspot.UserProps:
-    properties:
-      age:
-        type: string
-      email:
-        type: string
-      firstname:
-        type: string
-      has_marketing_email_consent:
-        type: string
-      has_sms_consent:
-        type: string
-      hs_country_region_code:
-        type: string
-      lastname:
-        type: string
-      phone:
-        type: string
-    type: object
-  hubspot.UserResponse:
-    properties:
-      associations:
-        $ref: '#/definitions/hubspot.UserAssociations'
-      createdAt:
-        type: string
-      id:
-        type: string
-      properties:
-        $ref: '#/definitions/hubspot.UserProps'
-      updatedAt:
-        type: string
     type: object
   identity.MembershipReadResponseDto:
     properties:
@@ -662,6 +637,82 @@ paths:
       summary: Authenticate a user and return a JWT token
       tags:
       - authentication
+  /barbers/services:
+    get:
+      description: Retrieve a list of all barber services
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/haircut.BarberServiceResponseDto'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all barber services
+      tags:
+        - barber
+    post:
+      consumes:
+        - application/json
+      description: Create a new barber service with the provided details
+      parameters:
+        - description: Create Barber Service Request
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: '#/definitions/haircut.CreateBarberServiceRequestDto'
+      produces:
+        - application/json
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new barber service
+      tags:
+        - barber
+  /barbers/services/{id}:
+    delete:
+      description: Delete a barber service by its ID
+      parameters:
+        - description: Barber Service ID
+          in: path
+          name: id
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        "204":
+          description: 'No Content: Updated successfully'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete a barber service
+      tags:
+        - barber
   /checkout/membership_plans/{id}:
     post:
       consumes:
@@ -754,9 +805,9 @@ paths:
     delete:
       consumes:
       - application/json
-      description: Delete a course by Id
+      description: Delete a course by ID
       parameters:
-      - description: Course Id
+        - description: Course ID
         in: path
         name: id
         required: true
@@ -767,7 +818,7 @@ paths:
         "204":
           description: No Content
         "400":
-          description: 'Bad Request: Invalid Id'
+          description: 'Bad Request: Invalid ID'
           schema:
             additionalProperties: true
             type: object
@@ -956,7 +1007,7 @@ paths:
           description: Customer's children retrieved successfully
           schema:
             items:
-              $ref: '#/definitions/hubspot.UserResponse'
+              $ref: '#/definitions/customer.Response'
             type: array
         "400":
           description: 'Bad Request: Invalid ID'
@@ -1622,8 +1673,8 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieves all haircut images from a folder in S3. Optionally, specify
-        a barber name to get images from that barber's folder.
+      description: Retrieves all haircut images from a folder in Google Cloud Storage.
+        Optionally, specify a barber name to get images from that barber's folder.
       parameters:
       - description: Barber name to filter images
         in: query
@@ -1650,13 +1701,13 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Retrieve haircut images
       tags:
       - haircut
     post:
       consumes:
       - multipart/form-data
-      description: Uploads a haircut image to S3 and returns the object URL.
+      description: Uploads a haircut image to Google Cloud Storage and returns the
+        object URL.
       parameters:
       - description: Haircut image to upload
         in: formData
@@ -1684,7 +1735,6 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Upload a haircut image
       tags:
       - haircut
   /haircuts/events:

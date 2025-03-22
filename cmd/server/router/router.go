@@ -9,7 +9,7 @@ import (
 	enrollmentService "api/internal/domains/enrollment/service"
 	"api/internal/domains/game"
 	gameRepo "api/internal/domains/game/persistence"
-	barberEventRepo "api/internal/domains/haircut/persistence/repository"
+	haircutRepo "api/internal/domains/haircut/persistence/repository"
 	locationRepo "api/internal/domains/location/persistence"
 	practiceHandler "api/internal/domains/practice"
 	practiceRepo "api/internal/domains/practice/persistence"
@@ -18,7 +18,8 @@ import (
 
 	eventHandler "api/internal/domains/event/handler"
 	eventRepo "api/internal/domains/event/persistence/repository"
-	barber "api/internal/domains/haircut/handler/events"
+	barberServicesHandler "api/internal/domains/haircut/handler/barber_services"
+	haircutEvents "api/internal/domains/haircut/handler/events"
 	haircut "api/internal/domains/haircut/handler/haircuts"
 	"api/internal/domains/identity/handler/authentication"
 	"api/internal/domains/identity/handler/registration"
@@ -65,7 +66,8 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		"/staffs":    RegisterStaffRoutes,
 
 		// Haircut routes
-		"/haircuts": RegisterHaircutRoutes,
+		"/haircuts":         RegisterHaircutRoutes,
+		"/barbers/services": RegisterBarberServicesRoutes,
 
 		// Purchase-related routes
 		"/checkout": RegisterCheckoutRoutes,
@@ -102,10 +104,23 @@ func RegisterHaircutRoutes(container *di.Container) func(chi.Router) {
 	}
 }
 
+func RegisterBarberServicesRoutes(container *di.Container) func(chi.Router) {
+
+	repo := haircutRepo.NewBarberServiceRepository(container.Queries.BarberDb)
+	h := barberServicesHandler.NewBarberServicesHandler(repo)
+
+	return func(r chi.Router) {
+
+		r.Get("/", h.GetBarberServices)
+		r.Post("/", h.CreateBarberService)
+		r.Delete("/{id}", h.DeleteBarberService)
+	}
+}
+
 func RegisterHaircutEventsRoutes(container *di.Container) func(chi.Router) {
 
-	repo := barberEventRepo.NewEventsRepository(container.Queries.BarberDb)
-	h := barber.NewEventsHandler(repo)
+	repo := haircutRepo.NewEventsRepository(container.Queries.BarberDb)
+	h := haircutEvents.NewEventsHandler(repo)
 
 	return func(r chi.Router) {
 

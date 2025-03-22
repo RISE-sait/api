@@ -16,7 +16,7 @@ RUN go mod download
 COPY . .
 
 # Build the Go application
-RUN go build -o server cmd/server/main.go
+RUN go build -o server cmd/server/server/main.go
 
 # Final lightweight image
 FROM alpine:latest AS final
@@ -27,7 +27,7 @@ WORKDIR /root/
 RUN apk --no-cache add ca-certificates
 
 # Copy the compiled binary from the builder stage
-COPY --from=builder /app/server .
+COPY --from=builder /app/server/server .
 
 # Expose the port your Go server listens on
 EXPOSE 80

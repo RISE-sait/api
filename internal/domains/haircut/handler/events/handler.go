@@ -1,7 +1,7 @@
 package haircut
 
 import (
-	dto "api/internal/domains/haircut/dto"
+	dto "api/internal/domains/haircut/dto/events"
 	repository "api/internal/domains/haircut/persistence/repository"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"

@@ -315,7 +315,7 @@ package tests_test
 //	}
 //
 //	// Fetch events
-//	events, err := eventQueries.GetEvents(context.Background())
+//	events, err := eventQueries.GetBarberServices(context.Background())
 //	require.NoError(t, err)
 //
 //	// Assert that at least 5 events exist

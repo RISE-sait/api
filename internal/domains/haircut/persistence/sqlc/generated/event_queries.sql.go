@@ -3,7 +3,7 @@
 //   sqlc v1.27.0
 // source: event_queries.sql
 
-package db
+package db_haircut
 
 import (
 	"context"
@@ -13,27 +13,27 @@ import (
 	"github.com/google/uuid"
 )
 
-const createBarberEvent = `-- name: CreateBarberEvent :one
-INSERT INTO barber.barber_events (begin_date_time, end_date_time, barber_id, customer_id)
+const createHaircutEvent = `-- name: CreateHaircutEvent :one
+INSERT INTO haircut.events (begin_date_time, end_date_time, barber_id, customer_id)
 VALUES ($1, $2, $3, $4)
-RETURNING id, begin_date_time, end_date_time, customer_id, barber_id, created_at, updated_at
+RETURNING id, begin_date_time, end_date_time, customer_id, barber_id, created_at, updated_at, service_type_id
 `
 
-type CreateBarberEventParams struct {
+type CreateHaircutEventParams struct {
 	BeginDateTime time.Time `json:"begin_date_time"`
 	EndDateTime   time.Time `json:"end_date_time"`
 	BarberID      uuid.UUID `json:"barber_id"`
 	CustomerID    uuid.UUID `json:"customer_id"`
 }
 
-func (q *Queries) CreateBarberEvent(ctx context.Context, arg CreateBarberEventParams) (BarberBarberEvent, error) {
-	row := q.db.QueryRowContext(ctx, createBarberEvent,
+func (q *Queries) CreateHaircutEvent(ctx context.Context, arg CreateHaircutEventParams) (HaircutEvent, error) {
+	row := q.db.QueryRowContext(ctx, createHaircutEvent,
 		arg.BeginDateTime,
 		arg.EndDateTime,
 		arg.BarberID,
 		arg.CustomerID,
 	)
-	var i BarberBarberEvent
+	var i HaircutEvent
 	err := row.Scan(
 		&i.ID,
 		&i.BeginDateTime,
@@ -42,12 +42,13 @@ func (q *Queries) CreateBarberEvent(ctx context.Context, arg CreateBarberEventPa
 		&i.BarberID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ServiceTypeID,
 	)
 	return i, err
 }
 
 const deleteEvent = `-- name: DeleteEvent :execrows
-DELETE FROM barber.barber_events
+DELETE FROM haircut.events
 WHERE id = $1
 `
 
@@ -59,84 +60,13 @@ func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) (int64, error) 
 	return result.RowsAffected()
 }
 
-const getBarberEvents = `-- name: GetBarberEvents :many
-SELECT be.id, be.begin_date_time, be.end_date_time, be.customer_id, be.barber_id, be.created_at, be.updated_at, (barbers.first_name || ' ' || barbers.last_name)::text as barber_name,
-    (customers.first_name || ' ' || customers.last_name)::text as customer_name
-FROM barber.barber_events be
-JOIN users.users barbers
-ON barbers.id =  be.barber_id
-JOIN users.users customers
-     ON customers.id =  be.customer_id
-WHERE
-    (barber_id = $1 OR $1 IS NULL) -- Filter by barber_id
-  AND (customer_id = $2 OR $2 IS NULL)
-  AND ($3 >= begin_date_time OR $3 IS NULL) -- within boundary
-  AND ($4 <= end_date_time OR $4 IS NULL)
-`
-
-type GetBarberEventsParams struct {
-	BarberID   uuid.NullUUID `json:"barber_id"`
-	CustomerID uuid.NullUUID `json:"customer_id"`
-	Before     sql.NullTime  `json:"before"`
-	After      sql.NullTime  `json:"after"`
-}
-
-type GetBarberEventsRow struct {
-	ID            uuid.UUID `json:"id"`
-	BeginDateTime time.Time `json:"begin_date_time"`
-	EndDateTime   time.Time `json:"end_date_time"`
-	CustomerID    uuid.UUID `json:"customer_id"`
-	BarberID      uuid.UUID `json:"barber_id"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
-	BarberName    string    `json:"barber_name"`
-	CustomerName  string    `json:"customer_name"`
-}
-
-func (q *Queries) GetBarberEvents(ctx context.Context, arg GetBarberEventsParams) ([]GetBarberEventsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getBarberEvents,
-		arg.BarberID,
-		arg.CustomerID,
-		arg.Before,
-		arg.After,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetBarberEventsRow
-	for rows.Next() {
-		var i GetBarberEventsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.BeginDateTime,
-			&i.EndDateTime,
-			&i.CustomerID,
-			&i.BarberID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.BarberName,
-			&i.CustomerName,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getEventById = `-- name: GetEventById :one
-SELECT e.id, begin_date_time, end_date_time, customer_id, barber_id, e.created_at, e.updated_at, barbers.id, barbers.hubspot_id, barbers.country_alpha2_code, barbers.gender, barbers.first_name, barbers.last_name, barbers.age, barbers.parent_id, barbers.phone, barbers.email, barbers.has_marketing_email_consent, barbers.has_sms_consent, barbers.created_at, barbers.updated_at, customers.id, customers.hubspot_id, customers.country_alpha2_code, customers.gender, customers.first_name, customers.last_name, customers.age, customers.parent_id, customers.phone, customers.email, customers.has_marketing_email_consent, customers.has_sms_consent, customers.created_at, customers.updated_at, (barbers.first_name || ' ' || barbers.last_name)::text as barber_name,
+SELECT e.id, begin_date_time, end_date_time, customer_id, barber_id, e.created_at, e.updated_at, service_type_id, barbers.id, barbers.hubspot_id, barbers.country_alpha2_code, barbers.gender, barbers.first_name, barbers.last_name, barbers.age, barbers.parent_id, barbers.phone, barbers.email, barbers.has_marketing_email_consent, barbers.has_sms_consent, barbers.created_at, barbers.updated_at, customers.id, customers.hubspot_id, customers.country_alpha2_code, customers.gender, customers.first_name, customers.last_name, customers.age, customers.parent_id, customers.phone, customers.email, customers.has_marketing_email_consent, customers.has_sms_consent, customers.created_at, customers.updated_at,
+       (barbers.first_name || ' ' || barbers.last_name)::text     as barber_name,
        (customers.first_name || ' ' || customers.last_name)::text as customer_name
-FROM barber.barber_events e
+FROM haircut.events e
          JOIN users.users barbers
-              ON barbers.id =  barber_id
+              ON barbers.id = barber_id
 
          JOIN users.users customers
               ON customers.id = customer_id
@@ -151,6 +81,7 @@ type GetEventByIdRow struct {
 	BarberID                   uuid.UUID      `json:"barber_id"`
 	CreatedAt                  time.Time      `json:"created_at"`
 	UpdatedAt                  time.Time      `json:"updated_at"`
+	ServiceTypeID              uuid.UUID      `json:"service_type_id"`
 	ID_2                       uuid.UUID      `json:"id_2"`
 	HubspotID                  sql.NullString `json:"hubspot_id"`
 	CountryAlpha2Code          string         `json:"country_alpha2_code"`
@@ -194,6 +125,7 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdR
 		&i.BarberID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ServiceTypeID,
 		&i.ID_2,
 		&i.HubspotID,
 		&i.CountryAlpha2Code,
@@ -228,15 +160,91 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdR
 	return i, err
 }
 
+const getHaircutEvents = `-- name: GetHaircutEvents :many
+SELECT e.id, e.begin_date_time, e.end_date_time, e.customer_id, e.barber_id, e.created_at, e.updated_at, e.service_type_id,
+       (barbers.first_name || ' ' || barbers.last_name)::text     as barber_name,
+       (customers.first_name || ' ' || customers.last_name)::text as customer_name
+FROM haircut.events e
+         JOIN users.users barbers
+              ON barbers.id = e.barber_id
+         JOIN users.users customers
+              ON customers.id = e.customer_id
+WHERE
+    (barber_id = $1 OR $1 IS NULL) -- Filter by barber_id
+  AND (customer_id = $2 OR $2 IS NULL)
+  AND ($3 >= begin_date_time OR $3 IS NULL) -- within boundary
+  AND ($4 <= end_date_time OR $4 IS NULL)
+`
+
+type GetHaircutEventsParams struct {
+	BarberID   uuid.NullUUID `json:"barber_id"`
+	CustomerID uuid.NullUUID `json:"customer_id"`
+	Before     sql.NullTime  `json:"before"`
+	After      sql.NullTime  `json:"after"`
+}
+
+type GetHaircutEventsRow struct {
+	ID            uuid.UUID `json:"id"`
+	BeginDateTime time.Time `json:"begin_date_time"`
+	EndDateTime   time.Time `json:"end_date_time"`
+	CustomerID    uuid.UUID `json:"customer_id"`
+	BarberID      uuid.UUID `json:"barber_id"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+	ServiceTypeID uuid.UUID `json:"service_type_id"`
+	BarberName    string    `json:"barber_name"`
+	CustomerName  string    `json:"customer_name"`
+}
+
+func (q *Queries) GetHaircutEvents(ctx context.Context, arg GetHaircutEventsParams) ([]GetHaircutEventsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getHaircutEvents,
+		arg.BarberID,
+		arg.CustomerID,
+		arg.Before,
+		arg.After,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetHaircutEventsRow
+	for rows.Next() {
+		var i GetHaircutEventsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.BeginDateTime,
+			&i.EndDateTime,
+			&i.CustomerID,
+			&i.BarberID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ServiceTypeID,
+			&i.BarberName,
+			&i.CustomerName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateEvent = `-- name: UpdateEvent :one
-UPDATE barber.barber_events
+UPDATE haircut.events
 SET
     begin_date_time = $1,
     end_date_time = $2,
     barber_id = $3,
-    customer_id = $4
+    customer_id = $4,
+    updated_at = current_timestamp
 WHERE id = $5
-RETURNING id, begin_date_time, end_date_time, customer_id, barber_id, created_at, updated_at
+RETURNING id, begin_date_time, end_date_time, customer_id, barber_id, created_at, updated_at, service_type_id
 `
 
 type UpdateEventParams struct {
@@ -247,7 +255,7 @@ type UpdateEventParams struct {
 	ID            uuid.UUID `json:"id"`
 }
 
-func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (BarberBarberEvent, error) {
+func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (HaircutEvent, error) {
 	row := q.db.QueryRowContext(ctx, updateEvent,
 		arg.BeginDateTime,
 		arg.EndDateTime,
@@ -255,7 +263,7 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Barbe
 		arg.CustomerID,
 		arg.ID,
 	)
-	var i BarberBarberEvent
+	var i HaircutEvent
 	err := row.Scan(
 		&i.ID,
 		&i.BeginDateTime,
@@ -264,6 +272,7 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Barbe
 		&i.BarberID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ServiceTypeID,
 	)
 	return i, err
 }

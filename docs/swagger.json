@@ -99,6 +99,119 @@
                 }
             }
         },
+        "/barbers/services": {
+            "get": {
+                "description": "Retrieve a list of all barber services",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "barber"
+                ],
+                "summary": "Get all barber services",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/haircut.BarberServiceResponseDto"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new barber service with the provided details",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "barber"
+                ],
+                "summary": "Create a new barber service",
+                "parameters": [
+                    {
+                        "description": "Create Barber Service Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/haircut.CreateBarberServiceRequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/barbers/services/{id}": {
+            "delete": {
+                "description": "Delete a barber service by its ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "barber"
+                ],
+                "summary": "Delete a barber service",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Barber Service ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Updated successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/checkout/membership_plans/{id}": {
             "post": {
                 "security": [
@@ -354,7 +467,7 @@
                         "Bearer": []
                     }
                 ],
-                "description": "Delete a course by Id",
+                "description": "Delete a course by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -368,7 +481,7 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Course Id",
+                        "description": "Course ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -379,7 +492,7 @@
                         "description": "No Content"
                     },
                     "400": {
-                        "description": "Bad Request: Invalid Id",
+                        "description": "Bad Request: Invalid ID",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -540,7 +653,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/hubspot.UserResponse"
+                                "$ref": "#/definitions/customer.Response"
                             }
                         }
                     },
@@ -1515,7 +1628,7 @@
         },
         "/haircuts": {
             "get": {
-                "description": "Retrieves all haircut images from a folder in S3. Optionally, specify a barber name to get images from that barber's folder.",
+                "description": "Retrieves all haircut images from a folder in Google Cloud Storage. Optionally, specify a barber name to get images from that barber's folder.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1525,7 +1638,6 @@
                 "tags": [
                     "haircut"
                 ],
-                "summary": "Retrieve haircut images",
                 "parameters": [
                     {
                         "type": "string",
@@ -1565,7 +1677,7 @@
                 }
             },
             "post": {
-                "description": "Uploads a haircut image to S3 and returns the object URL.",
+                "description": "Uploads a haircut image to Google Cloud Storage and returns the object URL.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -1575,7 +1687,6 @@
                 "tags": [
                     "haircut"
                 ],
-                "summary": "Upload a haircut image",
                 "parameters": [
                     {
                         "type": "file",
@@ -3699,6 +3810,45 @@
                 }
             }
         },
+        "haircut.BarberServiceResponseDto": {
+            "type": "object",
+            "properties": {
+                "barber_id": {
+                    "type": "string"
+                },
+                "barber_name": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "haircut_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "service_type_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "haircut.CreateBarberServiceRequestDto": {
+            "type": "object",
+            "properties": {
+                "barber_id": {
+                    "type": "string",
+                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+                },
+                "haircut_service_id": {
+                    "type": "string",
+                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+                }
+            }
+        },
         "haircut.EventResponseDto": {
             "type": "object",
             "properties": {
@@ -3749,85 +3899,6 @@
                 "end_time": {
                     "type": "string",
                     "example": "2023-10-05T07:00:00Z"
-                }
-            }
-        },
-        "hubspot.UserAssociation": {
-            "type": "object",
-            "properties": {
-                "results": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/hubspot.UserAssociationResult"
-                    }
-                }
-            }
-        },
-        "hubspot.UserAssociationResult": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                }
-            }
-        },
-        "hubspot.UserAssociations": {
-            "type": "object",
-            "properties": {
-                "contacts": {
-                    "$ref": "#/definitions/hubspot.UserAssociation"
-                }
-            }
-        },
-        "hubspot.UserProps": {
-            "type": "object",
-            "properties": {
-                "age": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "firstname": {
-                    "type": "string"
-                },
-                "has_marketing_email_consent": {
-                    "type": "string"
-                },
-                "has_sms_consent": {
-                    "type": "string"
-                },
-                "hs_country_region_code": {
-                    "type": "string"
-                },
-                "lastname": {
-                    "type": "string"
-                },
-                "phone": {
-                    "type": "string"
-                }
-            }
-        },
-        "hubspot.UserResponse": {
-            "type": "object",
-            "properties": {
-                "associations": {
-                    "$ref": "#/definitions/hubspot.UserAssociations"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "properties": {
-                    "$ref": "#/definitions/hubspot.UserProps"
-                },
-                "updatedAt": {
-                    "type": "string"
                 }
             }
         },

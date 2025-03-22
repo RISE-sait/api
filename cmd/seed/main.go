@@ -9,25 +9,20 @@ import (
 	"github.com/google/uuid"
 	"time"
 
-	//"github.com/google/uuid"
 	"github.com/shopspring/decimal"
-	//"time"
-
-	//"github.com/google/uuid"
-	//"github.com/shopspring/decimal"
 
 	"fmt"
 	"strings"
 
 	"context"
 	"database/sql"
-	_ "github.com/lib/pq" // Add this import
+	_ "github.com/lib/pq"
 	"log"
 )
 
 func clearTables(ctx context.Context, db *sql.DB) error {
 	// Define the schemas you want to truncate tables from
-	schemas := []string{"public", "location", "users", "course", "barber", "audit", "membership", "waiver"}
+	schemas := []string{"public", "location", "users", "course", "haircut", "audit", "membership", "waiver"}
 
 	// Build the TRUNCATE query
 	var tables []string
@@ -137,14 +132,42 @@ func seedUsers(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 	return ids, nil
 }
 
-func seedBarberEvents(ctx context.Context, db *sql.DB, clientIds []uuid.UUID) error {
+func seedHaircutServices(ctx context.Context, db *sql.DB) error {
 
 	seedQueries := dbSeed.New(db)
 
-	events := data.GetBarberEvents(clientIds)
+	services := data.GetHaircutServices()
 
-	if err := seedQueries.InsertBarberEvents(ctx, events); err != nil {
-		log.Fatalf("Failed to insert athletes: %v", err)
+	if err := seedQueries.InsertHaircutServices(ctx, services); err != nil {
+		log.Fatalf("Failed to insert haircut services: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func seedBarberServices(ctx context.Context, db *sql.DB) error {
+
+	seedQueries := dbSeed.New(db)
+
+	services := data.GetBarberServices()
+
+	if err := seedQueries.InsertBarberServices(ctx, services); err != nil {
+		log.Fatalf("Failed to insert barber services: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func seedHaircutEvents(ctx context.Context, db *sql.DB, clientIds []uuid.UUID) error {
+
+	seedQueries := dbSeed.New(db)
+
+	events := data.GetHaircutEvents(clientIds)
+
+	if err := seedQueries.InsertHaircutEvents(ctx, events); err != nil {
+		log.Fatalf("Failed to insert haircut events: %v", err)
 		return err
 	}
 
@@ -586,12 +609,12 @@ func main() {
 		return
 	}
 
-	if err := seedMemberships(ctx, db); err != nil {
+	if err = seedMemberships(ctx, db); err != nil {
 		log.Println(err)
 		return
 	}
 
-	if err := seedMembershipPlans(ctx, db); err != nil {
+	if err = seedMembershipPlans(ctx, db); err != nil {
 		log.Println(err)
 		return
 	}
@@ -603,7 +626,7 @@ func main() {
 		return
 	}
 
-	if err := updateParents(ctx, db); err != nil {
+	if err = updateParents(ctx, db); err != nil {
 		log.Println(err)
 		return
 	}
@@ -649,7 +672,17 @@ func main() {
 		return
 	}
 
-	if err = seedBarberEvents(ctx, db, clientIds); err != nil {
+	if err = seedHaircutServices(ctx, db); err != nil {
+		log.Println(err)
+		return
+	}
+
+	if err = seedBarberServices(ctx, db); err != nil {
+		log.Println(err)
+		return
+	}
+
+	if err = seedHaircutEvents(ctx, db, clientIds); err != nil {
 		log.Println(err)
 		return
 	}

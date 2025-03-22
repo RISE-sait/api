@@ -304,7 +304,7 @@ package tests_test
 //	}
 //
 //	// Fetch events
-//	events, err := eventQueries.GetEvents(context.Background(), eventDb.GetEventsParams{})
+//	events, err := eventQueries.GetBarberServices(context.Background(), eventDb.GetEventsParams{})
 //	require.NoError(t, err)
 //
 //	// Assert that at least 5 events exist

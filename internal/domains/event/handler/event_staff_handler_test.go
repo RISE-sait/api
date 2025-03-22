@@ -55,7 +55,7 @@ package event
 //	return course, err
 //}
 //
-//func (m *MockEventsRepository) GetEvents(c context.Context, name, description *string) ([]entity.Event, *errLib.CommonError) {
+//func (m *MockEventsRepository) GetBarberServices(c context.Context, name, description *string) ([]entity.Event, *errLib.CommonError) {
 //	args := m.Called(c, name, description)
 //
 //	var courses []entity.Event

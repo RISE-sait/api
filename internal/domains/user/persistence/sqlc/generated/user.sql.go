@@ -115,7 +115,10 @@ func (q *Queries) GetChildren(ctx context.Context, id uuid.UUID) ([]UsersUser, e
 const getCustomers = `-- name: GetCustomers :many
 WITH latest_membership AS (SELECT cmp.customer_id,
                                   m.name         AS membership_name,
-                                  cmp.start_date AS membership_start_date
+                                  mp.id as membership_plan_id,
+                                  mp.name as membership_plan_name,
+                                  cmp.start_date AS membership_start_date,
+                                  cmp.renewal_date AS membership_plan_renewal_date
                            FROM public.customer_membership_plans cmp
                                     JOIN
                                 membership.membership_plans mp
@@ -128,13 +131,21 @@ WITH latest_membership AS (SELECT cmp.customer_id,
                                                    WHERE cmp2.customer_id = cmp.customer_id))
 SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.age, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at,
        lm.membership_name,      -- This will be NULL if no membership exists
+       lm.membership_plan_id,
+       lm.membership_plan_name,
        lm.membership_start_date, -- This will be NULL if no membership exists
-a.points, a.wins, a.losses, a.assists, a.rebounds, a.steals
+       lm.membership_plan_renewal_date,
+       a.points,
+       a.wins,
+       a.losses,
+       a.assists,
+       a.rebounds,
+       a.steals
 FROM users.users u
          LEFT JOIN
      latest_membership lm
      ON lm.customer_id = u.id
-LEFT JOIN users.athletes a ON u.id = a.id
+         LEFT JOIN users.athletes a ON u.id = a.id
 LIMIT $1 OFFSET $2
 `
 
@@ -144,28 +155,31 @@ type GetCustomersParams struct {
 }
 
 type GetCustomersRow struct {
-	ID                       uuid.UUID      `json:"id"`
-	HubspotID                sql.NullString `json:"hubspot_id"`
-	CountryAlpha2Code        string         `json:"country_alpha2_code"`
-	Gender                   sql.NullString `json:"gender"`
-	FirstName                string         `json:"first_name"`
-	LastName                 string         `json:"last_name"`
-	Age                      int32          `json:"age"`
-	ParentID                 uuid.NullUUID  `json:"parent_id"`
-	Phone                    sql.NullString `json:"phone"`
-	Email                    sql.NullString `json:"email"`
-	HasMarketingEmailConsent bool           `json:"has_marketing_email_consent"`
-	HasSmsConsent            bool           `json:"has_sms_consent"`
-	CreatedAt                time.Time      `json:"created_at"`
-	UpdatedAt                time.Time      `json:"updated_at"`
-	MembershipName           sql.NullString `json:"membership_name"`
-	MembershipStartDate      sql.NullTime   `json:"membership_start_date"`
-	Points                   sql.NullInt32  `json:"points"`
-	Wins                     sql.NullInt32  `json:"wins"`
-	Losses                   sql.NullInt32  `json:"losses"`
-	Assists                  sql.NullInt32  `json:"assists"`
-	Rebounds                 sql.NullInt32  `json:"rebounds"`
-	Steals                   sql.NullInt32  `json:"steals"`
+	ID                        uuid.UUID      `json:"id"`
+	HubspotID                 sql.NullString `json:"hubspot_id"`
+	CountryAlpha2Code         string         `json:"country_alpha2_code"`
+	Gender                    sql.NullString `json:"gender"`
+	FirstName                 string         `json:"first_name"`
+	LastName                  string         `json:"last_name"`
+	Age                       int32          `json:"age"`
+	ParentID                  uuid.NullUUID  `json:"parent_id"`
+	Phone                     sql.NullString `json:"phone"`
+	Email                     sql.NullString `json:"email"`
+	HasMarketingEmailConsent  bool           `json:"has_marketing_email_consent"`
+	HasSmsConsent             bool           `json:"has_sms_consent"`
+	CreatedAt                 time.Time      `json:"created_at"`
+	UpdatedAt                 time.Time      `json:"updated_at"`
+	MembershipName            sql.NullString `json:"membership_name"`
+	MembershipPlanID          uuid.NullUUID  `json:"membership_plan_id"`
+	MembershipPlanName        sql.NullString `json:"membership_plan_name"`
+	MembershipStartDate       sql.NullTime   `json:"membership_start_date"`
+	MembershipPlanRenewalDate sql.NullTime   `json:"membership_plan_renewal_date"`
+	Points                    sql.NullInt32  `json:"points"`
+	Wins                      sql.NullInt32  `json:"wins"`
+	Losses                    sql.NullInt32  `json:"losses"`
+	Assists                   sql.NullInt32  `json:"assists"`
+	Rebounds                  sql.NullInt32  `json:"rebounds"`
+	Steals                    sql.NullInt32  `json:"steals"`
 }
 
 func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]GetCustomersRow, error) {
@@ -193,7 +207,10 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]G
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.MembershipName,
+			&i.MembershipPlanID,
+			&i.MembershipPlanName,
 			&i.MembershipStartDate,
+			&i.MembershipPlanRenewalDate,
 			&i.Points,
 			&i.Wins,
 			&i.Losses,

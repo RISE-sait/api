@@ -12,7 +12,10 @@ WHERE id = sqlc.arg('id');
 -- name: GetCustomers :many
 WITH latest_membership AS (SELECT cmp.customer_id,
                                   m.name         AS membership_name,
-                                  cmp.start_date AS membership_start_date
+                                  mp.id as membership_plan_id,
+                                  mp.name as membership_plan_name,
+                                  cmp.start_date AS membership_start_date,
+                                  cmp.renewal_date AS membership_plan_renewal_date
                            FROM public.customer_membership_plans cmp
                                     JOIN
                                 membership.membership_plans mp
@@ -25,7 +28,10 @@ WITH latest_membership AS (SELECT cmp.customer_id,
                                                    WHERE cmp2.customer_id = cmp.customer_id))
 SELECT u.*,
        lm.membership_name,      -- This will be NULL if no membership exists
+       lm.membership_plan_id,
+       lm.membership_plan_name,
        lm.membership_start_date, -- This will be NULL if no membership exists
+       lm.membership_plan_renewal_date,
        a.points,
        a.wins,
        a.losses,

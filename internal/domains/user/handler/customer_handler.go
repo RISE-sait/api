@@ -138,9 +138,14 @@ func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) 
 			HubspotId:   customer.HubspotID,
 		}
 
-		if customer.CustomerInfo != nil {
-			response.MembershipName = &customer.CustomerInfo.MembershipName
-			response.MembershipStartDate = &customer.CustomerInfo.MembershipStartDate
+		if customer.MembershipInfo != nil {
+			response.MembershipInfo = &dto.MembershipResponseDto{
+				MembershipName:        &customer.MembershipInfo.MembershipName,
+				MembershipStartDate:   &customer.MembershipInfo.MembershipStartDate,
+				MembershipRenewalDate: &customer.MembershipInfo.MembershipRenewalDate,
+				MembershipPlanID:      &customer.MembershipInfo.MembershipPlanID,
+				MembershipPlanName:    &customer.MembershipInfo.MembershipPlanName,
+			}
 		}
 
 		if athleteInfo := customer.AthleteInfo; athleteInfo != nil {

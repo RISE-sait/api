@@ -6,7 +6,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // Client struct to hold client data
@@ -18,9 +17,6 @@ type Client struct {
 	Email            string
 	Phone            string
 	Gender           string
-	MembershipName   *string
-	MembershipPlan   *string
-	MembershipExpiry time.Time
 	CreditsRemaining int
 	StudioWaiver     bool
 	EmailConsent     bool
@@ -43,6 +39,7 @@ func parseBool(s string) bool {
 
 // GetClients : extract clients data from the CSV file
 func GetClients() ([]Client, error) {
+
 	// Open the CSV file
 	file, err := os.Open("cmd/seed/clients.csv")
 	if err != nil {
@@ -68,12 +65,6 @@ func GetClients() ([]Client, error) {
 			// Skip the header row
 			continue
 		}
-
-		// Parse date fields
-		membershipExpiry, _ := time.Parse("4/22/2025", record[21])
-
-		membershipName := record[19]
-		membershipPlan := record[20]
 
 		// Parse booleans
 		studioWaiver := parseBool(record[23])
@@ -103,17 +94,6 @@ func GetClients() ([]Client, error) {
 			age = 0
 		}
 
-		var membershipNamePtr *string
-		var membershipPlanPtr *string
-
-		if membershipName != "" {
-			membershipNamePtr = &membershipName
-		}
-
-		if membershipPlan != "" {
-			membershipPlanPtr = &membershipPlan
-		}
-
 		// Create a new Client struct
 		client := Client{
 			FirstName:        record[1],
@@ -123,9 +103,6 @@ func GetClients() ([]Client, error) {
 			Age:              age,
 			Gender:           gender,
 			CountryAlpha2:    record[8],
-			MembershipName:   membershipNamePtr,
-			MembershipPlan:   membershipPlanPtr,
-			MembershipExpiry: membershipExpiry,
 			CreditsRemaining: parseInt(record[19]),
 			StudioWaiver:     studioWaiver,
 			EmailConsent:     emailConsent,

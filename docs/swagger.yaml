@@ -107,6 +107,19 @@ definitions:
       updated_at:
         type: string
     type: object
+  customer.MembershipResponseDto:
+    properties:
+      membership_name:
+        type: string
+      membership_plan_id:
+        type: string
+      membership_plan_name:
+        type: string
+      membership_renewal_date:
+        type: string
+      membership_start_date:
+        type: string
+    type: object
   customer.ParentRegistrationRequestDto:
     properties:
       age:
@@ -145,10 +158,8 @@ definitions:
         type: string
       last_name:
         type: string
-      membership_name:
-        type: string
-      membership_start_date:
-        type: string
+      membership_info:
+        $ref: '#/definitions/customer.MembershipResponseDto'
       phone:
         type: string
       user_id:
@@ -347,8 +358,8 @@ definitions:
         example: "2023-10-05T07:00:00Z"
         type: string
     required:
-      - begin_time
-      - end_time
+    - begin_time
+    - end_time
     type: object
   identity.MembershipReadResponseDto:
     properties:
@@ -641,7 +652,7 @@ paths:
     get:
       description: Retrieve a list of all barber services
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: OK
@@ -656,20 +667,20 @@ paths:
             type: object
       summary: Get all barber services
       tags:
-        - barber
+      - barber
     post:
       consumes:
-        - application/json
+      - application/json
       description: Create a new barber service with the provided details
       parameters:
-        - description: Create Barber Service Request
-          in: body
-          name: request
-          required: true
-          schema:
-            $ref: '#/definitions/haircut.CreateBarberServiceRequestDto'
+      - description: Create Barber Service Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/haircut.CreateBarberServiceRequestDto'
       produces:
-        - application/json
+      - application/json
       responses:
         "201":
           description: Created
@@ -685,18 +696,18 @@ paths:
             type: object
       summary: Create a new barber service
       tags:
-        - barber
+      - barber
   /barbers/services/{id}:
     delete:
       description: Delete a barber service by its ID
       parameters:
-        - description: Barber Service ID
-          in: path
-          name: id
-          required: true
-          type: string
+      - description: Barber Service ID
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
         "204":
           description: 'No Content: Updated successfully'
@@ -712,20 +723,20 @@ paths:
             type: object
       summary: Delete a barber service
       tags:
-        - barber
+      - barber
   /checkout/membership_plans/{id}:
     post:
       consumes:
-        - application/json
+      - application/json
       description: Generates a payment link for purchasing a membership plan.
       parameters:
-        - description: Membership plan ID
-          in: path
-          name: id
-          required: true
-          type: string
+      - description: Membership plan ID
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: Payment link generated successfully
@@ -742,10 +753,10 @@ paths:
             additionalProperties: true
             type: object
       security:
-        - Bearer: [ ]
+      - Bearer: []
       summary: Checkout a membership plan
       tags:
-        - purchases
+      - purchases
   /courses:
     get:
       consumes:
@@ -807,7 +818,7 @@ paths:
       - application/json
       description: Delete a course by ID
       parameters:
-        - description: Course ID
+      - description: Course ID
         in: path
         name: id
         required: true
@@ -842,7 +853,7 @@ paths:
       - application/json
       description: Get a course by ID
       parameters:
-        - description: Course ID
+      - description: Course ID
         in: path
         name: id
         required: true
@@ -1183,38 +1194,38 @@ paths:
       description: Retrieve all events within a specific date range, with optional
         filters by course, location, game, and practice.
       parameters:
-        - description: Start date of the events range (YYYY-MM-DD)
-          example: '"2025-03-01"'
-          in: query
-          name: after
-          type: string
-        - description: End date of the events range (YYYY-MM-DD)
-          example: '"2025-03-31"'
-          in: query
-          name: before
-          type: string
-        - description: Filter by game ID (UUID format)
-          example: '"550e8400-e29b-41d4-a716-446655440000"'
-          in: query
-          name: game_id
-          type: string
-        - description: Filter by course ID (UUID format)
-          example: '"550e8400-e29b-41d4-a716-446655440000"'
-          in: query
-          name: course_id
-          type: string
-        - description: Filter by practice ID (UUID format)
-          example: '"550e8400-e29b-41d4-a716-446655440000"'
-          in: query
-          name: practice_id
-          type: string
-        - description: Filter by location ID (UUID format)
-          example: '"550e8400-e29b-41d4-a716-446655440000"'
-          in: query
-          name: location_id
-          type: string
+      - description: Start date of the events range (YYYY-MM-DD)
+        example: '"2025-03-01"'
+        in: query
+        name: after
+        type: string
+      - description: End date of the events range (YYYY-MM-DD)
+        example: '"2025-03-31"'
+        in: query
+        name: before
+        type: string
+      - description: Filter by game ID (UUID format)
+        example: '"550e8400-e29b-41d4-a716-446655440000"'
+        in: query
+        name: game_id
+        type: string
+      - description: Filter by course ID (UUID format)
+        example: '"550e8400-e29b-41d4-a716-446655440000"'
+        in: query
+        name: course_id
+        type: string
+      - description: Filter by practice ID (UUID format)
+        example: '"550e8400-e29b-41d4-a716-446655440000"'
+        in: query
+        name: practice_id
+        type: string
+      - description: Filter by location ID (UUID format)
+        example: '"550e8400-e29b-41d4-a716-446655440000"'
+        in: query
+        name: location_id
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: List of events retrieved successfully
@@ -1234,15 +1245,15 @@ paths:
             type: object
       summary: Get events
       tags:
-        - events
+      - events
     post:
       consumes:
-        - application/json
+      - application/json
       description: Registers a new event with the provided details.
       parameters:
-        - description: Event details
+      - description: Event details
         in: body
-          name: event
+        name: event
         required: true
         schema:
           $ref: '#/definitions/event.RequestDto'
@@ -1266,7 +1277,7 @@ paths:
             type: object
       summary: Create a new event
       tags:
-        - events
+      - events
   /events/{event_id}/staffs:
     get:
       consumes:
@@ -1274,9 +1285,9 @@ paths:
       description: Retrieve all staff assigned to an event using event_id as a query
         parameter.
       parameters:
-        - description: Event ID
-          in: path
-          name: id
+      - description: Event ID
+        in: path
+        name: id
         required: true
         type: string
       produces:
@@ -1313,16 +1324,16 @@ paths:
       description: Remove a staff member from an event using event_id and staff_id
         in the request body.
       parameters:
-        - description: Event ID
-          in: path
-          name: event_id
+      - description: Event ID
+        in: path
+        name: event_id
         required: true
-          type: string
-        - description: Staff ID
-          in: path
-          name: staff_id
-          required: true
-          type: string
+        type: string
+      - description: Staff ID
+        in: path
+        name: staff_id
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -1350,15 +1361,15 @@ paths:
       description: Assign a staff member to an event using event_id and staff_id in
         the request body.
       parameters:
-        - description: Event ID
-          in: path
-          name: event_id
-          required: true
+      - description: Event ID
+        in: path
+        name: event_id
+        required: true
         type: string
-        - description: Staff ID
-          in: path
-          name: staff_id
-          required: true
+      - description: Staff ID
+        in: path
+        name: staff_id
+        required: true
         type: string
       produces:
       - application/json
@@ -1380,7 +1391,7 @@ paths:
             type: object
       summary: Assign a staff member to an event
       tags:
-        - event_staff
+      - event_staff
   /events/{id}:
     delete:
       consumes:
@@ -1744,16 +1755,16 @@ paths:
       description: Retrieve all haircut events, with optional filters by barber ID
         and customer ID.
       parameters:
-        - description: Start date of the events range (YYYY-MM-DD)
-          example: '"2025-03-01"'
-          in: query
-          name: after
-          type: string
-        - description: End date of the events range (YYYY-MM-DD)
-          example: '"2025-03-31"'
-          in: query
-          name: before
-          type: string
+      - description: Start date of the events range (YYYY-MM-DD)
+        example: '"2025-03-01"'
+        in: query
+        name: after
+        type: string
+      - description: End date of the events range (YYYY-MM-DD)
+        example: '"2025-03-31"'
+        in: query
+        name: before
+        type: string
       - description: Filter by barber ID
         in: query
         name: barber_id
@@ -1791,7 +1802,7 @@ paths:
         Registers a new haircut event with the provided details from request body.
         Requires an Authorization header containing the customer's JWT, ensuring only logged-in customers can make the request.
       parameters:
-        - description: Haircut event details
+      - description: Haircut event details
         in: body
         name: event
         required: true
@@ -1815,7 +1826,7 @@ paths:
             additionalProperties: true
             type: object
       security:
-        - Bearer: [ ]
+      - Bearer: []
       tags:
       - haircut
   /haircuts/events/{id}:
@@ -1824,7 +1835,7 @@ paths:
       - application/json
       description: Deletes a haircut event by its ID.
       parameters:
-        - description: Haircut event ID
+      - description: Haircut event ID
         in: path
         name: id
         required: true
@@ -1856,7 +1867,7 @@ paths:
       - application/json
       description: Retrieves details of a specific haircut event based on its ID.
       parameters:
-        - description: Haircut event ID
+      - description: Haircut event ID
         in: path
         name: id
         required: true
@@ -2546,7 +2557,7 @@ paths:
       - application/json
       description: Receives and processes payment updates from Square.
       parameters:
-        - description: Square Webhook Event
+      - description: Square Webhook Event
         in: body
         name: request
         required: true

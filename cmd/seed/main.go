@@ -526,12 +526,17 @@ func seedEvents(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 	return ids, nil
 }
 
-func seedClientsMembershipPlans(ctx context.Context, db *sql.DB, clients, plans []uuid.UUID) error {
+func seedClientsMembershipPlans(ctx context.Context, db *sql.DB) error {
 	seedQueries := dbSeed.New(db)
 
-	_, err := seedQueries.InsertClientsMembershipPlans(ctx, data.GetClientsMembershipPlans(clients, plans))
+	plans, err := data.GetClientsMembershipPlans()
 
 	if err != nil {
+		log.Fatalf("Failed to insert client membership plans: %v", err)
+		return err
+	}
+
+	if err := seedQueries.InsertClientsMembershipPlans(ctx, plans); err != nil {
 		log.Fatalf("Failed to insert client membership plans: %v", err)
 		return err
 	}
@@ -636,13 +641,11 @@ func main() {
 		return
 	}
 
-	//err = seedClientsMembershipPlans(ctx, db, clientIds, plansIds)
-	//
-	//if err != nil {
-	//	log.Println(err)
-	//	return
-	//}
-	//
+	if err := seedClientsMembershipPlans(ctx, db); err != nil {
+		log.Println(err)
+		return
+	}
+
 	err = seedClientsEnrollments(ctx, db, clientIds, eventIds)
 
 	if err != nil {

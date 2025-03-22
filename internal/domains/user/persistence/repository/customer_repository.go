@@ -58,9 +58,15 @@ func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int
 			customer.Email = &dbCustomer.Email.String
 		}
 
-		if dbCustomer.MembershipName.Valid && dbCustomer.MembershipStartDate.Valid {
-			customer.CustomerInfo.MembershipName = dbCustomer.MembershipName.String
-			customer.CustomerInfo.MembershipStartDate = dbCustomer.MembershipStartDate.Time
+		if dbCustomer.MembershipName.Valid && dbCustomer.MembershipPlanName.Valid && dbCustomer.MembershipStartDate.Valid && dbCustomer.MembershipPlanID.Valid {
+
+			customer.MembershipInfo = &customerValues.MembershipReadValue{
+				MembershipPlanID:      dbCustomer.MembershipPlanID.UUID,
+				MembershipPlanName:    dbCustomer.MembershipPlanName.String,
+				MembershipName:        dbCustomer.MembershipName.String,
+				MembershipStartDate:   dbCustomer.MembershipStartDate.Time,
+				MembershipRenewalDate: dbCustomer.MembershipPlanRenewalDate.Time,
+			}
 		}
 
 		if dbCustomer.Rebounds.Valid && dbCustomer.Wins.Valid && dbCustomer.Points.Valid && dbCustomer.Steals.Valid && dbCustomer.Assists.Valid && dbCustomer.Losses.Valid {

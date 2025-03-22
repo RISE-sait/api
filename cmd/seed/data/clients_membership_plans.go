@@ -2,54 +2,72 @@ package data
 
 import (
 	dbSeed "api/cmd/seed/sqlc/generated"
-	"github.com/google/uuid"
-	"math/rand"
+	"encoding/csv"
+	"fmt"
+	"os"
 	"time"
 )
 
-func GetClientsMembershipPlans(clientIds, membershipPlanIds []uuid.UUID) dbSeed.InsertClientsMembershipPlansParams {
+func GetClientsMembershipPlans() (dbSeed.InsertClientsMembershipPlansParams, error) {
+
+	var params dbSeed.InsertClientsMembershipPlansParams
 
 	var (
-		clientArray      []uuid.UUID
-		planArray        []uuid.UUID
+		clientArray      []string
+		planArray        []string
 		renewalDateArray []time.Time
 		startDateArray   []time.Time
 	)
 
-	randomSource := rand.NewSource(time.Now().UnixNano())
-	randomGenerator := rand.New(randomSource)
+	file, err := os.Open("cmd/seed/clients.csv")
+	if err != nil {
+		return params, fmt.Errorf("error opening file: %w", err)
+	}
+	defer file.Close()
 
-	for _, clientID := range clientIds {
+	// Create a new CSV reader
+	reader := csv.NewReader(file)
+
+	// Read all records from the CSV file
+	records, err := reader.ReadAll()
+	if err != nil {
+		return params, fmt.Errorf("error reading CSV: %w", err)
+	}
+
+	// Loop through the records (skipping the header row)
+	for i, record := range records {
+		if i == 0 {
+			// Skip the header row
+			continue
+		}
 
 		lastStartDate := time.Now()
 
-		// Decide randomly whether the client will have 1 or 2 plans
-		numPlans := 1 + randomGenerator.Intn(2) // Randomly 1 or 2 plans
-
-		for planIdx := 0; planIdx < numPlans; planIdx++ {
-
-			// Select a random plan
-			randomPlanID := membershipPlanIds[randomGenerator.Intn(len(membershipPlanIds))]
-
-			randomMonths := 2 + randomGenerator.Intn(11)
-
-			// Generate the renewal date for the first plan, or 30 days after the last renewal date for the second plan
-			renewalDate := lastStartDate.AddDate(0, randomMonths, 0)
-
-			// Append to the arrays
-			clientArray = append(clientArray, clientID)
-			planArray = append(planArray, randomPlanID)
-			renewalDateArray = append(renewalDateArray, renewalDate)
-			startDateArray = append(startDateArray, lastStartDate)
-
-			lastStartDate = renewalDate.AddDate(0, 0, 2)
+		var renewalDate time.Time
+		if record[21] != "" { // Check if the renewal date is not empty
+			renewalDate, err = time.Parse("1/2/2006", record[21]) // Adjust the date format as needed
+			if err != nil {
+				return params, fmt.Errorf("error parsing renewal date: %w", err)
+			}
+		} else {
+			// Use a default "empty" date (e.g., time.Time{} or a specific placeholder)
+			renewalDate = time.Time{}
 		}
+
+		membershipPlan := record[20]
+		email := record[3]
+
+		// Append to the arrays
+		clientArray = append(clientArray, email)
+		planArray = append(planArray, membershipPlan)
+		renewalDateArray = append(renewalDateArray, renewalDate)
+		startDateArray = append(startDateArray, lastStartDate)
 	}
 
 	return dbSeed.InsertClientsMembershipPlansParams{
-		CustomerID:       clientArray,
-		PlansArray:       planArray,
-		StartDateArray:   startDateArray,
-		RenewalDateArray: renewalDateArray,
-	}
+		CustomerEmailArray: clientArray,
+		MembershipPlanName: planArray,
+		StartDateArray:     startDateArray,
+		RenewalDateArray:   renewalDateArray,
+	}, nil
 }

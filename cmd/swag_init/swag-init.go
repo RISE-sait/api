@@ -6,11 +6,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 )
 
 func main() {
-
 	// Define the base directories to scan
 	baseDirs := []string{"./cmd/server/server", "./internal/domains"}
 
@@ -22,30 +20,27 @@ func main() {
 		"service":     true,
 	}
 
+	// Collect all subdirectories containing .go files, excluding "persistence" directories
 	var dirs []string
-	var mu sync.Mutex
-	var wg sync.WaitGroup
-
-	// Function to walk a directory and collect directories containing .go files
-	walkDir := func(baseDir string) {
-		defer wg.Done()
-		filepath.WalkDir(baseDir, func(path string, d os.DirEntry, err error) error {
+	for _, baseDir := range baseDirs {
+		filepath.Walk(baseDir, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
 
-			if d.IsDir() {
-				// Skip specific directories
-				if baseDir == "./cmd/server" && d.Name() == "router" {
-					return filepath.SkipDir
+			if info.IsDir() {
+
+				if baseDir == "./cmd/server" && info.Name() == "router" {
+					return filepath.SkipDir // Skip the "router" directory
 				}
 
 				if baseDir == "./internal/domains" {
-					if skipDirs[d.Name()] {
+
+					if skipDirs[info.Name()] {
 						return filepath.SkipDir
 					}
 
-					if d.Name() == "entity" {
+					if info.Name() == "entity" {
 						parentDir := filepath.Base(filepath.Dir(path))
 						if parentDir != "identity" {
 							return filepath.SkipDir
@@ -54,25 +49,18 @@ func main() {
 				}
 
 				// Check if the directory contains .go files
-				matches, _ := filepath.Glob(filepath.Join(path, "*.go"))
-				if len(matches) > 0 {
-					mu.Lock()
+				goFiles, err := filepath.Glob(filepath.Join(path, "*.go"))
+				if err != nil {
+					return err
+				}
+
+				if len(goFiles) > 0 {
 					dirs = append(dirs, path)
-					mu.Unlock()
 				}
 			}
 			return nil
 		})
 	}
-
-	// Start a goroutine for each base directory
-	for _, baseDir := range baseDirs {
-		wg.Add(1)
-		go walkDir(baseDir)
-	}
-
-	// Wait for all goroutines to finish
-	wg.Wait()
 
 	// Join the directories with commas
 	dirArg := strings.Join(dirs, ",")

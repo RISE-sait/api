@@ -8,37 +8,31 @@ package db_course
 import (
 	"context"
 
+	"api/internal/custom_types"
 	"github.com/google/uuid"
 )
 
-const createCourse = `-- name: CreateCourse :one
-INSERT INTO course.courses (name, description, capacity)
+const createCourse = `-- name: CreateCourse :execrows
+INSERT INTO public.courses (name, description, payg_price)
 VALUES ($1, $2, $3)
-RETURNING id, name, description, capacity, created_at, updated_at
 `
 
 type CreateCourseParams struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Capacity    int32  `json:"capacity"`
+	Name        string                   `json:"name"`
+	Description string                   `json:"description"`
+	PaygPrice   custom_types.NullDecimal `json:"payg_price"`
 }
 
-func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (CourseCourse, error) {
-	row := q.db.QueryRowContext(ctx, createCourse, arg.Name, arg.Description, arg.Capacity)
-	var i CourseCourse
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.Capacity,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, createCourse, arg.Name, arg.Description, arg.PaygPrice)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const deleteCourse = `-- name: DeleteCourse :execrows
-DELETE FROM course.courses WHERE id = $1
+DELETE FROM public.courses WHERE id = $1
 `
 
 func (q *Queries) DeleteCourse(ctx context.Context, id uuid.UUID) (int64, error) {
@@ -50,44 +44,44 @@ func (q *Queries) DeleteCourse(ctx context.Context, id uuid.UUID) (int64, error)
 }
 
 const getCourseById = `-- name: GetCourseById :one
-SELECT id, name, description, capacity, created_at, updated_at FROM course.courses WHERE id = $1
+SELECT id, name, description, created_at, updated_at, payg_price FROM public.courses WHERE id = $1
 `
 
-func (q *Queries) GetCourseById(ctx context.Context, id uuid.UUID) (CourseCourse, error) {
+func (q *Queries) GetCourseById(ctx context.Context, id uuid.UUID) (Course, error) {
 	row := q.db.QueryRowContext(ctx, getCourseById, id)
-	var i CourseCourse
+	var i Course
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Description,
-		&i.Capacity,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PaygPrice,
 	)
 	return i, err
 }
 
 const getCourses = `-- name: GetCourses :many
-SELECT id, name, description, capacity, created_at, updated_at
-FROM course.courses
+SELECT id, name, description, created_at, updated_at, payg_price
+FROM public.courses
 `
 
-func (q *Queries) GetCourses(ctx context.Context) ([]CourseCourse, error) {
+func (q *Queries) GetCourses(ctx context.Context) ([]Course, error) {
 	rows, err := q.db.QueryContext(ctx, getCourses)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CourseCourse
+	var items []Course
 	for rows.Next() {
-		var i CourseCourse
+		var i Course
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
 			&i.Description,
-			&i.Capacity,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.PaygPrice,
 		); err != nil {
 			return nil, err
 		}
@@ -103,23 +97,26 @@ func (q *Queries) GetCourses(ctx context.Context) ([]CourseCourse, error) {
 }
 
 const updateCourse = `-- name: UpdateCourse :execrows
-UPDATE course.courses
-SET name = $1, description = $2, capacity = $3, updated_at = CURRENT_TIMESTAMP
+UPDATE public.courses
+SET name        = $1,
+    description = $2,
+    payg_price = $3,
+    updated_at  = CURRENT_TIMESTAMP
 WHERE id = $4
 `
 
 type UpdateCourseParams struct {
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Capacity    int32     `json:"capacity"`
-	ID          uuid.UUID `json:"id"`
+	Name        string                   `json:"name"`
+	Description string                   `json:"description"`
+	PaygPrice   custom_types.NullDecimal `json:"payg_price"`
+	ID          uuid.UUID                `json:"id"`
 }
 
 func (q *Queries) UpdateCourse(ctx context.Context, arg UpdateCourseParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateCourse,
 		arg.Name,
 		arg.Description,
-		arg.Capacity,
+		arg.PaygPrice,
 		arg.ID,
 	)
 	if err != nil {

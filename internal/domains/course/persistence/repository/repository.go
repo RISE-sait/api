@@ -2,6 +2,7 @@ package course
 
 import (
 	databaseErrors "api/internal/constants"
+	"api/internal/custom_types"
 	db "api/internal/domains/course/persistence/sqlc/generated"
 	values "api/internal/domains/course/values"
 	errLib "api/internal/libs/errors"
@@ -49,16 +50,21 @@ func (r *Repository) GetCourseById(c context.Context, id uuid.UUID) (values.Read
 		return values.ReadDetails{}, handleDBError(err, "Course")
 	}
 
-	return values.ReadDetails{
+	details := values.ReadDetails{
 		ID:        dbCourse.ID,
 		CreatedAt: dbCourse.CreatedAt,
 		UpdatedAt: dbCourse.UpdatedAt,
 		Details: values.Details{
 			Name:        dbCourse.Name,
 			Description: dbCourse.Description,
-			Capacity:    dbCourse.Capacity,
 		},
-	}, nil
+	}
+
+	if dbCourse.PaygPrice.Valid {
+		details.PayGPrice = &dbCourse.PaygPrice.Decimal
+	}
+
+	return details, nil
 }
 
 func (r *Repository) UpdateCourse(c context.Context, course values.UpdateCourseDetails) *errLib.CommonError {
@@ -67,7 +73,13 @@ func (r *Repository) UpdateCourse(c context.Context, course values.UpdateCourseD
 		ID:          course.ID,
 		Name:        course.Name,
 		Description: course.Description,
-		Capacity:    course.Capacity,
+	}
+
+	if course.PayGPrice != nil {
+		dbCourseParams.PaygPrice = custom_types.NullDecimal{
+			Decimal: dbCourseParams.PaygPrice.Decimal,
+			Valid:   true,
+		}
 	}
 
 	impactedRows, err := r.Queries.UpdateCourse(c, dbCourseParams)
@@ -94,16 +106,21 @@ func (r *Repository) GetCourses(ctx context.Context) ([]values.ReadDetails, *err
 	courses := make([]values.ReadDetails, len(dbCourses))
 
 	for i, dbCourse := range dbCourses {
-		courses[i] = values.ReadDetails{
+		course := values.ReadDetails{
 			ID:        dbCourse.ID,
 			CreatedAt: dbCourse.CreatedAt,
 			UpdatedAt: dbCourse.UpdatedAt,
 			Details: values.Details{
 				Name:        dbCourse.Name,
 				Description: dbCourse.Description,
-				Capacity:    dbCourse.Capacity,
 			},
 		}
+
+		if dbCourse.PaygPrice.Valid {
+			course.PayGPrice = &dbCourse.PaygPrice.Decimal
+		}
+
+		courses[i] = course
 	}
 
 	return courses, nil
@@ -123,26 +140,27 @@ func (r *Repository) DeleteCourse(c context.Context, id uuid.UUID) *errLib.Commo
 	return nil
 }
 
-func (r *Repository) CreateCourse(c context.Context, courseDetails values.CreateCourseDetails) (values.ReadDetails, *errLib.CommonError) {
+func (r *Repository) CreateCourse(c context.Context, courseDetails values.CreateCourseDetails) *errLib.CommonError {
 
 	dbCourseParams := db.CreateCourseParams{
 		Name: courseDetails.Name, Description: courseDetails.Description,
-		Capacity: courseDetails.Capacity,
 	}
 
-	course, err := r.Queries.CreateCourse(c, dbCourseParams)
+	if courseDetails.PayGPrice != nil {
+		dbCourseParams.PaygPrice = custom_types.NullDecimal{
+			Decimal: dbCourseParams.PaygPrice.Decimal,
+			Valid:   true,
+		}
+	}
+
+	affectedRows, err := r.Queries.CreateCourse(c, dbCourseParams)
 
 	if err != nil {
-		return values.ReadDetails{}, handleDBError(err, "Course")
+		return handleDBError(err, "Course")
 	}
 
-	return values.ReadDetails{
-		ID: course.ID,
-		Details: values.Details{Name: courseDetails.Name,
-			Description: courseDetails.Description,
-			Capacity:    courseDetails.Capacity,
-		},
-		CreatedAt: course.CreatedAt,
-		UpdatedAt: course.UpdatedAt,
-	}, nil
+	if affectedRows == 0 {
+		return errLib.New("Course not created. Unknown reason.", http.StatusInternalServerError)
+	}
+	return nil
 }

@@ -59,6 +59,9 @@ ALTER TABlE public.events
 ALTER TABLE users.athletes
     set schema athletic;
 
+ALTER TABLE public.courses
+    AlTER COLUMN payg_price set not null;
+
 -- +goose StatementEnd
 
 -- +goose Down

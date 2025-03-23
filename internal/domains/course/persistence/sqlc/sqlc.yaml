@@ -8,3 +8,8 @@ sql:
         package: "db_course"
         out: "./generated"
         emit_json_tags: true
+        overrides:
+          - column: "public.courses.payg_price"
+            go_type:
+              import: "api/internal/custom_types"
+              type: "NullDecimal"

@@ -17,7 +17,7 @@ BEGIN
     END IF;
 END $$;
 
-create table public.practices
+create table if not exists public.practices
 (
     id          uuid                     default gen_random_uuid()     not null
         primary key,

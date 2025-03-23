@@ -4,7 +4,7 @@ import (
 	databaseErrors "api/internal/constants"
 	"api/internal/custom_types"
 	db "api/internal/domains/practice/persistence/sqlc/generated"
-	"api/internal/domains/practice/values"
+	values "api/internal/domains/practice/values"
 	errLib "api/internal/libs/errors"
 	"context"
 	"errors"
@@ -88,7 +88,7 @@ func (r *Repository) List(ctx context.Context) ([]values.GetPracticeValues, *err
 			ID:        dbPractice.ID,
 			CreatedAt: dbPractice.CreatedAt,
 			UpdatedAt: dbPractice.UpdatedAt,
-			PracticeDetails: values.PracticeDetails{
+			Details: values.Details{
 				Name:        dbPractice.Name,
 				Description: dbPractice.Description,
 				Level:       string(dbPractice.Level),
@@ -96,7 +96,7 @@ func (r *Repository) List(ctx context.Context) ([]values.GetPracticeValues, *err
 		}
 
 		if dbPractice.PaygPrice.Valid {
-			practice.PracticeDetails.PayGPrice = &dbPractice.PaygPrice.Decimal
+			practice.Details.PayGPrice = &dbPractice.PaygPrice.Decimal
 		}
 		practices[i] = practice
 	}

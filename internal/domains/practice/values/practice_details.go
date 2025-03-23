@@ -1,4 +1,4 @@
-package values
+package practice
 
 import (
 	"github.com/google/uuid"
@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type PracticeDetails struct {
+type Details struct {
 	Name        string
 	Description string
 	Level       string
@@ -14,17 +14,17 @@ type PracticeDetails struct {
 }
 
 type CreatePracticeValues struct {
-	PracticeDetails
+	Details
 }
 
 type UpdatePracticeValues struct {
 	ID uuid.UUID
-	PracticeDetails
+	Details
 }
 
 type GetPracticeValues struct {
-	PracticeDetails PracticeDetails
-	ID              uuid.UUID
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	Details
+	ID        uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }

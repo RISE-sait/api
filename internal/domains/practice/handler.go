@@ -59,7 +59,7 @@ func (h *Handler) CreatePractice(w http.ResponseWriter, r *http.Request) {
 // @Tags practices
 // @Accept json
 // @Produce json
-// @Success 200 {array} dto.Response "Practices retrieved successfully"
+// @Success 200 {array} dto.ResponseDto "Practices retrieved successfully"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /practices [get]
 func (h *Handler) GetPractices(w http.ResponseWriter, r *http.Request) {
@@ -70,18 +70,10 @@ func (h *Handler) GetPractices(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := make([]dto.Response, len(practices))
+	result := make([]dto.ResponseDto, len(practices))
 
 	for i, practice := range practices {
-		result[i] = dto.Response{
-			ID:          practice.ID,
-			Name:        practice.PracticeDetails.Name,
-			Description: practice.PracticeDetails.Description,
-			Level:       practice.PracticeDetails.Level,
-			Capacity:    practice.PracticeDetails.Capacity,
-			CreatedAt:   practice.CreatedAt,
-			UpdatedAt:   practice.UpdatedAt,
-		}
+		result[i] = dto.NewPracticeResponse(practice)
 	}
 
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)

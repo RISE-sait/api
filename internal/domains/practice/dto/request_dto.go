@@ -1,7 +1,7 @@
 package practice
 
 import (
-	"api/internal/domains/practice/values"
+	values "api/internal/domains/practice/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
 	"github.com/shopspring/decimal"
@@ -29,7 +29,7 @@ func (dto RequestDto) ToCreateValueObjects() (values.CreatePracticeValues, *errL
 	}
 
 	vo := values.CreatePracticeValues{
-		PracticeDetails: values.PracticeDetails{
+		Details: values.Details{
 			Name:        dto.Name,
 			Description: dto.Description,
 			Level:       dto.Level,
@@ -61,7 +61,7 @@ func (dto RequestDto) ToUpdateValueObjects(idStr string) (values.UpdatePracticeV
 
 	details := values.UpdatePracticeValues{
 		ID: id,
-		PracticeDetails: values.PracticeDetails{
+		Details: values.Details{
 			Name:        dto.Name,
 			Description: dto.Description,
 			Level:       dto.Level,

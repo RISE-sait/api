@@ -1,30 +1,29 @@
-package practice
+package values
 
 import (
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 	"time"
 )
 
-type Details struct {
+type PracticeDetails struct {
 	Name        string
 	Description string
 	Level       string
-	PayGPrice   *decimal.Decimal
+	Capacity    int32
 }
 
 type CreatePracticeValues struct {
-	Details
+	PracticeDetails
 }
 
 type UpdatePracticeValues struct {
-	ID uuid.UUID
-	Details
+	ID              uuid.UUID
+	PracticeDetails PracticeDetails
 }
 
 type GetPracticeValues struct {
-	Details
-	ID        uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	PracticeDetails PracticeDetails
+	ID              uuid.UUID
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }

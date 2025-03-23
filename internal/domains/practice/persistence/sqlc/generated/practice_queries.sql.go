@@ -8,20 +8,19 @@ package db_practice
 import (
 	"context"
 
-	"api/internal/custom_types"
 	"github.com/google/uuid"
 )
 
 const createPractice = `-- name: CreatePractice :exec
-INSERT INTO practices (name, description, level, payg_price)
+INSERT INTO practices (name, description, level, capacity)
 VALUES ($1, $2, $3, $4)
 `
 
 type CreatePracticeParams struct {
-	Name        string                   `json:"name"`
-	Description string                   `json:"description"`
-	Level       PracticeLevel            `json:"level"`
-	PaygPrice   custom_types.NullDecimal `json:"payg_price"`
+	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	Level       PracticeLevel `json:"level"`
+	Capacity    int32         `json:"capacity"`
 }
 
 func (q *Queries) CreatePractice(ctx context.Context, arg CreatePracticeParams) error {
@@ -29,7 +28,7 @@ func (q *Queries) CreatePractice(ctx context.Context, arg CreatePracticeParams) 
 		arg.Name,
 		arg.Description,
 		arg.Level,
-		arg.PaygPrice,
+		arg.Capacity,
 	)
 	return err
 }
@@ -47,7 +46,7 @@ func (q *Queries) DeletePractice(ctx context.Context, id uuid.UUID) (int64, erro
 }
 
 const getPracticeById = `-- name: GetPracticeById :one
-SELECT id, name, description, level, created_at, updated_at, payg_price FROM practices WHERE id = $1
+SELECT id, name, description, level, capacity, created_at, updated_at, payg_price FROM practices WHERE id = $1
 `
 
 func (q *Queries) GetPracticeById(ctx context.Context, id uuid.UUID) (Practice, error) {
@@ -58,6 +57,7 @@ func (q *Queries) GetPracticeById(ctx context.Context, id uuid.UUID) (Practice, 
 		&i.Name,
 		&i.Description,
 		&i.Level,
+		&i.Capacity,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.PaygPrice,
@@ -66,7 +66,7 @@ func (q *Queries) GetPracticeById(ctx context.Context, id uuid.UUID) (Practice, 
 }
 
 const getPractices = `-- name: GetPractices :many
-SELECT id, name, description, level, created_at, updated_at, payg_price FROM practices
+SELECT id, name, description, level, capacity, created_at, updated_at, payg_price FROM practices
 `
 
 func (q *Queries) GetPractices(ctx context.Context) ([]Practice, error) {
@@ -83,6 +83,7 @@ func (q *Queries) GetPractices(ctx context.Context) ([]Practice, error) {
 			&i.Name,
 			&i.Description,
 			&i.Level,
+			&i.Capacity,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.PaygPrice,
@@ -106,17 +107,17 @@ SET
     name = $1,
     description = $2,
     level = $3,
-    payg_price = $4,
+    capacity = $4,
     updated_at = CURRENT_TIMESTAMP
 WHERE id = $5
 `
 
 type UpdatePracticeParams struct {
-	Name        string                   `json:"name"`
-	Description string                   `json:"description"`
-	Level       PracticeLevel            `json:"level"`
-	PaygPrice   custom_types.NullDecimal `json:"payg_price"`
-	ID          uuid.UUID                `json:"id"`
+	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	Level       PracticeLevel `json:"level"`
+	Capacity    int32         `json:"capacity"`
+	ID          uuid.UUID     `json:"id"`
 }
 
 func (q *Queries) UpdatePractice(ctx context.Context, arg UpdatePracticeParams) error {
@@ -124,7 +125,7 @@ func (q *Queries) UpdatePractice(ctx context.Context, arg UpdatePracticeParams) 
 		arg.Name,
 		arg.Description,
 		arg.Level,
-		arg.PaygPrice,
+		arg.Capacity,
 		arg.ID,
 	)
 	return err

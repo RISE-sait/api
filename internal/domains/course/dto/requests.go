@@ -4,14 +4,12 @@ import (
 	values "api/internal/domains/course/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
-	"github.com/shopspring/decimal"
-	"net/http"
 )
 
 type RequestDto struct {
 	Name        string `json:"name" validate:"required,notwhitespace"`
 	Description string `json:"description"`
-	PayGPrice   string `json:"pay_as_u_go_price"`
+	Capacity    int32  `json:"capacity" validate:"required,gt=0"`
 }
 
 func (dto RequestDto) ToCreateCourseDetails() (values.CreateCourseDetails, *errLib.CommonError) {
@@ -20,22 +18,13 @@ func (dto RequestDto) ToCreateCourseDetails() (values.CreateCourseDetails, *errL
 		return values.CreateCourseDetails{}, err
 	}
 
-	vo := values.CreateCourseDetails{
+	return values.CreateCourseDetails{
 		Details: values.Details{
 			Name:        dto.Name,
 			Description: dto.Description,
+			Capacity:    dto.Capacity,
 		},
-	}
-
-	if dto.PayGPrice != "" {
-		if priceDecimal, decimalErr := decimal.NewFromString(dto.PayGPrice); decimalErr != nil {
-			return values.CreateCourseDetails{}, errLib.New("pay_as_u_go_price: Invalid price format", http.StatusBadRequest)
-		} else {
-			vo.PayGPrice = &priceDecimal
-		}
-	}
-
-	return vo, nil
+	}, nil
 }
 
 func (dto RequestDto) ToUpdateCourseDetails(idStr string) (values.UpdateCourseDetails, *errLib.CommonError) {
@@ -57,15 +46,8 @@ func (dto RequestDto) ToUpdateCourseDetails(idStr string) (values.UpdateCourseDe
 		Details: values.Details{
 			Name:        dto.Name,
 			Description: dto.Description,
+			Capacity:    dto.Capacity,
 		},
-	}
-
-	if dto.PayGPrice != "" {
-		if priceDecimal, decimalErr := decimal.NewFromString(dto.PayGPrice); decimalErr != nil {
-			return values.UpdateCourseDetails{}, errLib.New("pay_as_u_go_price: Invalid price format", http.StatusBadRequest)
-		} else {
-			details.PayGPrice = &priceDecimal
-		}
 	}
 
 	return details, nil

@@ -26,7 +26,7 @@ func NewHandler(repo *persistence.Repository) *Handler {
 // @Produce json
 // @Param course body dto.RequestDto true "Course details"
 // @Security Bearer
-// @Success 201 {object} map[string]interface{} "Course created successfully"
+// @Success 201 {object} course.ResponseDto "Course created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /courses [post]
@@ -45,12 +45,16 @@ func (h *Handler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Repo.CreateCourse(r.Context(), details); err != nil {
+	createdCourse, err := h.Repo.CreateCourse(r.Context(), details)
+
+	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	responseHandlers.RespondWithSuccess(w, nil, http.StatusCreated)
+	responseBody := dto.NewCourseResponse(createdCourse)
+
+	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusCreated)
 }
 
 // GetCourseById retrieves a course by ID.
@@ -110,7 +114,6 @@ func (h *Handler) GetCourses(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
-
 }
 
 // UpdateCourse updates an existing course.

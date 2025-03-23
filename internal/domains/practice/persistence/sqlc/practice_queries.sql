@@ -1,5 +1,5 @@
 -- name: CreatePractice :exec
-INSERT INTO practices (name, description, level, payg_price)
+INSERT INTO practices (name, description, level, capacity)
 VALUES ($1, $2, $3, $4);
 
 -- name: GetPractices :many
@@ -14,7 +14,7 @@ SET
     name = $1,
     description = $2,
     level = $3,
-    payg_price = $4,
+    capacity = $4,
     updated_at = CURRENT_TIMESTAMP
 WHERE id = $5;
 

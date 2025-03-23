@@ -1,18 +1,16 @@
 package practice
 
 import (
-	values "api/internal/domains/practice/values"
+	"api/internal/domains/practice/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
-	"github.com/shopspring/decimal"
-	"net/http"
 )
 
 type RequestDto struct {
 	Name        string `json:"name" validate:"required,notwhitespace"`
 	Description string `json:"description"`
 	Level       string `json:"level" validate:"required,notwhitespace"`
-	PayGPrice   string `json:"pay_as_u_go_price"`
+	Capacity    int32  `json:"capacity" validate:"required,gt=0"`
 }
 
 func (dto RequestDto) validate() *errLib.CommonError {
@@ -28,23 +26,14 @@ func (dto RequestDto) ToCreateValueObjects() (values.CreatePracticeValues, *errL
 		return values.CreatePracticeValues{}, err
 	}
 
-	vo := values.CreatePracticeValues{
-		Details: values.Details{
+	return values.CreatePracticeValues{
+		PracticeDetails: values.PracticeDetails{
 			Name:        dto.Name,
 			Description: dto.Description,
 			Level:       dto.Level,
+			Capacity:    dto.Capacity,
 		},
-	}
-
-	if dto.PayGPrice != "" {
-		if priceDecimal, decimalErr := decimal.NewFromString(dto.PayGPrice); decimalErr != nil {
-			return values.CreatePracticeValues{}, errLib.New("pay_as_u_go_price: Invalid price format", http.StatusBadRequest)
-		} else {
-			vo.PayGPrice = &priceDecimal
-		}
-	}
-
-	return vo, nil
+	}, nil
 }
 
 func (dto RequestDto) ToUpdateValueObjects(idStr string) (values.UpdatePracticeValues, *errLib.CommonError) {
@@ -59,22 +48,13 @@ func (dto RequestDto) ToUpdateValueObjects(idStr string) (values.UpdatePracticeV
 		return values.UpdatePracticeValues{}, err
 	}
 
-	details := values.UpdatePracticeValues{
+	return values.UpdatePracticeValues{
 		ID: id,
-		Details: values.Details{
+		PracticeDetails: values.PracticeDetails{
 			Name:        dto.Name,
 			Description: dto.Description,
 			Level:       dto.Level,
+			Capacity:    dto.Capacity,
 		},
-	}
-
-	if dto.PayGPrice != "" {
-		if priceDecimal, decimalErr := decimal.NewFromString(dto.PayGPrice); decimalErr != nil {
-			return values.UpdatePracticeValues{}, errLib.New("pay_as_u_go_price: Invalid price format", http.StatusBadRequest)
-		} else {
-			details.PayGPrice = &priceDecimal
-		}
-	}
-
-	return details, nil
+	}, nil
 }

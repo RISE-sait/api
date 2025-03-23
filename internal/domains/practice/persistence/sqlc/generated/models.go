@@ -369,10 +369,11 @@ type AuditOutbox struct {
 	CreatedAt    time.Time   `json:"created_at"`
 }
 
-type Course struct {
+type CourseCourse struct {
 	ID          uuid.UUID      `json:"id"`
 	Name        string         `json:"name"`
 	Description string         `json:"description"`
+	Capacity    int32          `json:"capacity"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	PaygPrice   sql.NullString `json:"payg_price"`
@@ -390,6 +391,16 @@ type CustomerDiscountUsage struct {
 	DiscountID uuid.UUID `json:"discount_id"`
 	UsageCount int32     `json:"usage_count"`
 	LastUsedAt time.Time `json:"last_used_at"`
+}
+
+type CustomerEnrollment struct {
+	ID          uuid.UUID    `json:"id"`
+	CustomerID  uuid.UUID    `json:"customer_id"`
+	EventID     uuid.UUID    `json:"event_id"`
+	CreatedAt   time.Time    `json:"created_at"`
+	UpdatedAt   time.Time    `json:"updated_at"`
+	CheckedInAt sql.NullTime `json:"checked_in_at"`
+	IsCancelled bool         `json:"is_cancelled"`
 }
 
 type CustomerMembershipPlan struct {
@@ -423,17 +434,7 @@ type DiscountRestrictedMembershipPlan struct {
 	CreatedAt        time.Time `json:"created_at"`
 }
 
-type EventsCustomerEnrollment struct {
-	ID          uuid.UUID    `json:"id"`
-	CustomerID  uuid.UUID    `json:"customer_id"`
-	EventID     uuid.UUID    `json:"event_id"`
-	CreatedAt   time.Time    `json:"created_at"`
-	UpdatedAt   time.Time    `json:"updated_at"`
-	CheckedInAt sql.NullTime `json:"checked_in_at"`
-	IsCancelled bool         `json:"is_cancelled"`
-}
-
-type EventsEvent struct {
+type Event struct {
 	ID             uuid.UUID     `json:"id"`
 	ProgramStartAt time.Time     `json:"program_start_at"`
 	ProgramEndAt   time.Time     `json:"program_end_at"`
@@ -447,12 +448,6 @@ type EventsEvent struct {
 	EventStartTime interface{}   `json:"event_start_time"`
 	EventEndTime   interface{}   `json:"event_end_time"`
 	TeamID         uuid.NullUUID `json:"team_id"`
-	Capacity       sql.NullInt32 `json:"capacity"`
-}
-
-type EventsStaff struct {
-	EventID uuid.UUID `json:"event_id"`
-	StaffID uuid.UUID `json:"staff_id"`
 }
 
 type Game struct {
@@ -525,6 +520,7 @@ type Practice struct {
 	Name        string                   `json:"name"`
 	Description string                   `json:"description"`
 	Level       PracticeLevel            `json:"level"`
+	Capacity    int32                    `json:"capacity"`
 	CreatedAt   time.Time                `json:"created_at"`
 	UpdatedAt   time.Time                `json:"updated_at"`
 	PaygPrice   custom_types.NullDecimal `json:"payg_price"`
@@ -535,6 +531,11 @@ type PracticeMembership struct {
 	MembershipID    uuid.UUID      `json:"membership_id"`
 	PricePerBooking sql.NullString `json:"price_per_booking"`
 	IsEligible      bool           `json:"is_eligible"`
+}
+
+type Staff struct {
+	EventID uuid.UUID `json:"event_id"`
+	StaffID uuid.UUID `json:"staff_id"`
 }
 
 type UsersCustomerCredit struct {

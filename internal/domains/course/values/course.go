@@ -2,14 +2,13 @@ package course
 
 import (
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 	"time"
 )
 
 type Details struct {
 	Name        string
 	Description string
-	PayGPrice   *decimal.Decimal
+	Capacity    int32
 }
 
 type CreateCourseDetails struct {

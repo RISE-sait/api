@@ -14,7 +14,7 @@ import (
 
 const insertAthletes = `-- name: InsertAthletes :many
 INSERT
-INTO users.athletes (id)
+INTO athletic.athletes (id)
 VALUES (unnest($1::uuid[]))
 RETURNING id
 `
@@ -54,7 +54,7 @@ WITH staff_data AS (SELECT e.email,
                          unnest($3::text[]) WITH ORDINALITY AS rn(role_name, idx)
                          ON e.idx = rn.idx)
 INSERT
-INTO users.staff (id, is_active, role_id)
+INTO staff.staff (id, is_active, role_id)
 SELECT u.id,
        sd.is_active,
        sr.id
@@ -62,7 +62,7 @@ FROM staff_data sd
          JOIN
      users.users u ON u.email = sd.email
          JOIN
-     users.staff_roles sr ON sr.role_name = sd.role_name
+     staff.staff_roles sr ON sr.role_name = sd.role_name
 `
 
 type InsertStaffParams struct {
@@ -77,7 +77,7 @@ func (q *Queries) InsertStaff(ctx context.Context, arg InsertStaffParams) error 
 }
 
 const insertStaffRoles = `-- name: InsertStaffRoles :exec
-INSERT INTO users.staff_roles (role_name)
+INSERT INTO staff.staff_roles (role_name)
 VALUES ('admin'),
        ('superadmin'),
        ('coach'),

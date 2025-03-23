@@ -36,10 +36,7 @@ CREATE TABLE IF NOT EXISTS membership.membership_plans
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE IF EXISTS membership.membership_plans;
 DROP TYPE IF EXISTS payment_frequency;
 
-DROP TABLE IF EXISTS membership.memberships;
-
-DROP SCHEMA IF EXISTS membership;
+DROP SCHEMA IF EXISTS membership cascade;
 -- +goose StatementEnd

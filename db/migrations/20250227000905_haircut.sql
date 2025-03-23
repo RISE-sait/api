@@ -1,5 +1,8 @@
 -- +goose Up
+
 -- +goose StatementBegin
+
+CREATE EXTENSION IF NOT EXISTS btree_gist;
 
 CREATE SCHEMA IF NOT EXISTS haircut;
 
@@ -21,7 +24,7 @@ CREATE TABLE haircut.barber_services
     service_id uuid        NOT NULL,
     CONSTRAINT fk_barber
         FOREIGN KEY (barber_id)
-            REFERENCES users.staff (id)
+            REFERENCES staff.staff (id)
             ON DELETE CASCADE,
     CONSTRAINT fk_service
         FOREIGN KEY (service_id)
@@ -32,43 +35,31 @@ CREATE TABLE haircut.barber_services
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-ALTER TABLE barber.barber_events
-    ADD COLUMN service_type_id uuid NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';
-
-ALTER TABLE barber.barber_events
-    ADD CONSTRAINT fk_service_type
+CREATE TABLE IF NOT EXISTS haircut.events
+(
+    id              UUID PRIMARY KEY                  DEFAULT gen_random_uuid(),
+    begin_date_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    end_date_time   TIMESTAMP WITH TIME ZONE NOT NULL,
+    customer_id     UUID                     NOT NULL,
+    barber_id       UUID                     NOT NULL,
+    service_type_id uuid                     NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+    created_at      TIMESTAMPTZ              NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMPTZ              NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_customer FOREIGN KEY (customer_id) REFERENCES users.users (id) ON DELETE cascade,
+    CONSTRAINT fk_barber FOREIGN KEY (barber_id) REFERENCES staff.staff (id) ON DELETE cascade,
+    CONSTRAINT check_end_time CHECK (end_date_time > begin_date_time), -- Prevent invalid schedules
+    CONSTRAINT unique_schedule
+        EXCLUDE USING GIST (
+        barber_id WITH =,
+        tstzrange(begin_date_time, end_date_time, '[]') WITH &&
+        ),
+    CONSTRAINT fk_service_type
         FOREIGN KEY (service_type_id)
             REFERENCES haircut.haircut_services (id)
-            ON DELETE SET NULL;
+            ON DELETE SET NULL
+);
 
-ALTER TABLE barber.barber_events
-    RENAME TO events;
-
-ALTER TABLE barber.events
-    SET SCHEMA haircut;
-
-DROP SCHEMA IF EXISTS barber;
 -- +goose StatementEnd
 
 -- +goose Down
--- +goose StatementBegin
-
-CREATE SCHEMA IF NOT EXISTS barber;
-
-ALTER TABLE haircut.events
-    SET SCHEMA barber;
-
-ALTER TABLE barber.events
-    rename to barber_events;
-
-ALTER TABLE barber.barber_events
-    DROP CONSTRAINT IF EXISTS fk_service_type;
-
-ALTER TABLE barber.barber_events
-    DROP COLUMN IF EXISTS service_type_id;
-
-DROP TABLE IF EXISTS haircut.barber_services;
-DROP TABLE IF EXISTS haircut.haircut_services;
-
-DROP SCHEMA IF EXISTS haircut;
--- +goose StatementEnd
+DROP SCHEMA IF EXISTS haircut cascade;

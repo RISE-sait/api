@@ -1,6 +1,9 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE IF NOT EXISTS users.athletes
+
+Create schema if not exists athletic;
+
+CREATE TABLE IF NOT EXISTS athletic.athletes
 (
     id              UUID PRIMARY KEY REFERENCES users.users (id),
     wins            INT         NOT NULL DEFAULT 0,                 -- Number of games won
@@ -18,5 +21,5 @@ CREATE TABLE IF NOT EXISTS users.athletes
 -- +goose Down
 -- +goose StatementBegin
 
-DROP TABLE users.athletes;
+DROP schema if exists athletic cascade;
 -- +goose StatementEnd

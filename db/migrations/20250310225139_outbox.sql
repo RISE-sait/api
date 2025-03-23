@@ -17,5 +17,4 @@ CREATE TABLE IF NOT EXISTS audit.outbox
 -- +goose StatementEnd
 
 -- +goose Down
-DROP TABLE IF EXISTS audit.outbox;
-DROP SCHEMA IF EXISTS audit;
+DROP SCHEMA IF EXISTS audit cascade;

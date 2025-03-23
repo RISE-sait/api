@@ -25,7 +25,6 @@ CREATE TABLE IF NOT EXISTS users.users
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE users.users;
 
-DROP SCHEMA IF EXISTS users;
+DROP SCHEMA IF EXISTS users cascade;
 -- +goose StatementEnd

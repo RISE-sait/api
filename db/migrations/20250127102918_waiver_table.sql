@@ -29,9 +29,5 @@ CREATE TABLE IF NOT EXISTS waiver.waiver_signing
 -- +goose Down
 
 -- +goose StatementBegin
-DROP TABLE IF EXISTS waiver.waiver_signing;
-
-DROP TABLE IF EXISTS waiver.waiver;
-
-DROP SCHEMA IF EXISTS waiver;
+DROP SCHEMA IF EXISTS waiver cascade;
 -- +goose StatementEnd

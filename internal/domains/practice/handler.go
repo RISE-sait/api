@@ -78,7 +78,6 @@ func (h *Handler) GetPractices(w http.ResponseWriter, r *http.Request) {
 			Name:        practice.PracticeDetails.Name,
 			Description: practice.PracticeDetails.Description,
 			Level:       practice.PracticeDetails.Level,
-			Capacity:    practice.PracticeDetails.Capacity,
 			CreatedAt:   practice.CreatedAt,
 			UpdatedAt:   practice.UpdatedAt,
 		}

@@ -65,6 +65,13 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 		},
 	}
 
+	if eventDetails.Capacity != nil {
+		dbParams.Capacity = sql.NullInt32{
+			Int32: *eventDetails.Capacity,
+			Valid: true,
+		}
+	}
+
 	if err := r.Queries.CreateEvent(c, dbParams); err != nil {
 
 		var pqErr *pq.Error
@@ -143,21 +150,27 @@ func (r *Repository) GetEvents(ctx context.Context, courseID, practiceID, gameID
 		event := values.ReadEventValues{
 			ID: dbEvent.ID,
 			ReadDetails: values.ReadDetails{
-				Day:             string(dbEvent.Day),
-				ProgramStartAt:  dbEvent.ProgramStartAt,
-				ProgramEndAt:    dbEvent.ProgramEndAt,
-				EventStartTime:  dbEvent.EventStartTime,
-				EventEndTime:    dbEvent.EventEndTime,
-				GameID:          dbEvent.GameID.UUID,
+				Details: values.Details{
+					Day:            string(dbEvent.Day),
+					ProgramStartAt: dbEvent.ProgramStartAt,
+					ProgramEndAt:   dbEvent.ProgramEndAt,
+					EventStartTime: dbEvent.EventStartTime,
+					EventEndTime:   dbEvent.EventEndTime,
+					PracticeID:     dbEvent.PracticeID.UUID,
+					CourseID:       dbEvent.CourseID.UUID,
+					GameID:         dbEvent.GameID.UUID,
+					LocationID:     dbEvent.LocationID.UUID,
+				},
 				GameName:        dbEvent.GameName.String,
-				PracticeID:      dbEvent.PracticeID.UUID,
 				PracticeName:    dbEvent.PracticeName.String,
-				CourseID:        dbEvent.CourseID.UUID,
 				CourseName:      dbEvent.CourseName.String,
-				LocationID:      dbEvent.LocationID.UUID,
 				LocationName:    dbEvent.LocationName.String,
 				LocationAddress: dbEvent.Address.String,
 			},
+		}
+
+		if dbEvent.Capacity.Valid {
+			event.ReadDetails.Details.Capacity = &dbEvent.Capacity.Int32
 		}
 
 		events[i] = event
@@ -231,18 +244,21 @@ func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEve
 		CreatedAt: dbEvent.CreatedAt,
 		UpdatedAt: dbEvent.UpdatedAt,
 		ReadDetails: values.ReadDetails{
-			Day:             string(dbEvent.Day),
-			ProgramStartAt:  dbEvent.ProgramStartAt,
-			ProgramEndAt:    dbEvent.ProgramEndAt,
-			EventStartTime:  dbEvent.EventStartTime,
-			EventEndTime:    dbEvent.EventEndTime,
-			GameID:          dbEvent.GameID.UUID,
+			Details: values.Details{
+				Day:            string(dbEvent.Day),
+				ProgramStartAt: dbEvent.ProgramStartAt,
+				ProgramEndAt:   dbEvent.ProgramEndAt,
+				EventStartTime: dbEvent.EventStartTime,
+				EventEndTime:   dbEvent.EventEndTime,
+				GameID:         dbEvent.GameID.UUID,
+				PracticeID:     dbEvent.PracticeID.UUID,
+				CourseID:       dbEvent.CourseID.UUID,
+				LocationID:     dbEvent.LocationID.UUID,
+			},
+
 			GameName:        dbEvent.GameName.String,
-			PracticeID:      dbEvent.PracticeID.UUID,
 			PracticeName:    dbEvent.PracticeName.String,
-			CourseID:        dbEvent.CourseID.UUID,
 			CourseName:      dbEvent.CourseName.String,
-			LocationID:      dbEvent.LocationID.UUID,
 			LocationName:    dbEvent.LocationName.String,
 			LocationAddress: dbEvent.Address.String,
 		},

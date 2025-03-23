@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.27.0
 
-package db_enrollment
+package db_team
 
 import (
 	"database/sql"
@@ -56,6 +56,24 @@ func (ns NullAuditStatus) Value() (driver.Value, error) {
 	return string(ns.AuditStatus), nil
 }
 
+func (e AuditStatus) Valid() bool {
+	switch e {
+	case AuditStatusPENDING,
+		AuditStatusCOMPLETED,
+		AuditStatusFAILED:
+		return true
+	}
+	return false
+}
+
+func AllAuditStatusValues() []AuditStatus {
+	return []AuditStatus{
+		AuditStatusPENDING,
+		AuditStatusCOMPLETED,
+		AuditStatusFAILED,
+	}
+}
+
 type DayEnum string
 
 const (
@@ -103,6 +121,32 @@ func (ns NullDayEnum) Value() (driver.Value, error) {
 	return string(ns.DayEnum), nil
 }
 
+func (e DayEnum) Valid() bool {
+	switch e {
+	case DayEnumMONDAY,
+		DayEnumTUESDAY,
+		DayEnumWEDNESDAY,
+		DayEnumTHURSDAY,
+		DayEnumFRIDAY,
+		DayEnumSATURDAY,
+		DayEnumSUNDAY:
+		return true
+	}
+	return false
+}
+
+func AllDayEnumValues() []DayEnum {
+	return []DayEnum{
+		DayEnumMONDAY,
+		DayEnumTUESDAY,
+		DayEnumWEDNESDAY,
+		DayEnumTHURSDAY,
+		DayEnumFRIDAY,
+		DayEnumSATURDAY,
+		DayEnumSUNDAY,
+	}
+}
+
 type MembershipStatus string
 
 const (
@@ -145,6 +189,26 @@ func (ns NullMembershipStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.MembershipStatus), nil
+}
+
+func (e MembershipStatus) Valid() bool {
+	switch e {
+	case MembershipStatusActive,
+		MembershipStatusInactive,
+		MembershipStatusCanceled,
+		MembershipStatusExpired:
+		return true
+	}
+	return false
+}
+
+func AllMembershipStatusValues() []MembershipStatus {
+	return []MembershipStatus{
+		MembershipStatusActive,
+		MembershipStatusInactive,
+		MembershipStatusCanceled,
+		MembershipStatusExpired,
+	}
 }
 
 type PaymentFrequency string
@@ -191,6 +255,26 @@ func (ns NullPaymentFrequency) Value() (driver.Value, error) {
 	return string(ns.PaymentFrequency), nil
 }
 
+func (e PaymentFrequency) Valid() bool {
+	switch e {
+	case PaymentFrequencyOnce,
+		PaymentFrequencyWeek,
+		PaymentFrequencyMonth,
+		PaymentFrequencyDay:
+		return true
+	}
+	return false
+}
+
+func AllPaymentFrequencyValues() []PaymentFrequency {
+	return []PaymentFrequency{
+		PaymentFrequencyOnce,
+		PaymentFrequencyWeek,
+		PaymentFrequencyMonth,
+		PaymentFrequencyDay,
+	}
+}
+
 type PracticeLevel string
 
 const (
@@ -235,6 +319,26 @@ func (ns NullPracticeLevel) Value() (driver.Value, error) {
 	return string(ns.PracticeLevel), nil
 }
 
+func (e PracticeLevel) Valid() bool {
+	switch e {
+	case PracticeLevelBeginner,
+		PracticeLevelIntermediate,
+		PracticeLevelAdvanced,
+		PracticeLevelAll:
+		return true
+	}
+	return false
+}
+
+func AllPracticeLevelValues() []PracticeLevel {
+	return []PracticeLevel{
+		PracticeLevelBeginner,
+		PracticeLevelIntermediate,
+		PracticeLevelAdvanced,
+		PracticeLevelAll,
+	}
+}
+
 type AthleticAthlete struct {
 	ID        uuid.UUID     `json:"id"`
 	Wins      int32         `json:"wins"`
@@ -268,6 +372,7 @@ type Course struct {
 	ID          uuid.UUID `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
+	Capacity    int32     `json:"capacity"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -341,7 +446,6 @@ type EventsEvent struct {
 	EventStartTime interface{}   `json:"event_start_time"`
 	EventEndTime   interface{}   `json:"event_end_time"`
 	TeamID         uuid.NullUUID `json:"team_id"`
-	Capacity       sql.NullInt32 `json:"capacity"`
 }
 
 type EventsStaff struct {
@@ -419,6 +523,7 @@ type Practice struct {
 	Name        string        `json:"name"`
 	Description string        `json:"description"`
 	Level       PracticeLevel `json:"level"`
+	Capacity    int32         `json:"capacity"`
 	CreatedAt   time.Time     `json:"created_at"`
 	UpdatedAt   time.Time     `json:"updated_at"`
 }

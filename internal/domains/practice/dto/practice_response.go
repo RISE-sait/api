@@ -10,7 +10,6 @@ type Response struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description,omitempty"`
 	Level       string    `json:"level"`
-	Capacity    int32     `json:"capacity"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

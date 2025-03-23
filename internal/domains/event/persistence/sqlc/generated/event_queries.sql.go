@@ -15,9 +15,11 @@ import (
 )
 
 const createEvent = `-- name: CreateEvent :exec
-INSERT INTO events.events (program_start_at, program_end_at, event_start_time, event_end_time, day, location_id, course_id,
+INSERT INTO events.events (program_start_at, program_end_at, event_start_time, event_end_time, day, location_id,
+                           course_id, capacity,
                     practice_id, game_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+VALUES ($1, $2, $3, $4, $5,
+        $6, $7, $8, $9, $10)
 `
 
 type CreateEventParams struct {
@@ -28,6 +30,7 @@ type CreateEventParams struct {
 	Day            DayEnum                       `json:"day"`
 	LocationID     uuid.NullUUID                 `json:"location_id"`
 	CourseID       uuid.NullUUID                 `json:"course_id"`
+	Capacity       sql.NullInt32                 `json:"capacity"`
 	PracticeID     uuid.NullUUID                 `json:"practice_id"`
 	GameID         uuid.NullUUID                 `json:"game_id"`
 }
@@ -41,6 +44,7 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) error 
 		arg.Day,
 		arg.LocationID,
 		arg.CourseID,
+		arg.Capacity,
 		arg.PracticeID,
 		arg.GameID,
 	)
@@ -59,7 +63,7 @@ func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) error {
 }
 
 const getEventById = `-- name: GetEventById :one
-SELECT e.id, e.program_start_at, e.program_end_at, e.practice_id, e.course_id, e.game_id, e.location_id, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time,
+SELECT e.id, e.program_start_at, e.program_end_at, e.practice_id, e.course_id, e.game_id, e.location_id, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time, e.team_id, e.capacity,
        p.name        as practice_name,
        p.description as practice_description,
        c.name        as course_name,
@@ -88,6 +92,8 @@ type GetEventByIdRow struct {
 	Day                 DayEnum                       `json:"day"`
 	EventStartTime      custom_types.TimeWithTimeZone `json:"event_start_time"`
 	EventEndTime        custom_types.TimeWithTimeZone `json:"event_end_time"`
+	TeamID              uuid.NullUUID                 `json:"team_id"`
+	Capacity            sql.NullInt32                 `json:"capacity"`
 	PracticeName        sql.NullString                `json:"practice_name"`
 	PracticeDescription sql.NullString                `json:"practice_description"`
 	CourseName          sql.NullString                `json:"course_name"`
@@ -113,6 +119,8 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdR
 		&i.Day,
 		&i.EventStartTime,
 		&i.EventEndTime,
+		&i.TeamID,
+		&i.Capacity,
 		&i.PracticeName,
 		&i.PracticeDescription,
 		&i.CourseName,
@@ -125,7 +133,7 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdR
 }
 
 const getEvents = `-- name: GetEvents :many
-SELECT e.id, e.program_start_at, e.program_end_at, e.practice_id, e.course_id, e.game_id, e.location_id, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time,
+SELECT e.id, e.program_start_at, e.program_end_at, e.practice_id, e.course_id, e.game_id, e.location_id, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time, e.team_id, e.capacity,
        p.name        as practice_name,
        p.description as practice_description,
        c.name        as course_name,
@@ -168,6 +176,8 @@ type GetEventsRow struct {
 	Day                 DayEnum                       `json:"day"`
 	EventStartTime      custom_types.TimeWithTimeZone `json:"event_start_time"`
 	EventEndTime        custom_types.TimeWithTimeZone `json:"event_end_time"`
+	TeamID              uuid.NullUUID                 `json:"team_id"`
+	Capacity            sql.NullInt32                 `json:"capacity"`
 	PracticeName        sql.NullString                `json:"practice_name"`
 	PracticeDescription sql.NullString                `json:"practice_description"`
 	CourseName          sql.NullString                `json:"course_name"`
@@ -206,6 +216,8 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 			&i.Day,
 			&i.EventStartTime,
 			&i.EventEndTime,
+			&i.TeamID,
+			&i.Capacity,
 			&i.PracticeName,
 			&i.PracticeDescription,
 			&i.CourseName,
@@ -238,8 +250,9 @@ SET program_start_at   = $1,
     event_start_time = $7,
     event_end_time   = $8,
     day                = $9,
+    capacity = $10,
     updated_at     = current_timestamp
-WHERE id = $10
+WHERE id = $11
 `
 
 type UpdateEventParams struct {
@@ -252,6 +265,7 @@ type UpdateEventParams struct {
 	EventStartTime custom_types.TimeWithTimeZone `json:"event_start_time"`
 	EventEndTime   custom_types.TimeWithTimeZone `json:"event_end_time"`
 	Day            DayEnum                       `json:"day"`
+	Capacity       sql.NullInt32                 `json:"capacity"`
 	ID             uuid.UUID                     `json:"id"`
 }
 
@@ -266,6 +280,7 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) error 
 		arg.EventStartTime,
 		arg.EventEndTime,
 		arg.Day,
+		arg.Capacity,
 		arg.ID,
 	)
 	return err

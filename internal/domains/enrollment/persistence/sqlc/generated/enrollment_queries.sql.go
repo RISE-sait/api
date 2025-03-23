@@ -46,12 +46,13 @@ func (q *Queries) EnrollCustomer(ctx context.Context, arg EnrollCustomerParams) 
 }
 
 const getCustomerEnrollments = `-- name: GetCustomerEnrollments :many
-SELECT customer_enrollment.id, customer_enrollment.customer_id, customer_enrollment.event_id, customer_enrollment.created_at, customer_enrollment.updated_at, customer_enrollment.checked_in_at, customer_enrollment.is_cancelled FROM events.customer_enrollment
+SELECT customer_enrollment.id, customer_enrollment.customer_id, customer_enrollment.event_id, customer_enrollment.created_at, customer_enrollment.updated_at, customer_enrollment.checked_in_at, customer_enrollment.is_cancelled
+FROM events.customer_enrollment
          JOIN users.users ON customer_enrollment.customer_id = users.id
-         WHERE (
-                   (customer_id = $1 OR $1 IS NULL)
-                       AND
-                    (event_id = $2 OR $2 IS NULL))
+WHERE (
+          (customer_id = $1 OR $1 IS NULL)
+              AND
+          (event_id = $2 OR $2 IS NULL))
 `
 
 type GetCustomerEnrollmentsParams struct {
@@ -91,14 +92,14 @@ func (q *Queries) GetCustomerEnrollments(ctx context.Context, arg GetCustomerEnr
 }
 
 const getEventIsFull = `-- name: GetEventIsFull :one
-SELECT
-    COUNT(ce.customer_id) >= COALESCE(p.capacity, c.capacity) AS is_full
+SELECT COUNT(ce.customer_id) >= COALESCE(e.capacity, t.capacity) AS is_full
 FROM events.events e
          LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
          LEFT JOIN practices p ON e.practice_id = p.id
          LEFT JOIN courses c ON e.course_id = c.id
+         LEFT JOIN athletic.teams t ON e.team_id = t.id
 WHERE e.id = $1
-GROUP BY e.id, e.practice_id, e.course_id, p.capacity, c.capacity
+GROUP BY e.id, e.practice_id, e.course_id, e.capacity, t.capacity
 `
 
 func (q *Queries) GetEventIsFull(ctx context.Context, eventID uuid.UUID) (bool, error) {
@@ -109,7 +110,9 @@ func (q *Queries) GetEventIsFull(ctx context.Context, eventID uuid.UUID) (bool, 
 }
 
 const unEnrollCustomer = `-- name: UnEnrollCustomer :execrows
-DELETE FROM events.customer_enrollment WHERE id = $1
+DELETE
+FROM events.customer_enrollment
+WHERE id = $1
 `
 
 func (q *Queries) UnEnrollCustomer(ctx context.Context, id uuid.UUID) (int64, error) {

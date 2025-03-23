@@ -22,7 +22,8 @@ import (
 
 func clearTables(ctx context.Context, db *sql.DB) error {
 	// Define the schemas you want to truncate tables from
-	schemas := []string{"public", "location", "users", "course", "haircut", "audit", "membership", "waiver"}
+	schemas := []string{"audit", "events", "haircut",
+		"location", "membership", "public", "staff", "users", "waiver"}
 
 	// Build the TRUNCATE query
 	var tables []string
@@ -212,7 +213,6 @@ func seedPractices(ctx context.Context, db *sql.DB) error {
 		NameArray:        nameArray,
 		DescriptionArray: descriptionArray,
 		LevelArray:       levelArray,
-		CapacityArray:    capacityArray,
 	}); err != nil {
 		log.Fatalf("Failed to insert practices: %v", err)
 		return err

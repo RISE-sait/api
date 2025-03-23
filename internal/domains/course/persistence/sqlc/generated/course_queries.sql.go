@@ -12,25 +12,23 @@ import (
 )
 
 const createCourse = `-- name: CreateCourse :one
-INSERT INTO courses (name, description, capacity)
-VALUES ($1, $2, $3)
-RETURNING id, name, description, capacity, created_at, updated_at
+INSERT INTO courses (name, description)
+VALUES ($1, $2)
+RETURNING id, name, description, created_at, updated_at
 `
 
 type CreateCourseParams struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	Capacity    int32  `json:"capacity"`
 }
 
 func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (Course, error) {
-	row := q.db.QueryRowContext(ctx, createCourse, arg.Name, arg.Description, arg.Capacity)
+	row := q.db.QueryRowContext(ctx, createCourse, arg.Name, arg.Description)
 	var i Course
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Description,
-		&i.Capacity,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -38,7 +36,9 @@ func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (Cou
 }
 
 const deleteCourse = `-- name: DeleteCourse :execrows
-DELETE FROM courses WHERE id = $1
+DELETE
+FROM courses
+WHERE id = $1
 `
 
 func (q *Queries) DeleteCourse(ctx context.Context, id uuid.UUID) (int64, error) {
@@ -50,7 +50,9 @@ func (q *Queries) DeleteCourse(ctx context.Context, id uuid.UUID) (int64, error)
 }
 
 const getCourseById = `-- name: GetCourseById :one
-SELECT id, name, description, capacity, created_at, updated_at FROM courses WHERE id = $1
+SELECT id, name, description, created_at, updated_at
+FROM courses
+WHERE id = $1
 `
 
 func (q *Queries) GetCourseById(ctx context.Context, id uuid.UUID) (Course, error) {
@@ -60,7 +62,6 @@ func (q *Queries) GetCourseById(ctx context.Context, id uuid.UUID) (Course, erro
 		&i.ID,
 		&i.Name,
 		&i.Description,
-		&i.Capacity,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -68,7 +69,7 @@ func (q *Queries) GetCourseById(ctx context.Context, id uuid.UUID) (Course, erro
 }
 
 const getCourses = `-- name: GetCourses :many
-SELECT id, name, description, capacity, created_at, updated_at
+SELECT id, name, description, created_at, updated_at
 FROM courses
 `
 
@@ -85,7 +86,6 @@ func (q *Queries) GetCourses(ctx context.Context) ([]Course, error) {
 			&i.ID,
 			&i.Name,
 			&i.Description,
-			&i.Capacity,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -106,25 +106,18 @@ const updateCourse = `-- name: UpdateCourse :execrows
 UPDATE courses
 SET name        = $1,
     description = $2,
-    capacity    = $3,
     updated_at  = CURRENT_TIMESTAMP
-WHERE id = $4
+WHERE id = $3
 `
 
 type UpdateCourseParams struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
-	Capacity    int32     `json:"capacity"`
 	ID          uuid.UUID `json:"id"`
 }
 
 func (q *Queries) UpdateCourse(ctx context.Context, arg UpdateCourseParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateCourse,
-		arg.Name,
-		arg.Description,
-		arg.Capacity,
-		arg.ID,
-	)
+	result, err := q.db.ExecContext(ctx, updateCourse, arg.Name, arg.Description, arg.ID)
 	if err != nil {
 		return 0, err
 	}

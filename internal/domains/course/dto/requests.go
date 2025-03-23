@@ -9,7 +9,6 @@ import (
 type RequestDto struct {
 	Name        string `json:"name" validate:"required,notwhitespace"`
 	Description string `json:"description"`
-	Capacity    int32  `json:"capacity" validate:"required,gt=0"`
 }
 
 func (dto RequestDto) ToCreateCourseDetails() (values.CreateCourseDetails, *errLib.CommonError) {
@@ -22,7 +21,6 @@ func (dto RequestDto) ToCreateCourseDetails() (values.CreateCourseDetails, *errL
 		Details: values.Details{
 			Name:        dto.Name,
 			Description: dto.Description,
-			Capacity:    dto.Capacity,
 		},
 	}, nil
 }
@@ -46,7 +44,6 @@ func (dto RequestDto) ToUpdateCourseDetails(idStr string) (values.UpdateCourseDe
 		Details: values.Details{
 			Name:        dto.Name,
 			Description: dto.Description,
-			Capacity:    dto.Capacity,
 		},
 	}
 

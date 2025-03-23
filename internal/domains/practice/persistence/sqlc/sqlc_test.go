@@ -34,7 +34,6 @@ func TestCreatePractice(t *testing.T) {
 		Name:        name,
 		Description: description,
 		Level:       db.PracticeLevelAll,
-		Capacity:    100,
 	}
 
 	err := queries.CreatePractice(context.Background(), createPracticeParams)
@@ -50,7 +49,6 @@ func TestCreatePractice(t *testing.T) {
 	// Assert course data
 	require.Equal(t, name, practice.Name)
 	require.Equal(t, description, practice.Description)
-	require.Equal(t, createPracticeParams.Capacity, practice.Capacity)
 	require.Equal(t, createPracticeParams.Name, practice.Name)
 }
 
@@ -70,7 +68,6 @@ func TestUpdatePracticeValid(t *testing.T) {
 		Name:        name,
 		Description: description,
 		Level:       db.PracticeLevelAll,
-		Capacity:    100,
 	}
 
 	err := queries.CreatePractice(context.Background(), createPracticeParams)
@@ -88,7 +85,6 @@ func TestUpdatePracticeValid(t *testing.T) {
 		ID:          practice.ID,
 		Name:        newName,
 		Description: "Learn advanced Go programming",
-		Capacity:    200,
 		Level:       db.PracticeLevelAll,
 	}
 
@@ -99,7 +95,6 @@ func TestUpdatePracticeValid(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, newName, updatedCourse.Name)
 	require.Equal(t, "Learn advanced Go programming", updatedCourse.Description)
-	require.Equal(t, updateParams.Capacity, updatedCourse.Capacity)
 }
 
 func TestUpdatePracticeInvalidLevel(t *testing.T) {
@@ -118,7 +113,6 @@ func TestUpdatePracticeInvalidLevel(t *testing.T) {
 		Name:        name,
 		Description: description,
 		Level:       db.PracticeLevelAll,
-		Capacity:    100,
 	}
 
 	err := queries.CreatePractice(context.Background(), createPracticeParams)
@@ -136,7 +130,6 @@ func TestUpdatePracticeInvalidLevel(t *testing.T) {
 		ID:          practice.ID,
 		Name:        newName,
 		Description: "Learn advanced Go programming",
-		Capacity:    200,
 	}
 
 	err = queries.UpdatePractice(context.Background(), updateParams)
@@ -160,7 +153,6 @@ func TestCreatePracticeUniqueNameConstraint(t *testing.T) {
 	createCourseParams := db.CreatePracticeParams{
 		Name:        name,
 		Description: description,
-		Capacity:    100,
 		Level:       db.PracticeLevelAdvanced,
 	}
 
@@ -189,7 +181,6 @@ func TestGetAllPractices(t *testing.T) {
 		createCourseParams := db.CreatePracticeParams{
 			Name:        fmt.Sprintf("Course %d", i),
 			Description: fmt.Sprintf("Description %d", i),
-			Capacity:    100,
 			Level:       db.PracticeLevelAll,
 		}
 		err := queries.CreatePractice(context.Background(), createCourseParams)
@@ -217,7 +208,6 @@ func TestUpdateNonExistentPractice(t *testing.T) {
 		ID:          nonExistentId,
 		Name:        "Updated Practice",
 		Description: "Updated practice description",
-		Capacity:    150,
 		Level:       db.PracticeLevelAll,
 	}
 
@@ -237,7 +227,6 @@ func TestCreateCourseWithWrongLevel(t *testing.T) {
 	createPracticeParams := db.CreatePracticeParams{
 		Name:        "Go Course",
 		Description: "wefwefew",
-		Capacity:    100,
 		Level:       "jhwwf",
 	}
 
@@ -264,7 +253,6 @@ func TestDeleteCourse(t *testing.T) {
 		Name:        name,
 		Description: "Learn Go programming",
 		Level:       db.PracticeLevelAll,
-		Capacity:    0,
 	}
 
 	err := queries.CreatePractice(context.Background(), createPracticeParams)

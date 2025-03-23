@@ -15,21 +15,19 @@ import (
 )
 
 const insertCourses = `-- name: InsertCourses :exec
-INSERT INTO courses (name, description, capacity)
+INSERT INTO courses (name, description)
 VALUES (unnest($1::text[]),
-        unnest($2::text[]),
-        unnest($3::int[]))
+        unnest($2::text[]))
 RETURNING id
 `
 
 type InsertCoursesParams struct {
 	NameArray        []string `json:"name_array"`
 	DescriptionArray []string `json:"description_array"`
-	CapacityArray    []int32  `json:"capacity_array"`
 }
 
 func (q *Queries) InsertCourses(ctx context.Context, arg InsertCoursesParams) error {
-	_, err := q.db.ExecContext(ctx, insertCourses, pq.Array(arg.NameArray), pq.Array(arg.DescriptionArray), pq.Array(arg.CapacityArray))
+	_, err := q.db.ExecContext(ctx, insertCourses, pq.Array(arg.NameArray), pq.Array(arg.DescriptionArray))
 	return err
 }
 
@@ -186,11 +184,10 @@ func (q *Queries) InsertLocations(ctx context.Context, arg InsertLocationsParams
 }
 
 const insertPractices = `-- name: InsertPractices :exec
-INSERT INTO practices (name, description, level, capacity)
+INSERT INTO practices (name, description, level)
 VALUES (unnest($1::text[]),
         unnest($2::text[]),
-        unnest($3::practice_level[]),
-        unnest($4::int[]))
+        unnest($3::practice_level[]))
 RETURNING id
 `
 
@@ -198,15 +195,9 @@ type InsertPracticesParams struct {
 	NameArray        []string        `json:"name_array"`
 	DescriptionArray []string        `json:"description_array"`
 	LevelArray       []PracticeLevel `json:"level_array"`
-	CapacityArray    []int32         `json:"capacity_array"`
 }
 
 func (q *Queries) InsertPractices(ctx context.Context, arg InsertPracticesParams) error {
-	_, err := q.db.ExecContext(ctx, insertPractices,
-		pq.Array(arg.NameArray),
-		pq.Array(arg.DescriptionArray),
-		pq.Array(arg.LevelArray),
-		pq.Array(arg.CapacityArray),
-	)
+	_, err := q.db.ExecContext(ctx, insertPractices, pq.Array(arg.NameArray), pq.Array(arg.DescriptionArray), pq.Array(arg.LevelArray))
 	return err
 }

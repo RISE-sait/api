@@ -21,8 +21,7 @@ func TestDecodeRequestBody(t *testing.T) {
 			name: "Valid Input",
 			jsonBody: `{
 				"name": "Go Programming Basics",
-				"description": "Learn the basics of Go programming",
-"capacity":50
+				"description": "Learn the basics of Go programming"
 			}`,
 			expectError: false,
 			expectedValues: &RequestDto{
@@ -72,7 +71,6 @@ func TestValidRequestDto(t *testing.T) {
 	dto := RequestDto{
 		Name:        "Go Programming Basics",
 		Description: "Learn Go Programming",
-		Capacity:    int32(50),
 	}
 
 	createRequestDto, err := dto.ToCreateCourseDetails()
@@ -81,14 +79,12 @@ func TestValidRequestDto(t *testing.T) {
 
 	assert.Equal(t, createRequestDto.Name, "Go Programming Basics")
 	assert.Equal(t, createRequestDto.Description, "Learn Go Programming")
-	assert.Equal(t, createRequestDto.Capacity, int32(50))
 }
 
 func TestMissingNameRequestDto(t *testing.T) {
 
 	dto := RequestDto{
 		Description: "Learn Go Programming",
-		Capacity:    int32(50),
 	}
 
 	createRequestDto, err := dto.ToCreateCourseDetails()
@@ -105,7 +101,6 @@ func TestBlankNameRequestDto(t *testing.T) {
 	dto := RequestDto{
 		Name:        "          ",
 		Description: "Learn Go Programming",
-		Capacity:    int32(50),
 	}
 
 	createRequestDto, err := dto.ToCreateCourseDetails()
@@ -122,7 +117,6 @@ func TestUpdateRequestDtoValidUUID(t *testing.T) {
 	dto := RequestDto{
 		Name:        "Learn Go Programming Name",
 		Description: "Learn Go Programming Description",
-		Capacity:    int32(50),
 	}
 
 	id := uuid.New()
@@ -149,45 +143,6 @@ func TestUpdateRequestDtoInvalidUUID(t *testing.T) {
 	assert.NotNil(t, err)
 
 	assert.Contains(t, err.Message, "invalid UUID: wefwfwefew")
-
-	assert.Equal(t, updateRequestDto.Name, "")
-	assert.Equal(t, updateRequestDto.Description, "")
-}
-
-func TestUpdateRequestDtoMissingCapacity(t *testing.T) {
-
-	dto := RequestDto{
-		Name:        "Learn Go Programming Name",
-		Description: "Learn Go Programming Description",
-	}
-
-	id := uuid.New()
-
-	updateRequestDto, err := dto.ToUpdateCourseDetails(id.String())
-
-	assert.NotNil(t, err)
-
-	assert.Contains(t, err.Message, "capacity: required")
-
-	assert.Equal(t, updateRequestDto.Name, "")
-	assert.Equal(t, updateRequestDto.Description, "")
-}
-
-func TestUpdateRequestDtoCapacity0(t *testing.T) {
-
-	dto := RequestDto{
-		Name:        "Learn Go Programming Name",
-		Description: "Learn Go Programming Description",
-		Capacity:    int32(0),
-	}
-
-	id := uuid.New()
-
-	updateRequestDto, err := dto.ToUpdateCourseDetails(id.String())
-
-	assert.NotNil(t, err)
-
-	assert.Contains(t, err.Message, "capacity: required")
 
 	assert.Equal(t, updateRequestDto.Name, "")
 	assert.Equal(t, updateRequestDto.Description, "")

@@ -236,15 +236,25 @@ func (ns NullPracticeLevel) Value() (driver.Value, error) {
 }
 
 type AthleticAthlete struct {
-	ID        uuid.UUID `json:"id"`
-	Wins      int32     `json:"wins"`
-	Losses    int32     `json:"losses"`
-	Points    int32     `json:"points"`
-	Steals    int32     `json:"steals"`
-	Assists   int32     `json:"assists"`
-	Rebounds  int32     `json:"rebounds"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        uuid.UUID     `json:"id"`
+	Wins      int32         `json:"wins"`
+	Losses    int32         `json:"losses"`
+	Points    int32         `json:"points"`
+	Steals    int32         `json:"steals"`
+	Assists   int32         `json:"assists"`
+	Rebounds  int32         `json:"rebounds"`
+	CreatedAt time.Time     `json:"created_at"`
+	UpdatedAt time.Time     `json:"updated_at"`
+	TeamID    uuid.NullUUID `json:"team_id"`
+}
+
+type AthleticTeam struct {
+	ID        uuid.UUID     `json:"id"`
+	Name      string        `json:"name"`
+	Capacity  int32         `json:"capacity"`
+	CreatedAt time.Time     `json:"created_at"`
+	UpdatedAt time.Time     `json:"updated_at"`
+	CoachID   uuid.NullUUID `json:"coach_id"`
 }
 
 type AuditOutbox struct {
@@ -258,7 +268,6 @@ type Course struct {
 	ID          uuid.UUID `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
-	Capacity    int32     `json:"capacity"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -331,6 +340,8 @@ type EventsEvent struct {
 	Day            DayEnum       `json:"day"`
 	EventStartTime interface{}   `json:"event_start_time"`
 	EventEndTime   interface{}   `json:"event_end_time"`
+	TeamID         uuid.NullUUID `json:"team_id"`
+	Capacity       sql.NullInt32 `json:"capacity"`
 }
 
 type EventsStaff struct {
@@ -339,8 +350,12 @@ type EventsStaff struct {
 }
 
 type Game struct {
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	WinTeam   uuid.UUID `json:"win_team"`
+	LoserTeam uuid.UUID `json:"loser_team"`
+	WinScore  int32     `json:"win_score"`
+	LoseScore int32     `json:"lose_score"`
 }
 
 type HaircutBarberService struct {
@@ -404,7 +419,6 @@ type Practice struct {
 	Name        string        `json:"name"`
 	Description string        `json:"description"`
 	Level       PracticeLevel `json:"level"`
-	Capacity    int32         `json:"capacity"`
 	CreatedAt   time.Time     `json:"created_at"`
 	UpdatedAt   time.Time     `json:"updated_at"`
 }

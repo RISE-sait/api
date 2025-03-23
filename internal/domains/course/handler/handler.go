@@ -110,6 +110,7 @@ func (h *Handler) GetCourses(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
+
 }
 
 // UpdateCourse updates an existing course.

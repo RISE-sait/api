@@ -31,7 +31,6 @@ func TestCreateCourse(t *testing.T) {
 	createCourseParams := db.CreateCourseParams{
 		Name:        name,
 		Description: description,
-		Capacity:    50,
 	}
 
 	course, err := queries.CreateCourse(context.Background(), createCourseParams)
@@ -267,7 +266,6 @@ func TestCreateCourseWithEmptyDescription(t *testing.T) {
 
 	require.Equal(t, "Go Course", createdCourse.Name)
 	require.Equal(t, "", createdCourse.Description)
-	require.Equal(t, 0, int(createdCourse.Capacity))
 }
 
 func TestDeleteCourse(t *testing.T) {

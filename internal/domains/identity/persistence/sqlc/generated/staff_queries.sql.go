@@ -14,9 +14,9 @@ import (
 )
 
 const createApprovedStaff = `-- name: CreateApprovedStaff :execrows
-INSERT INTO users.staff (id, role_id, is_active)
+INSERT INTO staff.staff (id, role_id, is_active)
 VALUES ($1,
-        (SELECT id from users.staff_roles where role_name = $2), $3)
+        (SELECT id from staff.staff_roles where role_name = $2), $3)
 `
 
 type CreateApprovedStaffParams struct {
@@ -35,9 +35,9 @@ func (q *Queries) CreateApprovedStaff(ctx context.Context, arg CreateApprovedSta
 
 const getStaffById = `-- name: GetStaffById :one
 SELECT s.id, s.is_active, s.created_at, s.updated_at, s.role_id, sr.role_name, u.hubspot_id
-FROM users.staff s
+FROM staff.staff s
          JOIN users.users u ON s.id = u.id
-         JOIN users.staff_roles sr ON s.role_id = sr.id
+         JOIN staff.staff_roles sr ON s.role_id = sr.id
 WHERE u.id = $1
 `
 
@@ -68,18 +68,18 @@ func (q *Queries) GetStaffById(ctx context.Context, id uuid.UUID) (GetStaffByIdR
 
 const getStaffRoles = `-- name: GetStaffRoles :many
 SELECT id, role_name
-FROM users.staff_roles
+FROM staff.staff_roles
 `
 
-func (q *Queries) GetStaffRoles(ctx context.Context) ([]UsersStaffRole, error) {
+func (q *Queries) GetStaffRoles(ctx context.Context) ([]StaffStaffRole, error) {
 	rows, err := q.db.QueryContext(ctx, getStaffRoles)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []UsersStaffRole
+	var items []StaffStaffRole
 	for rows.Next() {
-		var i UsersStaffRole
+		var i StaffStaffRole
 		if err := rows.Scan(&i.ID, &i.RoleName); err != nil {
 			return nil, err
 		}

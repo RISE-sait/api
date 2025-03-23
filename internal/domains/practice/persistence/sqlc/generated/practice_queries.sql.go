@@ -12,24 +12,18 @@ import (
 )
 
 const createPractice = `-- name: CreatePractice :exec
-INSERT INTO practices (name, description, level, capacity)
-VALUES ($1, $2, $3, $4)
+INSERT INTO practices (name, description, level)
+VALUES ($1, $2, $3)
 `
 
 type CreatePracticeParams struct {
 	Name        string        `json:"name"`
 	Description string        `json:"description"`
 	Level       PracticeLevel `json:"level"`
-	Capacity    int32         `json:"capacity"`
 }
 
 func (q *Queries) CreatePractice(ctx context.Context, arg CreatePracticeParams) error {
-	_, err := q.db.ExecContext(ctx, createPractice,
-		arg.Name,
-		arg.Description,
-		arg.Level,
-		arg.Capacity,
-	)
+	_, err := q.db.ExecContext(ctx, createPractice, arg.Name, arg.Description, arg.Level)
 	return err
 }
 
@@ -46,7 +40,7 @@ func (q *Queries) DeletePractice(ctx context.Context, id uuid.UUID) (int64, erro
 }
 
 const getPracticeById = `-- name: GetPracticeById :one
-SELECT id, name, description, level, capacity, created_at, updated_at FROM practices WHERE id = $1
+SELECT id, name, description, level, created_at, updated_at FROM practices WHERE id = $1
 `
 
 func (q *Queries) GetPracticeById(ctx context.Context, id uuid.UUID) (Practice, error) {
@@ -57,7 +51,6 @@ func (q *Queries) GetPracticeById(ctx context.Context, id uuid.UUID) (Practice, 
 		&i.Name,
 		&i.Description,
 		&i.Level,
-		&i.Capacity,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -65,7 +58,7 @@ func (q *Queries) GetPracticeById(ctx context.Context, id uuid.UUID) (Practice, 
 }
 
 const getPractices = `-- name: GetPractices :many
-SELECT id, name, description, level, capacity, created_at, updated_at FROM practices
+SELECT id, name, description, level, created_at, updated_at FROM practices
 `
 
 func (q *Queries) GetPractices(ctx context.Context) ([]Practice, error) {
@@ -82,7 +75,6 @@ func (q *Queries) GetPractices(ctx context.Context) ([]Practice, error) {
 			&i.Name,
 			&i.Description,
 			&i.Level,
-			&i.Capacity,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -105,16 +97,14 @@ SET
     name = $1,
     description = $2,
     level = $3,
-    capacity = $4,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $5
+WHERE id = $4
 `
 
 type UpdatePracticeParams struct {
 	Name        string        `json:"name"`
 	Description string        `json:"description"`
 	Level       PracticeLevel `json:"level"`
-	Capacity    int32         `json:"capacity"`
 	ID          uuid.UUID     `json:"id"`
 }
 
@@ -123,7 +113,6 @@ func (q *Queries) UpdatePractice(ctx context.Context, arg UpdatePracticeParams) 
 		arg.Name,
 		arg.Description,
 		arg.Level,
-		arg.Capacity,
 		arg.ID,
 	)
 	return err

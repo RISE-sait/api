@@ -21,6 +21,7 @@ type ResponseDto struct {
 	GameName        *string    `json:"game_name,omitempty"`
 	LocationName    *string    `json:"location_name,omitempty"`
 	LocationAddress *string    `json:"location_address,omitempty"`
+	Capacity        *int32     `json:"capacity,omitempty"`
 }
 
 func NewEventResponse(event values.ReadEventValues) ResponseDto {
@@ -31,6 +32,7 @@ func NewEventResponse(event values.ReadEventValues) ResponseDto {
 		SessionStart:   event.EventStartTime.Time,
 		SessionEnd:     event.EventEndTime.Time,
 		Day:            event.Day,
+		Capacity:       event.Capacity,
 	}
 
 	if event.GameID != uuid.Nil && event.GameName != "" {
@@ -52,6 +54,10 @@ func NewEventResponse(event values.ReadEventValues) ResponseDto {
 	if event.CourseID != uuid.Nil && event.CourseName != "" {
 		response.CourseID = &event.CourseID
 		response.CourseName = &event.CourseName
+	}
+
+	if event.Capacity != nil {
+		response.Capacity = event.Capacity
 	}
 
 	return response

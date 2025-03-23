@@ -43,7 +43,6 @@ func (r *Repository) Update(ctx context.Context, practice values.UpdatePracticeV
 		Name:        practice.PracticeDetails.Name,
 		Description: practice.PracticeDetails.Description,
 		Level:       db.PracticeLevel(practice.PracticeDetails.Level),
-		Capacity:    practice.PracticeDetails.Capacity,
 	}
 
 	if err := r.Queries.UpdatePractice(ctx, dbCourseParams); err != nil {
@@ -85,7 +84,6 @@ func (r *Repository) List(ctx context.Context) ([]values.GetPracticeValues, *err
 				Name:        dbPractice.Name,
 				Description: dbPractice.Description,
 				Level:       string(dbPractice.Level),
-				Capacity:    dbPractice.Capacity,
 			},
 		}
 	}
@@ -113,7 +111,6 @@ func (r *Repository) Create(c context.Context, practiceDetails values.CreatePrac
 		Name:        practiceDetails.Name,
 		Description: practiceDetails.Description,
 		Level:       db.PracticeLevel(practiceDetails.Level),
-		Capacity:    practiceDetails.Capacity,
 	}
 
 	if err := r.Queries.CreatePractice(c, dbPracticeParams); err != nil {

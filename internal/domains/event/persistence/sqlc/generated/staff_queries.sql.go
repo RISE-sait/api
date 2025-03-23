@@ -34,9 +34,9 @@ func (q *Queries) AssignStaffToEvent(ctx context.Context, arg AssignStaffToEvent
 const getStaffsAssignedToEvent = `-- name: GetStaffsAssignedToEvent :many
 SELECT s.id, s.is_active, s.created_at, s.updated_at, s.role_id, sr.role_name, u.hubspot_id
 FROM staff.staff s
-    JOIN staff.staff_roles sr ON s.role_id = sr.id
+         JOIN staff.staff_roles sr ON s.role_id = sr.id
     JOIN users.users u ON u.id = s.id
-JOIN events.staff es ON s.id = es.staff_id
+         JOIN events.staff es ON s.id = es.staff_id
 WHERE event_id = $1
 `
 
@@ -82,7 +82,9 @@ func (q *Queries) GetStaffsAssignedToEvent(ctx context.Context, eventID uuid.UUI
 }
 
 const unassignStaffFromEvent = `-- name: UnassignStaffFromEvent :execrows
-DELETE FROM events.staff where staff_id = $1
+DELETE
+FROM events.staff
+where staff_id = $1
 and event_id = $2
 `
 

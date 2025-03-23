@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type MutationDetails struct {
+type Details struct {
 	Day            string
 	ProgramStartAt time.Time
 	ProgramEndAt   time.Time
@@ -16,18 +16,11 @@ type MutationDetails struct {
 	CourseID       uuid.UUID
 	GameID         uuid.UUID
 	LocationID     uuid.UUID
+	Capacity       *int32
 }
 
 type ReadDetails struct {
-	Day             string
-	ProgramStartAt  time.Time
-	ProgramEndAt    time.Time
-	EventStartTime  custom_types.TimeWithTimeZone
-	EventEndTime    custom_types.TimeWithTimeZone
-	PracticeID      uuid.UUID
-	CourseID        uuid.UUID
-	GameID          uuid.UUID
-	LocationID      uuid.UUID
+	Details
 	LocationAddress string
 	CourseName      string
 	PracticeName    string
@@ -36,12 +29,12 @@ type ReadDetails struct {
 }
 
 type CreateEventValues struct {
-	MutationDetails
+	Details
 }
 
 type UpdateEventValues struct {
 	ID uuid.UUID
-	MutationDetails
+	Details
 }
 
 type ReadEventValues struct {

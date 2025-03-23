@@ -50,6 +50,5 @@ func GetCourses() dbSeed.InsertCoursesParams {
 	return dbSeed.InsertCoursesParams{
 		NameArray:        nameArray,
 		DescriptionArray: descriptionArray,
-		CapacityArray:    capacityArray,
 	}
 }

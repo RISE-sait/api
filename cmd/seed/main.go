@@ -212,7 +212,6 @@ func seedPractices(ctx context.Context, db *sql.DB) error {
 		NameArray:        nameArray,
 		DescriptionArray: descriptionArray,
 		LevelArray:       levelArray,
-		CapacityArray:    capacityArray,
 	}); err != nil {
 		log.Fatalf("Failed to insert practices: %v", err)
 		return err

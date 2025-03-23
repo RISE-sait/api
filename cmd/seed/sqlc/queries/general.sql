@@ -4,18 +4,16 @@ VALUES (unnest(@name_array::text[]), unnest(@address_array::text[]))
 RETURNING id;
 
 -- name: InsertPractices :exec
-INSERT INTO practices (name, description, level, capacity)
+INSERT INTO practices (name, description, level)
 VALUES (unnest(@name_array::text[]),
         unnest(@description_array::text[]),
-        unnest(@level_array::practice_level[]),
-        unnest(@capacity_array::int[]))
+        unnest(@level_array::practice_level[]))
 RETURNING id;
 
 -- name: InsertCourses :exec
-INSERT INTO courses (name, description, capacity)
+INSERT INTO courses (name, description)
 VALUES (unnest(@name_array::text[]),
-        unnest(@description_array::text[]),
-        unnest(@capacity_array::int[]))
+        unnest(@description_array::text[]))
 RETURNING id;
 
 -- name: InsertGames :exec

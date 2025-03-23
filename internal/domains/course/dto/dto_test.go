@@ -72,7 +72,6 @@ func TestValidRequestDto(t *testing.T) {
 	dto := RequestDto{
 		Name:        "Go Programming Basics",
 		Description: "Learn Go Programming",
-		Capacity:    int32(50),
 	}
 
 	createRequestDto, err := dto.ToCreateCourseDetails()
@@ -81,14 +80,12 @@ func TestValidRequestDto(t *testing.T) {
 
 	assert.Equal(t, createRequestDto.Name, "Go Programming Basics")
 	assert.Equal(t, createRequestDto.Description, "Learn Go Programming")
-	assert.Equal(t, createRequestDto.Capacity, int32(50))
 }
 
 func TestMissingNameRequestDto(t *testing.T) {
 
 	dto := RequestDto{
 		Description: "Learn Go Programming",
-		Capacity:    int32(50),
 	}
 
 	createRequestDto, err := dto.ToCreateCourseDetails()
@@ -105,7 +102,6 @@ func TestBlankNameRequestDto(t *testing.T) {
 	dto := RequestDto{
 		Name:        "          ",
 		Description: "Learn Go Programming",
-		Capacity:    int32(50),
 	}
 
 	createRequestDto, err := dto.ToCreateCourseDetails()
@@ -122,7 +118,6 @@ func TestUpdateRequestDtoValidUUID(t *testing.T) {
 	dto := RequestDto{
 		Name:        "Learn Go Programming Name",
 		Description: "Learn Go Programming Description",
-		Capacity:    int32(50),
 	}
 
 	id := uuid.New()
@@ -178,7 +173,6 @@ func TestUpdateRequestDtoCapacity0(t *testing.T) {
 	dto := RequestDto{
 		Name:        "Learn Go Programming Name",
 		Description: "Learn Go Programming Description",
-		Capacity:    int32(0),
 	}
 
 	id := uuid.New()

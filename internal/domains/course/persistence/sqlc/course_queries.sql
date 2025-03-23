@@ -1,6 +1,6 @@
 -- name: CreateCourse :one
-INSERT INTO courses (name, description, capacity)
-VALUES ($1, $2, $3)
+INSERT INTO courses (name, description)
+VALUES ($1, $2)
 RETURNING *;
 
 -- name: GetCourseById :one
@@ -16,9 +16,8 @@ FROM courses;
 UPDATE courses
 SET name        = $1,
     description = $2,
-    capacity    = $3,
     updated_at  = CURRENT_TIMESTAMP
-WHERE id = $4;
+WHERE id = $3;
 
 -- name: DeleteCourse :execrows
 DELETE

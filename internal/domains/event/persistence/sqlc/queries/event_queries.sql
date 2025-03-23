@@ -1,8 +1,9 @@
 -- name: CreateEvent :exec
 INSERT INTO events.events (program_start_at, program_end_at, event_start_time, event_end_time, day, location_id,
-                           course_id,
+                           course_id, capacity,
                     practice_id, game_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
+VALUES ($1, $2, $3, $4, $5,
+        $6, $7, $8, $9, $10);
 
 -- name: GetEvents :many
 SELECT e.*,
@@ -52,8 +53,9 @@ SET program_start_at   = $1,
     event_start_time = $7,
     event_end_time   = $8,
     day                = $9,
+    capacity = $10,
     updated_at     = current_timestamp
-WHERE id = $10;
+WHERE id = $11;
 
 -- name: DeleteEvent :exec
 DELETE

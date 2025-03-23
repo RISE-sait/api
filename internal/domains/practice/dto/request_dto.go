@@ -10,7 +10,6 @@ type RequestDto struct {
 	Name        string `json:"name" validate:"required,notwhitespace"`
 	Description string `json:"description"`
 	Level       string `json:"level" validate:"required,notwhitespace"`
-	Capacity    int32  `json:"capacity" validate:"required,gt=0"`
 }
 
 func (dto RequestDto) validate() *errLib.CommonError {
@@ -31,7 +30,6 @@ func (dto RequestDto) ToCreateValueObjects() (values.CreatePracticeValues, *errL
 			Name:        dto.Name,
 			Description: dto.Description,
 			Level:       dto.Level,
-			Capacity:    dto.Capacity,
 		},
 	}, nil
 }
@@ -54,7 +52,6 @@ func (dto RequestDto) ToUpdateValueObjects(idStr string) (values.UpdatePracticeV
 			Name:        dto.Name,
 			Description: dto.Description,
 			Level:       dto.Level,
-			Capacity:    dto.Capacity,
 		},
 	}, nil
 }

@@ -56,7 +56,6 @@ func (r *Repository) GetCourseById(c context.Context, id uuid.UUID) (values.Read
 		Details: values.Details{
 			Name:        dbCourse.Name,
 			Description: dbCourse.Description,
-			Capacity:    dbCourse.Capacity,
 		},
 	}, nil
 }
@@ -67,7 +66,6 @@ func (r *Repository) UpdateCourse(c context.Context, course values.UpdateCourseD
 		ID:          course.ID,
 		Name:        course.Name,
 		Description: course.Description,
-		Capacity:    course.Capacity,
 	}
 
 	impactedRows, err := r.Queries.UpdateCourse(c, dbCourseParams)
@@ -101,7 +99,6 @@ func (r *Repository) GetCourses(ctx context.Context) ([]values.ReadDetails, *err
 			Details: values.Details{
 				Name:        dbCourse.Name,
 				Description: dbCourse.Description,
-				Capacity:    dbCourse.Capacity,
 			},
 		}
 	}
@@ -127,7 +124,6 @@ func (r *Repository) CreateCourse(c context.Context, courseDetails values.Create
 
 	dbCourseParams := db.CreateCourseParams{
 		Name: courseDetails.Name, Description: courseDetails.Description,
-		Capacity: courseDetails.Capacity,
 	}
 
 	course, err := r.Queries.CreateCourse(c, dbCourseParams)
@@ -140,7 +136,6 @@ func (r *Repository) CreateCourse(c context.Context, courseDetails values.Create
 		ID: course.ID,
 		Details: values.Details{Name: courseDetails.Name,
 			Description: courseDetails.Description,
-			Capacity:    courseDetails.Capacity,
 		},
 		CreatedAt: course.CreatedAt,
 		UpdatedAt: course.UpdatedAt,

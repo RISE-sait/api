@@ -37,7 +37,7 @@ RETURNING id;
 
 -- name: InsertAthletes :many
 INSERT
-INTO users.athletes (id)
+INTO athletic.athletes (id)
 VALUES (unnest(@id_array::uuid[]))
 RETURNING id;
 

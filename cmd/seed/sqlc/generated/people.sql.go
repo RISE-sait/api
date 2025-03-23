@@ -14,7 +14,7 @@ import (
 
 const insertAthletes = `-- name: InsertAthletes :many
 INSERT
-INTO users.athletes (id)
+INTO athletic.athletes (id)
 VALUES (unnest($1::uuid[]))
 RETURNING id
 `

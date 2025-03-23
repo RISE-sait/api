@@ -341,6 +341,28 @@ func AllPracticeLevelValues() []PracticeLevel {
 	}
 }
 
+type AthleticAthlete struct {
+	ID        uuid.UUID     `json:"id"`
+	Wins      int32         `json:"wins"`
+	Losses    int32         `json:"losses"`
+	Points    int32         `json:"points"`
+	Steals    int32         `json:"steals"`
+	Assists   int32         `json:"assists"`
+	Rebounds  int32         `json:"rebounds"`
+	CreatedAt time.Time     `json:"created_at"`
+	UpdatedAt time.Time     `json:"updated_at"`
+	TeamID    uuid.NullUUID `json:"team_id"`
+}
+
+type AthleticTeam struct {
+	ID        uuid.UUID     `json:"id"`
+	Name      string        `json:"name"`
+	Capacity  int32         `json:"capacity"`
+	CreatedAt time.Time     `json:"created_at"`
+	UpdatedAt time.Time     `json:"updated_at"`
+	CoachID   uuid.NullUUID `json:"coach_id"`
+}
+
 type AuditOutbox struct {
 	ID           uuid.UUID   `json:"id"`
 	SqlStatement string      `json:"sql_statement"`
@@ -426,16 +448,16 @@ type Event struct {
 	Day            DayEnum                       `json:"day"`
 	EventStartTime custom_types.TimeWithTimeZone `json:"event_start_time"`
 	EventEndTime   custom_types.TimeWithTimeZone `json:"event_end_time"`
-}
-
-type EventStaff struct {
-	EventID uuid.UUID `json:"event_id"`
-	StaffID uuid.UUID `json:"staff_id"`
+	TeamID         uuid.NullUUID                 `json:"team_id"`
 }
 
 type Game struct {
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	WinTeam   uuid.UUID `json:"win_team"`
+	LoserTeam uuid.UUID `json:"loser_team"`
+	WinScore  int32     `json:"win_score"`
+	LoseScore int32     `json:"lose_score"`
 }
 
 type HaircutBarberService struct {
@@ -512,16 +534,9 @@ type PracticeMembership struct {
 	IsEligible      bool           `json:"is_eligible"`
 }
 
-type UsersAthlete struct {
-	ID        uuid.UUID `json:"id"`
-	Wins      int32     `json:"wins"`
-	Losses    int32     `json:"losses"`
-	Points    int32     `json:"points"`
-	Steals    int32     `json:"steals"`
-	Assists   int32     `json:"assists"`
-	Rebounds  int32     `json:"rebounds"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+type Staff struct {
+	EventID uuid.UUID `json:"event_id"`
+	StaffID uuid.UUID `json:"staff_id"`
 }
 
 type UsersCustomerCredit struct {

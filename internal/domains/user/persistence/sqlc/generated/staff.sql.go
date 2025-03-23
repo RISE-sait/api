@@ -14,7 +14,7 @@ import (
 )
 
 const deleteStaff = `-- name: DeleteStaff :execrows
-DELETE FROM users.staff WHERE id = $1
+DELETE FROM staff.staff WHERE id = $1
 `
 
 func (q *Queries) DeleteStaff(ctx context.Context, id uuid.UUID) (int64, error) {
@@ -27,9 +27,9 @@ func (q *Queries) DeleteStaff(ctx context.Context, id uuid.UUID) (int64, error) 
 
 const getStaffByID = `-- name: GetStaffByID :one
 SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.age, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, s.is_active, sr.role_name
-FROM users.staff s
+FROM staff.staff s
          JOIN users.users u ON s.id = u.id
-JOIN users.staff_roles sr ON s.role_id = sr.id
+JOIN staff.staff_roles sr ON s.role_id = sr.id
 WHERE s.id = $1
 `
 
@@ -78,9 +78,9 @@ func (q *Queries) GetStaffByID(ctx context.Context, id uuid.UUID) (GetStaffByIDR
 
 const getStaffs = `-- name: GetStaffs :many
 SELECT s.is_active, u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.age, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, sr.role_name
-FROM users.staff s
+FROM staff.staff s
 JOIN users.users u ON u.id = s.id
-JOIN users.staff_roles sr ON s.role_id = sr.id
+JOIN staff.staff_roles sr ON s.role_id = sr.id
 WHERE (sr.role_name = $1 OR $1 IS NULL)
 `
 
@@ -144,9 +144,9 @@ func (q *Queries) GetStaffs(ctx context.Context, role sql.NullString) ([]GetStaf
 }
 
 const updateStaff = `-- name: UpdateStaff :execrows
-UPDATE users.staff s
+UPDATE staff.staff s
     SET
-        role_id = (SELECT id from users.staff_roles sr WHERE sr.role_name = $1),
+        role_id = (SELECT id from staff.staff_roles sr WHERE sr.role_name = $1),
         is_active = $2
 WHERE s.id = $3
 `

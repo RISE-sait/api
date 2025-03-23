@@ -14,7 +14,7 @@ import (
 )
 
 const createAthlete = `-- name: CreateAthlete :exec
-INSERT INTO users.athletes (id)
+INSERT INTO athletic.athletes (id)
 VALUES ($1)
 `
 
@@ -98,7 +98,7 @@ func (q *Queries) GetIsActualParentChild(ctx context.Context, arg GetIsActualPar
 
 const getIsAthleteByID = `-- name: GetIsAthleteByID :one
 SELECT COUNT(*) > 0
-FROM users.athletes
+FROM athletic.athletes
 WHERE id = $1
 `
 

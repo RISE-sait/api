@@ -15,7 +15,7 @@ import (
 )
 
 const insertCourses = `-- name: InsertCourses :exec
-INSERT INTO course.courses (name, description, capacity)
+INSERT INTO courses (name, description, capacity)
 VALUES (unnest($1::text[]),
         unnest($2::text[]),
         unnest($3::int[]))
@@ -39,7 +39,7 @@ WITH prepared_data AS (SELECT unnest($1::uuid[])          AS customer_id,
                               unnest($3::timestamptz[]) AS raw_checked_in_at,
                               unnest($4::bool[])         AS is_cancelled)
 INSERT
-INTO public.customer_enrollment(customer_id, event_id, checked_in_at, is_cancelled)
+INTO events.customer_enrollment(customer_id, event_id, checked_in_at, is_cancelled)
 SELECT customer_id,
        event_id,
        NULLIF(raw_checked_in_at, '0001-01-01 00:00:00 UTC') AS checked_in_at,
@@ -94,7 +94,7 @@ WITH events_data AS (SELECT unnest($1::timestamptz[]) as program_start_at,
                             unnest($8::text[])               AS game_name,
                             unnest($9::text[])           as location_name)
 INSERT
-INTO public.events (program_start_at, program_end_at, event_start_time, event_end_time, day, practice_id, course_id,
+INTO events.events (program_start_at, program_end_at, event_start_time, event_end_time, day, practice_id, course_id,
                     game_id, location_id)
 SELECT e.program_start_at,
        e.program_end_at,
@@ -107,7 +107,7 @@ SELECT e.program_start_at,
        l.id AS location_id
 FROM events_data e
          LEFT JOIN LATERAL (SELECT id FROM public.practices WHERE name = e.practice_name) p ON TRUE
-         LEFT JOIN LATERAL (SELECT id FROM course.courses WHERE name = e.course_name) c ON TRUE
+         LEFT JOIN LATERAL (SELECT id FROM courses WHERE name = e.course_name) c ON TRUE
          LEFT JOIN LATERAL (SELECT id FROM public.games WHERE name = e.game_name) g ON TRUE
          LEFT JOIN LATERAL (SELECT id FROM location.locations WHERE name = e.location_name) l ON TRUE
 RETURNING id
@@ -159,7 +159,7 @@ func (q *Queries) InsertEvents(ctx context.Context, arg InsertEventsParams) ([]u
 }
 
 const insertGames = `-- name: InsertGames :exec
-INSERT INTO public.games (name)
+INSERT INTO games (name)
 VALUES (unnest($1::text[]))
 RETURNING id
 `
@@ -186,7 +186,7 @@ func (q *Queries) InsertLocations(ctx context.Context, arg InsertLocationsParams
 }
 
 const insertPractices = `-- name: InsertPractices :exec
-INSERT INTO public.practices (name, description, level, capacity)
+INSERT INTO practices (name, description, level, capacity)
 VALUES (unnest($1::text[]),
         unnest($2::text[]),
         unnest($3::practice_level[]),

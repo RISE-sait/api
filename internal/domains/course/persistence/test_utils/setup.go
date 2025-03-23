@@ -11,9 +11,7 @@ func SetupCourseTestDb(t *testing.T, testDb *sql.DB) (*db.Queries, func()) {
 
 	migrationScript := `
 
-CREATE SCHEMA IF NOT EXISTS course;
-
-create table if not exists course.courses
+create table if not exists public.courses
 (
     id          uuid                     default gen_random_uuid() not null
         primary key,
@@ -22,11 +20,10 @@ create table if not exists course.courses
     description text                                               not null,
     capacity    integer                                            not null,
     created_at  timestamp with time zone default CURRENT_TIMESTAMP not null,
-    updated_at  timestamp with time zone default CURRENT_TIMESTAMP not null,
-    payg_price  numeric(6, 2)
+    updated_at  timestamp with time zone default CURRENT_TIMESTAMP not null
 );
 
-alter table course.courses
+alter table public.courses
     owner to postgres;
 
 `
@@ -36,7 +33,7 @@ alter table course.courses
 
 	// Return the repo and cleanup function
 	repo := db.New(testDb)
-	cleanUpScript := `DELETE FROM course.courses;`
+	cleanUpScript := `DELETE FROM courses;`
 
 	// Cleanup function to delete data after test
 	return repo, func() {

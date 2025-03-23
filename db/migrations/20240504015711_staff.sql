@@ -1,31 +1,30 @@
 -- +goose Up
-CREATE TABLE IF NOT EXISTS users.staff_roles
+
+CREATE schema if not exists staff;
+
+CREATE TABLE IF NOT EXISTS staff.staff_roles
 (
     id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     role_name TEXT NOT NULL UNIQUE
 );
 
-CREATE Table IF NOT EXISTS users.staff
+CREATE Table IF NOT EXISTS staff.staff
 (
     id         UUID PRIMARY KEY REFERENCES users.users (id),
     is_active  BOOLEAN                  NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    role_id    UUID                     NOT NULL REFERENCES users.staff_roles (id)
+    role_id UUID NOT NULL REFERENCES staff.staff_roles (id)
 );
 
-CREATE TABLE IF NOT EXISTS users.staff_activity_logs
+CREATE TABLE IF NOT EXISTS staff.staff_activity_logs
 (
     id          UUID PRIMARY KEY       DEFAULT gen_random_uuid(),
-    user_id     UUID          NOT NULL,
+    user_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
     activity    VARCHAR(1000) NOT NULL, -- Description of the activity
     occurred_at TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
-    FOREIGN KEY (user_id) REFERENCES users.users (id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES staff.staff (id) ON DELETE set default
 );
 
 -- +goose Down
-DROP TABLE IF EXISTS users.staff_activity_logs;
-
-DROP TABLE IF EXISTS users.staff;
-
-DROP TABLE IF EXISTS users.staff_roles;
+DROP SCHEMA if exists staff;

@@ -8,8 +8,8 @@ CREATE TABLE IF NOT EXISTS course_membership
     is_eligible BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (course_id, membership_id),
     CONSTRAINT fk_course
-        FOREIGN KEY (course_id) 
-        REFERENCES course.courses (id),
+        FOREIGN KEY (course_id)
+            REFERENCES courses (id),
     CONSTRAINT fk_membership
         FOREIGN KEY (membership_id) 
         REFERENCES membership.memberships (id),

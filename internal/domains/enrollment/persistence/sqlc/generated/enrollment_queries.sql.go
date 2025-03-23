@@ -3,7 +3,7 @@
 //   sqlc v1.27.0
 // source: enrollment_queries.sql
 
-package db
+package db_enrollment
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 )
 
 const enrollCustomer = `-- name: EnrollCustomer :one
-INSERT INTO customer_enrollment (customer_id, event_id, checked_in_at, is_cancelled)
+INSERT INTO events.customer_enrollment (customer_id, event_id, checked_in_at, is_cancelled)
 VALUES ($1, $2, $3, $4)
 RETURNING id, customer_id, event_id, created_at, updated_at, checked_in_at, is_cancelled
 `
@@ -25,14 +25,14 @@ type EnrollCustomerParams struct {
 	IsCancelled bool         `json:"is_cancelled"`
 }
 
-func (q *Queries) EnrollCustomer(ctx context.Context, arg EnrollCustomerParams) (CustomerEnrollment, error) {
+func (q *Queries) EnrollCustomer(ctx context.Context, arg EnrollCustomerParams) (EventsCustomerEnrollment, error) {
 	row := q.db.QueryRowContext(ctx, enrollCustomer,
 		arg.CustomerID,
 		arg.EventID,
 		arg.CheckedInAt,
 		arg.IsCancelled,
 	)
-	var i CustomerEnrollment
+	var i EventsCustomerEnrollment
 	err := row.Scan(
 		&i.ID,
 		&i.CustomerID,
@@ -46,7 +46,7 @@ func (q *Queries) EnrollCustomer(ctx context.Context, arg EnrollCustomerParams) 
 }
 
 const getCustomerEnrollments = `-- name: GetCustomerEnrollments :many
-SELECT customer_enrollment.id, customer_enrollment.customer_id, customer_enrollment.event_id, customer_enrollment.created_at, customer_enrollment.updated_at, customer_enrollment.checked_in_at, customer_enrollment.is_cancelled FROM customer_enrollment
+SELECT customer_enrollment.id, customer_enrollment.customer_id, customer_enrollment.event_id, customer_enrollment.created_at, customer_enrollment.updated_at, customer_enrollment.checked_in_at, customer_enrollment.is_cancelled FROM events.customer_enrollment
          JOIN users.users ON customer_enrollment.customer_id = users.id
          WHERE (
                    (customer_id = $1 OR $1 IS NULL)
@@ -59,15 +59,15 @@ type GetCustomerEnrollmentsParams struct {
 	EventID    uuid.NullUUID `json:"event_id"`
 }
 
-func (q *Queries) GetCustomerEnrollments(ctx context.Context, arg GetCustomerEnrollmentsParams) ([]CustomerEnrollment, error) {
+func (q *Queries) GetCustomerEnrollments(ctx context.Context, arg GetCustomerEnrollmentsParams) ([]EventsCustomerEnrollment, error) {
 	rows, err := q.db.QueryContext(ctx, getCustomerEnrollments, arg.CustomerID, arg.EventID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CustomerEnrollment
+	var items []EventsCustomerEnrollment
 	for rows.Next() {
-		var i CustomerEnrollment
+		var i EventsCustomerEnrollment
 		if err := rows.Scan(
 			&i.ID,
 			&i.CustomerID,
@@ -93,10 +93,10 @@ func (q *Queries) GetCustomerEnrollments(ctx context.Context, arg GetCustomerEnr
 const getEventIsFull = `-- name: GetEventIsFull :one
 SELECT
     COUNT(ce.customer_id) >= COALESCE(p.capacity, c.capacity) AS is_full
-FROM events e
-         LEFT JOIN customer_enrollment ce ON e.id = ce.event_id
+FROM events.events e
+         LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
          LEFT JOIN practices p ON e.practice_id = p.id
-         LEFT JOIN course.courses c ON e.course_id = c.id
+         LEFT JOIN courses c ON e.course_id = c.id
 WHERE e.id = $1
 GROUP BY e.id, e.practice_id, e.course_id, p.capacity, c.capacity
 `
@@ -109,7 +109,7 @@ func (q *Queries) GetEventIsFull(ctx context.Context, eventID uuid.UUID) (bool, 
 }
 
 const unEnrollCustomer = `-- name: UnEnrollCustomer :execrows
-DELETE FROM customer_enrollment WHERE id = $1
+DELETE FROM events.customer_enrollment WHERE id = $1
 `
 
 func (q *Queries) UnEnrollCustomer(ctx context.Context, id uuid.UUID) (int64, error) {

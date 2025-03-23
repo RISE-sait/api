@@ -13,8 +13,5 @@ CREATE TABLE IF NOT EXISTS location.locations
 
 -- +goose Down
 -- +goose StatementBegin
-
-DROP TABLE IF EXISTS location.locations;
-
-DROP SCHEMA IF EXISTS location;
+DROP SCHEMA IF EXISTS location cascade;
 -- +goose StatementEnd

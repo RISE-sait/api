@@ -14,7 +14,7 @@ import (
 )
 
 const createAthleteInfo = `-- name: CreateAthleteInfo :execrows
-INSERT INTO users.athletes (id, rebounds, assists, losses, wins, points)
+INSERT INTO athletic.athletes (id, rebounds, assists, losses, wins, points)
 VALUES ($1, $2, $3, $4, $5, $6)
 `
 
@@ -44,14 +44,14 @@ func (q *Queries) CreateAthleteInfo(ctx context.Context, arg CreateAthleteInfoPa
 
 const getAthleteInfoByUserID = `-- name: GetAthleteInfoByUserID :one
 SELECT id, wins, losses, points, steals, assists, rebounds, created_at, updated_at
-FROM users.athletes
+FROM athletic.athletes
 WHERE id = $1
 limit 1
 `
 
-func (q *Queries) GetAthleteInfoByUserID(ctx context.Context, id uuid.UUID) (UsersAthlete, error) {
+func (q *Queries) GetAthleteInfoByUserID(ctx context.Context, id uuid.UUID) (AthleticAthlete, error) {
 	row := q.db.QueryRowContext(ctx, getAthleteInfoByUserID, id)
-	var i UsersAthlete
+	var i AthleticAthlete
 	err := row.Scan(
 		&i.ID,
 		&i.Wins,
@@ -145,7 +145,7 @@ FROM users.users u
          LEFT JOIN
      latest_membership lm
      ON lm.customer_id = u.id
-         LEFT JOIN users.athletes a ON u.id = a.id
+         LEFT JOIN athletic.athletes a ON u.id = a.id
 LIMIT $1 OFFSET $2
 `
 
@@ -242,7 +242,7 @@ WHERE cmp.customer_id = $1
 type GetMembershipPlansByCustomerRow struct {
 	ID               uuid.UUID        `json:"id"`
 	CustomerID       uuid.UUID        `json:"customer_id"`
-	MembershipPlanID uuid.NullUUID    `json:"membership_plan_id"`
+	MembershipPlanID uuid.UUID        `json:"membership_plan_id"`
 	StartDate        time.Time        `json:"start_date"`
 	RenewalDate      sql.NullTime     `json:"renewal_date"`
 	Status           MembershipStatus `json:"status"`
@@ -285,7 +285,7 @@ func (q *Queries) GetMembershipPlansByCustomer(ctx context.Context, customerID u
 }
 
 const updateAthleteStats = `-- name: UpdateAthleteStats :execrows
-UPDATE users.athletes
+UPDATE athletic.athletes
 SET wins       = COALESCE($1, wins),
     losses     = COALESCE($2, losses),
     points     = COALESCE($3, points),

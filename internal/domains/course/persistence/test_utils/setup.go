@@ -11,7 +11,7 @@ func SetupCourseTestDb(t *testing.T, testDb *sql.DB) (*db.Queries, func()) {
 
 	migrationScript := `
 
-create table public.courses
+create table if not exists public.courses
 (
     id          uuid                     default gen_random_uuid() not null
         primary key,

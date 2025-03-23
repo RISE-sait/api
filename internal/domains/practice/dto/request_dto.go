@@ -50,7 +50,7 @@ func (dto RequestDto) ToUpdateValueObjects(idStr string) (values.UpdatePracticeV
 
 	return values.UpdatePracticeValues{
 		ID: id,
-		PracticeDetails: values.PracticeDetails{
+		Details: values.PracticeDetails{
 			Name:        dto.Name,
 			Description: dto.Description,
 			Level:       dto.Level,

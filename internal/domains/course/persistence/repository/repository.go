@@ -77,7 +77,7 @@ func (r *Repository) UpdateCourse(c context.Context, course values.UpdateCourseD
 
 	if course.PayGPrice != nil {
 		dbCourseParams.PaygPrice = custom_types.NullDecimal{
-			Decimal: dbCourseParams.PaygPrice.Decimal,
+			Decimal: *course.PayGPrice,
 			Valid:   true,
 		}
 	}

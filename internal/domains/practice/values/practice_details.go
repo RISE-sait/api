@@ -2,6 +2,7 @@ package values
 
 import (
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"time"
 )
 
@@ -9,7 +10,7 @@ type PracticeDetails struct {
 	Name        string
 	Description string
 	Level       string
-	Capacity    int32
+	PayGPrice   *decimal.Decimal
 }
 
 type CreatePracticeValues struct {
@@ -17,8 +18,8 @@ type CreatePracticeValues struct {
 }
 
 type UpdatePracticeValues struct {
-	ID              uuid.UUID
-	PracticeDetails PracticeDetails
+	ID uuid.UUID
+	PracticeDetails
 }
 
 type GetPracticeValues struct {

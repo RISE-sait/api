@@ -2,6 +2,7 @@ package practice
 
 import (
 	databaseErrors "api/internal/constants"
+	"api/internal/custom_types"
 	db "api/internal/domains/practice/persistence/sqlc/generated"
 	"api/internal/domains/practice/values"
 	errLib "api/internal/libs/errors"
@@ -38,15 +39,21 @@ func (r *Repository) GetPracticeLevels() []string {
 
 func (r *Repository) Update(ctx context.Context, practice values.UpdatePracticeValues) *errLib.CommonError {
 
-	dbCourseParams := db.UpdatePracticeParams{
+	params := db.UpdatePracticeParams{
 		ID:          practice.ID,
-		Name:        practice.PracticeDetails.Name,
-		Description: practice.PracticeDetails.Description,
-		Level:       db.PracticeLevel(practice.PracticeDetails.Level),
-		Capacity:    practice.PracticeDetails.Capacity,
+		Name:        practice.Name,
+		Description: practice.Description,
+		Level:       db.PracticeLevel(practice.Level),
 	}
 
-	if err := r.Queries.UpdatePractice(ctx, dbCourseParams); err != nil {
+	if practice.PayGPrice != nil {
+		params.PaygPrice = custom_types.NullDecimal{
+			Decimal: *practice.PayGPrice,
+			Valid:   true,
+		}
+	}
+
+	if err := r.Queries.UpdatePractice(ctx, params); err != nil {
 		// Check if the error is a unique violation (duplicate name)
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
@@ -77,7 +84,7 @@ func (r *Repository) List(ctx context.Context) ([]values.GetPracticeValues, *err
 	practices := make([]values.GetPracticeValues, len(dbPractices))
 
 	for i, dbPractice := range dbPractices {
-		practices[i] = values.GetPracticeValues{
+		practice := values.GetPracticeValues{
 			ID:        dbPractice.ID,
 			CreatedAt: dbPractice.CreatedAt,
 			UpdatedAt: dbPractice.UpdatedAt,
@@ -85,9 +92,13 @@ func (r *Repository) List(ctx context.Context) ([]values.GetPracticeValues, *err
 				Name:        dbPractice.Name,
 				Description: dbPractice.Description,
 				Level:       string(dbPractice.Level),
-				Capacity:    dbPractice.Capacity,
 			},
 		}
+
+		if dbPractice.PaygPrice.Valid {
+			practice.PracticeDetails.PayGPrice = &dbPractice.PaygPrice.Decimal
+		}
+		practices[i] = practice
 	}
 
 	return practices, nil
@@ -113,7 +124,13 @@ func (r *Repository) Create(c context.Context, practiceDetails values.CreatePrac
 		Name:        practiceDetails.Name,
 		Description: practiceDetails.Description,
 		Level:       db.PracticeLevel(practiceDetails.Level),
-		Capacity:    practiceDetails.Capacity,
+	}
+
+	if practiceDetails.PayGPrice != nil {
+		dbPracticeParams.PaygPrice = custom_types.NullDecimal{
+			Decimal: dbPracticeParams.PaygPrice.Decimal,
+			Valid:   true,
+		}
 	}
 
 	if err := r.Queries.CreatePractice(c, dbPracticeParams); err != nil {

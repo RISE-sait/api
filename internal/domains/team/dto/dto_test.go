@@ -136,8 +136,8 @@ package team
 //
 //	assert.Nil(t, err)
 //
-//	assert.Equal(t, updateRequestDto.PracticeDetails.Name, "Learn Go Programming Name")
-//	assert.Equal(t, updateRequestDto.PracticeDetails.Description, "Learn Go Programming Description")
+//	assert.Equal(t, updateRequestDto.Details.Name, "Learn Go Programming Name")
+//	assert.Equal(t, updateRequestDto.Details.Description, "Learn Go Programming Description")
 //
 //	assert.Equal(t, updateRequestDto.ID.String(), id.String())
 //}
@@ -155,8 +155,8 @@ package team
 //
 //	assert.Contains(t, err.Message, "invalid UUID: wefwfwefew")
 //
-//	assert.Equal(t, updateRequestDto.PracticeDetails.Name, "")
-//	assert.Equal(t, updateRequestDto.PracticeDetails.Description, "")
+//	assert.Equal(t, updateRequestDto.Details.Name, "")
+//	assert.Equal(t, updateRequestDto.Details.Description, "")
 //}
 //
 //func TestUpdateRequestDtoMissingCapacity(t *testing.T) {
@@ -174,8 +174,8 @@ package team
 //
 //	assert.Contains(t, err.Message, "capacity: required")
 //
-//	assert.Equal(t, updateRequestDto.PracticeDetails.Name, "")
-//	assert.Equal(t, updateRequestDto.PracticeDetails.Description, "")
+//	assert.Equal(t, updateRequestDto.Details.Name, "")
+//	assert.Equal(t, updateRequestDto.Details.Description, "")
 //}
 //
 //func TestUpdateRequestDtoCapacity0(t *testing.T) {
@@ -194,6 +194,6 @@ package team
 //
 //	assert.Contains(t, err.Message, "capacity: required")
 //
-//	assert.Equal(t, updateRequestDto.PracticeDetails.Name, "")
-//	assert.Equal(t, updateRequestDto.PracticeDetails.Description, "")
+//	assert.Equal(t, updateRequestDto.Details.Name, "")
+//	assert.Equal(t, updateRequestDto.Details.Description, "")
 //}

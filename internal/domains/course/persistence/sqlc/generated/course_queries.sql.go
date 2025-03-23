@@ -32,7 +32,9 @@ func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (int
 }
 
 const deleteCourse = `-- name: DeleteCourse :execrows
-DELETE FROM public.courses WHERE id = $1
+DELETE
+FROM public.courses
+WHERE id = $1
 `
 
 func (q *Queries) DeleteCourse(ctx context.Context, id uuid.UUID) (int64, error) {
@@ -44,7 +46,9 @@ func (q *Queries) DeleteCourse(ctx context.Context, id uuid.UUID) (int64, error)
 }
 
 const getCourseById = `-- name: GetCourseById :one
-SELECT id, name, description, created_at, updated_at, payg_price FROM public.courses WHERE id = $1
+SELECT id, name, description, created_at, updated_at, payg_price
+FROM public.courses
+WHERE id = $1
 `
 
 func (q *Queries) GetCourseById(ctx context.Context, id uuid.UUID) (Course, error) {

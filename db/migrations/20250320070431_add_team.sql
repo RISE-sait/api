@@ -1,7 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE schema if not exists athletic;
-CREATE schema if not exists events;
 
 create table IF NOT EXISTS athletic.teams
 (
@@ -33,34 +32,8 @@ ALTER TAble public.games
 ALTER TABlE public.event_staff
     rename to staff;
 
-ALTER TABlE public.staff
-    set schema events;
-
-ALTER TABlE public.customer_enrollment
-    set schema events;
-
-ALTER TABlE public.events
-    ADD COLUMN capacity int;
-
-ALTER TABLE public.practices
-    DROP COLUMN capacity;
-
-ALTER TABLE course.courses
-    DROP COLUMN capacity;
-
-ALTER TABLE course.courses
-    set schema public;
-
-DROP schema course;
-
-ALTER TABlE public.events
-    set schema events;
-
 ALTER TABLE users.athletes
     set schema athletic;
-
-ALTER TABLE public.courses
-    AlTER COLUMN payg_price set not null;
 
 -- +goose StatementEnd
 
@@ -69,30 +42,6 @@ ALTER TABLE public.courses
 
 ALTER TABLE athletic.athletes
     set schema users;
-
-ALTER TABLE events.events
-    SET SCHEMA public;
-
-CREATE schema if not exists course;
-
-ALTER TABLE public.courses
-    set schema course;
-
-ALTER TABlE public.events
-    DROP COLUMN capacity;
-
-ALTER TABLE public.practices
-    ADD COLUMN capacity int;
-
-ALTER TABLE course.courses
-    ADD COLUMN capacity int;
-
--- Revert schema changes
-ALTER TABLE events.customer_enrollment
-    SET SCHEMA public;
-
-ALTER TABLE events.staff
-    SET SCHEMA public;
 
 ALTER TABLE public.staff
     RENAME TO event_staff;
@@ -119,6 +68,5 @@ DROP TABLE IF EXISTS athletic.teams;
 
 -- Drop the schemas
 DROP SCHEMA IF EXISTS athletic;
-DROP SCHEMA IF EXISTS events;
 
 -- +goose StatementEnd

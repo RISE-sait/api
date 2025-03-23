@@ -1,17 +1,19 @@
 -- name: CreateCourse :one
-INSERT INTO course.courses (name, description, capacity)
+INSERT INTO courses (name, description, capacity)
 VALUES ($1, $2, $3)
 RETURNING *;
 
 -- name: GetCourseById :one
-SELECT * FROM course.courses WHERE id = $1;
+SELECT *
+FROM courses
+WHERE id = $1;
 
 -- name: GetCourses :many
 SELECT *
-FROM course.courses;
+FROM courses;
 
 -- name: UpdateCourse :execrows
-UPDATE course.courses
+UPDATE courses
 SET name        = $1,
     description = $2,
     capacity    = $3,
@@ -19,4 +21,6 @@ SET name        = $1,
 WHERE id = $4;
 
 -- name: DeleteCourse :execrows
-DELETE FROM course.courses WHERE id = $1;
+DELETE
+FROM courses
+WHERE id = $1;

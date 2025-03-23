@@ -12,7 +12,7 @@ import (
 )
 
 const createCourse = `-- name: CreateCourse :one
-INSERT INTO course.courses (name, description, capacity)
+INSERT INTO courses (name, description, capacity)
 VALUES ($1, $2, $3)
 RETURNING id, name, description, capacity, created_at, updated_at
 `
@@ -23,9 +23,9 @@ type CreateCourseParams struct {
 	Capacity    int32  `json:"capacity"`
 }
 
-func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (CourseCourse, error) {
+func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (Course, error) {
 	row := q.db.QueryRowContext(ctx, createCourse, arg.Name, arg.Description, arg.Capacity)
-	var i CourseCourse
+	var i Course
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -38,7 +38,7 @@ func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (Cou
 }
 
 const deleteCourse = `-- name: DeleteCourse :execrows
-DELETE FROM course.courses WHERE id = $1
+DELETE FROM courses WHERE id = $1
 `
 
 func (q *Queries) DeleteCourse(ctx context.Context, id uuid.UUID) (int64, error) {
@@ -50,12 +50,12 @@ func (q *Queries) DeleteCourse(ctx context.Context, id uuid.UUID) (int64, error)
 }
 
 const getCourseById = `-- name: GetCourseById :one
-SELECT id, name, description, capacity, created_at, updated_at FROM course.courses WHERE id = $1
+SELECT id, name, description, capacity, created_at, updated_at FROM courses WHERE id = $1
 `
 
-func (q *Queries) GetCourseById(ctx context.Context, id uuid.UUID) (CourseCourse, error) {
+func (q *Queries) GetCourseById(ctx context.Context, id uuid.UUID) (Course, error) {
 	row := q.db.QueryRowContext(ctx, getCourseById, id)
-	var i CourseCourse
+	var i Course
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -69,18 +69,18 @@ func (q *Queries) GetCourseById(ctx context.Context, id uuid.UUID) (CourseCourse
 
 const getCourses = `-- name: GetCourses :many
 SELECT id, name, description, capacity, created_at, updated_at
-FROM course.courses
+FROM courses
 `
 
-func (q *Queries) GetCourses(ctx context.Context) ([]CourseCourse, error) {
+func (q *Queries) GetCourses(ctx context.Context) ([]Course, error) {
 	rows, err := q.db.QueryContext(ctx, getCourses)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CourseCourse
+	var items []Course
 	for rows.Next() {
-		var i CourseCourse
+		var i Course
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -103,8 +103,11 @@ func (q *Queries) GetCourses(ctx context.Context) ([]CourseCourse, error) {
 }
 
 const updateCourse = `-- name: UpdateCourse :execrows
-UPDATE course.courses
-SET name = $1, description = $2, capacity = $3, updated_at = CURRENT_TIMESTAMP
+UPDATE courses
+SET name        = $1,
+    description = $2,
+    capacity    = $3,
+    updated_at  = CURRENT_TIMESTAMP
 WHERE id = $4
 `
 

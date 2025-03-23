@@ -6,7 +6,7 @@ VALUES ($1, $2, $3, $4, $5,
 RETURNING *;
 
 -- name: CreateAthlete :exec
-INSERT INTO users.athletes (id)
+INSERT INTO athletic.athletes (id)
 VALUES ($1);
 
 -- name: UpdateUserHubspotId :execrows
@@ -50,5 +50,5 @@ WHERE id = sqlc.arg('child_id')
 
 -- name: GetIsAthleteByID :one
 SELECT COUNT(*) > 0
-FROM users.athletes
+FROM athletic.athletes
 WHERE id = $1;

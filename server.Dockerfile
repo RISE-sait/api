@@ -15,6 +15,19 @@ RUN go mod download
 # Copy the rest of the application code
 COPY . .
 
+RUN cd internal/domains/course/persistence/sqlc && sqlc generate
+RUN cd internal/domains/enrollment/persistence/sqlc && sqlc generate
+RUN cd internal/domains/event/persistence/sqlc && sqlc generate
+RUN cd internal/domains/game/persistence/sqlc && sqlc generate
+RUN cd internal/domains/haircut/persistence/sqlc && sqlc generate
+RUN cd internal/domains/identity/persistence/sqlc && sqlc generate
+RUN cd internal/domains/location/persistence/sqlc && sqlc generate
+RUN cd internal/domains/membership/persistence/sqlc && sqlc generate
+RUN cd internal/domains/practice/persistence/sqlc && sqlc generate
+RUN cd internal/domains/purchase/persistence/sqlc && sqlc generate
+RUN cd internal/domains/team/persistence/sqlc && sqlc generate
+RUN cd internal/domains/user/persistence/sqlc && sqlc generate
+
 # Build the Go application
 RUN go build -o server cmd/server/server/main.go
 

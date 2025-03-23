@@ -1,5 +1,5 @@
 -- name: UpdateAthleteStats :execrows
-UPDATE users.athletes
+UPDATE athletic.athletes
 SET wins       = COALESCE(sqlc.narg('wins'), wins),
     losses     = COALESCE(sqlc.narg('losses'), losses),
     points     = COALESCE(sqlc.narg('points'), points),
@@ -42,7 +42,7 @@ FROM users.users u
          LEFT JOIN
      latest_membership lm
      ON lm.customer_id = u.id
-         LEFT JOIN users.athletes a ON u.id = a.id
+         LEFT JOIN athletic.athletes a ON u.id = a.id
 LIMIT $1 OFFSET $2;
 
 -- name: GetChildren :many
@@ -60,11 +60,11 @@ FROM public.customer_membership_plans cmp
 WHERE cmp.customer_id = $1;
 
 -- name: CreateAthleteInfo :execrows
-INSERT INTO users.athletes (id, rebounds, assists, losses, wins, points)
+INSERT INTO athletic.athletes (id, rebounds, assists, losses, wins, points)
 VALUES ($1, $2, $3, $4, $5, $6);
 
 -- name: GetAthleteInfoByUserID :one
 SELECT *
-FROM users.athletes
+FROM athletic.athletes
 WHERE id = $1
 limit 1;

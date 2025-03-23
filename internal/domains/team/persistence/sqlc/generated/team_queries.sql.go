@@ -28,7 +28,9 @@ func (q *Queries) CreateTeam(ctx context.Context, arg CreateTeamParams) error {
 }
 
 const deleteTeam = `-- name: DeleteTeam :execrows
-DELETE FROM athletic.teams WHERE id = $1
+DELETE
+FROM athletic.teams
+WHERE id = $1
 `
 
 func (q *Queries) DeleteTeam(ctx context.Context, id uuid.UUID) (int64, error) {
@@ -40,7 +42,9 @@ func (q *Queries) DeleteTeam(ctx context.Context, id uuid.UUID) (int64, error) {
 }
 
 const getTeamById = `-- name: GetTeamById :one
-SELECT id, name, capacity, created_at, updated_at, coach_id FROM athletic.teams WHERE id = $1
+SELECT id, name, capacity, created_at, updated_at, coach_id
+FROM athletic.teams
+WHERE id = $1
 `
 
 func (q *Queries) GetTeamById(ctx context.Context, id uuid.UUID) (AthleticTeam, error) {
@@ -58,7 +62,8 @@ func (q *Queries) GetTeamById(ctx context.Context, id uuid.UUID) (AthleticTeam, 
 }
 
 const getTeams = `-- name: GetTeams :many
-SELECT id, name, capacity, created_at, updated_at, coach_id FROM athletic.teams
+SELECT id, name, capacity, created_at, updated_at, coach_id
+FROM athletic.teams
 `
 
 func (q *Queries) GetTeams(ctx context.Context) ([]AthleticTeam, error) {
@@ -93,10 +98,9 @@ func (q *Queries) GetTeams(ctx context.Context) ([]AthleticTeam, error) {
 
 const updateTeam = `-- name: UpdateTeam :execrows
 UPDATE athletic.teams
-SET
-    name = $1,
-    coach_id = $2,
-    capacity = $3,
+SET name       = $1,
+    coach_id   = $2,
+    capacity   = $3,
     updated_at = CURRENT_TIMESTAMP
 WHERE id = $4
 `

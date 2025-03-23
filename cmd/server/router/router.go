@@ -14,6 +14,9 @@ import (
 	practiceHandler "api/internal/domains/practice"
 	practiceRepo "api/internal/domains/practice/persistence"
 
+	teamsHandler "api/internal/domains/team"
+	teamsRepo "api/internal/domains/team/persistence"
+
 	userHandler "api/internal/domains/user/handler"
 
 	eventHandler "api/internal/domains/event/handler"
@@ -59,6 +62,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		"/events":      RegisterEventRoutes,
 		"/locations":   RegisterLocationsRoutes,
 		"/games":       RegisterGamesRoutes,
+		"/teams":       RegisterTeamsRoutes,
 		"/enrollments": RegisterEnrollmentRoutes,
 
 		// Users & Staff routes
@@ -172,6 +176,20 @@ func RegisterGamesRoutes(container *di.Container) func(chi.Router) {
 		r.With(allowAdminOnly).Post("/", h.CreateGame)
 		r.With(allowAdminOnly).Put("/{id}", h.UpdateGame)
 		r.With(allowAdminOnly).Delete("/{id}", h.DeleteGame)
+	}
+}
+
+func RegisterTeamsRoutes(container *di.Container) func(chi.Router) {
+
+	repo := teamsRepo.NewTeamRepository(container.Queries.TeamDb)
+	h := teamsHandler.NewHandler(repo)
+
+	return func(r chi.Router) {
+		r.Get("/", h.GetTeams)
+
+		r.With(allowAdminOnly).Post("/", h.CreateTeam)
+		r.With(allowAdminOnly).Put("/{id}", h.UpdateTeam)
+		r.With(allowAdminOnly).Delete("/{id}", h.DeleteTeam)
 	}
 }
 

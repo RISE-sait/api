@@ -22,7 +22,8 @@ import (
 
 func clearTables(ctx context.Context, db *sql.DB) error {
 	// Define the schemas you want to truncate tables from
-	schemas := []string{"public", "location", "users", "course", "haircut", "audit", "membership", "waiver"}
+	schemas := []string{"audit", "events", "haircut",
+		"location", "membership", "public", "staff", "users", "waiver"}
 
 	// Build the TRUNCATE query
 	var tables []string

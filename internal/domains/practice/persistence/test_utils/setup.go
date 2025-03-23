@@ -17,7 +17,7 @@ BEGIN
     END IF;
 END $$;
 
-create table if not exists public.practices
+create table public.practices
 (
     id          uuid                     default gen_random_uuid()     not null
         primary key,
@@ -25,15 +25,12 @@ create table if not exists public.practices
         unique,
     description text                                                   not null,
     level       practice_level           default 'all'::practice_level not null,
-    capacity    integer                                                not null,
     created_at  timestamp with time zone default CURRENT_TIMESTAMP     not null,
-    updated_at  timestamp with time zone default CURRENT_TIMESTAMP     not null,
-    payg_price  numeric(6, 2)
+    updated_at  timestamp with time zone default CURRENT_TIMESTAMP     not null
 );
 
 alter table public.practices
     owner to postgres;
-
 
 `
 

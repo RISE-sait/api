@@ -15,7 +15,8 @@ import (
 )
 
 const createEvent = `-- name: CreateEvent :exec
-INSERT INTO events (program_start_at, program_end_at, event_start_time, event_end_time, day, location_id, course_id,
+INSERT INTO events (program_start_at, program_end_at, event_start_time, event_end_time, day, location_id,
+                           course_id,
                     practice_id, game_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 `
@@ -59,15 +60,15 @@ func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) error {
 }
 
 const getEventById = `-- name: GetEventById :one
-SELECT e.id, e.program_start_at, e.program_end_at, e.practice_id, e.course_id, e.game_id, e.location_id, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time,
-       p.name as practice_name,
+SELECT e.id, e.program_start_at, e.program_end_at, e.practice_id, e.course_id, e.game_id, e.location_id, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time, e.team_id,
+       p.name        as practice_name,
        p.description as practice_description,
-       c.name as course_name,
+       c.name        as course_name,
        c.description as course_description,
-       g.name as game_name,
-       l.name as location_name,
-       l.address as address
-FROM public.events e
+       g.name        as game_name,
+       l.name        as location_name,
+       l.address     as address
+FROM events e
          LEFT JOIN public.practices p ON e.practice_id = p.id
          LEFT JOIN course.courses c ON e.course_id = c.id
          LEFT JOIN public.games g ON e.game_id = g.id
@@ -88,6 +89,7 @@ type GetEventByIdRow struct {
 	Day                 DayEnum                       `json:"day"`
 	EventStartTime      custom_types.TimeWithTimeZone `json:"event_start_time"`
 	EventEndTime        custom_types.TimeWithTimeZone `json:"event_end_time"`
+	TeamID              uuid.NullUUID                 `json:"team_id"`
 	PracticeName        sql.NullString                `json:"practice_name"`
 	PracticeDescription sql.NullString                `json:"practice_description"`
 	CourseName          sql.NullString                `json:"course_name"`
@@ -113,6 +115,7 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdR
 		&i.Day,
 		&i.EventStartTime,
 		&i.EventEndTime,
+		&i.TeamID,
 		&i.PracticeName,
 		&i.PracticeDescription,
 		&i.CourseName,
@@ -124,20 +127,20 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdR
 	return i, err
 }
 
-const getEvents = `-- name: GetBarberServices :many
-SELECT e.id, e.program_start_at, e.program_end_at, e.practice_id, e.course_id, e.game_id, e.location_id, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time,
-       p.name as practice_name,
+const getEvents = `-- name: GetEvents :many
+SELECT e.id, e.program_start_at, e.program_end_at, e.practice_id, e.course_id, e.game_id, e.location_id, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time, e.team_id,
+       p.name        as practice_name,
        p.description as practice_description,
-       c.name as course_name,
+       c.name        as course_name,
        c.description as course_description,
-       g.name as game_name,
-       l.name as location_name,
-       l.address as address
-FROM public.events e
-LEFT JOIN public.practices p ON e.practice_id = p.id
-LEFT JOIN course.courses c ON e.course_id = c.id
-LEFT JOIN public.games g ON e.game_id = g.id
-LEFT JOIN location.locations l ON e.location_id = l.id
+       g.name        as game_name,
+       l.name        as location_name,
+       l.address     as address
+FROM events e
+         LEFT JOIN public.practices p ON e.practice_id = p.id
+         LEFT JOIN course.courses c ON e.course_id = c.id
+         LEFT JOIN public.games g ON e.game_id = g.id
+         LEFT JOIN location.locations l ON e.location_id = l.id
 WHERE ($1 = course_id OR $1 IS NULL)
   AND ($2 = game_id OR $2 IS NULL)
   AND ($3 = practice_id OR $3 IS NULL)
@@ -168,6 +171,7 @@ type GetEventsRow struct {
 	Day                 DayEnum                       `json:"day"`
 	EventStartTime      custom_types.TimeWithTimeZone `json:"event_start_time"`
 	EventEndTime        custom_types.TimeWithTimeZone `json:"event_end_time"`
+	TeamID              uuid.NullUUID                 `json:"team_id"`
 	PracticeName        sql.NullString                `json:"practice_name"`
 	PracticeDescription sql.NullString                `json:"practice_description"`
 	CourseName          sql.NullString                `json:"course_name"`
@@ -206,6 +210,7 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 			&i.Day,
 			&i.EventStartTime,
 			&i.EventEndTime,
+			&i.TeamID,
 			&i.PracticeName,
 			&i.PracticeDescription,
 			&i.CourseName,

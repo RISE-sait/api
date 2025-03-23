@@ -140,7 +140,7 @@ func (r *CustomerRepository) GetMembershipPlansByCustomer(ctx context.Context, c
 		plan := customerValues.MembershipPlansReadValue{
 			ID:               dbPlan.ID,
 			CustomerID:       dbPlan.CustomerID,
-			MembershipPlanID: dbPlan.MembershipPlanID.UUID,
+			MembershipPlanID: dbPlan.MembershipPlanID,
 			StartDate:        dbPlan.StartDate,
 			Status:           string(dbPlan.Status),
 			CreatedAt:        dbPlan.CreatedAt,

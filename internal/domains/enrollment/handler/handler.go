@@ -60,15 +60,15 @@ func (h *Handler) CreateEnrollment(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetEnrollments retrieves enrollments.
-// @Summary Get enrollments by customer and event HubSpotId
-// @Description Get enrollments by customer and event HubSpotId
+// @Summary Get enrollments by customer and event ID
+// @Description Get enrollments by customer and event ID
 // @Tags enrollments
 // @Accept json
 // @Produce json
 // @Param customerId query string false "Customer ID"
 // @Param eventId query string false "Event ID"
 // @Success 200 {array} enrollment.ResponseDto "Enrollments retrieved successfully"
-// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid HubSpotId"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Enrollments not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /enrollments [get]
@@ -124,16 +124,16 @@ func (h *Handler) GetEnrollments(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, responseData, http.StatusOK)
 }
 
-// DeleteEnrollment deletes an enrollment by HubSpotId.
+// DeleteEnrollment deletes an enrollment by ID.
 // @Summary Delete an enrollment
-// @Description Delete an enrollment by HubSpotId
+// @Description Delete an enrollment by ID
 // @Tags enrollments
 // @Accept json
 // @Produce json
-// @Param id path string true "Enrollment HubSpotId"
+// @Param id path string true "Enrollment ID"
 // @Security Bearer
 // @Success 204 "No Content: Enrollment deleted successfully"
-// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid HubSpotId"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Enrollment not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /enrollments/{id} [delete]

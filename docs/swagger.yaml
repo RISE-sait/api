@@ -582,6 +582,33 @@ definitions:
       updated_at:
         type: string
     type: object
+  team.RequestDto:
+    properties:
+      capacity:
+        type: integer
+      coach_id:
+        type: string
+      name:
+        type: string
+    required:
+      - capacity
+      - name
+    type: object
+  team.Response:
+    properties:
+      capacity:
+        type: integer
+      coach_id:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
 info:
   contact: {}
 paths:
@@ -1081,7 +1108,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get enrollments by customer and event HubSpotId
+      description: Get enrollments by customer and event ID
       parameters:
       - description: Customer ID
         in: query
@@ -1101,7 +1128,7 @@ paths:
               $ref: '#/definitions/enrollment.ResponseDto'
             type: array
         "400":
-          description: 'Bad Request: Invalid HubSpotId'
+          description: 'Bad Request: Invalid ID'
           schema:
             additionalProperties: true
             type: object
@@ -1115,7 +1142,7 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Get enrollments by customer and event HubSpotId
+      summary: Get enrollments by customer and event ID
       tags:
       - enrollments
     post:
@@ -1155,9 +1182,9 @@ paths:
     delete:
       consumes:
       - application/json
-      description: Delete an enrollment by HubSpotId
+      description: Delete an enrollment by ID
       parameters:
-      - description: Enrollment HubSpotId
+        - description: Enrollment ID
         in: path
         name: id
         required: true
@@ -1168,7 +1195,7 @@ paths:
         "204":
           description: 'No Content: Enrollment deleted successfully'
         "400":
-          description: 'Bad Request: Invalid HubSpotId'
+          description: 'Bad Request: Invalid ID'
           schema:
             additionalProperties: true
             type: object
@@ -2865,6 +2892,131 @@ paths:
       summary: Update a staff member
       tags:
       - staff
+  /teams:
+    get:
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Teams retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/team.Response'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+        - teams
+    post:
+      consumes:
+        - application/json
+      parameters:
+        - description: Team details
+          in: body
+          name: team
+          required: true
+          schema:
+            $ref: '#/definitions/team.RequestDto'
+      produces:
+        - application/json
+      responses:
+        "201":
+          description: Team created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+        - Bearer: [ ]
+      tags:
+        - teams
+  /teams/{id}:
+    delete:
+      consumes:
+        - application/json
+      parameters:
+        - description: Team ID
+          in: path
+          name: id
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        "204":
+          description: 'No Content: Team deleted successfully'
+        "400":
+          description: 'Bad Request: Invalid ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Team not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+        - Bearer: [ ]
+      tags:
+        - teams
+    put:
+      consumes:
+        - application/json
+      parameters:
+        - description: Team ID
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: Team details
+          in: body
+          name: team
+          required: true
+          schema:
+            $ref: '#/definitions/team.RequestDto'
+      produces:
+        - application/json
+      responses:
+        "204":
+          description: 'No Content: Team updated successfully'
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Team not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+        - Bearer: [ ]
+      tags:
+        - teams
 securityDefinitions:
   Bearer:
     in: header

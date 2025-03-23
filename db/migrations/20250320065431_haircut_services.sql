@@ -3,7 +3,7 @@
 
 CREATE SCHEMA IF NOT EXISTS haircut;
 
-CREATE TABLE haircut.haircut_services
+CREATE TABLE IF NOT EXISTS haircut.haircut_services
 (
     id              uuid PRIMARY KEY       DEFAULT gen_random_uuid(),
     name            varchar(50)   NOT NULL UNIQUE,
@@ -14,7 +14,7 @@ CREATE TABLE haircut.haircut_services
     updated_at      TIMESTAMPTZ   NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE haircut.barber_services
+CREATE TABLE IF NOT EXISTS haircut.barber_services
 (
     id         uuid PRIMARY KEY     DEFAULT gen_random_uuid(),
     barber_id  uuid        NOT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE haircut.barber_services
 );
 
 ALTER TABLE barber.barber_events
-    ADD COLUMN service_type_id uuid NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';
+    ADD COLUMN service_type_id uuid NOT NULL;
 
 ALTER TABLE barber.barber_events
     ADD CONSTRAINT fk_service_type

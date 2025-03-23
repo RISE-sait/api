@@ -12,6 +12,8 @@ import (
 	membershipDb "api/internal/domains/membership/persistence/sqlc/generated"
 	practiceDb "api/internal/domains/practice/persistence/sqlc/generated"
 	purchaseDb "api/internal/domains/purchase/persistence/sqlc/generated"
+	teamDb "api/internal/domains/team/persistence/sqlc/generated"
+
 	"api/internal/services/square"
 
 	outboxDb "api/internal/services/outbox/generated"
@@ -45,6 +47,7 @@ type QueriesType struct {
 	EnrollmentDb *enrollmentDb.Queries
 	BarberDb     *barberDb.Queries
 	GameDb       *gameDb.Queries
+	TeamDb       *teamDb.Queries
 	UserDb       *userDb.Queries
 	OutboxDb     *outboxDb.Queries
 }
@@ -87,6 +90,7 @@ func initializeQueries(db *sql.DB) *QueriesType {
 		EnrollmentDb: enrollmentDb.New(db),
 		BarberDb:     barberDb.New(db),
 		GameDb:       gameDb.New(db),
+		TeamDb:       teamDb.New(db),
 		OutboxDb:     outboxDb.New(db),
 	}
 }

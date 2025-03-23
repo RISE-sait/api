@@ -52,6 +52,8 @@ jobs:
           cd ../../../../../
           cd internal/domains/purchase/persistence/sqlc && sqlc generate
           cd ../../../../../
+          cd internal/domains/team/persistence/sqlc && sqlc generate
+          cd ../../../../../
           cd internal/domains/user/persistence/sqlc && sqlc generate
 
       - name: Run Tests

@@ -4,15 +4,23 @@ import (
 	"api/internal/di"
 	courseHandler "api/internal/domains/course/handler"
 	courseRepo "api/internal/domains/course/persistence/repository"
+
 	enrollment "api/internal/domains/enrollment/handler"
 	enrollmentRepo "api/internal/domains/enrollment/persistence"
 	enrollmentService "api/internal/domains/enrollment/service"
+
 	"api/internal/domains/game"
 	gameRepo "api/internal/domains/game/persistence"
+
 	haircutRepo "api/internal/domains/haircut/persistence/repository"
+
 	locationRepo "api/internal/domains/location/persistence"
+
 	practiceHandler "api/internal/domains/practice"
 	practiceRepo "api/internal/domains/practice/persistence"
+
+	teamsHandler "api/internal/domains/team"
+	teamsRepo "api/internal/domains/team/persistence"
 
 	userHandler "api/internal/domains/user/handler"
 
@@ -59,6 +67,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		"/events":      RegisterEventRoutes,
 		"/locations":   RegisterLocationsRoutes,
 		"/games":       RegisterGamesRoutes,
+		"/teams":       RegisterTeamsRoutes,
 		"/enrollments": RegisterEnrollmentRoutes,
 
 		// Users & Staff routes
@@ -172,6 +181,20 @@ func RegisterGamesRoutes(container *di.Container) func(chi.Router) {
 		r.With(allowAdminOnly).Post("/", h.CreateGame)
 		r.With(allowAdminOnly).Put("/{id}", h.UpdateGame)
 		r.With(allowAdminOnly).Delete("/{id}", h.DeleteGame)
+	}
+}
+
+func RegisterTeamsRoutes(container *di.Container) func(chi.Router) {
+
+	repo := teamsRepo.NewTeamRepository(container.Queries.TeamDb)
+	h := teamsHandler.NewHandler(repo)
+
+	return func(r chi.Router) {
+		r.Get("/", h.GetTeams)
+
+		r.With(allowAdminOnly).Post("/", h.CreateTeam)
+		r.With(allowAdminOnly).Put("/{id}", h.UpdateTeam)
+		r.With(allowAdminOnly).Delete("/{id}", h.DeleteTeam)
 	}
 }
 

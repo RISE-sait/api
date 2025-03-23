@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const createPractice = `-- name: CreatePractice :exec
+const createPractice = `-- name: CreateTeam :exec
 INSERT INTO practices (name, description, level, capacity)
 VALUES ($1, $2, $3, $4)
 `
@@ -33,7 +33,7 @@ func (q *Queries) CreatePractice(ctx context.Context, arg CreatePracticeParams) 
 	return err
 }
 
-const deletePractice = `-- name: DeletePractice :execrows
+const deletePractice = `-- name: DeleteTeam :execrows
 DELETE FROM practices WHERE id = $1
 `
 
@@ -99,7 +99,7 @@ func (q *Queries) GetPractices(ctx context.Context) ([]Practice, error) {
 	return items, nil
 }
 
-const updatePractice = `-- name: UpdatePractice :exec
+const updatePractice = `-- name: UpdateTeam :exec
 UPDATE practices
 SET
     name = $1,

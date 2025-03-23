@@ -39,7 +39,7 @@ package tests_test
 //		Level: "beginner",
 //	}
 //
-//	practice, err := practiceQueries.CreatePractice(context.Background(), createPracticeParams)
+//	practice, err := practiceQueries.CreateTeam(context.Background(), createPracticeParams)
 //	require.NoError(t, err)
 //
 //	facilityCategory, err := facilityQueries.CreateFacilityCategory(context.Background(), "Basketball")
@@ -90,7 +90,7 @@ package tests_test
 //	eventQueries, _ := eventTestUtils.SetupEventTestDbQueries(t, dbConn)
 //
 //	// Create practice and facility
-//	practice, _ := practiceQueries.CreatePractice(context.Background(), practiceDb.CreatePracticeParams{
+//	practice, _ := practiceQueries.CreateTeam(context.Background(), practiceDb.CreatePracticeParams{
 //		Name:  "Advanced Go",
 //		Level: "intermediate",
 //	})
@@ -155,7 +155,7 @@ package tests_test
 //		Level: "beginner",
 //	}
 //
-//	practice, err := practiceQueries.CreatePractice(context.Background(), createPracticeParams)
+//	practice, err := practiceQueries.CreateTeam(context.Background(), createPracticeParams)
 //	require.NoError(t, err)
 //
 //	facilityType, err := facilityQueries.CreateFacilityCategory(context.Background(), "Basketball")
@@ -214,7 +214,7 @@ package tests_test
 //		Level: "advanced",
 //	}
 //
-//	practice, err := practiceQueries.CreatePractice(context.Background(), createPracticeParams)
+//	practice, err := practiceQueries.CreateTeam(context.Background(), createPracticeParams)
 //	require.NoError(t, err)
 //
 //	facilityType, err := facilityQueries.CreateFacilityCategory(context.Background(), "Indoor")
@@ -273,7 +273,7 @@ package tests_test
 //		Level: "beginner",
 //	}
 //
-//	practice, err := practiceQueries.CreatePractice(context.Background(), createPracticeParams)
+//	practice, err := practiceQueries.CreateTeam(context.Background(), createPracticeParams)
 //	require.NoError(t, err)
 //
 //	facilityType, err := facilityQueries.CreateFacilityCategory(context.Background(), "Basketball")

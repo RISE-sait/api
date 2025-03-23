@@ -750,7 +750,7 @@ const docTemplate = `{
         },
         "/enrollments": {
             "get": {
-                "description": "Get enrollments by customer and event HubSpotId",
+                "description": "Get enrollments by customer and event ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -760,7 +760,7 @@ const docTemplate = `{
                 "tags": [
                     "enrollments"
                 ],
-                "summary": "Get enrollments by customer and event HubSpotId",
+                "summary": "Get enrollments by customer and event ID",
                 "parameters": [
                     {
                         "type": "string",
@@ -786,7 +786,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request: Invalid HubSpotId",
+                        "description": "Bad Request: Invalid ID",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -867,7 +867,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Delete an enrollment by HubSpotId",
+                "description": "Delete an enrollment by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -881,7 +881,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Enrollment HubSpotId",
+                        "description": "Enrollment ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -892,7 +892,7 @@ const docTemplate = `{
                         "description": "No Content: Enrollment deleted successfully"
                     },
                     "400": {
-                        "description": "Bad Request: Invalid HubSpotId",
+                        "description": "Bad Request: Invalid ID",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3388,6 +3388,200 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/teams": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teams"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Teams retrieved successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/team.Response"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teams"
+                ],
+                "parameters": [
+                    {
+                        "description": "Team details",
+                        "name": "team",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/team.RequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Team created successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/teams/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teams"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Team ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Team details",
+                        "name": "team",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/team.RequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Team updated successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Team not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teams"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Team ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Team deleted successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Team not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -4256,6 +4450,47 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "role_name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "team.RequestDto": {
+            "type": "object",
+            "required": [
+                "capacity",
+                "name"
+            ],
+            "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
+                "coach_id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "team.Response": {
+            "type": "object",
+            "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
+                "coach_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 },
                 "updated_at": {

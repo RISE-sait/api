@@ -24,14 +24,10 @@ func (s *Service) EnrollCustomer(ctx context.Context, details values.EnrollmentC
 
 	var readDetails values.EnrollmentReadDetails
 
-	isFull, err := s.EnrollmentRepository.GetEventIsFull(ctx, details.EventId)
-
-	if err != nil {
+	if isFull, err := s.EnrollmentRepository.GetEventIsFull(ctx, details.EventId); err != nil {
 		return readDetails, err
-	}
-
-	if *isFull {
-		return readDetails, errLib.New("Event is full", http.StatusConflict)
+	} else if isFull {
+		return readDetails, errLib.New("Event is full", http.StatusBadRequest)
 	}
 
 	return s.EnrollmentRepository.EnrollCustomer(ctx, details)

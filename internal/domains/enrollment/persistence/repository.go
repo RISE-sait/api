@@ -1,16 +1,17 @@
 package enrollment
 
 import (
-	"api/internal/constants"
+	database_errors "api/internal/constants"
 	db "api/internal/domains/enrollment/persistence/sqlc/generated"
 	"api/internal/domains/enrollment/values"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/lib/pq"
 	"log"
 	"net/http"
+
+	"github.com/lib/pq"
 
 	"github.com/google/uuid"
 )
@@ -125,14 +126,14 @@ func (r *Repository) EnrollCustomer(c context.Context, input values.EnrollmentCr
 	return response, nil
 }
 
-func (r *Repository) GetEventIsFull(c context.Context, eventId uuid.UUID) (*bool, *errLib.CommonError) {
+func (r *Repository) GetEventIsFull(c context.Context, eventId uuid.UUID) (bool, *errLib.CommonError) {
 
 	isFull, err := r.Queries.GetEventIsFull(c, eventId)
 
 	if err != nil {
 		log.Printf("Error getting info: %v", err)
-		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+		return true, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return &isFull, nil
+	return isFull, nil
 }

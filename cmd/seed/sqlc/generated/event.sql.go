@@ -67,29 +67,22 @@ func (q *Queries) InsertCustomersEnrollments(ctx context.Context, arg InsertCust
 const insertEvents = `-- name: InsertEvents :many
 WITH events_data AS (SELECT unnest($1::timestamptz[]) as program_start_at,
                             unnest($2::timestamptz[])   as program_end_at,
-                            unnest($3::timetz[]) AS event_start_time,
-                            unnest($4::timetz[])   AS event_end_time,
+                            unnest($3::timetz[])      AS event_start_time,
+                            unnest($4::timetz[])        AS event_end_time,
                             unnest($5::day_enum[])                 AS day,
-                            unnest($6::text[])           AS practice_name,
-                            unnest($7::text[])             AS course_name,
-                            unnest($8::text[])               AS game_name,
-                            unnest($9::text[])           as location_name)
+                            unnest($6::text[])           AS program_name,
+                            unnest($7::text[])           as location_name)
 INSERT
-INTO events.events (program_start_at, program_end_at, event_start_time, event_end_time, day, practice_id, course_id,
-                    game_id, location_id)
+INTO events.events (program_start_at, program_end_at, event_start_time, event_end_time, program_id, day, location_id)
 SELECT e.program_start_at,
        e.program_end_at,
        e.event_start_time,
        e.event_end_time,
+         p.id AS program_id,
        e.day,
-       p.id AS practice_id,
-       c.id AS course_id,
-       g.id AS game_id,
        l.id AS location_id
 FROM events_data e
-         LEFT JOIN LATERAL (SELECT id FROM public.practices WHERE name = e.practice_name) p ON TRUE
-         LEFT JOIN LATERAL (SELECT id FROM courses WHERE name = e.course_name) c ON TRUE
-         LEFT JOIN LATERAL (SELECT id FROM public.games WHERE name = e.game_name) g ON TRUE
+         LEFT JOIN LATERAL (SELECT id FROM program.programs WHERE name = e.program_name) p ON TRUE
          LEFT JOIN LATERAL (SELECT id FROM location.locations WHERE name = e.location_name) l ON TRUE
 RETURNING id
 `
@@ -100,9 +93,7 @@ type InsertEventsParams struct {
 	EventStartTimeArray []custom_types.TimeWithTimeZone `json:"event_start_time_array"`
 	EventEndTimeArray   []custom_types.TimeWithTimeZone `json:"event_end_time_array"`
 	DayArray            []DayEnum                       `json:"day_array"`
-	PracticeNameArray   []string                        `json:"practice_name_array"`
-	CourseNameArray     []string                        `json:"course_name_array"`
-	GameNameArray       []string                        `json:"game_name_array"`
+	ProgramNameArray    []string                        `json:"program_name_array"`
 	LocationNameArray   []string                        `json:"location_name_array"`
 }
 
@@ -113,9 +104,7 @@ func (q *Queries) InsertEvents(ctx context.Context, arg InsertEventsParams) ([]u
 		pq.Array(arg.EventStartTimeArray),
 		pq.Array(arg.EventEndTimeArray),
 		pq.Array(arg.DayArray),
-		pq.Array(arg.PracticeNameArray),
-		pq.Array(arg.CourseNameArray),
-		pq.Array(arg.GameNameArray),
+		pq.Array(arg.ProgramNameArray),
 		pq.Array(arg.LocationNameArray),
 	)
 	if err != nil {

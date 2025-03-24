@@ -7,22 +7,41 @@ package db
 
 import (
 	"context"
-	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
 
-const createGame = `-- name: CreateGame :one
-INSERT INTO games (name)
-VALUES ($1)
-RETURNING id, name
+const createGame = `-- name: CreateGame :execrows
+WITH program_insert AS (
+    INSERT INTO program.programs (name, type)
+    VALUES ($1, 'game')
+    RETURNING id
+)
+INSERT INTO public.games (id, win_team, lose_team, win_score, lose_score)
+VALUES ((SELECT id FROM program_insert), $2, $3, $4, $5)
 `
 
-func (q *Queries) CreateGame(ctx context.Context, name string) (Game, error) {
-	row := q.db.QueryRowContext(ctx, createGame, name)
-	var i Game
-	err := row.Scan(&i.ID, &i.Name)
-	return i, err
+type CreateGameParams struct {
+	Name      string    `json:"name"`
+	WinTeam   uuid.UUID `json:"win_team"`
+	LoseTeam  uuid.UUID `json:"lose_team"`
+	WinScore  int32     `json:"win_score"`
+	LoseScore int32     `json:"lose_score"`
+}
+
+func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, createGame,
+		arg.Name,
+		arg.WinTeam,
+		arg.LoseTeam,
+		arg.WinScore,
+		arg.LoseScore,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const deleteGame = `-- name: DeleteGame :execrows
@@ -38,31 +57,106 @@ func (q *Queries) DeleteGame(ctx context.Context, id uuid.UUID) (int64, error) {
 }
 
 const getGameById = `-- name: GetGameById :one
-SELECT id, name FROM games WHERE id = $1
+SELECT p.id, p.name, p.description, p.level, p.type, p.created_at, p.updated_at, wt.id as "win_team_id", lt.id as "lose_team_id",
+wt.name as "win_team_name", wt.name as "lose_team_name", 
+g.win_score, g.lose_score, p."type" FROM games g
+JOIN athletic.teams wt ON g.win_team = wt.id
+JOIN athletic.teams lt ON g.lose_team = lt.id
+JOIN program.programs p ON g.id = p.id
+WHERE g.id = $1
 `
 
-func (q *Queries) GetGameById(ctx context.Context, id uuid.UUID) (Game, error) {
+type GetGameByIdRow struct {
+	ID           uuid.UUID           `json:"id"`
+	Name         string              `json:"name"`
+	Description  string              `json:"description"`
+	Level        ProgramProgramLevel `json:"level"`
+	Type         ProgramProgramType  `json:"type"`
+	CreatedAt    time.Time           `json:"created_at"`
+	UpdatedAt    time.Time           `json:"updated_at"`
+	WinTeamID    uuid.UUID           `json:"win_team_id"`
+	LoseTeamID   uuid.UUID           `json:"lose_team_id"`
+	WinTeamName  string              `json:"win_team_name"`
+	LoseTeamName string              `json:"lose_team_name"`
+	WinScore     int32               `json:"win_score"`
+	LoseScore    int32               `json:"lose_score"`
+	Type_2       ProgramProgramType  `json:"type_2"`
+}
+
+func (q *Queries) GetGameById(ctx context.Context, id uuid.UUID) (GetGameByIdRow, error) {
 	row := q.db.QueryRowContext(ctx, getGameById, id)
-	var i Game
-	err := row.Scan(&i.ID, &i.Name)
+	var i GetGameByIdRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Level,
+		&i.Type,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.WinTeamID,
+		&i.LoseTeamID,
+		&i.WinTeamName,
+		&i.LoseTeamName,
+		&i.WinScore,
+		&i.LoseScore,
+		&i.Type_2,
+	)
 	return i, err
 }
 
 const getGames = `-- name: GetGames :many
-SELECT id, name FROM games
-WHERE (name ILIKE '%' || $1 || '%' OR $1 IS NULL)
+SELECT p.id, p.name, p.description, p.level, p.type, p.created_at, p.updated_at, wt.id as "win_team_id", lt.id as "lose_team_id",
+wt.name as "win_team_name", wt.name as "lose_team_name",
+g.win_score, g.lose_score, p."type"
+FROM games g
+JOIN athletic.teams wt ON g.win_team = wt.id
+JOIN athletic.teams lt ON g.lose_team = lt.id
+JOIN program.programs p ON g.id = p.id
 `
 
-func (q *Queries) GetGames(ctx context.Context, name sql.NullString) ([]Game, error) {
-	rows, err := q.db.QueryContext(ctx, getGames, name)
+type GetGamesRow struct {
+	ID           uuid.UUID           `json:"id"`
+	Name         string              `json:"name"`
+	Description  string              `json:"description"`
+	Level        ProgramProgramLevel `json:"level"`
+	Type         ProgramProgramType  `json:"type"`
+	CreatedAt    time.Time           `json:"created_at"`
+	UpdatedAt    time.Time           `json:"updated_at"`
+	WinTeamID    uuid.UUID           `json:"win_team_id"`
+	LoseTeamID   uuid.UUID           `json:"lose_team_id"`
+	WinTeamName  string              `json:"win_team_name"`
+	LoseTeamName string              `json:"lose_team_name"`
+	WinScore     int32               `json:"win_score"`
+	LoseScore    int32               `json:"lose_score"`
+	Type_2       ProgramProgramType  `json:"type_2"`
+}
+
+func (q *Queries) GetGames(ctx context.Context) ([]GetGamesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getGames)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Game
+	var items []GetGamesRow
 	for rows.Next() {
-		var i Game
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+		var i GetGamesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Level,
+			&i.Type,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.WinTeamID,
+			&i.LoseTeamID,
+			&i.WinTeamName,
+			&i.LoseTeamName,
+			&i.WinScore,
+			&i.LoseScore,
+			&i.Type_2,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -76,21 +170,41 @@ func (q *Queries) GetGames(ctx context.Context, name sql.NullString) ([]Game, er
 	return items, nil
 }
 
-const updateGame = `-- name: UpdateGame :one
-UPDATE games
-SET name = COALESCE($2, name)
-WHERE id = $1
-RETURNING id, name
+const updateGame = `-- name: UpdateGame :execrows
+WITH program_update AS (
+    UPDATE program.programs p
+    SET name = $2
+    WHERE p.id = $1
+    RETURNING id
+)
+UPDATE games g
+SET win_team = $3,
+    lose_team = $4,
+    win_score = $5,
+    lose_score = $6
+WHERE g.id = (SELECT id FROM program_update)
 `
 
 type UpdateGameParams struct {
-	ID   uuid.UUID      `json:"id"`
-	Name sql.NullString `json:"name"`
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	WinTeam   uuid.UUID `json:"win_team"`
+	LoseTeam  uuid.UUID `json:"lose_team"`
+	WinScore  int32     `json:"win_score"`
+	LoseScore int32     `json:"lose_score"`
 }
 
-func (q *Queries) UpdateGame(ctx context.Context, arg UpdateGameParams) (Game, error) {
-	row := q.db.QueryRowContext(ctx, updateGame, arg.ID, arg.Name)
-	var i Game
-	err := row.Scan(&i.ID, &i.Name)
-	return i, err
+func (q *Queries) UpdateGame(ctx context.Context, arg UpdateGameParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateGame,
+		arg.ID,
+		arg.Name,
+		arg.WinTeam,
+		arg.LoseTeam,
+		arg.WinScore,
+		arg.LoseScore,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

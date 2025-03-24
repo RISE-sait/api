@@ -8,34 +8,68 @@ package db_seed
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
 
 const insertCourses = `-- name: InsertCourses :exec
-INSERT INTO courses (name, description)
-VALUES (unnest($1::text[]),
-        unnest($2::text[]))
-RETURNING id
+WITH prepared_data as (SELECT unnest($1::text[]) as name,
+        unnest($2::text[]) as description,
+        unnest($3::program.program_level[]) as level)
+INSERT INTO program.programs (name, description, type, level)
+SELECT name,
+       description,
+       'course',
+       level
+FROM prepared_data
 `
 
 type InsertCoursesParams struct {
-	NameArray        []string `json:"name_array"`
-	DescriptionArray []string `json:"description_array"`
+	NameArray        []string              `json:"name_array"`
+	DescriptionArray []string              `json:"description_array"`
+	LevelArray       []ProgramProgramLevel `json:"level_array"`
 }
 
 func (q *Queries) InsertCourses(ctx context.Context, arg InsertCoursesParams) error {
-	_, err := q.db.ExecContext(ctx, insertCourses, pq.Array(arg.NameArray), pq.Array(arg.DescriptionArray))
+	_, err := q.db.ExecContext(ctx, insertCourses, pq.Array(arg.NameArray), pq.Array(arg.DescriptionArray), pq.Array(arg.LevelArray))
 	return err
 }
 
 const insertGames = `-- name: InsertGames :exec
-INSERT INTO games (name)
-VALUES (unnest($1::text[]))
-RETURNING id
+WITH prepared_data as (
+        SELECT unnest($5::text[]) as name,
+        unnest($6::text[]) as description,
+        unnest($7::program.program_level[]) as level),
+game_ids AS (
+    INSERT INTO program.programs (name, description, type, level)
+    SELECT name, description, 'game', level
+    FROM prepared_data
+    RETURNING id
+)
+INSERT INTO public.games (id, win_team, lose_team, win_score, lose_score)
+VALUES (unnest(ARRAY(SELECT id FROM game_ids)), unnest($1::uuid[]), unnest($2::uuid[]), unnest($3::int[]), unnest($4::int[]))
 `
 
-func (q *Queries) InsertGames(ctx context.Context, nameArray []string) error {
-	_, err := q.db.ExecContext(ctx, insertGames, pq.Array(nameArray))
+type InsertGamesParams struct {
+	WinTeamArray     []uuid.UUID           `json:"win_team_array"`
+	LoseTeamArray    []uuid.UUID           `json:"lose_team_array"`
+	WinScoreArray    []int32               `json:"win_score_array"`
+	LoseScoreArray   []int32               `json:"lose_score_array"`
+	NameArray        []string              `json:"name_array"`
+	DescriptionArray []string              `json:"description_array"`
+	LevelArray       []ProgramProgramLevel `json:"level_array"`
+}
+
+func (q *Queries) InsertGames(ctx context.Context, arg InsertGamesParams) error {
+	_, err := q.db.ExecContext(ctx, insertGames,
+		pq.Array(arg.WinTeamArray),
+		pq.Array(arg.LoseTeamArray),
+		pq.Array(arg.WinScoreArray),
+		pq.Array(arg.LoseScoreArray),
+		pq.Array(arg.NameArray),
+		pq.Array(arg.DescriptionArray),
+		pq.Array(arg.LevelArray),
+	)
 	return err
 }
 
@@ -56,17 +90,22 @@ func (q *Queries) InsertLocations(ctx context.Context, arg InsertLocationsParams
 }
 
 const insertPractices = `-- name: InsertPractices :exec
-INSERT INTO practices (name, description, level)
-VALUES (unnest($1::text[]),
-        unnest($2::text[]),
-        unnest($3::practice_level[]))
-RETURNING id
+WITH prepared_data as (
+        SELECT unnest($1::text[]) as name,
+        unnest($2::text[]) as description,
+        unnest($3::program.program_level[]) as level)
+INSERT INTO program.programs (name, description, type, level)
+SELECT name,
+       description,
+       'practice',
+       level
+FROM prepared_data
 `
 
 type InsertPracticesParams struct {
-	NameArray        []string        `json:"name_array"`
-	DescriptionArray []string        `json:"description_array"`
-	LevelArray       []PracticeLevel `json:"level_array"`
+	NameArray        []string              `json:"name_array"`
+	DescriptionArray []string              `json:"description_array"`
+	LevelArray       []ProgramProgramLevel `json:"level_array"`
 }
 
 func (q *Queries) InsertPractices(ctx context.Context, arg InsertPracticesParams) error {
@@ -74,13 +113,51 @@ func (q *Queries) InsertPractices(ctx context.Context, arg InsertPracticesParams
 	return err
 }
 
+const insertTeams = `-- name: InsertTeams :many
+WITH prepared_data AS (SELECT unnest($1::text[])          AS coach,
+                              unnest($2::int[])             AS capacity,
+                              unnest($3::text[]) AS name)
+INSERT
+INTO athletic.teams(capacity, coach_id, name)
+SELECT capacity, u.id, name
+FROM prepared_data
+JOIN users.users u ON u.email = coach
+RETURNING id
+`
+
+type InsertTeamsParams struct {
+	CoachEmailArray []string `json:"coach_email_array"`
+	CapacityArray   []int32  `json:"capacity_array"`
+	NameArray       []string `json:"name_array"`
+}
+
+func (q *Queries) InsertTeams(ctx context.Context, arg InsertTeamsParams) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, insertTeams, pq.Array(arg.CoachEmailArray), pq.Array(arg.CapacityArray), pq.Array(arg.NameArray))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertWaivers = `-- name: InsertWaivers :exec
 INSERT INTO waiver.waiver(waiver_url, waiver_name)
-VALUES (
-        'https://www.youtube.com/', 'youtube'),
-        (
-        'https://www.youtube.com/watch?v=5GTFt8JNwHU','video'
-       )
+VALUES ('https://www.youtube.com/', 'youtube'),
+       ('https://www.youtube.com/watch?v=5GTFt8JNwHU', 'video')
 `
 
 func (q *Queries) InsertWaivers(ctx context.Context) error {

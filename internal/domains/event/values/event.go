@@ -2,8 +2,9 @@ package event
 
 import (
 	"api/internal/custom_types"
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Details struct {
@@ -12,20 +13,9 @@ type Details struct {
 	ProgramEndAt   time.Time
 	EventStartTime custom_types.TimeWithTimeZone
 	EventEndTime   custom_types.TimeWithTimeZone
-	PracticeID     uuid.UUID
-	CourseID       uuid.UUID
-	GameID         uuid.UUID
+	ProgramID      uuid.UUID
 	LocationID     uuid.UUID
 	Capacity       *int32
-}
-
-type ReadDetails struct {
-	Details
-	LocationAddress string
-	CourseName      string
-	PracticeName    string
-	GameName        string
-	LocationName    string
 }
 
 type CreateEventValues struct {
@@ -41,5 +31,9 @@ type ReadEventValues struct {
 	ID        uuid.UUID
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	ReadDetails
+	Details
+	LocationName    string
+	LocationAddress string
+	ProgramName     string
+	ProgramType     string
 }

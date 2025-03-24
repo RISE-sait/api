@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.27.0
 
-package db
+package db_program
 
 import (
 	"database/sql"
@@ -56,6 +56,24 @@ func (ns NullAuditStatus) Value() (driver.Value, error) {
 	return string(ns.AuditStatus), nil
 }
 
+func (e AuditStatus) Valid() bool {
+	switch e {
+	case AuditStatusPENDING,
+		AuditStatusCOMPLETED,
+		AuditStatusFAILED:
+		return true
+	}
+	return false
+}
+
+func AllAuditStatusValues() []AuditStatus {
+	return []AuditStatus{
+		AuditStatusPENDING,
+		AuditStatusCOMPLETED,
+		AuditStatusFAILED,
+	}
+}
+
 type DayEnum string
 
 const (
@@ -103,6 +121,32 @@ func (ns NullDayEnum) Value() (driver.Value, error) {
 	return string(ns.DayEnum), nil
 }
 
+func (e DayEnum) Valid() bool {
+	switch e {
+	case DayEnumMONDAY,
+		DayEnumTUESDAY,
+		DayEnumWEDNESDAY,
+		DayEnumTHURSDAY,
+		DayEnumFRIDAY,
+		DayEnumSATURDAY,
+		DayEnumSUNDAY:
+		return true
+	}
+	return false
+}
+
+func AllDayEnumValues() []DayEnum {
+	return []DayEnum{
+		DayEnumMONDAY,
+		DayEnumTUESDAY,
+		DayEnumWEDNESDAY,
+		DayEnumTHURSDAY,
+		DayEnumFRIDAY,
+		DayEnumSATURDAY,
+		DayEnumSUNDAY,
+	}
+}
+
 type MembershipStatus string
 
 const (
@@ -145,6 +189,26 @@ func (ns NullMembershipStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.MembershipStatus), nil
+}
+
+func (e MembershipStatus) Valid() bool {
+	switch e {
+	case MembershipStatusActive,
+		MembershipStatusInactive,
+		MembershipStatusCanceled,
+		MembershipStatusExpired:
+		return true
+	}
+	return false
+}
+
+func AllMembershipStatusValues() []MembershipStatus {
+	return []MembershipStatus{
+		MembershipStatusActive,
+		MembershipStatusInactive,
+		MembershipStatusCanceled,
+		MembershipStatusExpired,
+	}
 }
 
 type PaymentFrequency string
@@ -191,6 +255,26 @@ func (ns NullPaymentFrequency) Value() (driver.Value, error) {
 	return string(ns.PaymentFrequency), nil
 }
 
+func (e PaymentFrequency) Valid() bool {
+	switch e {
+	case PaymentFrequencyOnce,
+		PaymentFrequencyWeek,
+		PaymentFrequencyMonth,
+		PaymentFrequencyDay:
+		return true
+	}
+	return false
+}
+
+func AllPaymentFrequencyValues() []PaymentFrequency {
+	return []PaymentFrequency{
+		PaymentFrequencyOnce,
+		PaymentFrequencyWeek,
+		PaymentFrequencyMonth,
+		PaymentFrequencyDay,
+	}
+}
+
 type ProgramProgramLevel string
 
 const (
@@ -235,6 +319,26 @@ func (ns NullProgramProgramLevel) Value() (driver.Value, error) {
 	return string(ns.ProgramProgramLevel), nil
 }
 
+func (e ProgramProgramLevel) Valid() bool {
+	switch e {
+	case ProgramProgramLevelBeginner,
+		ProgramProgramLevelIntermediate,
+		ProgramProgramLevelAdvanced,
+		ProgramProgramLevelAll:
+		return true
+	}
+	return false
+}
+
+func AllProgramProgramLevelValues() []ProgramProgramLevel {
+	return []ProgramProgramLevel{
+		ProgramProgramLevelBeginner,
+		ProgramProgramLevelIntermediate,
+		ProgramProgramLevelAdvanced,
+		ProgramProgramLevelAll,
+	}
+}
+
 type ProgramProgramType string
 
 const (
@@ -277,6 +381,26 @@ func (ns NullProgramProgramType) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.ProgramProgramType), nil
+}
+
+func (e ProgramProgramType) Valid() bool {
+	switch e {
+	case ProgramProgramTypePractice,
+		ProgramProgramTypeCourse,
+		ProgramProgramTypeGame,
+		ProgramProgramTypeOthers:
+		return true
+	}
+	return false
+}
+
+func AllProgramProgramTypeValues() []ProgramProgramType {
+	return []ProgramProgramType{
+		ProgramProgramTypePractice,
+		ProgramProgramTypeCourse,
+		ProgramProgramTypeGame,
+		ProgramProgramTypeOthers,
+	}
 }
 
 type AthleticAthlete struct {

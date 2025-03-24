@@ -4,7 +4,7 @@ CREATE TYPE membership_status AS ENUM ('active', 'inactive', 'canceled', 'expire
 
 CREATE TABLE IF NOT EXISTS customer_membership_plans
 (
-    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_id uuid NOT NULL,
     membership_plan_id uuid NOT NULL,
     start_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -12,7 +12,6 @@ CREATE TABLE IF NOT EXISTS customer_membership_plans
     status membership_status NOT NULL DEFAULT 'active',
     created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY(id),
     CONSTRAINT fk_customer FOREIGN KEY(customer_id) REFERENCES users.users(id),
     CONSTRAINT fk_membership_plan FOREIGN KEY(membership_plan_id) REFERENCES membership.membership_plans(id)
 );

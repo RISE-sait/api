@@ -1,4 +1,6 @@
 definitions:
+<<<<<<< HEAD
+=======
   course.RequestDto:
     properties:
       description:
@@ -21,6 +23,7 @@ definitions:
       updated_at:
         type: string
     type: object
+>>>>>>> main
   customer.AthleteRegistrationRequestDto:
     properties:
       age:
@@ -213,23 +216,20 @@ definitions:
     type: object
   event.RequestDto:
     properties:
-      course_id:
-        example: 00000000-0000-0000-0000-000000000000
-        type: string
+      capacity:
+        example: 100
+        type: integer
       day:
         example: THURSDAY
-        type: string
-      game_id:
-        example: 00000000-0000-0000-0000-000000000000
         type: string
       location_id:
         example: 0bab3927-50eb-42b3-9d6b-2350dd00a100
         type: string
-      practice_id:
-        example: f0e21457-75d4-4de6-b765-5ee13221fd72
-        type: string
       program_end_at:
         example: "2023-10-05T07:00:00Z"
+        type: string
+      program_id:
+        example: f0e21457-75d4-4de6-b765-5ee13221fd72
         type: string
       program_start_at:
         example: "2023-10-05T07:00:00Z"
@@ -251,15 +251,14 @@ definitions:
     properties:
       capacity:
         type: integer
+<<<<<<< HEAD
+=======
       course_id:
         type: string
       course_name:
         type: string
+>>>>>>> main
       day:
-        type: string
-      game_id:
-        type: string
-      game_name:
         type: string
       id:
         type: string
@@ -269,13 +268,15 @@ definitions:
         type: string
       location_name:
         type: string
-      practice_id:
-        type: string
-      practice_name:
-        type: string
       program_end_at:
         type: string
+      program_id:
+        type: string
+      program_name:
+        type: string
       program_start_at:
+        type: string
+      program_type:
         type: string
       session_end_at:
         type: string
@@ -284,16 +285,40 @@ definitions:
     type: object
   game.RequestDto:
     properties:
+      description:
+        type: string
+      lose_score:
+        type: integer
+      lose_team:
+        type: string
       name:
         type: string
+      win_score:
+        type: integer
+      win_team:
+        type: string
+    required:
+    - name
     type: object
   game.ResponseDto:
     properties:
+      created_at:
+        type: string
+      description:
+        type: string
       id:
+        type: string
+      lose_score:
+        type: integer
+      lose_team:
         type: string
       name:
         type: string
-      video_link:
+      updated_at:
+        type: string
+      win_score:
+        type: integer
+      win_team:
         type: string
     type: object
   haircut.BarberServiceResponseDto:
@@ -490,9 +515,12 @@ definitions:
         type: string
       name:
         type: string
+      type:
+        type: string
     required:
     - level
     - name
+    - type
     type: object
   practice.Response:
     properties:
@@ -505,6 +533,8 @@ definitions:
       level:
         type: string
       name:
+        type: string
+      type:
         type: string
       updated_at:
         type: string
@@ -583,8 +613,8 @@ definitions:
       name:
         type: string
     required:
-      - capacity
-      - name
+    - capacity
+    - name
     type: object
   team.Response:
     properties:
@@ -776,173 +806,6 @@ paths:
       summary: Checkout a membership plan
       tags:
       - purchases
-  /courses:
-    get:
-      consumes:
-      - application/json
-      description: Get a list of courses
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: GetMemberships of courses retrieved successfully
-          schema:
-            items:
-              $ref: '#/definitions/course.ResponseDto'
-            type: array
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get a list of courses
-      tags:
-      - courses
-    post:
-      consumes:
-      - application/json
-      description: Create a new course
-      parameters:
-      - description: Course details
-        in: body
-        name: course
-        required: true
-        schema:
-          $ref: '#/definitions/course.RequestDto'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Course created successfully
-          schema:
-            $ref: '#/definitions/course.ResponseDto'
-        "400":
-          description: 'Bad Request: Invalid input'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - Bearer: []
-      summary: Create a new course
-      tags:
-      - courses
-  /courses/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a course by ID
-      parameters:
-      - description: Course ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: 'Bad Request: Invalid ID'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Course not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - Bearer: []
-      summary: Delete a course
-      tags:
-      - courses
-    get:
-      consumes:
-      - application/json
-      description: Get a course by ID
-      parameters:
-      - description: Course ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Course retrieved successfully
-          schema:
-            $ref: '#/definitions/course.ResponseDto'
-        "400":
-          description: 'Bad Request: Invalid ID'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Course not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get a course by ID
-      tags:
-      - courses
-    put:
-      consumes:
-      - application/json
-      description: Update a course
-      parameters:
-      - description: Course ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Course details
-        in: body
-        name: course
-        required: true
-        schema:
-          $ref: '#/definitions/course.RequestDto'
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: 'No Content: Course updated successfully'
-        "400":
-          description: 'Bad Request: Invalid input'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Course not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - Bearer: []
-      summary: Update a course
-      tags:
-      - courses
   /customers:
     get:
       consumes:
@@ -1223,25 +1086,10 @@ paths:
         in: query
         name: before
         type: string
-      - description: Filter by game ID (UUID format)
+      - description: Filter by program ID (UUID format)
         example: '"550e8400-e29b-41d4-a716-446655440000"'
         in: query
-        name: game_id
-        type: string
-      - description: Filter by course ID (UUID format)
-        example: '"550e8400-e29b-41d4-a716-446655440000"'
-        in: query
-        name: course_id
-        type: string
-      - description: Filter by practice ID (UUID format)
-        example: '"550e8400-e29b-41d4-a716-446655440000"'
-        in: query
-        name: practice_id
-        type: string
-      - description: Filter by location ID (UUID format)
-        example: '"550e8400-e29b-41d4-a716-446655440000"'
-        in: query
-        name: location_id
+        name: program_id
         type: string
       produces:
       - application/json
@@ -1529,12 +1377,6 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get a list of games
-      parameters:
-      - description: Filter by game name
-        in: query
-        name: name
-        type: string
       produces:
       - application/json
       responses:
@@ -1549,13 +1391,11 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Get a list of games
       tags:
       - games
     post:
       consumes:
       - application/json
-      description: Create a new game
       parameters:
       - description: Game details
         in: body
@@ -1568,8 +1408,6 @@ paths:
       responses:
         "201":
           description: Game created successfully
-          schema:
-            $ref: '#/definitions/game.ResponseDto'
         "400":
           description: 'Bad Request: Invalid input'
           schema:
@@ -1582,14 +1420,12 @@ paths:
             type: object
       security:
       - Bearer: []
-      summary: Create a new game
       tags:
       - games
   /games/{id}:
     delete:
       consumes:
       - application/json
-      description: Delete a game by ID
       parameters:
       - description: Game ID
         in: path
@@ -1618,13 +1454,11 @@ paths:
             type: object
       security:
       - Bearer: []
-      summary: Delete a game
       tags:
       - games
     get:
       consumes:
       - application/json
-      description: Get a game by ID
       parameters:
       - description: Game ID
         in: path
@@ -1653,13 +1487,11 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Get a game by ID
       tags:
       - games
     put:
       consumes:
       - application/json
-      description: Update a game
       parameters:
       - description: Game ID
         in: path
@@ -1675,10 +1507,8 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
+        "204":
           description: Game updated successfully
-          schema:
-            $ref: '#/definitions/game.ResponseDto'
         "400":
           description: 'Bad Request: Invalid input'
           schema:
@@ -1696,7 +1526,6 @@ paths:
             type: object
       security:
       - Bearer: []
-      summary: Update a game
       tags:
       - games
   /haircuts:
@@ -2417,16 +2246,16 @@ paths:
       summary: Get payment frequencies for membership plans
       tags:
       - membership-plans
-  /practices:
+  /programs:
     get:
       consumes:
       - application/json
-      description: Get a list of practices
+      description: Get a list of programs
       produces:
       - application/json
       responses:
         "200":
-          description: Practices retrieved successfully
+          description: Programs retrieved successfully
           schema:
             items:
               $ref: '#/definitions/practice.Response'
@@ -2436,17 +2265,17 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Get a list of practices
+      summary: Get a list of programs
       tags:
-      - practices
+      - programs
     post:
       consumes:
       - application/json
-      description: Create a new practice
+      description: Create a new program
       parameters:
-      - description: Practice details
+      - description: Program details
         in: body
-        name: practice
+        name: program
         required: true
         schema:
           $ref: '#/definitions/practice.RequestDto'
@@ -2454,7 +2283,7 @@ paths:
       - application/json
       responses:
         "201":
-          description: Practice created successfully
+          description: Program created successfully
           schema:
             additionalProperties: true
             type: object
@@ -2470,16 +2299,15 @@ paths:
             type: object
       security:
       - Bearer: []
-      summary: Create a new practice
+      summary: Create a new program
       tags:
-      - practices
-  /practices/{id}:
+      - programs
+  /programs/{id}:
     delete:
       consumes:
       - application/json
-      description: Delete a practice by ID
       parameters:
-      - description: Practice ID
+      - description: Program ID
         in: path
         name: id
         required: true
@@ -2488,14 +2316,14 @@ paths:
       - application/json
       responses:
         "204":
-          description: 'No Content: Practice deleted successfully'
+          description: 'No Content: Program deleted successfully'
         "400":
           description: 'Bad Request: Invalid ID'
           schema:
             additionalProperties: true
             type: object
         "404":
-          description: 'Not Found: Practice not found'
+          description: 'Not Found: Program not found'
           schema:
             additionalProperties: true
             type: object
@@ -2506,22 +2334,21 @@ paths:
             type: object
       security:
       - Bearer: []
-      summary: Delete a practice
       tags:
-      - practices
+      - programs
     put:
       consumes:
       - application/json
-      description: Update a practice
+      description: Update a program
       parameters:
-      - description: Practice ID
+      - description: Program ID
         in: path
         name: id
         required: true
         type: string
-      - description: Practice details
+      - description: Program details
         in: body
-        name: practice
+        name: program
         required: true
         schema:
           $ref: '#/definitions/practice.RequestDto'
@@ -2529,14 +2356,14 @@ paths:
       - application/json
       responses:
         "204":
-          description: 'No Content: Practice updated successfully'
+          description: 'No Content: Program updated successfully'
         "400":
           description: 'Bad Request: Invalid input'
           schema:
             additionalProperties: true
             type: object
         "404":
-          description: 'Not Found: Practice not found'
+          description: 'Not Found: Program not found'
           schema:
             additionalProperties: true
             type: object
@@ -2545,19 +2372,19 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Update a practice
+      summary: Update a program
       tags:
-      - practices
-  /practices/levels:
+      - programs
+  /programs/levels:
     get:
       consumes:
       - application/json
-      description: Retrieves a list of available practice levels.
+      description: Retrieves a list of available program levels.
       produces:
       - application/json
       responses:
         "200":
-          description: Get practice levels retrieved successfully
+          description: Get program levels retrieved successfully
           schema:
             items:
               $ref: '#/definitions/practice.LevelsResponse'
@@ -2567,9 +2394,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Get practice levels
       tags:
-      - practices
+      - programs
   /purchases/square/webhook:
     post:
       consumes:
@@ -2887,9 +2713,9 @@ paths:
   /teams:
     get:
       consumes:
-        - application/json
+      - application/json
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: Teams retrieved successfully
@@ -2903,19 +2729,19 @@ paths:
             additionalProperties: true
             type: object
       tags:
-        - teams
+      - teams
     post:
       consumes:
-        - application/json
+      - application/json
       parameters:
-        - description: Team details
-          in: body
-          name: team
-          required: true
-          schema:
-            $ref: '#/definitions/team.RequestDto'
+      - description: Team details
+        in: body
+        name: team
+        required: true
+        schema:
+          $ref: '#/definitions/team.RequestDto'
       produces:
-        - application/json
+      - application/json
       responses:
         "201":
           description: Team created successfully
@@ -2933,21 +2759,21 @@ paths:
             additionalProperties: true
             type: object
       security:
-        - Bearer: [ ]
+      - Bearer: []
       tags:
-        - teams
+      - teams
   /teams/{id}:
     delete:
       consumes:
-        - application/json
+      - application/json
       parameters:
-        - description: Team ID
-          in: path
-          name: id
-          required: true
-          type: string
+      - description: Team ID
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
         "204":
           description: 'No Content: Team deleted successfully'
@@ -2967,26 +2793,26 @@ paths:
             additionalProperties: true
             type: object
       security:
-        - Bearer: [ ]
+      - Bearer: []
       tags:
-        - teams
+      - teams
     put:
       consumes:
-        - application/json
+      - application/json
       parameters:
-        - description: Team ID
-          in: path
-          name: id
-          required: true
-          type: string
-        - description: Team details
-          in: body
-          name: team
-          required: true
-          schema:
-            $ref: '#/definitions/team.RequestDto'
+      - description: Team ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Team details
+        in: body
+        name: team
+        required: true
+        schema:
+          $ref: '#/definitions/team.RequestDto'
       produces:
-        - application/json
+      - application/json
       responses:
         "204":
           description: 'No Content: Team updated successfully'
@@ -3006,9 +2832,9 @@ paths:
             additionalProperties: true
             type: object
       security:
-        - Bearer: [ ]
+      - Bearer: []
       tags:
-        - teams
+      - teams
 securityDefinitions:
   Bearer:
     in: header

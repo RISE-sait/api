@@ -6,8 +6,9 @@ import (
 	"api/config"
 	"api/internal/custom_types"
 	"api/internal/libs/validators"
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/shopspring/decimal"
 
@@ -16,14 +17,15 @@ import (
 
 	"context"
 	"database/sql"
-	_ "github.com/lib/pq"
 	"log"
+
+	_ "github.com/lib/pq"
 )
 
 func clearTables(ctx context.Context, db *sql.DB) {
 	// Define the schemas you want to truncate tables from
 	schemas := []string{"audit", "events", "haircut",
-		"location", "membership", "public", "staff", "users", "waiver"}
+		"location", "membership", "program", "public", "staff", "users", "waiver"}
 
 	// Build the TRUNCATE query
 	var tables []string
@@ -31,14 +33,16 @@ func clearTables(ctx context.Context, db *sql.DB) {
 		// Query for tables in the specified schema
 		rows, err := db.QueryContext(ctx, "SELECT tablename FROM pg_tables WHERE schemaname = $1", schema)
 		if err != nil {
-			log.Fatalf("Failed to clear tables: %v", err)
+			log.Fatalf("Failed to query tables: %v", err)
+			return
 		}
 		defer rows.Close()
 
 		for rows.Next() {
 			var table string
-			if err = rows.Scan(&table); err != nil {
-				log.Fatalf("Failed to clear tables: %v", err)
+			if err := rows.Scan(&table); err != nil {
+				log.Fatalf("Failed to scan tables: %v", err)
+				return
 			}
 			if schema == "public" && table == "goose_db_version" {
 				continue
@@ -46,8 +50,9 @@ func clearTables(ctx context.Context, db *sql.DB) {
 			tables = append(tables, fmt.Sprintf("%s.%s", schema, table))
 		}
 
-		if err = rows.Err(); err != nil {
-			log.Fatalf("Failed to clear tables: %v", err)
+		if err := rows.Err(); err != nil {
+			log.Fatalf("Failed to scan tables: %v", err)
+			return
 		}
 	}
 
@@ -61,8 +66,9 @@ func clearTables(ctx context.Context, db *sql.DB) {
 
 	// Execute the TRUNCATE query
 	if _, err := db.ExecContext(ctx, truncateQuery); err != nil {
-		log.Fatalf("Failed to clear tables: %v", err)
+		log.Fatalf("Failed to truncate tables: %v", err)
 	}
+
 }
 
 func seedUsers(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
@@ -204,15 +210,13 @@ func seedPractices(ctx context.Context, db *sql.DB) {
 	var (
 		nameArray        []string
 		descriptionArray []string
-		levelArray       []dbSeed.PracticeLevel
-		capacityArray    []int32
+		levelArray       []dbSeed.ProgramProgramLevel
 	)
 	for i := 0; i < len(practices); i++ {
 
 		nameArray = append(nameArray, practices[i].Name)
 		descriptionArray = append(descriptionArray, practices[i].Description)
-		levelArray = append(levelArray, dbSeed.PracticeLevelAll)
-		capacityArray = append(capacityArray, int32(practices[i].Capacity))
+		levelArray = append(levelArray, dbSeed.ProgramProgramLevelAll)
 	}
 
 	if err := seedQueries.InsertPractices(ctx, dbSeed.InsertPracticesParams{
@@ -233,10 +237,11 @@ func seedStaffRoles(ctx context.Context, db *sql.DB) {
 	if err != nil {
 		log.Fatalf("Failed to insert roles: %v", err)
 		return
+		return
 	}
 }
 
-func seedStaff(ctx context.Context, db *sql.DB) error {
+func seedStaff(ctx context.Context, db *sql.DB) {
 
 	seedQueries := dbSeed.New(db)
 
@@ -245,11 +250,9 @@ func seedStaff(ctx context.Context, db *sql.DB) error {
 	err := seedQueries.InsertStaff(ctx, staffs)
 
 	if err != nil {
-		log.Fatalf("Failed to insert roles: %v", err)
-		return err
+		log.Fatalf("Failed to insert staff: %v", err)
+		return
 	}
-
-	return nil
 }
 
 func seedCourses(ctx context.Context, db *sql.DB) {
@@ -258,21 +261,62 @@ func seedCourses(ctx context.Context, db *sql.DB) {
 
 	if err := seedQueries.InsertCourses(ctx, data.GetCourses()); err != nil {
 		log.Fatalf("Failed to insert courses: %v", err)
+		return
 	}
+
+	return
 }
 
-func getGames(numGames int) []string {
-	names := make([]string, numGames)
-	for i := 0; i < numGames; i++ {
-		names[i] = data.GenerateGameName(i)
-	}
-	return names
-}
+func seedTeams(ctx context.Context, db *sql.DB) []uuid.UUID {
 
-func seedGames(ctx context.Context, db *sql.DB) {
 	seedQueries := dbSeed.New(db)
 
-	gamesData := getGames(10) // Generate 20 games
+	teams := dbSeed.InsertTeamsParams{
+		CoachEmailArray: []string{
+			"viktor.djurasic+1@abcfitness.com",
+			"coach@test.com",
+		},
+		NameArray:     []string{"Team 1", "Team 2"},
+		CapacityArray: []int32{10, 10},
+	}
+
+	teamIds, err := seedQueries.InsertTeams(ctx, teams)
+
+	if err != nil {
+		log.Fatalf("Failed to insert teams: %v", err)
+		return nil
+	}
+
+	return teamIds
+}
+
+func getGames(numGames int, teamIds []uuid.UUID) dbSeed.InsertGamesParams {
+	params := dbSeed.InsertGamesParams{
+		NameArray:        make([]string, numGames),
+		DescriptionArray: make([]string, numGames),
+		LevelArray:       make([]dbSeed.ProgramProgramLevel, numGames),
+		WinTeamArray:     make([]uuid.UUID, numGames),
+		LoseTeamArray:    make([]uuid.UUID, numGames),
+		WinScoreArray:    make([]int32, numGames),
+		LoseScoreArray:   make([]int32, numGames),
+	}
+
+	for i := 0; i < numGames; i++ {
+		params.NameArray[i] = data.GenerateGameName(i)
+		params.DescriptionArray[i] = data.GenerateGameDescription(i)
+		params.LevelArray[i] = dbSeed.ProgramProgramLevelAll
+		params.WinTeamArray[i] = teamIds[i%len(teamIds)]
+		params.LoseTeamArray[i] = teamIds[(i+1)%len(teamIds)]
+		params.WinScoreArray[i] = int32(21 + i%15)
+		params.LoseScoreArray[i] = int32(15 + i%10)
+	}
+
+	return params
+}
+func seedGames(ctx context.Context, db *sql.DB, teamIds []uuid.UUID) {
+	seedQueries := dbSeed.New(db)
+
+	gamesData := getGames(10, teamIds) // Generate 20 games
 
 	if err := seedQueries.InsertGames(ctx, gamesData); err != nil {
 		log.Fatalf("Failed to insert games: %v", err)
@@ -445,7 +489,7 @@ func seedEvents(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 		eventStartTimeArray []custom_types.TimeWithTimeZone
 		eventEndTimeArray   []custom_types.TimeWithTimeZone
 		dayArray            []dbSeed.DayEnum
-		practiceNameArray   []string
+		programNameArray    []string
 		//courseNameArray       []string
 		//gameNameArray         []string
 		//locationNameArray     []string
@@ -484,7 +528,7 @@ func seedEvents(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 
 			dayArray = append(dayArray, day)
 
-			practiceNameArray = append(practiceNameArray, practice.Name)
+			programNameArray = append(programNameArray, practice.Name)
 
 		}
 	}
@@ -495,9 +539,7 @@ func seedEvents(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 		EventStartTimeArray: eventStartTimeArray,
 		EventEndTimeArray:   eventEndTimeArray,
 		DayArray:            dayArray,
-		PracticeNameArray:   practiceNameArray,
-		CourseNameArray:     nil,
-		GameNameArray:       nil,
+		ProgramNameArray:    programNameArray,
 		LocationNameArray:   nil,
 	}
 
@@ -564,13 +606,24 @@ func main() {
 
 	clearTables(ctx, db)
 
-	seedWaivers(ctx, db)
+	seedStaffRoles(ctx, db)
+
+	clientIds, err := seedUsers(ctx, db)
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	seedStaff(ctx, db)
+
+	teamIds := seedTeams(ctx, db)
 
 	seedPractices(ctx, db)
 
 	seedCourses(ctx, db)
 
-	seedGames(ctx, db)
+	seedGames(ctx, db, teamIds)
 
 	seedLocations(ctx, db)
 
@@ -584,13 +637,6 @@ func main() {
 	seedMemberships(ctx, db)
 
 	seedMembershipPlans(ctx, db)
-
-	clientIds, err := seedUsers(ctx, db)
-
-	if err != nil {
-		log.Println(err)
-		return
-	}
 
 	updateParents(ctx, db)
 
@@ -608,13 +654,6 @@ func main() {
 	//}
 
 	if err = seedMembershipPracticeEligibility(ctx, db); err != nil {
-		log.Println(err)
-		return
-	}
-
-	seedStaffRoles(ctx, db)
-
-	if err = seedStaff(ctx, db); err != nil {
 		log.Println(err)
 		return
 	}

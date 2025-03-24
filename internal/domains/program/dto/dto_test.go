@@ -1,11 +1,12 @@
-package course
+package practice
 
 import (
 	"api/internal/libs/validators"
 	"bytes"
-	"github.com/google/uuid"
 	"net/http"
 	"testing"
+
+	"github.com/google/uuid"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -68,12 +69,13 @@ func TestDecodeRequestBody(t *testing.T) {
 
 func TestValidRequestDto(t *testing.T) {
 
-	dto := RequestDto{
+	requestDto := RequestDto{
 		Name:        "Go Programming Basics",
 		Description: "Learn Go Programming",
+		Level:       "all",
 	}
 
-	createRequestDto, err := dto.ToCreateCourseDetails()
+	createRequestDto, err := requestDto.ToCreateValueObjects()
 
 	assert.Nil(t, err)
 
@@ -83,11 +85,12 @@ func TestValidRequestDto(t *testing.T) {
 
 func TestMissingNameRequestDto(t *testing.T) {
 
-	dto := RequestDto{
+	requestDto := RequestDto{
 		Description: "Learn Go Programming",
+		Level:       "all",
 	}
 
-	createRequestDto, err := dto.ToCreateCourseDetails()
+	createRequestDto, err := requestDto.ToCreateValueObjects()
 
 	assert.NotNil(t, err)
 
@@ -98,12 +101,12 @@ func TestMissingNameRequestDto(t *testing.T) {
 
 func TestBlankNameRequestDto(t *testing.T) {
 
-	dto := RequestDto{
+	requestDto := RequestDto{
 		Name:        "          ",
 		Description: "Learn Go Programming",
 	}
 
-	createRequestDto, err := dto.ToCreateCourseDetails()
+	createRequestDto, err := requestDto.ToCreateValueObjects()
 
 	assert.NotNil(t, err)
 
@@ -114,36 +117,37 @@ func TestBlankNameRequestDto(t *testing.T) {
 
 func TestUpdateRequestDtoValidUUID(t *testing.T) {
 
-	dto := RequestDto{
+	requestDto := RequestDto{
 		Name:        "Learn Go Programming Name",
 		Description: "Learn Go Programming Description",
+		Level:       "all",
 	}
 
 	id := uuid.New()
 
-	updateRequestDto, err := dto.ToUpdateCourseDetails(id.String())
+	updateRequestDto, err := requestDto.ToUpdateValueObjects(id.String())
 
 	assert.Nil(t, err)
 
-	assert.Equal(t, updateRequestDto.Name, "Learn Go Programming Name")
-	assert.Equal(t, updateRequestDto.Description, "Learn Go Programming Description")
+	assert.Equal(t, updateRequestDto.ProgramDetails.Name, "Learn Go Programming Name")
+	assert.Equal(t, updateRequestDto.ProgramDetails.Description, "Learn Go Programming Description")
 
 	assert.Equal(t, updateRequestDto.ID.String(), id.String())
 }
 
 func TestUpdateRequestDtoInvalidUUID(t *testing.T) {
 
-	dto := RequestDto{
+	requestDto := RequestDto{
 		Name:        "Learn Go Programming Name",
 		Description: "Learn Go Programming Description",
 	}
 
-	updateRequestDto, err := dto.ToUpdateCourseDetails("wefwfwefew")
+	updateRequestDto, err := requestDto.ToUpdateValueObjects("wefwfwefew")
 
 	assert.NotNil(t, err)
 
 	assert.Contains(t, err.Message, "invalid UUID: wefwfwefew")
 
-	assert.Equal(t, updateRequestDto.Name, "")
-	assert.Equal(t, updateRequestDto.Description, "")
+	assert.Equal(t, updateRequestDto.ProgramDetails.Name, "")
+	assert.Equal(t, updateRequestDto.ProgramDetails.Description, "")
 }

@@ -12,35 +12,36 @@ import (
 	"github.com/lib/pq"
 
 	"api/utils/test_utils"
+
 	"github.com/stretchr/testify/require"
 
-	practiceTestUtils "api/internal/domains/practice/persistence/test_utils"
+	programTestUtils "api/internal/domains/program/persistence/test_utils"
 
-	db "api/internal/domains/practice/persistence/sqlc/generated"
+	db "api/internal/domains/program/persistence/sqlc/generated"
 )
 
-func TestCreatePractice(t *testing.T) {
+func TestCreateProgram(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := practiceTestUtils.SetupPracticeTestDbQueries(t, dbConn)
+	queries, cleanup := programTestUtils.SetupPracticeTestDbQueries(t, dbConn)
 
 	defer cleanup()
 
 	name := "Go Course"
 	description := "Learn Go programming"
 
-	createPracticeParams := db.CreatePracticeParams{
+	CreateProgramParams := db.CreateProgramParams{
 		Name:        name,
 		Description: description,
-		Level:       db.PracticeLevelAll,
+		Level:       db.ProgramProgramLevelAll,
 	}
 
-	err := queries.CreatePractice(context.Background(), createPracticeParams)
+	err := queries.CreateProgram(context.Background(), CreateProgramParams)
 
 	require.NoError(t, err)
 
-	practices, err := queries.GetPractices(context.Background())
+	practices, err := queries.GetPrograms(context.Background())
 
 	require.NoError(t, err)
 
@@ -49,14 +50,14 @@ func TestCreatePractice(t *testing.T) {
 	// Assert course data
 	require.Equal(t, name, practice.Name)
 	require.Equal(t, description, practice.Description)
-	require.Equal(t, createPracticeParams.Name, practice.Name)
+	require.Equal(t, CreateProgramParams.Name, practice.Name)
 }
 
 func TestUpdatePracticeValid(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := practiceTestUtils.SetupPracticeTestDbQueries(t, dbConn)
+	queries, cleanup := programTestUtils.SetupPracticeTestDbQueries(t, dbConn)
 
 	defer cleanup()
 
@@ -64,16 +65,16 @@ func TestUpdatePracticeValid(t *testing.T) {
 	name := "Go Course"
 	description := "Learn Go programming"
 
-	createPracticeParams := db.CreatePracticeParams{
+	CreateProgramParams := db.CreateProgramParams{
 		Name:        name,
 		Description: description,
-		Level:       db.PracticeLevelAll,
+		Level:       db.ProgramProgramLevelAll,
 	}
 
-	err := queries.CreatePractice(context.Background(), createPracticeParams)
+	err := queries.CreateProgram(context.Background(), CreateProgramParams)
 	require.NoError(t, err)
 
-	practices, err := queries.GetPractices(context.Background())
+	practices, err := queries.GetPrograms(context.Background())
 
 	require.NoError(t, err)
 
@@ -81,17 +82,17 @@ func TestUpdatePracticeValid(t *testing.T) {
 
 	// Now, update the course
 	newName := "Advanced Go Course"
-	updateParams := db.UpdatePracticeParams{
+	updateParams := db.UpdateProgramParams{
 		ID:          practice.ID,
 		Name:        newName,
 		Description: "Learn advanced Go programming",
-		Level:       db.PracticeLevelAll,
+		Level:       db.ProgramProgramLevelAll,
 	}
 
-	err = queries.UpdatePractice(context.Background(), updateParams)
+	err = queries.UpdateProgram(context.Background(), updateParams)
 
 	// Get the updated course and verify
-	updatedCourse, err := queries.GetPracticeById(context.Background(), practice.ID)
+	updatedCourse, err := queries.GetProgramById(context.Background(), practice.ID)
 	require.NoError(t, err)
 	require.Equal(t, newName, updatedCourse.Name)
 	require.Equal(t, "Learn advanced Go programming", updatedCourse.Description)
@@ -101,7 +102,7 @@ func TestUpdatePracticeInvalidLevel(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := practiceTestUtils.SetupPracticeTestDbQueries(t, dbConn)
+	queries, cleanup := programTestUtils.SetupPracticeTestDbQueries(t, dbConn)
 
 	defer cleanup()
 
@@ -109,16 +110,16 @@ func TestUpdatePracticeInvalidLevel(t *testing.T) {
 	name := "Go Course"
 	description := "Learn Go programming"
 
-	createPracticeParams := db.CreatePracticeParams{
+	CreateProgramParams := db.CreateProgramParams{
 		Name:        name,
 		Description: description,
-		Level:       db.PracticeLevelAll,
+		Level:       db.ProgramProgramLevelAll,
 	}
 
-	err := queries.CreatePractice(context.Background(), createPracticeParams)
+	err := queries.CreateProgram(context.Background(), CreateProgramParams)
 	require.NoError(t, err)
 
-	practices, err := queries.GetPractices(context.Background())
+	practices, err := queries.GetPrograms(context.Background())
 
 	require.NoError(t, err)
 
@@ -126,41 +127,41 @@ func TestUpdatePracticeInvalidLevel(t *testing.T) {
 
 	// Now, update the course
 	newName := "Advanced Go Course"
-	updateParams := db.UpdatePracticeParams{
+	updateParams := db.UpdateProgramParams{
 		ID:          practice.ID,
 		Name:        newName,
 		Description: "Learn advanced Go programming",
 	}
 
-	err = queries.UpdatePractice(context.Background(), updateParams)
+	err = queries.UpdateProgram(context.Background(), updateParams)
 	var pgErr *pq.Error
 	require.True(t, errors.As(err, &pgErr))
 	require.Equal(t, databaseErrors.InvalidTextRepresentation, string(pgErr.Code))
 
 }
 
-func TestCreatePracticeUniqueNameConstraint(t *testing.T) {
+func TestCreateProgramUniqueNameConstraint(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := practiceTestUtils.SetupPracticeTestDbQueries(t, dbConn)
+	queries, cleanup := programTestUtils.SetupPracticeTestDbQueries(t, dbConn)
 
 	defer cleanup()
 
 	// Create a course
 	name := "Go Course"
 	description := "Learn Go programming"
-	createCourseParams := db.CreatePracticeParams{
+	createCourseParams := db.CreateProgramParams{
 		Name:        name,
 		Description: description,
-		Level:       db.PracticeLevelAdvanced,
+		Level:       db.ProgramProgramLevelAdvanced,
 	}
 
-	err := queries.CreatePractice(context.Background(), createCourseParams)
+	err := queries.CreateProgram(context.Background(), createCourseParams)
 	require.NoError(t, err)
 
 	// Attempt to create another course with the same name
-	err = queries.CreatePractice(context.Background(), createCourseParams)
+	err = queries.CreateProgram(context.Background(), createCourseParams)
 	require.Error(t, err)
 
 	var pgErr *pq.Error
@@ -172,23 +173,23 @@ func TestGetAllPractices(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := practiceTestUtils.SetupPracticeTestDbQueries(t, dbConn)
+	queries, cleanup := programTestUtils.SetupPracticeTestDbQueries(t, dbConn)
 
 	defer cleanup()
 
 	// Create some courses
 	for i := 1; i <= 5; i++ {
-		createCourseParams := db.CreatePracticeParams{
+		createCourseParams := db.CreateProgramParams{
 			Name:        fmt.Sprintf("Course %d", i),
 			Description: fmt.Sprintf("Description %d", i),
-			Level:       db.PracticeLevelAll,
+			Level:       db.ProgramProgramLevelAll,
 		}
-		err := queries.CreatePractice(context.Background(), createCourseParams)
+		err := queries.CreateProgram(context.Background(), createCourseParams)
 		require.NoError(t, err)
 	}
 
 	// Fetch all courses
-	courses, err := queries.GetPractices(context.Background())
+	courses, err := queries.GetPrograms(context.Background())
 	require.NoError(t, err)
 	require.EqualValues(t, 5, len(courses))
 }
@@ -197,21 +198,21 @@ func TestUpdateNonExistentPractice(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := practiceTestUtils.SetupPracticeTestDbQueries(t, dbConn)
+	queries, cleanup := programTestUtils.SetupPracticeTestDbQueries(t, dbConn)
 
 	defer cleanup()
 
 	// Attempt to update a practice that doesn't exist
 	nonExistentId := uuid.New() // Random UUID
 
-	updateParams := db.UpdatePracticeParams{
+	updateParams := db.UpdateProgramParams{
 		ID:          nonExistentId,
 		Name:        "Updated Practice",
 		Description: "Updated practice description",
-		Level:       db.PracticeLevelAll,
+		Level:       db.ProgramProgramLevelAll,
 	}
 
-	err := queries.UpdatePractice(context.Background(), updateParams)
+	err := queries.UpdateProgram(context.Background(), updateParams)
 	require.Nil(t, err)
 }
 
@@ -219,18 +220,18 @@ func TestCreateCourseWithWrongLevel(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := practiceTestUtils.SetupPracticeTestDbQueries(t, dbConn)
+	queries, cleanup := programTestUtils.SetupPracticeTestDbQueries(t, dbConn)
 
 	defer cleanup()
 
 	// Create a course with a null description
-	createPracticeParams := db.CreatePracticeParams{
+	CreateProgramParams := db.CreateProgramParams{
 		Name:        "Go Course",
 		Description: "wefwefew",
 		Level:       "jhwwf",
 	}
 
-	err := queries.CreatePractice(context.Background(), createPracticeParams)
+	err := queries.CreateProgram(context.Background(), CreateProgramParams)
 
 	require.Error(t, err)
 
@@ -243,35 +244,35 @@ func TestDeleteCourse(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := practiceTestUtils.SetupPracticeTestDbQueries(t, dbConn)
+	queries, cleanup := programTestUtils.SetupPracticeTestDbQueries(t, dbConn)
 
 	defer cleanup()
 
 	// Create a course to delete
 	name := "Go Course"
-	createPracticeParams := db.CreatePracticeParams{
+	CreateProgramParams := db.CreateProgramParams{
 		Name:        name,
 		Description: "Learn Go programming",
-		Level:       db.PracticeLevelAll,
+		Level:       db.ProgramProgramLevelAll,
 	}
 
-	err := queries.CreatePractice(context.Background(), createPracticeParams)
+	err := queries.CreateProgram(context.Background(), CreateProgramParams)
 	require.NoError(t, err)
 
-	practices, err := queries.GetPractices(context.Background())
+	practices, err := queries.GetPrograms(context.Background())
 
 	require.NoError(t, err)
 
 	createdPractice := practices[0]
 
 	// Delete the course
-	impactedRows, err := queries.DeletePractice(context.Background(), createdPractice.ID)
+	impactedRows, err := queries.DeleteProgram(context.Background(), createdPractice.ID)
 	require.NoError(t, err)
 
 	require.Equal(t, impactedRows, int64(1))
 
 	// Attempt to fetch the deleted course (expecting error)
-	_, err = queries.GetPracticeById(context.Background(), createdPractice.ID)
+	_, err = queries.GetProgramById(context.Background(), createdPractice.ID)
 
 	require.Error(t, err)
 

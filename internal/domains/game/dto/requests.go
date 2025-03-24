@@ -4,21 +4,39 @@ import (
 	values "api/internal/domains/game/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
+
+	"github.com/google/uuid"
 )
 
 type RequestDto struct {
-	Name string `json:"name" validate:"notwhitespace"`
+	Name        string    `json:"name" validate:"required,notwhitespace"`
+	Description string    `json:"description"`
+	WinTeam     uuid.UUID `json:"win_team"`
+	LoseTeam    uuid.UUID `json:"lose_team"`
+	WinScore    int32     `json:"win_score"`
+	LoseScore   int32     `json:"lose_score"`
 }
 
-func (dto *RequestDto) ToCreateGameName() (string, *errLib.CommonError) {
+func (dto *RequestDto) ToCreateGameName() (values.CreateGameValue, *errLib.CommonError) {
 
 	var details values.CreateGameValue
 
 	if err := validators.ValidateDto(dto); err != nil {
-		return details.Name, err
+		return details, err
 	}
 
-	return details.Name, nil
+	details = values.CreateGameValue{
+		BaseValue: values.BaseValue{
+			Name:        dto.Name,
+			Description: dto.Description,
+			WinTeamID:   dto.WinTeam,
+			LoseTeamID:  dto.LoseTeam,
+			WinScore:    dto.WinScore,
+			LoseScore:   dto.LoseScore,
+		},
+	}
+
+	return details, nil
 }
 
 func (dto *RequestDto) ToUpdateGameValue(idStr string) (values.UpdateGameValue, *errLib.CommonError) {
@@ -35,9 +53,17 @@ func (dto *RequestDto) ToUpdateGameValue(idStr string) (values.UpdateGameValue, 
 		return details, err
 	}
 
-	details.ID = id
-
-	details.Name = dto.Name
+	details = values.UpdateGameValue{
+		ID: id,
+		BaseValue: values.BaseValue{
+			Name:        dto.Name,
+			Description: dto.Description,
+			WinTeamID:   dto.WinTeam,
+			LoseTeamID:  dto.LoseTeam,
+			WinScore:    dto.WinScore,
+			LoseScore:   dto.LoseScore,
+		},
+	}
 
 	return details, nil
 }

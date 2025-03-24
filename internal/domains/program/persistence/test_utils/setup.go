@@ -1,10 +1,11 @@
 package test_utils
 
 import (
-	db "api/internal/domains/practice/persistence/sqlc/generated"
+	db "api/internal/domains/program/persistence/sqlc/generated"
 	"database/sql"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func SetupPracticeTestDbQueries(t *testing.T, testDb *sql.DB) (*db.Queries, func()) {

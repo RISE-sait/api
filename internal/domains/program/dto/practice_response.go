@@ -1,8 +1,9 @@
 package practice
 
 import (
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Response struct {
@@ -10,6 +11,7 @@ type Response struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description,omitempty"`
 	Level       string    `json:"level"`
+	Type        string    `json:"type"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

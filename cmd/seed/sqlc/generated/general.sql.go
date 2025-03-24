@@ -15,19 +15,25 @@ import (
 )
 
 const insertCourses = `-- name: InsertCourses :exec
-INSERT INTO courses (name, description)
-VALUES (unnest($1::text[]),
-        unnest($2::text[]))
-RETURNING id
+WITH prepared_data as (SELECT unnest($1::text[]) as name,
+        unnest($2::text[]) as description,
+        unnest($3::program.program_level[]) as level)
+INSERT INTO program.programs (name, description, type, level)
+SELECT name,
+       description,
+       'course',
+       level
+FROM prepared_data
 `
 
 type InsertCoursesParams struct {
-	NameArray        []string `json:"name_array"`
-	DescriptionArray []string `json:"description_array"`
+	NameArray        []string              `json:"name_array"`
+	DescriptionArray []string              `json:"description_array"`
+	LevelArray       []ProgramProgramLevel `json:"level_array"`
 }
 
 func (q *Queries) InsertCourses(ctx context.Context, arg InsertCoursesParams) error {
-	_, err := q.db.ExecContext(ctx, insertCourses, pq.Array(arg.NameArray), pq.Array(arg.DescriptionArray))
+	_, err := q.db.ExecContext(ctx, insertCourses, pq.Array(arg.NameArray), pq.Array(arg.DescriptionArray), pq.Array(arg.LevelArray))
 	return err
 }
 
@@ -87,26 +93,19 @@ WITH events_data AS (SELECT unnest($1::timestamptz[]) as program_start_at,
                             unnest($3::timetz[]) AS event_start_time,
                             unnest($4::timetz[])   AS event_end_time,
                             unnest($5::day_enum[])                 AS day,
-                            unnest($6::text[])           AS practice_name,
-                            unnest($7::text[])             AS course_name,
-                            unnest($8::text[])               AS game_name,
-                            unnest($9::text[])           as location_name)
+                            unnest($6::text[])           AS program_name,
+                            unnest($7::text[])           as location_name)
 INSERT
-INTO events.events (program_start_at, program_end_at, event_start_time, event_end_time, day, practice_id, course_id,
-                    game_id, location_id)
+INTO events.events (program_start_at, program_end_at, event_start_time, event_end_time, day, program_id, location_id)
 SELECT e.program_start_at,
        e.program_end_at,
        e.event_start_time,
        e.event_end_time,
        e.day,
-       p.id AS practice_id,
-       c.id AS course_id,
-       g.id AS game_id,
+       p.id AS program_id,
        l.id AS location_id
 FROM events_data e
-         LEFT JOIN LATERAL (SELECT id FROM public.practices WHERE name = e.practice_name) p ON TRUE
-         LEFT JOIN LATERAL (SELECT id FROM courses WHERE name = e.course_name) c ON TRUE
-         LEFT JOIN LATERAL (SELECT id FROM public.games WHERE name = e.game_name) g ON TRUE
+         LEFT JOIN LATERAL (SELECT id FROM program.programs p WHERE p.name = e.program_name) p ON TRUE
          LEFT JOIN LATERAL (SELECT id FROM location.locations WHERE name = e.location_name) l ON TRUE
 RETURNING id
 `
@@ -117,9 +116,7 @@ type InsertEventsParams struct {
 	EventStartTimeArray []custom_types.TimeWithTimeZone `json:"event_start_time_array"`
 	EventEndTimeArray   []custom_types.TimeWithTimeZone `json:"event_end_time_array"`
 	DayArray            []DayEnum                       `json:"day_array"`
-	PracticeNameArray   []string                        `json:"practice_name_array"`
-	CourseNameArray     []string                        `json:"course_name_array"`
-	GameNameArray       []string                        `json:"game_name_array"`
+	ProgramNameArray    []string                        `json:"program_name_array"`
 	LocationNameArray   []string                        `json:"location_name_array"`
 }
 
@@ -130,9 +127,7 @@ func (q *Queries) InsertEvents(ctx context.Context, arg InsertEventsParams) ([]u
 		pq.Array(arg.EventStartTimeArray),
 		pq.Array(arg.EventEndTimeArray),
 		pq.Array(arg.DayArray),
-		pq.Array(arg.PracticeNameArray),
-		pq.Array(arg.CourseNameArray),
-		pq.Array(arg.GameNameArray),
+		pq.Array(arg.ProgramNameArray),
 		pq.Array(arg.LocationNameArray),
 	)
 	if err != nil {
@@ -157,13 +152,40 @@ func (q *Queries) InsertEvents(ctx context.Context, arg InsertEventsParams) ([]u
 }
 
 const insertGames = `-- name: InsertGames :exec
-INSERT INTO games (name)
-VALUES (unnest($1::text[]))
-RETURNING id
+WITH prepared_data as (
+        SELECT unnest($5::text[]) as name,
+        unnest($6::text[]) as description,
+        unnest($7::program.program_level[]) as level),
+game_ids AS (
+    INSERT INTO program.programs (name, description, type, level)
+    SELECT name, description, 'game', level
+    FROM prepared_data
+    RETURNING id
+)
+INSERT INTO public.games (id, win_team, lose_team, win_score, lose_score)
+VALUES (unnest(ARRAY(SELECT id FROM game_ids)), unnest($1::uuid[]), unnest($2::uuid[]), unnest($3::int[]), unnest($4::int[]))
 `
 
-func (q *Queries) InsertGames(ctx context.Context, nameArray []string) error {
-	_, err := q.db.ExecContext(ctx, insertGames, pq.Array(nameArray))
+type InsertGamesParams struct {
+	WinTeamArray     []uuid.UUID           `json:"win_team_array"`
+	LoseTeamArray    []uuid.UUID           `json:"lose_team_array"`
+	WinScoreArray    []int32               `json:"win_score_array"`
+	LoseScoreArray   []int32               `json:"lose_score_array"`
+	NameArray        []string              `json:"name_array"`
+	DescriptionArray []string              `json:"description_array"`
+	LevelArray       []ProgramProgramLevel `json:"level_array"`
+}
+
+func (q *Queries) InsertGames(ctx context.Context, arg InsertGamesParams) error {
+	_, err := q.db.ExecContext(ctx, insertGames,
+		pq.Array(arg.WinTeamArray),
+		pq.Array(arg.LoseTeamArray),
+		pq.Array(arg.WinScoreArray),
+		pq.Array(arg.LoseScoreArray),
+		pq.Array(arg.NameArray),
+		pq.Array(arg.DescriptionArray),
+		pq.Array(arg.LevelArray),
+	)
 	return err
 }
 
@@ -184,20 +206,66 @@ func (q *Queries) InsertLocations(ctx context.Context, arg InsertLocationsParams
 }
 
 const insertPractices = `-- name: InsertPractices :exec
-INSERT INTO practices (name, description, level)
-VALUES (unnest($1::text[]),
-        unnest($2::text[]),
-        unnest($3::practice_level[]))
-RETURNING id
+WITH prepared_data as (
+        SELECT unnest($1::text[]) as name,
+        unnest($2::text[]) as description,
+        unnest($3::program.program_level[]) as level)
+INSERT INTO program.programs (name, description, type, level)
+SELECT name,
+       description,
+       'practice',
+       level
+FROM prepared_data
 `
 
 type InsertPracticesParams struct {
-	NameArray        []string        `json:"name_array"`
-	DescriptionArray []string        `json:"description_array"`
-	LevelArray       []PracticeLevel `json:"level_array"`
+	NameArray        []string              `json:"name_array"`
+	DescriptionArray []string              `json:"description_array"`
+	LevelArray       []ProgramProgramLevel `json:"level_array"`
 }
 
 func (q *Queries) InsertPractices(ctx context.Context, arg InsertPracticesParams) error {
 	_, err := q.db.ExecContext(ctx, insertPractices, pq.Array(arg.NameArray), pq.Array(arg.DescriptionArray), pq.Array(arg.LevelArray))
 	return err
+}
+
+const insertTeams = `-- name: InsertTeams :many
+WITH prepared_data AS (SELECT unnest($1::text[])          AS coach,
+                              unnest($2::int[])             AS capacity,
+                              unnest($3::text[]) AS name)
+INSERT
+INTO athletic.teams(capacity, coach_id, name)
+SELECT capacity, u.id, name
+FROM prepared_data
+JOIN users.users u ON u.email = coach
+RETURNING id
+`
+
+type InsertTeamsParams struct {
+	CoachEmailArray []string `json:"coach_email_array"`
+	CapacityArray   []int32  `json:"capacity_array"`
+	NameArray       []string `json:"name_array"`
+}
+
+func (q *Queries) InsertTeams(ctx context.Context, arg InsertTeamsParams) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, insertTeams, pq.Array(arg.CoachEmailArray), pq.Array(arg.CapacityArray), pq.Array(arg.NameArray))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

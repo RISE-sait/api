@@ -2,7 +2,6 @@ package di
 
 import (
 	"api/config"
-	courseDb "api/internal/domains/course/persistence/sqlc/generated"
 	enrollmentDb "api/internal/domains/enrollment/persistence/sqlc/generated"
 	eventDb "api/internal/domains/event/persistence/sqlc/generated"
 	gameDb "api/internal/domains/game/persistence/sqlc/generated"
@@ -10,7 +9,7 @@ import (
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
 	locationDb "api/internal/domains/location/persistence/sqlc/generated"
 	membershipDb "api/internal/domains/membership/persistence/sqlc/generated"
-	practiceDb "api/internal/domains/practice/persistence/sqlc/generated"
+	programDb "api/internal/domains/program/persistence/sqlc/generated"
 	purchaseDb "api/internal/domains/purchase/persistence/sqlc/generated"
 	teamDb "api/internal/domains/team/persistence/sqlc/generated"
 
@@ -39,8 +38,7 @@ type Container struct {
 type QueriesType struct {
 	IdentityDb   *identityDb.Queries
 	PurchasesDb  *purchaseDb.Queries
-	CoursesDb    *courseDb.Queries
-	PracticesDb  *practiceDb.Queries
+	ProgramDb    *programDb.Queries
 	MembershipDb *membershipDb.Queries
 	LocationDb   *locationDb.Queries
 	EventDb      *eventDb.Queries
@@ -82,8 +80,7 @@ func initializeQueries(db *sql.DB) *QueriesType {
 		IdentityDb:   identityDb.New(db),
 		UserDb:       userDb.New(db),
 		PurchasesDb:  purchaseDb.New(db),
-		CoursesDb:    courseDb.New(db),
-		PracticesDb:  practiceDb.New(db),
+		ProgramDb:    programDb.New(db),
 		MembershipDb: membershipDb.New(db),
 		LocationDb:   locationDb.New(db),
 		EventDb:      eventDb.New(db),

@@ -29,7 +29,7 @@ FROM unnest(@name_array::text[]) WITH ORDINALITY AS n(name, ord)
 RETURNING id;
 
 -- name: InsertCourseMembershipsEligibility :exec
-INSERT INTO public.course_membership (course_id, membership_id, is_eligible, price_per_booking)
+INSERT INTO public.program_membership (program_id, membership_id, is_eligible, price_per_booking)
 VALUES (unnest(@course_id_array::uuid[]),
         unnest(@membership_id_array::uuid[]),
         unnest(@is_eligible_array::bool[]),
@@ -41,7 +41,7 @@ WITH prepared_data as (SELECT unnest(@practice_names_array::text[])       as pra
                               unnest(@is_eligible_array::bool[])          as is_eligible,
                               unnest(@price_per_booking_array::numeric[]) as price_per_booking)
 INSERT
-INTO public.practice_membership (practice_id, membership_id, is_eligible, price_per_booking)
+INTO public.program_membership (program_id, membership_id, is_eligible, price_per_booking)
 SELECT p.id,
        m.id,
        is_eligible,
@@ -51,7 +51,7 @@ SELECT p.id,
            END AS price_per_booking
 FROM prepared_data
          JOIN membership.memberships m ON m.name = membership_names
-         JOIN public.practices p ON p.name = practice_names;
+         JOIN program.programs p ON p.name = practice_names;
 
 -- name: InsertClientsMembershipPlans :exec
 WITH prepared_data as (SELECT unnest(@customer_email_array::text[])       as customer_email,

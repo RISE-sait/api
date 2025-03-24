@@ -5,9 +5,10 @@ import (
 	values "api/internal/domains/event/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
-	"github.com/google/uuid"
 	"log"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type RequestDto struct {
@@ -16,10 +17,9 @@ type RequestDto struct {
 	ProgramEndAt     string    `json:"program_end_at" validate:"required" example:"2023-10-05T07:00:00Z"`
 	SessionStartTime string    `json:"session_start_time" validate:"required" example:"23:00:00+00:00"`
 	SessionEndTime   string    `json:"session_end_time" validate:"required" example:"23:00:00+00:00"`
-	PracticeID       uuid.UUID `json:"practice_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
-	CourseID         uuid.UUID `json:"course_id" example:"00000000-0000-0000-0000-000000000000"`
-	GameID           uuid.UUID `json:"game_id" example:"00000000-0000-0000-0000-000000000000"`
+	ProgramID        uuid.UUID `json:"program_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
 	LocationID       uuid.UUID `json:"location_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
+	Capacity         *int32    `json:"capacity" example:"100"`
 }
 
 // validate validates the request DTO, parses the event and session start and end times,
@@ -74,10 +74,9 @@ func (dto RequestDto) ToCreateEventValues() (values.CreateEventValues, *errLib.C
 			ProgramEndAt:   programEndDateTime,
 			EventStartTime: sessionBeginTime,
 			EventEndTime:   sessionEndTime,
-			PracticeID:     dto.PracticeID,
-			CourseID:       dto.CourseID, // Assuming you need to map this
-			GameID:         dto.GameID,
+			ProgramID:      dto.ProgramID,
 			LocationID:     dto.LocationID,
+			Capacity:       dto.Capacity,
 			Day:            dto.Day,
 		},
 	}, nil
@@ -107,9 +106,8 @@ func (dto RequestDto) ToUpdateEventValues(idStr string) (values.UpdateEventValue
 			EventStartTime: sessionBeginTime,
 			EventEndTime:   sessionEndTime,
 			Day:            dto.Day,
-			PracticeID:     dto.PracticeID,
-			CourseID:       dto.CourseID,
-			GameID:         dto.GameID,
+			ProgramID:      dto.ProgramID,
+			Capacity:       dto.Capacity,
 			LocationID:     dto.LocationID,
 		},
 	}, nil

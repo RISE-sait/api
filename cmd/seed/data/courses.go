@@ -24,31 +24,26 @@ func generateCourseDescription(name string) string {
 	return fmt.Sprintf(templates[rand.Intn(len(templates))], name)
 }
 
-// Generate random course capacity
-func generateCourseCapacity() int {
-	return rand.Intn(50) + 10 // Capacity between 10 and 60
-}
-
 func GetCourses() dbSeed.InsertCoursesParams {
 
 	var (
 		nameArray        []string
 		descriptionArray []string
-		capacityArray    []int32
+		levelArray       []dbSeed.ProgramProgramLevel
 	)
 
 	for i := 0; i < 20; i++ {
 		name := generateCourseName(i)
 		description := generateCourseDescription(name)
-		capacity := generateCourseCapacity()
 
 		nameArray = append(nameArray, name)
 		descriptionArray = append(descriptionArray, description)
-		capacityArray = append(capacityArray, int32(capacity))
+		levelArray = append(levelArray, dbSeed.ProgramProgramLevelIntermediate)
 	}
 
 	return dbSeed.InsertCoursesParams{
 		NameArray:        nameArray,
 		DescriptionArray: descriptionArray,
+		LevelArray:       levelArray,
 	}
 }

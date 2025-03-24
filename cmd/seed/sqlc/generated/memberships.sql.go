@@ -47,7 +47,7 @@ func (q *Queries) InsertClientsMembershipPlans(ctx context.Context, arg InsertCl
 }
 
 const insertCourseMembershipsEligibility = `-- name: InsertCourseMembershipsEligibility :exec
-INSERT INTO public.course_membership (course_id, membership_id, is_eligible, price_per_booking)
+INSERT INTO public.program_membership (program_id, membership_id, is_eligible, price_per_booking)
 VALUES (unnest($1::uuid[]),
         unnest($2::uuid[]),
         unnest($3::bool[]),
@@ -142,7 +142,7 @@ WITH prepared_data as (SELECT unnest($1::text[])       as practice_names,
                               unnest($3::bool[])          as is_eligible,
                               unnest($4::numeric[]) as price_per_booking)
 INSERT
-INTO public.practice_membership (practice_id, membership_id, is_eligible, price_per_booking)
+INTO public.program_membership (program_id, membership_id, is_eligible, price_per_booking)
 SELECT p.id,
        m.id,
        is_eligible,
@@ -152,7 +152,7 @@ SELECT p.id,
            END AS price_per_booking
 FROM prepared_data
          JOIN membership.memberships m ON m.name = membership_names
-         JOIN public.practices p ON p.name = practice_names
+         JOIN program.programs p ON p.name = practice_names
 `
 
 type InsertPracticeMembershipsEligibilityParams struct {

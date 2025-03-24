@@ -43,7 +43,7 @@ func TestCreateProgram(t *testing.T) {
 	require.NoError(t, err)
 
 	programs, err := queries.GetPrograms(context.Background(), db.NullProgramProgramType{
-		ProgramProgramType: db.ProgramProgramTypeOthers,
+		ProgramProgramType: db.ProgramProgramTypeCourse,
 		Valid:              true,
 	})
 
@@ -80,7 +80,7 @@ func TestUpdateProgramValid(t *testing.T) {
 	require.NoError(t, err)
 
 	programs, err := queries.GetPrograms(context.Background(), db.NullProgramProgramType{
-		ProgramProgramType: db.ProgramProgramTypeOthers,
+		ProgramProgramType: db.ProgramProgramTypeCourse,
 		Valid:              true,
 	})
 
@@ -130,7 +130,7 @@ func TestUpdatePracticeInvalidLevel(t *testing.T) {
 	require.NoError(t, err)
 
 	programs, err := queries.GetPrograms(context.Background(), db.NullProgramProgramType{
-		ProgramProgramType: db.ProgramProgramTypeOthers,
+		ProgramProgramType: db.ProgramProgramTypeCourse,
 		Valid:              true,
 	})
 
@@ -205,7 +205,7 @@ func TestGetAllPrograms(t *testing.T) {
 
 	// Fetch all courses
 	courses, err := queries.GetPrograms(context.Background(), db.NullProgramProgramType{
-		ProgramProgramType: db.ProgramProgramTypeOthers,
+		ProgramProgramType: db.ProgramProgramTypeCourse,
 		Valid:              true,
 	})
 	require.NoError(t, err)
@@ -281,7 +281,7 @@ func TestDeleteProgram(t *testing.T) {
 	require.NoError(t, err)
 
 	programs, err := queries.GetPrograms(context.Background(), db.NullProgramProgramType{
-		ProgramProgramType: db.ProgramProgramTypeOthers,
+		ProgramProgramType: db.ProgramProgramTypeCourse,
 		Valid:              true,
 	})
 

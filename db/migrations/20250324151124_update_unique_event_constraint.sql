@@ -2,12 +2,19 @@
 -- +goose StatementBegin
 -- Drop the existing constraint
 ALTER TABLE events.events
-    DROP CONSTRAINT unique_event_time;
+    DROP CONSTRAINT IF EXISTS unique_event_time;
 
-CREATE TYPE timetzrange AS RANGE
-(
-    subtype = timetz
-);
+DO
+$$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'timetzrange') THEN
+            CREATE TYPE timetzrange AS RANGE
+            (
+                subtype = timetz
+            );
+        END IF;
+    END
+$$;
 
 -- Add the updated constraint
 ALTER TABLE events.events
@@ -62,12 +69,13 @@ EXECUTE FUNCTION events.check_event_constraint();
 ALTER TABLE events.events
     DROP CONSTRAINT unique_event_time;
 
--- Recreate the original constraint
-ALTER TABLE events.events
-    ADD CONSTRAINT unique_event_time
-        EXCLUDE USING GIST (
-        location_id WITH =,
-        tstzrange(program_start_at, program_end_at, '[]') WITH &&
-        );
+DO
+$$
+    BEGIN
+        IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'timetzrange') THEN
+            DROP TYPE timetzrange;
+        END IF;
+    END
+$$;
 
 -- +goose StatementEnd

@@ -36,4 +36,27 @@ type ReadEventValues struct {
 	LocationAddress string
 	ProgramName     string
 	ProgramType     string
+
+	Customers []Customer
+	Staffs    []Staff
+}
+
+type Customer struct {
+	ID                    uuid.UUID
+	Email                 *string
+	FirstName             string
+	LastName              string
+	Phone                 *string
+	Gender                *string
+	IsEnrollmentCancelled bool
+}
+
+type Staff struct {
+	ID        uuid.UUID
+	Email     string
+	FirstName string
+	LastName  string
+	Phone     string
+	Gender    *string
+	RoleName  string
 }

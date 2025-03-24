@@ -1,4 +1,4 @@
-package enrollment
+package tests
 
 //
 //import (

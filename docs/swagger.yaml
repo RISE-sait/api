@@ -162,31 +162,21 @@ definitions:
     required:
     - waiver_url
     type: object
-  enrollment.CreateRequestDto:
+  event.CustomerResponseDto:
     properties:
-      customer_id:
+      email:
         type: string
-      event_id:
+      first_name:
         type: string
-    required:
-    - customer_id
-    - event_id
-    type: object
-  enrollment.ResponseDto:
-    properties:
-      checked_in_at:
+      gender:
         type: string
-      created_at:
-        type: string
-      customer_id:
-        type: string
-      event_id:
-        type: string
+      has_cancelled_enrollment:
+        type: boolean
       id:
         type: string
-      is_cancelled:
-        type: boolean
-      updated_at:
+      last_name:
+        type: string
+      phone:
         type: string
     type: object
   event.RequestDto:
@@ -226,6 +216,10 @@ definitions:
     properties:
       capacity:
         type: integer
+      customers:
+        items:
+          $ref: '#/definitions/event.CustomerResponseDto'
+        type: array
       day:
         type: string
       id:
@@ -249,6 +243,27 @@ definitions:
       session_end_at:
         type: string
       session_start_at:
+        type: string
+      staff:
+        items:
+          $ref: '#/definitions/event.StaffResponseDto'
+        type: array
+    type: object
+  event.StaffResponseDto:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      gender:
+        type: string
+      id:
+        type: string
+      last_name:
+        type: string
+      phone:
+        type: string
+      role_name:
         type: string
     type: object
   game.RequestDto:
@@ -927,116 +942,6 @@ paths:
       summary: Get membership plans by customer
       tags:
       - customers
-  /enrollments:
-    get:
-      consumes:
-      - application/json
-      description: Get enrollments by customer and event HubSpotId
-      parameters:
-      - description: Customer ID
-        in: query
-        name: customerId
-        type: string
-      - description: Event ID
-        in: query
-        name: eventId
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Enrollments retrieved successfully
-          schema:
-            items:
-              $ref: '#/definitions/enrollment.ResponseDto'
-            type: array
-        "400":
-          description: 'Bad Request: Invalid HubSpotId'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Enrollments not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get enrollments by customer and event HubSpotId
-      tags:
-      - enrollments
-    post:
-      consumes:
-      - application/json
-      description: Create a new enrollment
-      parameters:
-      - description: Enrollment details
-        in: body
-        name: enrollment
-        required: true
-        schema:
-          $ref: '#/definitions/enrollment.CreateRequestDto'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Enrollment created successfully
-          schema:
-            $ref: '#/definitions/enrollment.ResponseDto'
-        "400":
-          description: 'Bad Request: Invalid input'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - Bearer: []
-      summary: Create a new enrollment
-      tags:
-      - enrollments
-  /enrollments/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete an enrollment by HubSpotId
-      parameters:
-      - description: Enrollment HubSpotId
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: 'No Content: Enrollment deleted successfully'
-        "400":
-          description: 'Bad Request: Invalid HubSpotId'
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 'Not Found: Enrollment not found'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - Bearer: []
-      summary: Delete an enrollment
-      tags:
-      - enrollments
   /events:
     get:
       consumes:
@@ -1044,20 +949,30 @@ paths:
       description: Retrieve all events within a specific date range, with optional
         filters by course, location, game, and practice.
       parameters:
-      - description: Start date of the events range (YYYY-MM-DD)
-        example: '"2025-03-01"'
+        - description: Start date of the events range (YYYY-MM-DD)
+          example: '"2025-03-01"'
         in: query
-        name: after
+          name: after
         type: string
-      - description: End date of the events range (YYYY-MM-DD)
-        example: '"2025-03-31"'
+        - description: End date of the events range (YYYY-MM-DD)
+          example: '"2025-03-31"'
+          in: query
+          name: before
+          type: string
+        - description: Filter by program ID (UUID format)
+          example: '"550e8400-e29b-41d4-a716-446655440000"'
+          in: query
+          name: program_id
+          type: string
+        - description: Filter by user ID (UUID format)
+          example: '"550e8400-e29b-41d4-a716-446655440000"'
+          in: query
+          name: user_id
+          type: string
+        - description: Filter by location ID (UUID format)
+          example: '"550e8400-e29b-41d4-a716-446655440000"'
         in: query
-        name: before
-        type: string
-      - description: Filter by program ID (UUID format)
-        example: '"550e8400-e29b-41d4-a716-446655440000"'
-        in: query
-        name: program_id
+          name: location_id
         type: string
       produces:
       - application/json
@@ -1080,15 +995,15 @@ paths:
             type: object
       summary: Get events
       tags:
-      - events
+        - events
     post:
       consumes:
       - application/json
       description: Registers a new event with the provided details.
       parameters:
-      - description: Event details
+        - description: Event details
         in: body
-        name: event
+          name: event
         required: true
         schema:
           $ref: '#/definitions/event.RequestDto'
@@ -1112,15 +1027,14 @@ paths:
             type: object
       summary: Create a new event
       tags:
-      - events
-  /events/{event_id}/staffs:
-    get:
+        - events
+  /events/{event_id}/customers/{customer_id}:
+    delete:
       consumes:
       - application/json
-      description: Retrieve all staff assigned to an event using event_id as a query
-        parameter.
+      description: Delete an enrollment by ID
       parameters:
-      - description: Event ID
+        - description: Enrollment ID
         in: path
         name: id
         required: true
@@ -1128,19 +1042,15 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: GetMemberships of staff assigned to the event
-          schema:
-            items:
-              $ref: '#/definitions/staff.ResponseDto'
-            type: array
+        "204":
+          description: 'No Content: Enrollment deleted successfully'
         "400":
-          description: 'Bad Request: Invalid input'
+          description: 'Bad Request: Invalid ID'
           schema:
             additionalProperties: true
             type: object
         "404":
-          description: Event not found
+          description: 'Not Found: Enrollment not found'
           schema:
             additionalProperties: true
             type: object
@@ -1149,9 +1059,44 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Get staff assigned to an event
+      security:
+      - Bearer: []
+      summary: Delete an enrollment
       tags:
-      - event_staff
+      - enrollments
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Event ID
+        in: path
+        name: event_id
+        required: true
+        type: string
+      - description: Customer ID
+        in: path
+        name: customer_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Enrollment created successfully
+        "400":
+          description: 'Bad Request: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+        - Bearer: [ ]
+      tags:
+        - enrollments
   /events/{event_id}/staffs/{staff_id}:
     delete:
       consumes:

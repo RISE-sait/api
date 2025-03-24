@@ -2,7 +2,6 @@ package event
 
 import (
 	repository "api/internal/domains/event/persistence/repository"
-	staffDto "api/internal/domains/user/dto/staff"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
@@ -65,52 +64,6 @@ func (h *StaffsHandler) AssignStaffToEvent(w http.ResponseWriter, r *http.Reques
 	}
 
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusOK)
-}
-
-// GetStaffsAssignedToEvent retrieves the list of staff assigned to a specific event.
-// @Summary Get staff assigned to an event
-// @Description Retrieve all staff assigned to an event using event_id as a query parameter.
-// @Tags event_staff
-// @Accept json
-// @Produce json
-// @Param id path string true "Event ID"
-// @Success 200 {array} staff.ResponseDto "GetMemberships of staff assigned to the event"
-// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
-// @Failure 404 {object} map[string]interface{} "Event not found"
-// @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /events/{event_id}/staffs [get]
-func (h *StaffsHandler) GetStaffsAssignedToEvent(w http.ResponseWriter, r *http.Request) {
-
-	var id uuid.UUID
-
-	if idStr := chi.URLParam(r, "id"); idStr != "" {
-		eventId, err := validators.ParseUUID(idStr)
-
-		if err != nil {
-			responseHandlers.RespondWithError(w, err)
-			return
-		}
-
-		id = eventId
-	} else {
-		responseHandlers.RespondWithError(w, errLib.New("id must be provided", http.StatusBadRequest))
-		return
-	}
-
-	staffs, err := h.Repo.GetStaffsAssignedToEvent(r.Context(), id)
-
-	if err != nil {
-		responseHandlers.RespondWithError(w, err)
-		return
-	}
-
-	responseBody := make([]staffDto.ResponseDto, len(staffs))
-
-	for i, staff := range staffs {
-		responseBody[i] = staffDto.NewStaffResponse(staff)
-	}
-
-	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusCreated)
 }
 
 // UnassignStaffFromEvent removes a staff member from an event.

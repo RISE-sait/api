@@ -1,21 +1,13 @@
 -- name: EnrollCustomer :one
 INSERT INTO events.customer_enrollment (customer_id, event_id, checked_in_at, is_cancelled)
-VALUES ($1, $2, $3, $4)
+VALUES ($1, $2, $3, false)
 RETURNING *;
 
--- name: GetCustomerEnrollments :many
-SELECT customer_enrollment.*
-FROM events.customer_enrollment
-         JOIN users.users ON customer_enrollment.customer_id = users.id
-WHERE (
-          (customer_id = sqlc.narg('customer_id') OR sqlc.narg('customer_id') IS NULL)
-              AND
-          (event_id = sqlc.narg('event_id') OR sqlc.narg('event_id') IS NULL));
-
 -- name: UnEnrollCustomer :execrows
-DELETE
-FROM events.customer_enrollment
-WHERE id = $1;
+UPDATE events.customer_enrollment
+SET is_cancelled = true
+WHERE customer_id = $1
+  AND event_id = $2;
 
 -- name: GetEventIsFull :one
 SELECT 

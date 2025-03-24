@@ -2,9 +2,7 @@ package router
 
 import (
 	"api/internal/di"
-	enrollment "api/internal/domains/enrollment/handler"
-	enrollmentRepo "api/internal/domains/enrollment/persistence"
-	enrollmentService "api/internal/domains/enrollment/service"
+	enrollmentService "api/internal/domains/event/service"
 	"api/internal/domains/game"
 	gameRepo "api/internal/domains/game/persistence"
 	haircutRepo "api/internal/domains/haircut/persistence/repository"
@@ -55,12 +53,11 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		"/register": RegisterRegistrationRoutes,
 
 		// Core functionalities
-		"/programs":    RegisterProgramRoutes,
-		"/events":      RegisterEventRoutes,
-		"/locations":   RegisterLocationsRoutes,
-		"/games":       RegisterGamesRoutes,
-		"/teams":       RegisterTeamsRoutes,
-		"/enrollments": RegisterEnrollmentRoutes,
+		"/programs":  RegisterProgramRoutes,
+		"/events":    RegisterEventRoutes,
+		"/locations": RegisterLocationsRoutes,
+		"/games":     RegisterGamesRoutes,
+		"/teams":     RegisterTeamsRoutes,
 
 		// Users & Staff routes
 		"/customers": RegisterCustomerRoutes,
@@ -218,6 +215,17 @@ func RegisterProgramRoutes(container *di.Container) func(chi.Router) {
 	}
 }
 
+func RegisterStaffRoutes(container *di.Container) func(chi.Router) {
+	h := userHandler.NewStaffHandlers(container)
+
+	return func(r chi.Router) {
+		r.Get("/", h.GetStaffs)
+
+		r.With(allowAdminOnly).Put("/{id}", h.UpdateStaff)
+		r.With(allowAdminOnly).Delete("/{id}", h.DeleteStaff)
+	}
+}
+
 func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 	repo := eventRepo.NewEventsRepository(container.Queries.EventDb)
 	handler := eventHandler.NewEventsHandler(repo)
@@ -230,17 +238,19 @@ func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 		r.With(allowAdminOnly).Delete("/{id}", handler.DeleteEvent)
 
 		r.Route("/{event_id}/staffs", RegisterEventStaffRoutes(container))
+		r.Route("/{event_id}/customers", RegisterEventCustomerRoutes(container))
 	}
 }
 
-func RegisterStaffRoutes(container *di.Container) func(chi.Router) {
-	h := userHandler.NewStaffHandlers(container)
+func RegisterEventCustomerRoutes(container *di.Container) func(chi.Router) {
+
+	repo := eventRepo.NewEnrollmentRepository(container.Queries.EventDb)
+	service := enrollmentService.NewEnrollmentService(repo)
+	h := eventHandler.NewCustomerEnrollmentHandler(service)
 
 	return func(r chi.Router) {
-		r.Get("/", h.GetStaffs)
-
-		r.With(allowAdminOnly).Put("/{id}", h.UpdateStaff)
-		r.With(allowAdminOnly).Delete("/{id}", h.DeleteStaff)
+		r.With(allowAdminOnly).Post("/{customer_id}", h.EnrollCustomer)
+		r.With(allowAdminOnly).Delete("/{customer_id}", h.UnenrollCustomer)
 	}
 }
 
@@ -250,23 +260,8 @@ func RegisterEventStaffRoutes(container *di.Container) func(chi.Router) {
 	h := eventHandler.NewEventStaffsHandler(repo)
 
 	return func(r chi.Router) {
-		r.Get("/", h.GetStaffsAssignedToEvent)
 		r.With(allowAdminOnly).Post("/{staff_id}", h.AssignStaffToEvent)
 		r.With(allowAdminOnly).Delete("/{staff_id}", h.UnassignStaffFromEvent)
-	}
-}
-
-func RegisterEnrollmentRoutes(container *di.Container) func(chi.Router) {
-
-	repo := enrollmentRepo.NewEnrollmentRepository(container.Queries.EnrollmentDb)
-
-	service := enrollmentService.NewEnrollmentService(repo)
-	h := enrollment.NewHandler(service)
-
-	return func(r chi.Router) {
-		r.Get("/", h.GetEnrollments)
-		r.Post("/", h.CreateEnrollment)
-		r.Delete("/{id}", h.DeleteEnrollment)
 	}
 }
 
@@ -303,7 +298,7 @@ func RegisterRegistrationRoutes(container *di.Container) func(chi.Router) {
 	athleteHandler := registration.NewAthleteRegistrationHandlers(container)
 	staffHandler := registration.NewStaffRegistrationHandlers(container)
 
-	childRegistrationHandler := registration.NewChildRegistrationHandlers(container)
+	childRegistrationHandler := registration.NewChildRegistrationHandler(container)
 	parentRegistrationHandler := registration.NewParentRegistrationHandlers(container)
 
 	return func(r chi.Router) {

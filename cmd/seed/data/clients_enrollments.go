@@ -8,7 +8,6 @@ import (
 )
 
 func GetClientsEnrollments(clientIds, eventIds []uuid.UUID) dbSeed.InsertCustomersEnrollmentsParams {
-
 	var (
 		clientArray      []uuid.UUID
 		eventArray       []uuid.UUID
@@ -19,32 +18,43 @@ func GetClientsEnrollments(clientIds, eventIds []uuid.UUID) dbSeed.InsertCustome
 	randomSource := rand.NewSource(time.Now().UnixNano())
 	randomGenerator := rand.New(randomSource)
 
-	for _, clientID := range clientIds {
+	// Create a shuffled copy of client IDs to randomize selection
+	shuffledClients := make([]uuid.UUID, len(clientIds))
+	copy(shuffledClients, clientIds)
+	rand.Shuffle(len(shuffledClients), func(i, j int) {
+		shuffledClients[i], shuffledClients[j] = shuffledClients[j], shuffledClients[i]
+	})
 
-		assignedEvents := make([]uuid.UUID, 0)
+	for _, eventID := range eventIds {
+		// Determine how many customers to assign to this event (up to 50)
+		maxCustomers := min(50, len(shuffledClients))
+		if maxCustomers == 0 {
+			continue
+		}
 
-		// Decide randomly whether the client will have 1 or 2 events
-		numEvents := 1 + randomGenerator.Intn(2) // Randomly 1 or 2 events
+		// Random number of customers for this event (between 1 and maxCustomers)
+		numCustomers := 1 + randomGenerator.Intn(maxCustomers)
 
-		for planIdx := 0; planIdx < numEvents; planIdx++ {
+		// Track which customers we've assigned to this event
+		assignedCustomers := make(map[uuid.UUID]bool)
 
-			// Select a random event (ensure it's unique for this client)
-			var randomEventID uuid.UUID
-			for {
-				randomEventID = eventIds[randomGenerator.Intn(len(eventIds))]
-				alreadyAssigned := false
-				for _, assigned := range assignedEvents {
-					if assigned == randomEventID {
-						alreadyAssigned = true
-						break
-					}
-				}
-				if !alreadyAssigned {
-					assignedEvents = append(assignedEvents, randomEventID) // ✅ Store assigned event
+		for i := 0; i < numCustomers; i++ {
+			// Find next available client that hasn't been assigned to this event
+			var clientID uuid.UUID
+			for _, c := range shuffledClients {
+				if !assignedCustomers[c] {
+					clientID = c
 					break
 				}
 			}
+			if clientID == uuid.Nil {
+				break // No more unique customers available
+			}
 
+			// Mark customer as assigned to this event
+			assignedCustomers[clientID] = true
+
+			// Randomize enrollment details
 			isCancelled := randomGenerator.Intn(4) == 0 // 25% probability of cancellation
 
 			var checkedInAt time.Time
@@ -55,7 +65,7 @@ func GetClientsEnrollments(clientIds, eventIds []uuid.UUID) dbSeed.InsertCustome
 
 			// Append to the arrays
 			clientArray = append(clientArray, clientID)
-			eventArray = append(eventArray, randomEventID)
+			eventArray = append(eventArray, eventID)
 			checkedInAtArray = append(checkedInAtArray, checkedInAt)
 			isCancelledArray = append(isCancelledArray, isCancelled)
 		}
@@ -67,4 +77,11 @@ func GetClientsEnrollments(clientIds, eventIds []uuid.UUID) dbSeed.InsertCustome
 		CheckedInAtArray: checkedInAtArray,
 		IsCancelledArray: isCancelledArray,
 	}
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

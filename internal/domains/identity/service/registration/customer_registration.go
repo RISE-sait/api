@@ -7,6 +7,8 @@ import (
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
+	"fmt"
+	"github.com/google/uuid"
 	"net/http"
 )
 
@@ -43,17 +45,21 @@ func (s *CustomerRegistrationService) RegisterAthlete(
 	customer identity.AthleteRegistrationRequestInfo,
 ) (identity.UserReadInfo, *errLib.CommonError) {
 
-	var response identity.UserReadInfo
+	requiredWaivers, err := s.WaiverSigningRepo.GetRequiredWaivers(ctx)
 
-	for _, waiver := range customer.Waivers {
-		if !waiver.IsWaiverSigned {
-			return response, errLib.New("Waiver is not signed", http.StatusBadRequest)
-		}
+	if err != nil {
+		return identity.UserReadInfo{}, err
 	}
+
+	if err = validateWaivers(customer.Waivers, requiredWaivers); err != nil {
+		return identity.UserReadInfo{}, err
+	}
+
+	waiverUrls, areWaiversSigned := prepareWaiverData(requiredWaivers)
 
 	tx, txErr := s.DB.BeginTx(ctx, &sql.TxOptions{})
 	if txErr != nil {
-		return response, errLib.New("Failed to begin transaction", http.StatusInternalServerError)
+		return identity.UserReadInfo{}, errLib.New("Failed to begin transaction", http.StatusInternalServerError)
 	}
 
 	defer func() {
@@ -62,27 +68,31 @@ func (s *CustomerRegistrationService) RegisterAthlete(
 		}
 	}()
 
-	userInfo, err := s.UserRepo.CreateAthleteTx(ctx, tx, customer)
+	createdUserInfo, err := s.UserRepo.CreateAthleteTx(ctx, tx, customer)
 
 	if err != nil {
 		tx.Rollback()
-		return response, err
+		return identity.UserReadInfo{}, err
 	}
 
-	for _, waiver := range customer.Waivers {
-		if err = s.WaiverSigningRepo.CreateWaiverSigningRecordTx(ctx, tx, userInfo.ID, waiver.WaiverUrl, waiver.IsWaiverSigned); err != nil {
-			tx.Rollback()
-			return response, err
-		}
+	var userIds []uuid.UUID
+
+	for range waiverUrls {
+		userIds = append(userIds, createdUserInfo.ID)
+	}
+
+	if err = s.WaiverSigningRepo.CreateWaiversSigningRecordTx(ctx, tx, userIds, waiverUrls, areWaiversSigned); err != nil {
+		tx.Rollback()
+		return identity.UserReadInfo{}, err
 	}
 
 	// Commit the transaction
 	if txErr = tx.Commit(); txErr != nil {
 		tx.Rollback()
-		return response, errLib.New("Failed to commit transaction", http.StatusInternalServerError)
+		return identity.UserReadInfo{}, errLib.New("Failed to commit transaction", http.StatusInternalServerError)
 	}
 
-	return userInfo, nil
+	return createdUserInfo, nil
 }
 
 // RegisterParent registers a new parent customer and creates user and temporary info records.
@@ -126,4 +136,38 @@ func (s *CustomerRegistrationService) RegisterParent(
 	}
 
 	return userInfo, nil
+}
+
+func validateWaivers(customerWaivers []identity.CustomerWaiverSigning, requiredWaivers []identity.Waiver) *errLib.CommonError {
+	for _, waiver := range requiredWaivers {
+		found := false
+		for _, customerWaiver := range customerWaivers {
+			if customerWaiver.WaiverUrl == waiver.URL {
+				if !customerWaiver.IsWaiverSigned {
+					return errLib.New(fmt.Sprintf("Waiver %v, url: %v, is not signed", waiver.Name, waiver.URL), http.StatusBadRequest)
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			return errLib.New(fmt.Sprintf("Waiver %v, url: %v, is not provided", waiver.Name, waiver.URL), http.StatusBadRequest)
+		}
+	}
+	return nil
+}
+
+// prepareWaiverData prepares the data for waiver signing records
+func prepareWaiverData(requiredWaivers []identity.Waiver) ([]string, []bool) {
+	var (
+		waiverUrls       = make([]string, len(requiredWaivers))
+		areWaiversSigned = make([]bool, len(requiredWaivers))
+	)
+
+	for i, waiver := range requiredWaivers {
+		waiverUrls[i] = waiver.URL
+		areWaiversSigned[i] = true
+	}
+
+	return waiverUrls, areWaiversSigned
 }

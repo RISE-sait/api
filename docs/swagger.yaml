@@ -1,20 +1,15 @@
 definitions:
   course.RequestDto:
     properties:
-      capacity:
-        type: integer
       description:
         type: string
       name:
         type: string
     required:
-    - capacity
     - name
     type: object
   course.ResponseDto:
     properties:
-      capacity:
-        type: integer
       created_at:
         type: string
       description:
@@ -254,6 +249,8 @@ definitions:
     type: object
   event.ResponseDto:
     properties:
+      capacity:
+        type: integer
       course_id:
         type: string
       course_name:
@@ -487,8 +484,6 @@ definitions:
     type: object
   practice.RequestDto:
     properties:
-      capacity:
-        type: integer
       description:
         type: string
       level:
@@ -496,14 +491,11 @@ definitions:
       name:
         type: string
     required:
-    - capacity
     - level
     - name
     type: object
   practice.Response:
     properties:
-      capacity:
-        type: integer
       created_at:
         type: string
       description:
@@ -2626,7 +2618,7 @@ paths:
           $ref: '#/definitions/customer.AthleteRegistrationRequestDto'
       - description: Firebase token for user verification
         in: header
-        name: firebase_token
+        name: Authorization
         required: true
         type: string
       produces:
@@ -2666,7 +2658,7 @@ paths:
           $ref: '#/definitions/customer.ChildRegistrationRequestDto'
       - description: Firebase token for user verification
         in: header
-        name: firebase_token
+        name: Authorization
         required: true
         type: string
       produces:
@@ -2711,7 +2703,7 @@ paths:
           $ref: '#/definitions/customer.ParentRegistrationRequestDto'
       - description: Firebase token for user verification
         in: header
-        name: firebase_token
+        name: Authorization
         required: true
         type: string
       produces:

@@ -5,7 +5,7 @@ import (
 	dto "api/internal/domains/identity/dto/customer"
 	service "api/internal/domains/identity/service/firebase"
 	"api/internal/domains/identity/service/registration"
-	errLib "api/internal/libs/errors"
+	identityUtils "api/internal/domains/identity/utils"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -35,23 +35,23 @@ func NewParentRegistrationHandlers(container *di.Container) *ParentRegistrationH
 // @Accept json
 // @Produce json
 // @Param parent body dto.ParentRegistrationRequestDto true "Parent registration details" // The parent registration data, including name, age, email, phone, consent, etc.
-// @Param firebase_token header string true "Firebase token for user verification" // Firebase token required for verifying the user
+// @Param Authorization header string true "Firebase token for user verification" // Firebase token required for verifying the user
 // @Success 201 {object} map[string]interface{} "Parent registered successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Missing or invalid Firebase token or request body"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error: Failed to register parent"
 // @Router /register/parent [post]
 func (h *ParentRegistrationHandlers) RegisterParent(w http.ResponseWriter, r *http.Request) {
 
-	firebaseToken := r.Header.Get("firebase_token")
+	firebaseToken, err := identityUtils.GetFirebaseTokenFromAuthorizationHeader(r)
 
-	if firebaseToken == "" {
-		responseHandlers.RespondWithError(w, errLib.New("Missing Firebase token", http.StatusBadRequest))
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
 	var requestDto dto.ParentRegistrationRequestDto
 
-	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
+	if err = validators.ParseJSON(r.Body, &requestDto); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

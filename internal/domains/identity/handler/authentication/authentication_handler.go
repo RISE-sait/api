@@ -4,14 +4,13 @@ import (
 	"api/internal/di"
 	dto "api/internal/domains/identity/dto/common"
 	service "api/internal/domains/identity/service/authentication"
-	errLib "api/internal/libs/errors"
+	identityUtils "api/internal/domains/identity/utils"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"api/internal/middlewares"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"net/http"
-	"strings"
 )
 
 type Handlers struct {
@@ -36,26 +35,14 @@ func NewHandlers(container *di.Container) *Handlers {
 // @Router /auth [post]
 func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 
-	firebaseToken := r.Header.Get("Authorization")
+	firebaseToken, err := identityUtils.GetFirebaseTokenFromAuthorizationHeader(r)
 
-	if firebaseToken == "" {
-
-		responseHandlers.RespondWithError(w, errLib.New("Missing Firebase token", http.StatusBadRequest))
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	// Firebase token starts with bearer
-
-	extractedTokenParts := strings.Split(firebaseToken, " ")
-
-	if extractedTokenParts[0] != "Bearer" {
-		responseHandlers.RespondWithError(w, errLib.New("Invalid Firebase token. Missing Bearer", http.StatusUnauthorized))
-		return
-	}
-
-	extractedFirebaseToken := extractedTokenParts[1]
-
-	jwtToken, userInfo, err := h.AuthService.AuthenticateUser(r.Context(), extractedFirebaseToken)
+	jwtToken, userInfo, err := h.AuthService.AuthenticateUser(r.Context(), firebaseToken)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)

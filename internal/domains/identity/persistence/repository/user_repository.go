@@ -46,7 +46,7 @@ func (r *UsersRepository) createCustomerTx(ctx context.Context, tx *sql.Tx, inpu
 		Status:       dbOutbox.AuditStatusPENDING,
 		SqlStatement: sqlStatement,
 	}
-
+	
 	rows, err := r.OutboxQueries.InsertIntoOutbox(ctx, args)
 
 	if err != nil {
@@ -96,13 +96,16 @@ func (r *UsersRepository) CreateAthleteTx(ctx context.Context, tx *sql.Tx, input
 	}, "Athlete")
 
 	if qErr != nil {
-		log.Println(fmt.Errorf("failed to create customer: %v", qErr.Error()))
-		return values.UserReadInfo{}, errLib.New("Failed to insert to customer", http.StatusInternalServerError)
+		return values.UserReadInfo{}, qErr
 	}
 
 	if err := r.IdentityQueries.WithTx(tx).CreateAthlete(ctx, customer.ID); err != nil {
+		var pqErr *pq.Error
+		if errors.As(qErr, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
+			return values.UserReadInfo{}, errLib.New("Athlete with that email already exists", http.StatusConflict)
+		}
 		log.Println(err.Error())
-		return values.UserReadInfo{}, errLib.New("Failed to insert to customer", http.StatusInternalServerError)
+		return values.UserReadInfo{}, errLib.New("Failed to insert to athlete", http.StatusInternalServerError)
 	}
 
 	return values.UserReadInfo{
@@ -145,13 +148,7 @@ func (r *UsersRepository) CreateChildTx(ctx context.Context, tx *sql.Tx, input v
 	}, "Child")
 
 	if err != nil {
-		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.ForeignKeyViolation {
-			log.Printf("Foreign key violation: %v", pqErr.Message)
-			return values.UserReadInfo{}, errLib.New("Parent not found for the provided user id", http.StatusBadRequest)
-		}
-		log.Printf("Error creating child: %v", pqErr.Message)
-		return values.UserReadInfo{}, errLib.New("Internal server error while creating child", http.StatusInternalServerError)
+		return values.UserReadInfo{}, err
 	}
 
 	return createdCustomer, err

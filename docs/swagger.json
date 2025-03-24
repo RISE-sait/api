@@ -2998,7 +2998,7 @@
                     {
                         "type": "string",
                         "description": "Firebase token for user verification",
-                        "name": "firebase_token",
+                      "name": "Authorization",
                         "in": "header",
                         "required": true
                     }
@@ -3054,7 +3054,7 @@
                     {
                         "type": "string",
                         "description": "Firebase token for user verification",
-                        "name": "firebase_token",
+                      "name": "Authorization",
                         "in": "header",
                         "required": true
                     }
@@ -3117,7 +3117,7 @@
                     {
                         "type": "string",
                         "description": "Firebase token for user verification",
-                        "name": "firebase_token",
+                      "name": "Authorization",
                         "in": "header",
                         "required": true
                     }
@@ -3577,13 +3577,9 @@
         "course.RequestDto": {
             "type": "object",
             "required": [
-                "capacity",
                 "name"
             ],
             "properties": {
-                "capacity": {
-                    "type": "integer"
-                },
                 "description": {
                     "type": "string"
                 },
@@ -3595,9 +3591,6 @@
         "course.ResponseDto": {
             "type": "object",
             "properties": {
-                "capacity": {
-                    "type": "integer"
-                },
                 "created_at": {
                     "type": "string"
                 },
@@ -3952,6 +3945,9 @@
         "event.ResponseDto": {
             "type": "object",
             "properties": {
+              "capacity": {
+                "type": "integer"
+              },
                 "course_id": {
                     "type": "string"
                 },
@@ -4304,14 +4300,10 @@
         "practice.RequestDto": {
             "type": "object",
             "required": [
-                "capacity",
                 "level",
                 "name"
             ],
             "properties": {
-                "capacity": {
-                    "type": "integer"
-                },
                 "description": {
                     "type": "string"
                 },
@@ -4326,9 +4318,6 @@
         "practice.Response": {
             "type": "object",
             "properties": {
-                "capacity": {
-                    "type": "integer"
-                },
                 "created_at": {
                     "type": "string"
                 },

@@ -3009,7 +3009,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Firebase token for user verification",
-                        "name": "firebase_token",
+                        "name": "Authorization",
                         "in": "header",
                         "required": true
                     }
@@ -3065,7 +3065,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Firebase token for user verification",
-                        "name": "firebase_token",
+                        "name": "Authorization",
                         "in": "header",
                         "required": true
                     }
@@ -3128,7 +3128,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Firebase token for user verification",
-                        "name": "firebase_token",
+                        "name": "Authorization",
                         "in": "header",
                         "required": true
                     }
@@ -3588,13 +3588,9 @@ const docTemplate = `{
         "course.RequestDto": {
             "type": "object",
             "required": [
-                "capacity",
                 "name"
             ],
             "properties": {
-                "capacity": {
-                    "type": "integer"
-                },
                 "description": {
                     "type": "string"
                 },
@@ -3606,9 +3602,6 @@ const docTemplate = `{
         "course.ResponseDto": {
             "type": "object",
             "properties": {
-                "capacity": {
-                    "type": "integer"
-                },
                 "created_at": {
                     "type": "string"
                 },
@@ -3963,6 +3956,9 @@ const docTemplate = `{
         "event.ResponseDto": {
             "type": "object",
             "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
                 "course_id": {
                     "type": "string"
                 },
@@ -4315,14 +4311,10 @@ const docTemplate = `{
         "practice.RequestDto": {
             "type": "object",
             "required": [
-                "capacity",
                 "level",
                 "name"
             ],
             "properties": {
-                "capacity": {
-                    "type": "integer"
-                },
                 "description": {
                     "type": "string"
                 },
@@ -4337,9 +4329,6 @@ const docTemplate = `{
         "practice.Response": {
             "type": "object",
             "properties": {
-                "capacity": {
-                    "type": "integer"
-                },
                 "created_at": {
                     "type": "string"
                 },

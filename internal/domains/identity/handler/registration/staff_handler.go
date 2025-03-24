@@ -5,8 +5,8 @@ import (
 	dto "api/internal/domains/identity/dto/staff"
 	firebaseService "api/internal/domains/identity/service/firebase"
 	registrationService "api/internal/domains/identity/service/registration"
+	identityUtils "api/internal/domains/identity/utils"
 
-	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -42,10 +42,10 @@ func NewStaffRegistrationHandlers(container *di.Container) *StaffHandlers {
 // @Router /register/staff [post]
 func (h *StaffHandlers) RegisterStaff(w http.ResponseWriter, r *http.Request) {
 
-	firebaseToken := r.Header.Get("firebase_token")
+	firebaseToken, err := identityUtils.GetFirebaseTokenFromAuthorizationHeader(r)
 
-	if firebaseToken == "" {
-		responseHandlers.RespondWithError(w, errLib.New("Missing Firebase token", http.StatusBadRequest))
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
 		return
 	}
 

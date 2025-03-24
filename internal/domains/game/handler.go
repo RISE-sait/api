@@ -19,12 +19,14 @@ func NewHandler(repo *repository.Repository) *Handler {
 }
 
 // CreateGame creates a new game.
+// @Summary Create a new game
+// @Description Create a new game
 // @Tags games
 // @Accept json
 // @Produce json
 // @Param game body dto.RequestDto true "Game details"
 // @Security Bearer
-// @Success 201 "Game created successfully"
+// @Success 201 {object} game.ResponseDto "Game created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /games [post]
@@ -43,15 +45,21 @@ func (h *Handler) CreateGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Repo.CreateGame(r.Context(), name); err != nil {
+	createdGame, err := h.Repo.CreateGame(r.Context(), name)
+
+	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	responseHandlers.RespondWithSuccess(w, nil, http.StatusCreated)
+	responseBody := dto.NewGameResponse(createdGame)
+
+	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusCreated)
 }
 
 // GetGameById retrieves a game by ID.
+// @Summary Get a game by ID
+// @Description Get a game by ID
 // @Tags games
 // @Accept json
 // @Produce json
@@ -83,9 +91,12 @@ func (h *Handler) GetGameById(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetGames retrieves a list of games.
+// @Summary Get a list of games
+// @Description Get a list of games
 // @Tags games
 // @Accept json
 // @Produce json
+// @Param name query string false "Filter by game name"
 // @Success 200 {array} game.ResponseDto "List of games retrieved successfully"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /games [get]
@@ -107,13 +118,15 @@ func (h *Handler) GetGames(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateGame updates an existing game.
+// @Summary Update a game
+// @Description Update a game
 // @Tags games
 // @Accept json
 // @Produce json
 // @Param id path string true "Game ID"
 // @Param game body dto.RequestDto true "Game details"
 // @Security Bearer
-// @Success 204 "Game updated successfully"
+// @Success 200 {object} game.ResponseDto "Game updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 404 {object} map[string]interface{} "Not Found: Game not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
@@ -135,15 +148,21 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Repo.UpdateGame(r.Context(), gameToUpdate); err != nil {
+	updatedGame, err := h.Repo.UpdateGame(r.Context(), gameToUpdate)
+
+	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
+	responseBody := dto.NewGameResponse(updatedGame)
+
+	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusNoContent)
 }
 
 // DeleteGame deletes a game by ID.
+// @Summary Delete a game
+// @Description Delete a game by ID
 // @Tags games
 // @Accept json
 // @Produce json

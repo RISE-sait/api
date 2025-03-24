@@ -274,6 +274,258 @@ const docTemplate = `{
                 }
             }
         },
+        "/courses": {
+            "get": {
+                "description": "Get a list of courses",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "courses"
+                ],
+                "summary": "Get a list of courses",
+                "responses": {
+                    "200": {
+                        "description": "GetMemberships of courses retrieved successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/course.ResponseDto"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Create a new course",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "courses"
+                ],
+                "summary": "Create a new course",
+                "parameters": [
+                    {
+                        "description": "Course details",
+                        "name": "course",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/course.RequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Course created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/course.ResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/courses/{id}": {
+            "get": {
+                "description": "Get a course by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "courses"
+                ],
+                "summary": "Get a course by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Course retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/course.ResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Course not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Update a course",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "courses"
+                ],
+                "summary": "Update a course",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Course details",
+                        "name": "course",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/course.RequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Course updated successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Course not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Delete a course by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "courses"
+                ],
+                "summary": "Delete a course",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Course not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/customers": {
             "get": {
                 "description": "Retrieves a list of customers, optionally filtered by HubSpot IDs, with pagination support.",
@@ -694,8 +946,29 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-                        "description": "Filter by program ID (UUID format)",
-                        "name": "program_id",
+                        "description": "Filter by game ID (UUID format)",
+                        "name": "game_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                        "description": "Filter by course ID (UUID format)",
+                        "name": "course_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                        "description": "Filter by practice ID (UUID format)",
+                        "name": "practice_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                        "description": "Filter by location ID (UUID format)",
+                        "name": "location_id",
                         "in": "query"
                     }
                 ],
@@ -1103,6 +1376,7 @@ const docTemplate = `{
         },
         "/games": {
             "get": {
+                "description": "Get a list of games",
                 "consumes": [
                     "application/json"
                 ],
@@ -1111,6 +1385,15 @@ const docTemplate = `{
                 ],
                 "tags": [
                     "games"
+                ],
+                "summary": "Get a list of games",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by game name",
+                        "name": "name",
+                        "in": "query"
+                    }
                 ],
                 "responses": {
                     "200": {
@@ -1137,6 +1420,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
+                "description": "Create a new game",
                 "consumes": [
                     "application/json"
                 ],
@@ -1146,6 +1430,7 @@ const docTemplate = `{
                 "tags": [
                     "games"
                 ],
+                "summary": "Create a new game",
                 "parameters": [
                     {
                         "description": "Game details",
@@ -1159,7 +1444,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Game created successfully"
+                        "description": "Game created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/game.ResponseDto"
+                        }
                     },
                     "400": {
                         "description": "Bad Request: Invalid input",
@@ -1180,6 +1468,7 @@ const docTemplate = `{
         },
         "/games/{id}": {
             "get": {
+                "description": "Get a game by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -1189,6 +1478,7 @@ const docTemplate = `{
                 "tags": [
                     "games"
                 ],
+                "summary": "Get a game by ID",
                 "parameters": [
                     {
                         "type": "string",
@@ -1234,6 +1524,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
+                "description": "Update a game",
                 "consumes": [
                     "application/json"
                 ],
@@ -1243,6 +1534,7 @@ const docTemplate = `{
                 "tags": [
                     "games"
                 ],
+                "summary": "Update a game",
                 "parameters": [
                     {
                         "type": "string",
@@ -1262,8 +1554,11 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "Game updated successfully"
+                    "200": {
+                        "description": "Game updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/game.ResponseDto"
+                        }
                     },
                     "400": {
                         "description": "Bad Request: Invalid input",
@@ -1294,6 +1589,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
+                "description": "Delete a game by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -1303,6 +1599,7 @@ const docTemplate = `{
                 "tags": [
                     "games"
                 ],
+                "summary": "Delete a game",
                 "parameters": [
                     {
                         "type": "string",
@@ -2407,9 +2704,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/programs": {
+        "/practices": {
             "get": {
-                "description": "Get a list of programs",
+                "description": "Get a list of practices",
                 "consumes": [
                     "application/json"
                 ],
@@ -2417,12 +2714,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "programs"
+                    "practices"
                 ],
-                "summary": "Get a list of programs",
+                "summary": "Get a list of practices",
                 "responses": {
                     "200": {
-                        "description": "Programs retrieved successfully",
+                        "description": "Practices retrieved successfully",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -2445,7 +2742,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Create a new program",
+                "description": "Create a new practice",
                 "consumes": [
                     "application/json"
                 ],
@@ -2453,13 +2750,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "programs"
+                    "practices"
                 ],
-                "summary": "Create a new program",
+                "summary": "Create a new practice",
                 "parameters": [
                     {
-                        "description": "Program details",
-                        "name": "program",
+                        "description": "Practice details",
+                        "name": "practice",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -2469,7 +2766,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Program created successfully",
+                        "description": "Practice created successfully",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2492,9 +2789,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/programs/levels": {
+        "/practices/levels": {
             "get": {
-                "description": "Retrieves a list of available program levels.",
+                "description": "Retrieves a list of available practice levels.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2502,11 +2799,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "programs"
+                    "practices"
                 ],
+                "summary": "Get practice levels",
                 "responses": {
                     "200": {
-                        "description": "Get program levels retrieved successfully",
+                        "description": "Get practice levels retrieved successfully",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -2524,9 +2822,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/programs/{id}": {
+        "/practices/{id}": {
             "put": {
-                "description": "Update a program",
+                "description": "Update a practice",
                 "consumes": [
                     "application/json"
                 ],
@@ -2534,20 +2832,20 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "programs"
+                    "practices"
                 ],
-                "summary": "Update a program",
+                "summary": "Update a practice",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Program ID",
+                        "description": "Practice ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Program details",
-                        "name": "program",
+                        "description": "Practice details",
+                        "name": "practice",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -2557,7 +2855,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "204": {
-                        "description": "No Content: Program updated successfully"
+                        "description": "No Content: Practice updated successfully"
                     },
                     "400": {
                         "description": "Bad Request: Invalid input",
@@ -2567,7 +2865,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Not Found: Program not found",
+                        "description": "Not Found: Practice not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2588,6 +2886,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
+                "description": "Delete a practice by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -2595,12 +2894,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "programs"
+                    "practices"
                 ],
+                "summary": "Delete a practice",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Program ID",
+                        "description": "Practice ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -2608,7 +2908,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "204": {
-                        "description": "No Content: Program deleted successfully"
+                        "description": "No Content: Practice deleted successfully"
                     },
                     "400": {
                         "description": "Bad Request: Invalid ID",
@@ -2618,7 +2918,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Not Found: Program not found",
+                        "description": "Not Found: Practice not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3285,8 +3585,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-<<<<<<< HEAD
-=======
         "course.RequestDto": {
             "type": "object",
             "required": [
@@ -3321,7 +3619,6 @@ const docTemplate = `{
                 }
             }
         },
->>>>>>> main
         "customer.AthleteRegistrationRequestDto": {
             "type": "object",
             "required": [
@@ -3618,25 +3915,29 @@ const docTemplate = `{
                 "session_start_time"
             ],
             "properties": {
-                "capacity": {
-                    "type": "integer",
-                    "example": 100
+                "course_id": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
                 },
                 "day": {
                     "type": "string",
                     "example": "THURSDAY"
                 },
+                "game_id": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
+                },
                 "location_id": {
                     "type": "string",
                     "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
                 },
+                "practice_id": {
+                    "type": "string",
+                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+                },
                 "program_end_at": {
                     "type": "string",
                     "example": "2023-10-05T07:00:00Z"
-                },
-                "program_id": {
-                    "type": "string",
-                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
                 },
                 "program_start_at": {
                     "type": "string",
@@ -3657,17 +3958,20 @@ const docTemplate = `{
             "properties": {
                 "capacity": {
                     "type": "integer"
-<<<<<<< HEAD
-=======
                 },
                 "course_id": {
                     "type": "string"
                 },
                 "course_name": {
                     "type": "string"
->>>>>>> main
                 },
                 "day": {
+                    "type": "string"
+                },
+                "game_id": {
+                    "type": "string"
+                },
+                "game_name": {
                     "type": "string"
                 },
                 "id": {
@@ -3682,19 +3986,16 @@ const docTemplate = `{
                 "location_name": {
                     "type": "string"
                 },
+                "practice_id": {
+                    "type": "string"
+                },
+                "practice_name": {
+                    "type": "string"
+                },
                 "program_end_at": {
                     "type": "string"
                 },
-                "program_id": {
-                    "type": "string"
-                },
-                "program_name": {
-                    "type": "string"
-                },
                 "program_start_at": {
-                    "type": "string"
-                },
-                "program_type": {
                     "type": "string"
                 },
                 "session_end_at": {
@@ -3707,26 +4008,8 @@ const docTemplate = `{
         },
         "game.RequestDto": {
             "type": "object",
-            "required": [
-                "name"
-            ],
             "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "lose_score": {
-                    "type": "integer"
-                },
-                "lose_team": {
-                    "type": "string"
-                },
                 "name": {
-                    "type": "string"
-                },
-                "win_score": {
-                    "type": "integer"
-                },
-                "win_team": {
                     "type": "string"
                 }
             }
@@ -3734,31 +4017,13 @@ const docTemplate = `{
         "game.ResponseDto": {
             "type": "object",
             "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
                 "id": {
-                    "type": "string"
-                },
-                "lose_score": {
-                    "type": "integer"
-                },
-                "lose_team": {
                     "type": "string"
                 },
                 "name": {
                     "type": "string"
                 },
-                "updated_at": {
-                    "type": "string"
-                },
-                "win_score": {
-                    "type": "integer"
-                },
-                "win_team": {
+                "video_link": {
                     "type": "string"
                 }
             }
@@ -4047,8 +4312,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "level",
-                "name",
-                "type"
+                "name"
             ],
             "properties": {
                 "description": {
@@ -4058,9 +4322,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
-                    "type": "string"
-                },
-                "type": {
                     "type": "string"
                 }
             }
@@ -4081,9 +4342,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
-                    "type": "string"
-                },
-                "type": {
                     "type": "string"
                 },
                 "updated_at": {

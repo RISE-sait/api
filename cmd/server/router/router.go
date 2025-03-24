@@ -2,6 +2,8 @@ package router
 
 import (
 	"api/internal/di"
+	courseHandler "api/internal/domains/course/handler"
+	courseRepo "api/internal/domains/course/persistence/repository"
 	enrollment "api/internal/domains/enrollment/handler"
 	enrollmentRepo "api/internal/domains/enrollment/persistence"
 	enrollmentService "api/internal/domains/enrollment/service"
@@ -9,8 +11,8 @@ import (
 	gameRepo "api/internal/domains/game/persistence"
 	haircutRepo "api/internal/domains/haircut/persistence/repository"
 	locationRepo "api/internal/domains/location/persistence"
-	programHandler "api/internal/domains/program"
-	programRepo "api/internal/domains/program/persistence"
+	practiceHandler "api/internal/domains/practice"
+	practiceRepo "api/internal/domains/practice/persistence"
 
 	teamsHandler "api/internal/domains/team"
 	teamsRepo "api/internal/domains/team/persistence"
@@ -25,7 +27,7 @@ import (
 	"api/internal/domains/identity/handler/authentication"
 	"api/internal/domains/identity/handler/registration"
 	locationsHandler "api/internal/domains/location/handler"
-	membership "api/internal/domains/membership/handler"
+	"api/internal/domains/membership/handler"
 	purchase "api/internal/domains/purchase/handler"
 	"api/internal/middlewares"
 
@@ -55,7 +57,8 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		"/register": RegisterRegistrationRoutes,
 
 		// Core functionalities
-		"/programs":    RegisterProgramRoutes,
+		"/courses":     RegisterCourseRoutes,
+		"/practices":   RegisterPracticeRoutes,
 		"/events":      RegisterEventRoutes,
 		"/locations":   RegisterLocationsRoutes,
 		"/games":       RegisterGamesRoutes,
@@ -204,17 +207,31 @@ func RegisterLocationsRoutes(container *di.Container) func(chi.Router) {
 	}
 }
 
-func RegisterProgramRoutes(container *di.Container) func(chi.Router) {
+func RegisterCourseRoutes(container *di.Container) func(chi.Router) {
 
-	repo := programRepo.NewProgramRepository(container.Queries.ProgramDb)
-	h := programHandler.NewHandler(repo)
+	courseRepository := courseRepo.NewCourseRepository(container.Queries.CoursesDb)
+	h := courseHandler.NewHandler(courseRepository)
 
 	return func(r chi.Router) {
-		r.Get("/", h.GetPrograms)
-		r.Get("/levels", h.GetProgramLevels)
-		r.Post("/", h.CreateProgram)
-		r.Put("/{id}", h.UpdateProgram)
-		r.With(allowAdminOnly).Delete("/{id}", h.DeleteProgram)
+		r.Get("/", h.GetCourses)
+		r.Get("/{id}", h.GetCourseById)
+		r.With(allowAdminOnly).Post("/", h.CreateCourse)
+		r.With(allowAdminOnly).Put("/{id}", h.UpdateCourse)
+		r.With(allowAdminOnly).Delete("/{id}", h.DeleteCourse)
+	}
+}
+
+func RegisterPracticeRoutes(container *di.Container) func(chi.Router) {
+
+	repo := practiceRepo.NewPracticeRepository(container.Queries.PracticesDb)
+	h := practiceHandler.NewHandler(repo)
+
+	return func(r chi.Router) {
+		r.Get("/", h.GetPractices)
+		r.Get("/levels", h.GetPracticeLevels)
+		r.Post("/", h.CreatePractice)
+		r.Put("/{id}", h.UpdatePractice)
+		r.With(allowAdminOnly).Delete("/{id}", h.DeletePractice)
 	}
 }
 

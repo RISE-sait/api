@@ -6,11 +6,10 @@ import (
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
-	"net/http"
-	"time"
-
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
+	"net/http"
+	"time"
 )
 
 // EventsHandler provides HTTP handlers for managing events.
@@ -28,7 +27,10 @@ func NewEventsHandler(repo *repository.Repository) *EventsHandler {
 // @Tags events
 // @Param after query string false "Start date of the events range (YYYY-MM-DD)" example("2025-03-01")
 // @Param before query string false "End date of the events range (YYYY-MM-DD)" example("2025-03-31")
-// @Param program_id query string false "Filter by program ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
+// @Param game_id query string false "Filter by game ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
+// @Param course_id query string false "Filter by course ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
+// @Param practice_id query string false "Filter by practice ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
+// @Param location_id query string false "Filter by location ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
 // @Accept json
 // @Produce json
 // @Success 200 {array} event.ResponseDto "List of events retrieved successfully"
@@ -40,9 +42,9 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 
 	var (
-		after, before         time.Time
-		locationID, programID uuid.UUID
-		err                   *errLib.CommonError
+		after, before                            time.Time
+		courseID, gameID, locationID, practiceID uuid.UUID
+		err                                      *errLib.CommonError
 	)
 
 	afterStr := query.Get("after")
@@ -65,15 +67,34 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	programIDStr := query.Get("program_id")
+	gameIDStr := query.Get("game_id")
+	courseIDStr := query.Get("course_id")
+	practiceIDStr := query.Get("practice_id")
 	locationIDStr := query.Get("location_id")
 
-	if programIDStr != "" {
-		if id, err := validators.ParseUUID(programIDStr); err != nil {
-			responseHandlers.RespondWithError(w, errLib.New("invalid 'program_id' format, expected uuid format", http.StatusBadRequest))
+	switch {
+	case gameIDStr != "":
+		if id, err := validators.ParseUUID(gameIDStr); err != nil {
+			responseHandlers.RespondWithError(w, errLib.New("invalid 'game_id' format, expected uuid format", http.StatusBadRequest))
 			return
 		} else {
-			programID = id
+			gameID = id
+		}
+
+	case courseIDStr != "":
+		if id, err := validators.ParseUUID(courseIDStr); err != nil {
+			responseHandlers.RespondWithError(w, errLib.New("invalid 'course_id' format, expected uuid format", http.StatusBadRequest))
+			return
+		} else {
+			courseID = id
+		}
+
+	case practiceIDStr != "":
+		if id, err := validators.ParseUUID(practiceIDStr); err != nil {
+			responseHandlers.RespondWithError(w, errLib.New("invalid practice_id format, expected uuid format", http.StatusBadRequest))
+			return
+		} else {
+			practiceID = id
 		}
 	}
 
@@ -86,12 +107,12 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if (after.IsZero() || before.IsZero()) && programID == uuid.Nil {
-		responseHandlers.RespondWithError(w, errLib.New("at least one of (before and after) or program_id must be provided", http.StatusBadRequest))
+	if (after.IsZero() || before.IsZero()) && (courseID == uuid.Nil && practiceID == uuid.Nil && gameID == uuid.Nil) {
+		responseHandlers.RespondWithError(w, errLib.New("at least one of (before and after) or one of (course_id, practice_id, game_id) must be provided", http.StatusBadRequest))
 		return
 	}
 
-	events, err := h.Repo.GetEvents(r.Context(), programID, locationID, before, after)
+	events, err := h.Repo.GetEvents(r.Context(), courseID, practiceID, gameID, locationID, before, after)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)

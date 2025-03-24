@@ -8,13 +8,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"log"
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
-	"github.com/lib/pq"
 )
 
 type Repository struct {
@@ -52,9 +51,17 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 			UUID:  eventDetails.LocationID,
 			Valid: eventDetails.LocationID != uuid.Nil,
 		},
-		ProgramID: uuid.NullUUID{
-			UUID:  eventDetails.ProgramID,
-			Valid: eventDetails.ProgramID != uuid.Nil,
+		CourseID: uuid.NullUUID{
+			UUID:  eventDetails.CourseID,
+			Valid: eventDetails.CourseID != uuid.Nil,
+		},
+		PracticeID: uuid.NullUUID{
+			UUID:  eventDetails.PracticeID,
+			Valid: eventDetails.PracticeID != uuid.Nil,
+		},
+		GameID: uuid.NullUUID{
+			UUID:  eventDetails.GameID,
+			Valid: eventDetails.GameID != uuid.Nil,
 		},
 	}
 
@@ -71,7 +78,7 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 		if errors.As(err, &pqErr) {
 
 			foreignKeyErrors := map[string]string{
-				"fk_program":  "The referenced program doesn't exist",
+				"fk_practice": "The referenced practice doesn't exist",
 				"fk_game":     "The referenced game doesn't exist",
 				"fk_location": "The referenced location doesn't exist",
 				"fk_course":   "The referenced course doesn't exist",
@@ -103,12 +110,20 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 	return nil
 }
 
-func (r *Repository) GetEvents(ctx context.Context, programID, locationID uuid.UUID, before, after time.Time) ([]values.ReadEventValues, *errLib.CommonError) {
+func (r *Repository) GetEvents(ctx context.Context, courseID, practiceID, gameID, locationID uuid.UUID, before, after time.Time) ([]values.ReadEventValues, *errLib.CommonError) {
 
 	dbEvents, err := r.Queries.GetEvents(ctx, db.GetEventsParams{
-		ProgramID: uuid.NullUUID{
-			UUID:  programID,
-			Valid: programID != uuid.Nil,
+		CourseID: uuid.NullUUID{
+			UUID:  courseID,
+			Valid: courseID != uuid.Nil,
+		},
+		GameID: uuid.NullUUID{
+			UUID:  gameID,
+			Valid: gameID != uuid.Nil,
+		},
+		PracticeID: uuid.NullUUID{
+			UUID:  practiceID,
+			Valid: practiceID != uuid.Nil,
 		},
 		LocationID: uuid.NullUUID{
 			UUID:  locationID,
@@ -134,23 +149,28 @@ func (r *Repository) GetEvents(ctx context.Context, programID, locationID uuid.U
 
 		event := values.ReadEventValues{
 			ID: dbEvent.ID,
-			Details: values.Details{
-				Day:            string(dbEvent.Day),
-				ProgramStartAt: dbEvent.ProgramStartAt,
-				ProgramEndAt:   dbEvent.ProgramEndAt,
-				EventStartTime: dbEvent.EventStartTime,
-				EventEndTime:   dbEvent.EventEndTime,
-				ProgramID:      dbEvent.ID,
-				LocationID:     dbEvent.LocationID.UUID,
+			ReadDetails: values.ReadDetails{
+				Details: values.Details{
+					Day:            string(dbEvent.Day),
+					ProgramStartAt: dbEvent.ProgramStartAt,
+					ProgramEndAt:   dbEvent.ProgramEndAt,
+					EventStartTime: dbEvent.EventStartTime,
+					EventEndTime:   dbEvent.EventEndTime,
+					PracticeID:     dbEvent.PracticeID.UUID,
+					CourseID:       dbEvent.CourseID.UUID,
+					GameID:         dbEvent.GameID.UUID,
+					LocationID:     dbEvent.LocationID.UUID,
+				},
+				GameName:        dbEvent.GameName.String,
+				PracticeName:    dbEvent.PracticeName.String,
+				CourseName:      dbEvent.CourseName.String,
+				LocationName:    dbEvent.LocationName.String,
+				LocationAddress: dbEvent.Address.String,
 			},
-			LocationName:    dbEvent.LocationName.String,
-			LocationAddress: dbEvent.Address.String,
-			ProgramName:     dbEvent.ProgramName.String,
-			ProgramType:     string(dbEvent.ProgramType.ProgramProgramType),
 		}
 
 		if dbEvent.Capacity.Valid {
-			event.Details.Capacity = &dbEvent.Capacity.Int32
+			event.ReadDetails.Details.Capacity = &dbEvent.Capacity.Int32
 		}
 
 		events[i] = event
@@ -179,7 +199,9 @@ func (r *Repository) UpdateEvent(c context.Context, event values.UpdateEventValu
 		ProgramStartAt: event.ProgramStartAt,
 		ProgramEndAt:   event.ProgramEndAt,
 		LocationID:     uuid.NullUUID{UUID: event.LocationID, Valid: event.LocationID != uuid.Nil},
-		ProgramID:      uuid.NullUUID{UUID: event.ProgramID, Valid: event.ProgramID != uuid.Nil},
+		PracticeID:     uuid.NullUUID{UUID: event.PracticeID, Valid: event.PracticeID != uuid.Nil},
+		CourseID:       uuid.NullUUID{UUID: event.CourseID, Valid: event.CourseID != uuid.Nil},
+		GameID:         uuid.NullUUID{UUID: event.GameID, Valid: event.GameID != uuid.Nil},
 		EventStartTime: event.EventStartTime,
 		EventEndTime:   event.EventEndTime,
 		Day:            db.DayEnum(event.Day),
@@ -221,23 +243,25 @@ func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEve
 		ID:        dbEvent.ID,
 		CreatedAt: dbEvent.CreatedAt,
 		UpdatedAt: dbEvent.UpdatedAt,
-		Details: values.Details{
-			Day:            string(dbEvent.Day),
-			ProgramStartAt: dbEvent.ProgramStartAt,
-			ProgramEndAt:   dbEvent.ProgramEndAt,
-			EventStartTime: dbEvent.EventStartTime,
-			EventEndTime:   dbEvent.EventEndTime,
-			LocationID:     dbEvent.LocationID.UUID,
-			ProgramID:      dbEvent.ProgramID.UUID,
-		},
-		ProgramName:     dbEvent.ProgramName.String,
-		ProgramType:     string(dbEvent.ProgramType.ProgramProgramType),
-		LocationName:    dbEvent.LocationName.String,
-		LocationAddress: dbEvent.Address.String,
-	}
+		ReadDetails: values.ReadDetails{
+			Details: values.Details{
+				Day:            string(dbEvent.Day),
+				ProgramStartAt: dbEvent.ProgramStartAt,
+				ProgramEndAt:   dbEvent.ProgramEndAt,
+				EventStartTime: dbEvent.EventStartTime,
+				EventEndTime:   dbEvent.EventEndTime,
+				GameID:         dbEvent.GameID.UUID,
+				PracticeID:     dbEvent.PracticeID.UUID,
+				CourseID:       dbEvent.CourseID.UUID,
+				LocationID:     dbEvent.LocationID.UUID,
+			},
 
-	if dbEvent.Capacity.Valid {
-		event.Details.Capacity = &dbEvent.Capacity.Int32
+			GameName:        dbEvent.GameName.String,
+			PracticeName:    dbEvent.PracticeName.String,
+			CourseName:      dbEvent.CourseName.String,
+			LocationName:    dbEvent.LocationName.String,
+			LocationAddress: dbEvent.Address.String,
+		},
 	}
 
 	return event, nil

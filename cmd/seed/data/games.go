@@ -10,7 +10,3 @@ func GenerateGameName(index int) string {
 	formats := []string{"Tournament", "League", "Match"}
 	return fmt.Sprintf("%s %s %d", gameTypes[rand.Intn(len(gameTypes))], formats[rand.Intn(len(formats))], index+1)
 }
-
-func GenerateGameDescription(index int) string {
-	return fmt.Sprintf("This is a description for game %d", index+1)
-}

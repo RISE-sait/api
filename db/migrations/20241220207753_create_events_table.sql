@@ -12,18 +12,19 @@ CREATE TABLE IF NOT EXISTS events.events
     id                 UUID PRIMARY KEY                  DEFAULT gen_random_uuid(),
     program_start_at TIMESTAMP WITH TIME ZONE NOT NULL,                         -- Renamed from event_start_at
     program_end_at   TIMESTAMP WITH TIME ZONE NOT NULL,                         -- Renamed from event_end_at
-    program_id UUID,
-    team_id    uuid,
+    practice_id        UUID,
+    course_id          UUID,
+    game_id            UUID,
     location_id UUID,
-    capacity   int,
     created_at         TIMESTAMPTZ              NOT NULL DEFAULT NOW(),
     updated_at         TIMESTAMPTZ              NOT NULL DEFAULT NOW(),
     day              day_enum                 NOT NULL,                         -- New column
     event_start_time TIMETZ                   NOT NULL,                         -- New column
     event_end_time   TIMETZ                   NOT NULL,                         -- New column
-    CONSTRAINT fk_program FOREIGN KEY (program_id) REFERENCES program.programs (id) ON DELETE cascade,
+    CONSTRAINT fk_game FOREIGN KEY (game_id) REFERENCES games (id) ON DELETE cascade,
+    CONSTRAINT fk_course FOREIGN KEY (course_id) REFERENCES courses (id) ON DELETE cascade,
+    CONSTRAINT fk_practice FOREIGN KEY (practice_id) REFERENCES practices (id) ON DELETE cascade,
     CONSTRAINT fk_location FOREIGN KEY (location_id) REFERENCES location.locations (id) ON DELETE cascade,
-    CONSTRAINT fk_team FOREIGN KEY (team_id) REFERENCES athletic.teams (id) ON DELETE SET NULL,
     CONSTRAINT event_end_after_start CHECK (program_end_at > program_start_at), -- Updated constraint
     CONSTRAINT check_event_times CHECK (event_start_time < event_end_time),     -- New constraint
     CONSTRAINT unique_event_time

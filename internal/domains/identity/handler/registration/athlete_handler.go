@@ -4,10 +4,9 @@ import (
 	"api/internal/di"
 	commonDto "api/internal/domains/identity/dto/common"
 	customerDto "api/internal/domains/identity/dto/customer"
-
 	service "api/internal/domains/identity/service/firebase"
 	"api/internal/domains/identity/service/registration"
-	errLib "api/internal/libs/errors"
+	identityUtils "api/internal/domains/identity/utils"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -37,23 +36,23 @@ func NewAthleteRegistrationHandlers(container *di.Container) *AthleteRegistratio
 // @Accept json
 // @Produce json
 // @Param athlete body customerDto.AthleteRegistrationRequestDto true "Athlete registration details" // The athlete registration data, including name, age, email, phone, consent, etc.
-// @Param firebase_token header string true "Firebase token for user verification" // Firebase token required for verifying the athlete's identity
+// @Param Authorization header string true "Firebase token for user verification" // Firebase token required for verifying the athlete's identity
 // @Success 201 {object} map[string]interface{} "Athlete registered successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Missing or invalid Firebase token or request body"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error: Failed to register athlete"
 // @Router /register/athlete [post]
 func (h *AthleteRegistrationHandlers) RegisterAthlete(w http.ResponseWriter, r *http.Request) {
 
-	firebaseToken := r.Header.Get("firebase_token")
+	firebaseToken, err := identityUtils.GetFirebaseTokenFromAuthorizationHeader(r)
 
-	if firebaseToken == "" {
-		responseHandlers.RespondWithError(w, errLib.New("Missing Firebase token", http.StatusBadRequest))
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
 	var requestDto customerDto.AthleteRegistrationRequestDto
 
-	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
+	if err = validators.ParseJSON(r.Body, &requestDto); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

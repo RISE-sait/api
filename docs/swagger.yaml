@@ -1,4 +1,29 @@
 definitions:
+<<<<<<< HEAD
+=======
+  course.RequestDto:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  course.ResponseDto:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+>>>>>>> main
   customer.AthleteRegistrationRequestDto:
     properties:
       age:
@@ -226,6 +251,13 @@ definitions:
     properties:
       capacity:
         type: integer
+<<<<<<< HEAD
+=======
+      course_id:
+        type: string
+      course_name:
+        type: string
+>>>>>>> main
       day:
         type: string
       id:
@@ -2412,7 +2444,7 @@ paths:
           $ref: '#/definitions/customer.AthleteRegistrationRequestDto'
       - description: Firebase token for user verification
         in: header
-        name: firebase_token
+        name: Authorization
         required: true
         type: string
       produces:
@@ -2452,7 +2484,7 @@ paths:
           $ref: '#/definitions/customer.ChildRegistrationRequestDto'
       - description: Firebase token for user verification
         in: header
-        name: firebase_token
+        name: Authorization
         required: true
         type: string
       produces:
@@ -2497,7 +2529,7 @@ paths:
           $ref: '#/definitions/customer.ParentRegistrationRequestDto'
       - description: Firebase token for user verification
         in: header
-        name: firebase_token
+        name: Authorization
         required: true
         type: string
       produces:

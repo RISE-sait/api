@@ -2709,7 +2709,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Firebase token for user verification",
-                        "name": "firebase_token",
+                        "name": "Authorization",
                         "in": "header",
                         "required": true
                     }
@@ -2765,7 +2765,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Firebase token for user verification",
-                        "name": "firebase_token",
+                        "name": "Authorization",
                         "in": "header",
                         "required": true
                     }
@@ -2828,7 +2828,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Firebase token for user verification",
-                        "name": "firebase_token",
+                        "name": "Authorization",
                         "in": "header",
                         "required": true
                     }
@@ -3285,6 +3285,43 @@ const docTemplate = `{
         }
     },
     "definitions": {
+<<<<<<< HEAD
+=======
+        "course.RequestDto": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "course.ResponseDto": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+>>>>>>> main
         "customer.AthleteRegistrationRequestDto": {
             "type": "object",
             "required": [
@@ -3620,6 +3657,15 @@ const docTemplate = `{
             "properties": {
                 "capacity": {
                     "type": "integer"
+<<<<<<< HEAD
+=======
+                },
+                "course_id": {
+                    "type": "string"
+                },
+                "course_name": {
+                    "type": "string"
+>>>>>>> main
                 },
                 "day": {
                     "type": "string"

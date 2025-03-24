@@ -7,6 +7,7 @@ import (
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
+	"github.com/google/uuid"
 	"log"
 	"net/http"
 )
@@ -36,13 +37,19 @@ func (s *ChildRegistrationService) CreateChildAccount(
 	childRegistrationInfo identity.ChildRegistrationRequestInfo,
 ) (identity.UserReadInfo, *errLib.CommonError) {
 
-	var response identity.UserReadInfo
+	requiredWaivers, err := s.WaiverSigningRepository.GetRequiredWaivers(ctx)
 
-	for _, waiver := range childRegistrationInfo.Waivers {
-		if !waiver.IsWaiverSigned {
-			return response, errLib.New("Waiver is not signed", http.StatusBadRequest)
-		}
+	if err != nil {
+		return identity.UserReadInfo{}, err
 	}
+
+	if err = validateWaivers(childRegistrationInfo.Waivers, requiredWaivers); err != nil {
+		return identity.UserReadInfo{}, err
+	}
+
+	waiverUrls, areWaiversSigned := prepareWaiverData(requiredWaivers)
+
+	var response identity.UserReadInfo
 
 	tx, txErr := s.DB.BeginTx(ctx, &sql.TxOptions{})
 	if txErr != nil {
@@ -62,11 +69,15 @@ func (s *ChildRegistrationService) CreateChildAccount(
 		return response, err
 	}
 
-	for _, waiver := range childRegistrationInfo.Waivers {
-		if err = s.WaiverSigningRepository.CreateWaiverSigningRecordTx(ctx, tx, createdChild.ID, waiver.WaiverUrl, waiver.IsWaiverSigned); err != nil {
-			tx.Rollback()
-			return response, err
-		}
+	var childIds []uuid.UUID
+
+	for range waiverUrls {
+		childIds = append(childIds, createdChild.ID)
+	}
+
+	if err = s.WaiverSigningRepository.CreateWaiversSigningRecordTx(ctx, tx, childIds, waiverUrls, areWaiversSigned); err != nil {
+		tx.Rollback()
+		return response, err
 	}
 
 	if txErr = tx.Commit(); txErr != nil {

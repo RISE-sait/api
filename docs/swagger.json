@@ -2698,7 +2698,7 @@
                     {
                         "type": "string",
                         "description": "Firebase token for user verification",
-                        "name": "firebase_token",
+                      "name": "Authorization",
                         "in": "header",
                         "required": true
                     }
@@ -2754,7 +2754,7 @@
                     {
                         "type": "string",
                         "description": "Firebase token for user verification",
-                        "name": "firebase_token",
+                      "name": "Authorization",
                         "in": "header",
                         "required": true
                     }
@@ -2817,7 +2817,7 @@
                     {
                         "type": "string",
                         "description": "Firebase token for user verification",
-                        "name": "firebase_token",
+                      "name": "Authorization",
                         "in": "header",
                         "required": true
                     }
@@ -3274,6 +3274,43 @@
         }
     },
     "definitions": {
+<<<<<<< HEAD
+=======
+        "course.RequestDto": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "course.ResponseDto": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+>>>>>>> main
         "customer.AthleteRegistrationRequestDto": {
             "type": "object",
             "required": [
@@ -3607,8 +3644,19 @@
         "event.ResponseDto": {
             "type": "object",
             "properties": {
+<<<<<<< HEAD
                 "capacity": {
                     "type": "integer"
+=======
+              "capacity": {
+                "type": "integer"
+              },
+                "course_id": {
+                    "type": "string"
+                },
+                "course_name": {
+                    "type": "string"
+>>>>>>> main
                 },
                 "day": {
                     "type": "string"

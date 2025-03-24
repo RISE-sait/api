@@ -6,7 +6,7 @@ import (
 	dto "api/internal/domains/identity/dto/customer"
 	service "api/internal/domains/identity/service/firebase"
 	"api/internal/domains/identity/service/registration"
-	errLib "api/internal/libs/errors"
+	identityUtils "api/internal/domains/identity/utils"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -32,7 +32,7 @@ func NewChildRegistrationHandlers(container *di.Container) *ChildRegistrationHan
 // @Accept json
 // @Produce json
 // @Param customer body customer.ChildRegistrationRequestDto true "Child account registration details" // BaseDetails for child account registration
-// @Param firebase_token header string true "Firebase token for user verification" // Firebase token in the Authorization header
+// @Param Authorization header string true "Firebase token for user verification" // Firebase token in the Authorization header
 // @Success 201 {object} map[string]interface{} "Child account registered successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input or missing Firebase token"
 // @Failure 401 {object} map[string]interface{} "Unauthorized: Invalid Firebase token or insufficient permissions"
@@ -40,16 +40,16 @@ func NewChildRegistrationHandlers(container *di.Container) *ChildRegistrationHan
 // @Router /register/child [post]
 func (h *ChildRegistrationHandlers) RegisterChild(w http.ResponseWriter, r *http.Request) {
 
-	firebaseToken := r.Header.Get("firebase_token")
+	firebaseToken, err := identityUtils.GetFirebaseTokenFromAuthorizationHeader(r)
 
-	if firebaseToken == "" {
-		responseHandlers.RespondWithError(w, errLib.New("Missing Firebase token", http.StatusBadRequest))
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
 	var requestDto dto.ChildRegistrationRequestDto
 
-	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
+	if err = validators.ParseJSON(r.Body, &requestDto); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

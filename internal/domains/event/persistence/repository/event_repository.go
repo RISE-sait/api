@@ -7,7 +7,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -70,30 +69,17 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 
-			foreignKeyErrors := map[string]string{
-				"fk_program":  "The referenced program doesn't exist",
-				"fk_game":     "The referenced game doesn't exist",
-				"fk_location": "The referenced location doesn't exist",
-				"fk_course":   "The referenced course doesn't exist",
+			constraintErrors := map[string]string{
+				"fk_program":            "The referenced program doesn't exist",
+				"fk_location":           "The referenced location doesn't exist",
+				"unique_event_time":     "An event is already scheduled at this time",
+				"check_event_times":     "End time/date must be after Begin time/date",
+				"event_end_after_start": "End time/date must be after Begin time/date",
 			}
 
-			if msg, found := foreignKeyErrors[pqErr.Constraint]; found {
+			if msg, found := constraintErrors[pqErr.Constraint]; found {
 				return errLib.New(msg, http.StatusBadRequest)
 			}
-
-			switch pqErr.Constraint {
-			case "check_end_time":
-				return errLib.New(pqErr.Message, http.StatusBadRequest)
-			case "check_session_times", "check_event_times":
-				return errLib.New("End time/date must be after Begin time/date", http.StatusBadRequest)
-			}
-
-			if strings.Contains(pqErr.Message, "overlaps") {
-				return errLib.New(pqErr.Message, http.StatusBadRequest)
-			}
-
-			log.Println(fmt.Sprintf("Error creating event: %v", pqErr.Error()))
-			return errLib.New("Internal db error", http.StatusInternalServerError)
 		}
 
 		log.Printf("Failed to create eventDetails: %+v. Error: %v", eventDetails, err.Error())

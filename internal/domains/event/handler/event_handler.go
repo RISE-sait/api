@@ -31,6 +31,7 @@ func NewEventsHandler(repo *repository.Repository) *EventsHandler {
 // @Param program_id query string false "Filter by program ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
 // @Param user_id query string false "Filter by user ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
 // @Param location_id query string false "Filter by location ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
+// @Param program_type query string false "Program Type (game, practice, course, others)
 // @Accept json
 // @Produce json
 // @Success 200 {array} event.ResponseDto "List of events retrieved successfully"
@@ -44,6 +45,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	var (
 		after, before                 time.Time
 		locationID, programID, userID uuid.UUID
+		programType                   string
 	)
 
 	if afterStr := query.Get("after"); afterStr != "" {
@@ -82,6 +84,8 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	programType = query.Get("program_type")
+
 	if locationIDStr := query.Get("location_id"); locationIDStr != "" {
 		if id, err := validators.ParseUUID(locationIDStr); err != nil {
 			responseHandlers.RespondWithError(w, errLib.New("invalid 'location_id' format, expected uuid format", http.StatusBadRequest))
@@ -91,12 +95,12 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if (after.IsZero() || before.IsZero()) && (programID == uuid.Nil && userID == uuid.Nil && locationID == uuid.Nil) {
-		responseHandlers.RespondWithError(w, errLib.New("at least one of (before and after) or (program_id, user_id, location_id), must be provided", http.StatusBadRequest))
+	if (after.IsZero() || before.IsZero()) && (programID == uuid.Nil && userID == uuid.Nil && locationID == uuid.Nil && programType == "") {
+		responseHandlers.RespondWithError(w, errLib.New("at least one of (before and after) or (program_id, user_id, location_id, program_type), must be provided", http.StatusBadRequest))
 		return
 	}
 
-	events, err := h.Repo.GetEvents(r.Context(), programID, locationID, before, after, userID)
+	events, err := h.Repo.GetEvents(r.Context(), programType, programID, locationID, before, after, userID)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)

@@ -4,7 +4,10 @@ INSERT INTO program.programs (name, description, level, type)
 VALUES ($1, $2, $3, $4);
 
 -- name: GetPrograms :many
-SELECT * FROM program.programs;
+SELECT *
+FROM program.programs
+WHERE type = sqlc.narg('type')
+   OR sqlc.narg('type') IS NULL;
 
 -- name: GetProgramById :one
 SELECT * FROM program.programs WHERE id = $1;

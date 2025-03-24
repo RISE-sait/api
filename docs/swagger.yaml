@@ -1,29 +1,4 @@
 definitions:
-<<<<<<< HEAD
-=======
-  course.RequestDto:
-    properties:
-      description:
-        type: string
-      name:
-        type: string
-    required:
-    - name
-    type: object
-  course.ResponseDto:
-    properties:
-      created_at:
-        type: string
-      description:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-      updated_at:
-        type: string
-    type: object
->>>>>>> main
   customer.AthleteRegistrationRequestDto:
     properties:
       age:
@@ -251,13 +226,6 @@ definitions:
     properties:
       capacity:
         type: integer
-<<<<<<< HEAD
-=======
-      course_id:
-        type: string
-      course_name:
-        type: string
->>>>>>> main
       day:
         type: string
       id:
@@ -500,14 +468,14 @@ definitions:
       updated_at:
         type: string
     type: object
-  practice.LevelsResponse:
+  program.LevelsResponse:
     properties:
       levels:
         items:
           type: string
         type: array
     type: object
-  practice.RequestDto:
+  program.RequestDto:
     properties:
       description:
         type: string
@@ -522,7 +490,7 @@ definitions:
     - name
     - type
     type: object
-  practice.Response:
+  program.Response:
     properties:
       created_at:
         type: string
@@ -2258,7 +2226,7 @@ paths:
           description: Programs retrieved successfully
           schema:
             items:
-              $ref: '#/definitions/practice.Response'
+              $ref: '#/definitions/program.Response'
             type: array
         "500":
           description: Internal Server Error
@@ -2278,7 +2246,7 @@ paths:
         name: program
         required: true
         schema:
-          $ref: '#/definitions/practice.RequestDto'
+          $ref: '#/definitions/program.RequestDto'
       produces:
       - application/json
       responses:
@@ -2351,7 +2319,7 @@ paths:
         name: program
         required: true
         schema:
-          $ref: '#/definitions/practice.RequestDto'
+          $ref: '#/definitions/program.RequestDto'
       produces:
       - application/json
       responses:
@@ -2387,7 +2355,7 @@ paths:
           description: Get program levels retrieved successfully
           schema:
             items:
-              $ref: '#/definitions/practice.LevelsResponse'
+              $ref: '#/definitions/program.LevelsResponse'
             type: array
         "500":
           description: Internal Server Error

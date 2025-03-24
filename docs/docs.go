@@ -2426,7 +2426,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/practice.Response"
+                                "$ref": "#/definitions/program.Response"
                             }
                         }
                     },
@@ -2463,7 +2463,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/practice.RequestDto"
+                            "$ref": "#/definitions/program.RequestDto"
                         }
                     }
                 ],
@@ -2510,7 +2510,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/practice.LevelsResponse"
+                                "$ref": "#/definitions/program.LevelsResponse"
                             }
                         }
                     },
@@ -2551,7 +2551,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/practice.RequestDto"
+                            "$ref": "#/definitions/program.RequestDto"
                         }
                     }
                 ],
@@ -3285,43 +3285,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-<<<<<<< HEAD
-=======
-        "course.RequestDto": {
-            "type": "object",
-            "required": [
-                "name"
-            ],
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "course.ResponseDto": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
->>>>>>> main
         "customer.AthleteRegistrationRequestDto": {
             "type": "object",
             "required": [
@@ -3657,15 +3620,6 @@ const docTemplate = `{
             "properties": {
                 "capacity": {
                     "type": "integer"
-<<<<<<< HEAD
-=======
-                },
-                "course_id": {
-                    "type": "string"
-                },
-                "course_name": {
-                    "type": "string"
->>>>>>> main
                 },
                 "day": {
                     "type": "string"
@@ -4032,7 +3986,7 @@ const docTemplate = `{
                 }
             }
         },
-        "practice.LevelsResponse": {
+        "program.LevelsResponse": {
             "type": "object",
             "properties": {
                 "levels": {
@@ -4043,7 +3997,7 @@ const docTemplate = `{
                 }
             }
         },
-        "practice.RequestDto": {
+        "program.RequestDto": {
             "type": "object",
             "required": [
                 "level",
@@ -4065,7 +4019,7 @@ const docTemplate = `{
                 }
             }
         },
-        "practice.Response": {
+        "program.Response": {
             "type": "object",
             "properties": {
                 "created_at": {

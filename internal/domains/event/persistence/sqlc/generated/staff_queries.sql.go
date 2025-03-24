@@ -7,8 +7,6 @@ package event_db
 
 import (
 	"context"
-	"database/sql"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -29,56 +27,6 @@ func (q *Queries) AssignStaffToEvent(ctx context.Context, arg AssignStaffToEvent
 		return 0, err
 	}
 	return result.RowsAffected()
-}
-
-const getStaffsAssignedToEvent = `-- name: GetStaffsAssignedToEvent :many
-SELECT s.id, s.is_active, s.created_at, s.updated_at, s.role_id, sr.role_name, u.hubspot_id
-FROM staff.staff s
-         JOIN staff.staff_roles sr ON s.role_id = sr.id
-    JOIN users.users u ON u.id = s.id
-         JOIN events.staff es ON s.id = es.staff_id
-WHERE event_id = $1
-`
-
-type GetStaffsAssignedToEventRow struct {
-	ID        uuid.UUID      `json:"id"`
-	IsActive  bool           `json:"is_active"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	RoleID    uuid.UUID      `json:"role_id"`
-	RoleName  string         `json:"role_name"`
-	HubspotID sql.NullString `json:"hubspot_id"`
-}
-
-func (q *Queries) GetStaffsAssignedToEvent(ctx context.Context, eventID uuid.UUID) ([]GetStaffsAssignedToEventRow, error) {
-	rows, err := q.db.QueryContext(ctx, getStaffsAssignedToEvent, eventID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetStaffsAssignedToEventRow
-	for rows.Next() {
-		var i GetStaffsAssignedToEventRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.IsActive,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.RoleID,
-			&i.RoleName,
-			&i.HubspotID,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const unassignStaffFromEvent = `-- name: UnassignStaffFromEvent :execrows

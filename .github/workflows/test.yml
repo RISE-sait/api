@@ -32,8 +32,6 @@ jobs:
 
       - name: Run sqlc generate
         run: |
-          cd internal/domains/enrollment/persistence/sqlc && sqlc generate
-          cd ../../../../../
           cd internal/domains/event/persistence/sqlc && sqlc generate
           cd ../../../../../
           cd internal/domains/game/persistence/sqlc && sqlc generate

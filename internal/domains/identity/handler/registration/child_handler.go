@@ -17,7 +17,7 @@ type ChildRegistrationHandlers struct {
 	FirebaseService                 *service.Service
 }
 
-func NewChildRegistrationHandlers(container *di.Container) *ChildRegistrationHandlers {
+func NewChildRegistrationHandler(container *di.Container) *ChildRegistrationHandlers {
 
 	return &ChildRegistrationHandlers{
 		ChildAccountRegistrationService: registration.NewChildAccountRegistrationService(container),

@@ -2,7 +2,6 @@ package di
 
 import (
 	"api/config"
-	enrollmentDb "api/internal/domains/enrollment/persistence/sqlc/generated"
 	eventDb "api/internal/domains/event/persistence/sqlc/generated"
 	gameDb "api/internal/domains/game/persistence/sqlc/generated"
 	barberDb "api/internal/domains/haircut/persistence/sqlc/generated"
@@ -42,7 +41,6 @@ type QueriesType struct {
 	MembershipDb *membershipDb.Queries
 	LocationDb   *locationDb.Queries
 	EventDb      *eventDb.Queries
-	EnrollmentDb *enrollmentDb.Queries
 	BarberDb     *barberDb.Queries
 	GameDb       *gameDb.Queries
 	TeamDb       *teamDb.Queries
@@ -84,7 +82,6 @@ func initializeQueries(db *sql.DB) *QueriesType {
 		MembershipDb: membershipDb.New(db),
 		LocationDb:   locationDb.New(db),
 		EventDb:      eventDb.New(db),
-		EnrollmentDb: enrollmentDb.New(db),
 		BarberDb:     barberDb.New(db),
 		GameDb:       gameDb.New(db),
 		TeamDb:       teamDb.New(db),

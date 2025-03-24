@@ -496,173 +496,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/enrollments": {
-            "get": {
-                "description": "Get enrollments by customer and event HubSpotId",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "enrollments"
-                ],
-                "summary": "Get enrollments by customer and event HubSpotId",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Customer ID",
-                        "name": "customerId",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Event ID",
-                        "name": "eventId",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Enrollments retrieved successfully",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/enrollment.ResponseDto"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid HubSpotId",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Enrollments not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "Create a new enrollment",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "enrollments"
-                ],
-                "summary": "Create a new enrollment",
-                "parameters": [
-                    {
-                        "description": "Enrollment details",
-                        "name": "enrollment",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/enrollment.CreateRequestDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Enrollment created successfully",
-                        "schema": {
-                            "$ref": "#/definitions/enrollment.ResponseDto"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/enrollments/{id}": {
-            "delete": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "Delete an enrollment by HubSpotId",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "enrollments"
-                ],
-                "summary": "Delete an enrollment",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Enrollment HubSpotId",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content: Enrollment deleted successfully"
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid HubSpotId",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Enrollment not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/events": {
             "get": {
                 "description": "Retrieve all events within a specific date range, with optional filters by course, location, game, and practice.",
@@ -696,6 +529,20 @@ const docTemplate = `{
                         "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
                         "description": "Filter by program ID (UUID format)",
                         "name": "program_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                        "description": "Filter by user ID (UUID format)",
+                        "name": "user_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                        "description": "Filter by location ID (UUID format)",
+                        "name": "location_id",
                         "in": "query"
                     }
                 ],
@@ -773,9 +620,13 @@ const docTemplate = `{
                 }
             }
         },
-        "/events/{event_id}/staffs": {
-            "get": {
-                "description": "Retrieve all staff assigned to an event using event_id as a query parameter.",
+        "/events/{event_id}/customers/{customer_id}": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -783,27 +634,27 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "event_staff"
+                    "enrollments"
                 ],
-                "summary": "Get staff assigned to an event",
                 "parameters": [
                     {
                         "type": "string",
                         "description": "Event ID",
-                        "name": "id",
+                        "name": "event_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Customer ID",
+                        "name": "customer_id",
                         "in": "path",
                         "required": true
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "GetMemberships of staff assigned to the event",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/staff.ResponseDto"
-                            }
-                        }
+                    "201": {
+                        "description": "Enrollment created successfully"
                     },
                     "400": {
                         "description": "Bad Request: Invalid input",
@@ -812,8 +663,54 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Delete an enrollment by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "enrollments"
+                ],
+                "summary": "Delete an enrollment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Enrollment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Enrollment deleted successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
                     "404": {
-                        "description": "Event not found",
+                        "description": "Not Found: Enrollment not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3530,43 +3427,28 @@ const docTemplate = `{
                 }
             }
         },
-        "enrollment.CreateRequestDto": {
-            "type": "object",
-            "required": [
-                "customer_id",
-                "event_id"
-            ],
-            "properties": {
-                "customer_id": {
-                    "type": "string"
-                },
-                "event_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "enrollment.ResponseDto": {
+        "event.CustomerResponseDto": {
             "type": "object",
             "properties": {
-                "checked_in_at": {
+                "email": {
                     "type": "string"
                 },
-                "created_at": {
+                "first_name": {
                     "type": "string"
                 },
-                "customer_id": {
+                "gender": {
                     "type": "string"
                 },
-                "event_id": {
-                    "type": "string"
+                "has_cancelled_enrollment": {
+                    "type": "boolean"
                 },
                 "id": {
                     "type": "string"
                 },
-                "is_cancelled": {
-                    "type": "boolean"
+                "last_name": {
+                    "type": "string"
                 },
-                "updated_at": {
+                "phone": {
                     "type": "string"
                 }
             }
@@ -3621,6 +3503,12 @@ const docTemplate = `{
                 "capacity": {
                     "type": "integer"
                 },
+                "customers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/event.CustomerResponseDto"
+                    }
+                },
                 "day": {
                     "type": "string"
                 },
@@ -3655,6 +3543,38 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "session_start_at": {
+                    "type": "string"
+                },
+                "staff": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/event.StaffResponseDto"
+                    }
+                }
+            }
+        },
+        "event.StaffResponseDto": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "gender": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "role_name": {
                     "type": "string"
                 }
             }

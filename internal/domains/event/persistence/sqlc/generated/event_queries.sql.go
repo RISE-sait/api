@@ -57,78 +57,184 @@ func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
-const getEventById = `-- name: GetEventById :one
-SELECT e.id, e.program_start_at, e.program_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time,
-       p.name        as program_name,
-       p.description as program_description,
-       p."type"      as program_type,
-       l.name        as location_name,
-       l.address     as address
-FROM events.events e
-          LEFT JOIN program.programs p ON e.program_id = p.id
-         LEFT JOIN location.locations l ON e.location_id = l.id
-WHERE e.id = $1
+const getEventStuffById = `-- name: GetEventStuffById :many
+WITH event_data AS (
+    SELECT
+        e.id, e.program_start_at, e.program_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time,
+        p.name AS program_name,
+        p.description AS program_description,
+        p."type" AS program_type,
+        l.name AS location_name,
+        l.address AS location_address
+    FROM events.events e
+             LEFT JOIN program.programs p ON e.program_id = p.id
+             LEFT JOIN location.locations l ON e.location_id = l.id
+    WHERE e.id = $1
+)
+SELECT
+    ed.id, ed.program_start_at, ed.program_end_at, ed.program_id, ed.team_id, ed.location_id, ed.capacity, ed.created_at, ed.updated_at, ed.day, ed.event_start_time, ed.event_end_time, ed.program_name, ed.program_description, ed.program_type, ed.location_name, ed.location_address,
+    -- Staff fields (direct joins)
+    s.id AS staff_id,
+    sr.role_name AS staff_role_name,
+    us.email AS staff_email,
+    us.first_name AS staff_first_name,
+    us.last_name AS staff_last_name,
+    us.gender AS staff_gender,
+    us.phone AS staff_phone,
+    -- Customer fields (direct joins)
+    uc.id AS customer_id,
+    uc.first_name AS customer_first_name,
+    uc.last_name AS customer_last_name,
+    uc.email AS customer_email,
+    uc.phone AS customer_phone,
+    uc.gender AS customer_gender,
+    ce.is_cancelled AS customer_is_cancelled
+FROM event_data ed
+         LEFT JOIN events.staff es ON ed.id = es.event_id
+         LEFT JOIN staff.staff s ON es.staff_id = s.id
+         LEFT JOIN staff.staff_roles sr ON s.role_id = sr.id
+         LEFT JOIN users.users us ON s.id = us.id
+         LEFT JOIN events.customer_enrollment ce ON ed.id = ce.event_id
+         LEFT JOIN users.users uc ON ce.customer_id = uc.id
+ORDER BY s.id, uc.id
 `
 
-type GetEventByIdRow struct {
-	ID                 uuid.UUID                     `json:"id"`
-	ProgramStartAt     time.Time                     `json:"program_start_at"`
-	ProgramEndAt       time.Time                     `json:"program_end_at"`
-	ProgramID          uuid.NullUUID                 `json:"program_id"`
-	TeamID             uuid.NullUUID                 `json:"team_id"`
-	LocationID         uuid.NullUUID                 `json:"location_id"`
-	Capacity           sql.NullInt32                 `json:"capacity"`
-	CreatedAt          time.Time                     `json:"created_at"`
-	UpdatedAt          time.Time                     `json:"updated_at"`
-	Day                DayEnum                       `json:"day"`
-	EventStartTime     custom_types.TimeWithTimeZone `json:"event_start_time"`
-	EventEndTime       custom_types.TimeWithTimeZone `json:"event_end_time"`
-	ProgramName        sql.NullString                `json:"program_name"`
-	ProgramDescription sql.NullString                `json:"program_description"`
-	ProgramType        NullProgramProgramType        `json:"program_type"`
-	LocationName       sql.NullString                `json:"location_name"`
-	Address            sql.NullString                `json:"address"`
+type GetEventStuffByIdRow struct {
+	ID                  uuid.UUID                     `json:"id"`
+	ProgramStartAt      time.Time                     `json:"program_start_at"`
+	ProgramEndAt        time.Time                     `json:"program_end_at"`
+	ProgramID           uuid.NullUUID                 `json:"program_id"`
+	TeamID              uuid.NullUUID                 `json:"team_id"`
+	LocationID          uuid.NullUUID                 `json:"location_id"`
+	Capacity            sql.NullInt32                 `json:"capacity"`
+	CreatedAt           time.Time                     `json:"created_at"`
+	UpdatedAt           time.Time                     `json:"updated_at"`
+	Day                 DayEnum                       `json:"day"`
+	EventStartTime      custom_types.TimeWithTimeZone `json:"event_start_time"`
+	EventEndTime        custom_types.TimeWithTimeZone `json:"event_end_time"`
+	ProgramName         sql.NullString                `json:"program_name"`
+	ProgramDescription  sql.NullString                `json:"program_description"`
+	ProgramType         NullProgramProgramType        `json:"program_type"`
+	LocationName        sql.NullString                `json:"location_name"`
+	LocationAddress     sql.NullString                `json:"location_address"`
+	StaffID             uuid.NullUUID                 `json:"staff_id"`
+	StaffRoleName       sql.NullString                `json:"staff_role_name"`
+	StaffEmail          sql.NullString                `json:"staff_email"`
+	StaffFirstName      sql.NullString                `json:"staff_first_name"`
+	StaffLastName       sql.NullString                `json:"staff_last_name"`
+	StaffGender         sql.NullString                `json:"staff_gender"`
+	StaffPhone          sql.NullString                `json:"staff_phone"`
+	CustomerID          uuid.NullUUID                 `json:"customer_id"`
+	CustomerFirstName   sql.NullString                `json:"customer_first_name"`
+	CustomerLastName    sql.NullString                `json:"customer_last_name"`
+	CustomerEmail       sql.NullString                `json:"customer_email"`
+	CustomerPhone       sql.NullString                `json:"customer_phone"`
+	CustomerGender      sql.NullString                `json:"customer_gender"`
+	CustomerIsCancelled sql.NullBool                  `json:"customer_is_cancelled"`
 }
 
-func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdRow, error) {
-	row := q.db.QueryRowContext(ctx, getEventById, id)
-	var i GetEventByIdRow
-	err := row.Scan(
-		&i.ID,
-		&i.ProgramStartAt,
-		&i.ProgramEndAt,
-		&i.ProgramID,
-		&i.TeamID,
-		&i.LocationID,
-		&i.Capacity,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Day,
-		&i.EventStartTime,
-		&i.EventEndTime,
-		&i.ProgramName,
-		&i.ProgramDescription,
-		&i.ProgramType,
-		&i.LocationName,
-		&i.Address,
-	)
-	return i, err
+func (q *Queries) GetEventStuffById(ctx context.Context, id uuid.UUID) ([]GetEventStuffByIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getEventStuffById, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetEventStuffByIdRow
+	for rows.Next() {
+		var i GetEventStuffByIdRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProgramStartAt,
+			&i.ProgramEndAt,
+			&i.ProgramID,
+			&i.TeamID,
+			&i.LocationID,
+			&i.Capacity,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Day,
+			&i.EventStartTime,
+			&i.EventEndTime,
+			&i.ProgramName,
+			&i.ProgramDescription,
+			&i.ProgramType,
+			&i.LocationName,
+			&i.LocationAddress,
+			&i.StaffID,
+			&i.StaffRoleName,
+			&i.StaffEmail,
+			&i.StaffFirstName,
+			&i.StaffLastName,
+			&i.StaffGender,
+			&i.StaffPhone,
+			&i.CustomerID,
+			&i.CustomerFirstName,
+			&i.CustomerLastName,
+			&i.CustomerEmail,
+			&i.CustomerPhone,
+			&i.CustomerGender,
+			&i.CustomerIsCancelled,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getEvents = `-- name: GetEvents :many
-SELECT e.id, e.program_start_at, e.program_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time,
-       p.name        as program_name,
-       p.description as program_description,
-       p."type"      as program_type,
-       l.name        as location_name,
-       l.address     as address
-FROM events.events e
-         LEFT JOIN program.programs p ON e.program_id = p.id
-         LEFT JOIN location.locations l ON e.location_id = l.id
-WHERE ($1 = program_id OR $1 IS NULL)
-  AND ($2 = location_id OR $2 IS NULL)
-  AND ($3 >= e.program_start_at OR $3 IS NULL) -- within boundary
-  AND ($4 <= e.program_end_at OR $4 IS NULL)
+WITH event_data AS (
+    SELECT DISTINCT
+        e.id, e.program_start_at, e.program_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time,
+        p.name AS program_name,
+        p.description AS program_description,
+        p."type" AS program_type,
+        l.name AS location_name,
+        l.address AS location_address
+    FROM events.events e
+             LEFT JOIN program.programs p ON e.program_id = p.id
+             LEFT JOIN location.locations l ON e.location_id = l.id
+    LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
+    LEFT JOIN events.staff es ON e.id = es.event_id
+    WHERE (($1::uuid = e.program_id OR $1 IS NULL)
+        AND ($2::uuid = e.location_id OR $2 IS NULL)
+        AND ($3::timestamp >= e.program_start_at OR $3 IS NULL)
+        AND ($4::timestamp <= e.program_end_at OR $4 IS NULL)
+        AND ($5::uuid IS NULL OR ce.customer_id = $5::uuid OR es.staff_id = $5::uuid)
+              )
+)
+SELECT
+    ed.id, ed.program_start_at, ed.program_end_at, ed.program_id, ed.team_id, ed.location_id, ed.capacity, ed.created_at, ed.updated_at, ed.day, ed.event_start_time, ed.event_end_time, ed.program_name, ed.program_description, ed.program_type, ed.location_name, ed.location_address,
+    -- Staff fields (direct joins)
+    s.id AS staff_id,
+    sr.role_name AS staff_role_name,
+    us.email AS staff_email,
+    us.first_name AS staff_first_name,
+    us.last_name AS staff_last_name,
+    us.gender AS staff_gender,
+    us.phone AS staff_phone,
+    -- Customer fields (direct joins)
+    uc.id AS customer_id,
+    uc.first_name AS customer_first_name,
+    uc.last_name AS customer_last_name,
+    uc.email AS customer_email,
+    uc.phone AS customer_phone,
+    uc.gender AS customer_gender,
+    ce.is_cancelled AS customer_is_cancelled
+FROM event_data ed
+         LEFT JOIN events.staff es ON ed.id = es.event_id
+         LEFT JOIN staff.staff s ON es.staff_id = s.id
+         LEFT JOIN staff.staff_roles sr ON s.role_id = sr.id
+         LEFT JOIN users.users us ON s.id = us.id
+         LEFT JOIN events.customer_enrollment ce ON ed.id = ce.event_id
+         LEFT JOIN users.users uc ON ce.customer_id = uc.id
+ORDER BY ed.id, s.id, uc.id
 `
 
 type GetEventsParams struct {
@@ -136,26 +242,41 @@ type GetEventsParams struct {
 	LocationID uuid.NullUUID `json:"location_id"`
 	Before     sql.NullTime  `json:"before"`
 	After      sql.NullTime  `json:"after"`
+	UserID     uuid.NullUUID `json:"user_id"`
 }
 
 type GetEventsRow struct {
-	ID                 uuid.UUID                     `json:"id"`
-	ProgramStartAt     time.Time                     `json:"program_start_at"`
-	ProgramEndAt       time.Time                     `json:"program_end_at"`
-	ProgramID          uuid.NullUUID                 `json:"program_id"`
-	TeamID             uuid.NullUUID                 `json:"team_id"`
-	LocationID         uuid.NullUUID                 `json:"location_id"`
-	Capacity           sql.NullInt32                 `json:"capacity"`
-	CreatedAt          time.Time                     `json:"created_at"`
-	UpdatedAt          time.Time                     `json:"updated_at"`
-	Day                DayEnum                       `json:"day"`
-	EventStartTime     custom_types.TimeWithTimeZone `json:"event_start_time"`
-	EventEndTime       custom_types.TimeWithTimeZone `json:"event_end_time"`
-	ProgramName        sql.NullString                `json:"program_name"`
-	ProgramDescription sql.NullString                `json:"program_description"`
-	ProgramType        NullProgramProgramType        `json:"program_type"`
-	LocationName       sql.NullString                `json:"location_name"`
-	Address            sql.NullString                `json:"address"`
+	ID                  uuid.UUID                     `json:"id"`
+	ProgramStartAt      time.Time                     `json:"program_start_at"`
+	ProgramEndAt        time.Time                     `json:"program_end_at"`
+	ProgramID           uuid.NullUUID                 `json:"program_id"`
+	TeamID              uuid.NullUUID                 `json:"team_id"`
+	LocationID          uuid.NullUUID                 `json:"location_id"`
+	Capacity            sql.NullInt32                 `json:"capacity"`
+	CreatedAt           time.Time                     `json:"created_at"`
+	UpdatedAt           time.Time                     `json:"updated_at"`
+	Day                 DayEnum                       `json:"day"`
+	EventStartTime      custom_types.TimeWithTimeZone `json:"event_start_time"`
+	EventEndTime        custom_types.TimeWithTimeZone `json:"event_end_time"`
+	ProgramName         sql.NullString                `json:"program_name"`
+	ProgramDescription  sql.NullString                `json:"program_description"`
+	ProgramType         NullProgramProgramType        `json:"program_type"`
+	LocationName        sql.NullString                `json:"location_name"`
+	LocationAddress     sql.NullString                `json:"location_address"`
+	StaffID             uuid.NullUUID                 `json:"staff_id"`
+	StaffRoleName       sql.NullString                `json:"staff_role_name"`
+	StaffEmail          sql.NullString                `json:"staff_email"`
+	StaffFirstName      sql.NullString                `json:"staff_first_name"`
+	StaffLastName       sql.NullString                `json:"staff_last_name"`
+	StaffGender         sql.NullString                `json:"staff_gender"`
+	StaffPhone          sql.NullString                `json:"staff_phone"`
+	CustomerID          uuid.NullUUID                 `json:"customer_id"`
+	CustomerFirstName   sql.NullString                `json:"customer_first_name"`
+	CustomerLastName    sql.NullString                `json:"customer_last_name"`
+	CustomerEmail       sql.NullString                `json:"customer_email"`
+	CustomerPhone       sql.NullString                `json:"customer_phone"`
+	CustomerGender      sql.NullString                `json:"customer_gender"`
+	CustomerIsCancelled sql.NullBool                  `json:"customer_is_cancelled"`
 }
 
 func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEventsRow, error) {
@@ -164,6 +285,7 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 		arg.LocationID,
 		arg.Before,
 		arg.After,
+		arg.UserID,
 	)
 	if err != nil {
 		return nil, err
@@ -189,7 +311,21 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 			&i.ProgramDescription,
 			&i.ProgramType,
 			&i.LocationName,
-			&i.Address,
+			&i.LocationAddress,
+			&i.StaffID,
+			&i.StaffRoleName,
+			&i.StaffEmail,
+			&i.StaffFirstName,
+			&i.StaffLastName,
+			&i.StaffGender,
+			&i.StaffPhone,
+			&i.CustomerID,
+			&i.CustomerFirstName,
+			&i.CustomerLastName,
+			&i.CustomerEmail,
+			&i.CustomerPhone,
+			&i.CustomerGender,
+			&i.CustomerIsCancelled,
 		); err != nil {
 			return nil, err
 		}
@@ -206,15 +342,15 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 
 const updateEvent = `-- name: UpdateEvent :exec
 UPDATE events.events
-SET program_start_at   = $1,
-    program_end_at     = $2,
-    location_id    = $3,
-    program_id    = $4,
+SET program_start_at = $1,
+    program_end_at   = $2,
+    location_id      = $3,
+    program_id       = $4,
     event_start_time = $5,
     event_end_time   = $6,
-    day                = $7,
-    capacity = $8,
-    updated_at     = current_timestamp
+    day              = $7,
+    capacity         = $8,
+    updated_at       = current_timestamp
 WHERE id = $9
 `
 

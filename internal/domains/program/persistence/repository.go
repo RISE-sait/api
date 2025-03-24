@@ -62,9 +62,19 @@ func (r *Repository) Update(ctx context.Context, program values.UpdateProgramVal
 	return nil
 }
 
-func (r *Repository) List(ctx context.Context) ([]values.GetProgramValues, *errLib.CommonError) {
+func (r *Repository) List(ctx context.Context, programType string) ([]values.GetProgramValues, *errLib.CommonError) {
 
-	dbPrograms, err := r.Queries.GetPrograms(ctx)
+	if !db.ProgramProgramType(programType).Valid() {
+
+		validTypes := db.AllProgramProgramTypeValues()
+
+		return nil, errLib.New(fmt.Sprintf("Invalid program type. Valid types are: %v", validTypes), http.StatusBadRequest)
+	}
+
+	dbPrograms, err := r.Queries.GetPrograms(ctx, db.NullProgramProgramType{
+		ProgramProgramType: db.ProgramProgramType(programType),
+		Valid:              true,
+	})
 
 	if err != nil {
 

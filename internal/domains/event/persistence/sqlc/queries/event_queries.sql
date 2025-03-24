@@ -20,6 +20,7 @@ WITH event_data AS (SELECT DISTINCT e.*,
                         AND (sqlc.narg('location_id')::uuid = e.location_id OR sqlc.narg('location_id') IS NULL)
                         AND (sqlc.narg('before')::timestamp >= e.program_start_at OR sqlc.narg('before') IS NULL)
                         AND (sqlc.narg('after')::timestamp <= e.program_end_at OR sqlc.narg('after') IS NULL)
+                        AND (sqlc.narg('type') = p.type OR sqlc.narg('type') IS NULL)
                         AND (sqlc.narg('user_id')::uuid IS NULL OR ce.customer_id = sqlc.narg('user_id')::uuid OR
                              es.staff_id = sqlc.narg('user_id')::uuid)
                               ))

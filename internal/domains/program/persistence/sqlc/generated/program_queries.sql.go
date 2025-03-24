@@ -67,10 +67,11 @@ func (q *Queries) GetProgramById(ctx context.Context, id uuid.UUID) (ProgramProg
 
 const getPrograms = `-- name: GetPrograms :many
 SELECT id, name, description, level, type, created_at, updated_at FROM program.programs
+WHERE type = $1 OR $1 IS NULL
 `
 
-func (q *Queries) GetPrograms(ctx context.Context) ([]ProgramProgram, error) {
-	rows, err := q.db.QueryContext(ctx, getPrograms)
+func (q *Queries) GetPrograms(ctx context.Context, type_ NullProgramProgramType) ([]ProgramProgram, error) {
+	rows, err := q.db.QueryContext(ctx, getPrograms, type_)
 	if err != nil {
 		return nil, err
 	}

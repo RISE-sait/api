@@ -58,37 +58,33 @@ func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) error {
 }
 
 const getEventStuffById = `-- name: GetEventStuffById :many
-WITH event_data AS (
-    SELECT
-        e.id, e.program_start_at, e.program_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time,
-        p.name AS program_name,
-        p.description AS program_description,
-        p."type" AS program_type,
-        l.name AS location_name,
-        l.address AS location_address
-    FROM events.events e
-             LEFT JOIN program.programs p ON e.program_id = p.id
-             LEFT JOIN location.locations l ON e.location_id = l.id
-    WHERE e.id = $1
-)
-SELECT
-    ed.id, ed.program_start_at, ed.program_end_at, ed.program_id, ed.team_id, ed.location_id, ed.capacity, ed.created_at, ed.updated_at, ed.day, ed.event_start_time, ed.event_end_time, ed.program_name, ed.program_description, ed.program_type, ed.location_name, ed.location_address,
-    -- Staff fields (direct joins)
-    s.id AS staff_id,
-    sr.role_name AS staff_role_name,
-    us.email AS staff_email,
-    us.first_name AS staff_first_name,
-    us.last_name AS staff_last_name,
-    us.gender AS staff_gender,
-    us.phone AS staff_phone,
-    -- Customer fields (direct joins)
-    uc.id AS customer_id,
-    uc.first_name AS customer_first_name,
-    uc.last_name AS customer_last_name,
-    uc.email AS customer_email,
-    uc.phone AS customer_phone,
-    uc.gender AS customer_gender,
-    ce.is_cancelled AS customer_is_cancelled
+WITH event_data AS (SELECT e.id, e.program_start_at, e.program_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time,
+                           p.name        AS program_name,
+                           p.description AS program_description,
+                           p."type"      AS program_type,
+                           l.name        AS location_name,
+                           l.address     AS location_address
+                    FROM events.events e
+                             LEFT JOIN program.programs p ON e.program_id = p.id
+                             LEFT JOIN location.locations l ON e.location_id = l.id
+                    WHERE e.id = $1)
+SELECT ed.id, ed.program_start_at, ed.program_end_at, ed.program_id, ed.team_id, ed.location_id, ed.capacity, ed.created_at, ed.updated_at, ed.day, ed.event_start_time, ed.event_end_time, ed.program_name, ed.program_description, ed.program_type, ed.location_name, ed.location_address,
+       -- Staff fields (direct joins)
+       s.id            AS staff_id,
+       sr.role_name    AS staff_role_name,
+       us.email        AS staff_email,
+       us.first_name   AS staff_first_name,
+       us.last_name    AS staff_last_name,
+       us.gender       AS staff_gender,
+       us.phone        AS staff_phone,
+       -- Customer fields (direct joins)
+       uc.id           AS customer_id,
+       uc.first_name   AS customer_first_name,
+       uc.last_name    AS customer_last_name,
+       uc.email        AS customer_email,
+       uc.phone        AS customer_phone,
+       uc.gender       AS customer_gender,
+       ce.is_cancelled AS customer_is_cancelled
 FROM event_data ed
          LEFT JOIN events.staff es ON ed.id = es.event_id
          LEFT JOIN staff.staff s ON es.staff_id = s.id
@@ -189,44 +185,42 @@ func (q *Queries) GetEventStuffById(ctx context.Context, id uuid.UUID) ([]GetEve
 }
 
 const getEvents = `-- name: GetEvents :many
-WITH event_data AS (
-    SELECT DISTINCT
-        e.id, e.program_start_at, e.program_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time,
-        p.name AS program_name,
-        p.description AS program_description,
-        p."type" AS program_type,
-        l.name AS location_name,
-        l.address AS location_address
-    FROM events.events e
-             LEFT JOIN program.programs p ON e.program_id = p.id
-             LEFT JOIN location.locations l ON e.location_id = l.id
-    LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
-    LEFT JOIN events.staff es ON e.id = es.event_id
-    WHERE (($1::uuid = e.program_id OR $1 IS NULL)
-        AND ($2::uuid = e.location_id OR $2 IS NULL)
-        AND ($3::timestamp >= e.program_start_at OR $3 IS NULL)
-        AND ($4::timestamp <= e.program_end_at OR $4 IS NULL)
-        AND ($5::uuid IS NULL OR ce.customer_id = $5::uuid OR es.staff_id = $5::uuid)
-              )
-)
-SELECT
-    ed.id, ed.program_start_at, ed.program_end_at, ed.program_id, ed.team_id, ed.location_id, ed.capacity, ed.created_at, ed.updated_at, ed.day, ed.event_start_time, ed.event_end_time, ed.program_name, ed.program_description, ed.program_type, ed.location_name, ed.location_address,
-    -- Staff fields (direct joins)
-    s.id AS staff_id,
-    sr.role_name AS staff_role_name,
-    us.email AS staff_email,
-    us.first_name AS staff_first_name,
-    us.last_name AS staff_last_name,
-    us.gender AS staff_gender,
-    us.phone AS staff_phone,
-    -- Customer fields (direct joins)
-    uc.id AS customer_id,
-    uc.first_name AS customer_first_name,
-    uc.last_name AS customer_last_name,
-    uc.email AS customer_email,
-    uc.phone AS customer_phone,
-    uc.gender AS customer_gender,
-    ce.is_cancelled AS customer_is_cancelled
+WITH event_data AS (SELECT DISTINCT e.id, e.program_start_at, e.program_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time,
+                                    p.name        AS program_name,
+                                    p.description AS program_description,
+                                    p."type"      AS program_type,
+                                    l.name        AS location_name,
+                                    l.address     AS location_address
+                    FROM events.events e
+                             LEFT JOIN program.programs p ON e.program_id = p.id
+                             LEFT JOIN location.locations l ON e.location_id = l.id
+                             LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
+                             LEFT JOIN events.staff es ON e.id = es.event_id
+                    WHERE (($1::uuid = e.program_id OR $1 IS NULL)
+                        AND ($2::uuid = e.location_id OR $2 IS NULL)
+                        AND ($3::timestamp >= e.program_start_at OR $3 IS NULL)
+                        AND ($4::timestamp <= e.program_end_at OR $4 IS NULL)
+                        AND ($5 = p.type OR $5 IS NULL)
+                        AND ($6::uuid IS NULL OR ce.customer_id = $6::uuid OR
+                             es.staff_id = $6::uuid)
+                              ))
+SELECT ed.id, ed.program_start_at, ed.program_end_at, ed.program_id, ed.team_id, ed.location_id, ed.capacity, ed.created_at, ed.updated_at, ed.day, ed.event_start_time, ed.event_end_time, ed.program_name, ed.program_description, ed.program_type, ed.location_name, ed.location_address,
+       -- Staff fields (direct joins)
+       s.id            AS staff_id,
+       sr.role_name    AS staff_role_name,
+       us.email        AS staff_email,
+       us.first_name   AS staff_first_name,
+       us.last_name    AS staff_last_name,
+       us.gender       AS staff_gender,
+       us.phone        AS staff_phone,
+       -- Customer fields (direct joins)
+       uc.id           AS customer_id,
+       uc.first_name   AS customer_first_name,
+       uc.last_name    AS customer_last_name,
+       uc.email        AS customer_email,
+       uc.phone        AS customer_phone,
+       uc.gender       AS customer_gender,
+       ce.is_cancelled AS customer_is_cancelled
 FROM event_data ed
          LEFT JOIN events.staff es ON ed.id = es.event_id
          LEFT JOIN staff.staff s ON es.staff_id = s.id
@@ -238,11 +232,12 @@ ORDER BY ed.id, s.id, uc.id
 `
 
 type GetEventsParams struct {
-	ProgramID  uuid.NullUUID `json:"program_id"`
-	LocationID uuid.NullUUID `json:"location_id"`
-	Before     sql.NullTime  `json:"before"`
-	After      sql.NullTime  `json:"after"`
-	UserID     uuid.NullUUID `json:"user_id"`
+	ProgramID  uuid.NullUUID          `json:"program_id"`
+	LocationID uuid.NullUUID          `json:"location_id"`
+	Before     sql.NullTime           `json:"before"`
+	After      sql.NullTime           `json:"after"`
+	Type       NullProgramProgramType `json:"type"`
+	UserID     uuid.NullUUID          `json:"user_id"`
 }
 
 type GetEventsRow struct {
@@ -285,6 +280,7 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 		arg.LocationID,
 		arg.Before,
 		arg.After,
+		arg.Type,
 		arg.UserID,
 	)
 	if err != nil {

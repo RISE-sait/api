@@ -62,7 +62,8 @@ func (q *Queries) GetEventIsFull(ctx context.Context, eventID uuid.UUID) (bool, 
 const unEnrollCustomer = `-- name: UnEnrollCustomer :execrows
 UPDATE events.customer_enrollment
 SET is_cancelled = true
-WHERE customer_id = $1 AND event_id = $2
+WHERE customer_id = $1
+  AND event_id = $2
 `
 
 type UnEnrollCustomerParams struct {

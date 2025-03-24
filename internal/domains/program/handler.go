@@ -57,6 +57,7 @@ func (h *Handler) CreateProgram(w http.ResponseWriter, r *http.Request) {
 // @Summary Get a list of programs
 // @Description Get a list of programs
 // @Tags programs
+// @Param type query string false "Program Type (game, practice, course, others)
 // @Accept json
 // @Produce json
 // @Success 200 {array} dto.Response "Programs retrieved successfully"
@@ -64,7 +65,8 @@ func (h *Handler) CreateProgram(w http.ResponseWriter, r *http.Request) {
 // @Router /programs [get]
 func (h *Handler) GetPrograms(w http.ResponseWriter, r *http.Request) {
 
-	programs, err := h.Repo.List(r.Context())
+	programs, err := h.Repo.List(r.Context(), r.URL.Query().Get("type"))
+
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return

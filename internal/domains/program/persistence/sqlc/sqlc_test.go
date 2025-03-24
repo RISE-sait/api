@@ -1,4 +1,4 @@
-package practice
+package program
 
 import (
 	databaseErrors "api/internal/constants"
@@ -24,7 +24,7 @@ func TestCreateProgram(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := programTestUtils.SetupPracticeTestDbQueries(t, dbConn)
+	queries, cleanup := programTestUtils.SetupProgramTestDbQueries(t, dbConn)
 
 	defer cleanup()
 
@@ -35,17 +35,18 @@ func TestCreateProgram(t *testing.T) {
 		Name:        name,
 		Description: description,
 		Level:       db.ProgramProgramLevelAll,
+		Type:        db.ProgramProgramTypeCourse,
 	}
 
 	err := queries.CreateProgram(context.Background(), CreateProgramParams)
 
 	require.NoError(t, err)
 
-	practices, err := queries.GetPrograms(context.Background())
+	programs, err := queries.GetPrograms(context.Background())
 
 	require.NoError(t, err)
 
-	practice := practices[0]
+	practice := programs[0]
 
 	// Assert course data
 	require.Equal(t, name, practice.Name)
@@ -53,11 +54,11 @@ func TestCreateProgram(t *testing.T) {
 	require.Equal(t, CreateProgramParams.Name, practice.Name)
 }
 
-func TestUpdatePracticeValid(t *testing.T) {
+func TestUpdateProgramValid(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := programTestUtils.SetupPracticeTestDbQueries(t, dbConn)
+	queries, cleanup := programTestUtils.SetupProgramTestDbQueries(t, dbConn)
 
 	defer cleanup()
 
@@ -69,16 +70,17 @@ func TestUpdatePracticeValid(t *testing.T) {
 		Name:        name,
 		Description: description,
 		Level:       db.ProgramProgramLevelAll,
+		Type:        db.ProgramProgramTypeCourse,
 	}
 
 	err := queries.CreateProgram(context.Background(), CreateProgramParams)
 	require.NoError(t, err)
 
-	practices, err := queries.GetPrograms(context.Background())
+	programs, err := queries.GetPrograms(context.Background())
 
 	require.NoError(t, err)
 
-	practice := practices[0]
+	practice := programs[0]
 
 	// Now, update the course
 	newName := "Advanced Go Course"
@@ -87,6 +89,7 @@ func TestUpdatePracticeValid(t *testing.T) {
 		Name:        newName,
 		Description: "Learn advanced Go programming",
 		Level:       db.ProgramProgramLevelAll,
+		Type:        db.ProgramProgramTypeCourse,
 	}
 
 	err = queries.UpdateProgram(context.Background(), updateParams)
@@ -102,7 +105,7 @@ func TestUpdatePracticeInvalidLevel(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := programTestUtils.SetupPracticeTestDbQueries(t, dbConn)
+	queries, cleanup := programTestUtils.SetupProgramTestDbQueries(t, dbConn)
 
 	defer cleanup()
 
@@ -114,16 +117,17 @@ func TestUpdatePracticeInvalidLevel(t *testing.T) {
 		Name:        name,
 		Description: description,
 		Level:       db.ProgramProgramLevelAll,
+		Type:        db.ProgramProgramTypeCourse,
 	}
 
 	err := queries.CreateProgram(context.Background(), CreateProgramParams)
 	require.NoError(t, err)
 
-	practices, err := queries.GetPrograms(context.Background())
+	programs, err := queries.GetPrograms(context.Background())
 
 	require.NoError(t, err)
 
-	practice := practices[0]
+	practice := programs[0]
 
 	// Now, update the course
 	newName := "Advanced Go Course"
@@ -144,7 +148,7 @@ func TestCreateProgramUniqueNameConstraint(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := programTestUtils.SetupPracticeTestDbQueries(t, dbConn)
+	queries, cleanup := programTestUtils.SetupProgramTestDbQueries(t, dbConn)
 
 	defer cleanup()
 
@@ -155,6 +159,7 @@ func TestCreateProgramUniqueNameConstraint(t *testing.T) {
 		Name:        name,
 		Description: description,
 		Level:       db.ProgramProgramLevelAdvanced,
+		Type:        db.ProgramProgramTypeCourse,
 	}
 
 	err := queries.CreateProgram(context.Background(), createCourseParams)
@@ -169,11 +174,11 @@ func TestCreateProgramUniqueNameConstraint(t *testing.T) {
 	require.Equal(t, databaseErrors.UniqueViolation, string(pgErr.Code))
 }
 
-func TestGetAllPractices(t *testing.T) {
+func TestGetAllPrograms(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := programTestUtils.SetupPracticeTestDbQueries(t, dbConn)
+	queries, cleanup := programTestUtils.SetupProgramTestDbQueries(t, dbConn)
 
 	defer cleanup()
 
@@ -183,6 +188,7 @@ func TestGetAllPractices(t *testing.T) {
 			Name:        fmt.Sprintf("Course %d", i),
 			Description: fmt.Sprintf("Description %d", i),
 			Level:       db.ProgramProgramLevelAll,
+			Type:        db.ProgramProgramTypeCourse,
 		}
 		err := queries.CreateProgram(context.Background(), createCourseParams)
 		require.NoError(t, err)
@@ -194,11 +200,11 @@ func TestGetAllPractices(t *testing.T) {
 	require.EqualValues(t, 5, len(courses))
 }
 
-func TestUpdateNonExistentPractice(t *testing.T) {
+func TestUpdateNonExistentProgram(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := programTestUtils.SetupPracticeTestDbQueries(t, dbConn)
+	queries, cleanup := programTestUtils.SetupProgramTestDbQueries(t, dbConn)
 
 	defer cleanup()
 
@@ -210,6 +216,7 @@ func TestUpdateNonExistentPractice(t *testing.T) {
 		Name:        "Updated Practice",
 		Description: "Updated practice description",
 		Level:       db.ProgramProgramLevelAll,
+		Type:        db.ProgramProgramTypeGame,
 	}
 
 	err := queries.UpdateProgram(context.Background(), updateParams)
@@ -220,7 +227,7 @@ func TestCreateCourseWithWrongLevel(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := programTestUtils.SetupPracticeTestDbQueries(t, dbConn)
+	queries, cleanup := programTestUtils.SetupProgramTestDbQueries(t, dbConn)
 
 	defer cleanup()
 
@@ -229,6 +236,7 @@ func TestCreateCourseWithWrongLevel(t *testing.T) {
 		Name:        "Go Course",
 		Description: "wefwefew",
 		Level:       "jhwwf",
+		Type:        db.ProgramProgramTypeCourse,
 	}
 
 	err := queries.CreateProgram(context.Background(), CreateProgramParams)
@@ -240,11 +248,11 @@ func TestCreateCourseWithWrongLevel(t *testing.T) {
 	require.Equal(t, databaseErrors.InvalidTextRepresentation, string(pgErr.Code))
 }
 
-func TestDeleteCourse(t *testing.T) {
+func TestDeleteProgram(t *testing.T) {
 
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	queries, cleanup := programTestUtils.SetupPracticeTestDbQueries(t, dbConn)
+	queries, cleanup := programTestUtils.SetupProgramTestDbQueries(t, dbConn)
 
 	defer cleanup()
 
@@ -254,16 +262,17 @@ func TestDeleteCourse(t *testing.T) {
 		Name:        name,
 		Description: "Learn Go programming",
 		Level:       db.ProgramProgramLevelAll,
+		Type:        db.ProgramProgramTypeCourse,
 	}
 
 	err := queries.CreateProgram(context.Background(), CreateProgramParams)
 	require.NoError(t, err)
 
-	practices, err := queries.GetPrograms(context.Background())
+	programs, err := queries.GetPrograms(context.Background())
 
 	require.NoError(t, err)
 
-	createdPractice := practices[0]
+	createdPractice := programs[0]
 
 	// Delete the course
 	impactedRows, err := queries.DeleteProgram(context.Background(), createdPractice.ID)

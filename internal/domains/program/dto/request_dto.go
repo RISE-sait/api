@@ -1,4 +1,4 @@
-package practice
+package program
 
 import (
 	"api/internal/domains/program/values"

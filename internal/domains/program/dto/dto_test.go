@@ -1,4 +1,4 @@
-package practice
+package program
 
 import (
 	"api/internal/libs/validators"
@@ -73,6 +73,7 @@ func TestValidRequestDto(t *testing.T) {
 		Name:        "Go Programming Basics",
 		Description: "Learn Go Programming",
 		Level:       "all",
+		Type:        "game",
 	}
 
 	createRequestDto, err := requestDto.ToCreateValueObjects()
@@ -88,6 +89,7 @@ func TestMissingNameRequestDto(t *testing.T) {
 	requestDto := RequestDto{
 		Description: "Learn Go Programming",
 		Level:       "all",
+		Type:        "game",
 	}
 
 	createRequestDto, err := requestDto.ToCreateValueObjects()
@@ -95,6 +97,23 @@ func TestMissingNameRequestDto(t *testing.T) {
 	assert.NotNil(t, err)
 
 	assert.Equal(t, err.Message, "name: required")
+	assert.Equal(t, err.HTTPCode, http.StatusBadRequest)
+	assert.Equal(t, createRequestDto.Name, "")
+}
+
+func TestMissingTypeRequestDto(t *testing.T) {
+
+	requestDto := RequestDto{
+		Name:        "Go Programming Basics",
+		Description: "Learn Go Programming",
+		Level:       "all",
+	}
+
+	createRequestDto, err := requestDto.ToCreateValueObjects()
+
+	assert.NotNil(t, err)
+
+	assert.Equal(t, err.Message, "type: required")
 	assert.Equal(t, err.HTTPCode, http.StatusBadRequest)
 	assert.Equal(t, createRequestDto.Name, "")
 }
@@ -121,6 +140,7 @@ func TestUpdateRequestDtoValidUUID(t *testing.T) {
 		Name:        "Learn Go Programming Name",
 		Description: "Learn Go Programming Description",
 		Level:       "all",
+		Type:        "practice",
 	}
 
 	id := uuid.New()

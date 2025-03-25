@@ -1,10 +1,13 @@
 package haircut
 
 import (
+	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
+	"api/internal/middlewares"
 	"api/internal/services/gcp"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"net/http"
 )
 
@@ -13,12 +16,22 @@ import (
 // @Tags haircut
 // @Accept multipart/form-data
 // @Produce json
+// @Security Bearer
 // @Param file formData file true "Haircut image to upload"
 // @Success 200 {object} map[string]string "File uploaded successfully"
 // @Failure 400 {object} map[string]string "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]string "Internal Server Error"
 // @Router /haircuts [post]
 func UploadHaircutImage(w http.ResponseWriter, r *http.Request) {
+
+	var userId uuid.UUID
+
+	if ctxUserId := r.Context().Value(middlewares.UserIDKey); ctxUserId == nil {
+		responseHandlers.RespondWithError(w, errLib.New("User ID not found", http.StatusUnauthorized))
+		return
+	} else {
+		userId = ctxUserId.(uuid.UUID)
+	}
 
 	err := r.ParseMultipartForm(10 << 20) // 10 MB
 	if err != nil {
@@ -34,7 +47,7 @@ func UploadHaircutImage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	fileName := fmt.Sprintf("haircut/%v", header.Filename)
+	fileName := fmt.Sprintf("haircut/%v/%v", userId.String(), header.Filename)
 
 	url, uploadErr := gcp.UploadImageToGCP(
 		file,     // File (io.Reader)

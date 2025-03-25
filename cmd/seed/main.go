@@ -40,7 +40,7 @@ func clearTables(ctx context.Context, db *sql.DB) {
 
 		for rows.Next() {
 			var table string
-			if err := rows.Scan(&table); err != nil {
+			if err = rows.Scan(&table); err != nil {
 				log.Fatalf("Failed to scan tables: %v", err)
 				return
 			}
@@ -50,7 +50,7 @@ func clearTables(ctx context.Context, db *sql.DB) {
 			tables = append(tables, fmt.Sprintf("%s.%s", schema, table))
 		}
 
-		if err := rows.Err(); err != nil {
+		if err = rows.Err(); err != nil {
 			log.Fatalf("Failed to scan tables: %v", err)
 			return
 		}
@@ -62,7 +62,7 @@ func clearTables(ctx context.Context, db *sql.DB) {
 	}
 
 	// Generate the TRUNCATE statement with CASCADE and RESTART IDENTITY
-	truncateQuery := "TRUNCATE TABLE " + strings.Join(tables, ", ") + " RESTART IDENTITY CASCADE"
+	truncateQuery := "TRUNCATE " + strings.Join(tables, ", ") + " RESTART IDENTITY CASCADE"
 
 	// Execute the TRUNCATE query
 	if _, err := db.ExecContext(ctx, truncateQuery); err != nil {
@@ -251,6 +251,16 @@ func seedStaff(ctx context.Context, db *sql.DB) {
 
 	if err != nil {
 		log.Fatalf("Failed to insert staff: %v", err)
+		return
+	}
+}
+
+func seedCoachStats(ctx context.Context, db *sql.DB) {
+
+	seedQueries := dbSeed.New(db)
+
+	if err := seedQueries.InsertCoachStats(ctx); err != nil {
+		log.Fatalf("Failed to insert coach stats: %v", err)
 		return
 	}
 }
@@ -616,6 +626,8 @@ func main() {
 	}
 
 	seedStaff(ctx, db)
+
+	seedCoachStats(ctx, db)
 
 	teamIds := seedTeams(ctx, db)
 

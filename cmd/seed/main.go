@@ -255,16 +255,6 @@ func seedStaff(ctx context.Context, db *sql.DB) {
 	}
 }
 
-func seedCoachStats(ctx context.Context, db *sql.DB) {
-
-	seedQueries := dbSeed.New(db)
-
-	if err := seedQueries.InsertCoachStats(ctx); err != nil {
-		log.Fatalf("Failed to insert coach stats: %v", err)
-		return
-	}
-}
-
 func seedCourses(ctx context.Context, db *sql.DB) {
 
 	seedQueries := dbSeed.New(db)
@@ -626,8 +616,6 @@ func main() {
 	}
 
 	seedStaff(ctx, db)
-
-	seedCoachStats(ctx, db)
 
 	teamIds := seedTeams(ctx, db)
 

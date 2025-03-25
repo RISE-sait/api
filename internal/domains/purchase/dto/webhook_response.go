@@ -1,16 +1,14 @@
 package purchase
 
-import "encoding/json"
+//type SquareWebhookEventDto struct {
+//	Type string             `json:"type"`
+//	Data SquareEventDataDto `json:"data"`
+//}
 
-type SquareWebhookEventDto struct {
-	Type string             `json:"type"`
-	Data SquareEventDataDto `json:"data"`
-}
-
-type SquareEventDataDto struct {
-	ID     string          `json:"id"`
-	Object json.RawMessage `json:"object"`
-}
+//type SquareEventDataDto struct {
+//	ID     string          `json:"id"`
+//	Object json.RawMessage `json:"object"`
+//}
 
 type SquarePaymentDto struct {
 	ID          string         `json:"id"`

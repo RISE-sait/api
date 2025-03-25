@@ -3,15 +3,12 @@ package purchase
 import (
 	"api/internal/di"
 	membership "api/internal/domains/membership/persistence/repositories"
-	dto "api/internal/domains/purchase/dto"
 	repository "api/internal/domains/purchase/persistence/repositories"
 	errLib "api/internal/libs/errors"
 	"api/internal/services/square"
 	"context"
-	"encoding/json"
 	"github.com/google/uuid"
 	squareClient "github.com/square/square-go-sdk/client"
-	"net/http"
 )
 
 type Service struct {
@@ -80,30 +77,30 @@ func (s *Service) Checkout(ctx context.Context, membershipPlanID, userID uuid.UU
 
 }
 
-func (s *Service) ProcessSquareWebhook(ctx context.Context, event dto.SquareWebhookEventDto) *errLib.CommonError {
-	if event.Type != "payment.created" && event.Type != "payment.updated" {
-		return nil // Ignore other event types
-	}
-
-	var paymentData struct {
-		Payment dto.SquarePaymentDto `json:"payment"`
-	}
-
-	if err := json.Unmarshal(event.Data.Object, &paymentData); err != nil {
-		return errLib.New("failed to parse payment data", http.StatusInternalServerError)
-	}
-
-	payment := paymentData.Payment
-
-	// Process payment based on status
-	switch payment.Status {
-	case "APPROVED":
-		// Handle successful payment logic
-	case "FAILED":
-		// Handle failed payment logic
-	default:
-		// Ignore other statuses
-	}
-
-	return nil
-}
+//func (s *Service) ProcessSquareWebhook(ctx context.Context, event dto.SquareWebhookEventDto) *errLib.CommonError {
+//	if event.Type != "payment.created" && event.Type != "payment.updated" {
+//		return nil // Ignore other event types
+//	}
+//
+//	var paymentData struct {
+//		Payment dto.SquarePaymentDto `json:"payment"`
+//	}
+//
+//	if err := json.Unmarshal(event.Data.Object, &paymentData); err != nil {
+//		return errLib.New("failed to parse payment data", http.StatusInternalServerError)
+//	}
+//
+//	payment := paymentData.Payment
+//
+//	// Process payment based on status
+//	switch payment.Status {
+//	case "APPROVED":
+//		// Handle successful payment logic
+//	case "FAILED":
+//		// Handle failed payment logic
+//	default:
+//		// Ignore other statuses
+//	}
+//
+//	return nil
+//}

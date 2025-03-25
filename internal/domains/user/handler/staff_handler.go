@@ -49,6 +49,13 @@ func (h *StaffHandler) GetStaffs(w http.ResponseWriter, r *http.Request) {
 	for i, staff := range staffs {
 		staffResponse := dto.NewStaffResponse(staff)
 
+		if staff.CoachStatsReadValues != nil {
+			staffResponse.CoachStats = &dto.CoachStatsResponseDto{
+				Wins:   staff.CoachStatsReadValues.Wins,
+				Losses: staff.CoachStatsReadValues.Losses,
+			}
+		}
+
 		result[i] = staffResponse
 	}
 

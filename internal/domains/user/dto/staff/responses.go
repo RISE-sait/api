@@ -9,17 +9,23 @@ import (
 
 // ResponseDto represents a staff member's details in API responses.
 type ResponseDto struct {
-	ID          uuid.UUID `json:"id"`
-	FirstName   string    `json:"first_name"`
-	LastName    string    `json:"last_name"`
-	CountryCode string    `json:"country_code"`
-	Email       string    `json:"email"`
-	Phone       string    `json:"phone"`
-	HubspotID   string    `json:"hubspot_id"`
-	IsActive    bool      `json:"is_active"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
-	RoleName    string    `json:"role_name"`
+	ID          uuid.UUID              `json:"id"`
+	FirstName   string                 `json:"first_name"`
+	LastName    string                 `json:"last_name"`
+	CountryCode string                 `json:"country_code"`
+	Email       string                 `json:"email"`
+	Phone       string                 `json:"phone"`
+	HubspotID   string                 `json:"hubspot_id"`
+	IsActive    bool                   `json:"is_active"`
+	CreatedAt   time.Time              `json:"created_at"`
+	UpdatedAt   time.Time              `json:"updated_at"`
+	RoleName    string                 `json:"role_name"`
+	CoachStats  *CoachStatsResponseDto `json:"coach_stats,omitempty"`
+}
+
+type CoachStatsResponseDto struct {
+	Wins   int32 `json:"wins"`
+	Losses int32 `json:"losses"`
 }
 
 // NewStaffResponse creates a new ResponseDto from an entity.Staff.
@@ -36,5 +42,6 @@ func NewStaffResponse(staff values.ReadValues) ResponseDto {
 		UpdatedAt:   staff.UpdatedAt,
 		RoleName:    staff.RoleName,
 		Phone:       staff.Phone,
+		CoachStats:  (*CoachStatsResponseDto)(staff.CoachStatsReadValues),
 	}
 }

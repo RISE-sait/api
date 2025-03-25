@@ -277,10 +277,10 @@ func RegisterCheckoutRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterWebhooksRoutes(container *di.Container) func(chi.Router) {
 
-	h := purchase.NewPurchaseHandlers(container)
+	//h := purchase.NewPurchaseHandlers(container)
 
 	return func(r chi.Router) {
-		r.Post("/square", h.HandleSquareWebhook)
+		//r.Post("/square", h.HandleSquareWebhook)
 	}
 }
 

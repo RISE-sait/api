@@ -184,13 +184,19 @@ func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEve
 	return event, nil
 }
 
-func (r *Repository) GetEvents(ctx context.Context, programType string, programID, locationID uuid.UUID, before, after time.Time, userID uuid.UUID) ([]values.ReadEventValues, *errLib.CommonError) {
+func (r *Repository) GetEvents(ctx context.Context, programTypeStr string, programID, locationID uuid.UUID, before, after time.Time, userID uuid.UUID) ([]values.ReadEventValues, *errLib.CommonError) {
 
-	if !db.ProgramProgramType(programType).Valid() {
+	var programType db.NullProgramProgramType
 
-		validTypes := db.AllProgramProgramTypeValues()
+	if programTypeStr == "" {
+		programType.Valid = false
+	} else {
+		if !db.ProgramProgramType(programTypeStr).Valid() {
 
-		return nil, errLib.New(fmt.Sprintf("Invalid program type. Valid types are: %v", validTypes), http.StatusBadRequest)
+			validTypes := db.AllProgramProgramTypeValues()
+
+			return nil, errLib.New(fmt.Sprintf("Invalid program type. Valid types are: %v", validTypes), http.StatusBadRequest)
+		}
 	}
 
 	// Execute the query using SQLC generated function
@@ -200,11 +206,9 @@ func (r *Repository) GetEvents(ctx context.Context, programType string, programI
 		Before:     sql.NullTime{Time: before, Valid: !before.IsZero()},
 		After:      sql.NullTime{Time: after, Valid: !after.IsZero()},
 		UserID:     uuid.NullUUID{UUID: userID, Valid: userID != uuid.Nil},
-		Type: db.NullProgramProgramType{
-			ProgramProgramType: db.ProgramProgramType(programType),
-			Valid:              true,
-		},
+		Type:       programType,
 	})
+
 	if err != nil {
 		log.Println("Failed to get events from db: ", err.Error())
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)

@@ -1247,8 +1247,8 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Barber name to filter images",
-                        "name": "barber",
+                        "description": "Barber ID to filter images",
+                        "name": "barber_id",
                         "in": "query"
                     }
                 ],
@@ -1283,6 +1283,11 @@
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Uploads a haircut image to Google Cloud Storage and returns the object URL.",
                 "consumes": [
                     "multipart/form-data"

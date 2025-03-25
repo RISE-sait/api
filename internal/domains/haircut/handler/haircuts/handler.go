@@ -3,6 +3,7 @@ package haircut
 import (
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
+	"api/internal/libs/validators"
 	"api/internal/middlewares"
 	"api/internal/services/gcp"
 	"encoding/json"
@@ -76,20 +77,32 @@ func UploadHaircutImage(w http.ResponseWriter, r *http.Request) {
 // @Tags haircut
 // @Accept json
 // @Produce json
-// @Param barber query string false "Barber name to filter images"
+// @Param barber_id query string false "Barber ID to filter images"
 // @Success 200 {object} []string "List of image URLs"
 // @Failure 400 {object} map[string]string "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]string "Internal Server Error"
 // @Router /haircuts [get]
 func GetHaircutImages(w http.ResponseWriter, r *http.Request) {
 
-	barberName := r.URL.Query().Get("barber")
+	var barberID uuid.UUID
 
 	folderPath := "haircut"
 
+	// If a barber ID is provided, append it to the folder path
+	if barberIdStr := r.URL.Query().Get("barber_id"); barberIdStr != "" {
+		id, err := validators.ParseUUID(barberIdStr)
+
+		if err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		}
+
+		barberID = id
+	}
+
 	// If a barberName is provided, append it to the folder path
-	if barberName != "" {
-		folderPath = fmt.Sprintf("haircut/%s", barberName)
+	if barberID != uuid.Nil {
+		folderPath = fmt.Sprintf("haircut/%s", barberID.String())
 	}
 
 	images, err := gcp.GetFilesInBucket(folderPath)

@@ -544,6 +544,12 @@ const docTemplate = `{
                         "description": "Filter by location ID (UUID format)",
                         "name": "location_id",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Program Type (game, practice, course, others)",
+                        "name": "program_type",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -2317,6 +2323,14 @@ const docTemplate = `{
                     "programs"
                 ],
                 "summary": "Get a list of programs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Program Type (game, practice, course, others)",
+                        "name": "type",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Programs retrieved successfully",
@@ -3976,6 +3990,17 @@ const docTemplate = `{
         "purchase.SquareWebhookEventDto": {
             "type": "object"
         },
+        "staff.CoachStatsResponseDto": {
+            "type": "object",
+            "properties": {
+                "losses": {
+                    "type": "integer"
+                },
+                "wins": {
+                    "type": "integer"
+                }
+            }
+        },
         "staff.RegistrationRequestDto": {
             "type": "object",
             "required": [
@@ -4027,6 +4052,9 @@ const docTemplate = `{
         "staff.ResponseDto": {
             "type": "object",
             "properties": {
+                "coach_stats": {
+                    "$ref": "#/definitions/staff.CoachStatsResponseDto"
+                },
                 "country_code": {
                     "type": "string"
                 },

@@ -8,6 +8,7 @@ import (
 	"api/internal/libs/validators"
 	"api/internal/services/hubspot"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi"
 )
@@ -36,13 +37,9 @@ func NewStaffHandlers(container *di.Container) *StaffHandler {
 // @Router /staffs [get]
 func (h *StaffHandler) GetStaffs(w http.ResponseWriter, r *http.Request) {
 
-	var rolePtr *string
+	role := r.URL.Query().Get("role")
 
-	if role := r.URL.Query().Get("role"); role != "" {
-		rolePtr = &role
-	}
-
-	staffs, err := h.StaffRepo.List(r.Context(), rolePtr)
+	staffs, err := h.StaffRepo.List(r.Context(), strings.ToLower(role))
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
@@ -51,6 +48,13 @@ func (h *StaffHandler) GetStaffs(w http.ResponseWriter, r *http.Request) {
 	result := make([]dto.ResponseDto, len(staffs))
 	for i, staff := range staffs {
 		staffResponse := dto.NewStaffResponse(staff)
+
+		if staff.CoachStatsReadValues != nil {
+			staffResponse.CoachStats = &dto.CoachStatsResponseDto{
+				Wins:   staff.CoachStatsReadValues.Wins,
+				Losses: staff.CoachStatsReadValues.Losses,
+			}
+		}
 
 		result[i] = staffResponse
 	}

@@ -31,7 +31,7 @@ func NewEventsHandler(repo *repository.Repository) *EventsHandler {
 // @Param program_id query string false "Filter by program ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
 // @Param user_id query string false "Filter by user ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
 // @Param location_id query string false "Filter by location ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
-// @Param program_type query string false "Program Type (game, practice, course, others)
+// @Param program_type query string false "Program Type (game, practice, course, others)"
 // @Accept json
 // @Produce json
 // @Success 200 {array} event.ResponseDto "List of events retrieved successfully"

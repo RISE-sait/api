@@ -1,10 +1,14 @@
 package haircut
 
 import (
+	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
+	"api/internal/libs/validators"
+	"api/internal/middlewares"
 	"api/internal/services/gcp"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"net/http"
 )
 
@@ -13,12 +17,22 @@ import (
 // @Tags haircut
 // @Accept multipart/form-data
 // @Produce json
+// @Security Bearer
 // @Param file formData file true "Haircut image to upload"
 // @Success 200 {object} map[string]string "File uploaded successfully"
 // @Failure 400 {object} map[string]string "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]string "Internal Server Error"
 // @Router /haircuts [post]
 func UploadHaircutImage(w http.ResponseWriter, r *http.Request) {
+
+	var userId uuid.UUID
+
+	if ctxUserId := r.Context().Value(middlewares.UserIDKey); ctxUserId == nil {
+		responseHandlers.RespondWithError(w, errLib.New("User ID not found", http.StatusUnauthorized))
+		return
+	} else {
+		userId = ctxUserId.(uuid.UUID)
+	}
 
 	err := r.ParseMultipartForm(10 << 20) // 10 MB
 	if err != nil {
@@ -34,7 +48,7 @@ func UploadHaircutImage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	fileName := fmt.Sprintf("haircut/%v", header.Filename)
+	fileName := fmt.Sprintf("haircut/%v/%v", userId.String(), header.Filename)
 
 	url, uploadErr := gcp.UploadImageToGCP(
 		file,     // File (io.Reader)
@@ -63,20 +77,32 @@ func UploadHaircutImage(w http.ResponseWriter, r *http.Request) {
 // @Tags haircut
 // @Accept json
 // @Produce json
-// @Param barber query string false "Barber name to filter images"
+// @Param barber_id query string false "Barber ID to filter images"
 // @Success 200 {object} []string "List of image URLs"
 // @Failure 400 {object} map[string]string "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]string "Internal Server Error"
 // @Router /haircuts [get]
 func GetHaircutImages(w http.ResponseWriter, r *http.Request) {
 
-	barberName := r.URL.Query().Get("barber")
+	var barberID uuid.UUID
 
 	folderPath := "haircut"
 
+	// If a barber ID is provided, append it to the folder path
+	if barberIdStr := r.URL.Query().Get("barber_id"); barberIdStr != "" {
+		id, err := validators.ParseUUID(barberIdStr)
+
+		if err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		}
+
+		barberID = id
+	}
+
 	// If a barberName is provided, append it to the folder path
-	if barberName != "" {
-		folderPath = fmt.Sprintf("haircut/%s", barberName)
+	if barberID != uuid.Nil {
+		folderPath = fmt.Sprintf("haircut/%s", barberID.String())
 	}
 
 	images, err := gcp.GetFilesInBucket(folderPath)

@@ -66,7 +66,7 @@ func main() {
 	dirArg := strings.Join(dirs, ",")
 
 	// Run swag init
-	cmd := exec.Command("swag", "init", "--dir", dirArg, "--ot", "json", "--exclude", "mocks,*_test.go")
+	cmd := exec.Command("swag", "init", "--dir", dirArg, "--ot", "json,go", "--exclude", "mocks,*_test.go")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {

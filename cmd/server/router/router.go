@@ -36,10 +36,22 @@ type RouteConfig struct {
 }
 
 const (
-	RoleAdmin = "ADMIN"
+	RoleAdmin      = "ADMIN"
+	RoleInstructor = "INSTRUCTOR"
+	RoleParent     = "PARENT"
+	RoleChild      = "CHILD"
+	RoleAthlete    = "ATHLETE"
+	RoleCoach      = "COACH"
+	RoleBarber     = "BARBER"
 )
 
-var allowAdminOnly = middlewares.JWTAuthMiddleware(false, RoleAdmin)
+var allowAdmin = middlewares.JWTAuthMiddleware(false, RoleAdmin)
+var allowInstructor = middlewares.JWTAuthMiddleware(false, RoleInstructor)
+var allowParent = middlewares.JWTAuthMiddleware(false, RoleParent)
+var allowChild = middlewares.JWTAuthMiddleware(false, RoleChild)
+var allowAthlete = middlewares.JWTAuthMiddleware(false, RoleAthlete)
+var allowCoach = middlewares.JWTAuthMiddleware(false, RoleCoach)
+
 var allowAnyoneWithValidToken = middlewares.JWTAuthMiddleware(true)
 
 func RegisterRoutes(router *chi.Mux, container *di.Container) {
@@ -96,7 +108,7 @@ func RegisterHaircutRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 
 		r.Get("/", haircut.GetHaircutImages)
-		r.Post("/", haircut.UploadHaircutImage)
+		r.With(middlewares.JWTAuthMiddleware(false, RoleAdmin, RoleBarber)).Post("/", haircut.UploadHaircutImage)
 
 		r.Route("/events", RegisterHaircutEventsRoutes(container))
 	}
@@ -137,9 +149,9 @@ func RegisterMembershipRoutes(container *di.Container) func(chi.Router) {
 		r.Get("/", membershipsHandler.GetMemberships)
 		r.Get("/{id}", membershipsHandler.GetMembershipById)
 
-		r.With(allowAdminOnly).Post("/", membershipsHandler.CreateMembership)
-		r.With(allowAdminOnly).Put("/{id}", membershipsHandler.UpdateMembership)
-		r.With(allowAdminOnly).Delete("/{id}", membershipsHandler.DeleteMembership)
+		r.With(allowAdmin).Post("/", membershipsHandler.CreateMembership)
+		r.With(allowAdmin).Put("/{id}", membershipsHandler.UpdateMembership)
+		r.With(allowAdmin).Delete("/{id}", membershipsHandler.DeleteMembership)
 
 		r.Get("/{id}/plans", membershipPlansHandler.GetMembershipPlans)
 		r.Route("/plans", RegisterMembershipPlansRoutes(container))
@@ -152,9 +164,9 @@ func RegisterMembershipPlansRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 
 		r.Get("/payment-frequencies", h.GetMembershipPlanPaymentFrequencies)
-		r.With(allowAdminOnly).Post("/", h.CreateMembershipPlan)
+		r.With(allowAdmin).Post("/", h.CreateMembershipPlan)
 		r.Put("/{id}", h.UpdateMembershipPlan)
-		r.With(allowAdminOnly).Delete("/{id}", h.DeleteMembershipPlan)
+		r.With(allowAdmin).Delete("/{id}", h.DeleteMembershipPlan)
 	}
 }
 
@@ -167,9 +179,9 @@ func RegisterGamesRoutes(container *di.Container) func(chi.Router) {
 		r.Get("/", h.GetGames)
 		r.Get("/{id}", h.GetGameById)
 
-		r.With(allowAdminOnly).Post("/", h.CreateGame)
-		r.With(allowAdminOnly).Put("/{id}", h.UpdateGame)
-		r.With(allowAdminOnly).Delete("/{id}", h.DeleteGame)
+		r.With(allowAdmin).Post("/", h.CreateGame)
+		r.With(allowAdmin).Put("/{id}", h.UpdateGame)
+		r.With(allowAdmin).Delete("/{id}", h.DeleteGame)
 	}
 }
 
@@ -181,9 +193,9 @@ func RegisterTeamsRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Get("/", h.GetTeams)
 
-		r.With(allowAdminOnly).Post("/", h.CreateTeam)
-		r.With(allowAdminOnly).Put("/{id}", h.UpdateTeam)
-		r.With(allowAdminOnly).Delete("/{id}", h.DeleteTeam)
+		r.With(allowAdmin).Post("/", h.CreateTeam)
+		r.With(allowAdmin).Put("/{id}", h.UpdateTeam)
+		r.With(allowAdmin).Delete("/{id}", h.DeleteTeam)
 	}
 }
 
@@ -196,8 +208,8 @@ func RegisterLocationsRoutes(container *di.Container) func(chi.Router) {
 		r.Get("/", h.GetLocations)
 		r.Get("/{id}", h.GetLocationById)
 		r.Post("/", h.CreateLocation)
-		r.With(allowAdminOnly).Put("/{id}", h.UpdateLocation)
-		r.With(allowAdminOnly).Delete("/{id}", h.DeleteLocation)
+		r.With(allowAdmin).Put("/{id}", h.UpdateLocation)
+		r.With(allowAdmin).Delete("/{id}", h.DeleteLocation)
 	}
 }
 
@@ -212,7 +224,7 @@ func RegisterProgramRoutes(container *di.Container) func(chi.Router) {
 		r.Get("/levels", h.GetProgramLevels)
 		r.Post("/", h.CreateProgram)
 		r.Put("/{id}", h.UpdateProgram)
-		r.With(allowAdminOnly).Delete("/{id}", h.DeleteProgram)
+		r.With(allowAdmin).Delete("/{id}", h.DeleteProgram)
 	}
 }
 
@@ -222,8 +234,8 @@ func RegisterStaffRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Get("/", h.GetStaffs)
 
-		r.With(allowAdminOnly).Put("/{id}", h.UpdateStaff)
-		r.With(allowAdminOnly).Delete("/{id}", h.DeleteStaff)
+		r.With(allowAdmin).Put("/{id}", h.UpdateStaff)
+		r.With(allowAdmin).Delete("/{id}", h.DeleteStaff)
 	}
 }
 
@@ -234,9 +246,9 @@ func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Get("/", handler.GetEvents)
 		r.Get("/{id}", handler.GetEvent)
-		r.With(allowAdminOnly).Post("/", handler.CreateEvent)
-		r.With(allowAdminOnly).Put("/{id}", handler.UpdateEvent)
-		r.With(allowAdminOnly).Delete("/{id}", handler.DeleteEvent)
+		r.With(allowAdmin).Post("/", handler.CreateEvent)
+		r.With(allowAdmin).Put("/{id}", handler.UpdateEvent)
+		r.With(allowAdmin).Delete("/{id}", handler.DeleteEvent)
 
 		r.Route("/{event_id}/staffs", RegisterEventStaffRoutes(container))
 		r.Route("/{event_id}/customers", RegisterEventCustomerRoutes(container))
@@ -250,8 +262,8 @@ func RegisterEventCustomerRoutes(container *di.Container) func(chi.Router) {
 	h := eventHandler.NewCustomerEnrollmentHandler(service)
 
 	return func(r chi.Router) {
-		r.With(allowAdminOnly).Post("/{customer_id}", h.EnrollCustomer)
-		r.With(allowAdminOnly).Delete("/{customer_id}", h.UnenrollCustomer)
+		r.With(allowAdmin).Post("/{customer_id}", h.EnrollCustomer)
+		r.With(allowAdmin).Delete("/{customer_id}", h.UnenrollCustomer)
 	}
 }
 
@@ -261,8 +273,8 @@ func RegisterEventStaffRoutes(container *di.Container) func(chi.Router) {
 	h := eventHandler.NewEventStaffsHandler(repo)
 
 	return func(r chi.Router) {
-		r.With(allowAdminOnly).Post("/{staff_id}", h.AssignStaffToEvent)
-		r.With(allowAdminOnly).Delete("/{staff_id}", h.UnassignStaffFromEvent)
+		r.With(allowAdmin).Post("/{staff_id}", h.AssignStaffToEvent)
+		r.With(allowAdmin).Delete("/{staff_id}", h.UnassignStaffFromEvent)
 	}
 }
 

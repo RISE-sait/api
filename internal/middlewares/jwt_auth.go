@@ -47,7 +47,7 @@ func JWTAuthMiddleware(isAllowAnyoneWithValidToken bool, allowedRoles ...string)
 			}
 
 			// Add the claims to the request context for use in handlers
-			ctx := addClaimsToContext(r.Context(), claims)
+			ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -91,10 +91,4 @@ func hasRequiredRole(staffInfo *jwtLib.RoleInfo, allowedRoles []string) bool {
 	}
 
 	return false
-}
-
-// addClaimsToContext adds the JWT claims to the request context.
-func addClaimsToContext(ctx context.Context, claims *jwtLib.JwtClaims) context.Context {
-	ctx = context.WithValue(ctx, UserIDKey, claims.UserID)
-	return ctx
 }

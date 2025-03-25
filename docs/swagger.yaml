@@ -2267,6 +2267,41 @@ paths:
       - Bearer: []
       tags:
       - programs
+    get:
+      consumes:
+        - application/json
+      parameters:
+        - description: Program ID
+          in: path
+          name: id
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Programs retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/program.Response'
+            type: array
+        "400":
+          description: 'Bad Request: Invalid ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Not Found: Program not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+        - programs
     put:
       consumes:
       - application/json

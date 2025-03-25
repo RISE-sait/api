@@ -46,6 +46,27 @@ func (q *Queries) DeleteProgram(ctx context.Context, id uuid.UUID) (int64, error
 	return result.RowsAffected()
 }
 
+const getProgram = `-- name: GetProgram :one
+SELECT id, name, description, level, type, created_at, updated_at
+FROM program.programs
+WHERE id = $1
+`
+
+func (q *Queries) GetProgram(ctx context.Context, id uuid.UUID) (ProgramProgram, error) {
+	row := q.db.QueryRowContext(ctx, getProgram, id)
+	var i ProgramProgram
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Level,
+		&i.Type,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getProgramById = `-- name: GetProgramById :one
 SELECT id, name, description, level, type, created_at, updated_at FROM program.programs WHERE id = $1
 `
@@ -66,8 +87,10 @@ func (q *Queries) GetProgramById(ctx context.Context, id uuid.UUID) (ProgramProg
 }
 
 const getPrograms = `-- name: GetPrograms :many
-SELECT id, name, description, level, type, created_at, updated_at FROM program.programs
-WHERE type = $1 OR $1 IS NULL
+SELECT id, name, description, level, type, created_at, updated_at
+FROM program.programs
+WHERE type = $1
+   OR $1 IS NULL
 `
 
 func (q *Queries) GetPrograms(ctx context.Context, type_ NullProgramProgramType) ([]ProgramProgram, error) {

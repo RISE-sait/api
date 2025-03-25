@@ -208,6 +208,7 @@ func RegisterProgramRoutes(container *di.Container) func(chi.Router) {
 
 	return func(r chi.Router) {
 		r.Get("/", h.GetPrograms)
+		r.Get("/{id}", h.GetProgram)
 		r.Get("/levels", h.GetProgramLevels)
 		r.Post("/", h.CreateProgram)
 		r.Put("/{id}", h.UpdateProgram)

@@ -9,6 +9,11 @@ FROM program.programs
 WHERE type = sqlc.narg('type')
    OR sqlc.narg('type') IS NULL;
 
+-- name: GetProgram :one
+SELECT *
+FROM program.programs
+WHERE id = $1;
+
 -- name: GetProgramById :one
 SELECT * FROM program.programs WHERE id = $1;
 

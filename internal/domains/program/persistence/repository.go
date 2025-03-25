@@ -6,6 +6,7 @@ import (
 	"api/internal/domains/program/values"
 	errLib "api/internal/libs/errors"
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log"
@@ -60,6 +61,31 @@ func (r *Repository) Update(ctx context.Context, program values.UpdateProgramVal
 	}
 
 	return nil
+}
+
+func (r *Repository) GetProgramByID(ctx context.Context, id uuid.UUID) (values.GetProgramValues, *errLib.CommonError) {
+
+	dbProgram, err := r.Queries.GetProgramById(ctx, id)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return values.GetProgramValues{}, errLib.New("Program not found", http.StatusNotFound)
+		}
+		log.Printf("Error getting program: %v", err)
+		return values.GetProgramValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	return values.GetProgramValues{
+		ID:        dbProgram.ID,
+		CreatedAt: dbProgram.CreatedAt,
+		UpdatedAt: dbProgram.UpdatedAt,
+		ProgramDetails: values.ProgramDetails{
+			Name:        dbProgram.Name,
+			Description: dbProgram.Description,
+			Level:       string(dbProgram.Level),
+			Type:        string(dbProgram.Type),
+		},
+	}, nil
 }
 
 func (r *Repository) List(ctx context.Context, programTypeStr string) ([]values.GetProgramValues, *errLib.CommonError) {

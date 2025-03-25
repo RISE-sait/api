@@ -89,6 +89,46 @@ func (h *Handler) GetPrograms(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
 }
 
+// GetProgram retrieves a program by ID.
+// @Tags programs
+// @Param id path string true "Program ID"
+// @Accept json
+// @Produce json
+// @Success 200 {array} dto.Response "Programs retrieved successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
+// @Failure 404 {object} map[string]interface{} "Not Found: Program not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /programs/{id} [get]
+func (h *Handler) GetProgram(w http.ResponseWriter, r *http.Request) {
+
+	idStr := chi.URLParam(r, "id")
+	id, err := validators.ParseUUID(idStr)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	program, err := h.Repo.GetProgramByID(r.Context(), id)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	result := dto.Response{
+		ID:          program.ID,
+		Name:        program.ProgramDetails.Name,
+		Description: program.ProgramDetails.Description,
+		Level:       program.ProgramDetails.Level,
+		Type:        program.ProgramDetails.Type,
+		CreatedAt:   program.CreatedAt,
+		UpdatedAt:   program.UpdatedAt,
+	}
+
+	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
+}
+
 // GetProgramLevels retrieves available program levels.
 // @Description Retrieves a list of available program levels.
 // @Tags programs

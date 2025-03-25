@@ -43,7 +43,7 @@ func (q *Queries) CreateAthleteInfo(ctx context.Context, arg CreateAthleteInfoPa
 }
 
 const getAthleteInfoByUserID = `-- name: GetAthleteInfoByUserID :one
-SELECT id, wins, losses, points, steals, assists, rebounds, created_at, updated_at
+SELECT id, wins, losses, points, steals, assists, rebounds, created_at, updated_at, team_id
 FROM athletic.athletes
 WHERE id = $1
 limit 1
@@ -62,6 +62,7 @@ func (q *Queries) GetAthleteInfoByUserID(ctx context.Context, id uuid.UUID) (Ath
 		&i.Rebounds,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.TeamID,
 	)
 	return i, err
 }

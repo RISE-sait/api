@@ -418,6 +418,15 @@ type AthleticAthlete struct {
 	TeamID    uuid.NullUUID `json:"team_id"`
 }
 
+type AthleticCoachStat struct {
+	ID        uuid.UUID `json:"id"`
+	Wins      int32     `json:"wins"`
+	Losses    int32     `json:"losses"`
+	CoachID   uuid.UUID `json:"coach_id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 type AthleticTeam struct {
 	ID        uuid.UUID     `json:"id"`
 	Name      string        `json:"name"`

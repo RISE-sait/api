@@ -7,7 +7,6 @@ import (
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
-	"errors"
 	"log"
 	"net/http"
 
@@ -24,47 +23,12 @@ func NewStaffRepository(container *di.Container) *StaffRepository {
 	}
 }
 
-func (r *StaffRepository) GetByID(c context.Context, id uuid.UUID) (values.ReadValues, *errLib.CommonError) {
-	staff, err := r.Queries.GetStaffByID(c, id)
+func (r *StaffRepository) List(ctx context.Context, role string) ([]values.ReadValues, *errLib.CommonError) {
 
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return values.ReadValues{}, errLib.New("Staff not found", http.StatusNotFound)
-		}
-		return values.ReadValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-
-	response := values.ReadValues{
-		ID:          staff.ID,
-		FirstName:   staff.FirstName,
-		LastName:    staff.LastName,
-		IsActive:    staff.IsActive,
-		CreatedAt:   staff.CreatedAt,
-		UpdatedAt:   staff.UpdatedAt,
-		RoleName:    staff.RoleName,
-		CountryCode: staff.CountryAlpha2Code,
-	}
-
-	if staff.Email.Valid {
-		response.Email = staff.Email.String
-	}
-
-	if staff.Phone.Valid {
-		response.Phone = staff.Phone.String
-	}
-
-	return response, nil
-}
-
-func (r *StaffRepository) List(ctx context.Context, rolePtr *string) ([]values.ReadValues, *errLib.CommonError) {
-
-	var arg sql.NullString
-
-	if rolePtr != nil {
-		arg = sql.NullString{String: *rolePtr, Valid: true}
-	}
-
-	dbStaffs, err := r.Queries.GetStaffs(ctx, arg)
+	dbStaffs, err := r.Queries.GetStaffs(ctx, sql.NullString{
+		String: role,
+		Valid:  role != "",
+	})
 
 	if err != nil {
 		log.Println("Failed to get staffs: ", err.Error())
@@ -77,6 +41,8 @@ func (r *StaffRepository) List(ctx context.Context, rolePtr *string) ([]values.R
 			ID:          dbStaff.ID,
 			FirstName:   dbStaff.FirstName,
 			LastName:    dbStaff.LastName,
+			Email:       dbStaff.Email.String,
+			Phone:       dbStaff.Phone.String,
 			IsActive:    dbStaff.IsActive,
 			CreatedAt:   dbStaff.CreatedAt,
 			UpdatedAt:   dbStaff.UpdatedAt,
@@ -84,12 +50,11 @@ func (r *StaffRepository) List(ctx context.Context, rolePtr *string) ([]values.R
 			CountryCode: dbStaff.CountryAlpha2Code,
 		}
 
-		if dbStaff.Email.Valid {
-			response.Email = dbStaff.Email.String
-		}
-
-		if dbStaff.Phone.Valid {
-			response.Phone = dbStaff.Phone.String
+		if dbStaff.Wins.Valid && dbStaff.Losses.Valid {
+			response.CoachStatsReadValues = &values.CoachStatsReadValues{
+				Wins:   dbStaff.Wins.Int32,
+				Losses: dbStaff.Losses.Int32,
+			}
 		}
 
 		staffs[i] = response

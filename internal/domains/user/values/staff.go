@@ -18,6 +18,12 @@ type ReadValues struct {
 	RoleName    string
 	CountryCode string
 	Phone       string
+	*CoachStatsReadValues
+}
+
+type CoachStatsReadValues struct {
+	Wins   int32
+	Losses int32
 }
 
 type UpdateValues struct {

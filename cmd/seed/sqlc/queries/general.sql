@@ -56,3 +56,12 @@ RETURNING id;
 INSERT INTO waiver.waiver(waiver_url, waiver_name)
 VALUES ('https://www.youtube.com/', 'youtube'),
        ('https://www.youtube.com/watch?v=5GTFt8JNwHU', 'video');
+
+-- name: InsertCoachStats :exec
+INSERT INTO athletic.coach_stats (coach_id, wins, losses)
+VALUES ((SELECT id FROM users.users WHERE email = 'viktor.djurasic+1@abcfitness.com'),
+        1,
+        1),
+       ((SELECT id FROM users.users WHERE email = 'coach@test.com'),
+        1,
+        2);

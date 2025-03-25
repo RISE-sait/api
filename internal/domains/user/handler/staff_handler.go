@@ -8,6 +8,7 @@ import (
 	"api/internal/libs/validators"
 	"api/internal/services/hubspot"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi"
 )
@@ -36,13 +37,9 @@ func NewStaffHandlers(container *di.Container) *StaffHandler {
 // @Router /staffs [get]
 func (h *StaffHandler) GetStaffs(w http.ResponseWriter, r *http.Request) {
 
-	var rolePtr *string
+	role := r.URL.Query().Get("role")
 
-	if role := r.URL.Query().Get("role"); role != "" {
-		rolePtr = &role
-	}
-
-	staffs, err := h.StaffRepo.List(r.Context(), rolePtr)
+	staffs, err := h.StaffRepo.List(r.Context(), strings.ToLower(role))
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return

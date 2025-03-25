@@ -66,29 +66,29 @@ func (h *Handlers) CheckoutMembership(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HandleSquareWebhook processes incoming Square webhook events.
-// @Summary Handle Square Webhook
-// @Description Receives and processes payment updates from Square.
-// @Tags purchases
-// @Accept json
-// @Produce json
-// @Param request body dto.SquareWebhookEventDto true "Square Webhook Event"
-// @Success 200 {object} map[string]interface{} "Webhook processed successfully"
-// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
-// @Failure 500 {object} map[string]interface{} "Internal Server Error: Failed to process webhook event"
-// @Router /purchases/square/webhook [post]
-func (h *Handlers) HandleSquareWebhook(w http.ResponseWriter, r *http.Request) {
-	var event dto.SquareWebhookEventDto
-
-	if err := validators.ParseJSON(r.Body, &event); err != nil {
-		responseHandlers.RespondWithError(w, err)
-		return
-	}
-
-	if err := h.Service.ProcessSquareWebhook(r.Context(), event); err != nil {
-		responseHandlers.RespondWithError(w, err)
-		return
-	}
-
-	responseHandlers.RespondWithSuccess(w, nil, http.StatusOK)
-}
+//// HandleSquareWebhook processes incoming Square webhook events.
+//// @Summary Handle Square Webhook
+//// @Description Receives and processes payment updates from Square.
+//// @Tags purchases
+//// @Accept json
+//// @Produce json
+//// @Param request body dto.SquareWebhookEventDto true "Square Webhook Event"
+//// @Success 200 {object} map[string]interface{} "Webhook processed successfully"
+//// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+//// @Failure 500 {object} map[string]interface{} "Internal Server Error: Failed to process webhook event"
+//// @Router /purchases/square/webhook [post]
+//func (h *Handlers) HandleSquareWebhook(w http.ResponseWriter, r *http.Request) {
+//	var event dto.SquareWebhookEventDto
+//
+//	if err := validators.ParseJSON(r.Body, &event); err != nil {
+//		responseHandlers.RespondWithError(w, err)
+//		return
+//	}
+//
+//	if err := h.Service.ProcessSquareWebhook(r.Context(), event); err != nil {
+//		responseHandlers.RespondWithError(w, err)
+//		return
+//	}
+//
+//	responseHandlers.RespondWithSuccess(w, nil, http.StatusOK)
+//}

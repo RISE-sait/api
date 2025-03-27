@@ -80,7 +80,7 @@ SELECT name,
        auto_renew,
        (SELECT id FROM membership.memberships m WHERE m.name = membership_name),
        payment_frequency,
-       amt_periods
+       CASE WHEN ap.amt_periods = 0 THEN NULL ELSE ap.amt_periods END
 FROM unnest($1::text[]) WITH ORDINALITY AS n(name, ord)
          JOIN
      unnest($2::numeric[]) WITH ORDINALITY AS p(price, ord) ON n.ord = p.ord

@@ -1,17 +1,17 @@
 package payment
 
-type RecurringPaymentInterval string
+type Frequency string
 
 const (
-	IntervalDay   RecurringPaymentInterval = "day"
-	IntervalWeek  RecurringPaymentInterval = "week"
-	IntervalMonth RecurringPaymentInterval = "month"
-	IntervalYear  RecurringPaymentInterval = "year"
+	Day      Frequency = "day"
+	Week     Frequency = "week"
+	Biweekly Frequency = "biweekly"
+	Month    Frequency = "month"
 )
 
-func IsIntervalValid(interval RecurringPaymentInterval) bool {
-	switch interval {
-	case IntervalDay, IntervalWeek, IntervalMonth, IntervalYear:
+func IsFrequencyValid(frequency Frequency) bool {
+	switch frequency {
+	case Day, Week, Biweekly, Month:
 		return true
 	default:
 		return false

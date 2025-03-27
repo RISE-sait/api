@@ -63,24 +63,21 @@ func (q *Queries) GetMembershipPlanJoiningRequirements(ctx context.Context, id u
 }
 
 const getProgramRegisterInfoForCustomer = `-- name: GetProgramRegisterInfoForCustomer :one
-SELECT
-    pm.is_eligible,
-    pm.price_per_booking,
-    p2.name AS program_name,
-    EXISTS (SELECT 1 FROM users.users u WHERE u.id = $1) AS customer_exists,
-    EXISTS (SELECT 1 FROM program.programs p WHERE p.id = $2) AS program_exists,
-    EXISTS (
-        SELECT 1 FROM public.customer_membership_plans
-        WHERE customer_id = $1 AND status = 'active'
-    ) AS customer_has_active_membership
-FROM
-    program.programs p2
-        LEFT JOIN public.program_membership pm ON pm.program_id = p2.id
-        LEFT JOIN membership.membership_plans mp ON mp.membership_id = pm.membership_id
-        LEFT JOIN public.customer_membership_plans cmp_active
-            ON cmp_active.membership_plan_id = mp.id
-WHERE
-    p2.id = $2
+SELECT pm.is_eligible,
+       pm.price_per_booking,
+       p2.name                                                                       AS program_name,
+       EXISTS (SELECT 1 FROM users.users u WHERE u.id = $1)     AS customer_exists,
+       EXISTS (SELECT 1 FROM program.programs p WHERE p.id = $2) AS program_exists,
+       EXISTS (SELECT 1
+               FROM public.customer_membership_plans
+               WHERE customer_id = $1
+                 AND status = 'active')                                              AS customer_has_active_membership
+FROM program.programs p2
+         LEFT JOIN public.program_membership pm ON pm.program_id = p2.id
+         LEFT JOIN membership.membership_plans mp ON mp.membership_id = pm.membership_id
+         LEFT JOIN public.customer_membership_plans cmp_active
+                   ON cmp_active.membership_plan_id = mp.id
+WHERE p2.id = $2
   AND cmp_active.customer_id = $1
   AND cmp_active.status = 'active'
 GROUP BY pm.is_eligible, pm.price_per_booking, p2.name

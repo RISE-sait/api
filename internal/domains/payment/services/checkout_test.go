@@ -96,7 +96,7 @@ func TestCreateSubscription(t *testing.T) {
 		name          string
 		planName      string
 		price         decimal.Decimal
-		interval      payment.RecurringPaymentInterval
+		interval      payment.Frequency
 		intervalCount int32
 		periods       int32
 		wantErr       bool

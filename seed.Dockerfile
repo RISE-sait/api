@@ -6,7 +6,7 @@ WORKDIR /app
 
 RUN go mod init api
 
-RUN go get github.com/google/uuid github.com/lib/pq github.com/shopspring/decimal github.com/go-playground/validator
+RUN go get github.com/google/uuid github.com/lib/pq github.com/shopspring/decimal github.com/go-playground/validator github.com/stripe/stripe-go/v81
 
 # Copy everything else
 COPY ./cmd/seed ./cmd/seed

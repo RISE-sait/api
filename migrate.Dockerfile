@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Install necessary tools (including Goose for migrations)
 RUN go mod init api && \
-    go get github.com/pressly/goose github.com/lib/pq
+    go get github.com/pressly/goose github.com/lib/pq github.com/stripe/stripe-go/v81
 
 ENV GOOSE_DRIVER=postgres
 ENV GOOSE_MIGRATION_DIR="./db/migrations"

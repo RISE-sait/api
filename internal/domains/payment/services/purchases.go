@@ -38,13 +38,13 @@ func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID u
 		return CreateOneTimePayment(ctx, requirements.Name, 1, requirements.Price)
 	}
 
-	if !IsIntervalValid(RecurringPaymentInterval(requirements.PaymentFrequency)) {
+	if !IsFrequencyValid(Frequency(requirements.PaymentFrequency)) {
 
 		log.Printf("Invalid payment frequency when checking out membership plan. Plan ID: %v", membershipPlanID)
 		return "", errLib.New("Internal Server Error when checking out membership plan ", http.StatusInternalServerError)
 	}
 
-	if link, err := CreateSubscription(ctx, requirements.Name, requirements.Price, RecurringPaymentInterval(requirements.PaymentFrequency), 2, *requirements.AmtPeriods); err != nil {
+	if link, err := CreateSubscription(ctx, requirements.Name, requirements.Price, Frequency(requirements.PaymentFrequency), 2, *requirements.AmtPeriods); err != nil {
 		return "", err
 	} else {
 		return link, nil

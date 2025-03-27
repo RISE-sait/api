@@ -87,9 +87,8 @@ func CreateSubscription(
 	ctx context.Context,
 	planName string,
 	price decimal.Decimal,
-	billingIntervalUnit RecurringPaymentInterval,
-	billingIntervalCount int32, // e.g. 2 for biweekly
-	totalBillingPeriods int32,
+	frequency Frequency,
+	periods int32,
 ) (string, *errLib.CommonError) {
 
 	if planName == "" {
@@ -99,12 +98,9 @@ func CreateSubscription(
 	if price.LessThanOrEqual(decimal.Zero) {
 		return "", errLib.New("price must be positive", http.StatusBadRequest)
 	}
-	if billingIntervalCount <= 0 {
-		return "", errLib.New("billingIntervalCount must be positive", http.StatusBadRequest)
-	}
 
-	if totalBillingPeriods < 2 {
-		return "", errLib.New("totalBillingPeriods must be at least 2 for subscriptions. Use create one time payment if its not recurring", http.StatusBadRequest)
+	if periods < 2 {
+		return "", errLib.New("periods must be at least 2 for subscriptions. Use create one time payment if its not recurring", http.StatusBadRequest)
 	}
 
 	userID, err := getUserID(ctx)
@@ -117,13 +113,22 @@ func CreateSubscription(
 		return "", errLib.New("Stripe not initialized", http.StatusInternalServerError)
 	}
 
+	interval := string(frequency)
+
+	intervalCount := 1
+
+	if frequency == Biweekly {
+		interval = "week"
+		intervalCount = 2
+	}
+
 	priceInCents := price.Mul(decimal.NewFromInt(100)).IntPart()
 
 	params := &stripe.CheckoutSessionParams{
 		SubscriptionData: &stripe.CheckoutSessionSubscriptionDataParams{
 			Metadata: map[string]string{
-				"userID":              userID, // Accessible in subscription.Metadata
-				"totalBillingPeriods": string(totalBillingPeriods),
+				"userID":  userID, // Accessible in subscription.Metadata
+				"periods": string(periods),
 			},
 		},
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
@@ -134,8 +139,8 @@ func CreateSubscription(
 						Name: stripe.String(planName),
 					},
 					Recurring: &stripe.CheckoutSessionLineItemPriceDataRecurringParams{
-						Interval:      stripe.String(string(billingIntervalUnit)),
-						IntervalCount: stripe.Int64(int64(billingIntervalCount)),
+						Interval:      stripe.String(interval),
+						IntervalCount: stripe.Int64(int64(intervalCount)),
 					},
 					UnitAmount: stripe.Int64(priceInCents),
 				},

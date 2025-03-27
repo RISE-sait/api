@@ -3,6 +3,8 @@ FROM golang:1.23.4-alpine AS builder
 
 RUN apk add --no-cache coreutils
 
+RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
 # Set the working directory inside the container
 WORKDIR /app
 

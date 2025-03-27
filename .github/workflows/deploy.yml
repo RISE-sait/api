@@ -13,6 +13,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Install Swag
+        run: go install github.com/swaggo/swag/cmd/swag@latest
+
+      - name: Generate Swagger Documentation
+        run: go run cmd/swag_init/swag-init.go
+
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:

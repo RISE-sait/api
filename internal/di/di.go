@@ -8,8 +8,8 @@ import (
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
 	locationDb "api/internal/domains/location/persistence/sqlc/generated"
 	membershipDb "api/internal/domains/membership/persistence/sqlc/generated"
+	purchaseDb "api/internal/domains/payment/persistence/sqlc/generated"
 	programDb "api/internal/domains/program/persistence/sqlc/generated"
-	purchaseDb "api/internal/domains/purchase/persistence/sqlc/generated"
 	teamDb "api/internal/domains/team/persistence/sqlc/generated"
 
 	"api/internal/services/square"

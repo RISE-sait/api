@@ -29,7 +29,7 @@ func GetHubSpotService(apiKeyPtr *string) *Service {
 	if apiKeyPtr != nil {
 		apiKey = *apiKeyPtr
 	} else {
-		apiKey = config.Envs.HubSpotApiKey
+		apiKey = config.Env.HubSpotApiKey
 	}
 
 	httpClient := &http.Client{

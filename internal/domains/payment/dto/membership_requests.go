@@ -1,7 +1,7 @@
-package purchase
+package payment
 
 import (
-	"api/internal/domains/purchase/values"
+	"api/internal/domains/payment/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
 	"github.com/google/uuid"

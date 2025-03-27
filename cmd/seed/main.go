@@ -62,7 +62,7 @@ func clearTables(ctx context.Context, db *sql.DB) {
 	}
 
 	// Generate the TRUNCATE statement with CASCADE and RESTART IDENTITY
-	truncateQuery := "TRUNCATE" + strings.Join(tables, ", ") + " RESTART IDENTITY CASCADE"
+	truncateQuery := "TRUNCATE " + strings.Join(tables, ", ") + " RESTART IDENTITY CASCADE"
 
 	// Execute the TRUNCATE query
 	if _, err := db.ExecContext(ctx, truncateQuery); err != nil {
@@ -442,12 +442,21 @@ func seedMembershipPlans(ctx context.Context, db *sql.DB) {
 
 			price := decimal.NewFromFloat(plan.PaymentFrequency.Price)
 
+			if plan.PaymentFrequency.RecurringPaymentInterval == 2 && plan.PaymentFrequency.PaymentFrequency == "week" {
+				plan.PaymentFrequency.RecurringPeriod = "biweekly"
+			}
+
 			nameArray = append(nameArray, plan.PlanName)
 			priceArray = append(priceArray, price)
 			joiningFeeArray = append(joiningFeeArray, decimal.NewFromFloat(plan.PaymentFrequency.JoiningFee))
 			autoRenewArray = append(autoRenewArray, plan.PaymentFrequency.HasEndDate.WillPlanAutoRenew)
 			membershipNameArray = append(membershipNameArray, membershipName)
-			paymentFrequencyArray = append(paymentFrequencyArray, dbSeed.PaymentFrequency(plan.PaymentFrequency.RecurringPeriod))
+
+			if plan.PaymentFrequency.RecurringPaymentInterval == 2 && plan.PaymentFrequency.PaymentFrequency == "week" {
+				paymentFrequencyArray = append(paymentFrequencyArray, "biweekly")
+			} else {
+				paymentFrequencyArray = append(paymentFrequencyArray, dbSeed.PaymentFrequency(plan.PaymentFrequency.RecurringPeriod))
+			}
 			amtPeriodsArray = append(amtPeriodsArray, periods)
 		}
 

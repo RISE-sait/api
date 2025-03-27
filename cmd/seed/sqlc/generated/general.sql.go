@@ -14,17 +14,12 @@ import (
 
 const insertCoachStats = `-- name: InsertCoachStats :exec
 INSERT INTO athletic.coach_stats (coach_id, wins, losses)
-VALUES (
-        (SELECT id FROM users.users WHERE  email = 'viktor.djurasic+1@abcfitness.com'),
+VALUES ((SELECT id FROM users.users WHERE email = 'viktor.djurasic+1@abcfitness.com'),
         1,
-        1
-
-       ),
-         (
-          (SELECT id FROM users.users WHERE  email = 'coach@test.com'),
-            1,
-          2
-            )
+        1),
+       ((SELECT id FROM users.users WHERE email = 'coach@test.com'),
+        1,
+        2)
 `
 
 func (q *Queries) InsertCoachStats(ctx context.Context) error {

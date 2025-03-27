@@ -24,7 +24,7 @@ import (
 	"api/internal/domains/identity/handler/registration"
 	locationsHandler "api/internal/domains/location/handler"
 	membership "api/internal/domains/membership/handler"
-	purchase "api/internal/domains/purchase/handler"
+	purchase "api/internal/domains/payment/handler"
 	"api/internal/middlewares"
 
 	"github.com/go-chi/chi"
@@ -280,19 +280,20 @@ func RegisterEventStaffRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterCheckoutRoutes(container *di.Container) func(chi.Router) {
 
-	h := purchase.NewPurchaseHandlers(container)
+	h := purchase.NewPaymentHandlers(container)
 
 	return func(r chi.Router) {
 		r.With(allowAnyoneWithValidToken).Post("/membership_plans/{id}", h.CheckoutMembership)
+		r.Post("/programs/{id}", h.CheckoutProgram)
 	}
 }
 
 func RegisterWebhooksRoutes(container *di.Container) func(chi.Router) {
 
-	//h := purchase.NewPurchaseHandlers(container)
+	h := purchase.NewPaymentHandlers(container)
 
 	return func(r chi.Router) {
-		//r.Post("/square", h.HandleSquareWebhook)
+		r.Post("/stripe", h.HandleStripeWebhook)
 	}
 }
 
@@ -311,7 +312,7 @@ func RegisterRegistrationRoutes(container *di.Container) func(chi.Router) {
 	athleteHandler := registration.NewAthleteRegistrationHandlers(container)
 	staffHandler := registration.NewStaffRegistrationHandlers(container)
 
-	childRegistrationHandler := registration.NewChildRegistrationHandler(container)
+	childRegistrationHandler := registration.NewChildRegistrationHandlers(container)
 	parentRegistrationHandler := registration.NewParentRegistrationHandlers(container)
 
 	return func(r chi.Router) {

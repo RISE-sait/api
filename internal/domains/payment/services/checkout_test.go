@@ -93,52 +93,47 @@ func TestCreateSubscription(t *testing.T) {
 	basePrice := decimal.NewFromFloat(9.99)
 
 	tests := []struct {
-		name          string
-		planName      string
-		price         decimal.Decimal
-		interval      payment.Frequency
-		intervalCount int32
-		periods       int32
-		wantErr       bool
-		errMsg        string
+		name     string
+		planName string
+		price    decimal.Decimal
+		interval payment.Frequency
+		periods  int32
+		wantErr  bool
+		errMsg   string
 	}{
 		{
-			name:          "successful monthly subscription",
-			planName:      basePlan,
-			price:         basePrice,
-			interval:      payment.IntervalMonth,
-			intervalCount: 1,
-			periods:       12,
-			wantErr:       false,
+			name:     "successful monthly subscription",
+			planName: basePlan,
+			price:    basePrice,
+			interval: payment.Month,
+			periods:  12,
+			wantErr:  false,
 		},
 		{
-			name:          "successful biweekly subscription",
-			planName:      basePlan,
-			price:         basePrice,
-			interval:      payment.IntervalWeek,
-			intervalCount: 2,
-			periods:       12,
-			wantErr:       false,
+			name:     "successful biweekly subscription",
+			planName: basePlan,
+			price:    basePrice,
+			interval: payment.Biweekly,
+			periods:  12,
+			wantErr:  false,
 		},
 		{
-			name:          "empty plan name",
-			planName:      "",
-			price:         basePrice,
-			interval:      payment.IntervalMonth,
-			intervalCount: 1,
-			periods:       12,
-			wantErr:       true,
-			errMsg:        "plan name cannot be empty",
+			name:     "empty plan name",
+			planName: "",
+			price:    basePrice,
+			interval: payment.Month,
+			periods:  12,
+			wantErr:  true,
+			errMsg:   "plan name cannot be empty",
 		},
 		{
-			name:          "single period subscription",
-			planName:      basePlan,
-			price:         basePrice,
-			interval:      payment.IntervalMonth,
-			intervalCount: 1,
-			periods:       1,
-			wantErr:       true,
-			errMsg:        "totalBillingPeriods must be at least 2",
+			name:     "single period subscription",
+			planName: basePlan,
+			price:    basePrice,
+			interval: payment.Month,
+			periods:  1,
+			wantErr:  true,
+			errMsg:   "totalBillingPeriods must be at least 2",
 		},
 	}
 
@@ -149,7 +144,6 @@ func TestCreateSubscription(t *testing.T) {
 				tt.planName,
 				tt.price,
 				tt.interval,
-				tt.intervalCount,
 				tt.periods,
 			)
 
@@ -215,8 +209,7 @@ func TestCreateSubscription_Context(t *testing.T) {
 				tt.ctx,
 				"Test Plan",
 				decimal.NewFromFloat(9.99),
-				payment.IntervalMonth,
-				1,
+				payment.Month,
 				12,
 			)
 

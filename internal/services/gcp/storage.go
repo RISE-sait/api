@@ -19,7 +19,7 @@ const bucketName = "rise-sports"
 
 func getGCPClient() (*storage.Client, *errLib.CommonError) {
 	var opt option.ClientOption
-	if gcpServiceAccountCredentials := config.Envs.GcpServiceAccountCredentials; gcpServiceAccountCredentials != "" {
+	if gcpServiceAccountCredentials := config.Env.GcpServiceAccountCredentials; gcpServiceAccountCredentials != "" {
 		opt = option.WithCredentialsJSON([]byte(gcpServiceAccountCredentials))
 	} else if _, err := os.Stat("/app/config/gcp-service-account.json"); err == nil {
 		opt = option.WithCredentialsFile("/app/config/gcp-service-account.json")

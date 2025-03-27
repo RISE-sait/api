@@ -2,6 +2,7 @@ package config
 
 import (
 	"database/sql"
+	"github.com/stripe/stripe-go/v81"
 	"log"
 	"os"
 
@@ -27,11 +28,16 @@ type config struct {
 	GmailSmtpPassword            string
 	GcpServiceAccountCredentials string
 	SquareAccessToken            string
+	StripeSecretKey              string
 }
 
-var Envs = initConfig()
+var Env = initConfig()
 
 func initConfig() *config {
+
+	stripeApiKey := os.Getenv("STRIPE_API_KEY")
+
+	stripe.Key = stripeApiKey
 
 	return &config{
 		DbConnUrl:     getEnv("DATABASE_URL", ""),
@@ -43,6 +49,7 @@ func initConfig() *config {
 		GmailSmtpPassword:            getEnv("GMAIL_SMTP_PWD", ""),
 		GcpServiceAccountCredentials: getEnv("GCP_SERVICE_ACCOUNT_CREDENTIALS", ""),
 		SquareAccessToken:            getEnv("SQUARE_ACCESS_TOKEN", ""),
+		StripeSecretKey:              getEnv("STRIPE_SECRET_KEY", ""),
 	}
 }
 
@@ -55,7 +62,7 @@ func getEnv(key string, defaultValue string) string {
 }
 
 func GetDBConnection() *sql.DB {
-	connStr := Envs.DbConnUrl
+	connStr := Env.DbConnUrl
 
 	log.Println(connStr)
 	dbConn, err := sql.Open("postgres", connStr)

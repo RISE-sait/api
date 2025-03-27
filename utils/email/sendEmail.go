@@ -11,7 +11,7 @@ import (
 func SendEmail(to, subject, body string) *errLib.CommonError {
 	// Email credentials
 	from := "klintlee1@gmail.com"
-	password := config.Envs.GmailSmtpPassword
+	password := config.Env.GmailSmtpPassword
 
 	// Gmail SMTP server configuration
 	smtpHost := "smtp.gmail.com"

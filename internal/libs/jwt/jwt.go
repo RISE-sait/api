@@ -31,13 +31,13 @@ func SignJWT(customClaims CustomClaims) (string, *errLib.CommonError) {
 	claims := JwtClaims{
 		CustomClaims: customClaims,
 		StandardClaims: jwt.StandardClaims{
-			Issuer:    config.Envs.JwtConfig.Issuer,
+			Issuer:    config.Env.JwtConfig.Issuer,
 			ExpiresAt: time.Now().Add(time.Hour * 24 * 15).Unix(), // 15 days
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err := token.SignedString([]byte(config.Envs.JwtConfig.Secret))
+	signedToken, err := token.SignedString([]byte(config.Env.JwtConfig.Secret))
 	if err != nil {
 		fmt.Println("Error signing token: ", err)
 		return "", errLib.New("Error signing token. Check Azure for logs", 500)
@@ -52,7 +52,7 @@ func VerifyToken(tokenString string) (*JwtClaims, *errLib.CommonError) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return []byte(config.Envs.JwtConfig.Secret), nil
+		return []byte(config.Env.JwtConfig.Secret), nil
 	})
 
 	if err != nil {

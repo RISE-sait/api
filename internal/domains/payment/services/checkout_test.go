@@ -133,7 +133,7 @@ func TestCreateSubscription(t *testing.T) {
 			interval: payment.Month,
 			periods:  1,
 			wantErr:  true,
-			errMsg:   "totalBillingPeriods must be at least 2",
+			errMsg:   "periods must be at least 2 for subscriptions. Use create one time payment if its not recurring",
 		},
 	}
 

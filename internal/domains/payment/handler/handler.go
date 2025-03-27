@@ -1,12 +1,14 @@
 package purchase
 
 import (
+	"api/config"
 	"api/internal/di"
 	dto "api/internal/domains/payment/dto"
 	service "api/internal/domains/payment/services"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
+	"api/internal/middlewares"
 	"github.com/stripe/stripe-go/v81"
 	"github.com/stripe/stripe-go/v81/webhook"
 	"io"
@@ -94,14 +96,12 @@ func (h *Handlers) CheckoutProgram(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//if ctxUserId := r.Context().Value(middlewares.UserIDKey); ctxUserId == nil {
-	//	responseHandlers.RespondWithError(w, errLib.New("User ID not found", http.StatusUnauthorized))
-	//	return
-	//} else {
-	//	userId = ctxUserId.(uuid.UUID)
-	//}
-
-	userId = uuid.MustParse("70ad95a7-228e-4170-b363-3fe501cc5c08")
+	if ctxUserId := r.Context().Value(middlewares.UserIDKey); ctxUserId == nil {
+		responseHandlers.RespondWithError(w, errLib.New("User ID not found", http.StatusUnauthorized))
+		return
+	} else {
+		userId = ctxUserId.(uuid.UUID)
+	}
 
 	var responseDto dto.CheckoutResponseDto
 
@@ -135,12 +135,13 @@ func (h *Handlers) HandleStripeWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//stripeSecretKey := config.Envs.StripeSecretKey
+	// todo: use the actual webhook secret
+	_ = config.Env.StripeSecretKey
 
 	event, err := webhook.ConstructEvent(
 		payload,
 		r.Header.Get("Stripe-Signature"),
-		"whsec_68a8a36d1730091183170adb4d92760d482714b73b4da2d7b4fd7489b294195f",
+		"random-ass-string",
 	)
 
 	if err != nil {

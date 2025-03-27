@@ -1,4 +1,4 @@
-package purchase
+package payment
 
 import (
 	"api/config"
@@ -14,13 +14,9 @@ import (
 	"io"
 	"strings"
 
-	//"api/internal/middlewares"
-	//"encoding/json"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
-	//"io"
 	"net/http"
-	//"os"
 )
 
 type Handlers struct {

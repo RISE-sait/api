@@ -1,4 +1,4 @@
-package customer_membership
+package payment
 
 import (
 	"api/internal/di"

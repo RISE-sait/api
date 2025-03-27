@@ -1,4 +1,4 @@
-package purchase
+package payment
 
 import (
 	"api/internal/domains/payment/values"

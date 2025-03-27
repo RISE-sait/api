@@ -1,4 +1,4 @@
-package purchase
+package payment
 
 //type SquareWebhookEventDto struct {
 //	Type string             `json:"type"`

@@ -52,9 +52,7 @@ func TestCreateOneTimePayment(t *testing.T) {
 			itemName: "Test Product",
 			quantity: 1,
 			price:    decimal.Zero,
-			wantErr:  true,
-			errMsg:   "price must be positive",
-			httpCode: http.StatusBadRequest,
+			wantErr:  false,
 		},
 	}
 

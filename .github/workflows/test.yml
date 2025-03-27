@@ -30,11 +30,28 @@ jobs:
       - name: Download Dependencies
         run: go mod tidy
 
-      - name: Build Docker Image
+      - name: Run sqlc generate
         run: |
-          docker build -t api-test:latest -f test.Dockerfile .  
+          cd internal/domains/event/persistence/sqlc && sqlc generate
+          cd ../../../../../
+          cd internal/domains/game/persistence/sqlc && sqlc generate
+          cd ../../../../../
+          cd internal/domains/haircut/persistence/sqlc && sqlc generate
+          cd ../../../../../
+          cd internal/domains/identity/persistence/sqlc && sqlc generate
+          cd ../../../../../
+          cd internal/domains/location/persistence/sqlc && sqlc generate
+          cd ../../../../../
+          cd internal/domains/membership/persistence/sqlc && sqlc generate
+          cd ../../../../../
+          cd internal/domains/program/persistence/sqlc && sqlc generate
+          cd ../../../../../
+          cd internal/domains/purchase/persistence/sqlc && sqlc generate
+          cd ../../../../../
+          cd internal/domains/user/persistence/sqlc && sqlc generate
 
       - name: Run Tests
-        run: |
-          docker run --rm -e STRIPE_API_KEY="${{ secrets.STRIPE_API_KEY }}" api-test:latest
-      
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: true # Prevents cleanup failures in GitHub Actions
+          STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
+        run: go test -v ./...

@@ -91,7 +91,7 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 }
 
 func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEventValues, *errLib.CommonError) {
-	rows, err := r.Queries.GetEventStuffById(ctx, id)
+	rows, err := r.Queries.GetEventById(ctx, id)
 	if err != nil {
 		log.Println("Failed to get event from db: ", err.Error())
 		return values.ReadEventValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
@@ -101,30 +101,31 @@ func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEve
 	event.Staffs = []values.Staff{}
 	event.Customers = []values.Customer{}
 
-	for _, row := range rows {
+	for i, row := range rows {
 
-		event = values.ReadEventValues{
-			ID:        row.ID,
-			CreatedAt: row.CreatedAt,
-			UpdatedAt: row.UpdatedAt,
-			Details: values.Details{
-				Day:            string(row.Day),
-				ProgramStartAt: row.ProgramStartAt,
-				ProgramEndAt:   row.ProgramEndAt,
-				EventStartTime: row.EventStartTime,
-				EventEndTime:   row.EventEndTime,
-				LocationID:     row.LocationID.UUID,
-				ProgramID:      row.ProgramID.UUID,
-			},
-			ProgramName:     row.ProgramName.String,
-			ProgramType:     string(row.ProgramType.ProgramProgramType),
-			LocationName:    row.LocationName.String,
-			LocationAddress: row.LocationAddress.String,
-			Staffs:          []values.Staff{},
-			Customers:       []values.Customer{},
-		}
-		if row.Capacity.Valid {
-			event.Details.Capacity = &row.Capacity.Int32
+		if i == 0 {
+
+			event = values.ReadEventValues{
+				ID:        row.ID,
+				CreatedAt: row.CreatedAt,
+				UpdatedAt: row.UpdatedAt,
+				Details: values.Details{
+					Day:            string(row.Day),
+					ProgramStartAt: row.ProgramStartAt,
+					ProgramEndAt:   row.ProgramEndAt,
+					EventStartTime: row.EventStartTime,
+					EventEndTime:   row.EventEndTime,
+					LocationID:     row.LocationID.UUID,
+					ProgramID:      row.ProgramID.UUID,
+				},
+				ProgramName:     row.ProgramName.String,
+				ProgramType:     string(row.ProgramType.ProgramProgramType),
+				LocationName:    row.LocationName.String,
+				LocationAddress: row.LocationAddress.String,
+			}
+			if row.Capacity.Valid {
+				event.Details.Capacity = &row.Capacity.Int32
+			}
 		}
 
 		// Add staff member if exists in this row
@@ -162,17 +163,7 @@ func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEve
 				Gender:                stringToPtr(row.CustomerGender),
 				IsEnrollmentCancelled: row.CustomerIsCancelled.Bool,
 			}
-			// Check for duplicates
-			exists := false
-			for _, c := range event.Customers {
-				if c.ID == customer.ID {
-					exists = true
-					break
-				}
-			}
-			if !exists {
-				event.Customers = append(event.Customers, customer)
-			}
+			event.Customers = append(event.Customers, customer)
 		}
 	}
 

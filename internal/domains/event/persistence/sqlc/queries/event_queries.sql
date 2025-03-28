@@ -50,7 +50,7 @@ FROM event_data ed
          LEFT JOIN users.users uc ON ce.customer_id = uc.id
 ORDER BY ed.id, s.id, uc.id;
 
--- name: GetEventStuffById :many
+-- name: GetEventById :many
 WITH event_data AS (SELECT e.*,
                            p.name        AS program_name,
                            p.description AS program_description,

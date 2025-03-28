@@ -215,10 +215,11 @@ func AllMembershipStatusValues() []MembershipStatus {
 type PaymentFrequency string
 
 const (
-	PaymentFrequencyOnce  PaymentFrequency = "once"
-	PaymentFrequencyWeek  PaymentFrequency = "week"
-	PaymentFrequencyMonth PaymentFrequency = "month"
-	PaymentFrequencyDay   PaymentFrequency = "day"
+	PaymentFrequencyOnce     PaymentFrequency = "once"
+	PaymentFrequencyDay      PaymentFrequency = "day"
+	PaymentFrequencyWeek     PaymentFrequency = "week"
+	PaymentFrequencyBiweekly PaymentFrequency = "biweekly"
+	PaymentFrequencyMonth    PaymentFrequency = "month"
 )
 
 func (e *PaymentFrequency) Scan(src interface{}) error {
@@ -259,9 +260,10 @@ func (ns NullPaymentFrequency) Value() (driver.Value, error) {
 func (e PaymentFrequency) Valid() bool {
 	switch e {
 	case PaymentFrequencyOnce,
+		PaymentFrequencyDay,
 		PaymentFrequencyWeek,
-		PaymentFrequencyMonth,
-		PaymentFrequencyDay:
+		PaymentFrequencyBiweekly,
+		PaymentFrequencyMonth:
 		return true
 	}
 	return false
@@ -270,9 +272,10 @@ func (e PaymentFrequency) Valid() bool {
 func AllPaymentFrequencyValues() []PaymentFrequency {
 	return []PaymentFrequency{
 		PaymentFrequencyOnce,
-		PaymentFrequencyWeek,
-		PaymentFrequencyMonth,
 		PaymentFrequencyDay,
+		PaymentFrequencyWeek,
+		PaymentFrequencyBiweekly,
+		PaymentFrequencyMonth,
 	}
 }
 
@@ -415,6 +418,15 @@ type AthleticAthlete struct {
 	CreatedAt time.Time     `json:"created_at"`
 	UpdatedAt time.Time     `json:"updated_at"`
 	TeamID    uuid.NullUUID `json:"team_id"`
+}
+
+type AthleticCoachStat struct {
+	ID        uuid.UUID `json:"id"`
+	Wins      int32     `json:"wins"`
+	Losses    int32     `json:"losses"`
+	CoachID   uuid.UUID `json:"coach_id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type AthleticTeam struct {

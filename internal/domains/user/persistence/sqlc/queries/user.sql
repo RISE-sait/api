@@ -10,28 +10,13 @@ SET wins       = COALESCE(sqlc.narg('wins'), wins),
 WHERE id = sqlc.arg('id');
 
 -- name: GetCustomers :many
-WITH latest_membership AS (SELECT cmp.customer_id,
-                                  m.name         AS membership_name,
-                                  mp.id as membership_plan_id,
-                                  mp.name as membership_plan_name,
-                                  cmp.start_date AS membership_start_date,
-                                  cmp.renewal_date AS membership_plan_renewal_date
-                           FROM public.customer_membership_plans cmp
-                                    JOIN
-                                membership.membership_plans mp
-                                ON mp.id = cmp.membership_plan_id
-                                    JOIN
-                                membership.memberships m
-                                ON m.id = mp.membership_id
-                           WHERE cmp.start_date = (SELECT MAX(cmp2.start_date)
-                                                   FROM public.customer_membership_plans cmp2
-                                                   WHERE cmp2.customer_id = cmp.customer_id))
 SELECT u.*,
-       lm.membership_name,      -- This will be NULL if no membership exists
-       lm.membership_plan_id,
-       lm.membership_plan_name,
-       lm.membership_start_date, -- This will be NULL if no membership exists
-       lm.membership_plan_renewal_date,
+       -- Include other user fields you need
+       m.name           AS membership_name,
+       mp.id            AS membership_plan_id,
+       mp.name          AS membership_plan_name,
+       cmp.start_date   AS membership_start_date,
+       cmp.renewal_date AS membership_plan_renewal_date,
        a.points,
        a.wins,
        a.losses,
@@ -39,11 +24,16 @@ SELECT u.*,
        a.rebounds,
        a.steals
 FROM users.users u
-         LEFT JOIN
-     latest_membership lm
-     ON lm.customer_id = u.id
+         LEFT JOIN public.customer_membership_plans cmp ON (
+    cmp.customer_id = u.id AND
+    cmp.start_date = (SELECT MAX(start_date)
+                      FROM public.customer_membership_plans
+                      WHERE customer_id = u.id)
+    )
+         LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
+         LEFT JOIN membership.memberships m ON m.id = mp.membership_id
          LEFT JOIN athletic.athletes a ON u.id = a.id
-LIMIT $1 OFFSET $2;
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
 -- name: GetChildren :many
 SELECT children.*

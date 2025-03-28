@@ -117,24 +117,21 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 // @Router /haircuts/events [post]
 func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 
-	var (
-		targetBody dto.RequestDto
-		customerId uuid.UUID
-	)
+	customerID, ctxErr := contextUtils.GetUserID(r.Context())
+
+	if ctxErr != nil {
+		responseHandlers.RespondWithError(w, ctxErr)
+		return
+	}
+
+	var targetBody dto.RequestDto
 
 	if err := validators.ParseJSON(r.Body, &targetBody); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	if ctxUserId := r.Context().Value(contextUtils.UserIDKey); ctxUserId == nil {
-		responseHandlers.RespondWithError(w, errLib.New("User ( Customer ) ID not found", http.StatusUnauthorized))
-		return
-	} else {
-		customerId = ctxUserId.(uuid.UUID)
-	}
-
-	eventCreateValues, err := targetBody.ToCreateEventValue(customerId)
+	eventCreateValues, err := targetBody.ToCreateEventValue(customerID)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)

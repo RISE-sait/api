@@ -9,7 +9,6 @@ import (
 	"api/internal/libs/validators"
 	contextUtils "api/utils/context"
 	"github.com/go-chi/chi"
-	"github.com/google/uuid"
 	"net/http"
 )
 
@@ -106,9 +105,14 @@ func (h *Handlers) LoginAsChild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	parentId := r.Context().Value(contextUtils.UserIDKey).(uuid.UUID)
+	parentID, ctxErr := contextUtils.GetUserID(r.Context())
 
-	jwtToken, userInfo, err := h.AuthService.AuthenticateChild(r.Context(), childId, parentId)
+	if ctxErr != nil {
+		responseHandlers.RespondWithError(w, ctxErr)
+		return
+	}
+
+	jwtToken, userInfo, err := h.AuthService.AuthenticateChild(r.Context(), childId, parentID)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)

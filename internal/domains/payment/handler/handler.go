@@ -92,11 +92,10 @@ func (h *Handlers) CheckoutProgram(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if ctxUserId := r.Context().Value(contextUtils.UserIDKey); ctxUserId == nil {
-		responseHandlers.RespondWithError(w, errLib.New("User ID not found", http.StatusUnauthorized))
+	userId, err := contextUtils.GetUserID(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
 		return
-	} else {
-		userId = ctxUserId.(uuid.UUID)
 	}
 
 	var responseDto dto.CheckoutResponseDto

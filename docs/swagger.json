@@ -583,6 +583,13 @@
                         "in": "query"
                     },
                     {
+                      "type": "string",
+                      "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                      "description": "Filter by team ID (UUID format)",
+                      "name": "team_id",
+                      "in": "query"
+                    },
+                  {
                         "type": "string",
                         "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
                         "description": "Filter by location ID (UUID format)",

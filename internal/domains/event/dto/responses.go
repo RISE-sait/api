@@ -29,9 +29,11 @@ type DetailsResponseDto struct {
 	ProgramID       *uuid.UUID `json:"program_id,omitempty"`
 	ProgramName     *string    `json:"program_name,omitempty"`
 	ProgramType     *string    `json:"program_type,omitempty"`
-	LocationID      *uuid.UUID `json:"location_id,omitempty"`
-	LocationName    *string    `json:"location_name,omitempty"`
-	LocationAddress *string    `json:"location_address,omitempty"`
+	LocationID      uuid.UUID  `json:"location_id,omitempty"`
+	LocationName    string     `json:"location_name"`
+	LocationAddress string     `json:"location_address"`
+	TeamID          *uuid.UUID `json:"team_id,omitempty"`
+	TeamName        *string    `json:"team_name,omitempty"`
 	Capacity        *int32     `json:"capacity,omitempty"`
 }
 
@@ -69,16 +71,26 @@ type StaffResponseDto struct {
 }
 
 func NewEventDetailsResponseDto(event values.ReadEventValues) DetailsResponseDto {
-	return DetailsResponseDto{
+	response := DetailsResponseDto{
 		ID:              event.ID,
-		ProgramID:       &event.ProgramID,
-		ProgramName:     &event.ProgramName,
-		ProgramType:     &event.ProgramType,
-		LocationID:      &event.LocationID,
-		LocationName:    &event.LocationName,
-		LocationAddress: &event.LocationAddress,
+		LocationID:      event.LocationID,
+		LocationName:    event.LocationName,
+		LocationAddress: event.LocationAddress,
 		Capacity:        event.Capacity,
 	}
+
+	if event.ProgramID != uuid.Nil && event.ProgramName != "" && event.ProgramType != "" {
+		response.ProgramID = &event.ProgramID
+		response.ProgramName = &event.ProgramName
+		response.ProgramType = &event.ProgramType
+	}
+
+	if event.TeamID != uuid.Nil && event.TeamName != "" {
+		response.TeamID = &event.TeamID
+		response.TeamName = &event.TeamName
+	}
+
+	return response
 }
 
 func NewEventDayResponseDto(event values.ReadEventValues) DayResponseDto {

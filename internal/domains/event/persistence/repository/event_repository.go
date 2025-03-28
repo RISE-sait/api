@@ -175,7 +175,7 @@ func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEve
 	return event, nil
 }
 
-func (r *Repository) GetEvents(ctx context.Context, programTypeStr string, programID, locationID uuid.UUID, before, after time.Time, userID uuid.UUID) ([]values.ReadEventValues, *errLib.CommonError) {
+func (r *Repository) GetEvents(ctx context.Context, programTypeStr string, programID, locationID, userID, teamID uuid.UUID, before, after time.Time) ([]values.ReadEventValues, *errLib.CommonError) {
 
 	var programType db.NullProgramProgramType
 
@@ -197,6 +197,7 @@ func (r *Repository) GetEvents(ctx context.Context, programTypeStr string, progr
 		Before:     sql.NullTime{Time: before, Valid: !before.IsZero()},
 		After:      sql.NullTime{Time: after, Valid: !after.IsZero()},
 		UserID:     uuid.NullUUID{UUID: userID, Valid: userID != uuid.Nil},
+		TeamID:     uuid.NullUUID{UUID: teamID, Valid: teamID != uuid.Nil},
 		Type:       programType,
 	})
 
@@ -206,92 +207,39 @@ func (r *Repository) GetEvents(ctx context.Context, programTypeStr string, progr
 	}
 
 	// Group the rows by event ID
-	eventMap := make(map[uuid.UUID]*values.ReadEventValues)
+	var events []values.ReadEventValues
 
 	for _, row := range dbRows {
-		// Get or create the event
-		if _, exists := eventMap[row.ID]; !exists {
-			eventMap[row.ID] = &values.ReadEventValues{
-				ID:        row.ID,
-				CreatedAt: row.CreatedAt,
-				UpdatedAt: row.UpdatedAt,
-				Details: values.Details{
-					Day:            string(row.Day),
-					ProgramStartAt: row.ProgramStartAt,
-					ProgramEndAt:   row.ProgramEndAt,
-					EventStartTime: row.EventStartTime,
-					EventEndTime:   row.EventEndTime,
-					ProgramID:      row.ProgramID.UUID,
-					LocationID:     row.LocationID.UUID,
-				},
-				ProgramName:     row.ProgramName.String,
-				ProgramType:     string(row.ProgramType.ProgramProgramType),
-				LocationName:    row.LocationName.String,
-				LocationAddress: row.LocationAddress.String,
-				Staffs:          []values.Staff{},
-				Customers:       []values.Customer{},
-			}
-			if row.Capacity.Valid {
-				eventMap[row.ID].Details.Capacity = &row.Capacity.Int32
-			}
-		}
-		event := eventMap[row.ID]
 
-		// Add staff member if exists in this row
-		if row.StaffID.Valid {
-			staff := values.Staff{
-				ID:        row.StaffID.UUID,
-				Email:     row.StaffEmail.String,
-				FirstName: row.StaffFirstName.String,
-				LastName:  row.StaffLastName.String,
-				Phone:     row.StaffPhone.String,
-				Gender:    stringToPtr(row.StaffGender),
-				RoleName:  row.StaffRoleName.String,
-			}
-			// Check if this staff member already exists for this event
-			exists := false
-			for _, s := range event.Staffs {
-				if s.ID == staff.ID {
-					exists = true
-					break
-				}
-			}
-			if !exists {
-				event.Staffs = append(event.Staffs, staff)
-			}
+		event := values.ReadEventValues{
+			ID:        row.ID,
+			CreatedAt: row.CreatedAt,
+			UpdatedAt: row.UpdatedAt,
+			Details: values.Details{
+				Day:            string(row.Day),
+				ProgramStartAt: row.ProgramStartAt,
+				ProgramEndAt:   row.ProgramEndAt,
+				EventStartTime: row.EventStartTime,
+				EventEndTime:   row.EventEndTime,
+				ProgramID:      row.ProgramID.UUID,
+				LocationID:     row.LocationID.UUID,
+			},
+			ProgramName:     row.ProgramName.String,
+			ProgramType:     string(row.ProgramType.ProgramProgramType),
+			LocationName:    row.LocationName.String,
+			LocationAddress: row.LocationAddress.String,
+		}
+		if row.Capacity.Valid {
+			event.Details.Capacity = &row.Capacity.Int32
 		}
 
-		// Add customer if exists in this row
-		if row.CustomerID.Valid {
-			customer := values.Customer{
-				ID:                    row.CustomerID.UUID,
-				FirstName:             row.CustomerFirstName.String,
-				LastName:              row.CustomerLastName.String,
-				Email:                 stringToPtr(row.CustomerEmail),
-				Phone:                 stringToPtr(row.CustomerPhone),
-				Gender:                stringToPtr(row.CustomerGender),
-				IsEnrollmentCancelled: row.CustomerIsCancelled.Bool,
-			}
-			// Check if this customer already exists for this event
-			exists := false
-			for _, c := range event.Customers {
-				if c.ID == customer.ID {
-					exists = true
-					break
-				}
-			}
-			if !exists {
-				event.Customers = append(event.Customers, customer)
-			}
+		if row.TeamID.Valid && row.TeamName.Valid {
+			event.TeamID = row.TeamID.UUID
+			event.TeamName = row.TeamName.String
 		}
+
+		events = append(events, event)
 	}
-
-	// Convert the map to a slice
-	events := make([]values.ReadEventValues, 0, len(eventMap))
-	for _, event := range eventMap {
-		events = append(events, *event)
-	}
-
 	return events, nil
 }
 

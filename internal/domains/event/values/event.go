@@ -15,6 +15,7 @@ type Details struct {
 	EventEndTime   custom_types.TimeWithTimeZone
 	ProgramID      uuid.UUID
 	LocationID     uuid.UUID
+	TeamID         uuid.UUID
 	Capacity       *int32
 }
 
@@ -36,6 +37,8 @@ type ReadEventValues struct {
 	LocationAddress string
 	ProgramName     string
 	ProgramType     string
+
+	TeamName string
 
 	Customers []Customer
 	Staffs    []Staff

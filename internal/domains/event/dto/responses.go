@@ -2,6 +2,7 @@ package event
 
 import (
 	"api/internal/custom_types"
+	"api/internal/domains/event/types"
 	values "api/internal/domains/event/values"
 	"fmt"
 	"github.com/google/uuid"
@@ -182,6 +183,8 @@ func parseWeekday(day string) (time.Weekday, error) {
 	}
 }
 
+// todo: write test
+
 // Helper to calculate all event dates in range
 func calculateEventDates(programStart, programEnd time.Time, day time.Weekday,
 	startTime, endTime custom_types.TimeWithTimeZone) []struct{ Start, End time.Time } {
@@ -239,4 +242,59 @@ func calculateEventDates(programStart, programEnd time.Time, day time.Weekday,
 	}
 
 	return dates
+}
+
+// todo: write test
+
+func TransformEventToDtoWithoutPeople(event values.ReadEventValues, view types.ViewOption) ResponseDtoEventWithoutPeople {
+	eventDto := ResponseDtoEventWithoutPeople{
+		DetailsResponseDto: NewEventDetailsResponseDto(event),
+	}
+
+	if view == types.ViewOptionDate {
+
+		var datesDto []DateResponseDto
+
+		dateDto := NewEventDatesResponseDto(event)
+
+		datesDto = append(datesDto, dateDto...)
+
+		eventDto.DatesResponseDto = &datesDto
+	} else {
+		var daysDto []DayResponseDto
+
+		dayDto := NewEventDayResponseDto(event)
+		daysDto = append(daysDto, dayDto)
+		eventDto.DaysResponseDto = &daysDto
+	}
+
+	return eventDto
+}
+
+// todo: write test
+
+func TransformEventToDtoWithPeople(event values.ReadEventValues, view types.ViewOption) ResponseDtoEventWithPeople {
+	var responseDto ResponseDtoEventWithPeople
+
+	if view == types.ViewOptionDay {
+		dayResponseDto := NewEventDayResponseDto(event)
+		responseDto.DayResponseDto = &dayResponseDto
+	} else {
+		dateResponseDto := NewEventDatesResponseDto(event)
+		responseDto.DatesResponseDto = &dateResponseDto
+	}
+
+	responseDto.DetailsResponseDto = NewEventDetailsResponseDto(event)
+	responseDto.Customers = CreateCustomersResponseDto(event.Customers)
+	responseDto.Staff = CreateStaffsResponseDto(event.Staffs)
+
+	if len(responseDto.Customers) == 0 {
+		responseDto.Customers = make([]CustomerResponseDto, 0)
+	}
+
+	if len(responseDto.Staff) == 0 {
+		responseDto.Staff = make([]StaffResponseDto, 0)
+	}
+
+	return responseDto
 }

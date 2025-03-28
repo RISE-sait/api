@@ -3,6 +3,7 @@ package event
 import (
 	dto "api/internal/domains/event/dto"
 	repository "api/internal/domains/event/persistence/repository"
+	"api/internal/domains/event/types"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
@@ -11,13 +12,6 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
-)
-
-type ViewOption string
-
-const (
-	Date ViewOption = "date"
-	Day  ViewOption = "day"
 )
 
 // EventsHandler provides HTTP handlers for managing events.
@@ -55,13 +49,13 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		after, before                 time.Time
 		locationID, programID, userID uuid.UUID
 		programType                   string
-		view                          ViewOption
+		view                          types.ViewOption
 	)
 
 	if query.Get("view") == "date" {
-		view = Date
+		view = types.ViewOptionDate
 	} else {
-		view = Day
+		view = types.ViewOptionDay
 	}
 
 	if afterStr := query.Get("after"); afterStr != "" {
@@ -127,28 +121,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 
 	for _, event := range events {
 
-		eventDto := dto.ResponseDtoEventWithoutPeople{
-			DetailsResponseDto: dto.NewEventDetailsResponseDto(event),
-		}
-
-		if view == Date {
-			var datesDto []dto.DateResponseDto
-
-			dateDto := dto.NewEventDatesResponseDto(event)
-
-			datesDto = append(datesDto, dateDto...)
-
-			eventDto.DatesResponseDto = &datesDto
-		} else {
-			var daysDto []dto.DayResponseDto
-
-			dayDto := dto.NewEventDayResponseDto(event)
-
-			daysDto = append(daysDto, dayDto)
-
-			eventDto.DaysResponseDto = &daysDto
-
-		}
+		eventDto := dto.TransformEventToDtoWithoutPeople(event, view)
 
 		responseDto = append(responseDto, eventDto)
 	}
@@ -171,12 +144,12 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 // @Router /events/{id} [get]
 func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 
-	var view ViewOption
+	var view types.ViewOption
 
 	if r.URL.Query().Get("view") == "date" {
-		view = Date
+		view = types.ViewOptionDate
 	} else {
-		view = Day
+		view = types.ViewOptionDay
 	}
 
 	var eventId uuid.UUID
@@ -196,27 +169,7 @@ func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 
-		var responseDto dto.ResponseDtoEventWithPeople
-
-		if view == Day {
-			dayResponseDto := dto.NewEventDayResponseDto(event)
-			responseDto.DayResponseDto = &dayResponseDto
-		} else {
-			dateResponseDto := dto.NewEventDatesResponseDto(event)
-			responseDto.DatesResponseDto = &dateResponseDto
-		}
-
-		responseDto.DetailsResponseDto = dto.NewEventDetailsResponseDto(event)
-		responseDto.Customers = dto.CreateCustomersResponseDto(event.Customers)
-		responseDto.Staff = dto.CreateStaffsResponseDto(event.Staffs)
-
-		if len(responseDto.Customers) == 0 {
-			responseDto.Customers = make([]dto.CustomerResponseDto, 0)
-		}
-
-		if len(responseDto.Staff) == 0 {
-			responseDto.Staff = make([]dto.StaffResponseDto, 0)
-		}
+		responseDto := dto.TransformEventToDtoWithPeople(event, view)
 
 		responseHandlers.RespondWithSuccess(w, responseDto, http.StatusOK)
 	}

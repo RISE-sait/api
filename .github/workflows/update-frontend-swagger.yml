@@ -24,13 +24,9 @@ jobs:
           if [ ! -f docs/swagger.json ]; then
             echo "ERROR: swagger.json not found!" && exit 1
           fi
-          if [ ! -f docs/swagger.yaml ]; then
-            echo "ERROR: swagger.yaml not found!" && exit 1
-          fi
           
           # Copy files to swagger-output
           cp docs/swagger.json swagger-output/
-          cp docs/swagger.yaml swagger-output/
 
       - name: Upload Swagger docs as artifact
         uses: actions/upload-artifact@v4

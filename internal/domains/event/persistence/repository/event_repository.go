@@ -70,10 +70,10 @@ func (r *Repository) CreateEvent(ctx context.Context, eventDetails values.Create
 		}
 	}
 
-	if err := r.Queries.CreateEvent(ctx, dbParams); err != nil {
+	if dbErr := r.Queries.CreateEvent(ctx, dbParams); dbErr != nil {
 
 		var pqErr *pq.Error
-		if errors.As(err, &pqErr) {
+		if errors.As(dbErr, &pqErr) {
 
 			constraintErrors := map[string]string{
 				"fk_program":            "The referenced program doesn't exist",
@@ -88,7 +88,7 @@ func (r *Repository) CreateEvent(ctx context.Context, eventDetails values.Create
 			}
 		}
 
-		log.Printf("Failed to create eventDetails: %+v. Error: %v", eventDetails, err.Error())
+		log.Printf("Failed to create eventDetails: %+v. Error: %v", eventDetails, dbErr.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 

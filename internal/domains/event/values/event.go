@@ -43,6 +43,8 @@ type ReadEventValues struct {
 	ProgramType     string
 	TeamName        string
 
+	TeamName string
+
 	Customers []Customer
 	Staffs    []Staff
 }

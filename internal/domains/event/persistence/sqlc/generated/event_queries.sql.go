@@ -16,9 +16,9 @@ import (
 
 const createEvent = `-- name: CreateEvent :exec
 INSERT INTO events.events (program_start_at, program_end_at, event_start_time, event_end_time, day, location_id,
-                           program_id, capacity)
+                           program_id, capacity, created_by, updated_by)
 VALUES ($1, $2, $3, $4, $5,
-        $6, $7, $8)
+        $6, $7, $8, $9::uuid, $9::uuid)
 `
 
 type CreateEventParams struct {
@@ -27,9 +27,10 @@ type CreateEventParams struct {
 	EventStartTime custom_types.TimeWithTimeZone `json:"event_start_time"`
 	EventEndTime   custom_types.TimeWithTimeZone `json:"event_end_time"`
 	Day            DayEnum                       `json:"day"`
-	LocationID     uuid.NullUUID                 `json:"location_id"`
+	LocationID     uuid.UUID                     `json:"location_id"`
 	ProgramID      uuid.NullUUID                 `json:"program_id"`
 	Capacity       sql.NullInt32                 `json:"capacity"`
+	CreatedBy      uuid.UUID                     `json:"created_by"`
 }
 
 func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) error {
@@ -42,6 +43,7 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) error 
 		arg.LocationID,
 		arg.ProgramID,
 		arg.Capacity,
+		arg.CreatedBy,
 	)
 	return err
 }
@@ -58,41 +60,43 @@ func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) error {
 }
 
 const getEventById = `-- name: GetEventById :many
-WITH event_data AS (SELECT e.id, e.program_start_at, e.program_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time,
-                           p.name        AS program_name,
-                           p.description AS program_description,
-                           p."type"      AS program_type,
-                           l.name        AS location_name,
-                           l.address     AS location_address
-                    FROM events.events e
-                             LEFT JOIN program.programs p ON e.program_id = p.id
-                             LEFT JOIN location.locations l ON e.location_id = l.id
-                    WHERE e.id = $1)
-SELECT ed.id, ed.program_start_at, ed.program_end_at, ed.program_id, ed.team_id, ed.location_id, ed.capacity, ed.created_at, ed.updated_at, ed.day, ed.event_start_time, ed.event_end_time, ed.program_name, ed.program_description, ed.program_type, ed.location_name, ed.location_address,
-       -- Staff fields (direct joins)
-       s.id            AS staff_id,
-       sr.role_name    AS staff_role_name,
-       us.email        AS staff_email,
-       us.first_name   AS staff_first_name,
-       us.last_name    AS staff_last_name,
-       us.gender       AS staff_gender,
-       us.phone        AS staff_phone,
-       -- Customer fields (direct joins)
-       uc.id           AS customer_id,
-       uc.first_name   AS customer_first_name,
-       uc.last_name    AS customer_last_name,
-       uc.email        AS customer_email,
-       uc.phone        AS customer_phone,
-       uc.gender       AS customer_gender,
-       ce.is_cancelled AS customer_is_cancelled
-FROM event_data ed
-         LEFT JOIN events.staff es ON ed.id = es.event_id
+SELECT
+    e.id, e.program_start_at, e.program_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time, e.created_by, e.updated_by,
+    p.name AS program_name,
+    p.description AS program_description,
+    p."type" AS program_type,
+    l.name AS location_name,
+    l.address AS location_address,
+    -- Staff fields
+    s.id AS staff_id,
+    sr.role_name AS staff_role_name,
+    us.email AS staff_email,
+    us.first_name AS staff_first_name,
+    us.last_name AS staff_last_name,
+    us.gender AS staff_gender,
+    us.phone AS staff_phone,
+    -- Customer fields
+    uc.id AS customer_id,
+    uc.first_name AS customer_first_name,
+    uc.last_name AS customer_last_name,
+    uc.email AS customer_email,
+    uc.phone AS customer_phone,
+    uc.gender AS customer_gender,
+    ce.is_cancelled AS customer_is_cancelled,
+    -- Team field (added missing team reference)
+    t.id AS team_id,
+    t.name AS team_name
+FROM events.events e
+         LEFT JOIN program.programs p ON e.program_id = p.id
+         LEFT JOIN location.locations l ON e.location_id = l.id
+         LEFT JOIN events.staff es ON e.id = es.event_id
          LEFT JOIN staff.staff s ON es.staff_id = s.id
          LEFT JOIN staff.staff_roles sr ON s.role_id = sr.id
          LEFT JOIN users.users us ON s.id = us.id
-         LEFT JOIN events.customer_enrollment ce ON ed.id = ce.event_id
+         LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
          LEFT JOIN users.users uc ON ce.customer_id = uc.id
          LEFT JOIN athletic.teams t ON t.id = e.team_id
+WHERE e.id = $1
 ORDER BY s.id, uc.id
 `
 
@@ -102,13 +106,15 @@ type GetEventByIdRow struct {
 	ProgramEndAt        time.Time                     `json:"program_end_at"`
 	ProgramID           uuid.NullUUID                 `json:"program_id"`
 	TeamID              uuid.NullUUID                 `json:"team_id"`
-	LocationID          uuid.NullUUID                 `json:"location_id"`
+	LocationID          uuid.UUID                     `json:"location_id"`
 	Capacity            sql.NullInt32                 `json:"capacity"`
 	CreatedAt           time.Time                     `json:"created_at"`
 	UpdatedAt           time.Time                     `json:"updated_at"`
 	Day                 DayEnum                       `json:"day"`
 	EventStartTime      custom_types.TimeWithTimeZone `json:"event_start_time"`
 	EventEndTime        custom_types.TimeWithTimeZone `json:"event_end_time"`
+	CreatedBy           uuid.NullUUID                 `json:"created_by"`
+	UpdatedBy           uuid.NullUUID                 `json:"updated_by"`
 	ProgramName         sql.NullString                `json:"program_name"`
 	ProgramDescription  sql.NullString                `json:"program_description"`
 	ProgramType         NullProgramProgramType        `json:"program_type"`
@@ -128,6 +134,8 @@ type GetEventByIdRow struct {
 	CustomerPhone       sql.NullString                `json:"customer_phone"`
 	CustomerGender      sql.NullString                `json:"customer_gender"`
 	CustomerIsCancelled sql.NullBool                  `json:"customer_is_cancelled"`
+	TeamID_2            uuid.NullUUID                 `json:"team_id_2"`
+	TeamName            sql.NullString                `json:"team_name"`
 }
 
 func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) ([]GetEventByIdRow, error) {
@@ -152,6 +160,8 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) ([]GetEventByI
 			&i.Day,
 			&i.EventStartTime,
 			&i.EventEndTime,
+			&i.CreatedBy,
+			&i.UpdatedBy,
 			&i.ProgramName,
 			&i.ProgramDescription,
 			&i.ProgramType,
@@ -171,6 +181,8 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) ([]GetEventByI
 			&i.CustomerPhone,
 			&i.CustomerGender,
 			&i.CustomerIsCancelled,
+			&i.TeamID_2,
+			&i.TeamName,
 		); err != nil {
 			return nil, err
 		}
@@ -186,18 +198,16 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) ([]GetEventByI
 }
 
 const getEvents = `-- name: GetEvents :many
-SELECT DISTINCT e.id, e.program_start_at, e.program_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time,
-                p.name          AS program_name,
-                p.description   AS program_description,
-                p."type"        AS program_type,
-                l.name          AS location_name,
-                l.address       AS location_address,
-
-                -- Team fields
-                t.name          as team_name
+SELECT DISTINCT e.id, e.program_start_at, e.program_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time, e.created_by, e.updated_by,
+                p.name        AS program_name,
+                p.description AS program_description,
+                p."type"      AS program_type,
+                l.name        AS location_name,
+                l.address     AS location_address,
+                t.name        as team_name
 FROM events.events e
          LEFT JOIN program.programs p ON e.program_id = p.id
-         LEFT JOIN location.locations l ON e.location_id = l.id
+         JOIN location.locations l ON e.location_id = l.id
          LEFT JOIN events.staff es ON e.id = es.event_id
          LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
          LEFT JOIN athletic.teams t ON t.id = e.team_id
@@ -210,6 +220,8 @@ WHERE (
               AND ($6::uuid IS NULL OR ce.customer_id = $6::uuid OR
                    es.staff_id = $6::uuid)
               AND ($7::uuid IS NULL OR e.team_id = $7)
+                AND ($8::uuid IS NULL OR e.created_by = $8)
+                AND ($9::uuid IS NULL OR e.updated_by = $9)
           )
 `
 
@@ -221,6 +233,8 @@ type GetEventsParams struct {
 	Type       NullProgramProgramType `json:"type"`
 	UserID     uuid.NullUUID          `json:"user_id"`
 	TeamID     uuid.NullUUID          `json:"team_id"`
+	CreatedBy  uuid.NullUUID          `json:"created_by"`
+	UpdatedBy  uuid.NullUUID          `json:"updated_by"`
 }
 
 type GetEventsRow struct {
@@ -229,18 +243,20 @@ type GetEventsRow struct {
 	ProgramEndAt       time.Time                     `json:"program_end_at"`
 	ProgramID          uuid.NullUUID                 `json:"program_id"`
 	TeamID             uuid.NullUUID                 `json:"team_id"`
-	LocationID         uuid.NullUUID                 `json:"location_id"`
+	LocationID         uuid.UUID                     `json:"location_id"`
 	Capacity           sql.NullInt32                 `json:"capacity"`
 	CreatedAt          time.Time                     `json:"created_at"`
 	UpdatedAt          time.Time                     `json:"updated_at"`
 	Day                DayEnum                       `json:"day"`
 	EventStartTime     custom_types.TimeWithTimeZone `json:"event_start_time"`
 	EventEndTime       custom_types.TimeWithTimeZone `json:"event_end_time"`
+	CreatedBy          uuid.NullUUID                 `json:"created_by"`
+	UpdatedBy          uuid.NullUUID                 `json:"updated_by"`
 	ProgramName        sql.NullString                `json:"program_name"`
 	ProgramDescription sql.NullString                `json:"program_description"`
 	ProgramType        NullProgramProgramType        `json:"program_type"`
-	LocationName       sql.NullString                `json:"location_name"`
-	LocationAddress    sql.NullString                `json:"location_address"`
+	LocationName       string                        `json:"location_name"`
+	LocationAddress    string                        `json:"location_address"`
 	TeamName           sql.NullString                `json:"team_name"`
 }
 
@@ -253,6 +269,8 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 		arg.Type,
 		arg.UserID,
 		arg.TeamID,
+		arg.CreatedBy,
+		arg.UpdatedBy,
 	)
 	if err != nil {
 		return nil, err
@@ -274,6 +292,8 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 			&i.Day,
 			&i.EventStartTime,
 			&i.EventEndTime,
+			&i.CreatedBy,
+			&i.UpdatedBy,
 			&i.ProgramName,
 			&i.ProgramDescription,
 			&i.ProgramType,
@@ -304,20 +324,22 @@ SET program_start_at = $1,
     event_end_time   = $6,
     day              = $7,
     capacity         = $8,
-    updated_at       = current_timestamp
+    updated_at       = current_timestamp,
+    updated_by = $10::uuid
 WHERE id = $9
 `
 
 type UpdateEventParams struct {
 	ProgramStartAt time.Time                     `json:"program_start_at"`
 	ProgramEndAt   time.Time                     `json:"program_end_at"`
-	LocationID     uuid.NullUUID                 `json:"location_id"`
+	LocationID     uuid.UUID                     `json:"location_id"`
 	ProgramID      uuid.NullUUID                 `json:"program_id"`
 	EventStartTime custom_types.TimeWithTimeZone `json:"event_start_time"`
 	EventEndTime   custom_types.TimeWithTimeZone `json:"event_end_time"`
 	Day            DayEnum                       `json:"day"`
 	Capacity       sql.NullInt32                 `json:"capacity"`
 	ID             uuid.UUID                     `json:"id"`
+	UpdatedBy      uuid.UUID                     `json:"updated_by"`
 }
 
 func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) error {
@@ -331,6 +353,7 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) error 
 		arg.Day,
 		arg.Capacity,
 		arg.ID,
+		arg.UpdatedBy,
 	)
 	return err
 }

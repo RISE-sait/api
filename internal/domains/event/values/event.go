@@ -20,25 +20,28 @@ type Details struct {
 }
 
 type CreateEventValues struct {
+	CreatedBy uuid.UUID
 	Details
 }
 
 type UpdateEventValues struct {
-	ID uuid.UUID
+	ID        uuid.UUID
+	UpdatedBy uuid.UUID
 	Details
 }
 
 type ReadEventValues struct {
 	ID        uuid.UUID
 	CreatedAt time.Time
+	CreatedBy uuid.UUID
+	UpdatedBy uuid.UUID
 	UpdatedAt time.Time
 	Details
 	LocationName    string
 	LocationAddress string
 	ProgramName     string
 	ProgramType     string
-
-	TeamName string
+	TeamName        string
 
 	Customers []Customer
 	Staffs    []Staff

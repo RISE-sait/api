@@ -2,30 +2,14 @@ package payment
 
 import (
 	errLib "api/internal/libs/errors"
-	"api/internal/middlewares"
+	contextUtils "api/utils/context"
 	"context"
-	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/stripe/stripe-go/v81"
 	"github.com/stripe/stripe-go/v81/checkout/session"
 	"net/http"
 	"strings"
 )
-
-func getUserID(ctx context.Context) (string, *errLib.CommonError) {
-
-	if ctx == nil {
-		return "", errLib.New("context cannot be nil", http.StatusBadRequest)
-	}
-
-	userID, ok := ctx.Value(middlewares.UserIDKey).(string)
-
-	if !ok || userID == "" {
-		return "", errLib.New("user ID not found in context", http.StatusUnauthorized)
-	}
-
-	return userID, nil
-}
 
 func CreateOneTimePayment(
 	ctx context.Context,
@@ -46,19 +30,17 @@ func CreateOneTimePayment(
 		return "", errLib.New("quantity must be positive", http.StatusBadRequest)
 	}
 
-	//userID, err := getUserID(ctx)
-	//
-	//if err != nil {
-	//	return "", err
-	//}
+	userID, err := contextUtils.GetUserID(ctx)
 
-	userID := uuid.MustParse("0c31e31d-0301-43d6-833b-ac5f8b34dee0").String()
+	if err != nil {
+		return "", err
+	}
 
 	priceInCents := price.Mul(decimal.NewFromInt(100)).IntPart()
 
 	params := &stripe.CheckoutSessionParams{
 		PaymentIntentData: &stripe.CheckoutSessionPaymentIntentDataParams{
-			Metadata: map[string]string{"userID": userID},
+			Metadata: map[string]string{"userID": userID.String()},
 		},
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			{
@@ -103,7 +85,7 @@ func CreateSubscription(
 		return "", errLib.New("periods must be at least 2 for subscriptions. Use create one time payment if its not recurring", http.StatusBadRequest)
 	}
 
-	userID, err := getUserID(ctx)
+	userID, err := contextUtils.GetUserID(ctx)
 
 	if err != nil {
 		return "", err
@@ -127,7 +109,7 @@ func CreateSubscription(
 	params := &stripe.CheckoutSessionParams{
 		SubscriptionData: &stripe.CheckoutSessionSubscriptionDataParams{
 			Metadata: map[string]string{
-				"userID":  userID, // Accessible in subscription.Metadata
+				"userID":  userID.String(), // Accessible in subscription.Metadata
 				"periods": string(periods),
 			},
 		},

@@ -19,6 +19,7 @@ services:
     volumes:
       - ./cmd:/app/cmd
       - ./internal:/app/internal
+      - ./utils:/app/utils
       - ./docs:/app/docs
     env_file:
       - ./config/.env

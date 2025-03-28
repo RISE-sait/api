@@ -612,6 +612,20 @@ const docTemplate = `{
                         "description": "Program Type (game, practice, course, others)",
                         "name": "program_type",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                        "description": "ID of person who created the event (UUID format)",
+                        "name": "created_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                        "description": "ID of person who updated the event (UUID format)",
+                        "name": "updated_by",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -641,6 +655,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Registers a new event with the provided details.",
                 "consumes": [
                     "application/json"
@@ -959,6 +978,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Updates the details of an existing event.",
                 "consumes": [
                     "application/json"
@@ -3680,6 +3704,9 @@ const docTemplate = `{
                 "capacity": {
                     "type": "integer"
                 },
+                "created_by": {
+                    "type": "string"
+                },
                 "customers": {
                     "type": "array",
                     "items": {
@@ -3733,6 +3760,15 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/event.StaffResponseDto"
                     }
+                },
+                "team_id": {
+                    "type": "string"
+                },
+                "team_name": {
+                    "type": "string"
+                },
+                "updated_by": {
+                    "type": "string"
                 }
             }
         },
@@ -3741,6 +3777,9 @@ const docTemplate = `{
             "properties": {
                 "capacity": {
                     "type": "integer"
+                },
+                "created_by": {
+                    "type": "string"
                 },
                 "id": {
                     "type": "string"
@@ -3774,6 +3813,15 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/event.DayResponseDto"
                     }
+                },
+                "team_id": {
+                    "type": "string"
+                },
+                "team_name": {
+                    "type": "string"
+                },
+                "updated_by": {
+                    "type": "string"
                 }
             }
         },

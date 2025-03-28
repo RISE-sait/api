@@ -8,7 +8,7 @@ import (
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
-	"api/internal/middlewares"
+	contextUtils "api/utils/context"
 	"github.com/stripe/stripe-go/v81"
 	"github.com/stripe/stripe-go/v81/webhook"
 	"io"
@@ -92,11 +92,10 @@ func (h *Handlers) CheckoutProgram(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if ctxUserId := r.Context().Value(middlewares.UserIDKey); ctxUserId == nil {
-		responseHandlers.RespondWithError(w, errLib.New("User ID not found", http.StatusUnauthorized))
+	userId, err := contextUtils.GetUserID(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
 		return
-	} else {
-		userId = ctxUserId.(uuid.UUID)
 	}
 
 	var responseDto dto.CheckoutResponseDto

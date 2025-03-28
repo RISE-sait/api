@@ -2,8 +2,9 @@ package payment_test
 
 import (
 	payment "api/internal/domains/payment/services"
-	"api/internal/middlewares"
+	contextUtils "api/utils/context"
 	"context"
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"log"
 	"net/http"
@@ -12,7 +13,7 @@ import (
 )
 
 func TestCreateOneTimePayment(t *testing.T) {
-	ctx := context.WithValue(context.Background(), middlewares.UserIDKey, "test_user_123")
+	ctx := context.WithValue(context.Background(), contextUtils.UserIDKey, uuid.New())
 	tests := []struct {
 		name     string
 		itemName string
@@ -88,7 +89,7 @@ func TestCreateOneTimePayment(t *testing.T) {
 
 func TestCreateSubscription(t *testing.T) {
 	// Common test setup
-	ctx := context.WithValue(context.Background(), middlewares.UserIDKey, "test_user_123")
+	ctx := context.WithValue(context.Background(), contextUtils.UserIDKey, uuid.New())
 	basePlan := "Premium Membership"
 	basePrice := decimal.NewFromFloat(9.99)
 
@@ -198,7 +199,7 @@ func TestCreateSubscription_Context(t *testing.T) {
 		},
 		{
 			name:    "valid context",
-			ctx:     context.WithValue(context.Background(), middlewares.UserIDKey, "test_user_123"),
+			ctx:     context.WithValue(context.Background(), contextUtils.UserIDKey, uuid.New()),
 			wantErr: false,
 		},
 	}

@@ -4,6 +4,7 @@ import (
 	db "api/internal/domains/event/persistence/sqlc/generated"
 	values "api/internal/domains/event/values"
 	errLib "api/internal/libs/errors"
+	contextUtils "api/utils/context"
 	"context"
 	"database/sql"
 	"errors"
@@ -27,7 +28,13 @@ func NewEventsRepository(dbQueries *db.Queries) *Repository {
 	}
 }
 
-func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEventValues) *errLib.CommonError {
+func (r *Repository) CreateEvent(ctx context.Context, eventDetails values.CreateEventValues) *errLib.CommonError {
+
+	userID, err := contextUtils.GetUserID(ctx)
+
+	if err != nil {
+		return err
+	}
 
 	if !db.DayEnum(eventDetails.Day).Valid() {
 
@@ -48,14 +55,12 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 		EventStartTime: eventDetails.EventStartTime,
 		EventEndTime:   eventDetails.EventEndTime,
 		Day:            db.DayEnum(eventDetails.Day),
-		LocationID: uuid.NullUUID{
-			UUID:  eventDetails.LocationID,
-			Valid: eventDetails.LocationID != uuid.Nil,
-		},
+		LocationID:     eventDetails.LocationID,
 		ProgramID: uuid.NullUUID{
 			UUID:  eventDetails.ProgramID,
 			Valid: eventDetails.ProgramID != uuid.Nil,
 		},
+		CreatedBy: userID,
 	}
 
 	if eventDetails.Capacity != nil {
@@ -65,10 +70,10 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 		}
 	}
 
-	if err := r.Queries.CreateEvent(c, dbParams); err != nil {
+	if dbErr := r.Queries.CreateEvent(ctx, dbParams); dbErr != nil {
 
 		var pqErr *pq.Error
-		if errors.As(err, &pqErr) {
+		if errors.As(dbErr, &pqErr) {
 
 			constraintErrors := map[string]string{
 				"fk_program":            "The referenced program doesn't exist",
@@ -83,7 +88,7 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 			}
 		}
 
-		log.Printf("Failed to create eventDetails: %+v. Error: %v", eventDetails, err.Error())
+		log.Printf("Failed to create eventDetails: %+v. Error: %v", eventDetails, dbErr.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
@@ -115,9 +120,11 @@ func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEve
 					ProgramEndAt:   row.ProgramEndAt,
 					EventStartTime: row.EventStartTime,
 					EventEndTime:   row.EventEndTime,
-					LocationID:     row.LocationID.UUID,
+					LocationID:     row.LocationID,
 					ProgramID:      row.ProgramID.UUID,
 				},
+				CreatedBy:       row.CreatedBy.UUID,
+				UpdatedBy:       row.UpdatedBy.UUID,
 				ProgramName:     row.ProgramName.String,
 				ProgramType:     string(row.ProgramType.ProgramProgramType),
 				LocationName:    row.LocationName.String,
@@ -175,7 +182,7 @@ func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEve
 	return event, nil
 }
 
-func (r *Repository) GetEvents(ctx context.Context, programTypeStr string, programID, locationID, userID, teamID uuid.UUID, before, after time.Time) ([]values.ReadEventValues, *errLib.CommonError) {
+func (r *Repository) GetEvents(ctx context.Context, programTypeStr string, programID, locationID, userID, teamID, createdBy, updatedBy uuid.UUID, before, after time.Time) ([]values.ReadEventValues, *errLib.CommonError) {
 
 	var programType db.NullProgramProgramType
 
@@ -198,6 +205,8 @@ func (r *Repository) GetEvents(ctx context.Context, programTypeStr string, progr
 		After:      sql.NullTime{Time: after, Valid: !after.IsZero()},
 		UserID:     uuid.NullUUID{UUID: userID, Valid: userID != uuid.Nil},
 		TeamID:     uuid.NullUUID{UUID: teamID, Valid: teamID != uuid.Nil},
+		CreatedBy:  uuid.NullUUID{UUID: createdBy, Valid: createdBy != uuid.Nil},
+		UpdatedBy:  uuid.NullUUID{UUID: updatedBy, Valid: updatedBy != uuid.Nil},
 		Type:       programType,
 	})
 
@@ -222,13 +231,21 @@ func (r *Repository) GetEvents(ctx context.Context, programTypeStr string, progr
 				EventStartTime: row.EventStartTime,
 				EventEndTime:   row.EventEndTime,
 				ProgramID:      row.ProgramID.UUID,
-				LocationID:     row.LocationID.UUID,
+				LocationID:     row.LocationID,
 			},
 			ProgramName:     row.ProgramName.String,
 			ProgramType:     string(row.ProgramType.ProgramProgramType),
-			LocationName:    row.LocationName.String,
-			LocationAddress: row.LocationAddress.String,
+			LocationName:    row.LocationName,
+			LocationAddress: row.LocationAddress,
+			CreatedBy:       row.CreatedBy.UUID,
+			UpdatedBy:       row.UpdatedBy.UUID,
 		}
+
+		if row.TeamID.Valid && row.TeamName.Valid {
+			event.TeamID = row.TeamID.UUID
+			event.TeamName = row.TeamName.String
+		}
+
 		if row.Capacity.Valid {
 			event.Details.Capacity = &row.Capacity.Int32
 		}
@@ -250,7 +267,13 @@ func stringToPtr(s sql.NullString) *string {
 	}
 	return nil
 }
-func (r *Repository) UpdateEvent(c context.Context, event values.UpdateEventValues) *errLib.CommonError {
+func (r *Repository) UpdateEvent(ctx context.Context, event values.UpdateEventValues) *errLib.CommonError {
+
+	userID, err := contextUtils.GetUserID(ctx)
+
+	if err != nil {
+		return err
+	}
 
 	if !db.DayEnum(event.Day).Valid() {
 
@@ -268,19 +291,18 @@ func (r *Repository) UpdateEvent(c context.Context, event values.UpdateEventValu
 	dbEventParams := db.UpdateEventParams{
 		ProgramStartAt: event.ProgramStartAt,
 		ProgramEndAt:   event.ProgramEndAt,
-		LocationID:     uuid.NullUUID{UUID: event.LocationID, Valid: event.LocationID != uuid.Nil},
+		LocationID:     event.LocationID,
 		ProgramID:      uuid.NullUUID{UUID: event.ProgramID, Valid: event.ProgramID != uuid.Nil},
 		EventStartTime: event.EventStartTime,
 		EventEndTime:   event.EventEndTime,
 		Day:            db.DayEnum(event.Day),
 		ID:             event.ID,
+		UpdatedBy:      userID,
 	}
 
-	err := r.Queries.UpdateEvent(c, dbEventParams)
-
-	if err != nil {
-		log.Printf("Failed to update event: %+v. Error: %v", event, err.Error())
-		return errLib.New("Internal server error", http.StatusInternalServerError)
+	if dbErr := r.Queries.UpdateEvent(ctx, dbEventParams); dbErr != nil {
+		log.Printf("Failed to update event: %+v. Error: %v", event, dbErr.Error())
+		return errLib.New("Internal server error when updating event", http.StatusInternalServerError)
 	}
 
 	return nil

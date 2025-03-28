@@ -4,16 +4,10 @@ import (
 	errLib "api/internal/libs/errors"
 	jwtLib "api/internal/libs/jwt"
 	responseHandlers "api/internal/libs/responses"
+	contextUtils "api/utils/context"
 	"context"
 	"net/http"
 	"strings"
-)
-
-// ContextKey is a custom type for context keys to avoid collisions.
-type ContextKey string
-
-const (
-	UserIDKey ContextKey = "userId"
 )
 
 // JWTAuthMiddleware validates JWT tokens and checks user roles.
@@ -47,7 +41,7 @@ func JWTAuthMiddleware(isAllowAnyoneWithValidToken bool, allowedRoles ...string)
 			}
 
 			// Add the claims to the request context for use in handlers
-			ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
+			ctx := context.WithValue(r.Context(), contextUtils.UserIDKey, claims.UserID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

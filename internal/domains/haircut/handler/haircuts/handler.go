@@ -4,8 +4,8 @@ import (
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
-	"api/internal/middlewares"
 	"api/internal/services/gcp"
+	contextUtils "api/utils/context"
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
@@ -27,7 +27,7 @@ func UploadHaircutImage(w http.ResponseWriter, r *http.Request) {
 
 	var userId uuid.UUID
 
-	if ctxUserId := r.Context().Value(middlewares.UserIDKey); ctxUserId == nil {
+	if ctxUserId := r.Context().Value(contextUtils.UserIDKey); ctxUserId == nil {
 		responseHandlers.RespondWithError(w, errLib.New("User ID not found", http.StatusUnauthorized))
 		return
 	} else {

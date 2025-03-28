@@ -6,11 +6,12 @@ import (
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
-	"api/internal/middlewares"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"net/http"
 	"time"
+
+	contextUtils "api/utils/context"
 )
 
 // EventsHandler provides HTTP handlers for managing events.
@@ -126,7 +127,7 @@ func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if ctxUserId := r.Context().Value(middlewares.UserIDKey); ctxUserId == nil {
+	if ctxUserId := r.Context().Value(contextUtils.UserIDKey); ctxUserId == nil {
 		responseHandlers.RespondWithError(w, errLib.New("User ( Customer ) ID not found", http.StatusUnauthorized))
 		return
 	} else {

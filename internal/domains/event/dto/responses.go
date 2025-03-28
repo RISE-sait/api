@@ -33,6 +33,10 @@ type DetailsResponseDto struct {
 	LocationName    *string    `json:"location_name,omitempty"`
 	LocationAddress *string    `json:"location_address,omitempty"`
 	Capacity        *int32     `json:"capacity,omitempty"`
+	CreatedBy       uuid.UUID  `json:"created_by"`
+	UpdatedBy       uuid.UUID  `json:"updated_by"`
+	TeamID          *uuid.UUID `json:"team_id,omitempty"`
+	TeamName        *string    `json:"team_name,omitempty"`
 }
 
 type DayResponseDto struct {
@@ -69,7 +73,7 @@ type StaffResponseDto struct {
 }
 
 func NewEventDetailsResponseDto(event values.ReadEventValues) DetailsResponseDto {
-	return DetailsResponseDto{
+	response := DetailsResponseDto{
 		ID:              event.ID,
 		ProgramID:       &event.ProgramID,
 		ProgramName:     &event.ProgramName,
@@ -78,7 +82,16 @@ func NewEventDetailsResponseDto(event values.ReadEventValues) DetailsResponseDto
 		LocationName:    &event.LocationName,
 		LocationAddress: &event.LocationAddress,
 		Capacity:        event.Capacity,
+		CreatedBy:       event.CreatedBy,
+		UpdatedBy:       event.UpdatedBy,
 	}
+
+	if event.TeamID != uuid.Nil && event.TeamName != "" {
+		response.TeamID = &event.TeamID
+		response.TeamName = &event.TeamName
+	}
+
+	return response
 }
 
 func NewEventDayResponseDto(event values.ReadEventValues) DayResponseDto {

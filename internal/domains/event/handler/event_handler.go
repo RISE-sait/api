@@ -32,8 +32,11 @@ func NewEventsHandler(repo *repository.Repository) *EventsHandler {
 // @Param before query string false "End date of the events range (YYYY-MM-DD)" example("2025-03-31")
 // @Param program_id query string false "Filter by program ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
 // @Param user_id query string false "Filter by user ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
+// @Param team_id query string false "Filter by team ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
 // @Param location_id query string false "Filter by location ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
 // @Param program_type query string false "Program Type (game, practice, course, others)"
+// @Param created_by query string false "ID of person who created the event (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")"
+// @Param updated_by query string false "ID of person who updated the event (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
 // @Accept json
 // @Produce json
 // @Success 200 {array} event.ResponseDtoEventWithoutPeople "List of events retrieved successfully"
@@ -46,10 +49,10 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 
 	var (
-		after, before                 time.Time
-		locationID, programID, userID uuid.UUID
-		programType                   string
-		view                          types.ViewOption
+		after, before                                               time.Time
+		locationID, programID, userID, teamID, createdBy, updatedBy uuid.UUID
+		programType                                                 string
+		view                                                        types.ViewOption
 	)
 
 	if query.Get("view") == "date" {
@@ -85,6 +88,15 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if teamIDStr := query.Get("team_id"); teamIDStr != "" {
+		if id, err := validators.ParseUUID(teamIDStr); err != nil {
+			responseHandlers.RespondWithError(w, errLib.New("invalid 'team_id' format, expected uuid format", http.StatusBadRequest))
+			return
+		} else {
+			teamID = id
+		}
+	}
+
 	if programIDStr := query.Get("program_id"); programIDStr != "" {
 		if id, err := validators.ParseUUID(programIDStr); err != nil {
 			responseHandlers.RespondWithError(w, errLib.New("invalid 'program_id' format, expected uuid format", http.StatusBadRequest))
@@ -105,19 +117,23 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if (after.IsZero() || before.IsZero()) && (programID == uuid.Nil && userID == uuid.Nil && locationID == uuid.Nil && programType == "") {
-		responseHandlers.RespondWithError(w, errLib.New("at least one of (before and after) or (program_id, user_id, location_id, program_type), must be provided", http.StatusBadRequest))
+	if (after.IsZero() || before.IsZero()) &&
+		(programID == uuid.Nil && userID == uuid.Nil && locationID == uuid.Nil && teamID == uuid.Nil && programType == "") {
+		responseHandlers.RespondWithError(w,
+			errLib.New(`at least one of (before and after) or 
+(program_id, user_id, location_id, team_id, program_type, created_by, updated_by), must be provided`, http.StatusBadRequest))
 		return
 	}
 
-	events, err := h.Repo.GetEvents(r.Context(), programType, programID, locationID, before, after, userID)
+	events, err := h.Repo.GetEvents(r.Context(), programType, programID, locationID, userID, teamID, createdBy, updatedBy, before, after)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	var responseDto []dto.ResponseDtoEventWithoutPeople
+	// empty list instead of var responseDto []dto.ResponseDtoEventWithoutPeople, so that it would return empty list instead of nil if no events found
+	responseDto := []dto.ResponseDtoEventWithoutPeople{}
 
 	for _, event := range events {
 
@@ -181,6 +197,7 @@ func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 // @Tags events
 // @Accept json
 // @Produce json
+// @Security Bearer
 // @Param event body dto.RequestDto true "Event details"
 // @Success 201 {object} map[string]interface{} "Event created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
@@ -213,6 +230,7 @@ func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 // @Tags events
 // @Accept json
 // @Produce json
+// @Security Bearer
 // @Param id path string true "Event ID"
 // @Param event body dto.RequestDto true "Updated event details"
 // @Success 204 {object} map[string]interface{} "No Content: Event updated successfully"

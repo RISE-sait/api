@@ -6,7 +6,7 @@ on:
       - main  # Change this to match your API repo's default branch
     paths:
       - 'docs/**'
-      - '.github/workflows/update-swagger.yml'
+      - '.github/workflows/update-mobile-swagger.yml'
 
 jobs:
   update-mobile-swagger:

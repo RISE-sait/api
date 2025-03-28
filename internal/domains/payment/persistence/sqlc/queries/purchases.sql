@@ -7,15 +7,6 @@ SELECT *
 FROM membership.membership_plans
 WHERE id = $1;
 
-SELecT mp.id
-FROM program_membership pm
-         LEFT JOIN membership.memberships m ON m.id = pm.membership_id
-         LEFT JOIN membership.membership_plans mp ON mp.membership_id = m.id
-         LEFT JOIN customer_membership_plans cmp ON cmp.membership_plan_id = mp.id
-WHERE pm.program_id = '9b8e816e-7b53-4586-a676-4777554af79c'
-  AND pm.is_eligible = true
-  AND cmp.customer_id = '70ad95a7-228e-4170-b363-3fe501cc5c08';
-
 -- name: GetProgramRegisterInfoForCustomer :one
 SELECT pm.is_eligible,
        pm.price_per_booking,

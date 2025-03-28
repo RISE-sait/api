@@ -13,6 +13,13 @@ import (
 	"github.com/google/uuid"
 )
 
+type ViewOption string
+
+const (
+	Date ViewOption = "date"
+	Day  ViewOption = "day"
+)
+
 // EventsHandler provides HTTP handlers for managing events.
 type EventsHandler struct {
 	Repo *repository.Repository
@@ -26,6 +33,7 @@ func NewEventsHandler(repo *repository.Repository) *EventsHandler {
 // @Summary Get events
 // @Description Retrieve all events within a specific date range, with optional filters by course, location, game, and practice.
 // @Tags events
+// @Param view query string false "Choose between 'date' and 'day'. Response type for the schedule, in specific dates or recurring day information. Default is 'day'."
 // @Param after query string false "Start date of the events range (YYYY-MM-DD)" example("2025-03-01")
 // @Param before query string false "End date of the events range (YYYY-MM-DD)" example("2025-03-31")
 // @Param program_id query string false "Filter by program ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
@@ -34,7 +42,8 @@ func NewEventsHandler(repo *repository.Repository) *EventsHandler {
 // @Param program_type query string false "Program Type (game, practice, course, others)"
 // @Accept json
 // @Produce json
-// @Success 200 {array} event.ResponseDto "List of events retrieved successfully"
+// @Success 200 {array} event.ResponseDtoEventWithoutPeople "List of events retrieved successfully"
+// @Schema(oneOf={[]event.DayResponseDto,[]event.DateResponseDto})
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input format or missing required parameters"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /events [get]
@@ -46,7 +55,14 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		after, before                 time.Time
 		locationID, programID, userID uuid.UUID
 		programType                   string
+		view                          ViewOption
 	)
+
+	if query.Get("view") == "date" {
+		view = Date
+	} else {
+		view = Day
+	}
 
 	if afterStr := query.Get("after"); afterStr != "" {
 		if afterDate, formatErr := time.Parse("2006-01-02", afterStr); formatErr != nil {
@@ -107,15 +123,37 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventsDto := make([]dto.ResponseDto, len(events))
+	var responseDto []dto.ResponseDtoEventWithoutPeople
 
-	for i, event := range events {
-		eventDto := dto.NewEventResponse(event)
+	for _, event := range events {
 
-		eventsDto[i] = eventDto
+		eventDto := dto.ResponseDtoEventWithoutPeople{
+			DetailsResponseDto: dto.NewEventDetailsResponseDto(event),
+		}
+
+		if view == Date {
+			var datesDto []dto.DateResponseDto
+
+			dateDto := dto.NewEventDatesResponseDto(event)
+
+			datesDto = append(datesDto, dateDto...)
+
+			eventDto.DatesResponseDto = &datesDto
+		} else {
+			var daysDto []dto.DayResponseDto
+
+			dayDto := dto.NewEventDayResponseDto(event)
+
+			daysDto = append(daysDto, dayDto)
+
+			eventDto.DaysResponseDto = &daysDto
+
+		}
+
+		responseDto = append(responseDto, eventDto)
 	}
 
-	responseHandlers.RespondWithSuccess(w, eventsDto, http.StatusOK)
+	responseHandlers.RespondWithSuccess(w, responseDto, http.StatusOK)
 }
 
 // GetEvent retrieves detailed information about a specific event.
@@ -125,12 +163,21 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param id path string true "Event ID"
-// @Success 200 {object} event.ResponseDto "Event details retrieved successfully"
+// @Param view query string false "Choose between 'date' and 'day'. Response type for the schedule, in specific dates or recurring day information. Default is 'day'."
+// @Success 200 {object} event.ResponseDtoEventWithPeople "Event details retrieved successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Event not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /events/{id} [get]
 func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
+
+	var view ViewOption
+
+	if r.URL.Query().Get("view") == "date" {
+		view = Date
+	} else {
+		view = Day
+	}
 
 	var eventId uuid.UUID
 
@@ -148,9 +195,30 @@ func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {
-		eventDto := dto.NewEventResponse(event)
 
-		responseHandlers.RespondWithSuccess(w, eventDto, http.StatusOK)
+		var responseDto dto.ResponseDtoEventWithPeople
+
+		if view == Day {
+			dayResponseDto := dto.NewEventDayResponseDto(event)
+			responseDto.DayResponseDto = &dayResponseDto
+		} else {
+			dateResponseDto := dto.NewEventDatesResponseDto(event)
+			responseDto.DatesResponseDto = &dateResponseDto
+		}
+
+		responseDto.DetailsResponseDto = dto.NewEventDetailsResponseDto(event)
+		responseDto.Customers = dto.CreateCustomersResponseDto(event.Customers)
+		responseDto.Staff = dto.CreateStaffsResponseDto(event.Staffs)
+
+		if len(responseDto.Customers) == 0 {
+			responseDto.Customers = make([]dto.CustomerResponseDto, 0)
+		}
+
+		if len(responseDto.Staff) == 0 {
+			responseDto.Staff = make([]dto.StaffResponseDto, 0)
+		}
+
+		responseHandlers.RespondWithSuccess(w, responseDto, http.StatusOK)
 	}
 }
 
@@ -245,6 +313,7 @@ func (h *EventsHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
+		return
 	}
 
 	if err = h.Repo.DeleteEvent(r.Context(), id); err != nil {

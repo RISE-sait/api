@@ -57,7 +57,7 @@ func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
-const getEventStuffById = `-- name: GetEventStuffById :many
+const getEventById = `-- name: GetEventById :many
 WITH event_data AS (SELECT e.id, e.program_start_at, e.program_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time,
                            p.name        AS program_name,
                            p.description AS program_description,
@@ -95,7 +95,7 @@ FROM event_data ed
 ORDER BY s.id, uc.id
 `
 
-type GetEventStuffByIdRow struct {
+type GetEventByIdRow struct {
 	ID                  uuid.UUID                     `json:"id"`
 	ProgramStartAt      time.Time                     `json:"program_start_at"`
 	ProgramEndAt        time.Time                     `json:"program_end_at"`
@@ -129,15 +129,15 @@ type GetEventStuffByIdRow struct {
 	CustomerIsCancelled sql.NullBool                  `json:"customer_is_cancelled"`
 }
 
-func (q *Queries) GetEventStuffById(ctx context.Context, id uuid.UUID) ([]GetEventStuffByIdRow, error) {
-	rows, err := q.db.QueryContext(ctx, getEventStuffById, id)
+func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) ([]GetEventByIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getEventById, id)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetEventStuffByIdRow
+	var items []GetEventByIdRow
 	for rows.Next() {
-		var i GetEventStuffByIdRow
+		var i GetEventByIdRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.ProgramStartAt,

@@ -254,7 +254,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Payment link generated successfully",
                         "schema": {
-                            "$ref": "#/definitions/purchase.CheckoutResponseDto"
+                            "$ref": "#/definitions/payment.CheckoutResponseDto"
                         }
                     },
                     "400": {
@@ -303,7 +303,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Payment link generated successfully",
                         "schema": {
-                            "$ref": "#/definitions/purchase.CheckoutResponseDto"
+                            "$ref": "#/definitions/payment.CheckoutResponseDto"
                         }
                     },
                     "400": {
@@ -561,6 +561,12 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Choose between 'date' and 'day'. Response type for the schedule, in specific dates or recurring day information. Default is 'day'.",
+                        "name": "view",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
                         "example": "\"2025-03-01\"",
                         "description": "Start date of the events range (YYYY-MM-DD)",
                         "name": "after",
@@ -607,7 +613,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/event.ResponseDto"
+                                "$ref": "#/definitions/event.ResponseDtoEventWithoutPeople"
                             }
                         }
                     },
@@ -907,13 +913,19 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Choose between 'date' and 'day'. Response type for the schedule, in specific dates or recurring day information. Default is 'day'.",
+                        "name": "view",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "Event details retrieved successfully",
                         "schema": {
-                            "$ref": "#/definitions/event.ResponseDto"
+                            "$ref": "#/definitions/event.ResponseDtoEventWithPeople"
                         }
                     },
                     "400": {
@@ -3580,6 +3592,37 @@ const docTemplate = `{
                 }
             }
         },
+        "event.DateResponseDto": {
+            "type": "object",
+            "properties": {
+                "end_at": {
+                    "type": "string"
+                },
+                "start_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.DayResponseDto": {
+            "type": "object",
+            "properties": {
+                "day": {
+                    "type": "string"
+                },
+                "program_end_at": {
+                    "type": "string"
+                },
+                "program_start_at": {
+                    "type": "string"
+                },
+                "session_end_at": {
+                    "type": "string"
+                },
+                "session_start_at": {
+                    "type": "string"
+                }
+            }
+        },
         "event.RequestDto": {
             "type": "object",
             "required": [
@@ -3624,7 +3667,7 @@ const docTemplate = `{
                 }
             }
         },
-        "event.ResponseDto": {
+        "event.ResponseDtoEventWithPeople": {
             "type": "object",
             "properties": {
                 "capacity": {
@@ -3634,6 +3677,12 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/event.CustomerResponseDto"
+                    }
+                },
+                "dates": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/event.DateResponseDto"
                     }
                 },
                 "day": {
@@ -3676,6 +3725,47 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/event.StaffResponseDto"
+                    }
+                }
+            }
+        },
+        "event.ResponseDtoEventWithoutPeople": {
+            "type": "object",
+            "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "location_address": {
+                    "type": "string"
+                },
+                "location_id": {
+                    "type": "string"
+                },
+                "location_name": {
+                    "type": "string"
+                },
+                "program_id": {
+                    "type": "string"
+                },
+                "program_name": {
+                    "type": "string"
+                },
+                "program_type": {
+                    "type": "string"
+                },
+                "schedule_dates": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/event.DateResponseDto"
+                    }
+                },
+                "schedule_days": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/event.DayResponseDto"
                     }
                 }
             }
@@ -4033,6 +4123,14 @@ const docTemplate = `{
                 }
             }
         },
+        "payment.CheckoutResponseDto": {
+            "type": "object",
+            "properties": {
+                "payment_url": {
+                    "type": "string"
+                }
+            }
+        },
         "program.LevelsResponse": {
             "type": "object",
             "properties": {
@@ -4088,14 +4186,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "purchase.CheckoutResponseDto": {
-            "type": "object",
-            "properties": {
-                "payment_url": {
                     "type": "string"
                 }
             }

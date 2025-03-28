@@ -1,28 +1,50 @@
 package event
 
 import (
+	"api/internal/custom_types"
 	values "api/internal/domains/event/values"
-	"log"
-
+	"fmt"
 	"github.com/google/uuid"
+	"strings"
+	"time"
 )
 
-type ResponseDto struct {
-	ID              uuid.UUID             `json:"id"`
-	ProgramStartAt  string                `json:"program_start_at"`
-	ProgramEndAt    string                `json:"program_end_at"`
-	SessionStart    string                `json:"session_start_at"`
-	SessionEnd      string                `json:"session_end_at"`
-	Day             string                `json:"day"`
-	ProgramID       *uuid.UUID            `json:"program_id,omitempty"`
-	ProgramName     *string               `json:"program_name,omitempty"`
-	ProgramType     *string               `json:"program_type,omitempty"`
-	LocationID      *uuid.UUID            `json:"location_id,omitempty"`
-	LocationName    *string               `json:"location_name,omitempty"`
-	LocationAddress *string               `json:"location_address,omitempty"`
-	Capacity        *int32                `json:"capacity,omitempty"`
-	Customers       []CustomerResponseDto `json:"customers"`
-	Staff           []StaffResponseDto    `json:"staff"`
+type ResponseDtoEventWithoutPeople struct {
+	DetailsResponseDto
+	DaysResponseDto  *[]DayResponseDto  `json:"schedule_days,omitempty"`
+	DatesResponseDto *[]DateResponseDto `json:"schedule_dates,omitempty"`
+}
+
+type ResponseDtoEventWithPeople struct {
+	DetailsResponseDto
+	*DayResponseDto  `json:",omitempty"`
+	DatesResponseDto *[]DateResponseDto    `json:"dates,omitempty"`
+	Customers        []CustomerResponseDto `json:"customers"`
+	Staff            []StaffResponseDto    `json:"staff"`
+}
+
+type DetailsResponseDto struct {
+	ID              uuid.UUID  `json:"id"`
+	ProgramID       *uuid.UUID `json:"program_id,omitempty"`
+	ProgramName     *string    `json:"program_name,omitempty"`
+	ProgramType     *string    `json:"program_type,omitempty"`
+	LocationID      *uuid.UUID `json:"location_id,omitempty"`
+	LocationName    *string    `json:"location_name,omitempty"`
+	LocationAddress *string    `json:"location_address,omitempty"`
+	Capacity        *int32     `json:"capacity,omitempty"`
+}
+
+type DayResponseDto struct {
+	ProgramStartAt string `json:"program_start_at"`
+	ProgramEndAt   string `json:"program_end_at"`
+	SessionStart   string `json:"session_start_at"`
+	SessionEnd     string `json:"session_end_at"`
+	Day            string `json:"day"`
+}
+
+type DateResponseDto struct {
+	StartAt string `json:"start_at"`
+	EndAt   string `json:"end_at"`
 }
 
 type CustomerResponseDto struct {
@@ -45,35 +67,67 @@ type StaffResponseDto struct {
 	RoleName  string    `json:"role_name"`
 }
 
-func NewEventResponse(event values.ReadEventValues) ResponseDto {
-	response := ResponseDto{
-		ID:             event.ID,
+func NewEventDetailsResponseDto(event values.ReadEventValues) DetailsResponseDto {
+	return DetailsResponseDto{
+		ID:              event.ID,
+		ProgramID:       &event.ProgramID,
+		ProgramName:     &event.ProgramName,
+		ProgramType:     &event.ProgramType,
+		LocationID:      &event.LocationID,
+		LocationName:    &event.LocationName,
+		LocationAddress: &event.LocationAddress,
+		Capacity:        event.Capacity,
+	}
+}
+
+func NewEventDayResponseDto(event values.ReadEventValues) DayResponseDto {
+	return DayResponseDto{
 		ProgramStartAt: event.ProgramStartAt.String(),
-		ProgramEndAt:   event.ProgramStartAt.String(),
+		ProgramEndAt:   event.ProgramEndAt.String(),
 		SessionStart:   event.EventStartTime.Time,
 		SessionEnd:     event.EventEndTime.Time,
 		Day:            event.Day,
-		Capacity:       event.Capacity,
+	}
+}
+
+func NewEventDatesResponseDto(event values.ReadEventValues) []DateResponseDto {
+	var results []DateResponseDto
+
+	// Parse the day of week (e.g., "Monday", "Tuesday")
+	day, err := parseWeekday(event.Details.Day)
+	if err != nil {
+		// Handle error (invalid day string)
+		return results
 	}
 
-	if event.ProgramID != uuid.Nil && event.ProgramName != "" && event.ProgramType != "" {
-		response.ProgramID = &event.ProgramID
-		response.ProgramName = &event.ProgramName
-		response.ProgramType = &event.ProgramType
+	// Calculate all dates for the recurring event within program dates
+	eventDates := calculateEventDates(
+		event.Details.ProgramStartAt,
+		event.Details.ProgramEndAt,
+		day,
+		event.Details.EventStartTime,
+		event.Details.EventEndTime,
+	)
+
+	// Convert each date to a DateResponseDto
+	for _, ed := range eventDates {
+		dto := DateResponseDto{
+			StartAt: ed.Start.Format("Monday, Jan 2, 2006 at 15:04"),
+			EndAt:   ed.End.Format("Monday, Jan 2, 2006 at 15:04"),
+		}
+
+		results = append(results, dto)
 	}
 
-	if event.LocationID != uuid.Nil && event.LocationName != "" && event.LocationAddress != "" {
-		response.LocationID = &event.LocationID
-		response.LocationName = &event.LocationName
-		response.LocationAddress = &event.LocationAddress
-	}
+	return results
+}
 
-	if event.Capacity != nil {
-		response.Capacity = event.Capacity
-	}
+func CreateCustomersResponseDto(customers []values.Customer) []CustomerResponseDto {
 
-	for _, customer := range event.Customers {
-		response.Customers = append(response.Customers, CustomerResponseDto{
+	var response []CustomerResponseDto
+
+	for _, customer := range customers {
+		response = append(response, CustomerResponseDto{
 			ID:                     customer.ID,
 			FirstName:              customer.FirstName,
 			LastName:               customer.LastName,
@@ -84,10 +138,15 @@ func NewEventResponse(event values.ReadEventValues) ResponseDto {
 		})
 	}
 
-	log.Println(event.Staffs)
+	return response
+}
 
-	for _, staff := range event.Staffs {
-		response.Staff = append(response.Staff, StaffResponseDto{
+func CreateStaffsResponseDto(staffs []values.Staff) []StaffResponseDto {
+
+	var response []StaffResponseDto
+
+	for _, staff := range staffs {
+		response = append(response, StaffResponseDto{
 			ID:        staff.ID,
 			FirstName: staff.FirstName,
 			LastName:  staff.LastName,
@@ -99,4 +158,85 @@ func NewEventResponse(event values.ReadEventValues) ResponseDto {
 	}
 
 	return response
+}
+
+// Helper to parse weekday from string
+func parseWeekday(day string) (time.Weekday, error) {
+	switch strings.ToLower(day) {
+	case "monday":
+		return time.Monday, nil
+	case "tuesday":
+		return time.Tuesday, nil
+	case "wednesday":
+		return time.Wednesday, nil
+	case "thursday":
+		return time.Thursday, nil
+	case "friday":
+		return time.Friday, nil
+	case "saturday":
+		return time.Saturday, nil
+	case "sunday":
+		return time.Sunday, nil
+	default:
+		return time.Sunday, fmt.Errorf("invalid weekday: %s", day)
+	}
+}
+
+// Helper to calculate all event dates in range
+func calculateEventDates(programStart, programEnd time.Time, day time.Weekday,
+	startTime, endTime custom_types.TimeWithTimeZone) []struct{ Start, End time.Time } {
+
+	var dates []struct{ Start, End time.Time }
+
+	startParsed, err := time.Parse("15:04:05-07:00", startTime.Time)
+	if err != nil {
+		// Handle error (maybe log and return empty)
+		return dates
+	}
+
+	endParsed, err := time.Parse("15:04:05-07:00", endTime.Time)
+	if err != nil {
+		// Handle error
+		return dates
+	}
+
+	startHour, startMin, startSec := startParsed.Hour(), startParsed.Minute(), startParsed.Second()
+	endHour, endMin, endSec := endParsed.Hour(), endParsed.Minute(), endParsed.Second()
+	loc := startParsed.Location()
+
+	// Find first occurrence of the target weekday on or after program start
+	firstDate := programStart
+	for firstDate.Weekday() != day {
+		firstDate = firstDate.AddDate(0, 0, 1)
+		if firstDate.After(programEnd) {
+			return dates
+		}
+	}
+
+	// Iterate through each week until program end
+	for date := firstDate; !date.After(programEnd); date = date.AddDate(0, 0, 7) {
+		start := time.Date(
+			date.Year(), date.Month(), date.Day(),
+			startHour, startMin, startSec, 0,
+			loc,
+		)
+
+		end := time.Date(
+			date.Year(), date.Month(), date.Day(),
+			endHour, endMin, endSec, 0,
+			loc,
+		)
+
+		// Handle events that cross midnight
+		if end.Before(start) {
+			end = end.AddDate(0, 0, 1)
+		}
+
+		dates = append(dates, struct {
+			Start time.Time
+			End   time.Time
+		}{start, end})
+	}
+
+	return dates
 }

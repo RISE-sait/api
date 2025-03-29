@@ -6,6 +6,8 @@ import (
 	contextUtils "api/utils/context"
 	"context"
 	"github.com/shopspring/decimal"
+
+	_ "api/internal/di"
 	_ "github.com/square/square-go-sdk/client"
 	"github.com/stripe/stripe-go/v81"
 	"github.com/stripe/stripe-go/v81/checkout/session"

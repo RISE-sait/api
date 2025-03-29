@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	_ "api/internal/di"
 	_ "github.com/square/square-go-sdk/client"
 	_ "github.com/stripe/stripe-go/v81"
 )

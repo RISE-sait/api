@@ -39,7 +39,7 @@ func NewEventsHandler(repo *repository.Repository) *EventsHandler {
 // @Param updated_by query string false "ID of person who updated the event (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
 // @Accept json
 // @Produce json
-// @Success 200 {array} event.ResponseDtoEventWithoutPeople "List of events retrieved successfully"
+// @Success 200 {array} dto.EventResponseDto "List of events retrieved successfully"
 // @Schema(oneOf={[]event.DayResponseDto,[]event.DateResponseDto})
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input format or missing required parameters"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
@@ -52,13 +52,12 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		after, before                                               time.Time
 		locationID, programID, userID, teamID, createdBy, updatedBy uuid.UUID
 		programType                                                 string
-		view                                                        types.ViewOption
 	)
+
+	view := types.ViewOptionDay
 
 	if query.Get("view") == "date" {
 		view = types.ViewOptionDate
-	} else {
-		view = types.ViewOptionDay
 	}
 
 	if afterStr := query.Get("after"); afterStr != "" {
@@ -132,12 +131,12 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// empty list instead of var responseDto []dto.ResponseDtoEventWithoutPeople, so that it would return empty list instead of nil if no events found
-	responseDto := []dto.ResponseDtoEventWithoutPeople{}
+	// empty list instead of var responseDto []dto.EventResponseDto, so that it would return empty list instead of nil if no events found
+	responseDto := []dto.EventResponseDto{}
 
 	for _, event := range events {
 
-		eventDto := dto.TransformEventToDtoWithoutPeople(event, view)
+		eventDto := dto.NewEventInfoResponseDto(event, false, view)
 
 		responseDto = append(responseDto, eventDto)
 	}
@@ -153,7 +152,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param id path string true "Event ID"
 // @Param view query string false "Choose between 'date' and 'day'. Response type for the schedule, in specific dates or recurring day information. Default is 'day'."
-// @Success 200 {object} event.ResponseDtoEventWithPeople "Event details retrieved successfully"
+// @Success 200 {object} dto.EventResponseDto "Event details retrieved successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Event not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
@@ -185,7 +184,7 @@ func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 
-		responseDto := dto.TransformEventToDtoWithPeople(event, view)
+		responseDto := dto.NewEventInfoResponseDto(event, true, view)
 
 		responseHandlers.RespondWithSuccess(w, responseDto, http.StatusOK)
 	}

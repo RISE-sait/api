@@ -1,6 +1,8 @@
 {
     "swagger": "2.0",
     "info": {
+        "version": "1.0.0",
+        "title": "API Documentation",
         "contact": {}
     },
     "paths": {
@@ -243,7 +245,7 @@
                     "200": {
                         "description": "Payment link generated successfully",
                         "schema": {
-                          "$ref": "#/definitions/payment.CheckoutResponseDto"
+                            "$ref": "#/definitions/payment.CheckoutResponseDto"
                         }
                     },
                     "400": {
@@ -292,7 +294,7 @@
                     "200": {
                         "description": "Payment link generated successfully",
                         "schema": {
-                          "$ref": "#/definitions/payment.CheckoutResponseDto"
+                            "$ref": "#/definitions/payment.CheckoutResponseDto"
                         }
                     },
                     "400": {
@@ -549,12 +551,12 @@
                 "summary": "Get events",
                 "parameters": [
                     {
-                      "type": "string",
-                      "description": "Choose between 'date' and 'day'. Response type for the schedule, in specific dates or recurring day information. Default is 'day'.",
-                      "name": "view",
-                      "in": "query"
+                        "type": "string",
+                        "description": "Choose between 'date' and 'day'. Response type for the schedule, in specific dates or recurring day information. Default is 'day'.",
+                        "name": "view",
+                        "in": "query"
                     },
-                  {
+                    {
                         "type": "string",
                         "example": "\"2025-03-01\"",
                         "description": "Start date of the events range (YYYY-MM-DD)",
@@ -583,13 +585,13 @@
                         "in": "query"
                     },
                     {
-                      "type": "string",
-                      "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-                      "description": "Filter by team ID (UUID format)",
-                      "name": "team_id",
-                      "in": "query"
+                        "type": "string",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                        "description": "Filter by team ID (UUID format)",
+                        "name": "team_id",
+                        "in": "query"
                     },
-                  {
+                    {
                         "type": "string",
                         "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
                         "description": "Filter by location ID (UUID format)",
@@ -602,19 +604,19 @@
                         "name": "program_type",
                         "in": "query"
                     },
-                  {
-                    "type": "string",
-                    "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-                    "description": "ID of person who created the event (UUID format)",
-                    "name": "created_by",
-                    "in": "query"
-                  },
-                  {
-                    "type": "string",
-                    "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-                    "description": "ID of person who updated the event (UUID format)",
-                    "name": "updated_by",
-                    "in": "query"
+                    {
+                        "type": "string",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                        "description": "ID of person who created the event (UUID format)",
+                        "name": "created_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                        "description": "ID of person who updated the event (UUID format)",
+                        "name": "updated_by",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -623,7 +625,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                              "$ref": "#/definitions/event.ResponseDtoEventWithoutPeople"
+                                "$ref": "#/definitions/event.EventResponseDto"
                             }
                         }
                     },
@@ -644,11 +646,11 @@
                 }
             },
             "post": {
-              "security": [
-                {
-                  "Bearer": []
-                }
-              ],
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Registers a new event with the provided details.",
                 "consumes": [
                     "application/json"
@@ -929,18 +931,18 @@
                         "in": "path",
                         "required": true
                     },
-                  {
-                    "type": "string",
-                    "description": "Choose between 'date' and 'day'. Response type for the schedule, in specific dates or recurring day information. Default is 'day'.",
-                    "name": "view",
-                    "in": "query"
+                    {
+                        "type": "string",
+                        "description": "Choose between 'date' and 'day'. Response type for the schedule, in specific dates or recurring day information. Default is 'day'.",
+                        "name": "view",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "Event details retrieved successfully",
                         "schema": {
-                          "$ref": "#/definitions/event.ResponseDtoEventWithPeople"
+                            "$ref": "#/definitions/event.EventResponseDto"
                         }
                     },
                     "400": {
@@ -967,11 +969,11 @@
                 }
             },
             "put": {
-              "security": [
-                {
-                  "Bearer": []
-                }
-              ],
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Updates the details of an existing event.",
                 "consumes": [
                     "application/json"
@@ -3612,37 +3614,104 @@
                 }
             }
         },
-      "event.DateResponseDto": {
-        "type": "object",
-        "properties": {
-          "end_at": {
-            "type": "string"
-          },
-          "start_at": {
-            "type": "string"
-          }
-        }
-      },
-      "event.DayResponseDto": {
-        "type": "object",
-        "properties": {
-          "day": {
-            "type": "string"
-          },
-          "program_end_at": {
-            "type": "string"
-          },
-          "program_start_at": {
-            "type": "string"
-          },
-          "session_end_at": {
-            "type": "string"
-          },
-          "session_start_at": {
-            "type": "string"
-          }
-        }
-      },
+        "event.DateResponseDto": {
+            "type": "object",
+            "properties": {
+                "end_at": {
+                    "type": "string"
+                },
+                "start_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.EventResponseDto": {
+            "type": "object",
+            "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
+                "created_by": {
+                    "type": "string"
+                },
+                "customers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/event.CustomerResponseDto"
+                    }
+                },
+                "day": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "location": {
+                    "$ref": "#/definitions/event.LocationInfo"
+                },
+                "program": {
+                    "$ref": "#/definitions/event.ProgramInfo"
+                },
+                "program_end_at": {
+                    "type": "string"
+                },
+                "program_start_at": {
+                    "type": "string"
+                },
+                "schedule": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/event.DateResponseDto"
+                    }
+                },
+                "session_end_at": {
+                    "type": "string"
+                },
+                "session_start_at": {
+                    "type": "string"
+                },
+                "staff": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/event.StaffResponseDto"
+                    }
+                },
+                "team": {
+                    "$ref": "#/definitions/event.TeamInfo"
+                },
+                "updated_by": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.LocationInfo": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.ProgramInfo": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
         "event.RequestDto": {
             "type": "object",
             "required": [
@@ -3687,133 +3756,6 @@
                 }
             }
         },
-      "event.ResponseDtoEventWithPeople": {
-            "type": "object",
-            "properties": {
-                "capacity": {
-                    "type": "integer"
-                },
-              "created_by": {
-                "type": "string"
-              },
-                "customers": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/event.CustomerResponseDto"
-                    }
-                },
-              "dates": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/definitions/event.DateResponseDto"
-                }
-              },
-                "day": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "location_address": {
-                    "type": "string"
-                },
-                "location_id": {
-                    "type": "string"
-                },
-                "location_name": {
-                    "type": "string"
-                },
-                "program_end_at": {
-                    "type": "string"
-                },
-                "program_id": {
-                    "type": "string"
-                },
-                "program_name": {
-                    "type": "string"
-                },
-                "program_start_at": {
-                    "type": "string"
-                },
-                "program_type": {
-                    "type": "string"
-                },
-                "session_end_at": {
-                    "type": "string"
-                },
-                "session_start_at": {
-                    "type": "string"
-                },
-                "staff": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/event.StaffResponseDto"
-                    }
-                },
-              "team_id": {
-                "type": "string"
-              },
-              "team_name": {
-                "type": "string"
-              },
-              "updated_by": {
-                "type": "string"
-                }
-            }
-        },
-      "event.ResponseDtoEventWithoutPeople": {
-        "type": "object",
-        "properties": {
-          "capacity": {
-            "type": "integer"
-          },
-          "created_by": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "location_address": {
-            "type": "string"
-          },
-          "location_id": {
-            "type": "string"
-          },
-          "location_name": {
-            "type": "string"
-          },
-          "program_id": {
-            "type": "string"
-          },
-          "program_name": {
-            "type": "string"
-          },
-          "program_type": {
-            "type": "string"
-          },
-          "schedule_dates": {
-            "type": "array",
-            "items": {
-              "$ref": "#/definitions/event.DateResponseDto"
-            }
-          },
-          "schedule_days": {
-            "type": "array",
-            "items": {
-              "$ref": "#/definitions/event.DayResponseDto"
-            }
-          },
-          "team_id": {
-            "type": "string"
-          },
-          "team_name": {
-            "type": "string"
-          },
-          "updated_by": {
-            "type": "string"
-          }
-        }
-      },
         "event.StaffResponseDto": {
             "type": "object",
             "properties": {
@@ -3836,6 +3778,17 @@
                     "type": "string"
                 },
                 "role_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.TeamInfo": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }
@@ -4167,14 +4120,14 @@
                 }
             }
         },
-      "payment.CheckoutResponseDto": {
-        "type": "object",
-        "properties": {
-          "payment_url": {
-            "type": "string"
-          }
-        }
-      },
+        "payment.CheckoutResponseDto": {
+            "type": "object",
+            "properties": {
+                "payment_url": {
+                    "type": "string"
+                }
+            }
+        },
         "program.LevelsResponse": {
             "type": "object",
             "properties": {

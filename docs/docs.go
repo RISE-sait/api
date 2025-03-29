@@ -634,7 +634,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/event.ResponseDtoEventWithoutPeople"
+                                "$ref": "#/definitions/event.EventResponseDto"
                             }
                         }
                     },
@@ -951,7 +951,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Event details retrieved successfully",
                         "schema": {
-                            "$ref": "#/definitions/event.ResponseDtoEventWithPeople"
+                            "$ref": "#/definitions/event.EventResponseDto"
                         }
                     },
                     "400": {
@@ -3634,11 +3634,32 @@ const docTemplate = `{
                 }
             }
         },
-        "event.DayResponseDto": {
+        "event.EventResponseDto": {
             "type": "object",
             "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
+                "created_by": {
+                    "type": "string"
+                },
+                "customers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/event.CustomerResponseDto"
+                    }
+                },
                 "day": {
                     "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "location": {
+                    "$ref": "#/definitions/event.LocationInfo"
+                },
+                "program": {
+                    "$ref": "#/definitions/event.ProgramInfo"
                 },
                 "program_end_at": {
                     "type": "string"
@@ -3646,10 +3667,56 @@ const docTemplate = `{
                 "program_start_at": {
                     "type": "string"
                 },
+                "schedule": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/event.DateResponseDto"
+                    }
+                },
                 "session_end_at": {
                     "type": "string"
                 },
                 "session_start_at": {
+                    "type": "string"
+                },
+                "staff": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/event.StaffResponseDto"
+                    }
+                },
+                "team": {
+                    "$ref": "#/definitions/event.TeamInfo"
+                },
+                "updated_by": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.LocationInfo": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.ProgramInfo": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }
@@ -3698,133 +3765,6 @@ const docTemplate = `{
                 }
             }
         },
-        "event.ResponseDtoEventWithPeople": {
-            "type": "object",
-            "properties": {
-                "capacity": {
-                    "type": "integer"
-                },
-                "created_by": {
-                    "type": "string"
-                },
-                "customers": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/event.CustomerResponseDto"
-                    }
-                },
-                "dates": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/event.DateResponseDto"
-                    }
-                },
-                "day": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "location_address": {
-                    "type": "string"
-                },
-                "location_id": {
-                    "type": "string"
-                },
-                "location_name": {
-                    "type": "string"
-                },
-                "program_end_at": {
-                    "type": "string"
-                },
-                "program_id": {
-                    "type": "string"
-                },
-                "program_name": {
-                    "type": "string"
-                },
-                "program_start_at": {
-                    "type": "string"
-                },
-                "program_type": {
-                    "type": "string"
-                },
-                "session_end_at": {
-                    "type": "string"
-                },
-                "session_start_at": {
-                    "type": "string"
-                },
-                "staff": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/event.StaffResponseDto"
-                    }
-                },
-                "team_id": {
-                    "type": "string"
-                },
-                "team_name": {
-                    "type": "string"
-                },
-                "updated_by": {
-                    "type": "string"
-                }
-            }
-        },
-        "event.ResponseDtoEventWithoutPeople": {
-            "type": "object",
-            "properties": {
-                "capacity": {
-                    "type": "integer"
-                },
-                "created_by": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "location_address": {
-                    "type": "string"
-                },
-                "location_id": {
-                    "type": "string"
-                },
-                "location_name": {
-                    "type": "string"
-                },
-                "program_id": {
-                    "type": "string"
-                },
-                "program_name": {
-                    "type": "string"
-                },
-                "program_type": {
-                    "type": "string"
-                },
-                "schedule_dates": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/event.DateResponseDto"
-                    }
-                },
-                "schedule_days": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/event.DayResponseDto"
-                    }
-                },
-                "team_id": {
-                    "type": "string"
-                },
-                "team_name": {
-                    "type": "string"
-                },
-                "updated_by": {
-                    "type": "string"
-                }
-            }
-        },
         "event.StaffResponseDto": {
             "type": "object",
             "properties": {
@@ -3847,6 +3787,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "role_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.TeamInfo": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }

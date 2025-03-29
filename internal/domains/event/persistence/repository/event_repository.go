@@ -267,6 +267,7 @@ func stringToPtr(s sql.NullString) *string {
 	}
 	return nil
 }
+
 func (r *Repository) UpdateEvent(ctx context.Context, event values.UpdateEventValues) *errLib.CommonError {
 
 	userID, err := contextUtils.GetUserID(ctx)

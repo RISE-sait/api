@@ -124,7 +124,7 @@ func (q *Queries) UpdateCoachStats(ctx context.Context, arg UpdateCoachStatsPara
 const updateStaff = `-- name: UpdateStaff :execrows
 UPDATE staff.staff s
     SET role_id = (SELECT id from staff.staff_roles sr WHERE sr.role_name = $1),
-        is_active = $2,
+        is_active  = $2,
         updated_at = CURRENT_TIMESTAMP
 WHERE s.id = $3
 `

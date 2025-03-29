@@ -97,9 +97,9 @@ func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 
 	return func(r chi.Router) {
 		r.Get("/", h.GetCustomers)
-		r.Get("/{id}/children", h.GetChildrenByParentID)
-		r.Get("/{id}/memberships", h.GetMembershipPlansByCustomer)
-		r.Patch("/{customer_id}/athlete", h.UpdateCustomerStats)
+		r.Get("/id/{id}", h.GetCustomerByID)
+		r.Get("/email/{email}", h.GetCustomerByEmail)
+		r.With(allowAdmin).Patch("/{customer_id}/athlete", h.UpdateCustomerStats)
 	}
 }
 
@@ -108,7 +108,7 @@ func RegisterHaircutRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 
 		r.Get("/", haircut.GetHaircutImages)
-		r.With(middlewares.JWTAuthMiddleware(false, RoleAdmin, RoleBarber)).Post("/", haircut.UploadHaircutImage)
+		r.With(middlewares.JWTAuthMiddleware(false, RoleBarber)).Post("/", haircut.UploadHaircutImage)
 
 		r.Route("/events", RegisterHaircutEventsRoutes(container))
 	}

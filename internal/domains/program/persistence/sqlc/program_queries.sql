@@ -1,7 +1,7 @@
 -- Active: 1739459832645@@127.0.0.1@5432@postgres
 -- name: CreateProgram :exec
-INSERT INTO program.programs (name, description, level, type)
-VALUES ($1, $2, $3, $4);
+INSERT INTO program.programs (name, description, level, type, payg_price)
+VALUES ($1, $2, $3, $4, $5);
 
 -- name: GetPrograms :many
 SELECT *
@@ -24,9 +24,10 @@ SET
     description = $2,
     level = $3,
     type = $4,
+    payg_price = $5,
 
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $5;
+WHERE id = $6;
 
 -- name: DeleteProgram :execrows
 DELETE FROM program.programs WHERE id = $1;

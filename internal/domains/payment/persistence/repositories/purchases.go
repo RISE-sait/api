@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
+	"log"
 	"net/http"
 )
 
@@ -61,46 +62,68 @@ func (r *Repository) GetProgramRegistrationInfoByCustomer(ctx context.Context, c
 
 	var response values.ProgramRegistrationInfo
 
-	info, _ := r.Queries.GetProgramRegisterInfoForCustomer(ctx, db.GetProgramRegisterInfoForCustomerParams{
+	program, err := r.Queries.GetProgram(ctx, programID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return response, errLib.New(fmt.Sprintf("program not found: %v", programID), http.StatusNotFound)
+		}
+		log.Printf("Error getting program: %v", err)
+		return response, errLib.New("failed to get program", http.StatusInternalServerError)
+	}
+
+	response.ProgramName = program.Name
+
+	if isCustomerExist, err := r.Queries.IsCustomerExist(ctx, customerID); err != nil {
+		log.Printf("Error getting customer: %v", err)
+		return response, errLib.New("failed to get customer", http.StatusInternalServerError)
+	} else if !isCustomerExist {
+		return response, errLib.New(fmt.Sprintf("customer not found: %v", customerID), http.StatusNotFound)
+	}
+
+	hasActiveMembership, err := r.Queries.GetCustomerHasActiveMembershipPlan(ctx, customerID)
+	if err != nil {
+		log.Printf("Error getting GetCustomerHasActiveMembershipPlan: %v", err)
+		return response, errLib.New("failed to check if customer has active membership", http.StatusInternalServerError)
+	}
+
+	if !hasActiveMembership {
+
+		// those who dont have active membership can only join the program as payg
+
+		paygPrice, priceErr := r.Queries.GetPaygPrice(ctx, programID)
+		if priceErr != nil {
+			log.Printf("Error getting PAYG price: %v", priceErr)
+			return response, errLib.New("failed to get PAYG pricing information", http.StatusInternalServerError)
+		}
+
+		if !paygPrice.Valid {
+			return response, errLib.New("program doesn't support PAYG registration", http.StatusBadRequest)
+		}
+
+		response.Price = paygPrice
+
+		return response, nil
+	}
+
+	// those who have active membership, check if they're eligible
+
+	programRegistrationPrice, err := r.Queries.GetProgramRegisterInfoForCustomer(ctx, db.GetProgramRegisterInfoForCustomerParams{
 		CustomerID: customerID,
 		ProgramID:  programID,
 	})
 
-	if !info.CustomerExists {
-		return response, errLib.New(fmt.Sprintf("customer not found: %v", customerID), http.StatusNotFound)
+	if err != nil {
+		log.Printf("Error getting customer eligibility for program: %v", err)
+		return response, errLib.New("failed to get customer eligibility for program", http.StatusInternalServerError)
 	}
 
-	if !info.ProgramExists {
-		return response, errLib.New(fmt.Sprintf("program not found: %v", programID), http.StatusNotFound)
+	if !programRegistrationPrice.Valid {
+		return response, errLib.New("Customer is ineligible to join program", http.StatusBadRequest)
 	}
 
-	if !info.CustomerHasActiveMembership {
-		return response, errLib.New("customer does not have an active membership", http.StatusBadRequest)
-	}
-
-	if !info.IsEligible.Valid {
-		return values.ProgramRegistrationInfo{
-			EligibleRequirement: nil,
-		}, errLib.New("program registration requirement not found", http.StatusNotFound)
-	}
-
-	if !info.IsEligible.Bool {
-		return values.ProgramRegistrationInfo{
-			EligibleRequirement: nil,
-		}, errLib.New("customer is not eligible to join program", http.StatusBadRequest)
-	}
-
-	if !info.PricePerBooking.Valid {
-		return response, errLib.New("price per booking not found", http.StatusNotFound)
-	}
-
-	response = values.ProgramRegistrationInfo{
-		ProgramName: info.ProgramName,
-		EligibleRequirement: &struct {
-			PricePerBooking decimal.Decimal
-		}{
-			PricePerBooking: info.PricePerBooking.Decimal,
-		},
+	response.Price = decimal.NullDecimal{
+		Decimal: programRegistrationPrice.Decimal,
+		Valid:   true,
 	}
 
 	return response, nil

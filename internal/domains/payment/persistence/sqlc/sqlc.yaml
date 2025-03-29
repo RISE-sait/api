@@ -15,3 +15,5 @@ sql:
             go_type: "github.com/shopspring/decimal.Decimal"
           - column: "public.program_membership.price_per_booking"
             go_type: "github.com/shopspring/decimal.NullDecimal"
+          - column: "program.programs.payg_price"
+            go_type: "github.com/shopspring/decimal.NullDecimal"

@@ -1,6 +1,7 @@
 package values
 
 import (
+	"github.com/shopspring/decimal"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,6 +12,7 @@ type ProgramDetails struct {
 	Description string
 	Level       string
 	Type        string
+	PayGPrice   decimal.NullDecimal
 }
 
 type CreateProgramValues struct {

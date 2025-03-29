@@ -9,11 +9,12 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 const createProgram = `-- name: CreateProgram :exec
-INSERT INTO program.programs (name, description, level, type)
-VALUES ($1, $2, $3, $4)
+INSERT INTO program.programs (name, description, level, type, payg_price)
+VALUES ($1, $2, $3, $4, $5)
 `
 
 type CreateProgramParams struct {
@@ -21,6 +22,7 @@ type CreateProgramParams struct {
 	Description string              `json:"description"`
 	Level       ProgramProgramLevel `json:"level"`
 	Type        ProgramProgramType  `json:"type"`
+	PaygPrice   decimal.NullDecimal `json:"payg_price"`
 }
 
 // Active: 1739459832645@@127.0.0.1@5432@postgres
@@ -30,6 +32,7 @@ func (q *Queries) CreateProgram(ctx context.Context, arg CreateProgramParams) er
 		arg.Description,
 		arg.Level,
 		arg.Type,
+		arg.PaygPrice,
 	)
 	return err
 }
@@ -47,7 +50,7 @@ func (q *Queries) DeleteProgram(ctx context.Context, id uuid.UUID) (int64, error
 }
 
 const getProgram = `-- name: GetProgram :one
-SELECT id, name, description, level, type, created_at, updated_at
+SELECT id, name, description, level, type, created_at, updated_at, payg_price
 FROM program.programs
 WHERE id = $1
 `
@@ -63,12 +66,13 @@ func (q *Queries) GetProgram(ctx context.Context, id uuid.UUID) (ProgramProgram,
 		&i.Type,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PaygPrice,
 	)
 	return i, err
 }
 
 const getProgramById = `-- name: GetProgramById :one
-SELECT id, name, description, level, type, created_at, updated_at FROM program.programs WHERE id = $1
+SELECT id, name, description, level, type, created_at, updated_at, payg_price FROM program.programs WHERE id = $1
 `
 
 func (q *Queries) GetProgramById(ctx context.Context, id uuid.UUID) (ProgramProgram, error) {
@@ -82,12 +86,13 @@ func (q *Queries) GetProgramById(ctx context.Context, id uuid.UUID) (ProgramProg
 		&i.Type,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PaygPrice,
 	)
 	return i, err
 }
 
 const getPrograms = `-- name: GetPrograms :many
-SELECT id, name, description, level, type, created_at, updated_at
+SELECT id, name, description, level, type, created_at, updated_at, payg_price
 FROM program.programs
 WHERE type = $1
    OR $1 IS NULL
@@ -110,6 +115,7 @@ func (q *Queries) GetPrograms(ctx context.Context, type_ NullProgramProgramType)
 			&i.Type,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.PaygPrice,
 		); err != nil {
 			return nil, err
 		}
@@ -131,9 +137,10 @@ SET
     description = $2,
     level = $3,
     type = $4,
+    payg_price = $5,
 
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $5
+WHERE id = $6
 `
 
 type UpdateProgramParams struct {
@@ -141,6 +148,7 @@ type UpdateProgramParams struct {
 	Description string              `json:"description"`
 	Level       ProgramProgramLevel `json:"level"`
 	Type        ProgramProgramType  `json:"type"`
+	PaygPrice   decimal.NullDecimal `json:"payg_price"`
 	ID          uuid.UUID           `json:"id"`
 }
 
@@ -150,6 +158,7 @@ func (q *Queries) UpdateProgram(ctx context.Context, arg UpdateProgramParams) er
 		arg.Description,
 		arg.Level,
 		arg.Type,
+		arg.PaygPrice,
 		arg.ID,
 	)
 	return err

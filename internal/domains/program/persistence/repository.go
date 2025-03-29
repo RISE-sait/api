@@ -45,6 +45,7 @@ func (r *Repository) Update(ctx context.Context, program values.UpdateProgramVal
 		Name:        program.ProgramDetails.Name,
 		Description: program.ProgramDetails.Description,
 		Level:       db.ProgramProgramLevel(program.ProgramDetails.Level),
+		PaygPrice:   program.PayGPrice,
 	}
 
 	if err := r.Queries.UpdateProgram(ctx, params); err != nil {
@@ -82,6 +83,7 @@ func (r *Repository) GetProgramByID(ctx context.Context, id uuid.UUID) (values.G
 		ProgramDetails: values.ProgramDetails{
 			Name:        dbProgram.Name,
 			Description: dbProgram.Description,
+			PayGPrice:   dbProgram.PaygPrice,
 			Level:       string(dbProgram.Level),
 			Type:        string(dbProgram.Type),
 		},
@@ -129,6 +131,7 @@ func (r *Repository) List(ctx context.Context, programTypeStr string) ([]values.
 				Description: dbProgram.Description,
 				Level:       string(dbProgram.Level),
 				Type:        string(dbProgram.Type),
+				PayGPrice:   dbProgram.PaygPrice,
 			},
 		}
 	}
@@ -157,6 +160,7 @@ func (r *Repository) Create(c context.Context, details values.CreateProgramValue
 		Description: details.Description,
 		Level:       db.ProgramProgramLevel(details.Level),
 		Type:        db.ProgramProgramType(details.Type),
+		PaygPrice:   details.PayGPrice,
 	}
 
 	if err := r.Queries.CreateProgram(c, dbPracticeParams); err != nil {

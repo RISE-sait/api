@@ -59,7 +59,7 @@ func TestCreateOneTimePayment(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			paymentLink, err := payment.CreateOneTimePayment(ctx, tt.itemName, tt.quantity, tt.price)
+			paymentLink, err := payment.createOneTimePayment(ctx, tt.itemName, tt.quantity, tt.price)
 
 			if tt.wantErr {
 				if err == nil {
@@ -140,7 +140,7 @@ func TestCreateSubscription(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			subscriptionLink, err := payment.CreateSubscription(
+			subscriptionLink, err := payment.createSubscription(
 				ctx,
 				tt.planName,
 				tt.price,
@@ -206,7 +206,7 @@ func TestCreateSubscription_Context(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			subscriptionLink, err := payment.CreateSubscription(
+			subscriptionLink, err := payment.createSubscription(
 				tt.ctx,
 				"Test Plan",
 				decimal.NewFromFloat(9.99),

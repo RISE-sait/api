@@ -5,6 +5,7 @@ import (
 	dto "api/internal/domains/identity/dto/common"
 	service "api/internal/domains/identity/service/authentication"
 	identityUtils "api/internal/domains/identity/utils"
+	identity "api/internal/domains/identity/values"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	contextUtils "api/utils/context"
@@ -48,33 +49,7 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseBody := dto.UserAuthenticationResponseDto{
-		ID:          userInfo.ID,
-		Gender:      userInfo.Gender,
-		FirstName:   userInfo.FirstName,
-		LastName:    userInfo.LastName,
-		Email:       userInfo.Email,
-		Role:        userInfo.Role,
-		Phone:       userInfo.Phone,
-		Age:         userInfo.Age,
-		CountryCode: userInfo.CountryCode,
-	}
-
-	if userInfo.IsActiveStaff != nil {
-		responseBody.IsActiveStaff = userInfo.IsActiveStaff
-	}
-
-	if userInfo.MembershipInfo != nil {
-		responseBody.MembershipInfo = &dto.MembershipReadResponseDto{
-			MembershipName: userInfo.MembershipInfo.MembershipName,
-			PlanName:       userInfo.MembershipInfo.PlanName,
-			StartDate:      userInfo.MembershipInfo.StartDate,
-		}
-
-		if userInfo.MembershipInfo.RenewalDate != nil {
-			responseBody.MembershipInfo.RenewalDate = userInfo.MembershipInfo.RenewalDate
-		}
-	}
+	responseBody := mapReadValueToResponse(userInfo)
 
 	w.Header().Set("Authorization", "Bearer "+jwtToken)
 	w.WriteHeader(http.StatusOK)
@@ -119,7 +94,18 @@ func (h *Handlers) LoginAsChild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	responseBody := mapReadValueToResponse(userInfo)
+
+	w.Header().Set("Authorization", "Bearer "+jwtToken)
+	w.WriteHeader(http.StatusOK)
+	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusOK)
+
+}
+
+// function to convert the user info to a response
+func mapReadValueToResponse(userInfo identity.UserReadInfo) dto.UserAuthenticationResponseDto {
 	responseBody := dto.UserAuthenticationResponseDto{
+		ID:          userInfo.ID,
 		FirstName:   userInfo.FirstName,
 		LastName:    userInfo.LastName,
 		Email:       userInfo.Email,
@@ -129,8 +115,30 @@ func (h *Handlers) LoginAsChild(w http.ResponseWriter, r *http.Request) {
 		CountryCode: userInfo.CountryCode,
 	}
 
-	w.Header().Set("Authorization", "Bearer "+jwtToken)
-	w.WriteHeader(http.StatusOK)
-	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusOK)
+	if userInfo.MembershipInfo != nil {
+		responseBody.MembershipInfo = &dto.MembershipReadResponseDto{
+			MembershipName:        userInfo.MembershipInfo.MembershipName,
+			MembershipDescription: userInfo.MembershipInfo.MembershipDescription,
+			MembershipBenefits:    userInfo.MembershipInfo.MembershipBenefits,
+			PlanName:              userInfo.MembershipInfo.PlanName,
+			StartDate:             userInfo.MembershipInfo.StartDate,
+		}
 
+		if userInfo.MembershipInfo.RenewalDate != nil {
+			responseBody.MembershipInfo.RenewalDate = userInfo.MembershipInfo.RenewalDate
+		}
+	}
+
+	if userInfo.AthleteInfo != nil {
+		responseBody.AthleteInfo = &dto.AthleteResponseDto{
+			Wins:     userInfo.AthleteInfo.Wins,
+			Losses:   userInfo.AthleteInfo.Losses,
+			Points:   userInfo.AthleteInfo.Points,
+			Steals:   userInfo.AthleteInfo.Steals,
+			Assists:  userInfo.AthleteInfo.Assists,
+			Rebounds: userInfo.AthleteInfo.Rebounds,
+		}
+	}
+
+	return responseBody
 }

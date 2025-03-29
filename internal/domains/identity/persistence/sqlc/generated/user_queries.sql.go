@@ -96,19 +96,6 @@ func (q *Queries) GetIsActualParentChild(ctx context.Context, arg GetIsActualPar
 	return column_1, err
 }
 
-const getIsAthleteByID = `-- name: GetIsAthleteByID :one
-SELECT COUNT(*) > 0
-FROM athletic.athletes
-WHERE id = $1
-`
-
-func (q *Queries) GetIsAthleteByID(ctx context.Context, id uuid.UUID) (bool, error) {
-	row := q.db.QueryRowContext(ctx, getIsAthleteByID, id)
-	var column_1 bool
-	err := row.Scan(&column_1)
-	return column_1, err
-}
-
 const getIsUserAParent = `-- name: GetIsUserAParent :one
 SELECT COUNT(*) > 0
 FROM users.users
@@ -138,12 +125,22 @@ SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last
        mp.auto_renew    as membership_plan_auto_renew,
        cmp.start_date   as membership_plan_start_date,
        cmp.renewal_date as membership_plan_renewal_date,
-       m.name           as membership_name
+       m.name        as membership_name,
+       m.description as membership_description,
+       m.benefits    as membership_benefits,
+
+       a.points,
+       a.wins,
+       a.losses,
+       a.assists,
+       a.rebounds,
+       a.steals
 from u
          LEFT JOIN
      latest_cmp cmp ON cmp.customer_id = u.id
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
+         LEFT JOIN athletic.athletes a ON u.id = a.id
 `
 
 type GetUserByIdOrEmailParams struct {
@@ -171,6 +168,14 @@ type GetUserByIdOrEmailRow struct {
 	MembershipPlanStartDate   sql.NullTime   `json:"membership_plan_start_date"`
 	MembershipPlanRenewalDate sql.NullTime   `json:"membership_plan_renewal_date"`
 	MembershipName            sql.NullString `json:"membership_name"`
+	MembershipDescription     sql.NullString `json:"membership_description"`
+	MembershipBenefits        sql.NullString `json:"membership_benefits"`
+	Points                    sql.NullInt32  `json:"points"`
+	Wins                      sql.NullInt32  `json:"wins"`
+	Losses                    sql.NullInt32  `json:"losses"`
+	Assists                   sql.NullInt32  `json:"assists"`
+	Rebounds                  sql.NullInt32  `json:"rebounds"`
+	Steals                    sql.NullInt32  `json:"steals"`
 }
 
 func (q *Queries) GetUserByIdOrEmail(ctx context.Context, arg GetUserByIdOrEmailParams) (GetUserByIdOrEmailRow, error) {
@@ -196,6 +201,14 @@ func (q *Queries) GetUserByIdOrEmail(ctx context.Context, arg GetUserByIdOrEmail
 		&i.MembershipPlanStartDate,
 		&i.MembershipPlanRenewalDate,
 		&i.MembershipName,
+		&i.MembershipDescription,
+		&i.MembershipBenefits,
+		&i.Points,
+		&i.Wins,
+		&i.Losses,
+		&i.Assists,
+		&i.Rebounds,
+		&i.Steals,
 	)
 	return i, err
 }

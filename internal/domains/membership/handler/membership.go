@@ -82,7 +82,7 @@ func (h *Handlers) GetMembershipById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := mapEntityToResponse(*membership)
+	response := mapReadValueToResponse(*membership)
 
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 }
@@ -105,7 +105,7 @@ func (h *Handlers) GetMemberships(w http.ResponseWriter, r *http.Request) {
 
 	result := make([]dto.Response, len(memberships))
 	for i, membership := range memberships {
-		result[i] = mapEntityToResponse(membership)
+		result[i] = mapReadValueToResponse(membership)
 	}
 
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
@@ -181,12 +181,13 @@ func (h *Handlers) DeleteMembership(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-func mapEntityToResponse(entity values.ReadValues) dto.Response {
+func mapReadValueToResponse(membership values.ReadValues) dto.Response {
 	return dto.Response{
-		ID:          entity.ID,
-		Name:        entity.Name,
-		Description: entity.Description,
-		CreatedAt:   entity.CreatedAt,
-		UpdatedAt:   entity.UpdatedAt,
+		ID:          membership.ID,
+		Name:        membership.Name,
+		Description: membership.Description,
+		Benefits:    membership.Benefits,
+		CreatedAt:   membership.CreatedAt,
+		UpdatedAt:   membership.UpdatedAt,
 	}
 }

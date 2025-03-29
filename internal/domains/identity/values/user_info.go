@@ -13,14 +13,26 @@ type UserRegistrationRequestNecessaryInfo struct {
 }
 
 type MembershipReadInfo struct {
-	MembershipName string
-	PlanName       string
-	StartDate      time.Time
-	RenewalDate    *time.Time
+	MembershipName        string
+	MembershipDescription string
+	MembershipBenefits    string
+	PlanName              string
+	StartDate             time.Time
+	RenewalDate           *time.Time
+}
+
+type AthleteInfo struct {
+	Wins     int32
+	Losses   int32
+	Points   int32
+	Steals   int32
+	Assists  int32
+	Rebounds int32
 }
 
 type UserReadInfo struct {
 	ID             uuid.UUID
+	HubspotID      *string
 	Gender         *string
 	Age            int32
 	CountryCode    string
@@ -31,6 +43,7 @@ type UserReadInfo struct {
 	IsActiveStaff  *bool
 	Phone          *string
 	MembershipInfo *MembershipReadInfo
+	AthleteInfo    *AthleteInfo
 }
 
 type StaffReadInfo struct {

@@ -70,27 +70,13 @@ func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string,
 		jwtCustomClaims.IsActiveStaff = userInfo.IsActiveStaff
 	}
 
-	responseUserInfo = identity.UserReadInfo{
-		ID:             userInfo.ID,
-		Age:            userInfo.Age,
-		Gender:         userInfo.Gender,
-		CountryCode:    userInfo.CountryCode,
-		FirstName:      userInfo.FirstName,
-		LastName:       userInfo.LastName,
-		Email:          userInfo.Email,
-		Role:           userInfo.Role,
-		IsActiveStaff:  userInfo.IsActiveStaff,
-		Phone:          userInfo.Phone,
-		MembershipInfo: userInfo.MembershipInfo,
-	}
-
 	jwtToken, err := jwtLib.SignJWT(jwtCustomClaims)
 
 	if err != nil {
 		return "", responseUserInfo, err
 	}
 
-	return jwtToken, responseUserInfo, nil
+	return jwtToken, userInfo, nil
 }
 
 // AuthenticateChild authenticates a child user by verifying their association with a parent user.

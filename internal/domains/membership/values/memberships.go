@@ -5,21 +5,24 @@ import (
 	"time"
 )
 
-type CreateValues struct {
+type BaseValue struct {
 	Name        string
 	Description string
+	Benefits    string
+}
+
+type CreateValues struct {
+	BaseValue
 }
 
 type UpdateValues struct {
-	ID          uuid.UUID
-	Name        string
-	Description string
+	ID uuid.UUID
+	BaseValue
 }
 
 type ReadValues struct {
-	ID          uuid.UUID
-	Name        string
-	Description string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID uuid.UUID
+	BaseValue
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }

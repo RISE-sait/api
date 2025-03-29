@@ -302,6 +302,23 @@ func (r *Repository) UpdateEvent(ctx context.Context, event values.UpdateEventVa
 	}
 
 	if dbErr := r.Queries.UpdateEvent(ctx, dbEventParams); dbErr != nil {
+
+		var pqErr *pq.Error
+		if errors.As(dbErr, &pqErr) {
+
+			constraintErrors := map[string]string{
+				"fk_program":            "The referenced program doesn't exist",
+				"fk_location":           "The referenced location doesn't exist",
+				"unique_event_time":     "An event is already scheduled at this time",
+				"check_event_times":     "End time/date must be after Begin time/date",
+				"event_end_after_start": "End time/date must be after Begin time/date",
+			}
+
+			if msg, found := constraintErrors[pqErr.Constraint]; found {
+				return errLib.New(msg, http.StatusBadRequest)
+			}
+		}
+
 		log.Printf("Failed to update event: %+v. Error: %v", event, dbErr.Error())
 		return errLib.New("Internal server error when updating event", http.StatusInternalServerError)
 	}

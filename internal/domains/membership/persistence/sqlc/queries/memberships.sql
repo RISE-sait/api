@@ -1,7 +1,6 @@
--- name: CreateMembership :one
-INSERT INTO membership.memberships (name, description)
-VALUES ($1, $2)
-RETURNING *;
+-- name: CreateMembership :execrows
+INSERT INTO membership.memberships (name, description, benefits)
+VALUES ($1, $2, $3);
 
 -- name: GetMembershipById :one
 SELECT * FROM membership.memberships WHERE id = $1;

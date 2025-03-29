@@ -1,4 +1,4 @@
-package identity
+package user
 
 import (
 	dbIdentity "api/internal/domains/identity/persistence/sqlc/generated"

@@ -96,19 +96,6 @@ func (q *Queries) GetIsActualParentChild(ctx context.Context, arg GetIsActualPar
 	return column_1, err
 }
 
-const getIsAthleteByID = `-- name: GetIsAthleteByID :one
-SELECT COUNT(*) > 0
-FROM athletic.athletes
-WHERE id = $1
-`
-
-func (q *Queries) GetIsAthleteByID(ctx context.Context, id uuid.UUID) (bool, error) {
-	row := q.db.QueryRowContext(ctx, getIsAthleteByID, id)
-	var column_1 bool
-	err := row.Scan(&column_1)
-	return column_1, err
-}
-
 const getIsUserAParent = `-- name: GetIsUserAParent :one
 SELECT COUNT(*) > 0
 FROM users.users
@@ -138,9 +125,9 @@ SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last
        mp.auto_renew    as membership_plan_auto_renew,
        cmp.start_date   as membership_plan_start_date,
        cmp.renewal_date as membership_plan_renewal_date,
-       m.name           as membership_name,
+       m.name        as membership_name,
        m.description as membership_description,
-       m.benefits as membership_benefits,
+       m.benefits    as membership_benefits,
 
        a.points,
        a.wins,

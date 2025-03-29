@@ -204,8 +204,18 @@ func (r *UsersRepository) GetUserInfo(ctx context.Context, email string, id uuid
 		CountryCode: user.CountryAlpha2Code,
 		FirstName:   user.FirstName,
 		LastName:    user.LastName,
-		Email:       &email,
-		Phone:       &user.Phone.String,
+	}
+
+	if user.Email.Valid {
+		response.Email = &user.Email.String
+	}
+
+	if user.HubspotID.Valid {
+		response.HubspotID = &user.HubspotID.String
+	}
+
+	if user.Phone.Valid {
+		response.Phone = &user.Phone.String
 	}
 
 	if user.Gender.Valid {
@@ -239,6 +249,9 @@ func (r *UsersRepository) GetUserInfo(ctx context.Context, email string, id uuid
 			Assists:  user.Assists.Int32,
 			Rebounds: user.Rebounds.Int32,
 		}
+
+		response.Role = "athlete"
+		return response, nil
 	}
 
 	if user.ParentID.Valid {
@@ -268,14 +281,6 @@ func (r *UsersRepository) GetUserInfo(ctx context.Context, email string, id uuid
 		return values.UserReadInfo{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	} else if isParent {
 		response.Role = "parent"
-		return response, nil
-	}
-
-	if isAthlete, err := r.IdentityQueries.GetIsAthleteByID(ctx, user.ID); err != nil {
-		log.Println(err.Error())
-		return values.UserReadInfo{}, errLib.New("Internal server error", http.StatusInternalServerError)
-	} else if isAthlete {
-		response.Role = "athlete"
 		return response, nil
 	}
 

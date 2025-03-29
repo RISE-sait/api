@@ -57,8 +57,3 @@ SELECT COUNT(*) > 0
 FROM users.users
 WHERE id = sqlc.arg('child_id')
   AND parent_id = sqlc.arg('parent_id');
-
--- name: GetIsAthleteByID :one
-SELECT COUNT(*) > 0
-FROM athletic.athletes
-WHERE id = $1;

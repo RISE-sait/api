@@ -32,6 +32,7 @@ type AthleteInfo struct {
 
 type UserReadInfo struct {
 	ID             uuid.UUID
+	HubspotID      *string
 	Gender         *string
 	Age            int32
 	CountryCode    string

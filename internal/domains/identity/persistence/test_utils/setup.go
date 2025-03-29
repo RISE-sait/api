@@ -11,6 +11,9 @@ func SetupIdentityTestDb(t *testing.T, testDb *sql.DB) (*db.Queries, func()) {
 
 	migrationScript := `
 CREATE SCHEMA IF NOT EXISTS users;
+CREATE SCHEMA IF NOT EXISTS athletic;
+CREATE SCHEMA IF NOT EXISTS membership;
+CREATE SCHEMA IF NOT EXISTS staff;
 
 -- Create the 'users' table
 create table if not exists users.users
@@ -40,16 +43,80 @@ create table if not exists users.users
 alter table users.users
     owner to postgres;
 
-CREATE SCHEMA IF NOT EXISTS membership;
+create table if not exists staff.staff_roles
+(
+    id        uuid default gen_random_uuid() not null
+        primary key,
+    role_name text                           not null
+        unique
+);
+
+alter table staff.staff_roles
+    owner to postgres;
+
+create table if not exists staff.staff
+(
+    id         uuid                                               not null
+        primary key
+        references users.users,
+    is_active  boolean                  default true              not null,
+    created_at timestamp with time zone default CURRENT_TIMESTAMP not null,
+    updated_at timestamp with time zone default CURRENT_TIMESTAMP not null,
+    role_id    uuid                                               not null
+        references staff.staff_roles
+);
+
+alter table staff.staff
+    owner to postgres;
+
+create table if not exists athletic.teams
+(
+    id         uuid                     default gen_random_uuid() not null
+        primary key,
+    name       varchar(100)                                       not null,
+    capacity   integer                                            not null,
+    created_at timestamp with time zone default CURRENT_TIMESTAMP not null,
+    updated_at timestamp with time zone default CURRENT_TIMESTAMP not null,
+    coach_id   uuid
+        constraint fk_coach
+            references staff.staff
+            on delete set null
+);
+
+alter table athletic.teams
+    owner to postgres;
+
+create table if not exists athletic.athletes
+(
+    id         uuid                                               not null
+        primary key
+        references users.users,
+    wins       integer                  default 0                 not null,
+    losses     integer                  default 0                 not null,
+    points     integer                  default 0                 not null,
+    steals     integer                  default 0                 not null,
+    assists    integer                  default 0                 not null,
+    rebounds   integer                  default 0                 not null,
+    created_at timestamp with time zone default CURRENT_TIMESTAMP not null,
+    updated_at timestamp with time zone default CURRENT_TIMESTAMP not null,
+    team_id    uuid
+        constraint fk_team
+            references athletic.teams
+            on delete set null
+);
+
+alter table athletic.athletes
+    owner to postgres;
 
 create table if not exists membership.memberships
 (
-    id          uuid                     default gen_random_uuid() not null
+    id          uuid                     default gen_random_uuid()     not null
         primary key,
-    name        varchar(150)                                       not null,
+    name        varchar(150)                                           not null,
     description text,
-    created_at  timestamp with time zone default CURRENT_TIMESTAMP not null,
-    updated_at  timestamp with time zone default CURRENT_TIMESTAMP not null
+    created_at  timestamp with time zone default CURRENT_TIMESTAMP     not null,
+    updated_at  timestamp with time zone default CURRENT_TIMESTAMP     not null,
+    benefits    varchar(750)             default ''::character varying not null
 );
 
 alter table membership.memberships
@@ -121,36 +188,7 @@ alter table public.customer_membership_plans
 
 	// Return the repo and cleanup function
 	repo := db.New(testDb)
-	cleanUpScript := `DELETE FROM users.users;`
-
-	// Cleanup function to delete data after test
-	return repo, func() {
-		_, err := testDb.Exec(cleanUpScript)
-		require.NoError(t, err)
-	}
-}
-
-func SetupPendingUsersTestDb(t *testing.T, testDb *sql.DB) (*db.Queries, func()) {
-
-	migrationScript := `
-	CREATE TABLE users.pending_users
-(
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    first_name      TEXT NOT NULL,
-    last_name       TEXT NOT NULL,
-    email           TEXT UNIQUE,
-    parent_hubspot_id TEXT, -- Nullable, since not all users may have a parent
-    age             INT NOT NULL,
-    created_at      TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);`
-
-	_, err := testDb.Exec(migrationScript)
-	require.NoError(t, err)
-
-	// Return the repo and cleanup function
-	repo := db.New(testDb)
-	cleanUpScript := `DELETE FROM users.pending_users`
+	cleanUpScript := `TRUNCATE table users.users, staff.staff_roles, athletic.teams, membership.membership_plans cascade;`
 
 	// Cleanup function to delete data after test
 	return repo, func() {

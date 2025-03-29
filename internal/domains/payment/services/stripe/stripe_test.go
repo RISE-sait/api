@@ -1,7 +1,8 @@
-package payment_test
+package stripe_test
 
 import (
-	payment "api/internal/domains/payment/services"
+	payment "api/internal/domains/payment/services/stripe"
+	types "api/internal/domains/payment/types"
 	contextUtils "api/utils/context"
 	"context"
 	"github.com/google/uuid"
@@ -59,7 +60,7 @@ func TestCreateOneTimePayment(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			paymentLink, err := payment.createOneTimePayment(ctx, tt.itemName, tt.quantity, tt.price)
+			paymentLink, err := payment.CreateOneTimePayment(ctx, tt.itemName, tt.quantity, tt.price)
 
 			if tt.wantErr {
 				if err == nil {
@@ -97,7 +98,7 @@ func TestCreateSubscription(t *testing.T) {
 		name     string
 		planName string
 		price    decimal.Decimal
-		interval payment.Frequency
+		interval types.PaymentFrequency
 		periods  int32
 		wantErr  bool
 		errMsg   string
@@ -106,7 +107,7 @@ func TestCreateSubscription(t *testing.T) {
 			name:     "successful monthly subscription",
 			planName: basePlan,
 			price:    basePrice,
-			interval: payment.Month,
+			interval: types.Month,
 			periods:  12,
 			wantErr:  false,
 		},
@@ -114,7 +115,7 @@ func TestCreateSubscription(t *testing.T) {
 			name:     "successful biweekly subscription",
 			planName: basePlan,
 			price:    basePrice,
-			interval: payment.Biweekly,
+			interval: types.Biweekly,
 			periods:  12,
 			wantErr:  false,
 		},
@@ -122,7 +123,7 @@ func TestCreateSubscription(t *testing.T) {
 			name:     "empty plan name",
 			planName: "",
 			price:    basePrice,
-			interval: payment.Month,
+			interval: types.Month,
 			periods:  12,
 			wantErr:  true,
 			errMsg:   "plan name cannot be empty",
@@ -131,7 +132,7 @@ func TestCreateSubscription(t *testing.T) {
 			name:     "single period subscription",
 			planName: basePlan,
 			price:    basePrice,
-			interval: payment.Month,
+			interval: types.Month,
 			periods:  1,
 			wantErr:  true,
 			errMsg:   "periods must be at least 2 for subscriptions. Use create one time payment if its not recurring",
@@ -140,7 +141,7 @@ func TestCreateSubscription(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			subscriptionLink, err := payment.createSubscription(
+			subscriptionLink, err := payment.CreateSubscription(
 				ctx,
 				tt.planName,
 				tt.price,
@@ -206,11 +207,11 @@ func TestCreateSubscription_Context(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			subscriptionLink, err := payment.createSubscription(
+			subscriptionLink, err := payment.CreateSubscription(
 				tt.ctx,
 				"Test Plan",
 				decimal.NewFromFloat(9.99),
-				payment.Month,
+				types.Month,
 				12,
 			)
 

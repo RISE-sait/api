@@ -1,6 +1,7 @@
 package customer
 
 import (
+	values "api/internal/domains/user/values"
 	"github.com/google/uuid"
 	"time"
 )
@@ -33,4 +34,40 @@ type AthleteResponseDto struct {
 	Steals   int32 `json:"steals"`
 	Assists  int32 `json:"assists"`
 	Rebounds int32 `json:"rebounds"`
+}
+
+func UserReadValueToResponse(customer values.ReadValue) Response {
+	response := Response{
+		UserID:      customer.ID,
+		Age:         customer.Age,
+		FirstName:   customer.FirstName,
+		LastName:    customer.LastName,
+		Email:       customer.Email,
+		Phone:       customer.Phone,
+		CountryCode: customer.CountryCode,
+		HubspotId:   customer.HubspotID,
+	}
+
+	if customer.MembershipInfo != nil {
+		response.MembershipInfo = &MembershipResponseDto{
+			MembershipName:        &customer.MembershipInfo.MembershipName,
+			MembershipStartDate:   &customer.MembershipInfo.MembershipStartDate,
+			MembershipRenewalDate: &customer.MembershipInfo.MembershipRenewalDate,
+			MembershipPlanID:      &customer.MembershipInfo.MembershipPlanID,
+			MembershipPlanName:    &customer.MembershipInfo.MembershipPlanName,
+		}
+	}
+
+	if athleteInfo := customer.AthleteInfo; athleteInfo != nil {
+		response.AthleteInfo = &AthleteResponseDto{
+			Wins:     athleteInfo.Wins,
+			Losses:   athleteInfo.Losses,
+			Points:   athleteInfo.Points,
+			Steals:   athleteInfo.Steals,
+			Assists:  athleteInfo.Assists,
+			Rebounds: athleteInfo.Rebounds,
+		}
+	}
+
+	return response
 }

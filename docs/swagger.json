@@ -1,8 +1,6 @@
 {
     "swagger": "2.0",
     "info": {
-        "version": "1.0.0",
-        "title": "API Documentation",
         "contact": {}
     },
     "paths": {
@@ -339,6 +337,12 @@
                         "description": "Number of customers to skip (default: 0)",
                         "name": "offset",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Parent ID to filter customers (example: 123e4567-e89b-12d3-a456-426614174000)",
+                        "name": "parent_id",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -352,25 +356,16 @@
                         }
                     },
                     "400": {
-                        "description": "Bad Request: Invalid parameters",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
+                        "description": "Bad Request: Invalid parameters"
                     },
                     "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
+                        "description": "Internal Server Error"
                     }
                 }
             }
         },
-        "/customers/{customer_id}/athlete": {
-            "patch": {
-                "description": "Updates customer statistics (wins, losses, etc.) for the specified customer ID",
+        "/customers/email/{email}": {
+            "get": {
                 "consumes": [
                     "application/json"
                 ],
@@ -380,7 +375,83 @@
                 "tags": [
                     "customers"
                 ],
-                "summary": "Update customer statistics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Customer Email",
+                        "name": "email",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The customer",
+                        "schema": {
+                            "$ref": "#/definitions/customer.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid parameters"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/customers/id/{id}": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "customers"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Customer ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The customer",
+                        "schema": {
+                            "$ref": "#/definitions/customer.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid parameters"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/customers/{customer_id}/athlete": {
+            "patch": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "customers"
+                ],
                 "parameters": [
                     {
                         "type": "string",
@@ -409,118 +480,6 @@
                     },
                     "400": {
                         "description": "Bad Request: Invalid parameters",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/customers/{id}/children": {
-            "get": {
-                "description": "Retrieves a repository's children using the parent's ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "customers"
-                ],
-                "summary": "Get a repository's children by parent ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Parent ID",
-                        "name": "email",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Customer's children retrieved successfully",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/customer.Response"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid ID",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Parent or children not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/customers/{id}/memberships": {
-            "get": {
-                "description": "Retrieves a list of membership plans associated with a specific customer, using the customer ID as a required parameter.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "customers"
-                ],
-                "summary": "Get membership plans by customer",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Customer ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of membership plans for the customer",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/customer.MembershipPlansResponseDto"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid customer ID",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Customer not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3429,38 +3388,6 @@
                     "items": {
                         "$ref": "#/definitions/customer.WaiverSigningRequestDto"
                     }
-                }
-            }
-        },
-        "customer.MembershipPlansResponseDto": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "customer_id": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "membership_name": {
-                    "type": "string"
-                },
-                "membership_plan_id": {
-                    "type": "string"
-                },
-                "renewal_date": {
-                    "type": "string"
-                },
-                "start_date": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
                 }
             }
         },

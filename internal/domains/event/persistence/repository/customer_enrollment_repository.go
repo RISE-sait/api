@@ -55,11 +55,10 @@ func (r *CustomerEnrollmentRepository) EnrollCustomer(c context.Context, eventID
 	_, err := r.Queries.EnrollCustomer(c, params)
 
 	if err != nil {
-		// Check if the error is a unique violation (error code 23505)
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
 			// Return a custom error for unique violation
-			return errLib.New("Duplicate info", http.StatusConflict)
+			return errLib.New("Customer is already enrolled", http.StatusConflict)
 		}
 
 		// Return a generic internal server error for other cases

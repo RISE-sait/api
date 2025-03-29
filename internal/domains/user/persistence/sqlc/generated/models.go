@@ -498,13 +498,15 @@ type EventsEvent struct {
 	ProgramEndAt   time.Time     `json:"program_end_at"`
 	ProgramID      uuid.NullUUID `json:"program_id"`
 	TeamID         uuid.NullUUID `json:"team_id"`
-	LocationID     uuid.NullUUID `json:"location_id"`
+	LocationID     uuid.UUID     `json:"location_id"`
 	Capacity       sql.NullInt32 `json:"capacity"`
 	CreatedAt      time.Time     `json:"created_at"`
 	UpdatedAt      time.Time     `json:"updated_at"`
 	Day            DayEnum       `json:"day"`
 	EventStartTime interface{}   `json:"event_start_time"`
 	EventEndTime   interface{}   `json:"event_end_time"`
+	CreatedBy      uuid.NullUUID `json:"created_by"`
+	UpdatedBy      uuid.NullUUID `json:"updated_by"`
 }
 
 type EventsStaff struct {

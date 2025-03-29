@@ -2,10 +2,11 @@ package user
 
 import (
 	db "api/internal/domains/user/persistence/sqlc/generated"
-	customerValues "api/internal/domains/user/values"
+	userValues "api/internal/domains/user/values"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"log"
@@ -24,19 +25,26 @@ func NewCustomerRepository(queries *db.Queries) *CustomerRepository {
 	}
 }
 
-func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int32) ([]customerValues.ReadValue, *errLib.CommonError) {
+func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int32, parentID uuid.UUID) ([]userValues.ReadValue, *errLib.CommonError) {
 
-	dbCustomers, err := r.Queries.GetCustomers(ctx, db.GetCustomersParams{Limit: limit, Offset: offset})
+	dbCustomers, err := r.Queries.GetCustomers(ctx, db.GetCustomersParams{
+		Limit:  limit,
+		Offset: offset,
+		ParentID: uuid.NullUUID{
+			UUID:  parentID,
+			Valid: parentID != uuid.Nil,
+		},
+	})
 
 	if err != nil {
 		log.Println(fmt.Sprintf("Error getting dbCustomers: %s", err))
 		return nil, errLib.New("internal error", http.StatusInternalServerError)
 	}
 
-	customers := make([]customerValues.ReadValue, len(dbCustomers))
+	customers := make([]userValues.ReadValue, len(dbCustomers))
 
 	for i, dbCustomer := range dbCustomers {
-		customer := customerValues.ReadValue{
+		customer := userValues.ReadValue{
 			ID:          dbCustomer.ID,
 			Age:         dbCustomer.Age,
 			FirstName:   dbCustomer.FirstName,
@@ -60,7 +68,7 @@ func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int
 
 		if dbCustomer.MembershipName.Valid && dbCustomer.MembershipPlanName.Valid && dbCustomer.MembershipStartDate.Valid && dbCustomer.MembershipPlanID.Valid {
 
-			customer.MembershipInfo = &customerValues.MembershipReadValue{
+			customer.MembershipInfo = &userValues.MembershipReadValue{
 				MembershipPlanID:      dbCustomer.MembershipPlanID.UUID,
 				MembershipPlanName:    dbCustomer.MembershipPlanName.String,
 				MembershipName:        dbCustomer.MembershipName.String,
@@ -70,7 +78,7 @@ func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int
 		}
 
 		if dbCustomer.Rebounds.Valid && dbCustomer.Wins.Valid && dbCustomer.Points.Valid && dbCustomer.Steals.Valid && dbCustomer.Assists.Valid && dbCustomer.Losses.Valid {
-			customer.AthleteInfo = &customerValues.AthleteReadValue{
+			customer.AthleteInfo = &userValues.AthleteReadValue{
 				Wins:     dbCustomer.Wins.Int32,
 				Losses:   dbCustomer.Losses.Int32,
 				Points:   dbCustomer.Points.Int32,
@@ -86,79 +94,75 @@ func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int
 	return customers, nil
 }
 
-func (r *CustomerRepository) GetChildrenByCustomerID(ctx context.Context, id uuid.UUID) ([]customerValues.ReadValue, *errLib.CommonError) {
+func (r *CustomerRepository) GetCustomer(ctx context.Context, id uuid.UUID, email string) (userValues.ReadValue, *errLib.CommonError) {
 
-	dbCustomers, err := r.Queries.GetChildren(ctx, id)
-
-	if err != nil {
-		log.Println(fmt.Sprintf("Error getting dbCustomers: %s", err))
-		return nil, errLib.New("internal error", http.StatusInternalServerError)
-	}
-
-	customers := make([]customerValues.ReadValue, len(dbCustomers))
-
-	for i, dbCustomer := range dbCustomers {
-		customer := customerValues.ReadValue{
-			ID:          dbCustomer.ID,
-			FirstName:   dbCustomer.FirstName,
-			LastName:    dbCustomer.LastName,
-			CountryCode: dbCustomer.CountryAlpha2Code,
-			CreatedAt:   dbCustomer.CreatedAt,
-			UpdatedAt:   dbCustomer.UpdatedAt,
-		}
-
-		if dbCustomer.HubspotID.Valid {
-			customer.HubspotID = &dbCustomer.HubspotID.String
-		}
-
-		if dbCustomer.Phone.Valid {
-			customer.Phone = &dbCustomer.Phone.String
-		}
-
-		if dbCustomer.Email.Valid {
-			customer.Email = &dbCustomer.Email.String
-		}
-
-		customers[i] = customer
-	}
-
-	return customers, nil
-}
-
-func (r *CustomerRepository) GetMembershipPlansByCustomer(ctx context.Context, customerID uuid.UUID) ([]customerValues.MembershipPlansReadValue, *errLib.CommonError) {
-
-	dbPlans, err := r.Queries.GetMembershipPlansByCustomer(ctx, customerID)
+	dbCustomer, err := r.Queries.GetCustomer(ctx, db.GetCustomerParams{
+		ID: uuid.NullUUID{
+			UUID:  id,
+			Valid: id != uuid.Nil,
+		},
+		Email: sql.NullString{
+			String: email,
+			Valid:  email != "",
+		},
+	})
 
 	if err != nil {
-		log.Println(fmt.Sprintf("Error getting membership plans by customer: %s", err))
-		return nil, errLib.New("internal error", http.StatusInternalServerError)
+		if errors.Is(err, sql.ErrNoRows) {
+			return userValues.ReadValue{}, errLib.New("Customer not found", http.StatusNotFound)
+		}
+		log.Println(fmt.Sprintf("Error getting dbCustomer: %s", err))
+		return userValues.ReadValue{}, errLib.New("internal error", http.StatusInternalServerError)
 	}
 
-	plans := make([]customerValues.MembershipPlansReadValue, len(dbPlans))
-
-	for i, dbPlan := range dbPlans {
-		plan := customerValues.MembershipPlansReadValue{
-			ID:               dbPlan.ID,
-			CustomerID:       dbPlan.CustomerID,
-			MembershipPlanID: dbPlan.MembershipPlanID,
-			StartDate:        dbPlan.StartDate,
-			Status:           string(dbPlan.Status),
-			CreatedAt:        dbPlan.CreatedAt,
-			UpdatedAt:        dbPlan.UpdatedAt,
-			MembershipName:   dbPlan.MembershipName,
-		}
-
-		if dbPlan.RenewalDate.Valid {
-			plan.RenewalDate = &dbPlan.RenewalDate.Time
-		}
-
-		plans[i] = plan
+	customer := userValues.ReadValue{
+		ID:          dbCustomer.ID,
+		Age:         dbCustomer.Age,
+		FirstName:   dbCustomer.FirstName,
+		LastName:    dbCustomer.LastName,
+		CountryCode: dbCustomer.CountryAlpha2Code,
+		CreatedAt:   dbCustomer.CreatedAt,
+		UpdatedAt:   dbCustomer.UpdatedAt,
 	}
 
-	return plans, nil
+	if dbCustomer.HubspotID.Valid {
+		customer.HubspotID = &dbCustomer.HubspotID.String
+	}
+
+	if dbCustomer.Phone.Valid {
+		customer.Phone = &dbCustomer.Phone.String
+	}
+
+	if dbCustomer.Email.Valid {
+		customer.Email = &dbCustomer.Email.String
+	}
+
+	if dbCustomer.MembershipName.Valid && dbCustomer.MembershipPlanName.Valid && dbCustomer.MembershipStartDate.Valid && dbCustomer.MembershipPlanID.Valid {
+
+		customer.MembershipInfo = &userValues.MembershipReadValue{
+			MembershipPlanID:      dbCustomer.MembershipPlanID.UUID,
+			MembershipPlanName:    dbCustomer.MembershipPlanName.String,
+			MembershipName:        dbCustomer.MembershipName.String,
+			MembershipStartDate:   dbCustomer.MembershipStartDate.Time,
+			MembershipRenewalDate: dbCustomer.MembershipPlanRenewalDate.Time,
+		}
+	}
+
+	if dbCustomer.Rebounds.Valid && dbCustomer.Wins.Valid && dbCustomer.Points.Valid && dbCustomer.Steals.Valid && dbCustomer.Assists.Valid && dbCustomer.Losses.Valid {
+		customer.AthleteInfo = &userValues.AthleteReadValue{
+			Wins:     dbCustomer.Wins.Int32,
+			Losses:   dbCustomer.Losses.Int32,
+			Points:   dbCustomer.Points.Int32,
+			Steals:   dbCustomer.Steals.Int32,
+			Assists:  dbCustomer.Assists.Int32,
+			Rebounds: dbCustomer.Rebounds.Int32,
+		}
+	}
+
+	return customer, nil
 }
 
-func (r *CustomerRepository) UpdateStats(ctx context.Context, valuesToUpdate customerValues.StatsUpdateValue) *errLib.CommonError {
+func (r *CustomerRepository) UpdateStats(ctx context.Context, valuesToUpdate userValues.StatsUpdateValue) *errLib.CommonError {
 
 	var args db.UpdateAthleteStatsParams
 

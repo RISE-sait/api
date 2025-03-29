@@ -1,7 +1,8 @@
-package payment_test
+package stripe_test
 
 import (
-	payment "api/internal/domains/payment/services"
+	payment "api/internal/domains/payment/services/stripe"
+	types "api/internal/domains/payment/types"
 	contextUtils "api/utils/context"
 	"context"
 	"github.com/google/uuid"
@@ -10,6 +11,10 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+
+	_ "api/internal/di"
+	_ "github.com/square/square-go-sdk/client"
+	_ "github.com/stripe/stripe-go/v81"
 )
 
 func TestCreateOneTimePayment(t *testing.T) {
@@ -97,7 +102,7 @@ func TestCreateSubscription(t *testing.T) {
 		name     string
 		planName string
 		price    decimal.Decimal
-		interval payment.Frequency
+		interval types.PaymentFrequency
 		periods  int32
 		wantErr  bool
 		errMsg   string
@@ -106,7 +111,7 @@ func TestCreateSubscription(t *testing.T) {
 			name:     "successful monthly subscription",
 			planName: basePlan,
 			price:    basePrice,
-			interval: payment.Month,
+			interval: types.Month,
 			periods:  12,
 			wantErr:  false,
 		},
@@ -114,7 +119,7 @@ func TestCreateSubscription(t *testing.T) {
 			name:     "successful biweekly subscription",
 			planName: basePlan,
 			price:    basePrice,
-			interval: payment.Biweekly,
+			interval: types.Biweekly,
 			periods:  12,
 			wantErr:  false,
 		},
@@ -122,7 +127,7 @@ func TestCreateSubscription(t *testing.T) {
 			name:     "empty plan name",
 			planName: "",
 			price:    basePrice,
-			interval: payment.Month,
+			interval: types.Month,
 			periods:  12,
 			wantErr:  true,
 			errMsg:   "plan name cannot be empty",
@@ -131,7 +136,7 @@ func TestCreateSubscription(t *testing.T) {
 			name:     "single period subscription",
 			planName: basePlan,
 			price:    basePrice,
-			interval: payment.Month,
+			interval: types.Month,
 			periods:  1,
 			wantErr:  true,
 			errMsg:   "periods must be at least 2 for subscriptions. Use create one time payment if its not recurring",
@@ -210,7 +215,7 @@ func TestCreateSubscription_Context(t *testing.T) {
 				tt.ctx,
 				"Test Plan",
 				decimal.NewFromFloat(9.99),
-				payment.Month,
+				types.Month,
 				12,
 			)
 

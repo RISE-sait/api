@@ -12,6 +12,7 @@ type Response struct {
 	Description string    `json:"description,omitempty"`
 	Level       string    `json:"level"`
 	Type        string    `json:"type"`
+	PaygPrice   *string   `json:"payg_price,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

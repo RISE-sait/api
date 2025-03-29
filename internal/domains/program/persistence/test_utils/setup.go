@@ -38,11 +38,14 @@ create table if not exists program.programs
     level       program.program_level    default 'all'::program.program_level not null,
     type        program.program_type                                          not null,
     created_at  timestamp with time zone default CURRENT_TIMESTAMP            not null,
-    updated_at  timestamp with time zone default CURRENT_TIMESTAMP            not null
+    updated_at  timestamp with time zone default CURRENT_TIMESTAMP            not null,
+    payg_price  numeric(6, 2)
 );
 
 alter table program.programs
     owner to postgres;
+
+
 
 `
 

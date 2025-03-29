@@ -38,6 +38,20 @@ func (q *Queries) CreateCustomerMembershipPlan(ctx context.Context, arg CreateCu
 	return err
 }
 
+const getCustomerHasActiveMembershipPlan = `-- name: GetCustomerHasActiveMembershipPlan :one
+SELECT EXISTS(SELECT 1
+               FROM public.customer_membership_plans
+               WHERE customer_id = $1
+                 AND status = 'active')
+`
+
+func (q *Queries) GetCustomerHasActiveMembershipPlan(ctx context.Context, customerID uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, getCustomerHasActiveMembershipPlan, customerID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const getMembershipPlanJoiningRequirements = `-- name: GetMembershipPlanJoiningRequirements :one
 SELECT id, name, price, joining_fee, auto_renew, membership_id, payment_frequency, amt_periods, created_at, updated_at
 FROM membership.membership_plans
@@ -62,51 +76,65 @@ func (q *Queries) GetMembershipPlanJoiningRequirements(ctx context.Context, id u
 	return i, err
 }
 
+const getPaygPrice = `-- name: GetPaygPrice :one
+SELECT payg_price FROM program.programs WHERE id = $1
+`
+
+func (q *Queries) GetPaygPrice(ctx context.Context, id uuid.UUID) (decimal.NullDecimal, error) {
+	row := q.db.QueryRowContext(ctx, getPaygPrice, id)
+	var payg_price decimal.NullDecimal
+	err := row.Scan(&payg_price)
+	return payg_price, err
+}
+
+const getProgram = `-- name: GetProgram :one
+SELECT id, name FROM program.programs WHERE id = $1
+`
+
+type GetProgramRow struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+func (q *Queries) GetProgram(ctx context.Context, id uuid.UUID) (GetProgramRow, error) {
+	row := q.db.QueryRowContext(ctx, getProgram, id)
+	var i GetProgramRow
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}
+
 const getProgramRegisterInfoForCustomer = `-- name: GetProgramRegisterInfoForCustomer :one
-SELECT pm.is_eligible,
-       pm.price_per_booking,
-       p2.name                                                                       AS program_name,
-       EXISTS (SELECT 1 FROM users.users u WHERE u.id = $1)     AS customer_exists,
-       EXISTS (SELECT 1 FROM program.programs p WHERE p.id = $2) AS program_exists,
-       EXISTS (SELECT 1
-               FROM public.customer_membership_plans
-               WHERE customer_id = $1
-                 AND status = 'active')                                              AS customer_has_active_membership
-FROM program.programs p2
-         LEFT JOIN public.program_membership pm ON pm.program_id = p2.id
+SELECT pm.price_per_booking
+FROM program.programs p
+         LEFT JOIN public.program_membership pm ON pm.program_id = p.id
          LEFT JOIN membership.membership_plans mp ON mp.membership_id = pm.membership_id
          LEFT JOIN public.customer_membership_plans cmp_active
                    ON cmp_active.membership_plan_id = mp.id
-WHERE p2.id = $2
-  AND cmp_active.customer_id = $1
+WHERE p.id = $1
+  AND cmp_active.customer_id = $2
   AND cmp_active.status = 'active'
-GROUP BY pm.is_eligible, pm.price_per_booking, p2.name
+GROUP BY pm.price_per_booking, p.name
 `
 
 type GetProgramRegisterInfoForCustomerParams struct {
-	CustomerID uuid.UUID `json:"customer_id"`
 	ProgramID  uuid.UUID `json:"program_id"`
+	CustomerID uuid.UUID `json:"customer_id"`
 }
 
-type GetProgramRegisterInfoForCustomerRow struct {
-	IsEligible                  sql.NullBool        `json:"is_eligible"`
-	PricePerBooking             decimal.NullDecimal `json:"price_per_booking"`
-	ProgramName                 string              `json:"program_name"`
-	CustomerExists              bool                `json:"customer_exists"`
-	ProgramExists               bool                `json:"program_exists"`
-	CustomerHasActiveMembership bool                `json:"customer_has_active_membership"`
+func (q *Queries) GetProgramRegisterInfoForCustomer(ctx context.Context, arg GetProgramRegisterInfoForCustomerParams) (decimal.NullDecimal, error) {
+	row := q.db.QueryRowContext(ctx, getProgramRegisterInfoForCustomer, arg.ProgramID, arg.CustomerID)
+	var price_per_booking decimal.NullDecimal
+	err := row.Scan(&price_per_booking)
+	return price_per_booking, err
 }
 
-func (q *Queries) GetProgramRegisterInfoForCustomer(ctx context.Context, arg GetProgramRegisterInfoForCustomerParams) (GetProgramRegisterInfoForCustomerRow, error) {
-	row := q.db.QueryRowContext(ctx, getProgramRegisterInfoForCustomer, arg.CustomerID, arg.ProgramID)
-	var i GetProgramRegisterInfoForCustomerRow
-	err := row.Scan(
-		&i.IsEligible,
-		&i.PricePerBooking,
-		&i.ProgramName,
-		&i.CustomerExists,
-		&i.ProgramExists,
-		&i.CustomerHasActiveMembership,
-	)
-	return i, err
+const isCustomerExist = `-- name: IsCustomerExist :one
+SELECT EXISTS(SELECT 1 FROM users.users WHERE id = $1)
+`
+
+func (q *Queries) IsCustomerExist(ctx context.Context, id uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, isCustomerExist, id)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }

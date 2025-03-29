@@ -14,10 +14,8 @@ type MembershipPlanPurchaseInfo struct {
 }
 
 type ProgramRegistrationInfo struct {
-	ProgramName         string
-	EligibleRequirement *struct {
-		PricePerBooking decimal.Decimal
-	}
+	ProgramName string
+	Price       decimal.NullDecimal
 }
 
 type MembershipPlanJoiningRequirement struct {

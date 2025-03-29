@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 type AuditStatus string
@@ -214,10 +215,11 @@ func AllMembershipStatusValues() []MembershipStatus {
 type PaymentFrequency string
 
 const (
-	PaymentFrequencyOnce  PaymentFrequency = "once"
-	PaymentFrequencyWeek  PaymentFrequency = "week"
-	PaymentFrequencyMonth PaymentFrequency = "month"
-	PaymentFrequencyDay   PaymentFrequency = "day"
+	PaymentFrequencyOnce     PaymentFrequency = "once"
+	PaymentFrequencyDay      PaymentFrequency = "day"
+	PaymentFrequencyWeek     PaymentFrequency = "week"
+	PaymentFrequencyBiweekly PaymentFrequency = "biweekly"
+	PaymentFrequencyMonth    PaymentFrequency = "month"
 )
 
 func (e *PaymentFrequency) Scan(src interface{}) error {
@@ -258,9 +260,10 @@ func (ns NullPaymentFrequency) Value() (driver.Value, error) {
 func (e PaymentFrequency) Valid() bool {
 	switch e {
 	case PaymentFrequencyOnce,
+		PaymentFrequencyDay,
 		PaymentFrequencyWeek,
-		PaymentFrequencyMonth,
-		PaymentFrequencyDay:
+		PaymentFrequencyBiweekly,
+		PaymentFrequencyMonth:
 		return true
 	}
 	return false
@@ -269,9 +272,10 @@ func (e PaymentFrequency) Valid() bool {
 func AllPaymentFrequencyValues() []PaymentFrequency {
 	return []PaymentFrequency{
 		PaymentFrequencyOnce,
-		PaymentFrequencyWeek,
-		PaymentFrequencyMonth,
 		PaymentFrequencyDay,
+		PaymentFrequencyWeek,
+		PaymentFrequencyBiweekly,
+		PaymentFrequencyMonth,
 	}
 }
 
@@ -495,13 +499,15 @@ type EventsEvent struct {
 	ProgramEndAt   time.Time     `json:"program_end_at"`
 	ProgramID      uuid.NullUUID `json:"program_id"`
 	TeamID         uuid.NullUUID `json:"team_id"`
-	LocationID     uuid.NullUUID `json:"location_id"`
+	LocationID     uuid.UUID     `json:"location_id"`
 	Capacity       sql.NullInt32 `json:"capacity"`
 	CreatedAt      time.Time     `json:"created_at"`
 	UpdatedAt      time.Time     `json:"updated_at"`
 	Day            DayEnum       `json:"day"`
 	EventStartTime interface{}   `json:"event_start_time"`
 	EventEndTime   interface{}   `json:"event_end_time"`
+	CreatedBy      uuid.NullUUID `json:"created_by"`
+	UpdatedBy      uuid.NullUUID `json:"updated_by"`
 }
 
 type EventsStaff struct {
@@ -558,6 +564,7 @@ type MembershipMembership struct {
 	Description sql.NullString `json:"description"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
+	Benefits    string         `json:"benefits"`
 }
 
 type MembershipMembershipPlan struct {
@@ -588,6 +595,7 @@ type ProgramProgram struct {
 	Type        ProgramProgramType  `json:"type"`
 	CreatedAt   time.Time           `json:"created_at"`
 	UpdatedAt   time.Time           `json:"updated_at"`
+	PaygPrice   decimal.NullDecimal `json:"payg_price"`
 }
 
 type StaffStaff struct {

@@ -11,6 +11,9 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+
+	_ "github.com/square/square-go-sdk/client"
+	_ "github.com/stripe/stripe-go/v81"
 )
 
 func TestCreateOneTimePayment(t *testing.T) {

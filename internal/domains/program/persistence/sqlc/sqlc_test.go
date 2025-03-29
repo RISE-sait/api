@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/shopspring/decimal"
 	"testing"
 
 	"github.com/google/uuid"
@@ -28,14 +29,15 @@ func TestCreateProgram(t *testing.T) {
 
 	defer cleanup()
 
-	name := "Go Course"
-	description := "Learn Go programming"
-
 	CreateProgramParams := db.CreateProgramParams{
-		Name:        name,
-		Description: description,
+		Name:        "Go Course",
+		Description: "Learn Go programming",
 		Level:       db.ProgramProgramLevelAll,
 		Type:        db.ProgramProgramTypeCourse,
+		PaygPrice: decimal.NullDecimal{
+			Decimal: decimal.NewFromFloat(25.32),
+			Valid:   true,
+		},
 	}
 
 	err := queries.CreateProgram(context.Background(), CreateProgramParams)
@@ -52,9 +54,11 @@ func TestCreateProgram(t *testing.T) {
 	practice := programs[0]
 
 	// Assert course data
-	require.Equal(t, name, practice.Name)
-	require.Equal(t, description, practice.Description)
 	require.Equal(t, CreateProgramParams.Name, practice.Name)
+	require.Equal(t, CreateProgramParams.Description, practice.Description)
+	require.Equal(t, CreateProgramParams.Level, practice.Level)
+	require.Equal(t, CreateProgramParams.Type, practice.Type)
+	require.Equal(t, CreateProgramParams.PaygPrice.Decimal, practice.PaygPrice.Decimal)
 }
 
 func TestUpdateProgramValid(t *testing.T) {
@@ -74,6 +78,10 @@ func TestUpdateProgramValid(t *testing.T) {
 		Description: description,
 		Level:       db.ProgramProgramLevelAll,
 		Type:        db.ProgramProgramTypeCourse,
+		PaygPrice: decimal.NullDecimal{
+			Decimal: decimal.NewFromFloat(25.32),
+			Valid:   true,
+		},
 	}
 
 	err := queries.CreateProgram(context.Background(), CreateProgramParams)
@@ -96,6 +104,10 @@ func TestUpdateProgramValid(t *testing.T) {
 		Description: "Learn advanced Go programming",
 		Level:       db.ProgramProgramLevelAll,
 		Type:        db.ProgramProgramTypeCourse,
+		PaygPrice: decimal.NullDecimal{
+			Decimal: decimal.NewFromFloat(45.32),
+			Valid:   true,
+		},
 	}
 
 	err = queries.UpdateProgram(context.Background(), updateParams)
@@ -105,6 +117,9 @@ func TestUpdateProgramValid(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, newName, updatedCourse.Name)
 	require.Equal(t, "Learn advanced Go programming", updatedCourse.Description)
+	require.Equal(t, db.ProgramProgramLevelAll, updatedCourse.Level)
+	require.Equal(t, db.ProgramProgramTypeCourse, updatedCourse.Type)
+	require.Equal(t, decimal.NewFromFloat(45.32), updatedCourse.PaygPrice.Decimal)
 }
 
 func TestUpdatePracticeInvalidLevel(t *testing.T) {
@@ -124,6 +139,10 @@ func TestUpdatePracticeInvalidLevel(t *testing.T) {
 		Description: description,
 		Level:       db.ProgramProgramLevelAll,
 		Type:        db.ProgramProgramTypeCourse,
+		PaygPrice: decimal.NullDecimal{
+			Decimal: decimal.NewFromFloat(25.32),
+			Valid:   true,
+		},
 	}
 
 	err := queries.CreateProgram(context.Background(), CreateProgramParams)

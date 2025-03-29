@@ -1,6 +1,7 @@
 package membership
 
 import (
+	databaseErrors "api/internal/constants"
 	"api/internal/di"
 	db "api/internal/domains/membership/persistence/sqlc/generated"
 	values "api/internal/domains/membership/values"
@@ -8,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/lib/pq"
 	"log"
 	"net/http"
 
@@ -31,12 +33,23 @@ func (r *Repository) Create(c context.Context, membership *values.CreateValues) 
 			String: membership.Description,
 			Valid:  true,
 		},
+		Benefits: membership.Benefits,
 	}
 
-	_, err := r.Queries.CreateMembership(c, dbParams)
+	affectedRows, err := r.Queries.CreateMembership(c, dbParams)
 
 	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
+			return errLib.New("There's an existing membership with this name", http.StatusInternalServerError)
+		}
+		log.Println("Failed to create membership: ", err.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	if affectedRows == 0 {
+		log.Printf("Failed to create membership for unknown reason. Membership: %+v", *membership)
+		return errLib.New("Failed to create membership for unknown reason. Contact Support.", http.StatusInternalServerError)
 	}
 
 	return nil
@@ -53,11 +66,14 @@ func (r *Repository) GetByID(c context.Context, id uuid.UUID) (*values.ReadValue
 	}
 
 	return &values.ReadValues{
-		ID:          membership.ID,
-		Name:        membership.Name,
-		Description: membership.Description.String,
-		UpdatedAt:   membership.UpdatedAt,
-		CreatedAt:   membership.CreatedAt,
+		ID: membership.ID,
+		BaseValue: values.BaseValue{
+			Name:        membership.Name,
+			Description: membership.Description.String,
+			Benefits:    membership.Benefits,
+		},
+		UpdatedAt: membership.UpdatedAt,
+		CreatedAt: membership.CreatedAt,
 	}, nil
 }
 
@@ -71,11 +87,14 @@ func (r *Repository) List(c context.Context) ([]values.ReadValues, *errLib.Commo
 	memberships := make([]values.ReadValues, len(dbMemberships))
 	for i, dbMembership := range dbMemberships {
 		memberships[i] = values.ReadValues{
-			ID:          dbMembership.ID,
-			Name:        dbMembership.Name,
-			Description: dbMembership.Description.String,
-			UpdatedAt:   dbMembership.UpdatedAt,
-			CreatedAt:   dbMembership.CreatedAt,
+			ID: dbMembership.ID,
+			BaseValue: values.BaseValue{
+				Name:        dbMembership.Name,
+				Description: dbMembership.Description.String,
+				Benefits:    dbMembership.Benefits,
+			},
+			UpdatedAt: dbMembership.UpdatedAt,
+			CreatedAt: dbMembership.CreatedAt,
 		}
 	}
 

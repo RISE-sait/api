@@ -13,14 +13,13 @@ import (
 )
 
 const createWaiverSignedStatus = `-- name: CreateWaiverSignedStatus :execrows
-WITH prepared_data as (
-    SELECT unnest($1::uuid[]) as user_id,
-           unnest($2::text[]) as waiver_url,
-           unnest($3::bool[]) as is_signed
-)
+WITH prepared_data as (SELECT unnest($1::uuid[])    as user_id,
+                              unnest($2::text[]) as waiver_url,
+                              unnest($3::bool[])  as is_signed)
 INSERT INTO waiver.waiver_signing (user_id, waiver_id, is_signed)
-SELECT p.user_id, w.id, p.is_signed FROM prepared_data p
-LEFT JOIN waiver.waiver w ON w.waiver_url = p.waiver_url
+SELECT p.user_id, w.id, p.is_signed
+FROM prepared_data p
+         LEFT JOIN waiver.waiver w ON w.waiver_url = p.waiver_url
 `
 
 type CreateWaiverSignedStatusParams struct {
@@ -38,7 +37,8 @@ func (q *Queries) CreateWaiverSignedStatus(ctx context.Context, arg CreateWaiver
 }
 
 const getRequiredWaivers = `-- name: GetRequiredWaivers :many
-SELECT id, waiver_url, waiver_name, created_at, updated_at FROM waiver.waiver
+SELECT id, waiver_url, waiver_name, created_at, updated_at
+FROM waiver.waiver
 `
 
 func (q *Queries) GetRequiredWaivers(ctx context.Context) ([]WaiverWaiver, error) {

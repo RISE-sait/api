@@ -12,28 +12,23 @@ import (
 	"github.com/google/uuid"
 )
 
-const createMembership = `-- name: CreateMembership :one
-INSERT INTO membership.memberships (name, description)
-VALUES ($1, $2)
-RETURNING id, name, description, created_at, updated_at
+const createMembership = `-- name: CreateMembership :execrows
+INSERT INTO membership.memberships (name, description, benefits)
+VALUES ($1, $2, $3)
 `
 
 type CreateMembershipParams struct {
 	Name        string         `json:"name"`
 	Description sql.NullString `json:"description"`
+	Benefits    string         `json:"benefits"`
 }
 
-func (q *Queries) CreateMembership(ctx context.Context, arg CreateMembershipParams) (MembershipMembership, error) {
-	row := q.db.QueryRowContext(ctx, createMembership, arg.Name, arg.Description)
-	var i MembershipMembership
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) CreateMembership(ctx context.Context, arg CreateMembershipParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, createMembership, arg.Name, arg.Description, arg.Benefits)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const deleteMembership = `-- name: DeleteMembership :execrows
@@ -49,7 +44,7 @@ func (q *Queries) DeleteMembership(ctx context.Context, id uuid.UUID) (int64, er
 }
 
 const getMembershipById = `-- name: GetMembershipById :one
-SELECT id, name, description, created_at, updated_at FROM membership.memberships WHERE id = $1
+SELECT id, name, description, created_at, updated_at, benefits FROM membership.memberships WHERE id = $1
 `
 
 func (q *Queries) GetMembershipById(ctx context.Context, id uuid.UUID) (MembershipMembership, error) {
@@ -61,12 +56,13 @@ func (q *Queries) GetMembershipById(ctx context.Context, id uuid.UUID) (Membersh
 		&i.Description,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Benefits,
 	)
 	return i, err
 }
 
 const getMemberships = `-- name: GetMemberships :many
-SELECT id, name, description, created_at, updated_at FROM membership.memberships
+SELECT id, name, description, created_at, updated_at, benefits FROM membership.memberships
 `
 
 func (q *Queries) GetMemberships(ctx context.Context) ([]MembershipMembership, error) {
@@ -84,6 +80,7 @@ func (q *Queries) GetMemberships(ctx context.Context) ([]MembershipMembership, e
 			&i.Description,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Benefits,
 		); err != nil {
 			return nil, err
 		}

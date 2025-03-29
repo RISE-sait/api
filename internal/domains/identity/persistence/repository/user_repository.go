@@ -46,7 +46,7 @@ func (r *UsersRepository) createCustomerTx(ctx context.Context, tx *sql.Tx, inpu
 		Status:       dbOutbox.AuditStatusPENDING,
 		SqlStatement: sqlStatement,
 	}
-	
+
 	rows, err := r.OutboxQueries.InsertIntoOutbox(ctx, args)
 
 	if err != nil {
@@ -214,11 +214,13 @@ func (r *UsersRepository) GetUserInfo(ctx context.Context, email string, id uuid
 
 	var membershipInfo *values.MembershipReadInfo
 
-	if user.MembershipName.Valid {
+	if user.MembershipName.Valid && user.MembershipPlanName.Valid && user.MembershipDescription.Valid && user.MembershipBenefits.Valid {
 		membershipInfo = &values.MembershipReadInfo{
-			MembershipName: user.MembershipName.String,
-			PlanName:       user.MembershipPlanName.String,
-			StartDate:      user.MembershipPlanStartDate.Time,
+			MembershipName:        user.MembershipName.String,
+			MembershipDescription: user.MembershipDescription.String,
+			MembershipBenefits:    user.MembershipBenefits.String,
+			PlanName:              user.MembershipPlanName.String,
+			StartDate:             user.MembershipPlanStartDate.Time,
 		}
 
 		if user.MembershipPlanRenewalDate.Valid {
@@ -226,6 +228,17 @@ func (r *UsersRepository) GetUserInfo(ctx context.Context, email string, id uuid
 		}
 
 		response.MembershipInfo = membershipInfo
+	}
+
+	if user.Wins.Valid {
+		response.AthleteInfo = &values.AthleteInfo{
+			Wins:     user.Wins.Int32,
+			Losses:   user.Losses.Int32,
+			Points:   user.Points.Int32,
+			Steals:   user.Steals.Int32,
+			Assists:  user.Assists.Int32,
+			Rebounds: user.Rebounds.Int32,
+		}
 	}
 
 	if user.ParentID.Valid {

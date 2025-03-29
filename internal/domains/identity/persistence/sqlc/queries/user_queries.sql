@@ -30,12 +30,22 @@ SELECT u.*,
        mp.auto_renew    as membership_plan_auto_renew,
        cmp.start_date   as membership_plan_start_date,
        cmp.renewal_date as membership_plan_renewal_date,
-       m.name           as membership_name
+       m.name        as membership_name,
+       m.description as membership_description,
+       m.benefits    as membership_benefits,
+
+       a.points,
+       a.wins,
+       a.losses,
+       a.assists,
+       a.rebounds,
+       a.steals
 from u
          LEFT JOIN
      latest_cmp cmp ON cmp.customer_id = u.id
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
-         LEFT JOIN membership.memberships m ON m.id = mp.membership_id;
+         LEFT JOIN membership.memberships m ON m.id = mp.membership_id
+         LEFT JOIN athletic.athletes a ON u.id = a.id;
 
 -- name: GetIsUserAParent :one
 SELECT COUNT(*) > 0

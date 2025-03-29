@@ -25,8 +25,10 @@ func (dto *RequestDto) ToMembershipCreateValueObject() (*values.CreateValues, *e
 	}
 
 	return &values.CreateValues{
-		Name:        dto.Name,
-		Description: dto.Description,
+		BaseValue: values.BaseValue{
+			Name:        dto.Name,
+			Description: dto.Description,
+		},
 	}, nil
 }
 
@@ -38,13 +40,15 @@ func (dto *RequestDto) ToMembershipUpdateValueObject(idStr string) (*values.Upda
 		return nil, err
 	}
 
-	if err := dto.validate(); err != nil {
+	if err = dto.validate(); err != nil {
 		return nil, err
 	}
 
 	return &values.UpdateValues{
-		ID:          id,
-		Name:        dto.Name,
-		Description: dto.Description,
+		ID: id,
+		BaseValue: values.BaseValue{
+			Name:        dto.Name,
+			Description: dto.Description,
+		},
 	}, nil
 }

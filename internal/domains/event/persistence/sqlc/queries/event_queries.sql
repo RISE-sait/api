@@ -84,6 +84,11 @@ SET program_start_at = $1,
     updated_by = sqlc.arg('updated_by')::uuid
 WHERE id = $9;
 
+-- name: GetEventCreatedBy :one
+SELECT created_by
+FROM events.events
+WHERE id = $1;
+
 -- name: DeleteEvent :exec
 DELETE
 FROM events.events

@@ -3,6 +3,7 @@ package registration
 import (
 	"api/internal/di"
 	repo "api/internal/domains/identity/persistence/repository"
+	"api/internal/domains/identity/persistence/repository/user"
 	"api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
 	"context"
@@ -14,7 +15,7 @@ import (
 
 // CustomerRegistrationService handles customer registration and related operations.
 type CustomerRegistrationService struct {
-	UserRepo          *repo.UsersRepository
+	UserRepo          *user.UsersRepository
 	WaiverSigningRepo *repo.WaiverSigningRepository
 	DB                *sql.DB
 }
@@ -26,7 +27,7 @@ func NewCustomerRegistrationService(container *di.Container) *CustomerRegistrati
 	outboxDb := container.Queries.OutboxDb
 
 	return &CustomerRegistrationService{
-		UserRepo:          repo.NewUserRepository(identityDb, outboxDb),
+		UserRepo:          user.NewUserRepository(identityDb, outboxDb),
 		WaiverSigningRepo: repo.NewWaiverSigningRepository(container.Queries.IdentityDb),
 		DB:                container.DB,
 	}

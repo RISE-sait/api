@@ -18,7 +18,7 @@ import (
 //
 // Example:
 // router.Use(JWTAuthMiddleware(false, "admin", "manager"))
-func JWTAuthMiddleware(isAllowAnyoneWithValidToken bool, allowedRoles ...string) func(http.Handler) http.Handler {
+func JWTAuthMiddleware(isAllowAnyoneWithValidToken bool, allowedRoles ...contextUtils.CtxRole) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -35,14 +35,26 @@ func JWTAuthMiddleware(isAllowAnyoneWithValidToken bool, allowedRoles ...string)
 				return
 			}
 
-			if !isAllowAnyoneWithValidToken && !hasRequiredRole(claims.RoleInfo, allowedRoles) {
-				responseHandlers.RespondWithError(w, errLib.New("You do not have permission to access this resource", http.StatusForbidden))
+			ctx := r.Context()
+
+			userRole, err := extractRole(claims.RoleInfo)
+
+			if err != nil {
+				responseHandlers.RespondWithError(w, err)
 				return
 			}
 
-			// Add the claims to the request context for use in handlers
-			ctx := context.WithValue(r.Context(), contextUtils.UserIDKey, claims.UserID)
-			next.ServeHTTP(w, r.WithContext(ctx))
+			isAuthorized := hasRequiredRole(userRole, allowedRoles)
+
+			if isAuthorized || isAllowAnyoneWithValidToken {
+				// Add the claims to the request context for use in handlers
+				ctx = context.WithValue(ctx, contextUtils.RoleKey, userRole)
+				ctx = context.WithValue(ctx, contextUtils.UserIDKey, claims.UserID)
+				next.ServeHTTP(w, r.WithContext(ctx))
+			} else {
+				responseHandlers.RespondWithError(w, errLib.New("You do not have permission to access this resource", http.StatusForbidden))
+				return
+			}
 		})
 	}
 }
@@ -63,23 +75,49 @@ func extractToken(r *http.Request) (string, *errLib.CommonError) {
 	return tokenParts[1], nil
 }
 
-// hasRequiredRole checks if the user's role matches any of the allowed roles or is SUPERADMIN.
-func hasRequiredRole(staffInfo *jwtLib.RoleInfo, allowedRoles []string) bool {
+func extractRole(userRoleInfo *jwtLib.RoleInfo) (contextUtils.CtxRole, *errLib.CommonError) {
 
-	if staffInfo == nil {
+	if userRoleInfo == nil {
+		return "", errLib.New("No role found in jwt", http.StatusUnauthorized)
+	}
+
+	userRole := userRoleInfo.Role
+
+	roles := []contextUtils.CtxRole{
+		contextUtils.RoleAdmin,
+		contextUtils.RoleInstructor,
+		contextUtils.RoleCoach,
+		contextUtils.RoleSuperAdmin,
+		contextUtils.RoleParent,
+		contextUtils.RoleBarber,
+		contextUtils.RoleAthlete,
+		contextUtils.RoleChild,
+	}
+
+	for _, role := range roles {
+		if strings.EqualFold(userRole, string(role)) {
+			return role, nil
+		}
+	}
+
+	return "", errLib.New("Invalid role", http.StatusUnauthorized)
+}
+
+// hasRequiredRole checks if the user's role matches any of the allowed roles or is SUPERADMIN.
+func hasRequiredRole(userRole contextUtils.CtxRole, allowedRoles []contextUtils.CtxRole) bool {
+
+	if userRole == "" {
 		return false
 	}
 
-	userRole := staffInfo.Role
-
 	// SUPER ADMIN has access to everything
-	if strings.EqualFold(userRole, "SUPERADMIN") {
+	if userRole == contextUtils.RoleSuperAdmin {
 		return true
 	}
 
 	// Check if the user's role matches any allowed role
 	for _, role := range allowedRoles {
-		if strings.EqualFold(userRole, role) {
+		if userRole == role {
 			return true
 		}
 	}

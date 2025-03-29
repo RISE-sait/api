@@ -3,6 +3,7 @@ package registration
 import (
 	"api/internal/di"
 	repo "api/internal/domains/identity/persistence/repository"
+	"api/internal/domains/identity/persistence/repository/user"
 	"api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
 	"context"
@@ -13,7 +14,7 @@ import (
 )
 
 type ChildRegistrationService struct {
-	UsersRepository         *repo.UsersRepository
+	UsersRepository         *user.UsersRepository
 	WaiverSigningRepository *repo.WaiverSigningRepository
 	DB                      *sql.DB
 }
@@ -26,7 +27,7 @@ func NewChildAccountRegistrationService(
 	outboxDb := container.Queries.OutboxDb
 
 	return &ChildRegistrationService{
-		UsersRepository:         repo.NewUserRepository(identityDb, outboxDb),
+		UsersRepository:         user.NewUserRepository(identityDb, outboxDb),
 		WaiverSigningRepository: repo.NewWaiverSigningRepository(container.Queries.IdentityDb),
 		DB:                      container.DB,
 	}

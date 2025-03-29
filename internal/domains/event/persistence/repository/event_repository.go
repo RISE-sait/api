@@ -95,9 +95,30 @@ func (r *Repository) CreateEvent(ctx context.Context, eventDetails values.Create
 	return nil
 }
 
+func (r *Repository) GetEventCreatedBy(ctx context.Context, eventID uuid.UUID) (uuid.UUID, *errLib.CommonError) {
+	userID, err := r.Queries.GetEventCreatedBy(ctx, eventID)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return uuid.Nil, errLib.New("Event not found", http.StatusNotFound)
+		}
+		log.Println("Failed to get event from db: ", err.Error())
+		return uuid.Nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	if !userID.Valid {
+		return uuid.Nil, errLib.New("Unknown reason. Couldn't get the person who created this event.", http.StatusInternalServerError)
+	}
+
+	return userID.UUID, nil
+}
+
 func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEventValues, *errLib.CommonError) {
 	rows, err := r.Queries.GetEventById(ctx, id)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return values.ReadEventValues{}, errLib.New("Event not found", http.StatusNotFound)
+		}
 		log.Println("Failed to get event from db: ", err.Error())
 		return values.ReadEventValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}

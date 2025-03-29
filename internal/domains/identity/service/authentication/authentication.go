@@ -3,6 +3,7 @@ package authentication
 import (
 	"api/internal/di"
 	identityRepo "api/internal/domains/identity/persistence/repository"
+	"api/internal/domains/identity/persistence/repository/user"
 	"api/internal/domains/identity/service/firebase"
 	"api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
@@ -15,7 +16,7 @@ import (
 
 type Service struct {
 	FirebaseService *firebase.Service
-	UserRepo        *identityRepo.UsersRepository
+	UserRepo        *user.UsersRepository
 	StaffRepo       *identityRepo.StaffRepository
 }
 
@@ -26,7 +27,7 @@ func NewAuthenticationService(container *di.Container) *Service {
 
 	return &Service{
 		FirebaseService: firebase.NewFirebaseService(container),
-		UserRepo:        identityRepo.NewUserRepository(identityDb, outboxDb),
+		UserRepo:        user.NewUserRepository(identityDb, outboxDb),
 		StaffRepo:       identityRepo.NewStaffRepository(identityDb, outboxDb),
 	}
 }

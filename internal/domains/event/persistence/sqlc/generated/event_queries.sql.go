@@ -60,32 +60,31 @@ func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) error {
 }
 
 const getEventById = `-- name: GetEventById :many
-SELECT
-    e.id, e.program_start_at, e.program_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time, e.created_by, e.updated_by,
-    p.name AS program_name,
-    p.description AS program_description,
-    p."type" AS program_type,
-    l.name AS location_name,
-    l.address AS location_address,
-    -- Staff fields
-    s.id AS staff_id,
-    sr.role_name AS staff_role_name,
-    us.email AS staff_email,
-    us.first_name AS staff_first_name,
-    us.last_name AS staff_last_name,
-    us.gender AS staff_gender,
-    us.phone AS staff_phone,
-    -- Customer fields
-    uc.id AS customer_id,
-    uc.first_name AS customer_first_name,
-    uc.last_name AS customer_last_name,
-    uc.email AS customer_email,
-    uc.phone AS customer_phone,
-    uc.gender AS customer_gender,
-    ce.is_cancelled AS customer_is_cancelled,
-    -- Team field (added missing team reference)
-    t.id AS team_id,
-    t.name AS team_name
+SELECT e.id, e.program_start_at, e.program_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time, e.created_by, e.updated_by,
+       p.name          AS program_name,
+       p.description   AS program_description,
+       p."type"        AS program_type,
+       l.name          AS location_name,
+       l.address       AS location_address,
+       -- Staff fields
+       s.id            AS staff_id,
+       sr.role_name    AS staff_role_name,
+       us.email        AS staff_email,
+       us.first_name   AS staff_first_name,
+       us.last_name    AS staff_last_name,
+       us.gender       AS staff_gender,
+       us.phone        AS staff_phone,
+       -- Customer fields
+       uc.id           AS customer_id,
+       uc.first_name   AS customer_first_name,
+       uc.last_name    AS customer_last_name,
+       uc.email        AS customer_email,
+       uc.phone        AS customer_phone,
+       uc.gender       AS customer_gender,
+       ce.is_cancelled AS customer_is_cancelled,
+       -- Team field (added missing team reference)
+       t.id            AS team_id,
+       t.name          AS team_name
 FROM events.events e
          LEFT JOIN program.programs p ON e.program_id = p.id
          LEFT JOIN location.locations l ON e.location_id = l.id
@@ -197,6 +196,19 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) ([]GetEventByI
 	return items, nil
 }
 
+const getEventCreatedBy = `-- name: GetEventCreatedBy :one
+SELECT created_by
+FROM events.events
+WHERE id = $1
+`
+
+func (q *Queries) GetEventCreatedBy(ctx context.Context, id uuid.UUID) (uuid.NullUUID, error) {
+	row := q.db.QueryRowContext(ctx, getEventCreatedBy, id)
+	var created_by uuid.NullUUID
+	err := row.Scan(&created_by)
+	return created_by, err
+}
+
 const getEvents = `-- name: GetEvents :many
 SELECT DISTINCT e.id, e.program_start_at, e.program_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time, e.created_by, e.updated_by,
                 p.name        AS program_name,
@@ -220,8 +232,8 @@ WHERE (
               AND ($6::uuid IS NULL OR ce.customer_id = $6::uuid OR
                    es.staff_id = $6::uuid)
               AND ($7::uuid IS NULL OR e.team_id = $7)
-                AND ($8::uuid IS NULL OR e.created_by = $8)
-                AND ($9::uuid IS NULL OR e.updated_by = $9)
+              AND ($8::uuid IS NULL OR e.created_by = $8)
+              AND ($9::uuid IS NULL OR e.updated_by = $9)
           )
 `
 
@@ -324,7 +336,7 @@ SET program_start_at = $1,
     event_end_time   = $6,
     day              = $7,
     capacity         = $8,
-    updated_at       = current_timestamp,
+    updated_at = current_timestamp,
     updated_by = $10::uuid
 WHERE id = $9
 `

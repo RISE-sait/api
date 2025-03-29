@@ -7,6 +7,7 @@ import (
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
+	contextUtils "api/utils/context"
 	"net/http"
 	"time"
 
@@ -239,6 +240,8 @@ func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 // @Router /events/{id} [put]
 func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 
+	// Extract and validate input
+
 	idStr := chi.URLParam(r, "id")
 
 	var targetBody dto.RequestDto
@@ -248,10 +251,41 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Convert to domain values
+
 	params, err := targetBody.ToUpdateEventValues(idStr)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Get auth context
+
+	userRole := r.Context().Value(contextUtils.RoleKey).(contextUtils.CtxRole)
+
+	loggedInUserID, err := contextUtils.GetUserID(r.Context())
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Authorization check
+
+	creatorID, err := h.Repo.GetEventCreatedBy(r.Context(), params.ID)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	isAdmin := userRole == contextUtils.RoleAdmin || userRole == contextUtils.RoleSuperAdmin
+	isCreator := creatorID == loggedInUserID
+
+	// Check if the user is an admin or the creator of the event, if not, return forbidden
+	if !isAdmin && !isCreator {
+		responseHandlers.RespondWithError(w, errLib.New("You do not have permission to access this resource", http.StatusForbidden))
 		return
 	}
 
@@ -283,6 +317,35 @@ func (h *EventsHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Get auth context
+
+	userRole := r.Context().Value(contextUtils.RoleKey).(contextUtils.CtxRole)
+
+	loggedInUserID, err := contextUtils.GetUserID(r.Context())
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Authorization check
+
+	creatorID, err := h.Repo.GetEventCreatedBy(r.Context(), id)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	isAdmin := userRole == contextUtils.RoleAdmin || userRole == contextUtils.RoleSuperAdmin
+	isCreator := creatorID == loggedInUserID
+
+	// Check if the user is an admin or the creator of the event, if not, return forbidden
+	if !isAdmin && !isCreator {
+		responseHandlers.RespondWithError(w, errLib.New("You do not have permission to access this resource", http.StatusForbidden))
 		return
 	}
 

@@ -3,6 +3,7 @@ package registration
 import (
 	"api/internal/di"
 	identityRepo "api/internal/domains/identity/persistence/repository"
+	"api/internal/domains/identity/persistence/repository/user"
 	"api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/services/hubspot"
@@ -15,7 +16,7 @@ import (
 
 type StaffsRegistrationService struct {
 	HubSpotService  *hubspot.Service
-	UsersRepository *identityRepo.UsersRepository
+	UsersRepository *user.UsersRepository
 	StaffRepository *identityRepo.StaffRepository
 	DB              *sql.DB
 }
@@ -30,7 +31,7 @@ func NewStaffRegistrationService(
 	return &StaffsRegistrationService{
 		StaffRepository: identityRepo.NewStaffRepository(identityDb, outboxDb),
 		DB:              container.DB,
-		UsersRepository: identityRepo.NewUserRepository(identityDb, outboxDb),
+		UsersRepository: user.NewUserRepository(identityDb, outboxDb),
 		HubSpotService:  container.HubspotService,
 	}
 }

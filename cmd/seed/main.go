@@ -348,49 +348,49 @@ func seedGames(ctx context.Context, db *sql.DB, teamIds []uuid.UUID) {
 //	return nil
 //}
 
-func seedMembershipPracticeEligibility(ctx context.Context, db *sql.DB) error {
-	seedQueries := dbSeed.New(db)
-
-	practicesData := data.Practices
-
-	var practiceNamesArray, membershipNamesArray []string
-	var isEligibleArray []bool
-	var pricePerBookingArray []decimal.Decimal
-
-	for _, d := range practicesData {
-
-		for _, eligibility := range d.MembershipsEligibility {
-			practiceNamesArray = append(practiceNamesArray, d.Name)
-
-			membershipNamesArray = append(membershipNamesArray, eligibility.Name)
-
-			if eligibility.EligibleMembership != nil {
-				isEligibleArray = append(isEligibleArray, true)
-				pricePerBookingArray = append(pricePerBookingArray, decimal.NewFromInt(int64(eligibility.Price)))
-			} else {
-				isEligibleArray = append(isEligibleArray, false)
-				pricePerBookingArray = append(pricePerBookingArray, decimal.NewFromInt(int64(0)))
-			}
-
-		}
-	}
-
-	args := dbSeed.InsertPracticeMembershipsEligibilityParams{
-		PracticeNamesArray:   practiceNamesArray,
-		MembershipNamesArray: membershipNamesArray,
-		IsEligibleArray:      isEligibleArray,
-		PricePerBookingArray: pricePerBookingArray,
-	}
-
-	err := seedQueries.InsertPracticeMembershipsEligibility(ctx, args)
-
-	if err != nil {
-		log.Fatalf("Failed to insert membership practices eligibility: %v", err)
-		return err
-	}
-
-	return nil
-}
+//func seedMembershipPracticeEligibility(ctx context.Context, db *sql.DB) error {
+//	seedQueries := dbSeed.New(db)
+//
+//	practicesData := data.Practices
+//
+//	var practiceNamesArray, membershipNamesArray []string
+//	var isEligibleArray []bool
+//	var pricePerBookingArray []decimal.Decimal
+//
+//	for _, d := range practicesData {
+//
+//		for _, eligibility := range d.MembershipsEligibility {
+//			practiceNamesArray = append(practiceNamesArray, d.Name)
+//
+//			membershipNamesArray = append(membershipNamesArray, eligibility.Name)
+//
+//			if eligibility.EligibleMembership != nil {
+//				isEligibleArray = append(isEligibleArray, true)
+//				pricePerBookingArray = append(pricePerBookingArray, decimal.NewFromInt(int64(eligibility.Price)))
+//			} else {
+//				isEligibleArray = append(isEligibleArray, false)
+//				pricePerBookingArray = append(pricePerBookingArray, decimal.NewFromInt(int64(0)))
+//			}
+//
+//		}
+//	}
+//
+//	args := dbSeed.InsertPracticeMembershipsEligibilityParams{
+//		PracticeNamesArray:   practiceNamesArray,
+//		MembershipNamesArray: membershipNamesArray,
+//		IsEligibleArray:      isEligibleArray,
+//		PricePerBookingArray: pricePerBookingArray,
+//	}
+//
+//	err := seedQueries.InsertPracticeMembershipsEligibility(ctx, args)
+//
+//	if err != nil {
+//		log.Fatalf("Failed to insert membership practices eligibility: %v", err)
+//		return err
+//	}
+//
+//	return nil
+//}
 
 func seedLocations(ctx context.Context, db *sql.DB) {
 
@@ -511,7 +511,7 @@ func seedEvents(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 		programNameArray    []string
 		//courseNameArray       []string
 		//gameNameArray         []string
-		//locationNameArray     []string
+		locationNameArray []string
 	)
 
 	for _, practice := range practices {
@@ -538,6 +538,8 @@ func seedEvents(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 			eventStartTimeArray = append(eventStartTimeArray, eventStartTime)
 			eventEndTimeArray = append(eventEndTimeArray, eventEndTime)
 
+			locationNameArray = append(locationNameArray, schedule.Location)
+
 			day := dbSeed.DayEnum(strings.ToUpper(schedule.Day))
 
 			if !day.Valid() {
@@ -559,7 +561,7 @@ func seedEvents(ctx context.Context, db *sql.DB) ([]uuid.UUID, error) {
 		EventEndTimeArray:   eventEndTimeArray,
 		DayArray:            dayArray,
 		ProgramNameArray:    programNameArray,
-		LocationNameArray:   nil,
+		LocationNameArray:   locationNameArray,
 	}
 
 	// Insert events and sessions into the database
@@ -674,10 +676,10 @@ func main() {
 	//	return
 	//}
 
-	if err = seedMembershipPracticeEligibility(ctx, db); err != nil {
-		log.Println(err)
-		return
-	}
+	//if err = seedMembershipPracticeEligibility(ctx, db); err != nil {
+	//	log.Println(err)
+	//	return
+	//}
 
 	if err = seedHaircutServices(ctx, db); err != nil {
 		log.Println(err)

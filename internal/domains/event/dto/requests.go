@@ -71,7 +71,7 @@ func (dto RequestDto) ToCreateEventValues() (values.CreateEventValues, *errLib.C
 	return values.CreateEventValues{
 		Details: values.Details{
 			ProgramStartAt: programBeginDateTime,
-			ProgramEndAt:   programEndDateTime,
+			ProgramEndAt:   &programEndDateTime,
 			EventStartTime: sessionBeginTime,
 			EventEndTime:   sessionEndTime,
 			ProgramID:      dto.ProgramID,
@@ -102,7 +102,7 @@ func (dto RequestDto) ToUpdateEventValues(idStr string) (values.UpdateEventValue
 		ID: id,
 		Details: values.Details{
 			ProgramStartAt: programBeginDateTime,
-			ProgramEndAt:   programEndDateTime,
+			ProgramEndAt:   &programEndDateTime,
 			EventStartTime: sessionBeginTime,
 			EventEndTime:   sessionEndTime,
 			Day:            dto.Day,

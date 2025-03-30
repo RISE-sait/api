@@ -3881,9 +3881,38 @@ const docTemplate = `{
                 }
             }
         },
+        "identity.AthleteResponseDto": {
+            "type": "object",
+            "properties": {
+                "assists": {
+                    "type": "integer"
+                },
+                "losses": {
+                    "type": "integer"
+                },
+                "points": {
+                    "type": "integer"
+                },
+                "rebounds": {
+                    "type": "integer"
+                },
+                "steals": {
+                    "type": "integer"
+                },
+                "wins": {
+                    "type": "integer"
+                }
+            }
+        },
         "identity.MembershipReadResponseDto": {
             "type": "object",
             "properties": {
+                "membership_benefits": {
+                    "type": "string"
+                },
+                "membership_description": {
+                    "type": "string"
+                },
                 "membership_name": {
                     "type": "string"
                 },
@@ -3903,6 +3932,9 @@ const docTemplate = `{
             "properties": {
                 "age": {
                     "type": "integer"
+                },
+                "athlete_info": {
+                    "$ref": "#/definitions/identity.AthleteResponseDto"
                 },
                 "country_code": {
                     "type": "string"
@@ -3984,6 +4016,9 @@ const docTemplate = `{
         "membership.Response": {
             "type": "object",
             "properties": {
+                "benefits": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },

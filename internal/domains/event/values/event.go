@@ -8,15 +8,15 @@ import (
 )
 
 type Details struct {
-	Day            string
-	ProgramStartAt time.Time
-	ProgramEndAt   *time.Time
-	EventStartTime custom_types.TimeWithTimeZone
-	EventEndTime   custom_types.TimeWithTimeZone
-	ProgramID      uuid.UUID
-	LocationID     uuid.UUID
-	TeamID         uuid.UUID
-	Capacity       *int32
+	Day               string
+	RecurrenceStartAt time.Time
+	RecurrenceEndAt   *time.Time
+	EventStartTime    custom_types.TimeWithTimeZone
+	EventEndTime      custom_types.TimeWithTimeZone
+	ProgramID         uuid.UUID
+	LocationID        uuid.UUID
+	TeamID            uuid.UUID
+	Capacity          *int32
 }
 
 type CreateEventValues struct {

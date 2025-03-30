@@ -17,11 +17,11 @@ type (
 	}
 
 	DayResponseDto struct {
-		ProgramStart string  `json:"program_start_at"`
-		ProgramEnd   *string `json:"program_end_at,omitempty"`
-		SessionStart string  `json:"session_start_at"`
-		SessionEnd   string  `json:"session_end_at"`
-		Day          string  `json:"day"`
+		RecurrenceStartAt string  `json:"recurrence_start_at"`
+		RecurrenceEndAt   *string `json:"recurrence_end_at,omitempty"`
+		SessionStart      string  `json:"session_start_at"`
+		SessionEnd        string  `json:"session_end_at"`
+		Day               string  `json:"day"`
 	}
 
 	DateResponseDto struct {
@@ -139,16 +139,16 @@ func newScheduleView(event values.ReadEventValues, view types.ViewOption) Schedu
 	default:
 		response := ScheduleResponseDto{
 			DayResponseDto: &DayResponseDto{
-				ProgramStart: event.ProgramStartAt.Format(time.RFC3339),
-				SessionStart: event.EventStartTime.Time,
-				SessionEnd:   event.EventEndTime.Time,
-				Day:          event.Day,
+				RecurrenceStartAt: event.RecurrenceStartAt.Format(time.RFC3339),
+				SessionStart:      event.EventStartTime.Time,
+				SessionEnd:        event.EventEndTime.Time,
+				Day:               event.Day,
 			},
 		}
 
-		if event.ProgramEndAt != nil {
-			end := event.ProgramEndAt.Format(time.RFC3339)
-			response.DayResponseDto.ProgramEnd = &end
+		if event.RecurrenceEndAt != nil {
+			end := event.RecurrenceEndAt.Format(time.RFC3339)
+			response.DayResponseDto.RecurrenceEndAt = &end
 		}
 
 		return response
@@ -238,20 +238,20 @@ func calculateEventDates(event values.ReadEventValues) []DateResponseDto {
 	endH, endM, endS := endTime.Clock()
 
 	// Find first occurrence of the target weekday
-	currentDate := event.ProgramStartAt
+	currentDate := event.RecurrenceStartAt
 	for currentDate.Weekday() != day {
 		currentDate = currentDate.AddDate(0, 0, 1)
-		if event.ProgramEndAt != nil && currentDate.After(*event.ProgramEndAt) {
+		if event.RecurrenceEndAt != nil && currentDate.After(*event.RecurrenceEndAt) {
 			return results
 		}
 	}
 
 	for dateCount := 0; ; dateCount++ {
 		// Break conditions
-		if event.ProgramEndAt != nil && currentDate.After(*event.ProgramEndAt) {
+		if event.RecurrenceEndAt != nil && currentDate.After(*event.RecurrenceEndAt) {
 			break
 		}
-		if event.ProgramEndAt == nil && dateCount >= maxDatesForNoEndDate {
+		if event.RecurrenceEndAt == nil && dateCount >= maxDatesForNoEndDate {
 			break
 		}
 

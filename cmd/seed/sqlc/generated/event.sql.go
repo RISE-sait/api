@@ -65,17 +65,17 @@ func (q *Queries) InsertCustomersEnrollments(ctx context.Context, arg InsertCust
 }
 
 const insertEvents = `-- name: InsertEvents :many
-WITH events_data AS (SELECT unnest($1::timestamptz[]) as program_start_at,
-                            unnest($2::timestamptz[])   as program_end_at,
+WITH events_data AS (SELECT unnest($1::timestamptz[]) as recurrence_start_at,
+                            unnest($2::timestamptz[])   as recurrence_end_at,
                             unnest($3::timetz[])      AS event_start_time,
                             unnest($4::timetz[])        AS event_end_time,
                             unnest($5::day_enum[])                 AS day,
                             unnest($6::text[])           AS program_name,
                             unnest($7::text[])           as location_name)
 INSERT
-INTO events.events (program_start_at, program_end_at, event_start_time, event_end_time, program_id, day, location_id)
-SELECT e.program_start_at,
-       NULLIF(e.program_end_at, '0001-01-01 00:00:00 UTC') AS program_end_at,
+INTO events.events (recurrence_start_at, recurrence_end_at, event_start_time, event_end_time, program_id, day, location_id)
+SELECT e.recurrence_start_at,
+       NULLIF(e.recurrence_end_at, '0001-01-01 00:00:00 UTC') AS program_end_at,
        e.event_start_time,
        e.event_end_time,
          p.id AS program_id,
@@ -88,19 +88,19 @@ RETURNING id
 `
 
 type InsertEventsParams struct {
-	ProgramStartAtArray []time.Time                     `json:"program_start_at_array"`
-	ProgramEndAtArray   []time.Time                     `json:"program_end_at_array"`
-	EventStartTimeArray []custom_types.TimeWithTimeZone `json:"event_start_time_array"`
-	EventEndTimeArray   []custom_types.TimeWithTimeZone `json:"event_end_time_array"`
-	DayArray            []DayEnum                       `json:"day_array"`
-	ProgramNameArray    []string                        `json:"program_name_array"`
-	LocationNameArray   []string                        `json:"location_name_array"`
+	RecurringStartAtArray []time.Time                     `json:"recurring_start_at_array"`
+	RecurringEndAtArray   []time.Time                     `json:"recurring_end_at_array"`
+	EventStartTimeArray   []custom_types.TimeWithTimeZone `json:"event_start_time_array"`
+	EventEndTimeArray     []custom_types.TimeWithTimeZone `json:"event_end_time_array"`
+	DayArray              []DayEnum                       `json:"day_array"`
+	ProgramNameArray      []string                        `json:"program_name_array"`
+	LocationNameArray     []string                        `json:"location_name_array"`
 }
 
 func (q *Queries) InsertEvents(ctx context.Context, arg InsertEventsParams) ([]uuid.UUID, error) {
 	rows, err := q.db.QueryContext(ctx, insertEvents,
-		pq.Array(arg.ProgramStartAtArray),
-		pq.Array(arg.ProgramEndAtArray),
+		pq.Array(arg.RecurringStartAtArray),
+		pq.Array(arg.RecurringEndAtArray),
 		pq.Array(arg.EventStartTimeArray),
 		pq.Array(arg.EventEndTimeArray),
 		pq.Array(arg.DayArray),
@@ -129,8 +129,8 @@ func (q *Queries) InsertEvents(ctx context.Context, arg InsertEventsParams) ([]u
 }
 
 const insertEventsStaff = `-- name: InsertEventsStaff :exec
-WITH prepared_data AS (SELECT unnest($1::uuid[])          AS event_id,
-                              unnest($2::uuid[])             AS staff_id)
+WITH prepared_data AS (SELECT unnest($1::uuid[]) AS event_id,
+                              unnest($2::uuid[]) AS staff_id)
 INSERT
 INTO events.staff(event_id, staff_id)
 SELECT event_id,

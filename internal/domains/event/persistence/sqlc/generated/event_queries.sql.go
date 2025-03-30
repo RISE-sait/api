@@ -15,28 +15,28 @@ import (
 )
 
 const createEvent = `-- name: CreateEvent :exec
-INSERT INTO events.events (program_start_at, program_end_at, event_start_time, event_end_time, day, location_id,
+INSERT INTO events.events (recurrence_start_at, recurrence_end_at, event_start_time, event_end_time, day, location_id,
                            program_id, capacity, created_by, updated_by)
 VALUES ($1, $2, $3, $4, $5,
         $6, $7, $8, $9::uuid, $9::uuid)
 `
 
 type CreateEventParams struct {
-	ProgramStartAt time.Time                     `json:"program_start_at"`
-	ProgramEndAt   sql.NullTime                  `json:"program_end_at"`
-	EventStartTime custom_types.TimeWithTimeZone `json:"event_start_time"`
-	EventEndTime   custom_types.TimeWithTimeZone `json:"event_end_time"`
-	Day            DayEnum                       `json:"day"`
-	LocationID     uuid.UUID                     `json:"location_id"`
-	ProgramID      uuid.NullUUID                 `json:"program_id"`
-	Capacity       sql.NullInt32                 `json:"capacity"`
-	CreatedBy      uuid.UUID                     `json:"created_by"`
+	RecurrenceStartAt time.Time                     `json:"recurrence_start_at"`
+	RecurrenceEndAt   sql.NullTime                  `json:"recurrence_end_at"`
+	EventStartTime    custom_types.TimeWithTimeZone `json:"event_start_time"`
+	EventEndTime      custom_types.TimeWithTimeZone `json:"event_end_time"`
+	Day               DayEnum                       `json:"day"`
+	LocationID        uuid.UUID                     `json:"location_id"`
+	ProgramID         uuid.NullUUID                 `json:"program_id"`
+	Capacity          sql.NullInt32                 `json:"capacity"`
+	CreatedBy         uuid.UUID                     `json:"created_by"`
 }
 
 func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) error {
 	_, err := q.db.ExecContext(ctx, createEvent,
-		arg.ProgramStartAt,
-		arg.ProgramEndAt,
+		arg.RecurrenceStartAt,
+		arg.RecurrenceEndAt,
 		arg.EventStartTime,
 		arg.EventEndTime,
 		arg.Day,
@@ -60,7 +60,7 @@ func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) error {
 }
 
 const getEventById = `-- name: GetEventById :many
-SELECT e.id, e.program_start_at, e.program_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time, e.created_by, e.updated_by,
+SELECT e.id, e.recurrence_start_at, e.recurrence_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time, e.created_by, e.updated_by,
        p.name          AS program_name,
        p.description   AS program_description,
        p."type"        AS program_type,
@@ -101,8 +101,8 @@ ORDER BY s.id, uc.id
 
 type GetEventByIdRow struct {
 	ID                  uuid.UUID                     `json:"id"`
-	ProgramStartAt      time.Time                     `json:"program_start_at"`
-	ProgramEndAt        sql.NullTime                  `json:"program_end_at"`
+	RecurrenceStartAt   time.Time                     `json:"recurrence_start_at"`
+	RecurrenceEndAt     sql.NullTime                  `json:"recurrence_end_at"`
 	ProgramID           uuid.NullUUID                 `json:"program_id"`
 	TeamID              uuid.NullUUID                 `json:"team_id"`
 	LocationID          uuid.UUID                     `json:"location_id"`
@@ -148,8 +148,8 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) ([]GetEventByI
 		var i GetEventByIdRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.ProgramStartAt,
-			&i.ProgramEndAt,
+			&i.RecurrenceStartAt,
+			&i.RecurrenceEndAt,
 			&i.ProgramID,
 			&i.TeamID,
 			&i.LocationID,
@@ -210,7 +210,7 @@ func (q *Queries) GetEventCreatedBy(ctx context.Context, id uuid.UUID) (uuid.Nul
 }
 
 const getEvents = `-- name: GetEvents :many
-SELECT DISTINCT e.id, e.program_start_at, e.program_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time, e.created_by, e.updated_by,
+SELECT DISTINCT e.id, e.recurrence_start_at, e.recurrence_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time, e.created_by, e.updated_by,
                 p.name        AS program_name,
                 p.description AS program_description,
                 p."type"      AS program_type,
@@ -226,8 +226,9 @@ FROM events.events e
 WHERE (
           ($1::uuid = e.program_id OR $1 IS NULL)
               AND ($2::uuid = e.location_id OR $2 IS NULL)
-              AND ($3::timestamp <= e.program_start_at OR $3 IS NULL)
-              AND ($4::timestamp >= e.program_end_at OR $4 IS NULL OR e.program_end_at IS NULL)
+              AND ($3::timestamp <= e.recurrence_start_at OR $3 IS NULL)
+              AND ($4::timestamp >= e.recurrence_end_at OR $4 IS NULL OR
+                   e.program_end_at IS NULL)
               AND ($5 = p.type OR $5 IS NULL)
               AND ($6::uuid IS NULL OR ce.customer_id = $6::uuid OR
                    es.staff_id = $6::uuid)
@@ -251,8 +252,8 @@ type GetEventsParams struct {
 
 type GetEventsRow struct {
 	ID                 uuid.UUID                     `json:"id"`
-	ProgramStartAt     time.Time                     `json:"program_start_at"`
-	ProgramEndAt       sql.NullTime                  `json:"program_end_at"`
+	RecurrenceStartAt  time.Time                     `json:"recurrence_start_at"`
+	RecurrenceEndAt    sql.NullTime                  `json:"recurrence_end_at"`
 	ProgramID          uuid.NullUUID                 `json:"program_id"`
 	TeamID             uuid.NullUUID                 `json:"team_id"`
 	LocationID         uuid.UUID                     `json:"location_id"`
@@ -293,8 +294,8 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 		var i GetEventsRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.ProgramStartAt,
-			&i.ProgramEndAt,
+			&i.RecurrenceStartAt,
+			&i.RecurrenceEndAt,
 			&i.ProgramID,
 			&i.TeamID,
 			&i.LocationID,
@@ -328,8 +329,8 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 
 const updateEvent = `-- name: UpdateEvent :exec
 UPDATE events.events
-SET program_start_at = $1,
-    program_end_at   = $2,
+SET recurrence_start_at = $1,
+    recurrence_end_at   = $2,
     location_id      = $3,
     program_id       = $4,
     event_start_time = $5,
@@ -342,22 +343,22 @@ WHERE id = $9
 `
 
 type UpdateEventParams struct {
-	ProgramStartAt time.Time                     `json:"program_start_at"`
-	ProgramEndAt   sql.NullTime                  `json:"program_end_at"`
-	LocationID     uuid.UUID                     `json:"location_id"`
-	ProgramID      uuid.NullUUID                 `json:"program_id"`
-	EventStartTime custom_types.TimeWithTimeZone `json:"event_start_time"`
-	EventEndTime   custom_types.TimeWithTimeZone `json:"event_end_time"`
-	Day            DayEnum                       `json:"day"`
-	Capacity       sql.NullInt32                 `json:"capacity"`
-	ID             uuid.UUID                     `json:"id"`
-	UpdatedBy      uuid.UUID                     `json:"updated_by"`
+	RecurrenceStartAt time.Time                     `json:"recurrence_start_at"`
+	RecurrenceEndAt   sql.NullTime                  `json:"recurrence_end_at"`
+	LocationID        uuid.UUID                     `json:"location_id"`
+	ProgramID         uuid.NullUUID                 `json:"program_id"`
+	EventStartTime    custom_types.TimeWithTimeZone `json:"event_start_time"`
+	EventEndTime      custom_types.TimeWithTimeZone `json:"event_end_time"`
+	Day               DayEnum                       `json:"day"`
+	Capacity          sql.NullInt32                 `json:"capacity"`
+	ID                uuid.UUID                     `json:"id"`
+	UpdatedBy         uuid.UUID                     `json:"updated_by"`
 }
 
 func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) error {
 	_, err := q.db.ExecContext(ctx, updateEvent,
-		arg.ProgramStartAt,
-		arg.ProgramEndAt,
+		arg.RecurrenceStartAt,
+		arg.RecurrenceEndAt,
 		arg.LocationID,
 		arg.ProgramID,
 		arg.EventStartTime,

@@ -12,14 +12,14 @@ import (
 )
 
 type RequestDto struct {
-	Day              string    `json:"day" validate:"required" example:"THURSDAY"`
-	ProgramStartAt   string    `json:"program_start_at" validate:"required" example:"2023-10-05T07:00:00Z"`
-	ProgramEndAt     string    `json:"program_end_at" validate:"required" example:"2023-10-05T07:00:00Z"`
-	SessionStartTime string    `json:"session_start_time" validate:"required" example:"23:00:00+00:00"`
-	SessionEndTime   string    `json:"session_end_time" validate:"required" example:"23:00:00+00:00"`
-	ProgramID        uuid.UUID `json:"program_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
-	LocationID       uuid.UUID `json:"location_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
-	Capacity         *int32    `json:"capacity" example:"100"`
+	Day               string    `json:"day" validate:"required" example:"THURSDAY"`
+	RecurrenceStartAt string    `json:"recurrence_start_at" validate:"required" example:"2023-10-05T07:00:00Z"`
+	RecurrenceEndAt   string    `json:"recurrence_end_at" validate:"required" example:"2023-10-05T07:00:00Z"`
+	SessionStartTime  string    `json:"session_start_time" validate:"required" example:"23:00:00+00:00"`
+	SessionEndTime    string    `json:"session_end_time" validate:"required" example:"23:00:00+00:00"`
+	ProgramID         uuid.UUID `json:"program_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
+	LocationID        uuid.UUID `json:"location_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
+	Capacity          *int32    `json:"capacity" example:"100"`
 }
 
 // validate validates the request DTO, parses the event and session start and end times,
@@ -33,13 +33,13 @@ func (dto RequestDto) validate() (time.Time, time.Time, custom_types.TimeWithTim
 		return time.Time{}, time.Time{}, custom_types.TimeWithTimeZone{}, custom_types.TimeWithTimeZone{}, err
 	}
 
-	programBeginDateTime, err := validators.ParseDateTime(dto.ProgramStartAt)
+	recurrenceBeginDateTime, err := validators.ParseDateTime(dto.RecurrenceStartAt)
 
 	if err != nil {
 		return time.Time{}, time.Time{}, custom_types.TimeWithTimeZone{}, custom_types.TimeWithTimeZone{}, err
 	}
 
-	programEndDateTime, err := validators.ParseDateTime(dto.ProgramEndAt)
+	recurrenceEndDateTime, err := validators.ParseDateTime(dto.RecurrenceEndAt)
 
 	if err != nil {
 		return time.Time{}, time.Time{}, custom_types.TimeWithTimeZone{}, custom_types.TimeWithTimeZone{}, err
@@ -57,12 +57,12 @@ func (dto RequestDto) validate() (time.Time, time.Time, custom_types.TimeWithTim
 		return time.Time{}, time.Time{}, custom_types.TimeWithTimeZone{}, custom_types.TimeWithTimeZone{}, err
 	}
 
-	return programBeginDateTime, programEndDateTime, sessionBeginTime, sessionEndTime, nil
+	return recurrenceBeginDateTime, recurrenceEndDateTime, sessionBeginTime, sessionEndTime, nil
 }
 
 func (dto RequestDto) ToCreateEventValues() (values.CreateEventValues, *errLib.CommonError) {
 
-	programBeginDateTime, programEndDateTime, sessionBeginTime, sessionEndTime, err := dto.validate()
+	recurrenceBeginDateTime, recurrenceEndDateTime, sessionBeginTime, sessionEndTime, err := dto.validate()
 
 	if err != nil {
 		return values.CreateEventValues{}, err
@@ -70,14 +70,14 @@ func (dto RequestDto) ToCreateEventValues() (values.CreateEventValues, *errLib.C
 
 	return values.CreateEventValues{
 		Details: values.Details{
-			ProgramStartAt: programBeginDateTime,
-			ProgramEndAt:   &programEndDateTime,
-			EventStartTime: sessionBeginTime,
-			EventEndTime:   sessionEndTime,
-			ProgramID:      dto.ProgramID,
-			LocationID:     dto.LocationID,
-			Capacity:       dto.Capacity,
-			Day:            dto.Day,
+			RecurrenceStartAt: recurrenceBeginDateTime,
+			RecurrenceEndAt:   &recurrenceEndDateTime,
+			EventStartTime:    sessionBeginTime,
+			EventEndTime:      sessionEndTime,
+			ProgramID:         dto.ProgramID,
+			LocationID:        dto.LocationID,
+			Capacity:          dto.Capacity,
+			Day:               dto.Day,
 		},
 	}, nil
 }
@@ -90,7 +90,7 @@ func (dto RequestDto) ToUpdateEventValues(idStr string) (values.UpdateEventValue
 		return values.UpdateEventValues{}, err
 	}
 
-	programBeginDateTime, programEndDateTime, sessionBeginTime, sessionEndTime, err := dto.validate()
+	recurrenceBeginDateTime, recurrenceEndDateTime, sessionBeginTime, sessionEndTime, err := dto.validate()
 
 	if err != nil {
 
@@ -101,14 +101,14 @@ func (dto RequestDto) ToUpdateEventValues(idStr string) (values.UpdateEventValue
 	return values.UpdateEventValues{
 		ID: id,
 		Details: values.Details{
-			ProgramStartAt: programBeginDateTime,
-			ProgramEndAt:   &programEndDateTime,
-			EventStartTime: sessionBeginTime,
-			EventEndTime:   sessionEndTime,
-			Day:            dto.Day,
-			ProgramID:      dto.ProgramID,
-			Capacity:       dto.Capacity,
-			LocationID:     dto.LocationID,
+			RecurrenceStartAt: recurrenceBeginDateTime,
+			RecurrenceEndAt:   &recurrenceEndDateTime,
+			EventStartTime:    sessionBeginTime,
+			EventEndTime:      sessionEndTime,
+			Day:               dto.Day,
+			ProgramID:         dto.ProgramID,
+			Capacity:          dto.Capacity,
+			LocationID:        dto.LocationID,
 		},
 	}, nil
 }

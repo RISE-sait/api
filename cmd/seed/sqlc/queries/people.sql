@@ -50,7 +50,7 @@ VALUES ('admin'),
        ('receptionist'),
        ('barber');
 
--- name: InsertStaff :exec
+-- name: InsertStaff :many
 WITH staff_data AS (SELECT e.email,
                            ia.is_active,
                            rn.role_name
@@ -70,7 +70,8 @@ FROM staff_data sd
          JOIN
      users.users u ON u.email = sd.email
          JOIN
-     staff.staff_roles sr ON sr.role_name = sd.role_name;
+     staff.staff_roles sr ON sr.role_name = sd.role_name
+RETURNING id;
 
 -- name: UpdateParents :execrows
 UPDATE users.users

@@ -51,7 +51,6 @@ func (r *Repository) CreateEvent(ctx context.Context, eventDetails values.Create
 
 	dbParams := db.CreateEventParams{
 		ProgramStartAt: eventDetails.ProgramStartAt,
-		ProgramEndAt:   eventDetails.ProgramEndAt,
 		EventStartTime: eventDetails.EventStartTime,
 		EventEndTime:   eventDetails.EventEndTime,
 		Day:            db.DayEnum(eventDetails.Day),
@@ -61,6 +60,13 @@ func (r *Repository) CreateEvent(ctx context.Context, eventDetails values.Create
 			Valid: eventDetails.ProgramID != uuid.Nil,
 		},
 		CreatedBy: userID,
+	}
+
+	if eventDetails.ProgramEndAt != nil {
+		dbParams.ProgramEndAt = sql.NullTime{
+			Time:  *eventDetails.ProgramEndAt,
+			Valid: true,
+		}
 	}
 
 	if eventDetails.Capacity != nil {
@@ -138,7 +144,6 @@ func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEve
 				Details: values.Details{
 					Day:            string(row.Day),
 					ProgramStartAt: row.ProgramStartAt,
-					ProgramEndAt:   row.ProgramEndAt,
 					EventStartTime: row.EventStartTime,
 					EventEndTime:   row.EventEndTime,
 					LocationID:     row.LocationID,
@@ -151,6 +156,11 @@ func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEve
 				LocationName:    row.LocationName.String,
 				LocationAddress: row.LocationAddress.String,
 			}
+
+			if row.ProgramEndAt.Valid {
+				event.Details.ProgramEndAt = &row.ProgramEndAt.Time
+			}
+
 			if row.Capacity.Valid {
 				event.Details.Capacity = &row.Capacity.Int32
 			}
@@ -248,7 +258,6 @@ func (r *Repository) GetEvents(ctx context.Context, programTypeStr string, progr
 			Details: values.Details{
 				Day:            string(row.Day),
 				ProgramStartAt: row.ProgramStartAt,
-				ProgramEndAt:   row.ProgramEndAt,
 				EventStartTime: row.EventStartTime,
 				EventEndTime:   row.EventEndTime,
 				ProgramID:      row.ProgramID.UUID,
@@ -260,6 +269,10 @@ func (r *Repository) GetEvents(ctx context.Context, programTypeStr string, progr
 			LocationAddress: row.LocationAddress,
 			CreatedBy:       row.CreatedBy.UUID,
 			UpdatedBy:       row.UpdatedBy.UUID,
+		}
+
+		if row.ProgramEndAt.Valid {
+			event.Details.ProgramEndAt = &row.ProgramEndAt.Time
 		}
 
 		if row.TeamID.Valid && row.TeamName.Valid {
@@ -312,7 +325,6 @@ func (r *Repository) UpdateEvent(ctx context.Context, event values.UpdateEventVa
 
 	dbEventParams := db.UpdateEventParams{
 		ProgramStartAt: event.ProgramStartAt,
-		ProgramEndAt:   event.ProgramEndAt,
 		LocationID:     event.LocationID,
 		ProgramID:      uuid.NullUUID{UUID: event.ProgramID, Valid: event.ProgramID != uuid.Nil},
 		EventStartTime: event.EventStartTime,
@@ -320,6 +332,13 @@ func (r *Repository) UpdateEvent(ctx context.Context, event values.UpdateEventVa
 		Day:            db.DayEnum(event.Day),
 		ID:             event.ID,
 		UpdatedBy:      userID,
+	}
+
+	if event.ProgramEndAt != nil {
+		dbEventParams.ProgramEndAt = sql.NullTime{
+			Time:  *event.ProgramEndAt,
+			Valid: true,
+		}
 	}
 
 	if dbErr := r.Queries.UpdateEvent(ctx, dbEventParams); dbErr != nil {

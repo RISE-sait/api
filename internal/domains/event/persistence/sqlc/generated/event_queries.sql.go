@@ -23,7 +23,7 @@ VALUES ($1, $2, $3, $4, $5,
 
 type CreateEventParams struct {
 	ProgramStartAt time.Time                     `json:"program_start_at"`
-	ProgramEndAt   time.Time                     `json:"program_end_at"`
+	ProgramEndAt   sql.NullTime                  `json:"program_end_at"`
 	EventStartTime custom_types.TimeWithTimeZone `json:"event_start_time"`
 	EventEndTime   custom_types.TimeWithTimeZone `json:"event_end_time"`
 	Day            DayEnum                       `json:"day"`
@@ -102,7 +102,7 @@ ORDER BY s.id, uc.id
 type GetEventByIdRow struct {
 	ID                  uuid.UUID                     `json:"id"`
 	ProgramStartAt      time.Time                     `json:"program_start_at"`
-	ProgramEndAt        time.Time                     `json:"program_end_at"`
+	ProgramEndAt        sql.NullTime                  `json:"program_end_at"`
 	ProgramID           uuid.NullUUID                 `json:"program_id"`
 	TeamID              uuid.NullUUID                 `json:"team_id"`
 	LocationID          uuid.UUID                     `json:"location_id"`
@@ -226,8 +226,8 @@ FROM events.events e
 WHERE (
           ($1::uuid = e.program_id OR $1 IS NULL)
               AND ($2::uuid = e.location_id OR $2 IS NULL)
-              AND ($3::timestamp >= e.program_start_at OR $3 IS NULL)
-              AND ($4::timestamp <= e.program_end_at OR $4 IS NULL)
+              AND ($3::timestamp <= e.program_start_at OR $3 IS NULL)
+              AND ($4::timestamp >= e.program_end_at OR $4 IS NULL OR e.program_end_at IS NULL)
               AND ($5 = p.type OR $5 IS NULL)
               AND ($6::uuid IS NULL OR ce.customer_id = $6::uuid OR
                    es.staff_id = $6::uuid)
@@ -240,8 +240,8 @@ WHERE (
 type GetEventsParams struct {
 	ProgramID  uuid.NullUUID          `json:"program_id"`
 	LocationID uuid.NullUUID          `json:"location_id"`
-	Before     sql.NullTime           `json:"before"`
 	After      sql.NullTime           `json:"after"`
+	Before     sql.NullTime           `json:"before"`
 	Type       NullProgramProgramType `json:"type"`
 	UserID     uuid.NullUUID          `json:"user_id"`
 	TeamID     uuid.NullUUID          `json:"team_id"`
@@ -252,7 +252,7 @@ type GetEventsParams struct {
 type GetEventsRow struct {
 	ID                 uuid.UUID                     `json:"id"`
 	ProgramStartAt     time.Time                     `json:"program_start_at"`
-	ProgramEndAt       time.Time                     `json:"program_end_at"`
+	ProgramEndAt       sql.NullTime                  `json:"program_end_at"`
 	ProgramID          uuid.NullUUID                 `json:"program_id"`
 	TeamID             uuid.NullUUID                 `json:"team_id"`
 	LocationID         uuid.UUID                     `json:"location_id"`
@@ -276,8 +276,8 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 	rows, err := q.db.QueryContext(ctx, getEvents,
 		arg.ProgramID,
 		arg.LocationID,
-		arg.Before,
 		arg.After,
+		arg.Before,
 		arg.Type,
 		arg.UserID,
 		arg.TeamID,
@@ -343,7 +343,7 @@ WHERE id = $9
 
 type UpdateEventParams struct {
 	ProgramStartAt time.Time                     `json:"program_start_at"`
-	ProgramEndAt   time.Time                     `json:"program_end_at"`
+	ProgramEndAt   sql.NullTime                  `json:"program_end_at"`
 	LocationID     uuid.UUID                     `json:"location_id"`
 	ProgramID      uuid.NullUUID                 `json:"program_id"`
 	EventStartTime custom_types.TimeWithTimeZone `json:"event_start_time"`

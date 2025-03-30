@@ -9,6 +9,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/shopspring/decimal"
 )
@@ -94,7 +95,7 @@ func (q *Queries) InsertMembershipPlans(ctx context.Context, arg InsertMembershi
 	return err
 }
 
-const insertMemberships = `-- name: InsertMemberships :exec
+const insertMemberships = `-- name: InsertMemberships :many
 INSERT INTO membership.memberships (name, description)
 VALUES (unnest($1::text[]), unnest($2::text[]))
 RETURNING id
@@ -105,7 +106,25 @@ type InsertMembershipsParams struct {
 	DescriptionArray []string `json:"description_array"`
 }
 
-func (q *Queries) InsertMemberships(ctx context.Context, arg InsertMembershipsParams) error {
-	_, err := q.db.ExecContext(ctx, insertMemberships, pq.Array(arg.NameArray), pq.Array(arg.DescriptionArray))
-	return err
+func (q *Queries) InsertMemberships(ctx context.Context, arg InsertMembershipsParams) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, insertMemberships, pq.Array(arg.NameArray), pq.Array(arg.DescriptionArray))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

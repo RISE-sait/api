@@ -9,7 +9,7 @@ WITH events_data AS (SELECT unnest(@program_start_at_array::timestamptz[]) as pr
 INSERT
 INTO events.events (program_start_at, program_end_at, event_start_time, event_end_time, program_id, day, location_id)
 SELECT e.program_start_at,
-       e.program_end_at,
+       NULLIF(e.program_end_at, '0001-01-01 00:00:00 UTC') AS program_end_at,
        e.event_start_time,
        e.event_end_time,
          p.id AS program_id,
@@ -33,3 +33,12 @@ SELECT customer_id,
        is_cancelled
 FROM prepared_data
 RETURNING id;
+
+-- name: InsertEventsStaff :exec
+WITH prepared_data AS (SELECT unnest(@event_id_array::uuid[]) AS event_id,
+                              unnest(@staff_id_array::uuid[]) AS staff_id)
+INSERT
+INTO events.staff(event_id, staff_id)
+SELECT event_id,
+       staff_id
+FROM prepared_data;

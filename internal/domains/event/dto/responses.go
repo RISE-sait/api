@@ -17,11 +17,11 @@ type (
 	}
 
 	DayResponseDto struct {
-		ProgramStart string `json:"program_start_at"`
-		ProgramEnd   string `json:"program_end_at"`
-		SessionStart string `json:"session_start_at"`
-		SessionEnd   string `json:"session_end_at"`
-		Day          string `json:"day"`
+		ProgramStart string  `json:"program_start_at"`
+		ProgramEnd   *string `json:"program_end_at,omitempty"`
+		SessionStart string  `json:"session_start_at"`
+		SessionEnd   string  `json:"session_end_at"`
+		Day          string  `json:"day"`
 	}
 
 	DateResponseDto struct {
@@ -137,15 +137,21 @@ func newScheduleView(event values.ReadEventValues, view types.ViewOption) Schedu
 			DatesResponseDto: &dates,
 		}
 	default:
-		return ScheduleResponseDto{
+		response := ScheduleResponseDto{
 			DayResponseDto: &DayResponseDto{
 				ProgramStart: event.ProgramStartAt.Format(time.RFC3339),
-				ProgramEnd:   event.ProgramEndAt.Format(time.RFC3339),
 				SessionStart: event.EventStartTime.Time,
 				SessionEnd:   event.EventEndTime.Time,
 				Day:          event.Day,
 			},
 		}
+
+		if event.ProgramEndAt != nil {
+			end := event.ProgramEndAt.Format(time.RFC3339)
+			response.DayResponseDto.ProgramEnd = &end
+		}
+
+		return response
 	}
 }
 
@@ -203,10 +209,11 @@ func parseWeekday(day string) (time.Weekday, error) {
 	}
 }
 
-// todo: write test
-
 // Helper to calculate all event dates in range
 func calculateEventDates(event values.ReadEventValues) []DateResponseDto {
+
+	const maxDatesForNoEndDate = 20
+	const timeFormat = "Monday, Jan 2, 2006 at 15:04"
 
 	results := []DateResponseDto{}
 
@@ -227,20 +234,28 @@ func calculateEventDates(event values.ReadEventValues) []DateResponseDto {
 	}
 
 	loc := startTime.Location()
-	startH, startM, startS := startTime.Hour(), startTime.Minute(), startTime.Second()
-	endH, endM, endS := endTime.Hour(), endTime.Minute(), endTime.Second()
+	startH, startM, startS := startTime.Clock()
+	endH, endM, endS := endTime.Clock()
 
 	// Find first occurrence of the target weekday
 	currentDate := event.ProgramStartAt
 	for currentDate.Weekday() != day {
 		currentDate = currentDate.AddDate(0, 0, 1)
-		if currentDate.After(event.ProgramEndAt) {
+		if event.ProgramEndAt != nil && currentDate.After(*event.ProgramEndAt) {
 			return results
 		}
 	}
 
-	// Iterate through each week until program end
-	for ; !currentDate.After(event.ProgramEndAt); currentDate = currentDate.AddDate(0, 0, 7) {
+	for dateCount := 0; ; dateCount++ {
+		// Break conditions
+		if event.ProgramEndAt != nil && currentDate.After(*event.ProgramEndAt) {
+			break
+		}
+		if event.ProgramEndAt == nil && dateCount >= maxDatesForNoEndDate {
+			break
+		}
+
+		// Create date times
 		start := time.Date(
 			currentDate.Year(), currentDate.Month(), currentDate.Day(),
 			startH, startM, startS, 0, loc,
@@ -250,14 +265,18 @@ func calculateEventDates(event values.ReadEventValues) []DateResponseDto {
 			endH, endM, endS, 0, loc,
 		)
 
+		// Handle overnight events
 		if end.Before(start) {
-			end = end.AddDate(0, 0, 1) // Handle overnight events
+			end = end.AddDate(0, 0, 1)
 		}
 
 		results = append(results, DateResponseDto{
-			StartAt: start.Format("Monday, Jan 2, 2006 at 15:04"),
-			EndAt:   end.Format("Monday, Jan 2, 2006 at 15:04"),
+			StartAt: start.Format(timeFormat),
+			EndAt:   end.Format(timeFormat),
 		})
+
+		// Move to next week
+		currentDate = currentDate.AddDate(0, 0, 7)
 	}
 
 	return results

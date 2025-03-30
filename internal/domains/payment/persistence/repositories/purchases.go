@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 	"log"
 	"net/http"
 )
@@ -27,7 +26,7 @@ func NewRepository(container *di.Container) *Repository {
 
 func (r *Repository) GetMembershipPlanJoiningRequirement(ctx context.Context, planID uuid.UUID) (values.MembershipPlanJoiningRequirement, *errLib.CommonError) {
 
-	if planInfo, err := r.Queries.GetMembershipPlanJoiningRequirements(ctx, planID); err != nil {
+	if requirements, err := r.Queries.GetMembershipPlanJoiningRequirements(ctx, planID); err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return values.MembershipPlanJoiningRequirement{}, errLib.New(fmt.Sprintf("error getting joining requirement for membership plan: %v", planID), http.StatusBadRequest)
 		} else {
@@ -35,23 +34,23 @@ func (r *Repository) GetMembershipPlanJoiningRequirement(ctx context.Context, pl
 		}
 	} else {
 		response := values.MembershipPlanJoiningRequirement{
-			ID:               planInfo.ID,
-			Name:             planInfo.Name,
-			Price:            planInfo.Price,
-			JoiningFee:       planInfo.JoiningFee,
-			AutoRenew:        planInfo.AutoRenew,
-			MembershipID:     planInfo.MembershipID,
-			PaymentFrequency: string(planInfo.PaymentFrequency),
-			CreatedAt:        planInfo.CreatedAt,
-			UpdatedAt:        planInfo.UpdatedAt,
+			ID:               requirements.ID,
+			Name:             requirements.Name,
+			Price:            requirements.Price,
+			JoiningFee:       requirements.JoiningFee,
+			AutoRenew:        requirements.AutoRenew,
+			MembershipID:     requirements.MembershipID,
+			PaymentFrequency: string(requirements.PaymentFrequency),
+			CreatedAt:        requirements.CreatedAt,
+			UpdatedAt:        requirements.UpdatedAt,
 		}
 
-		if planInfo.PaymentFrequency == db.PaymentFrequencyOnce {
+		if requirements.PaymentFrequency == db.PaymentFrequencyOnce {
 			response.IsOneTimePayment = true
 		}
 
-		if planInfo.AmtPeriods.Valid {
-			response.AmtPeriods = &planInfo.AmtPeriods.Int32
+		if requirements.AmtPeriods.Valid {
+			response.AmtPeriods = &requirements.AmtPeriods.Int32
 		}
 
 		return response, nil
@@ -80,51 +79,36 @@ func (r *Repository) GetProgramRegistrationInfoByCustomer(ctx context.Context, c
 		return response, errLib.New(fmt.Sprintf("customer not found: %v", customerID), http.StatusNotFound)
 	}
 
-	hasActiveMembership, err := r.Queries.GetCustomerHasActiveMembershipPlan(ctx, customerID)
-	if err != nil {
-		log.Printf("Error getting GetCustomerHasActiveMembershipPlan: %v", err)
-		return response, errLib.New("failed to check if customer has active membership", http.StatusInternalServerError)
-	}
-
-	if !hasActiveMembership {
-
-		// those who dont have active membership can only join the program as payg
-
-		paygPrice, priceErr := r.Queries.GetPaygPrice(ctx, programID)
-		if priceErr != nil {
-			log.Printf("Error getting PAYG price: %v", priceErr)
-			return response, errLib.New("failed to get PAYG pricing information", http.StatusInternalServerError)
-		}
-
-		if !paygPrice.Valid {
-			return response, errLib.New("program doesn't support PAYG registration", http.StatusBadRequest)
-		}
-
-		response.Price = paygPrice
-
-		return response, nil
-	}
-
-	// those who have active membership, check if they're eligible
-
-	programRegistrationPrice, err := r.Queries.GetProgramRegisterInfoForCustomer(ctx, db.GetProgramRegisterInfoForCustomerParams{
+	prices, err := r.Queries.GetProgramRegisterPricesForCustomer(ctx, db.GetProgramRegisterPricesForCustomerParams{
 		CustomerID: customerID,
 		ProgramID:  programID,
 	})
-
 	if err != nil {
-		log.Printf("Error getting customer eligibility for program: %v", err)
-		return response, errLib.New("failed to get customer eligibility for program", http.StatusInternalServerError)
+		log.Printf("Error getting GetProgramRegisterPricesForCustomer: %v", err)
+		return response, errLib.New("failed to check get registration prices for customer", http.StatusInternalServerError)
 	}
 
-	if !programRegistrationPrice.Valid {
-		return response, errLib.New("Customer is ineligible to join program", http.StatusBadRequest)
+	memberProgramPrice := prices.MemberProgramPrice
+	memberDropInPrice := prices.MemberDropInPrice
+
+	nonMemberProgramPrice := prices.NonMemberProgramPrice
+	nonMemberDropInPrice := prices.NonMemberDropInPrice
+
+	// check if the customer is a member, and if it's paid by program or drop-in
+	switch {
+	case memberProgramPrice.Valid:
+		response.Price = memberProgramPrice
+	case memberDropInPrice.Valid:
+		response.Price = memberDropInPrice
+	case nonMemberProgramPrice.Valid:
+		response.Price = nonMemberProgramPrice
+	case nonMemberDropInPrice.Valid:
+		response.Price = nonMemberDropInPrice
 	}
 
-	response.Price = decimal.NullDecimal{
-		Decimal: programRegistrationPrice.Decimal,
-		Valid:   true,
+	if response.Price.Valid {
+		return response, nil
 	}
 
-	return response, nil
+	return response, errLib.New(fmt.Sprintf("customer is ineligible for program registration: %v", program.Name), http.StatusBadRequest)
 }

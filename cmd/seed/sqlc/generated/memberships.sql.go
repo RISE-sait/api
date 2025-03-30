@@ -9,7 +9,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/shopspring/decimal"
 )
@@ -42,31 +41,6 @@ func (q *Queries) InsertClientsMembershipPlans(ctx context.Context, arg InsertCl
 		pq.Array(arg.MembershipPlanName),
 		pq.Array(arg.StartDateArray),
 		pq.Array(arg.RenewalDateArray),
-	)
-	return err
-}
-
-const insertCourseMembershipsEligibility = `-- name: InsertCourseMembershipsEligibility :exec
-INSERT INTO public.program_membership (program_id, membership_id, is_eligible, price_per_booking)
-VALUES (unnest($1::uuid[]),
-        unnest($2::uuid[]),
-        unnest($3::bool[]),
-        unnest($4::numeric[]))
-`
-
-type InsertCourseMembershipsEligibilityParams struct {
-	CourseIDArray        []uuid.UUID       `json:"course_id_array"`
-	MembershipIDArray    []uuid.UUID       `json:"membership_id_array"`
-	IsEligibleArray      []bool            `json:"is_eligible_array"`
-	PricePerBookingArray []decimal.Decimal `json:"price_per_booking_array"`
-}
-
-func (q *Queries) InsertCourseMembershipsEligibility(ctx context.Context, arg InsertCourseMembershipsEligibilityParams) error {
-	_, err := q.db.ExecContext(ctx, insertCourseMembershipsEligibility,
-		pq.Array(arg.CourseIDArray),
-		pq.Array(arg.MembershipIDArray),
-		pq.Array(arg.IsEligibleArray),
-		pq.Array(arg.PricePerBookingArray),
 	)
 	return err
 }
@@ -133,41 +107,5 @@ type InsertMembershipsParams struct {
 
 func (q *Queries) InsertMemberships(ctx context.Context, arg InsertMembershipsParams) error {
 	_, err := q.db.ExecContext(ctx, insertMemberships, pq.Array(arg.NameArray), pq.Array(arg.DescriptionArray))
-	return err
-}
-
-const insertPracticeMembershipsEligibility = `-- name: InsertPracticeMembershipsEligibility :exec
-WITH prepared_data as (SELECT unnest($1::text[])       as practice_names,
-                              unnest($2::text[])     as membership_names,
-                              unnest($3::bool[])          as is_eligible,
-                              unnest($4::numeric[]) as price_per_booking)
-INSERT
-INTO public.program_membership (program_id, membership_id, is_eligible, price_per_booking)
-SELECT p.id,
-       m.id,
-       is_eligible,
-       CASE
-           WHEN is_eligible = false THEN NULL::numeric
-           ELSE price_per_booking
-           END AS price_per_booking
-FROM prepared_data
-         JOIN membership.memberships m ON m.name = membership_names
-         JOIN program.programs p ON p.name = practice_names
-`
-
-type InsertPracticeMembershipsEligibilityParams struct {
-	PracticeNamesArray   []string          `json:"practice_names_array"`
-	MembershipNamesArray []string          `json:"membership_names_array"`
-	IsEligibleArray      []bool            `json:"is_eligible_array"`
-	PricePerBookingArray []decimal.Decimal `json:"price_per_booking_array"`
-}
-
-func (q *Queries) InsertPracticeMembershipsEligibility(ctx context.Context, arg InsertPracticeMembershipsEligibilityParams) error {
-	_, err := q.db.ExecContext(ctx, insertPracticeMembershipsEligibility,
-		pq.Array(arg.PracticeNamesArray),
-		pq.Array(arg.MembershipNamesArray),
-		pq.Array(arg.IsEligibleArray),
-		pq.Array(arg.PricePerBookingArray),
-	)
 	return err
 }

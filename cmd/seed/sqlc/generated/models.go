@@ -484,6 +484,16 @@ type DiscountRestrictedMembershipPlan struct {
 	CreatedAt        time.Time `json:"created_at"`
 }
 
+type EnrollmentFee struct {
+	ID           uuid.UUID      `json:"id"`
+	ProgramID    uuid.UUID      `json:"program_id"`
+	MembershipID uuid.NullUUID  `json:"membership_id"`
+	DropInPrice  sql.NullString `json:"drop_in_price"`
+	ProgramPrice sql.NullString `json:"program_price"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+}
+
 type EventsCustomerEnrollment struct {
 	ID          uuid.UUID    `json:"id"`
 	CustomerID  uuid.UUID    `json:"customer_id"`
@@ -500,13 +510,15 @@ type EventsEvent struct {
 	ProgramEndAt   time.Time                     `json:"program_end_at"`
 	ProgramID      uuid.NullUUID                 `json:"program_id"`
 	TeamID         uuid.NullUUID                 `json:"team_id"`
-	LocationID     uuid.NullUUID                 `json:"location_id"`
+	LocationID     uuid.UUID                     `json:"location_id"`
 	Capacity       sql.NullInt32                 `json:"capacity"`
 	CreatedAt      time.Time                     `json:"created_at"`
 	UpdatedAt      time.Time                     `json:"updated_at"`
 	Day            DayEnum                       `json:"day"`
 	EventStartTime custom_types.TimeWithTimeZone `json:"event_start_time"`
 	EventEndTime   custom_types.TimeWithTimeZone `json:"event_end_time"`
+	CreatedBy      uuid.NullUUID                 `json:"created_by"`
+	UpdatedBy      uuid.NullUUID                 `json:"updated_by"`
 }
 
 type EventsStaff struct {
@@ -563,6 +575,7 @@ type MembershipMembership struct {
 	Description sql.NullString `json:"description"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
+	Benefits    string         `json:"benefits"`
 }
 
 type MembershipMembershipPlan struct {
@@ -576,13 +589,6 @@ type MembershipMembershipPlan struct {
 	AmtPeriods       sql.NullInt32    `json:"amt_periods"`
 	CreatedAt        time.Time        `json:"created_at"`
 	UpdatedAt        time.Time        `json:"updated_at"`
-}
-
-type ProgramMembership struct {
-	ProgramID       uuid.UUID      `json:"program_id"`
-	MembershipID    uuid.UUID      `json:"membership_id"`
-	PricePerBooking sql.NullString `json:"price_per_booking"`
-	IsEligible      bool           `json:"is_eligible"`
 }
 
 type ProgramProgram struct {

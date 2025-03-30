@@ -12,28 +12,49 @@ SELECT id, name
 FROM program.programs
 WHERE id = $1;
 
--- name: GetPaygPrice :one
-SELECT payg_price
-FROM program.programs
-WHERE id = $1;
-
 -- name: IsCustomerExist :one
 SELECT EXISTS(SELECT 1 FROM users.users WHERE id = $1);
 
--- name: GetCustomerHasActiveMembershipPlan :one
-SELECT EXISTS(SELECT 1
-              FROM public.customer_membership_plans
+-- name: GetProgramRegisterPricesForCustomer :one
+WITH active_membership_id AS
+         (SELECT mp.membership_id
+          FROM public.customer_membership_plans cmp
+                   LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
+                   LEFT JOIN membership.memberships m ON m.id = mp.membership_id
               WHERE customer_id = sqlc.arg('customer_id')
-                AND status = 'active');
+                AND status = 'active'
+          ORDER BY cmp.start_date DESC
+          LIMIT 1)
 
--- name: GetProgramRegisterInfoForCustomer :one
-SELECT pm.price_per_booking
+SELECT
+    -- Member program price (if available)
+    (SELECT ef.program_price
+     FROM public.enrollment_fees ef
+     WHERE ef.program_id = p.id
+       AND ef.membership_id = (SELECT membership_id FROM active_membership_id))
+           AS member_program_price,
+
+    -- Member drop-in price (if available)
+    (SELECT ef.drop_in_price
+     FROM public.enrollment_fees ef
+     WHERE ef.program_id = p.id
+       AND ef.membership_id = (SELECT membership_id FROM active_membership_id))
+           AS member_drop_in_price,
+
+    -- Non-member program price
+    (SELECT ef.program_price
+     FROM public.enrollment_fees ef
+     WHERE ef.program_id = p.id
+       AND ef.membership_id IS NULL)
+           AS non_member_program_price,
+
+    -- Non-member drop-in price
+    (SELECT ef.drop_in_price
+     FROM public.enrollment_fees ef
+     WHERE ef.program_id = p.id
+       AND ef.membership_id IS NULL)
+           AS non_member_drop_in_price,
+
+    p.name AS program_name
 FROM program.programs p
-         LEFT JOIN public.program_membership pm ON pm.program_id = p.id
-         LEFT JOIN membership.membership_plans mp ON mp.membership_id = pm.membership_id
-         LEFT JOIN public.customer_membership_plans cmp_active
-                   ON cmp_active.membership_plan_id = mp.id
-WHERE p.id = sqlc.arg('program_id')
-  AND cmp_active.customer_id = sqlc.arg('customer_id')
-  AND cmp_active.status = 'active'
-GROUP BY pm.price_per_booking, p.name;
+WHERE p.id = sqlc.arg('program_id');

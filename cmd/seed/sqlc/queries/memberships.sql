@@ -28,31 +28,6 @@ FROM unnest(@name_array::text[]) WITH ORDINALITY AS n(name, ord)
      unnest(@amt_periods_array::int[]) WITH ORDINALITY AS ap(amt_periods, ord) ON n.ord = ap.ord
 RETURNING id;
 
--- name: InsertCourseMembershipsEligibility :exec
-INSERT INTO public.program_membership (program_id, membership_id, is_eligible, price_per_booking)
-VALUES (unnest(@course_id_array::uuid[]),
-        unnest(@membership_id_array::uuid[]),
-        unnest(@is_eligible_array::bool[]),
-        unnest(@price_per_booking_array::numeric[]));
-
--- name: InsertPracticeMembershipsEligibility :exec
-WITH prepared_data as (SELECT unnest(@practice_names_array::text[])       as practice_names,
-                              unnest(@membership_names_array::text[])     as membership_names,
-                              unnest(@is_eligible_array::bool[])          as is_eligible,
-                              unnest(@price_per_booking_array::numeric[]) as price_per_booking)
-INSERT
-INTO public.program_membership (program_id, membership_id, is_eligible, price_per_booking)
-SELECT p.id,
-       m.id,
-       is_eligible,
-       CASE
-           WHEN is_eligible = false THEN NULL::numeric
-           ELSE price_per_booking
-           END AS price_per_booking
-FROM prepared_data
-         JOIN membership.memberships m ON m.name = membership_names
-         JOIN program.programs p ON p.name = practice_names;
-
 -- name: InsertClientsMembershipPlans :exec
 WITH prepared_data as (SELECT unnest(@customer_email_array::text[])       as customer_email,
                               unnest(@membership_plan_name::text[])     as membership_plan_name,

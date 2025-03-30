@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 )
 
 type AuditStatus string
@@ -483,6 +482,16 @@ type DiscountRestrictedMembershipPlan struct {
 	CreatedAt        time.Time `json:"created_at"`
 }
 
+type EnrollmentFee struct {
+	ID           uuid.UUID      `json:"id"`
+	ProgramID    uuid.UUID      `json:"program_id"`
+	MembershipID uuid.NullUUID  `json:"membership_id"`
+	DropInPrice  sql.NullString `json:"drop_in_price"`
+	ProgramPrice sql.NullString `json:"program_price"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+}
+
 type EventsCustomerEnrollment struct {
 	ID          uuid.UUID    `json:"id"`
 	CustomerID  uuid.UUID    `json:"customer_id"`
@@ -580,13 +589,6 @@ type MembershipMembershipPlan struct {
 	UpdatedAt        time.Time        `json:"updated_at"`
 }
 
-type ProgramMembership struct {
-	ProgramID       uuid.UUID      `json:"program_id"`
-	MembershipID    uuid.UUID      `json:"membership_id"`
-	PricePerBooking sql.NullString `json:"price_per_booking"`
-	IsEligible      bool           `json:"is_eligible"`
-}
-
 type ProgramProgram struct {
 	ID          uuid.UUID           `json:"id"`
 	Name        string              `json:"name"`
@@ -595,7 +597,6 @@ type ProgramProgram struct {
 	Type        ProgramProgramType  `json:"type"`
 	CreatedAt   time.Time           `json:"created_at"`
 	UpdatedAt   time.Time           `json:"updated_at"`
-	PaygPrice   decimal.NullDecimal `json:"payg_price"`
 }
 
 type StaffStaff struct {

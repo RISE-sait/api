@@ -85,11 +85,6 @@ func (h *Handler) GetPrograms(w http.ResponseWriter, r *http.Request) {
 			UpdatedAt:   program.UpdatedAt,
 		}
 
-		if program.ProgramDetails.PayGPrice.Valid {
-			paygPriceStr := program.ProgramDetails.PayGPrice.Decimal.String()
-			response.PaygPrice = &paygPriceStr
-		}
-
 		result[i] = response
 	}
 
@@ -123,15 +118,12 @@ func (h *Handler) GetProgram(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	paygPriceStr := program.ProgramDetails.PayGPrice.Decimal.String()
-
 	result := dto.Response{
 		ID:          program.ID,
 		Name:        program.ProgramDetails.Name,
 		Description: program.ProgramDetails.Description,
 		Level:       program.ProgramDetails.Level,
 		Type:        program.ProgramDetails.Type,
-		PaygPrice:   &paygPriceStr,
 		CreatedAt:   program.CreatedAt,
 		UpdatedAt:   program.UpdatedAt,
 	}

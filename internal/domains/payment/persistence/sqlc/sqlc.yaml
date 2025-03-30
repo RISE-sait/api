@@ -13,7 +13,7 @@ sql:
         overrides:
           - db_type: "pg_catalog.numeric"
             go_type: "github.com/shopspring/decimal.Decimal"
-          - column: "public.program_membership.price_per_booking"
+          - column: "public.enrollment_fees.drop_in_price"
             go_type: "github.com/shopspring/decimal.NullDecimal"
-          - column: "program.programs.payg_price"
+          - column: "public.enrollment_fees.program_price"
             go_type: "github.com/shopspring/decimal.NullDecimal"

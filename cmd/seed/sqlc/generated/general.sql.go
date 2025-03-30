@@ -52,11 +52,12 @@ func (q *Queries) InsertCourses(ctx context.Context, arg InsertCoursesParams) er
 }
 
 const insertEnrollmentFees = `-- name: InsertEnrollmentFees :exec
-WITH prepared_data AS (SELECT unnest($1::uuid[])          AS program_id,
-                              unnest($2::uuid[])             AS membership_id,
+WITH prepared_data AS (SELECT unnest($1::uuid[])       AS program_id,
+                              unnest($2::uuid[])    AS membership_id,
                               unnest($3::numeric[]) AS drop_in_price,
-     unnest($4::numeric[]) AS program_price)
-INSERT INTO enrollment_fees (program_id, membership_id, drop_in_price, program_price)
+                              unnest($4::numeric[]) AS program_price)
+INSERT
+INTO enrollment_fees (program_id, membership_id, drop_in_price, program_price)
 SELECT program_id,
        CASE
            WHEN membership_id = '00000000-0000-0000-0000-000000000000' THEN NULL::uuid
@@ -66,10 +67,10 @@ SELECT program_id,
            WHEN drop_in_price = 9999 THEN NULL::numeric
            ELSE drop_in_price
            END AS payg_price,
-         CASE
-              WHEN program_price = 9999 THEN NULL::numeric
-              ELSE program_price
-              END AS program_price
+       CASE
+           WHEN program_price = 9999 THEN NULL::numeric
+           ELSE program_price
+           END AS program_price
 FROM prepared_data
 `
 
@@ -230,8 +231,8 @@ func (q *Queries) InsertTeams(ctx context.Context, arg InsertTeamsParams) ([]uui
 
 const insertWaivers = `-- name: InsertWaivers :exec
 INSERT INTO waiver.waiver(waiver_url, waiver_name)
-VALUES ('https://www.youtube.com/', 'youtube'),
-       ('https://www.youtube.com/watch?v=5GTFt8JNwHU', 'video')
+VALUES ('https://storage.googleapis.com/rise-sports/waivers/code.pdf', 'code_pdf'),
+       ('https://storage.googleapis.com/rise-sports/waivers/tetris.pdf', 'tetris_pdf')
 `
 
 func (q *Queries) InsertWaivers(ctx context.Context) error {

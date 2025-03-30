@@ -454,6 +454,8 @@ func main() {
 
 	seedStaffRoles(ctx, db)
 
+	seedFakeWaivers(ctx, db)
+
 	clientIds := seedUsers(ctx, db)
 
 	staffIds := seedStaff(ctx, db)

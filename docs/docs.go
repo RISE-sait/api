@@ -3590,10 +3590,10 @@ const docTemplate = `{
                 "program": {
                     "$ref": "#/definitions/event.ProgramInfo"
                 },
-                "program_end_at": {
+                "recurrence_end_at": {
                     "type": "string"
                 },
-                "program_start_at": {
+                "recurrence_start_at": {
                     "type": "string"
                 },
                 "schedule": {
@@ -3654,8 +3654,8 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "day",
-                "program_end_at",
-                "program_start_at",
+                "recurrence_end_at",
+                "recurrence_start_at",
                 "session_end_time",
                 "session_start_time"
             ],
@@ -3672,15 +3672,15 @@ const docTemplate = `{
                     "type": "string",
                     "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
                 },
-                "program_end_at": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
                 "program_id": {
                     "type": "string",
                     "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
                 },
-                "program_start_at": {
+                "recurrence_end_at": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "recurrence_start_at": {
                     "type": "string",
                     "example": "2023-10-05T07:00:00Z"
                 },

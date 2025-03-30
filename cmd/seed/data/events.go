@@ -12,12 +12,12 @@ import (
 func GetEvents() dbSeed.InsertEventsParams {
 
 	var (
-		programStartAtArray []time.Time
-		programEndAtArray   []time.Time
-		eventStartTimeArray []custom_types.TimeWithTimeZone
-		eventEndTimeArray   []custom_types.TimeWithTimeZone
-		dayArray            []dbSeed.DayEnum
-		programNameArray    []string
+		recurrenceStartAtArray []time.Time
+		recurrenceEndAtArray   []time.Time
+		eventStartTimeArray    []custom_types.TimeWithTimeZone
+		eventEndTimeArray      []custom_types.TimeWithTimeZone
+		dayArray               []dbSeed.DayEnum
+		programNameArray       []string
 		//courseNameArray       []string
 		//gameNameArray         []string
 		locationNameArray []string
@@ -76,8 +76,8 @@ func GetEvents() dbSeed.InsertEventsParams {
 				programEndAt = time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC) // Default to zero time if empty
 			}
 
-			programStartAtArray = append(programStartAtArray, programStartAt)
-			programEndAtArray = append(programEndAtArray, programEndAt)
+			recurrenceStartAtArray = append(recurrenceStartAtArray, programStartAt)
+			recurrenceEndAtArray = append(recurrenceEndAtArray, programEndAt)
 
 			eventStartTime, err := validators.ParseTime(schedule.EventStartTime + ":00+00:00")
 
@@ -113,12 +113,12 @@ func GetEvents() dbSeed.InsertEventsParams {
 	}
 
 	return dbSeed.InsertEventsParams{
-		ProgramStartAtArray: programStartAtArray,
-		ProgramEndAtArray:   programEndAtArray,
-		EventStartTimeArray: eventStartTimeArray,
-		EventEndTimeArray:   eventEndTimeArray,
-		DayArray:            dayArray,
-		ProgramNameArray:    programNameArray,
-		LocationNameArray:   locationNameArray,
+		RecurringStartAtArray: recurrenceStartAtArray,
+		RecurringEndAtArray:   recurrenceEndAtArray,
+		EventStartTimeArray:   eventStartTimeArray,
+		EventEndTimeArray:     eventEndTimeArray,
+		DayArray:              dayArray,
+		ProgramNameArray:      programNameArray,
+		LocationNameArray:     locationNameArray,
 	}
 }

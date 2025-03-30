@@ -55,8 +55,8 @@ RETURNING id;
 
 -- name: InsertWaivers :exec
 INSERT INTO waiver.waiver(waiver_url, waiver_name)
-VALUES ('https://www.youtube.com/', 'youtube'),
-       ('https://www.youtube.com/watch?v=5GTFt8JNwHU', 'video');
+VALUES ('https://storage.googleapis.com/rise-sports/waivers/code.pdf', 'code_pdf'),
+       ('https://storage.googleapis.com/rise-sports/waivers/tetris.pdf', 'tetris_pdf');
 
 -- name: InsertCoachStats :exec
 INSERT INTO athletic.coach_stats (coach_id, wins, losses)

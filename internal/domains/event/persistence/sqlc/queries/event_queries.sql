@@ -1,5 +1,5 @@
 -- name: CreateEvent :exec
-INSERT INTO events.events (program_start_at, program_end_at, event_start_time, event_end_time, day, location_id,
+INSERT INTO events.events (recurrence_start_at, recurrence_end_at, event_start_time, event_end_time, day, location_id,
                            program_id, capacity, created_by, updated_by)
 VALUES ($1, $2, $3, $4, $5,
         $6, $7, $8, sqlc.arg('created_by')::uuid, sqlc.arg('created_by')::uuid);
@@ -21,8 +21,8 @@ FROM events.events e
 WHERE (
           (sqlc.narg('program_id')::uuid = e.program_id OR sqlc.narg('program_id') IS NULL)
               AND (sqlc.narg('location_id')::uuid = e.location_id OR sqlc.narg('location_id') IS NULL)
-              AND (sqlc.narg('after')::timestamp <= e.program_start_at OR sqlc.narg('after') IS NULL)
-              AND (sqlc.narg('before')::timestamp >= e.program_end_at OR sqlc.narg('before') IS NULL OR
+              AND (sqlc.narg('after')::timestamp <= e.recurrence_start_at OR sqlc.narg('after') IS NULL)
+              AND (sqlc.narg('before')::timestamp >= e.recurrence_end_at OR sqlc.narg('before') IS NULL OR
                    e.program_end_at IS NULL)
               AND (sqlc.narg('type') = p.type OR sqlc.narg('type') IS NULL)
               AND (sqlc.narg('user_id')::uuid IS NULL OR ce.customer_id = sqlc.narg('user_id')::uuid OR
@@ -73,8 +73,8 @@ ORDER BY s.id, uc.id;
 
 -- name: UpdateEvent :exec
 UPDATE events.events
-SET program_start_at = $1,
-    program_end_at   = $2,
+SET recurrence_start_at = $1,
+    recurrence_end_at   = $2,
     location_id      = $3,
     program_id       = $4,
     event_start_time = $5,

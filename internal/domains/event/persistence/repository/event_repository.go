@@ -50,11 +50,11 @@ func (r *Repository) CreateEvent(ctx context.Context, eventDetails values.Create
 	}
 
 	dbParams := db.CreateEventParams{
-		ProgramStartAt: eventDetails.ProgramStartAt,
-		EventStartTime: eventDetails.EventStartTime,
-		EventEndTime:   eventDetails.EventEndTime,
-		Day:            db.DayEnum(eventDetails.Day),
-		LocationID:     eventDetails.LocationID,
+		RecurrenceStartAt: eventDetails.RecurrenceStartAt,
+		EventStartTime:    eventDetails.EventStartTime,
+		EventEndTime:      eventDetails.EventEndTime,
+		Day:               db.DayEnum(eventDetails.Day),
+		LocationID:        eventDetails.LocationID,
 		ProgramID: uuid.NullUUID{
 			UUID:  eventDetails.ProgramID,
 			Valid: eventDetails.ProgramID != uuid.Nil,
@@ -62,9 +62,9 @@ func (r *Repository) CreateEvent(ctx context.Context, eventDetails values.Create
 		CreatedBy: userID,
 	}
 
-	if eventDetails.ProgramEndAt != nil {
-		dbParams.ProgramEndAt = sql.NullTime{
-			Time:  *eventDetails.ProgramEndAt,
+	if eventDetails.RecurrenceEndAt != nil {
+		dbParams.RecurrenceEndAt = sql.NullTime{
+			Time:  *eventDetails.RecurrenceEndAt,
 			Valid: true,
 		}
 	}
@@ -142,12 +142,12 @@ func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEve
 				CreatedAt: row.CreatedAt,
 				UpdatedAt: row.UpdatedAt,
 				Details: values.Details{
-					Day:            string(row.Day),
-					ProgramStartAt: row.ProgramStartAt,
-					EventStartTime: row.EventStartTime,
-					EventEndTime:   row.EventEndTime,
-					LocationID:     row.LocationID,
-					ProgramID:      row.ProgramID.UUID,
+					Day:               string(row.Day),
+					RecurrenceStartAt: row.RecurrenceStartAt,
+					EventStartTime:    row.EventStartTime,
+					EventEndTime:      row.EventEndTime,
+					LocationID:        row.LocationID,
+					ProgramID:         row.ProgramID.UUID,
 				},
 				CreatedBy:       row.CreatedBy.UUID,
 				UpdatedBy:       row.UpdatedBy.UUID,
@@ -157,8 +157,8 @@ func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEve
 				LocationAddress: row.LocationAddress.String,
 			}
 
-			if row.ProgramEndAt.Valid {
-				event.Details.ProgramEndAt = &row.ProgramEndAt.Time
+			if row.RecurrenceEndAt.Valid {
+				event.Details.RecurrenceEndAt = &row.RecurrenceEndAt.Time
 			}
 
 			if row.Capacity.Valid {
@@ -256,12 +256,12 @@ func (r *Repository) GetEvents(ctx context.Context, programTypeStr string, progr
 			CreatedAt: row.CreatedAt,
 			UpdatedAt: row.UpdatedAt,
 			Details: values.Details{
-				Day:            string(row.Day),
-				ProgramStartAt: row.ProgramStartAt,
-				EventStartTime: row.EventStartTime,
-				EventEndTime:   row.EventEndTime,
-				ProgramID:      row.ProgramID.UUID,
-				LocationID:     row.LocationID,
+				Day:               string(row.Day),
+				RecurrenceStartAt: row.RecurrenceStartAt,
+				EventStartTime:    row.EventStartTime,
+				EventEndTime:      row.EventEndTime,
+				ProgramID:         row.ProgramID.UUID,
+				LocationID:        row.LocationID,
 			},
 			ProgramName:     row.ProgramName.String,
 			ProgramType:     string(row.ProgramType.ProgramProgramType),
@@ -271,8 +271,8 @@ func (r *Repository) GetEvents(ctx context.Context, programTypeStr string, progr
 			UpdatedBy:       row.UpdatedBy.UUID,
 		}
 
-		if row.ProgramEndAt.Valid {
-			event.Details.ProgramEndAt = &row.ProgramEndAt.Time
+		if row.RecurrenceEndAt.Valid {
+			event.Details.RecurrenceEndAt = &row.RecurrenceEndAt.Time
 		}
 
 		if row.TeamID.Valid && row.TeamName.Valid {
@@ -324,19 +324,19 @@ func (r *Repository) UpdateEvent(ctx context.Context, event values.UpdateEventVa
 	}
 
 	dbEventParams := db.UpdateEventParams{
-		ProgramStartAt: event.ProgramStartAt,
-		LocationID:     event.LocationID,
-		ProgramID:      uuid.NullUUID{UUID: event.ProgramID, Valid: event.ProgramID != uuid.Nil},
-		EventStartTime: event.EventStartTime,
-		EventEndTime:   event.EventEndTime,
-		Day:            db.DayEnum(event.Day),
-		ID:             event.ID,
-		UpdatedBy:      userID,
+		RecurrenceStartAt: event.RecurrenceStartAt,
+		LocationID:        event.LocationID,
+		ProgramID:         uuid.NullUUID{UUID: event.ProgramID, Valid: event.ProgramID != uuid.Nil},
+		EventStartTime:    event.EventStartTime,
+		EventEndTime:      event.EventEndTime,
+		Day:               db.DayEnum(event.Day),
+		ID:                event.ID,
+		UpdatedBy:         userID,
 	}
 
-	if event.ProgramEndAt != nil {
-		dbEventParams.ProgramEndAt = sql.NullTime{
-			Time:  *event.ProgramEndAt,
+	if event.RecurrenceEndAt != nil {
+		dbEventParams.RecurrenceEndAt = sql.NullTime{
+			Time:  *event.RecurrenceEndAt,
 			Valid: true,
 		}
 	}

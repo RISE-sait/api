@@ -50,8 +50,7 @@ jobs:
           cd ../../../../../
           cd internal/domains/user/persistence/sqlc && sqlc generate
           cd ../../../../../
-          cd cmd/seed/persistence/sqlc && sqlc generate
-          cd ../../../../
+          cd cmd/seed/sqlc && sqlc generate
 
       - name: Run Tests
         env:

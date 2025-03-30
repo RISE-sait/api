@@ -49,6 +49,9 @@ jobs:
           cd internal/domains/payment/persistence/sqlc && sqlc generate
           cd ../../../../../
           cd internal/domains/user/persistence/sqlc && sqlc generate
+          cd ../../../../../
+          cd cmd/seed/persistence/sqlc && sqlc generate
+          cd ../../../../
 
       - name: Run Tests
         env:

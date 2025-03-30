@@ -3,7 +3,7 @@ INSERT INTO location.locations (name, address)
 VALUES (unnest(@name_array::text[]), unnest(@address_array::text[]))
 RETURNING id;
 
--- name: InsertPractices :exec
+-- name: InsertPractices :many
 WITH prepared_data as (
         SELECT unnest(@name_array::text[]) as name,
         unnest(@description_array::text[]) as description,
@@ -13,7 +13,8 @@ SELECT name,
        description,
        'practice',
        level
-FROM prepared_data;
+FROM prepared_data
+RETURNING id;
 
 -- name: InsertCourses :exec
 WITH prepared_data as (SELECT unnest(@name_array::text[]) as name,
@@ -65,3 +66,25 @@ VALUES ((SELECT id FROM users.users WHERE email = 'viktor.djurasic+1@abcfitness.
        ((SELECT id FROM users.users WHERE email = 'coach@test.com'),
         1,
         2);
+
+-- name: InsertEnrollmentFees :exec
+WITH prepared_data AS (SELECT unnest(@program_id_array::uuid[])       AS program_id,
+                              unnest(@membership_id_array::uuid[])    AS membership_id,
+                              unnest(@drop_in_price_array::numeric[]) AS drop_in_price,
+                              unnest(@program_price_array::numeric[]) AS program_price)
+INSERT
+INTO enrollment_fees (program_id, membership_id, drop_in_price, program_price)
+SELECT program_id,
+       CASE
+           WHEN membership_id = '00000000-0000-0000-0000-000000000000' THEN NULL::uuid
+           ELSE membership_id
+           END AS membership_id,
+       CASE
+           WHEN drop_in_price = 9999 THEN NULL::numeric
+           ELSE drop_in_price
+           END AS payg_price,
+       CASE
+           WHEN program_price = 9999 THEN NULL::numeric
+           ELSE program_price
+           END AS program_price
+FROM prepared_data;

@@ -42,7 +42,7 @@ func (q *Queries) InsertAthletes(ctx context.Context, idArray []uuid.UUID) ([]uu
 	return items, nil
 }
 
-const insertStaff = `-- name: InsertStaff :exec
+const insertStaff = `-- name: InsertStaff :many
 WITH staff_data AS (SELECT e.email,
                            ia.is_active,
                            rn.role_name
@@ -63,6 +63,7 @@ FROM staff_data sd
      users.users u ON u.email = sd.email
          JOIN
      staff.staff_roles sr ON sr.role_name = sd.role_name
+RETURNING id
 `
 
 type InsertStaffParams struct {
@@ -71,9 +72,27 @@ type InsertStaffParams struct {
 	RoleNameArray []string `json:"role_name_array"`
 }
 
-func (q *Queries) InsertStaff(ctx context.Context, arg InsertStaffParams) error {
-	_, err := q.db.ExecContext(ctx, insertStaff, pq.Array(arg.Emails), pq.Array(arg.IsActiveArray), pq.Array(arg.RoleNameArray))
-	return err
+func (q *Queries) InsertStaff(ctx context.Context, arg InsertStaffParams) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, insertStaff, pq.Array(arg.Emails), pq.Array(arg.IsActiveArray), pq.Array(arg.RoleNameArray))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const insertStaffRoles = `-- name: InsertStaffRoles :exec

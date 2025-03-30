@@ -75,7 +75,7 @@ WITH events_data AS (SELECT unnest($1::timestamptz[]) as program_start_at,
 INSERT
 INTO events.events (program_start_at, program_end_at, event_start_time, event_end_time, program_id, day, location_id)
 SELECT e.program_start_at,
-       e.program_end_at,
+       NULLIF(e.program_end_at, '0001-01-01 00:00:00 UTC') AS program_end_at,
        e.event_start_time,
        e.event_end_time,
          p.id AS program_id,
@@ -126,4 +126,24 @@ func (q *Queries) InsertEvents(ctx context.Context, arg InsertEventsParams) ([]u
 		return nil, err
 	}
 	return items, nil
+}
+
+const insertEventsStaff = `-- name: InsertEventsStaff :exec
+WITH prepared_data AS (SELECT unnest($1::uuid[])          AS event_id,
+                              unnest($2::uuid[])             AS staff_id)
+INSERT
+INTO events.staff(event_id, staff_id)
+SELECT event_id,
+       staff_id
+FROM prepared_data
+`
+
+type InsertEventsStaffParams struct {
+	EventIDArray []uuid.UUID `json:"event_id_array"`
+	StaffIDArray []uuid.UUID `json:"staff_id_array"`
+}
+
+func (q *Queries) InsertEventsStaff(ctx context.Context, arg InsertEventsStaffParams) error {
+	_, err := q.db.ExecContext(ctx, insertEventsStaff, pq.Array(arg.EventIDArray), pq.Array(arg.StaffIDArray))
+	return err
 }

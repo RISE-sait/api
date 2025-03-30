@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"github.com/shopspring/decimal"
 )
 
 const insertCoachStats = `-- name: InsertCoachStats :exec
@@ -47,6 +48,45 @@ type InsertCoursesParams struct {
 
 func (q *Queries) InsertCourses(ctx context.Context, arg InsertCoursesParams) error {
 	_, err := q.db.ExecContext(ctx, insertCourses, pq.Array(arg.NameArray), pq.Array(arg.DescriptionArray), pq.Array(arg.LevelArray))
+	return err
+}
+
+const insertEnrollmentFees = `-- name: InsertEnrollmentFees :exec
+WITH prepared_data AS (SELECT unnest($1::uuid[])          AS program_id,
+                              unnest($2::uuid[])             AS membership_id,
+                              unnest($3::numeric[]) AS drop_in_price,
+     unnest($4::numeric[]) AS program_price)
+INSERT INTO enrollment_fees (program_id, membership_id, drop_in_price, program_price)
+SELECT program_id,
+       CASE
+           WHEN membership_id = '00000000-0000-0000-0000-000000000000' THEN NULL::uuid
+           ELSE membership_id
+           END AS membership_id,
+       CASE
+           WHEN drop_in_price = 9999 THEN NULL::numeric
+           ELSE drop_in_price
+           END AS payg_price,
+         CASE
+              WHEN program_price = 9999 THEN NULL::numeric
+              ELSE program_price
+              END AS program_price
+FROM prepared_data
+`
+
+type InsertEnrollmentFeesParams struct {
+	ProgramIDArray    []uuid.UUID       `json:"program_id_array"`
+	MembershipIDArray []uuid.UUID       `json:"membership_id_array"`
+	DropInPriceArray  []decimal.Decimal `json:"drop_in_price_array"`
+	ProgramPriceArray []decimal.Decimal `json:"program_price_array"`
+}
+
+func (q *Queries) InsertEnrollmentFees(ctx context.Context, arg InsertEnrollmentFeesParams) error {
+	_, err := q.db.ExecContext(ctx, insertEnrollmentFees,
+		pq.Array(arg.ProgramIDArray),
+		pq.Array(arg.MembershipIDArray),
+		pq.Array(arg.DropInPriceArray),
+		pq.Array(arg.ProgramPriceArray),
+	)
 	return err
 }
 
@@ -104,7 +144,7 @@ func (q *Queries) InsertLocations(ctx context.Context, arg InsertLocationsParams
 	return err
 }
 
-const insertPractices = `-- name: InsertPractices :exec
+const insertPractices = `-- name: InsertPractices :many
 WITH prepared_data as (
         SELECT unnest($1::text[]) as name,
         unnest($2::text[]) as description,
@@ -115,6 +155,7 @@ SELECT name,
        'practice',
        level
 FROM prepared_data
+RETURNING id
 `
 
 type InsertPracticesParams struct {
@@ -123,9 +164,27 @@ type InsertPracticesParams struct {
 	LevelArray       []ProgramProgramLevel `json:"level_array"`
 }
 
-func (q *Queries) InsertPractices(ctx context.Context, arg InsertPracticesParams) error {
-	_, err := q.db.ExecContext(ctx, insertPractices, pq.Array(arg.NameArray), pq.Array(arg.DescriptionArray), pq.Array(arg.LevelArray))
-	return err
+func (q *Queries) InsertPractices(ctx context.Context, arg InsertPracticesParams) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, insertPractices, pq.Array(arg.NameArray), pq.Array(arg.DescriptionArray), pq.Array(arg.LevelArray))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const insertTeams = `-- name: InsertTeams :many

@@ -85,6 +85,10 @@ func (h *Handler) GetPrograms(w http.ResponseWriter, r *http.Request) {
 			UpdatedAt:   program.UpdatedAt,
 		}
 
+		if program.ProgramDetails.Capacity != nil {
+			response.Capacity = program.ProgramDetails.Capacity
+		}
+
 		result[i] = response
 	}
 
@@ -126,6 +130,10 @@ func (h *Handler) GetProgram(w http.ResponseWriter, r *http.Request) {
 		Type:        program.ProgramDetails.Type,
 		CreatedAt:   program.CreatedAt,
 		UpdatedAt:   program.UpdatedAt,
+	}
+
+	if program.ProgramDetails.Capacity != nil {
+		result.Capacity = program.ProgramDetails.Capacity
 	}
 
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)

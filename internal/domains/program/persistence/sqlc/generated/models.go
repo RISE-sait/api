@@ -503,20 +503,20 @@ type EventsCustomerEnrollment struct {
 }
 
 type EventsEvent struct {
-	ID             uuid.UUID     `json:"id"`
-	ProgramStartAt time.Time     `json:"program_start_at"`
-	ProgramEndAt   time.Time     `json:"program_end_at"`
-	ProgramID      uuid.NullUUID `json:"program_id"`
-	TeamID         uuid.NullUUID `json:"team_id"`
-	LocationID     uuid.UUID     `json:"location_id"`
-	Capacity       sql.NullInt32 `json:"capacity"`
-	CreatedAt      time.Time     `json:"created_at"`
-	UpdatedAt      time.Time     `json:"updated_at"`
-	Day            DayEnum       `json:"day"`
-	EventStartTime interface{}   `json:"event_start_time"`
-	EventEndTime   interface{}   `json:"event_end_time"`
-	CreatedBy      uuid.NullUUID `json:"created_by"`
-	UpdatedBy      uuid.NullUUID `json:"updated_by"`
+	ID                uuid.UUID     `json:"id"`
+	RecurrenceStartAt time.Time     `json:"recurrence_start_at"`
+	RecurrenceEndAt   sql.NullTime  `json:"recurrence_end_at"`
+	ProgramID         uuid.NullUUID `json:"program_id"`
+	TeamID            uuid.NullUUID `json:"team_id"`
+	LocationID        uuid.UUID     `json:"location_id"`
+	Capacity          sql.NullInt32 `json:"capacity"`
+	CreatedAt         time.Time     `json:"created_at"`
+	UpdatedAt         time.Time     `json:"updated_at"`
+	Day               DayEnum       `json:"day"`
+	EventStartTime    interface{}   `json:"event_start_time"`
+	EventEndTime      interface{}   `json:"event_end_time"`
+	CreatedBy         uuid.NullUUID `json:"created_by"`
+	UpdatedBy         uuid.NullUUID `json:"updated_by"`
 }
 
 type EventsStaff struct {
@@ -597,6 +597,7 @@ type ProgramProgram struct {
 	Type        ProgramProgramType  `json:"type"`
 	CreatedAt   time.Time           `json:"created_at"`
 	UpdatedAt   time.Time           `json:"updated_at"`
+	Capacity    sql.NullInt32       `json:"capacity"`
 }
 
 type StaffStaff struct {

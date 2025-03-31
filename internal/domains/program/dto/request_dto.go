@@ -11,6 +11,7 @@ type RequestDto struct {
 	Description string `json:"description"`
 	Level       string `json:"level" validate:"required,notwhitespace"`
 	Type        string `json:"type" validate:"required,notwhitespace"`
+	Capacity    *int32 `json:"capacity"`
 }
 
 func (dto RequestDto) validate() *errLib.CommonError {

@@ -4109,6 +4109,9 @@
                 "type"
             ],
             "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -4126,6 +4129,9 @@
         "program.Response": {
             "type": "object",
             "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
                 "created_at": {
                     "type": "string"
                 },

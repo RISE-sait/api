@@ -4120,6 +4120,9 @@ const docTemplate = `{
                 "type"
             ],
             "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -4137,6 +4140,9 @@ const docTemplate = `{
         "program.Response": {
             "type": "object",
             "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
                 "created_at": {
                     "type": "string"
                 },

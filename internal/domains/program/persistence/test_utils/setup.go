@@ -38,7 +38,8 @@ create table if not exists program.programs
     level       program.program_level    default 'all'::program.program_level not null,
     type        program.program_type                                          not null,
     created_at  timestamp with time zone default CURRENT_TIMESTAMP            not null,
-    updated_at  timestamp with time zone default CURRENT_TIMESTAMP            not null
+    updated_at  timestamp with time zone default CURRENT_TIMESTAMP            not null,
+    capacity    integer
 );
 
 alter table program.programs

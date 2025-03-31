@@ -47,6 +47,13 @@ func (r *Repository) Update(ctx context.Context, program values.UpdateProgramVal
 		Level:       db.ProgramProgramLevel(program.ProgramDetails.Level),
 	}
 
+	if program.Capacity != nil {
+		params.Capacity = sql.NullInt32{
+			Int32: *program.Capacity,
+			Valid: true,
+		}
+	}
+
 	if err := r.Queries.UpdateProgram(ctx, params); err != nil {
 		// Check if the error is a unique violation (duplicate name)
 		var pqErr *pq.Error
@@ -75,7 +82,7 @@ func (r *Repository) GetProgramByID(ctx context.Context, id uuid.UUID) (values.G
 		return values.GetProgramValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return values.GetProgramValues{
+	response := values.GetProgramValues{
 		ID:        dbProgram.ID,
 		CreatedAt: dbProgram.CreatedAt,
 		UpdatedAt: dbProgram.UpdatedAt,
@@ -85,7 +92,13 @@ func (r *Repository) GetProgramByID(ctx context.Context, id uuid.UUID) (values.G
 			Level:       string(dbProgram.Level),
 			Type:        string(dbProgram.Type),
 		},
-	}, nil
+	}
+
+	if dbProgram.Capacity.Valid {
+		response.Capacity = &dbProgram.Capacity.Int32
+	}
+
+	return response, nil
 }
 
 func (r *Repository) List(ctx context.Context, programTypeStr string) ([]values.GetProgramValues, *errLib.CommonError) {
@@ -120,7 +133,7 @@ func (r *Repository) List(ctx context.Context, programTypeStr string) ([]values.
 	programs := make([]values.GetProgramValues, len(dbPrograms))
 
 	for i, dbProgram := range dbPrograms {
-		programs[i] = values.GetProgramValues{
+		val := values.GetProgramValues{
 			ID:        dbProgram.ID,
 			CreatedAt: dbProgram.CreatedAt,
 			UpdatedAt: dbProgram.UpdatedAt,
@@ -131,6 +144,12 @@ func (r *Repository) List(ctx context.Context, programTypeStr string) ([]values.
 				Type:        string(dbProgram.Type),
 			},
 		}
+
+		if dbProgram.Capacity.Valid {
+			val.Capacity = &dbProgram.Capacity.Int32
+		}
+
+		programs[i] = val
 	}
 
 	return programs, nil
@@ -157,6 +176,13 @@ func (r *Repository) Create(c context.Context, details values.CreateProgramValue
 		Description: details.Description,
 		Level:       db.ProgramProgramLevel(details.Level),
 		Type:        db.ProgramProgramType(details.Type),
+	}
+
+	if details.Capacity != nil {
+		dbPracticeParams.Capacity = sql.NullInt32{
+			Int32: *details.Capacity,
+			Valid: true,
+		}
 	}
 
 	if err := r.Queries.CreateProgram(c, dbPracticeParams); err != nil {

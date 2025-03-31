@@ -11,6 +11,7 @@ type ProgramDetails struct {
 	Description string
 	Level       string
 	Type        string
+	Capacity    *int32
 }
 
 type CreateProgramValues struct {

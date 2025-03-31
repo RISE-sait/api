@@ -454,45 +454,45 @@ func main() {
 
 	seedStaffRoles(ctx, db)
 
-	seedFakeWaivers(ctx, db)
+	//seedFakeWaivers(ctx, db)
 
-	clientIds := seedUsers(ctx, db)
+	_ = seedUsers(ctx, db)
 
-	staffIds := seedStaff(ctx, db)
+	_ = seedStaff(ctx, db)
 
-	seedFakeCoachStats(ctx, db)
+	//seedFakeCoachStats(ctx, db)
 
-	teamIds := seedFakeTeams(ctx, db)
+	//teamIds := seedFakeTeams(ctx, db)
 
-	practiceIds := seedPractices(ctx, db)
+	_ = seedPractices(ctx, db)
 
-	seedFakeCourses(ctx, db)
-
-	seedFakeGames(ctx, db, teamIds)
+	//seedFakeCourses(ctx, db)
+	//
+	//seedFakeGames(ctx, db, teamIds)
 
 	seedLocations(ctx, db)
 
-	eventIds := seedEvents(ctx, db)
+	_ = seedEvents(ctx, db)
 
-	membershipIds := seedMemberships(ctx, db)
+	_ = seedMemberships(ctx, db)
 
 	seedMembershipPlans(ctx, db)
 
-	updateFakeParents(ctx, db)
-
-	seedFakeAthletes(ctx, db, clientIds)
+	//updateFakeParents(ctx, db)
+	//
+	//seedFakeAthletes(ctx, db, clientIds)
 
 	seedClientsMembershipPlans(ctx, db)
 
-	seedFakeClientsEnrollments(ctx, db, clientIds, eventIds)
-
-	seedFakeEventStaff(ctx, db, eventIds, staffIds)
-
-	seedFakeEnrollmentFees(ctx, db, practiceIds, membershipIds)
+	//seedFakeClientsEnrollments(ctx, db, clientIds, eventIds)
+	//
+	//seedFakeEventStaff(ctx, db, eventIds, staffIds)
+	//
+	//seedFakeEnrollmentFees(ctx, db, practiceIds, membershipIds)
 
 	seedHaircutServices(ctx, db)
-
-	seedFakeBarberServices(ctx, db)
-
-	seedFakeHaircutEvents(ctx, db, clientIds)
+	//
+	//seedFakeBarberServices(ctx, db)
+	//
+	//seedFakeHaircutEvents(ctx, db, clientIds)
 }

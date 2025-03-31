@@ -5,6 +5,7 @@ import (
 	db "api/internal/domains/payment/persistence/sqlc/generated"
 	"api/internal/domains/payment/values"
 	errLib "api/internal/libs/errors"
+	contextUtils "api/utils/context"
 	"context"
 	"database/sql"
 	"errors"
@@ -57,9 +58,14 @@ func (r *Repository) GetMembershipPlanJoiningRequirement(ctx context.Context, pl
 	}
 }
 
-func (r *Repository) GetProgramRegistrationInfoByCustomer(ctx context.Context, customerID, programID uuid.UUID) (values.ProgramRegistrationInfo, *errLib.CommonError) {
+func (r *Repository) GetProgramRegistrationInfoForCustomer(ctx context.Context, programID uuid.UUID) (values.ProgramRegistrationInfo, *errLib.CommonError) {
 
 	var response values.ProgramRegistrationInfo
+
+	customerID, ctxErr := contextUtils.GetUserID(ctx)
+	if ctxErr != nil {
+		return response, ctxErr
+	}
 
 	program, err := r.Queries.GetProgram(ctx, programID)
 	if err != nil {

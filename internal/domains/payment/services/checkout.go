@@ -53,9 +53,9 @@ func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID u
 	}
 }
 
-func (s *Service) CheckoutProgram(ctx context.Context, userID, programID uuid.UUID) (string, *errLib.CommonError) {
+func (s *Service) CheckoutProgram(ctx context.Context, programID uuid.UUID) (string, *errLib.CommonError) {
 
-	joinProgramRequirements, err := s.PurchaseRepo.GetProgramRegistrationInfoByCustomer(ctx, userID, programID)
+	joinProgramRequirements, err := s.PurchaseRepo.GetProgramRegistrationInfoForCustomer(ctx, programID)
 
 	if err != nil {
 		return "", err

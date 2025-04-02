@@ -1,6 +1,8 @@
 -- +goose Up
 -- +goose StatementBegin
 
+CREATE TYPE payment_frequency AS ENUM ('once', 'week', 'biweekly', 'month', 'day');
+
 CREATE SCHEMA IF NOT EXISTS membership;
 
 CREATE TABLE IF NOT EXISTS membership.memberships
@@ -8,11 +10,10 @@ CREATE TABLE IF NOT EXISTS membership.memberships
     id          UUID PRIMARY KEY         DEFAULT gen_random_uuid(),
     name       VARCHAR(150)             NOT NULL,
     description TEXT,
+    benefits varchar(750) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-
-CREATE TYPE payment_frequency AS ENUM ('once', 'week', 'month', 'day');
 
 CREATE TABLE IF NOT EXISTS membership.membership_plans
 (
@@ -36,7 +37,8 @@ CREATE TABLE IF NOT EXISTS membership.membership_plans
 
 -- +goose Down
 -- +goose StatementBegin
+DROP SCHEMA IF EXISTS membership cascade;
+
 DROP TYPE IF EXISTS payment_frequency;
 
-DROP SCHEMA IF EXISTS membership cascade;
 -- +goose StatementEnd

@@ -40,10 +40,16 @@ func (r *Repository) GetProgramLevels() []string {
 
 func (r *Repository) Update(ctx context.Context, program values.UpdateProgramValues) *errLib.CommonError {
 
+	if !db.ProgramProgramType(program.Type).Valid() {
+		validTypes := db.AllProgramProgramTypeValues()
+		return errLib.New(fmt.Sprintf("Invalid program type. Valid types are: %v", validTypes), http.StatusBadRequest)
+	}
+
 	params := db.UpdateProgramParams{
 		ID:          program.ID,
 		Name:        program.ProgramDetails.Name,
 		Description: program.ProgramDetails.Description,
+		Type:        db.ProgramProgramType(program.Type),
 		Level:       db.ProgramProgramLevel(program.ProgramDetails.Level),
 	}
 

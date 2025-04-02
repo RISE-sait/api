@@ -96,18 +96,19 @@ func (q *Queries) InsertMembershipPlans(ctx context.Context, arg InsertMembershi
 }
 
 const insertMemberships = `-- name: InsertMemberships :many
-INSERT INTO membership.memberships (name, description)
-VALUES (unnest($1::text[]), unnest($2::text[]))
+INSERT INTO membership.memberships (name, description, benefits)
+VALUES (unnest($1::text[]), unnest($2::text[]), unnest($3::text[]))
 RETURNING id
 `
 
 type InsertMembershipsParams struct {
 	NameArray        []string `json:"name_array"`
 	DescriptionArray []string `json:"description_array"`
+	BenefitsArray    []string `json:"benefits_array"`
 }
 
 func (q *Queries) InsertMemberships(ctx context.Context, arg InsertMembershipsParams) ([]uuid.UUID, error) {
-	rows, err := q.db.QueryContext(ctx, insertMemberships, pq.Array(arg.NameArray), pq.Array(arg.DescriptionArray))
+	rows, err := q.db.QueryContext(ctx, insertMemberships, pq.Array(arg.NameArray), pq.Array(arg.DescriptionArray), pq.Array(arg.BenefitsArray))
 	if err != nil {
 		return nil, err
 	}

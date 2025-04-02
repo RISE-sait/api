@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS program.programs
     description TEXT                     NOT NULL,
     level       program.program_level    NOT NULL DEFAULT 'all',
     type        program.program_type     NOT NULL,
+    capacity int,
     created_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -20,5 +21,5 @@ CREATE TABLE IF NOT EXISTS program.programs
 
 -- +goose Down
 -- +goose StatementBegin
-DROP SCHEMA IF EXISTS programs cascade;
+DROP SCHEMA IF EXISTS program cascade;
 -- +goose StatementEnd

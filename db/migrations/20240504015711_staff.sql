@@ -5,7 +5,9 @@ CREATE schema if not exists staff;
 CREATE TABLE IF NOT EXISTS staff.staff_roles
 (
     id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    role_name TEXT NOT NULL UNIQUE
+    role_name  TEXT                     NOT NULL UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE Table IF NOT EXISTS staff.staff
@@ -27,4 +29,4 @@ CREATE TABLE IF NOT EXISTS staff.staff_activity_logs
 );
 
 -- +goose Down
-DROP SCHEMA if exists staff;
+DROP SCHEMA if exists staff cascade;

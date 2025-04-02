@@ -1,4 +1,4 @@
-package event
+package schedule
 
 import (
 	"api/internal/custom_types"
@@ -60,34 +60,33 @@ func (dto RequestDto) validate() (time.Time, time.Time, custom_types.TimeWithTim
 	return recurrenceBeginDateTime, recurrenceEndDateTime, sessionBeginTime, sessionEndTime, nil
 }
 
-func (dto RequestDto) ToCreateEventValues() (values.CreateEventValues, *errLib.CommonError) {
+func (dto RequestDto) ToCreateScheduleValues() (values.CreateScheduleValues, *errLib.CommonError) {
 
 	recurrenceBeginDateTime, recurrenceEndDateTime, sessionBeginTime, sessionEndTime, err := dto.validate()
 
 	if err != nil {
-		return values.CreateEventValues{}, err
+		return values.CreateScheduleValues{}, err
 	}
 
-	return values.CreateEventValues{
-		Details: values.Details{
+	return values.CreateScheduleValues{
+		ScheduleDetails: values.ScheduleDetails{
 			RecurrenceStartAt: recurrenceBeginDateTime,
 			RecurrenceEndAt:   &recurrenceEndDateTime,
 			EventStartTime:    sessionBeginTime,
 			EventEndTime:      sessionEndTime,
 			ProgramID:         dto.ProgramID,
 			LocationID:        dto.LocationID,
-			Capacity:          dto.Capacity,
 			Day:               dto.Day,
 		},
 	}, nil
 }
 
-func (dto RequestDto) ToUpdateEventValues(idStr string) (values.UpdateEventValues, *errLib.CommonError) {
+func (dto RequestDto) ToUpdateScheduleValues(idStr string) (values.UpdateScheduleValues, *errLib.CommonError) {
 
 	id, err := validators.ParseUUID(idStr)
 
 	if err != nil {
-		return values.UpdateEventValues{}, err
+		return values.UpdateScheduleValues{}, err
 	}
 
 	recurrenceBeginDateTime, recurrenceEndDateTime, sessionBeginTime, sessionEndTime, err := dto.validate()
@@ -95,19 +94,18 @@ func (dto RequestDto) ToUpdateEventValues(idStr string) (values.UpdateEventValue
 	if err != nil {
 
 		log.Println("Error: ", err)
-		return values.UpdateEventValues{}, err
+		return values.UpdateScheduleValues{}, err
 	}
 
-	return values.UpdateEventValues{
+	return values.UpdateScheduleValues{
 		ID: id,
-		Details: values.Details{
+		ScheduleDetails: values.ScheduleDetails{
 			RecurrenceStartAt: recurrenceBeginDateTime,
 			RecurrenceEndAt:   &recurrenceEndDateTime,
 			EventStartTime:    sessionBeginTime,
 			EventEndTime:      sessionEndTime,
 			Day:               dto.Day,
 			ProgramID:         dto.ProgramID,
-			Capacity:          dto.Capacity,
 			LocationID:        dto.LocationID,
 		},
 	}, nil

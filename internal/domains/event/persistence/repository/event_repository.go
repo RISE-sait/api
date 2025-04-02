@@ -11,24 +11,23 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
 
-type Repository struct {
+type EventsRepository struct {
 	Queries *db.Queries
 }
 
-func NewEventsRepository(dbQueries *db.Queries) *Repository {
-	return &Repository{
+func NewEventsRepository(dbQueries *db.Queries) *EventsRepository {
+	return &EventsRepository{
 		Queries: dbQueries,
 	}
 }
 
-func (r *Repository) CreateEvent(ctx context.Context, eventDetails values.CreateEventValues) *errLib.CommonError {
+func (r *EventsRepository) CreateEvent(ctx context.Context, eventDetails values.CreateEventValues) *errLib.CommonError {
 
 	userID, err := contextUtils.GetUserID(ctx)
 
@@ -36,42 +35,19 @@ func (r *Repository) CreateEvent(ctx context.Context, eventDetails values.Create
 		return err
 	}
 
-	if !db.DayEnum(eventDetails.Day).Valid() {
-
-		validDaysDbValues := db.AllDayEnumValues()
-
-		validDays := make([]string, len(validDaysDbValues))
-
-		for i, value := range validDaysDbValues {
-			validDays[i] = string(value)
-		}
-
-		return errLib.New("Invalid day provided. Valid days are: "+strings.Join(validDays, ", "), http.StatusBadRequest)
-	}
-
 	dbParams := db.CreateEventParams{
-		RecurrenceStartAt: eventDetails.RecurrenceStartAt,
-		EventStartTime:    eventDetails.EventStartTime,
-		EventEndTime:      eventDetails.EventEndTime,
-		Day:               db.DayEnum(eventDetails.Day),
-		LocationID:        eventDetails.LocationID,
-		ProgramID: uuid.NullUUID{
-			UUID:  eventDetails.ProgramID,
-			Valid: eventDetails.ProgramID != uuid.Nil,
-		},
+		StartAt:   eventDetails.StartAt,
+		EndAt:     eventDetails.EndAt,
 		CreatedBy: userID,
-	}
-
-	if eventDetails.RecurrenceEndAt != nil {
-		dbParams.RecurrenceEndAt = sql.NullTime{
-			Time:  *eventDetails.RecurrenceEndAt,
+		Capacity: sql.NullInt32{
+			Int32: eventDetails.Capacity,
 			Valid: true,
-		}
+		},
 	}
 
-	if eventDetails.Capacity != nil {
-		dbParams.Capacity = sql.NullInt32{
-			Int32: *eventDetails.Capacity,
+	if eventDetails.ScheduleID != uuid.Nil {
+		dbParams.ScheduleID = uuid.NullUUID{
+			UUID:  eventDetails.ScheduleID,
 			Valid: true,
 		}
 	}
@@ -101,7 +77,7 @@ func (r *Repository) CreateEvent(ctx context.Context, eventDetails values.Create
 	return nil
 }
 
-func (r *Repository) GetEventCreatedBy(ctx context.Context, eventID uuid.UUID) (uuid.UUID, *errLib.CommonError) {
+func (r *EventsRepository) GetEventCreatedBy(ctx context.Context, eventID uuid.UUID) (uuid.UUID, *errLib.CommonError) {
 	userID, err := r.Queries.GetEventCreatedBy(ctx, eventID)
 
 	if err != nil {
@@ -112,14 +88,10 @@ func (r *Repository) GetEventCreatedBy(ctx context.Context, eventID uuid.UUID) (
 		return uuid.Nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	if !userID.Valid {
-		return uuid.Nil, errLib.New("Unknown reason. Couldn't get the person who created this event.", http.StatusInternalServerError)
-	}
-
-	return userID.UUID, nil
+	return userID, nil
 }
 
-func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEventValues, *errLib.CommonError) {
+func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEventValues, *errLib.CommonError) {
 	rows, err := r.Queries.GetEventById(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -142,27 +114,53 @@ func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEve
 				CreatedAt: row.CreatedAt,
 				UpdatedAt: row.UpdatedAt,
 				Details: values.Details{
-					Day:               string(row.Day),
-					RecurrenceStartAt: row.RecurrenceStartAt,
-					EventStartTime:    row.EventStartTime,
-					EventEndTime:      row.EventEndTime,
-					LocationID:        row.LocationID,
-					ProgramID:         row.ProgramID.UUID,
+					StartAt: row.StartAt,
+					EndAt:   row.EndAt,
 				},
-				CreatedBy:       row.CreatedBy.UUID,
-				UpdatedBy:       row.UpdatedBy.UUID,
-				ProgramName:     row.ProgramName.String,
-				ProgramType:     string(row.ProgramType.ProgramProgramType),
-				LocationName:    row.LocationName.String,
-				LocationAddress: row.LocationAddress.String,
+				Capacity: row.Capacity.Int32,
+				Location: struct {
+					ID      uuid.UUID
+					Name    string
+					Address string
+				}{
+					ID:      row.LocationID.UUID,
+					Name:    row.LocationName,
+					Address: row.LocationAddress,
+				},
+				CreatedBy: values.ReadPersonValues{
+					ID:        row.CreatedBy,
+					FirstName: row.CreatorFirstName,
+					LastName:  row.CreatorLastName,
+				},
+				UpdatedBy: values.ReadPersonValues{
+					ID:        row.UpdatedBy,
+					FirstName: row.UpdaterFirstName,
+					LastName:  row.UpdaterLastName,
+				},
 			}
 
-			if row.RecurrenceEndAt.Valid {
-				event.Details.RecurrenceEndAt = &row.RecurrenceEndAt.Time
+			if row.TeamID.Valid && row.TeamName.Valid {
+				event.Team = &struct {
+					ID   uuid.UUID
+					Name string
+				}{
+					ID:   row.TeamID.UUID,
+					Name: row.TeamName.String,
+				}
 			}
 
-			if row.Capacity.Valid {
-				event.Details.Capacity = &row.Capacity.Int32
+			if row.ProgramID.Valid && row.ProgramName.Valid {
+				event.Program = &struct {
+					ID          uuid.UUID
+					Name        string
+					Description string
+					Type        string
+				}{
+					ID:          row.ProgramID.UUID,
+					Name:        row.ProgramName.String,
+					Description: row.ProgramDescription.String,
+					Type:        string(row.ProgramType.ProgramProgramType),
+				}
 			}
 		}
 
@@ -193,13 +191,12 @@ func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEve
 		// Add customer if exists in this row
 		if row.CustomerID.Valid {
 			customer := values.Customer{
-				ID:                    row.CustomerID.UUID,
-				FirstName:             row.CustomerFirstName.String,
-				LastName:              row.CustomerLastName.String,
-				Email:                 stringToPtr(row.CustomerEmail),
-				Phone:                 stringToPtr(row.CustomerPhone),
-				Gender:                stringToPtr(row.CustomerGender),
-				IsEnrollmentCancelled: row.CustomerIsCancelled.Bool,
+				ID:        row.CustomerID.UUID,
+				FirstName: row.CustomerFirstName.String,
+				LastName:  row.CustomerLastName.String,
+				Email:     stringToPtr(row.CustomerEmail),
+				Phone:     stringToPtr(row.CustomerPhone),
+				Gender:    stringToPtr(row.CustomerGender),
 			}
 			event.Customers = append(event.Customers, customer)
 		}
@@ -213,7 +210,7 @@ func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEve
 	return event, nil
 }
 
-func (r *Repository) GetEvents(ctx context.Context, programTypeStr string, programID, locationID, userID, teamID, createdBy, updatedBy uuid.UUID, before, after time.Time) ([]values.ReadEventValues, *errLib.CommonError) {
+func (r *EventsRepository) GetEvents(ctx context.Context, programTypeStr string, programID, locationID, userID, teamID, createdBy, updatedBy uuid.UUID, before, after time.Time) ([]values.ReadEventValues, *errLib.CommonError) {
 
 	var programType db.NullProgramProgramType
 
@@ -229,7 +226,7 @@ func (r *Repository) GetEvents(ctx context.Context, programTypeStr string, progr
 	}
 
 	// Execute the query using SQLC generated function
-	dbRows, err := r.Queries.GetEvents(ctx, db.GetEventsParams{
+	param := db.GetEventsParams{
 		ProgramID:  uuid.NullUUID{UUID: programID, Valid: programID != uuid.Nil},
 		LocationID: uuid.NullUUID{UUID: locationID, Valid: locationID != uuid.Nil},
 		Before:     sql.NullTime{Time: before, Valid: !before.IsZero()},
@@ -239,7 +236,9 @@ func (r *Repository) GetEvents(ctx context.Context, programTypeStr string, progr
 		CreatedBy:  uuid.NullUUID{UUID: createdBy, Valid: createdBy != uuid.Nil},
 		UpdatedBy:  uuid.NullUUID{UUID: updatedBy, Valid: updatedBy != uuid.Nil},
 		Type:       programType,
-	})
+	}
+
+	dbRows, err := r.Queries.GetEvents(ctx, param)
 
 	if err != nil {
 		log.Println("Failed to get events from db: ", err.Error())
@@ -256,37 +255,56 @@ func (r *Repository) GetEvents(ctx context.Context, programTypeStr string, progr
 			CreatedAt: row.CreatedAt,
 			UpdatedAt: row.UpdatedAt,
 			Details: values.Details{
-				Day:               string(row.Day),
-				RecurrenceStartAt: row.RecurrenceStartAt,
-				EventStartTime:    row.EventStartTime,
-				EventEndTime:      row.EventEndTime,
-				ProgramID:         row.ProgramID.UUID,
-				LocationID:        row.LocationID,
+				StartAt: row.StartAt,
+				EndAt:   row.EndAt,
 			},
-			ProgramName:     row.ProgramName.String,
-			ProgramType:     string(row.ProgramType.ProgramProgramType),
-			LocationName:    row.LocationName,
-			LocationAddress: row.LocationAddress,
-			CreatedBy:       row.CreatedBy.UUID,
-			UpdatedBy:       row.UpdatedBy.UUID,
+			Location: struct {
+				ID      uuid.UUID
+				Name    string
+				Address string
+			}{
+				ID:      row.LocationID.UUID,
+				Name:    row.LocationName,
+				Address: row.LocationAddress,
+			},
+			CreatedBy: values.ReadPersonValues{
+				ID:        row.CreatedBy,
+				FirstName: row.CreatorFirstName,
+				LastName:  row.CreatorLastName,
+			},
+			UpdatedBy: values.ReadPersonValues{
+				ID:        row.UpdatedBy,
+				FirstName: row.UpdaterFirstName,
+				LastName:  row.UpdaterLastName,
+			},
 		}
 
-		if row.RecurrenceEndAt.Valid {
-			event.Details.RecurrenceEndAt = &row.RecurrenceEndAt.Time
+		if row.ProgramID.Valid && row.ProgramName.Valid && row.ProgramType.Valid && row.ProgramDescription.Valid {
+			event.Program = &struct {
+				ID          uuid.UUID
+				Name        string
+				Description string
+				Type        string
+			}{
+				ID:          row.ProgramID.UUID,
+				Name:        row.ProgramName.String,
+				Description: row.ProgramDescription.String,
+				Type:        string(row.ProgramType.ProgramProgramType),
+			}
 		}
 
 		if row.TeamID.Valid && row.TeamName.Valid {
-			event.TeamID = row.TeamID.UUID
-			event.TeamName = row.TeamName.String
+			event.Team = &struct {
+				ID   uuid.UUID
+				Name string
+			}{
+				ID:   row.TeamID.UUID,
+				Name: row.TeamName.String,
+			}
 		}
 
 		if row.Capacity.Valid {
-			event.Details.Capacity = &row.Capacity.Int32
-		}
-
-		if row.TeamID.Valid && row.TeamName.Valid {
-			event.TeamID = row.TeamID.UUID
-			event.TeamName = row.TeamName.String
+			event.Capacity = row.Capacity.Int32
 		}
 
 		events = append(events, event)
@@ -302,7 +320,7 @@ func stringToPtr(s sql.NullString) *string {
 	return nil
 }
 
-func (r *Repository) UpdateEvent(ctx context.Context, event values.UpdateEventValues) *errLib.CommonError {
+func (r *EventsRepository) UpdateEvent(ctx context.Context, event values.UpdateEventValues) *errLib.CommonError {
 
 	userID, err := contextUtils.GetUserID(ctx)
 
@@ -310,33 +328,16 @@ func (r *Repository) UpdateEvent(ctx context.Context, event values.UpdateEventVa
 		return err
 	}
 
-	if !db.DayEnum(event.Day).Valid() {
-
-		validDaysDbValues := db.AllDayEnumValues()
-
-		validDays := make([]string, len(validDaysDbValues))
-
-		for i, value := range validDaysDbValues {
-			validDays[i] = string(value)
-		}
-
-		return errLib.New("Invalid day provided. Valid days are: "+strings.Join(validDays, ", "), http.StatusBadRequest)
-	}
-
 	dbEventParams := db.UpdateEventParams{
-		RecurrenceStartAt: event.RecurrenceStartAt,
-		LocationID:        event.LocationID,
-		ProgramID:         uuid.NullUUID{UUID: event.ProgramID, Valid: event.ProgramID != uuid.Nil},
-		EventStartTime:    event.EventStartTime,
-		EventEndTime:      event.EventEndTime,
-		Day:               db.DayEnum(event.Day),
-		ID:                event.ID,
-		UpdatedBy:         userID,
+		StartAt:    event.StartAt,
+		EndAt:      event.EndAt,
+		ScheduleID: uuid.NullUUID{UUID: event.ScheduleID, Valid: event.ScheduleID != uuid.Nil},
+		UpdatedBy:  userID,
 	}
 
-	if event.RecurrenceEndAt != nil {
-		dbEventParams.RecurrenceEndAt = sql.NullTime{
-			Time:  *event.RecurrenceEndAt,
+	if event.Capacity != nil {
+		dbEventParams.Capacity = sql.NullInt32{
+			Int32: *event.Capacity,
 			Valid: true,
 		}
 	}
@@ -367,7 +368,7 @@ func (r *Repository) UpdateEvent(ctx context.Context, event values.UpdateEventVa
 
 }
 
-func (r *Repository) DeleteEvent(c context.Context, id uuid.UUID) *errLib.CommonError {
+func (r *EventsRepository) DeleteEvent(c context.Context, id uuid.UUID) *errLib.CommonError {
 	err := r.Queries.DeleteEvent(c, id)
 
 	if err != nil {

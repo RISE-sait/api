@@ -15,7 +15,7 @@ import (
 const enrollCustomer = `-- name: EnrollCustomer :one
 INSERT INTO events.customer_enrollment (customer_id, event_id, checked_in_at, is_cancelled)
 VALUES ($1, $2, $3, false)
-RETURNING id, customer_id, event_id, created_at, updated_at, checked_in_at, is_cancelled
+RETURNING id, customer_id, event_id, created_at, updated_at, checked_in_at
 `
 
 type EnrollCustomerParams struct {
@@ -34,7 +34,6 @@ func (q *Queries) EnrollCustomer(ctx context.Context, arg EnrollCustomerParams) 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CheckedInAt,
-		&i.IsCancelled,
 	)
 	return i, err
 }
@@ -45,8 +44,9 @@ SELECT
         WHEN COALESCE(e.capacity, t.capacity) IS NULL THEN false
         ELSE COUNT(ce.customer_id) >= COALESCE(e.capacity, t.capacity)
     END)::boolean AS is_full
-FROM events.events e 
-LEFT JOIN athletic.teams t ON e.team_id = t.id
+FROM events.events e
+    LEFT JOIN public.schedules s ON e.schedule_id = s.id
+LEFT JOIN athletic.teams t ON s.team_id = t.id
 LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
 WHERE e.id = $1
 GROUP BY e.id, e.capacity, t.capacity

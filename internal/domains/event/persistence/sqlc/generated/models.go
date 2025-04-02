@@ -14,64 +14,64 @@ import (
 	"github.com/google/uuid"
 )
 
-type AuditStatus string
+type AuditAuditStatus string
 
 const (
-	AuditStatusPENDING   AuditStatus = "PENDING"
-	AuditStatusCOMPLETED AuditStatus = "COMPLETED"
-	AuditStatusFAILED    AuditStatus = "FAILED"
+	AuditAuditStatusPENDING   AuditAuditStatus = "PENDING"
+	AuditAuditStatusCOMPLETED AuditAuditStatus = "COMPLETED"
+	AuditAuditStatusFAILED    AuditAuditStatus = "FAILED"
 )
 
-func (e *AuditStatus) Scan(src interface{}) error {
+func (e *AuditAuditStatus) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = AuditStatus(s)
+		*e = AuditAuditStatus(s)
 	case string:
-		*e = AuditStatus(s)
+		*e = AuditAuditStatus(s)
 	default:
-		return fmt.Errorf("unsupported scan type for AuditStatus: %T", src)
+		return fmt.Errorf("unsupported scan type for AuditAuditStatus: %T", src)
 	}
 	return nil
 }
 
-type NullAuditStatus struct {
-	AuditStatus AuditStatus `json:"audit_status"`
-	Valid       bool        `json:"valid"` // Valid is true if AuditStatus is not NULL
+type NullAuditAuditStatus struct {
+	AuditAuditStatus AuditAuditStatus `json:"audit_audit_status"`
+	Valid            bool             `json:"valid"` // Valid is true if AuditAuditStatus is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullAuditStatus) Scan(value interface{}) error {
+func (ns *NullAuditAuditStatus) Scan(value interface{}) error {
 	if value == nil {
-		ns.AuditStatus, ns.Valid = "", false
+		ns.AuditAuditStatus, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.AuditStatus.Scan(value)
+	return ns.AuditAuditStatus.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullAuditStatus) Value() (driver.Value, error) {
+func (ns NullAuditAuditStatus) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.AuditStatus), nil
+	return string(ns.AuditAuditStatus), nil
 }
 
-func (e AuditStatus) Valid() bool {
+func (e AuditAuditStatus) Valid() bool {
 	switch e {
-	case AuditStatusPENDING,
-		AuditStatusCOMPLETED,
-		AuditStatusFAILED:
+	case AuditAuditStatusPENDING,
+		AuditAuditStatusCOMPLETED,
+		AuditAuditStatusFAILED:
 		return true
 	}
 	return false
 }
 
-func AllAuditStatusValues() []AuditStatus {
-	return []AuditStatus{
-		AuditStatusPENDING,
-		AuditStatusCOMPLETED,
-		AuditStatusFAILED,
+func AllAuditAuditStatusValues() []AuditAuditStatus {
+	return []AuditAuditStatus{
+		AuditAuditStatusPENDING,
+		AuditAuditStatusCOMPLETED,
+		AuditAuditStatusFAILED,
 	}
 }
 
@@ -216,10 +216,10 @@ type PaymentFrequency string
 
 const (
 	PaymentFrequencyOnce     PaymentFrequency = "once"
-	PaymentFrequencyDay      PaymentFrequency = "day"
 	PaymentFrequencyWeek     PaymentFrequency = "week"
 	PaymentFrequencyBiweekly PaymentFrequency = "biweekly"
 	PaymentFrequencyMonth    PaymentFrequency = "month"
+	PaymentFrequencyDay      PaymentFrequency = "day"
 )
 
 func (e *PaymentFrequency) Scan(src interface{}) error {
@@ -260,10 +260,10 @@ func (ns NullPaymentFrequency) Value() (driver.Value, error) {
 func (e PaymentFrequency) Valid() bool {
 	switch e {
 	case PaymentFrequencyOnce,
-		PaymentFrequencyDay,
 		PaymentFrequencyWeek,
 		PaymentFrequencyBiweekly,
-		PaymentFrequencyMonth:
+		PaymentFrequencyMonth,
+		PaymentFrequencyDay:
 		return true
 	}
 	return false
@@ -272,10 +272,10 @@ func (e PaymentFrequency) Valid() bool {
 func AllPaymentFrequencyValues() []PaymentFrequency {
 	return []PaymentFrequency{
 		PaymentFrequencyOnce,
-		PaymentFrequencyDay,
 		PaymentFrequencyWeek,
 		PaymentFrequencyBiweekly,
 		PaymentFrequencyMonth,
+		PaymentFrequencyDay,
 	}
 }
 
@@ -441,7 +441,7 @@ type AthleticTeam struct {
 type AuditOutbox struct {
 	ID           uuid.UUID   `json:"id"`
 	SqlStatement string      `json:"sql_statement"`
-	Status       AuditStatus `json:"status"`
+	Status       interface{} `json:"status"`
 	CreatedAt    time.Time   `json:"created_at"`
 }
 
@@ -493,6 +493,13 @@ type EnrollmentFee struct {
 	UpdatedAt    time.Time      `json:"updated_at"`
 }
 
+type EventsAttendance struct {
+	ID          uuid.UUID    `json:"id"`
+	EventID     uuid.UUID    `json:"event_id"`
+	UserID      uuid.UUID    `json:"user_id"`
+	CheckInTime sql.NullTime `json:"check_in_time"`
+}
+
 type EventsCustomerEnrollment struct {
 	ID          uuid.UUID    `json:"id"`
 	CustomerID  uuid.UUID    `json:"customer_id"`
@@ -500,24 +507,19 @@ type EventsCustomerEnrollment struct {
 	CreatedAt   time.Time    `json:"created_at"`
 	UpdatedAt   time.Time    `json:"updated_at"`
 	CheckedInAt sql.NullTime `json:"checked_in_at"`
-	IsCancelled bool         `json:"is_cancelled"`
 }
 
 type EventsEvent struct {
-	ID                uuid.UUID                     `json:"id"`
-	RecurrenceStartAt time.Time                     `json:"recurrence_start_at"`
-	RecurrenceEndAt   sql.NullTime                  `json:"recurrence_end_at"`
-	ProgramID         uuid.NullUUID                 `json:"program_id"`
-	TeamID            uuid.NullUUID                 `json:"team_id"`
-	LocationID        uuid.UUID                     `json:"location_id"`
-	Capacity          sql.NullInt32                 `json:"capacity"`
-	CreatedAt         time.Time                     `json:"created_at"`
-	UpdatedAt         time.Time                     `json:"updated_at"`
-	Day               DayEnum                       `json:"day"`
-	EventStartTime    custom_types.TimeWithTimeZone `json:"event_start_time"`
-	EventEndTime      custom_types.TimeWithTimeZone `json:"event_end_time"`
-	CreatedBy         uuid.NullUUID                 `json:"created_by"`
-	UpdatedBy         uuid.NullUUID                 `json:"updated_by"`
+	ID         uuid.UUID     `json:"id"`
+	ScheduleID uuid.NullUUID `json:"schedule_id"`
+	LocationID uuid.NullUUID `json:"location_id"`
+	StartAt    time.Time     `json:"start_at"`
+	EndAt      time.Time     `json:"end_at"`
+	CreatedBy  uuid.UUID     `json:"created_by"`
+	UpdatedBy  uuid.UUID     `json:"updated_by"`
+	Capacity   sql.NullInt32 `json:"capacity"`
+	CreatedAt  time.Time     `json:"created_at"`
+	UpdatedAt  time.Time     `json:"updated_at"`
 }
 
 type EventsStaff struct {
@@ -563,18 +565,20 @@ type HaircutHaircutService struct {
 }
 
 type LocationLocation struct {
-	ID      uuid.UUID `json:"id"`
-	Name    string    `json:"name"`
-	Address string    `json:"address"`
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Address   string    `json:"address"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type MembershipMembership struct {
 	ID          uuid.UUID      `json:"id"`
 	Name        string         `json:"name"`
 	Description sql.NullString `json:"description"`
+	Benefits    string         `json:"benefits"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
-	Benefits    string         `json:"benefits"`
 }
 
 type MembershipMembershipPlan struct {
@@ -596,8 +600,23 @@ type ProgramProgram struct {
 	Description string              `json:"description"`
 	Level       ProgramProgramLevel `json:"level"`
 	Type        ProgramProgramType  `json:"type"`
+	Capacity    sql.NullInt32       `json:"capacity"`
 	CreatedAt   time.Time           `json:"created_at"`
 	UpdatedAt   time.Time           `json:"updated_at"`
+}
+
+type Schedule struct {
+	ID                uuid.UUID                     `json:"id"`
+	ProgramID         uuid.NullUUID                 `json:"program_id"`
+	TeamID            uuid.NullUUID                 `json:"team_id"`
+	LocationID        uuid.UUID                     `json:"location_id"`
+	RecurrenceStartAt time.Time                     `json:"recurrence_start_at"`
+	RecurrenceEndAt   sql.NullTime                  `json:"recurrence_end_at"`
+	Day               DayEnum                       `json:"day"`
+	EventStartTime    custom_types.TimeWithTimeZone `json:"event_start_time"`
+	EventEndTime      custom_types.TimeWithTimeZone `json:"event_end_time"`
+	CreatedAt         time.Time                     `json:"created_at"`
+	UpdatedAt         time.Time                     `json:"updated_at"`
 }
 
 type StaffStaff struct {
@@ -616,8 +635,10 @@ type StaffStaffActivityLog struct {
 }
 
 type StaffStaffRole struct {
-	ID       uuid.UUID `json:"id"`
-	RoleName string    `json:"role_name"`
+	ID        uuid.UUID `json:"id"`
+	RoleName  string    `json:"role_name"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type UsersCustomerCredit struct {

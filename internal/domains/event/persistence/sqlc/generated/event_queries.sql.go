@@ -10,38 +10,28 @@ import (
 	"database/sql"
 	"time"
 
-	"api/internal/custom_types"
 	"github.com/google/uuid"
 )
 
 const createEvent = `-- name: CreateEvent :exec
-INSERT INTO events.events (recurrence_start_at, recurrence_end_at, event_start_time, event_end_time, day, location_id,
-                           program_id, capacity, created_by, updated_by)
-VALUES ($1, $2, $3, $4, $5,
-        $6, $7, $8, $9::uuid, $9::uuid)
+INSERT INTO events.events (schedule_id, start_at, end_at, created_by, updated_by, capacity)
+VALUES ($1, $2, $3,
+        $5::uuid, $5::uuid, $4)
 `
 
 type CreateEventParams struct {
-	RecurrenceStartAt time.Time                     `json:"recurrence_start_at"`
-	RecurrenceEndAt   sql.NullTime                  `json:"recurrence_end_at"`
-	EventStartTime    custom_types.TimeWithTimeZone `json:"event_start_time"`
-	EventEndTime      custom_types.TimeWithTimeZone `json:"event_end_time"`
-	Day               DayEnum                       `json:"day"`
-	LocationID        uuid.UUID                     `json:"location_id"`
-	ProgramID         uuid.NullUUID                 `json:"program_id"`
-	Capacity          sql.NullInt32                 `json:"capacity"`
-	CreatedBy         uuid.UUID                     `json:"created_by"`
+	ScheduleID uuid.NullUUID `json:"schedule_id"`
+	StartAt    time.Time     `json:"start_at"`
+	EndAt      time.Time     `json:"end_at"`
+	Capacity   sql.NullInt32 `json:"capacity"`
+	CreatedBy  uuid.UUID     `json:"created_by"`
 }
 
 func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) error {
 	_, err := q.db.ExecContext(ctx, createEvent,
-		arg.RecurrenceStartAt,
-		arg.RecurrenceEndAt,
-		arg.EventStartTime,
-		arg.EventEndTime,
-		arg.Day,
-		arg.LocationID,
-		arg.ProgramID,
+		arg.ScheduleID,
+		arg.StartAt,
+		arg.EndAt,
 		arg.Capacity,
 		arg.CreatedBy,
 	)
@@ -60,12 +50,18 @@ func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) error {
 }
 
 const getEventById = `-- name: GetEventById :many
-SELECT e.id, e.recurrence_start_at, e.recurrence_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time, e.created_by, e.updated_by,
+SELECT e.id, e.schedule_id, e.location_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.capacity, e.created_at, e.updated_at,
+       coalesce(e.capacity, p.capacity, t.capacity) AS capacity,
+
+    p.id AS program_id,
        p.name          AS program_name,
        p.description   AS program_description,
        p."type"        AS program_type,
+
+       l.id as location_id,
        l.name          AS location_name,
        l.address       AS location_address,
+
        -- Staff fields
        s.id            AS staff_id,
        sr.role_name    AS staff_role_name,
@@ -74,6 +70,7 @@ SELECT e.id, e.recurrence_start_at, e.recurrence_end_at, e.program_id, e.team_id
        us.last_name    AS staff_last_name,
        us.gender       AS staff_gender,
        us.phone        AS staff_phone,
+
        -- Customer fields
        uc.id           AS customer_id,
        uc.first_name   AS customer_first_name,
@@ -81,60 +78,79 @@ SELECT e.id, e.recurrence_start_at, e.recurrence_end_at, e.program_id, e.team_id
        uc.email        AS customer_email,
        uc.phone        AS customer_phone,
        uc.gender       AS customer_gender,
-       ce.is_cancelled AS customer_is_cancelled,
+
        -- Team field (added missing team reference)
        t.id            AS team_id,
-       t.name          AS team_name
+       t.name          AS team_name,
+
+       creator.id AS creator_id,
+       creator.first_name AS creator_first_name,
+       creator.last_name AS creator_last_name,
+       creator.email AS creator_email,
+
+       updater.id AS updater_id,
+       updater.first_name AS updater_first_name,
+       updater.last_name AS updater_last_name,
+       updater.email AS updater_email
 FROM events.events e
-         LEFT JOIN program.programs p ON e.program_id = p.id
-         LEFT JOIN location.locations l ON e.location_id = l.id
+         LEFT JOIN public.schedules schedule ON e.schedule_id = schedule.id
+         LEFT JOIN program.programs p ON schedule.program_id = p.id
+         INNER JOIN location.locations l ON coalesce(e.location_id, schedule.location_id) = l.id
          LEFT JOIN events.staff es ON e.id = es.event_id
          LEFT JOIN staff.staff s ON es.staff_id = s.id
          LEFT JOIN staff.staff_roles sr ON s.role_id = sr.id
          LEFT JOIN users.users us ON s.id = us.id
          LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
          LEFT JOIN users.users uc ON ce.customer_id = uc.id
-         LEFT JOIN athletic.teams t ON t.id = e.team_id
+         LEFT JOIN athletic.teams t ON t.id = schedule.team_id
+         JOIN users.users creator ON creator.id = e.created_by
+         JOIN users.users updater ON updater.id = e.updated_by
 WHERE e.id = $1
 ORDER BY s.id, uc.id
 `
 
 type GetEventByIdRow struct {
-	ID                  uuid.UUID                     `json:"id"`
-	RecurrenceStartAt   time.Time                     `json:"recurrence_start_at"`
-	RecurrenceEndAt     sql.NullTime                  `json:"recurrence_end_at"`
-	ProgramID           uuid.NullUUID                 `json:"program_id"`
-	TeamID              uuid.NullUUID                 `json:"team_id"`
-	LocationID          uuid.UUID                     `json:"location_id"`
-	Capacity            sql.NullInt32                 `json:"capacity"`
-	CreatedAt           time.Time                     `json:"created_at"`
-	UpdatedAt           time.Time                     `json:"updated_at"`
-	Day                 DayEnum                       `json:"day"`
-	EventStartTime      custom_types.TimeWithTimeZone `json:"event_start_time"`
-	EventEndTime        custom_types.TimeWithTimeZone `json:"event_end_time"`
-	CreatedBy           uuid.NullUUID                 `json:"created_by"`
-	UpdatedBy           uuid.NullUUID                 `json:"updated_by"`
-	ProgramName         sql.NullString                `json:"program_name"`
-	ProgramDescription  sql.NullString                `json:"program_description"`
-	ProgramType         NullProgramProgramType        `json:"program_type"`
-	LocationName        sql.NullString                `json:"location_name"`
-	LocationAddress     sql.NullString                `json:"location_address"`
-	StaffID             uuid.NullUUID                 `json:"staff_id"`
-	StaffRoleName       sql.NullString                `json:"staff_role_name"`
-	StaffEmail          sql.NullString                `json:"staff_email"`
-	StaffFirstName      sql.NullString                `json:"staff_first_name"`
-	StaffLastName       sql.NullString                `json:"staff_last_name"`
-	StaffGender         sql.NullString                `json:"staff_gender"`
-	StaffPhone          sql.NullString                `json:"staff_phone"`
-	CustomerID          uuid.NullUUID                 `json:"customer_id"`
-	CustomerFirstName   sql.NullString                `json:"customer_first_name"`
-	CustomerLastName    sql.NullString                `json:"customer_last_name"`
-	CustomerEmail       sql.NullString                `json:"customer_email"`
-	CustomerPhone       sql.NullString                `json:"customer_phone"`
-	CustomerGender      sql.NullString                `json:"customer_gender"`
-	CustomerIsCancelled sql.NullBool                  `json:"customer_is_cancelled"`
-	TeamID_2            uuid.NullUUID                 `json:"team_id_2"`
-	TeamName            sql.NullString                `json:"team_name"`
+	ID                 uuid.UUID              `json:"id"`
+	ScheduleID         uuid.NullUUID          `json:"schedule_id"`
+	LocationID         uuid.NullUUID          `json:"location_id"`
+	StartAt            time.Time              `json:"start_at"`
+	EndAt              time.Time              `json:"end_at"`
+	CreatedBy          uuid.UUID              `json:"created_by"`
+	UpdatedBy          uuid.UUID              `json:"updated_by"`
+	Capacity           sql.NullInt32          `json:"capacity"`
+	CreatedAt          time.Time              `json:"created_at"`
+	UpdatedAt          time.Time              `json:"updated_at"`
+	Capacity_2         int32                  `json:"capacity_2"`
+	ProgramID          uuid.NullUUID          `json:"program_id"`
+	ProgramName        sql.NullString         `json:"program_name"`
+	ProgramDescription sql.NullString         `json:"program_description"`
+	ProgramType        NullProgramProgramType `json:"program_type"`
+	LocationID_2       uuid.UUID              `json:"location_id_2"`
+	LocationName       string                 `json:"location_name"`
+	LocationAddress    string                 `json:"location_address"`
+	StaffID            uuid.NullUUID          `json:"staff_id"`
+	StaffRoleName      sql.NullString         `json:"staff_role_name"`
+	StaffEmail         sql.NullString         `json:"staff_email"`
+	StaffFirstName     sql.NullString         `json:"staff_first_name"`
+	StaffLastName      sql.NullString         `json:"staff_last_name"`
+	StaffGender        sql.NullString         `json:"staff_gender"`
+	StaffPhone         sql.NullString         `json:"staff_phone"`
+	CustomerID         uuid.NullUUID          `json:"customer_id"`
+	CustomerFirstName  sql.NullString         `json:"customer_first_name"`
+	CustomerLastName   sql.NullString         `json:"customer_last_name"`
+	CustomerEmail      sql.NullString         `json:"customer_email"`
+	CustomerPhone      sql.NullString         `json:"customer_phone"`
+	CustomerGender     sql.NullString         `json:"customer_gender"`
+	TeamID             uuid.NullUUID          `json:"team_id"`
+	TeamName           sql.NullString         `json:"team_name"`
+	CreatorID          uuid.UUID              `json:"creator_id"`
+	CreatorFirstName   string                 `json:"creator_first_name"`
+	CreatorLastName    string                 `json:"creator_last_name"`
+	CreatorEmail       sql.NullString         `json:"creator_email"`
+	UpdaterID          uuid.UUID              `json:"updater_id"`
+	UpdaterFirstName   string                 `json:"updater_first_name"`
+	UpdaterLastName    string                 `json:"updater_last_name"`
+	UpdaterEmail       sql.NullString         `json:"updater_email"`
 }
 
 func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) ([]GetEventByIdRow, error) {
@@ -148,22 +164,21 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) ([]GetEventByI
 		var i GetEventByIdRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.RecurrenceStartAt,
-			&i.RecurrenceEndAt,
-			&i.ProgramID,
-			&i.TeamID,
+			&i.ScheduleID,
 			&i.LocationID,
+			&i.StartAt,
+			&i.EndAt,
+			&i.CreatedBy,
+			&i.UpdatedBy,
 			&i.Capacity,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.Day,
-			&i.EventStartTime,
-			&i.EventEndTime,
-			&i.CreatedBy,
-			&i.UpdatedBy,
+			&i.Capacity_2,
+			&i.ProgramID,
 			&i.ProgramName,
 			&i.ProgramDescription,
 			&i.ProgramType,
+			&i.LocationID_2,
 			&i.LocationName,
 			&i.LocationAddress,
 			&i.StaffID,
@@ -179,9 +194,16 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) ([]GetEventByI
 			&i.CustomerEmail,
 			&i.CustomerPhone,
 			&i.CustomerGender,
-			&i.CustomerIsCancelled,
-			&i.TeamID_2,
+			&i.TeamID,
 			&i.TeamName,
+			&i.CreatorID,
+			&i.CreatorFirstName,
+			&i.CreatorLastName,
+			&i.CreatorEmail,
+			&i.UpdaterID,
+			&i.UpdaterFirstName,
+			&i.UpdaterLastName,
+			&i.UpdaterEmail,
 		); err != nil {
 			return nil, err
 		}
@@ -202,37 +224,57 @@ FROM events.events
 WHERE id = $1
 `
 
-func (q *Queries) GetEventCreatedBy(ctx context.Context, id uuid.UUID) (uuid.NullUUID, error) {
+func (q *Queries) GetEventCreatedBy(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
 	row := q.db.QueryRowContext(ctx, getEventCreatedBy, id)
-	var created_by uuid.NullUUID
+	var created_by uuid.UUID
 	err := row.Scan(&created_by)
 	return created_by, err
 }
 
 const getEvents = `-- name: GetEvents :many
-SELECT DISTINCT e.id, e.recurrence_start_at, e.recurrence_end_at, e.program_id, e.team_id, e.location_id, e.capacity, e.created_at, e.updated_at, e.day, e.event_start_time, e.event_end_time, e.created_by, e.updated_by,
+SELECT distinct e.id, e.id, e.schedule_id, e.location_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.capacity, e.created_at, e.updated_at,
+                coalesce(e.capacity, p.capacity, t.capacity) AS capacity,
+
+                p.id AS program_id,
                 p.name        AS program_name,
                 p.description AS program_description,
                 p."type"      AS program_type,
+
                 l.name        AS location_name,
                 l.address     AS location_address,
-                t.name        as team_name
+
+                t.id        as team_id,
+                t.name        as team_name,
+
+                creator.id AS creator_id,
+                creator.first_name AS creator_first_name,
+                creator.last_name AS creator_last_name,
+                creator.email AS creator_email,
+
+                updater.id AS updater_id,
+                updater.first_name AS updater_first_name,
+                updater.last_name AS updater_last_name,
+                updater.email AS updater_email
+
 FROM events.events e
-         LEFT JOIN program.programs p ON e.program_id = p.id
-         JOIN location.locations l ON e.location_id = l.id
+    LEFT JOIN public.schedules s ON e.schedule_id = s.id
+         LEFT JOIN program.programs p ON s.program_id = p.id
+    INNER JOIN location.locations l ON coalesce(e.location_id, s.location_id) = l.id
          LEFT JOIN events.staff es ON e.id = es.event_id
          LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
-         LEFT JOIN athletic.teams t ON t.id = e.team_id
+         LEFT JOIN athletic.teams t ON t.id = s.team_id
+    JOIN users.users creator ON creator.id = e.created_by
+    JOIN users.users updater ON updater.id = e.updated_by
+
 WHERE (
-          ($1::uuid = e.program_id OR $1 IS NULL)
-              AND ($2::uuid = e.location_id OR $2 IS NULL)
-              AND ($3::timestamp <= e.recurrence_start_at OR $3 IS NULL)
-              AND ($4::timestamp >= e.recurrence_end_at OR $4 IS NULL OR
-                   e.program_end_at IS NULL)
+          ($1::uuid = s.program_id OR $1 IS NULL)
+              AND ($2::uuid = s.location_id OR $2 IS NULL)
+              AND ( e.start_at > $3::timestamp OR $3 IS NULL)
+              AND (e.end_at < $4::timestamp OR $4 IS NULL)
               AND ($5 = p.type OR $5 IS NULL)
-              AND ($6::uuid IS NULL OR ce.customer_id = $6::uuid OR
+              AND ($6::uuid IS NULL OR ce.customer_id = $6 OR
                    es.staff_id = $6::uuid)
-              AND ($7::uuid IS NULL OR e.team_id = $7)
+              AND ($7::uuid IS NULL OR s.team_id = $7)
               AND ($8::uuid IS NULL OR e.created_by = $8)
               AND ($9::uuid IS NULL OR e.updated_by = $9)
           )
@@ -251,26 +293,34 @@ type GetEventsParams struct {
 }
 
 type GetEventsRow struct {
-	ID                 uuid.UUID                     `json:"id"`
-	RecurrenceStartAt  time.Time                     `json:"recurrence_start_at"`
-	RecurrenceEndAt    sql.NullTime                  `json:"recurrence_end_at"`
-	ProgramID          uuid.NullUUID                 `json:"program_id"`
-	TeamID             uuid.NullUUID                 `json:"team_id"`
-	LocationID         uuid.UUID                     `json:"location_id"`
-	Capacity           sql.NullInt32                 `json:"capacity"`
-	CreatedAt          time.Time                     `json:"created_at"`
-	UpdatedAt          time.Time                     `json:"updated_at"`
-	Day                DayEnum                       `json:"day"`
-	EventStartTime     custom_types.TimeWithTimeZone `json:"event_start_time"`
-	EventEndTime       custom_types.TimeWithTimeZone `json:"event_end_time"`
-	CreatedBy          uuid.NullUUID                 `json:"created_by"`
-	UpdatedBy          uuid.NullUUID                 `json:"updated_by"`
-	ProgramName        sql.NullString                `json:"program_name"`
-	ProgramDescription sql.NullString                `json:"program_description"`
-	ProgramType        NullProgramProgramType        `json:"program_type"`
-	LocationName       string                        `json:"location_name"`
-	LocationAddress    string                        `json:"location_address"`
-	TeamName           sql.NullString                `json:"team_name"`
+	ID                 uuid.UUID              `json:"id"`
+	ID_2               uuid.UUID              `json:"id_2"`
+	ScheduleID         uuid.NullUUID          `json:"schedule_id"`
+	LocationID         uuid.NullUUID          `json:"location_id"`
+	StartAt            time.Time              `json:"start_at"`
+	EndAt              time.Time              `json:"end_at"`
+	CreatedBy          uuid.UUID              `json:"created_by"`
+	UpdatedBy          uuid.UUID              `json:"updated_by"`
+	Capacity           sql.NullInt32          `json:"capacity"`
+	CreatedAt          time.Time              `json:"created_at"`
+	UpdatedAt          time.Time              `json:"updated_at"`
+	Capacity_2         int32                  `json:"capacity_2"`
+	ProgramID          uuid.NullUUID          `json:"program_id"`
+	ProgramName        sql.NullString         `json:"program_name"`
+	ProgramDescription sql.NullString         `json:"program_description"`
+	ProgramType        NullProgramProgramType `json:"program_type"`
+	LocationName       string                 `json:"location_name"`
+	LocationAddress    string                 `json:"location_address"`
+	TeamID             uuid.NullUUID          `json:"team_id"`
+	TeamName           sql.NullString         `json:"team_name"`
+	CreatorID          uuid.UUID              `json:"creator_id"`
+	CreatorFirstName   string                 `json:"creator_first_name"`
+	CreatorLastName    string                 `json:"creator_last_name"`
+	CreatorEmail       sql.NullString         `json:"creator_email"`
+	UpdaterID          uuid.UUID              `json:"updater_id"`
+	UpdaterFirstName   string                 `json:"updater_first_name"`
+	UpdaterLastName    string                 `json:"updater_last_name"`
+	UpdaterEmail       sql.NullString         `json:"updater_email"`
 }
 
 func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEventsRow, error) {
@@ -294,25 +344,33 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 		var i GetEventsRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.RecurrenceStartAt,
-			&i.RecurrenceEndAt,
-			&i.ProgramID,
-			&i.TeamID,
+			&i.ID_2,
+			&i.ScheduleID,
 			&i.LocationID,
+			&i.StartAt,
+			&i.EndAt,
+			&i.CreatedBy,
+			&i.UpdatedBy,
 			&i.Capacity,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.Day,
-			&i.EventStartTime,
-			&i.EventEndTime,
-			&i.CreatedBy,
-			&i.UpdatedBy,
+			&i.Capacity_2,
+			&i.ProgramID,
 			&i.ProgramName,
 			&i.ProgramDescription,
 			&i.ProgramType,
 			&i.LocationName,
 			&i.LocationAddress,
+			&i.TeamID,
 			&i.TeamName,
+			&i.CreatorID,
+			&i.CreatorFirstName,
+			&i.CreatorLastName,
+			&i.CreatorEmail,
+			&i.UpdaterID,
+			&i.UpdaterFirstName,
+			&i.UpdaterLastName,
+			&i.UpdaterEmail,
 		); err != nil {
 			return nil, err
 		}
@@ -329,41 +387,28 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 
 const updateEvent = `-- name: UpdateEvent :exec
 UPDATE events.events
-SET recurrence_start_at = $1,
-    recurrence_end_at   = $2,
-    location_id      = $3,
-    program_id       = $4,
-    event_start_time = $5,
-    event_end_time   = $6,
-    day              = $7,
-    capacity         = $8,
-    updated_at = current_timestamp,
-    updated_by = $10::uuid
-WHERE id = $9
+SET start_at = $1,
+    end_at = $2,
+    schedule_id = $3,
+    capacity = $4,
+    updated_by = $6::uuid
+WHERE id = $5
 `
 
 type UpdateEventParams struct {
-	RecurrenceStartAt time.Time                     `json:"recurrence_start_at"`
-	RecurrenceEndAt   sql.NullTime                  `json:"recurrence_end_at"`
-	LocationID        uuid.UUID                     `json:"location_id"`
-	ProgramID         uuid.NullUUID                 `json:"program_id"`
-	EventStartTime    custom_types.TimeWithTimeZone `json:"event_start_time"`
-	EventEndTime      custom_types.TimeWithTimeZone `json:"event_end_time"`
-	Day               DayEnum                       `json:"day"`
-	Capacity          sql.NullInt32                 `json:"capacity"`
-	ID                uuid.UUID                     `json:"id"`
-	UpdatedBy         uuid.UUID                     `json:"updated_by"`
+	StartAt    time.Time     `json:"start_at"`
+	EndAt      time.Time     `json:"end_at"`
+	ScheduleID uuid.NullUUID `json:"schedule_id"`
+	Capacity   sql.NullInt32 `json:"capacity"`
+	ID         uuid.UUID     `json:"id"`
+	UpdatedBy  uuid.UUID     `json:"updated_by"`
 }
 
 func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) error {
 	_, err := q.db.ExecContext(ctx, updateEvent,
-		arg.RecurrenceStartAt,
-		arg.RecurrenceEndAt,
-		arg.LocationID,
-		arg.ProgramID,
-		arg.EventStartTime,
-		arg.EventEndTime,
-		arg.Day,
+		arg.StartAt,
+		arg.EndAt,
+		arg.ScheduleID,
 		arg.Capacity,
 		arg.ID,
 		arg.UpdatedBy,

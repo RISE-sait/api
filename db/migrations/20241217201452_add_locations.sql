@@ -7,7 +7,9 @@ CREATE TABLE IF NOT EXISTS location.locations
 (
     id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name                 VARCHAR(100) UNIQUE NOT NULL,
-    address VARCHAR(255) NOT NULL
+    address    VARCHAR(255) NOT NULL,
+    created_at TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 -- +goose StatementEnd
 

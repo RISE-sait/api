@@ -69,7 +69,7 @@ package tests_test
 //		Day:        eventDb.DayEnum("MONDAY"), // Sample day
 //	}
 //
-//	event, err := eventQueries.CreateEvent(context.Background(), createEventParams)
+//	event, err := eventQueries.CreateSchedule(context.Background(), createEventParams)
 //
 //	require.NoError(t, err)
 //
@@ -116,7 +116,7 @@ package tests_test
 //		Day:        eventDb.DayEnum("TUESDAY"),
 //	}
 //
-//	event, err := eventQueries.CreateEvent(context.Background(), createEventParams)
+//	event, err := eventQueries.CreateSchedule(context.Background(), createEventParams)
 //	require.NoError(t, err)
 //
 //	// Now, update the event
@@ -185,11 +185,11 @@ package tests_test
 //		Day:        eventDb.DayEnum("WEDNESDAY"),
 //	}
 //
-//	event, err := eventQueries.CreateEvent(context.Background(), createEventParams)
+//	event, err := eventQueries.CreateSchedule(context.Background(), createEventParams)
 //	require.NoError(t, err)
 //
 //	// Delete the event
-//	affectedRows, err := eventQueries.DeleteEvent(context.Background(), event.ID)
+//	affectedRows, err := eventQueries.DeleteSchedule(context.Background(), event.ID)
 //	require.NoError(t, err)
 //	require.Equal(t, int64(1), affectedRows)
 //
@@ -244,7 +244,7 @@ package tests_test
 //		Day:        eventDb.DayEnum("THURSDAY"),
 //	}
 //
-//	event, err := eventQueries.CreateEvent(context.Background(), createEventParams)
+//	event, err := eventQueries.CreateSchedule(context.Background(), createEventParams)
 //	require.NoError(t, err)
 //
 //	// Get event by ID
@@ -310,7 +310,7 @@ package tests_test
 //			PracticeID: uuid.NullUUID{UUID: practice.ID, Valid: true},
 //			Day:        eventDb.DayEnum("FRIDAY"),
 //		}
-//		_, err := eventQueries.CreateEvent(context.Background(), createEventParams)
+//		_, err := eventQueries.CreateSchedule(context.Background(), createEventParams)
 //		require.NoError(t, err)
 //	}
 //

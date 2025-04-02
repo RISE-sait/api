@@ -1,6 +1,6 @@
 -- name: InsertMemberships :many
-INSERT INTO membership.memberships (name, description)
-VALUES (unnest(@name_array::text[]), unnest(@description_array::text[]))
+INSERT INTO membership.memberships (name, description, benefits)
+VALUES (unnest(@name_array::text[]), unnest(@description_array::text[]), unnest(@benefits_array::text[]))
 RETURNING id;
 
 -- name: InsertMembershipPlans :exec

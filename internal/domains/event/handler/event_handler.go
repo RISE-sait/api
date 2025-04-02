@@ -1,9 +1,8 @@
 package event
 
 import (
-	dto "api/internal/domains/event/dto"
+	dto "api/internal/domains/event/dto/event"
 	repository "api/internal/domains/event/persistence/repository"
-	"api/internal/domains/event/types"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
@@ -15,12 +14,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// EventsHandler provides HTTP handlers for managing events.
+// SchedulesHandler provides HTTP handlers for managing events.
 type EventsHandler struct {
-	Repo *repository.Repository
+	Repo *repository.EventsRepository
 }
 
-func NewEventsHandler(repo *repository.Repository) *EventsHandler {
+func NewEventsHandler(repo *repository.EventsRepository) *EventsHandler {
 	return &EventsHandler{Repo: repo}
 }
 
@@ -28,7 +27,6 @@ func NewEventsHandler(repo *repository.Repository) *EventsHandler {
 // @Summary Get events
 // @Description Retrieve all events within a specific date range, with optional filters by course, location, game, and practice.
 // @Tags events
-// @Param view query string false "Choose between 'date' and 'day'. Response type for the schedule, in specific dates or recurring day information. Default is 'day'."
 // @Param after query string false "Start date of the events range (YYYY-MM-DD)" example("2025-03-01")
 // @Param before query string false "End date of the events range (YYYY-MM-DD)" example("2025-03-31")
 // @Param program_id query string false "Filter by program ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
@@ -54,12 +52,6 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		locationID, programID, userID, teamID, createdBy, updatedBy uuid.UUID
 		programType                                                 string
 	)
-
-	view := types.ViewOptionDay
-
-	if query.Get("view") == "date" {
-		view = types.ViewOptionDate
-	}
 
 	if afterStr := query.Get("after"); afterStr != "" {
 		if afterDate, formatErr := time.Parse("2006-01-02", afterStr); formatErr != nil {
@@ -137,7 +129,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 
 	for _, event := range events {
 
-		eventDto := dto.NewEventInfoResponseDto(event, false, view)
+		eventDto := dto.NewEventResponseDto(event)
 
 		responseDto = append(responseDto, eventDto)
 	}
@@ -160,14 +152,6 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 // @Router /events/{id} [get]
 func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 
-	var view types.ViewOption
-
-	if r.URL.Query().Get("view") == "date" {
-		view = types.ViewOptionDate
-	} else {
-		view = types.ViewOptionDay
-	}
-
 	var eventId uuid.UUID
 
 	if eventIdStr := chi.URLParam(r, "id"); eventIdStr != "" {
@@ -185,7 +169,7 @@ func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 
-		responseDto := dto.NewEventInfoResponseDto(event, true, view)
+		responseDto := dto.NewEventResponseDto(event)
 
 		responseHandlers.RespondWithSuccess(w, responseDto, http.StatusOK)
 	}
@@ -205,14 +189,21 @@ func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 // @Router /events [post]
 func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 
-	var targetBody dto.RequestDto
+	userID, err := contextUtils.GetUserID(r.Context())
 
-	if err := validators.ParseJSON(r.Body, &targetBody); err != nil {
+	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	if eventCreate, err := targetBody.ToCreateEventValues(); err != nil {
+	var targetBody dto.CreateRequestDto
+
+	if err = validators.ParseJSON(r.Body, &targetBody); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	if eventCreate, err := targetBody.ToCreateEventValues(userID); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {
@@ -240,20 +231,27 @@ func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 // @Router /events/{id} [put]
 func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 
+	userID, err := contextUtils.GetUserID(r.Context())
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
 	// Extract and validate input
 
 	idStr := chi.URLParam(r, "id")
 
-	var targetBody dto.RequestDto
+	var targetBody dto.UpdateRequestDto
 
-	if err := validators.ParseJSON(r.Body, &targetBody); err != nil {
+	if err = validators.ParseJSON(r.Body, &targetBody); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
 	// Convert to domain values
 
-	params, err := targetBody.ToUpdateEventValues(idStr)
+	params, err := targetBody.ToUpdateEventValues(idStr, userID)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)

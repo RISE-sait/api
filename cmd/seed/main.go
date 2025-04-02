@@ -340,19 +340,41 @@ func seedMemberships(ctx context.Context, db *sql.DB) []uuid.UUID {
 
 	seedQueries := dbSeed.New(db)
 
+	benefits := []string{
+		"24/7 unlimited access to all of our facilities, including premium locations in major cities worldwide, with no blackout periods or restricted hours.",
+		"Complimentary high-speed Wi-Fi throughout all facilities with enterprise-grade security and bandwidth capable of supporting video conferencing and streaming.",
+		"A personal locker with biometric fingerprint access that can be used at any location, cleaned and sanitized daily by our staff.",
+		"25% discount on all merchandise including premium athletic apparel, fitness equipment, and recovery tools, applicable both in-store and online.",
+		"Ten complimentary guest passes per month that allow your friends or family members to experience our facilities, with advance booking required.",
+		"A comprehensive fitness assessment every six months conducted by our certified trainers, including body composition analysis and personalized workout recommendations.",
+		"Unlimited participation in all group fitness classes across all modalities, from high-intensity interval training to restorative yoga, with guaranteed spot reservations.",
+		"Exclusive 48-hour priority booking window for all premium classes and personal training sessions before they open to general members.",
+		"Daily towel service featuring premium Egyptian cotton towels, plus access to luxury toiletries from top wellness brands in all locker rooms.",
+		"Invitations to members-only events including celebrity trainer workshops, nutrition seminars, and exclusive product launches throughout the year.",
+	}
+
 	var (
 		nameArray        []string
 		descriptionArray []string
+		benefitsArray    []string
 	)
+
 	for i := 0; i < len(data.Memberships); i++ {
 
 		nameArray = append(nameArray, data.Memberships[i].Name)
 		descriptionArray = append(descriptionArray, data.Memberships[i].Description)
+
+		// append a random benefit from benefits list
+		randomIndex := i % len(benefits)
+
+		benefitsArray = append(benefitsArray, benefits[randomIndex])
+
 	}
 
 	ids, err := seedQueries.InsertMemberships(ctx, dbSeed.InsertMembershipsParams{
 		NameArray:        nameArray,
 		DescriptionArray: descriptionArray,
+		BenefitsArray:    benefitsArray,
 	})
 
 	if err != nil {
@@ -374,10 +396,10 @@ func seedFakeEnrollmentFees(ctx context.Context, db *sql.DB, programIds, members
 	}
 }
 
-func seedEvents(ctx context.Context, db *sql.DB) []uuid.UUID {
+func insertSchedulesReturnEvents(ctx context.Context, db *sql.DB) []uuid.UUID {
 	seedQueries := dbSeed.New(db)
 
-	arg := data.GetEvents()
+	arg := data.InsertSchedulesReturnEvents(seedQueries)
 
 	// Insert events and sessions into the database
 	ids, err := seedQueries.InsertEvents(ctx, arg)
@@ -472,7 +494,7 @@ func main() {
 
 	seedLocations(ctx, db)
 
-	eventIds := seedEvents(ctx, db)
+	eventIds := insertSchedulesReturnEvents(ctx, db)
 
 	membershipIds := seedMemberships(ctx, db)
 

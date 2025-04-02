@@ -1,28 +1,11 @@
--- name: CreateCustomerMembershipPlan :exec
-INSERT INTO customer_membership_plans (customer_id, membership_plan_id, status, start_date, renewal_date)
-VALUES ($1, $2, $3, $4, $5);
-
--- name: GetMembershipPlanJoiningRequirements :one
-SELECT *
-FROM membership.membership_plans
-WHERE id = $1;
-
--- name: GetProgram :one
-SELECT id, name
-FROM program.programs
-WHERE id = $1;
-
--- name: IsCustomerExist :one
-SELECT EXISTS(SELECT 1 FROM users.users WHERE id = $1);
-
--- name: GetProgramRegisterPricesForCustomer :one
+-- name: GetProgramRegistrationPricesForCustomer :one
 WITH active_membership_id AS
          (SELECT mp.membership_id
           FROM public.customer_membership_plans cmp
                    LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
                    LEFT JOIN membership.memberships m ON m.id = mp.membership_id
-              WHERE customer_id = sqlc.arg('customer_id')
-                AND status = 'active'
+          WHERE customer_id = sqlc.arg('customer_id')
+            AND status = 'active'
           ORDER BY cmp.start_date DESC
           LIMIT 1)
 
@@ -58,3 +41,20 @@ SELECT
     p.name AS program_name
 FROM program.programs p
 WHERE p.id = sqlc.arg('program_id');
+
+-- name: GetProgram :one
+SELECT id, name
+FROM program.programs
+WHERE id = $1;
+
+-- name: GetProgramIsFull :one
+SELECT COUNT(ce.id) >= p.capacity AS is_full
+FROM program.programs p
+         LEFT JOIN
+     public.schedules s ON p.id = s.program_id
+         LEFT JOIN
+     events.events e ON s.id = e.schedule_id
+         LEFT JOIN
+     events.customer_enrollment ce ON e.id = ce.event_id
+WHERE p.id = $1
+group by p.capacity;

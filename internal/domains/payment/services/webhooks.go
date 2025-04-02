@@ -20,6 +20,31 @@ func HandleCheckoutSessionCompleted(event stripe.Event) *errLib.CommonError {
 		return errLib.New("Failed to parse session", http.StatusBadRequest)
 	}
 
+	switch session.Mode {
+	case stripe.CheckoutSessionModePayment:
+		return handleItemCheckout(session)
+	case stripe.CheckoutSessionModeSubscription:
+		return handleSubscriptionWithEndDate(session)
+	}
+
+	return nil
+}
+
+func handleItemCheckout(session stripe.CheckoutSession) *errLib.CommonError {
+	// Handle the checkout session for a one-time payment
+	// Implement your logic here
+
+	log.Println("dwwew")
+	log.Println(session.Metadata)
+
+	return nil
+}
+
+func handleSubscriptionWithEndDate(session stripe.CheckoutSession) *errLib.CommonError {
+
+	log.Println("session")
+	log.Println(session)
+
 	totalBillingPeriodsStr := session.Metadata["totalBillingPeriods"]
 	if totalBillingPeriodsStr == "" {
 		return nil // Single payment, nothing to do

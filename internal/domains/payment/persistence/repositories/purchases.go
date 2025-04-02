@@ -5,6 +5,7 @@ import (
 	db "api/internal/domains/payment/persistence/sqlc/generated"
 	"api/internal/domains/payment/values"
 	errLib "api/internal/libs/errors"
+	contextUtils "api/utils/context"
 	"context"
 	"database/sql"
 	"errors"
@@ -57,9 +58,14 @@ func (r *Repository) GetMembershipPlanJoiningRequirement(ctx context.Context, pl
 	}
 }
 
-func (r *Repository) GetProgramRegistrationInfoByCustomer(ctx context.Context, customerID, programID uuid.UUID) (values.ProgramRegistrationInfo, *errLib.CommonError) {
+func (r *Repository) GetProgramRegistrationInfoForCustomer(ctx context.Context, programID uuid.UUID) (values.ProgramRegistrationInfo, *errLib.CommonError) {
 
 	var response values.ProgramRegistrationInfo
+
+	customerID, ctxErr := contextUtils.GetUserID(ctx)
+	if ctxErr != nil {
+		return response, ctxErr
+	}
 
 	program, err := r.Queries.GetProgram(ctx, programID)
 	if err != nil {
@@ -68,6 +74,13 @@ func (r *Repository) GetProgramRegistrationInfoByCustomer(ctx context.Context, c
 		}
 		log.Printf("Error getting program: %v", err)
 		return response, errLib.New("failed to get program", http.StatusInternalServerError)
+	}
+
+	if isFull, err := r.Queries.GetProgramIsFull(ctx, programID); err != nil {
+		log.Printf("Error getting program capacity: %v", err)
+		return response, errLib.New("failed to get program capacity", http.StatusInternalServerError)
+	} else if isFull {
+		return response, errLib.New("program is full", http.StatusBadRequest)
 	}
 
 	response.ProgramName = program.Name
@@ -79,7 +92,7 @@ func (r *Repository) GetProgramRegistrationInfoByCustomer(ctx context.Context, c
 		return response, errLib.New(fmt.Sprintf("customer not found: %v", customerID), http.StatusNotFound)
 	}
 
-	prices, err := r.Queries.GetProgramRegisterPricesForCustomer(ctx, db.GetProgramRegisterPricesForCustomerParams{
+	prices, err := r.Queries.GetProgramRegistrationPricesForCustomer(ctx, db.GetProgramRegistrationPricesForCustomerParams{
 		CustomerID: customerID,
 		ProgramID:  programID,
 	})

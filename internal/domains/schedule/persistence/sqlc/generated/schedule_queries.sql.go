@@ -3,7 +3,7 @@
 //   sqlc v1.27.0
 // source: schedule_queries.sql
 
-package event_db
+package db_schedule
 
 import (
 	"context"
@@ -15,8 +15,9 @@ import (
 )
 
 const createSchedule = `-- name: CreateSchedule :exec
-INSERT INTO public.schedules (recurrence_start_at, recurrence_end_at, event_start_time, event_end_time, day, location_id,
-                                     program_id)
+INSERT INTO public.schedules (recurrence_start_at, recurrence_end_at, event_start_time, event_end_time, day,
+                              location_id,
+                              program_id)
 VALUES ($1, $2, $3, $4, $5,
         $6, $7)
 `
@@ -59,18 +60,18 @@ const getScheduleById = `-- name: GetScheduleById :one
 SELECT schedule.id, schedule.program_id, schedule.team_id, schedule.location_id, schedule.recurrence_start_at, schedule.recurrence_end_at, schedule.day, schedule.event_start_time, schedule.event_end_time, schedule.created_at, schedule.updated_at,
        p.name        AS program_name,
        p.description AS program_description,
-       p.type     AS program_type,
+       p.type        AS program_type,
 
        l.name        AS location_name,
        l.address     AS location_address,
 
-         t.name        AS team_name
+       t.name        AS team_name
 
 FROM public.schedules schedule
-            LEFT JOIN events.events e ON schedule.id = e.schedule_id
-            LEFT JOIN program.programs p ON schedule.program_id = p.id
-            JOIN location.locations l ON schedule.location_id = l.id
-            LEFT JOIN athletic.teams t ON t.id = schedule.team_id
+         LEFT JOIN events.events e ON schedule.id = e.schedule_id
+         LEFT JOIN program.programs p ON schedule.program_id = p.id
+         JOIN location.locations l ON schedule.location_id = l.id
+         LEFT JOIN athletic.teams t ON t.id = schedule.team_id
 WHERE schedule.id = $1
 `
 
@@ -121,12 +122,12 @@ func (q *Queries) GetScheduleById(ctx context.Context, id uuid.UUID) (GetSchedul
 
 const getSchedules = `-- name: GetSchedules :many
 SELECT s.id, s.program_id, s.team_id, s.location_id, s.recurrence_start_at, s.recurrence_end_at, s.day, s.event_start_time, s.event_end_time, s.created_at, s.updated_at,
-                p.name        AS program_name,
-                p.description AS program_description,
-                p."type"      AS program_type,
-                l.name        AS location_name,
-                l.address     AS location_address,
-                t.name        as team_name
+       p.name        AS program_name,
+       p.description AS program_description,
+       p."type"      AS program_type,
+       l.name        AS location_name,
+       l.address     AS location_address,
+       t.name        as team_name
 FROM public.schedules s
          LEFT JOIN program.programs p ON s.program_id = p.id
          JOIN location.locations l ON s.location_id = l.id
@@ -222,12 +223,12 @@ const updateSchedule = `-- name: UpdateSchedule :execrows
 UPDATE public.schedules
 SET recurrence_start_at = $1,
     recurrence_end_at   = $2,
-    location_id      = $3,
-    program_id       = $4,
-    event_start_time = $5,
-    event_end_time   = $6,
-    day              = $7,
-    updated_at = current_timestamp
+    location_id         = $3,
+    program_id          = $4,
+    event_start_time    = $5,
+    event_end_time      = $6,
+    day                 = $7,
+    updated_at          = current_timestamp
 WHERE id = $8
 `
 

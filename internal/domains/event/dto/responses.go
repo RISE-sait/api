@@ -1,4 +1,4 @@
-package event
+package dto
 
 import (
 	values "api/internal/domains/event/values"

@@ -1,7 +1,11 @@
 {
     "swagger": "2.0",
     "info": {
-        "contact": {}
+      "title": "Rise API",
+      "contact": {
+        "email": "klintlee1@gmail.com"
+      },
+      "version": "1.0"
     },
     "paths": {
         "/auth": {
@@ -578,7 +582,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/event.EventResponseDto"
+                              "$ref": "#/definitions/dto.EventResponseDto"
                             }
                         }
                     },
@@ -622,7 +626,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/event.RequestDto"
+                          "$ref": "#/definitions/dto.CreateRequestDto"
                         }
                     }
                 ],
@@ -895,7 +899,7 @@
                     "200": {
                         "description": "Event details retrieved successfully",
                         "schema": {
-                            "$ref": "#/definitions/event.EventResponseDto"
+                          "$ref": "#/definitions/dto.EventResponseDto"
                         }
                     },
                     "400": {
@@ -952,7 +956,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/event.RequestDto"
+                          "$ref": "#/definitions/dto.UpdateRequestDto"
                         }
                     }
                 ],
@@ -1092,7 +1096,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/game.RequestDto"
+                          "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -1196,7 +1200,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/game.RequestDto"
+                          "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -1475,7 +1479,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/haircut.RequestDto"
+                          "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -1653,7 +1657,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/location.RequestDto"
+                          "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -1759,7 +1763,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/location.RequestDto"
+                          "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -1895,7 +1899,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/membership.RequestDto"
+                          "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -2208,7 +2212,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/membership.RequestDto"
+                          "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -2415,7 +2419,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/program.RequestDto"
+                          "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -2555,7 +2559,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/program.RequestDto"
+                          "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -2975,7 +2979,7 @@
               "in": "body",
               "required": true,
               "schema": {
-                "$ref": "#/definitions/schedule.RequestDto"
+                "$ref": "#/definitions/schedule.ScheduleRequestDto"
               }
             }
           ],
@@ -3095,7 +3099,7 @@
               "in": "body",
               "required": true,
               "schema": {
-                "$ref": "#/definitions/schedule.RequestDto"
+                "$ref": "#/definitions/schedule.ScheduleRequestDto"
               }
             }
           ],
@@ -3277,7 +3281,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/staff.RequestDto"
+                          "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -3415,7 +3419,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/team.RequestDto"
+                          "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -3474,7 +3478,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/team.RequestDto"
+                          "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -3828,7 +3832,40 @@
                 }
             }
         },
-        "event.EventResponseDto": {
+      "dto.CreateRequestDto": {
+        "type": "object",
+        "required": [
+          "end_at",
+          "start_at"
+        ],
+        "properties": {
+          "capacity": {
+            "type": "integer",
+            "example": 100
+          },
+          "end_at": {
+            "type": "string",
+            "example": "2023-10-05T07:00:00Z"
+          },
+          "location_id": {
+            "type": "string",
+            "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+          },
+          "program_id": {
+            "type": "string",
+            "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+          },
+          "start_at": {
+            "type": "string",
+            "example": "2023-10-05T07:00:00Z"
+          },
+          "team_id": {
+            "type": "string",
+            "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+          }
+        }
+      },
+      "dto.EventResponseDto": {
             "type": "object",
             "properties": {
               "created_at": {
@@ -3841,13 +3878,13 @@
                     "type": "string"
                 },
                 "location": {
-                    "$ref": "#/definitions/event.LocationInfo"
+                  "$ref": "#/definitions/dto.LocationInfo"
                 },
               "name": {
                 "type": "string"
               },
                 "program": {
-                    "$ref": "#/definitions/event.ProgramInfo"
+                  "$ref": "#/definitions/dto.ProgramInfo"
                 },
               "start_at": {
                     "type": "string"
@@ -3857,7 +3894,7 @@
                 }
             }
         },
-        "event.LocationInfo": {
+      "dto.LocationInfo": {
             "type": "object",
             "properties": {
                 "address": {
@@ -3871,7 +3908,7 @@
                 }
             }
         },
-        "event.ProgramInfo": {
+      "dto.ProgramInfo": {
             "type": "object",
             "properties": {
                 "id": {
@@ -3885,7 +3922,7 @@
                 }
             }
         },
-        "event.RequestDto": {
+      "dto.RequestDto": {
             "type": "object",
             "required": [
               "end_at",
@@ -3918,29 +3955,36 @@
                 }
             }
         },
-        "game.RequestDto": {
+      "dto.UpdateRequestDto": {
             "type": "object",
             "required": [
-                "name"
+              "end_at",
+              "start_at"
             ],
             "properties": {
-                "description": {
-                    "type": "string"
+              "capacity": {
+                "type": "integer",
+                "example": 100
                 },
-                "lose_score": {
-                    "type": "integer"
+              "end_at": {
+                "type": "string",
+                "example": "2023-10-05T07:00:00Z"
                 },
-                "lose_team": {
-                    "type": "string"
+              "location_id": {
+                "type": "string",
+                "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
                 },
-                "name": {
-                    "type": "string"
+              "program_id": {
+                "type": "string",
+                "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
                 },
-                "win_score": {
-                    "type": "integer"
+              "start_at": {
+                "type": "string",
+                "example": "2023-10-05T07:00:00Z"
                 },
-                "win_team": {
-                    "type": "string"
+              "team_id": {
+                "type": "string",
+                "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
                 }
             }
         },
@@ -4047,27 +4091,6 @@
                 }
             }
         },
-        "haircut.RequestDto": {
-            "type": "object",
-            "required": [
-                "begin_time",
-                "end_time"
-            ],
-            "properties": {
-                "barber_id": {
-                    "type": "string",
-                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
-                },
-                "begin_time": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
-                "end_time": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                }
-            }
-        },
         "identity.AthleteResponseDto": {
             "type": "object",
             "properties": {
@@ -4155,21 +4178,6 @@
                 }
             }
         },
-        "location.RequestDto": {
-            "type": "object",
-            "required": [
-                "address",
-                "name"
-            ],
-            "properties": {
-                "address": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
         "location.ResponseDto": {
             "type": "object",
             "properties": {
@@ -4181,22 +4189,6 @@
                 },
                 "name": {
                     "type": "string"
-                }
-            }
-        },
-        "membership.RequestDto": {
-            "type": "object",
-            "required": [
-                "name"
-            ],
-            "properties": {
-                "description": {
-                    "type": "string",
-                    "example": "Access to all premium features"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "Premium Membership"
                 }
             }
         },
@@ -4299,31 +4291,6 @@
                 }
             }
         },
-        "program.RequestDto": {
-            "type": "object",
-            "required": [
-                "level",
-                "name",
-                "type"
-            ],
-            "properties": {
-                "capacity": {
-                    "type": "integer"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "level": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                }
-            }
-        },
         "program.Response": {
             "type": "object",
             "properties": {
@@ -4381,7 +4348,7 @@
           }
         }
       },
-      "schedule.RequestDto": {
+      "schedule.ScheduleRequestDto": {
         "type": "object",
         "required": [
           "day",
@@ -4391,10 +4358,6 @@
           "session_start_time"
         ],
         "properties": {
-          "capacity": {
-            "type": "integer",
-            "example": 100
-          },
           "day": {
             "type": "string",
             "example": "THURSDAY"
@@ -4564,24 +4527,6 @@
                     "type": "string"
                 },
                 "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "team.RequestDto": {
-            "type": "object",
-            "required": [
-                "capacity",
-                "name"
-            ],
-            "properties": {
-                "capacity": {
-                    "type": "integer"
-                },
-                "coach_id": {
-                    "type": "string"
-                },
-                "name": {
                     "type": "string"
                 }
             }

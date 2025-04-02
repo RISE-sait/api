@@ -1,4 +1,4 @@
-package event
+package dto
 
 import (
 	values "api/internal/domains/event/values"
@@ -10,12 +10,12 @@ import (
 )
 
 type RequestDto struct {
-	StartAt    string `json:"start_at" validate:"required" example:"2023-10-05T07:00:00Z"`
-	EndAt      string `json:"end_at" validate:"required" example:"2023-10-05T07:00:00Z"`
-	ProgramID  string `json:"program_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
-	LocationID string `json:"location_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
-	TeamID     string `json:"team_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
-	Capacity   int32  `json:"capacity" example:"100"`
+	StartAt    string    `json:"start_at" validate:"required" example:"2023-10-05T07:00:00Z"`
+	EndAt      string    `json:"end_at" validate:"required" example:"2023-10-05T07:00:00Z"`
+	ProgramID  uuid.UUID `json:"program_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
+	LocationID uuid.UUID `json:"location_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
+	TeamID     uuid.UUID `json:"team_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
+	Capacity   int32     `json:"capacity" example:"100"`
 }
 
 type CreateRequestDto struct {
@@ -35,54 +35,33 @@ type UpdateRequestDto struct {
 //   - Verifies ProgramID and LocationID and TeamID are valid UUIDs
 //
 // Returns:
-//   - programID (uuid.UUID): The parsed program UUID
-//   - locationID (uuid.UUID): The parsed location UUID
-//   - teamID (uuid.UUID): The parsed team UUID
 //   - startAt (time.Time): The parsed start date-time
 //   - endAt (time.Time): The parsed end date-time
 //   - error (*errLib.CommonError): Error information if validation fails, nil otherwise
-func (dto RequestDto) validate() (uuid.UUID, uuid.UUID, uuid.UUID, time.Time, time.Time, *errLib.CommonError) {
+func (dto RequestDto) validate() (time.Time, time.Time, *errLib.CommonError) {
 
 	if err := validators.ValidateDto(&dto); err != nil {
-		return uuid.Nil, uuid.Nil, uuid.Nil, time.Time{}, time.Time{}, err
+		return time.Time{}, time.Time{}, err
 	}
 
 	startAt, err := validators.ParseDateTime(dto.StartAt)
 
 	if err != nil {
-		return uuid.Nil, uuid.Nil, uuid.Nil, time.Time{}, time.Time{}, err
+		return time.Time{}, time.Time{}, err
 	}
 
 	endAt, err := validators.ParseDateTime(dto.EndAt)
 
 	if err != nil {
-		return uuid.Nil, uuid.Nil, uuid.Nil, time.Time{}, time.Time{}, err
+		return time.Time{}, time.Time{}, err
 	}
 
-	programID, err := validators.ParseUUID(dto.ProgramID)
-
-	if err != nil {
-		return uuid.Nil, uuid.Nil, uuid.Nil, time.Time{}, time.Time{}, err
-	}
-
-	locationID, err := validators.ParseUUID(dto.LocationID)
-
-	if err != nil {
-		return uuid.Nil, uuid.Nil, uuid.Nil, time.Time{}, time.Time{}, err
-	}
-
-	teamID, err := validators.ParseUUID(dto.TeamID)
-
-	if err != nil {
-		return uuid.Nil, uuid.Nil, uuid.Nil, time.Time{}, time.Time{}, err
-	}
-
-	return programID, locationID, teamID, startAt, endAt, nil
+	return startAt, endAt, nil
 
 }
 
 func (dto CreateRequestDto) ToCreateEventValues(creator uuid.UUID) (values.CreateEventValues, *errLib.CommonError) {
-	programID, locationID, teamID, startAt, endAt, err := dto.validate()
+	startAt, endAt, err := dto.validate()
 	if err != nil {
 		return values.CreateEventValues{}, err
 	}
@@ -99,9 +78,9 @@ func (dto CreateRequestDto) ToCreateEventValues(creator uuid.UUID) (values.Creat
 			EndAt:   endAt,
 		},
 		MutationValues: values.MutationValues{
-			ProgramID:  programID,
-			LocationID: locationID,
-			TeamID:     teamID,
+			ProgramID:  dto.ProgramID,
+			LocationID: dto.LocationID,
+			TeamID:     dto.TeamID,
 		},
 	}, nil
 }
@@ -112,7 +91,7 @@ func (dto UpdateRequestDto) ToUpdateEventValues(idStr string, updater uuid.UUID)
 		return values.UpdateEventValues{}, err
 	}
 
-	programID, locationID, teamID, startAt, endAt, err := dto.validate()
+	startAt, endAt, err := dto.validate()
 	if err != nil {
 		return values.UpdateEventValues{}, err
 	}
@@ -125,9 +104,9 @@ func (dto UpdateRequestDto) ToUpdateEventValues(idStr string, updater uuid.UUID)
 			EndAt:   endAt,
 		},
 		MutationValues: values.MutationValues{
-			ProgramID:  programID,
-			LocationID: locationID,
-			TeamID:     teamID,
+			ProgramID:  dto.ProgramID,
+			LocationID: dto.LocationID,
+			TeamID:     dto.TeamID,
 		},
 	}
 

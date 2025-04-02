@@ -1,7 +1,7 @@
 package event
 
 import (
-	dto "api/internal/domains/event/dto/event"
+	dto "api/internal/domains/event/dto"
 	repository "api/internal/domains/event/persistence/repository"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
@@ -14,7 +14,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// SchedulesHandler provides HTTP handlers for managing events.
+// EventsHandler provides HTTP handlers for managing events.
 type EventsHandler struct {
 	Repo *repository.EventsRepository
 }
@@ -182,7 +182,7 @@ func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param event body dto.RequestDto true "Event details"
+// @Param event body dto.CreateRequestDto true "Event details"
 // @Success 201 {object} map[string]interface{} "Event created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
@@ -198,7 +198,7 @@ func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 
 	var targetBody dto.CreateRequestDto
 
-	if err = validators.ParseJSON(r.Body, &targetBody); err != nil {
+	if err := validators.ParseJSON(r.Body, &targetBody); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -223,7 +223,7 @@ func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Security Bearer
 // @Param id path string true "Event ID"
-// @Param event body dto.RequestDto true "Updated event details"
+// @Param event body dto.UpdateRequestDto true "Updated event details"
 // @Success 204 {object} map[string]interface{} "No Content: Event updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 404 {object} map[string]interface{} "Not Found: Event not found"

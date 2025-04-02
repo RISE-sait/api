@@ -3,7 +3,7 @@
 //   sqlc v1.27.0
 // source: event_queries.sql
 
-package event_db
+package db_event
 
 import (
 	"context"
@@ -14,9 +14,9 @@ import (
 )
 
 const createEvent = `-- name: CreateEvent :exec
-INSERT INTO events.events (schedule_id, start_at, end_at, created_by, updated_by, capacity)
+INSERT INTO events.events (schedule_id, start_at, end_at, created_by, updated_by, capacity, location_id)
 VALUES ($1, $2, $3,
-        $5::uuid, $5::uuid, $4)
+        $6::uuid, $6::uuid, $4, $5)
 `
 
 type CreateEventParams struct {
@@ -24,6 +24,7 @@ type CreateEventParams struct {
 	StartAt    time.Time     `json:"start_at"`
 	EndAt      time.Time     `json:"end_at"`
 	Capacity   sql.NullInt32 `json:"capacity"`
+	LocationID uuid.UUID     `json:"location_id"`
 	CreatedBy  uuid.UUID     `json:"created_by"`
 }
 
@@ -33,6 +34,7 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) error 
 		arg.StartAt,
 		arg.EndAt,
 		arg.Capacity,
+		arg.LocationID,
 		arg.CreatedBy,
 	)
 	return err
@@ -53,12 +55,12 @@ const getEventById = `-- name: GetEventById :many
 SELECT e.id, e.schedule_id, e.location_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.capacity, e.created_at, e.updated_at,
        coalesce(e.capacity, p.capacity, t.capacity) AS capacity,
 
-    p.id AS program_id,
+       p.id                                         AS program_id,
        p.name          AS program_name,
        p.description   AS program_description,
        p."type"        AS program_type,
 
-       l.id as location_id,
+       l.id                                         as location_id,
        l.name          AS location_name,
        l.address       AS location_address,
 
@@ -81,17 +83,17 @@ SELECT e.id, e.schedule_id, e.location_id, e.start_at, e.end_at, e.created_by, e
 
        -- Team field (added missing team reference)
        t.id            AS team_id,
-       t.name          AS team_name,
+       t.name                                       AS team_name,
 
-       creator.id AS creator_id,
-       creator.first_name AS creator_first_name,
-       creator.last_name AS creator_last_name,
-       creator.email AS creator_email,
+       creator.id                                   AS creator_id,
+       creator.first_name                           AS creator_first_name,
+       creator.last_name                            AS creator_last_name,
+       creator.email                                AS creator_email,
 
-       updater.id AS updater_id,
-       updater.first_name AS updater_first_name,
-       updater.last_name AS updater_last_name,
-       updater.email AS updater_email
+       updater.id                                   AS updater_id,
+       updater.first_name                           AS updater_first_name,
+       updater.last_name                            AS updater_last_name,
+       updater.email                                AS updater_email
 FROM events.events e
          LEFT JOIN public.schedules schedule ON e.schedule_id = schedule.id
          LEFT JOIN program.programs p ON schedule.program_id = p.id
@@ -112,7 +114,7 @@ ORDER BY s.id, uc.id
 type GetEventByIdRow struct {
 	ID                 uuid.UUID              `json:"id"`
 	ScheduleID         uuid.NullUUID          `json:"schedule_id"`
-	LocationID         uuid.NullUUID          `json:"location_id"`
+	LocationID         uuid.UUID              `json:"location_id"`
 	StartAt            time.Time              `json:"start_at"`
 	EndAt              time.Time              `json:"end_at"`
 	CreatedBy          uuid.UUID              `json:"created_by"`
@@ -232,10 +234,11 @@ func (q *Queries) GetEventCreatedBy(ctx context.Context, id uuid.UUID) (uuid.UUI
 }
 
 const getEvents = `-- name: GetEvents :many
-SELECT distinct e.id, e.id, e.schedule_id, e.location_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.capacity, e.created_at, e.updated_at,
+SELECT distinct e.id,
+                e.id, e.schedule_id, e.location_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.capacity, e.created_at, e.updated_at,
                 coalesce(e.capacity, p.capacity, t.capacity) AS capacity,
 
-                p.id AS program_id,
+                p.id                                         AS program_id,
                 p.name        AS program_name,
                 p.description AS program_description,
                 p."type"      AS program_type,
@@ -243,33 +246,33 @@ SELECT distinct e.id, e.id, e.schedule_id, e.location_id, e.start_at, e.end_at, 
                 l.name        AS location_name,
                 l.address     AS location_address,
 
-                t.id        as team_id,
-                t.name        as team_name,
+                t.id                                         as team_id,
+                t.name                                       as team_name,
 
-                creator.id AS creator_id,
-                creator.first_name AS creator_first_name,
-                creator.last_name AS creator_last_name,
-                creator.email AS creator_email,
+                creator.id                                   AS creator_id,
+                creator.first_name                           AS creator_first_name,
+                creator.last_name                            AS creator_last_name,
+                creator.email                                AS creator_email,
 
-                updater.id AS updater_id,
-                updater.first_name AS updater_first_name,
-                updater.last_name AS updater_last_name,
-                updater.email AS updater_email
+                updater.id                                   AS updater_id,
+                updater.first_name                           AS updater_first_name,
+                updater.last_name                            AS updater_last_name,
+                updater.email                                AS updater_email
 
 FROM events.events e
-    LEFT JOIN public.schedules s ON e.schedule_id = s.id
+         LEFT JOIN public.schedules s ON e.schedule_id = s.id
          LEFT JOIN program.programs p ON s.program_id = p.id
-    INNER JOIN location.locations l ON coalesce(e.location_id, s.location_id) = l.id
+         INNER JOIN location.locations l ON coalesce(e.location_id, s.location_id) = l.id
          LEFT JOIN events.staff es ON e.id = es.event_id
          LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
          LEFT JOIN athletic.teams t ON t.id = s.team_id
-    JOIN users.users creator ON creator.id = e.created_by
-    JOIN users.users updater ON updater.id = e.updated_by
+         JOIN users.users creator ON creator.id = e.created_by
+         JOIN users.users updater ON updater.id = e.updated_by
 
 WHERE (
           ($1::uuid = s.program_id OR $1 IS NULL)
               AND ($2::uuid = s.location_id OR $2 IS NULL)
-              AND ( e.start_at > $3::timestamp OR $3 IS NULL)
+              AND (e.start_at > $3::timestamp OR $3 IS NULL)
               AND (e.end_at < $4::timestamp OR $4 IS NULL)
               AND ($5 = p.type OR $5 IS NULL)
               AND ($6::uuid IS NULL OR ce.customer_id = $6 OR
@@ -296,7 +299,7 @@ type GetEventsRow struct {
 	ID                 uuid.UUID              `json:"id"`
 	ID_2               uuid.UUID              `json:"id_2"`
 	ScheduleID         uuid.NullUUID          `json:"schedule_id"`
-	LocationID         uuid.NullUUID          `json:"location_id"`
+	LocationID         uuid.UUID              `json:"location_id"`
 	StartAt            time.Time              `json:"start_at"`
 	EndAt              time.Time              `json:"end_at"`
 	CreatedBy          uuid.UUID              `json:"created_by"`
@@ -387,12 +390,13 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 
 const updateEvent = `-- name: UpdateEvent :exec
 UPDATE events.events
-SET start_at = $1,
-    end_at = $2,
+SET start_at    = $1,
+    end_at      = $2,
     schedule_id = $3,
-    capacity = $4,
-    updated_by = $6::uuid
-WHERE id = $5
+    capacity    = $4,
+    location_id = $5,
+    updated_by = $7::uuid
+WHERE id = $6
 `
 
 type UpdateEventParams struct {
@@ -400,6 +404,7 @@ type UpdateEventParams struct {
 	EndAt      time.Time     `json:"end_at"`
 	ScheduleID uuid.NullUUID `json:"schedule_id"`
 	Capacity   sql.NullInt32 `json:"capacity"`
+	LocationID uuid.UUID     `json:"location_id"`
 	ID         uuid.UUID     `json:"id"`
 	UpdatedBy  uuid.UUID     `json:"updated_by"`
 }
@@ -410,6 +415,7 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) error 
 		arg.EndAt,
 		arg.ScheduleID,
 		arg.Capacity,
+		arg.LocationID,
 		arg.ID,
 		arg.UpdatedBy,
 	)

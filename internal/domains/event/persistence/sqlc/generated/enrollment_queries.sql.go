@@ -3,7 +3,7 @@
 //   sqlc v1.27.0
 // source: enrollment_queries.sql
 
-package event_db
+package db_event
 
 import (
 	"context"
@@ -45,8 +45,8 @@ SELECT
         ELSE COUNT(ce.customer_id) >= COALESCE(e.capacity, t.capacity)
     END)::boolean AS is_full
 FROM events.events e
-    LEFT JOIN public.schedules s ON e.schedule_id = s.id
-LEFT JOIN athletic.teams t ON s.team_id = t.id
+         LEFT JOIN public.schedules s ON e.schedule_id = s.id
+         LEFT JOIN athletic.teams t ON s.team_id = t.id
 LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
 WHERE e.id = $1
 GROUP BY e.id, e.capacity, t.capacity

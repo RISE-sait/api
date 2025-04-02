@@ -7,7 +7,7 @@ CREATE TABLE events.events
 (
     id          UUID PRIMARY KEY     DEFAULT gen_random_uuid(),
     schedule_id UUID REFERENCES schedules (id) ON DELETE CASCADE,
-    location_id UUID        references location.locations (id) ON DELETE SET NULL,
+    location_id UUID NOT NULL REFERENCES location.locations (id) ON DELETE RESTRICT,
     start_at    TIMESTAMPTZ NOT NULL,
     end_at      TIMESTAMPTZ NOT NULL,
     created_by  UUID        NOT NULL,
@@ -22,7 +22,9 @@ CREATE TABLE events.events
         EXCLUDE USING GIST (
         location_id WITH =,
         tstzrange(start_at, end_at) WITH &&
-        )
+        ),
+
+    CONSTRAINT check_start_end CHECK (start_at < end_at)
 );
 
 CREATE INDEX idx_scheduled_events_schedule ON events.events (schedule_id);

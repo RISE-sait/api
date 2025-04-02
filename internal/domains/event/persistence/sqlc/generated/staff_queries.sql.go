@@ -3,7 +3,7 @@
 //   sqlc v1.27.0
 // source: staff_queries.sql
 
-package event_db
+package db_event
 
 import (
 	"context"

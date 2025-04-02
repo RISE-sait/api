@@ -1,8 +1,8 @@
 package event
 
 import (
-	dto "api/internal/domains/event/dto/schedule"
-	repository "api/internal/domains/event/persistence/repository"
+	dto "api/internal/domains/schedule/dto"
+	repository "api/internal/domains/schedule/persistence/repository"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
@@ -144,7 +144,7 @@ func (h *SchedulesHandler) GetSchedule(w http.ResponseWriter, r *http.Request) {
 // @Description Creates a new schedule with the provided details
 // @Tags schedules
 // @Security BearerAuth
-// @Param request body dto.RequestDto true "Schedule creation data"
+// @Param request body dto.ScheduleRequestDto true "Schedule creation data"
 // @Accept json
 // @Produce json
 // @Success 201 {object} dto.ScheduleResponseDto "Schedule created successfully"
@@ -154,7 +154,7 @@ func (h *SchedulesHandler) GetSchedule(w http.ResponseWriter, r *http.Request) {
 // @Router /schedules [post]
 func (h *SchedulesHandler) CreateSchedule(w http.ResponseWriter, r *http.Request) {
 
-	var targetBody dto.RequestDto
+	var targetBody dto.ScheduleRequestDto
 
 	if err := validators.ParseJSON(r.Body, &targetBody); err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -179,7 +179,7 @@ func (h *SchedulesHandler) CreateSchedule(w http.ResponseWriter, r *http.Request
 // @Tags schedules
 // @Security BearerAuth
 // @Param id path string true "Schedule ID" Format(uuid)
-// @Param request body dto.RequestDto true "Schedule update data"
+// @Param request body dto.ScheduleRequestDto true "Schedule update data"
 // @Accept json
 // @Produce json
 // @Success 204 "Schedule updated successfully"
@@ -194,7 +194,7 @@ func (h *SchedulesHandler) UpdateSchedule(w http.ResponseWriter, r *http.Request
 
 	idStr := chi.URLParam(r, "id")
 
-	var targetBody dto.RequestDto
+	var targetBody dto.ScheduleRequestDto
 
 	if err := validators.ParseJSON(r.Body, &targetBody); err != nil {
 		responseHandlers.RespondWithError(w, err)

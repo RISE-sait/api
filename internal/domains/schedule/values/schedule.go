@@ -1,4 +1,4 @@
-package event
+package schedule
 
 import (
 	"api/internal/custom_types"
@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
+//goland:noinspection GoNameStartsWithPackageName
 type ScheduleDetails struct {
 	Day               string
 	RecurrenceStartAt time.Time

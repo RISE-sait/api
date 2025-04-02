@@ -1,7 +1,7 @@
 package schedule
 
 import (
-	values "api/internal/domains/event/values"
+	values "api/internal/domains/schedule/values"
 	"github.com/google/uuid"
 	"time"
 )

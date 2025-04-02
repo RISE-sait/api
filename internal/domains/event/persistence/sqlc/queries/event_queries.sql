@@ -1,7 +1,7 @@
 -- name: CreateEvent :exec
-INSERT INTO events.events (schedule_id, start_at, end_at, created_by, updated_by, capacity)
+INSERT INTO events.events (schedule_id, start_at, end_at, created_by, updated_by, capacity, location_id)
 VALUES ($1, $2, $3,
-        sqlc.arg('created_by')::uuid, sqlc.arg('created_by')::uuid, $4);
+        sqlc.arg('created_by')::uuid, sqlc.arg('created_by')::uuid, $4, $5);
 
 -- name: GetEvents :many
 SELECT distinct e.id,
@@ -117,8 +117,9 @@ SET start_at    = $1,
     end_at      = $2,
     schedule_id = $3,
     capacity    = $4,
+    location_id = $5,
     updated_by = sqlc.arg('updated_by')::uuid
-WHERE id = $5;
+WHERE id = $6;
 
 -- name: GetEventCreatedBy :one
 SELECT created_by

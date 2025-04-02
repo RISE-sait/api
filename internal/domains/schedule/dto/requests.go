@@ -2,7 +2,7 @@ package schedule
 
 import (
 	"api/internal/custom_types"
-	values "api/internal/domains/event/values"
+	values "api/internal/domains/schedule/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
 	"log"
@@ -11,7 +11,8 @@ import (
 	"github.com/google/uuid"
 )
 
-type RequestDto struct {
+//goland:noinspection GoNameStartsWithPackageName
+type ScheduleRequestDto struct {
 	Day               string    `json:"day" validate:"required" example:"THURSDAY"`
 	RecurrenceStartAt string    `json:"recurrence_start_at" validate:"required" example:"2023-10-05T07:00:00Z"`
 	RecurrenceEndAt   string    `json:"recurrence_end_at" validate:"required" example:"2023-10-05T07:00:00Z"`
@@ -19,7 +20,6 @@ type RequestDto struct {
 	SessionEndTime    string    `json:"session_end_time" validate:"required" example:"23:00:00+00:00"`
 	ProgramID         uuid.UUID `json:"program_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
 	LocationID        uuid.UUID `json:"location_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
-	Capacity          *int32    `json:"capacity" example:"100"`
 }
 
 // validate validates the request DTO, parses the event and session start and end times,
@@ -28,7 +28,7 @@ type RequestDto struct {
 // @return eventBeginDateTime The parsed event start date and time (time.Time). This is the first return value.
 // @return eventEndDateTime The parsed event end date and time (time.Time). This is the second return value.
 // @return An error *errLib.CommonError if any validation or parsing fails. This is the last return value.
-func (dto RequestDto) validate() (time.Time, time.Time, custom_types.TimeWithTimeZone, custom_types.TimeWithTimeZone, *errLib.CommonError) {
+func (dto ScheduleRequestDto) validate() (time.Time, time.Time, custom_types.TimeWithTimeZone, custom_types.TimeWithTimeZone, *errLib.CommonError) {
 	if err := validators.ValidateDto(&dto); err != nil {
 		return time.Time{}, time.Time{}, custom_types.TimeWithTimeZone{}, custom_types.TimeWithTimeZone{}, err
 	}
@@ -60,7 +60,7 @@ func (dto RequestDto) validate() (time.Time, time.Time, custom_types.TimeWithTim
 	return recurrenceBeginDateTime, recurrenceEndDateTime, sessionBeginTime, sessionEndTime, nil
 }
 
-func (dto RequestDto) ToCreateScheduleValues() (values.CreateScheduleValues, *errLib.CommonError) {
+func (dto ScheduleRequestDto) ToCreateScheduleValues() (values.CreateScheduleValues, *errLib.CommonError) {
 
 	recurrenceBeginDateTime, recurrenceEndDateTime, sessionBeginTime, sessionEndTime, err := dto.validate()
 
@@ -81,7 +81,7 @@ func (dto RequestDto) ToCreateScheduleValues() (values.CreateScheduleValues, *er
 	}, nil
 }
 
-func (dto RequestDto) ToUpdateScheduleValues(idStr string) (values.UpdateScheduleValues, *errLib.CommonError) {
+func (dto ScheduleRequestDto) ToUpdateScheduleValues(idStr string) (values.UpdateScheduleValues, *errLib.CommonError) {
 
 	id, err := validators.ParseUUID(idStr)
 

@@ -29,20 +29,15 @@ func NewEventsRepository(dbQueries *db.Queries) *EventsRepository {
 
 func (r *EventsRepository) CreateEvent(ctx context.Context, eventDetails values.CreateEventValues) *errLib.CommonError {
 
-	userID, err := contextUtils.GetUserID(ctx)
-
-	if err != nil {
-		return err
-	}
-
 	dbParams := db.CreateEventParams{
 		StartAt:   eventDetails.StartAt,
 		EndAt:     eventDetails.EndAt,
-		CreatedBy: userID,
+		CreatedBy: eventDetails.CreatedBy,
 		Capacity: sql.NullInt32{
 			Int32: eventDetails.Capacity,
 			Valid: true,
 		},
+		LocationID: eventDetails.LocationID,
 	}
 
 	if eventDetails.ScheduleID != uuid.Nil {
@@ -57,16 +52,38 @@ func (r *EventsRepository) CreateEvent(ctx context.Context, eventDetails values.
 		var pqErr *pq.Error
 		if errors.As(dbErr, &pqErr) {
 
-			constraintErrors := map[string]string{
-				"fk_program":            "The referenced program doesn't exist",
-				"fk_location":           "The referenced location doesn't exist",
-				"unique_event_time":     "An event is already scheduled at this time",
-				"check_event_times":     "End time/date must be after Begin time/date",
-				"event_end_after_start": "End time/date must be after Begin time/date",
+			constraintErrors := map[string]struct {
+				Message string
+				Status  int
+			}{
+				"fk_created_by": {
+					Message: "The referenced user doesn't exist",
+					Status:  http.StatusBadRequest,
+				},
+				"fk_updated_by": {
+					Message: "The referenced user doesn't exist",
+					Status:  http.StatusBadRequest,
+				},
+				"events_location_id_fkey": {
+					Message: "The referenced location doesn't exist",
+					Status:  http.StatusBadRequest,
+				},
+				"events_schedule_id_fkey": {
+					Message: "The referenced schedule doesn't exist",
+					Status:  http.StatusBadRequest,
+				},
+				"check_start_end": {
+					Message: "Event end time must be after start time",
+					Status:  http.StatusBadRequest,
+				},
+				"no_overlapping_events": {
+					Message: "An event is already scheduled at this time and location",
+					Status:  http.StatusConflict,
+				},
 			}
 
-			if msg, found := constraintErrors[pqErr.Constraint]; found {
-				return errLib.New(msg, http.StatusBadRequest)
+			if errInfo, found := constraintErrors[pqErr.Constraint]; found {
+				return errLib.New(errInfo.Message, errInfo.Status)
 			}
 		}
 
@@ -123,7 +140,7 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 					Name    string
 					Address string
 				}{
-					ID:      row.LocationID.UUID,
+					ID:      row.LocationID,
 					Name:    row.LocationName,
 					Address: row.LocationAddress,
 				},
@@ -263,7 +280,7 @@ func (r *EventsRepository) GetEvents(ctx context.Context, programTypeStr string,
 				Name    string
 				Address string
 			}{
-				ID:      row.LocationID.UUID,
+				ID:      row.LocationID,
 				Name:    row.LocationName,
 				Address: row.LocationAddress,
 			},
@@ -347,16 +364,38 @@ func (r *EventsRepository) UpdateEvent(ctx context.Context, event values.UpdateE
 		var pqErr *pq.Error
 		if errors.As(dbErr, &pqErr) {
 
-			constraintErrors := map[string]string{
-				"fk_program":            "The referenced program doesn't exist",
-				"fk_location":           "The referenced location doesn't exist",
-				"unique_event_time":     "An event is already scheduled at this time",
-				"check_event_times":     "End time/date must be after Begin time/date",
-				"event_end_after_start": "End time/date must be after Begin time/date",
+			constraintErrors := map[string]struct {
+				Message string
+				Status  int
+			}{
+				"fk_created_by": {
+					Message: "The referenced user doesn't exist",
+					Status:  http.StatusBadRequest,
+				},
+				"fk_updated_by": {
+					Message: "The referenced user doesn't exist",
+					Status:  http.StatusBadRequest,
+				},
+				"events_location_id_fkey": {
+					Message: "The referenced location doesn't exist",
+					Status:  http.StatusBadRequest,
+				},
+				"events_schedule_id_fkey": {
+					Message: "The referenced schedule doesn't exist",
+					Status:  http.StatusBadRequest,
+				},
+				"check_start_end": {
+					Message: "Event end time must be after start time",
+					Status:  http.StatusBadRequest,
+				},
+				"no_overlapping_events": {
+					Message: "An event is already scheduled at this time and location",
+					Status:  http.StatusConflict,
+				},
 			}
 
-			if msg, found := constraintErrors[pqErr.Constraint]; found {
-				return errLib.New(msg, http.StatusBadRequest)
+			if errInfo, found := constraintErrors[pqErr.Constraint]; found {
+				return errLib.New(errInfo.Message, errInfo.Status)
 			}
 		}
 

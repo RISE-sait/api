@@ -2,8 +2,8 @@ package event
 
 import (
 	"api/internal/custom_types"
-	db "api/internal/domains/event/persistence/sqlc/generated"
-	values "api/internal/domains/event/values"
+	db "api/internal/domains/schedule/persistence/sqlc/generated"
+	values "api/internal/domains/schedule/values"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"

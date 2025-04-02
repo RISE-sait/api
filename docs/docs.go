@@ -9,7 +9,9 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "contact": {},
+        "contact": {
+            "email": "klintlee1@gmail.com"
+        },
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -589,7 +591,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/event.EventResponseDto"
+                                "$ref": "#/definitions/dto.EventResponseDto"
                             }
                         }
                     },
@@ -633,7 +635,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/event.RequestDto"
+                            "$ref": "#/definitions/dto.CreateRequestDto"
                         }
                     }
                 ],
@@ -906,7 +908,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Event details retrieved successfully",
                         "schema": {
-                            "$ref": "#/definitions/event.EventResponseDto"
+                            "$ref": "#/definitions/dto.EventResponseDto"
                         }
                     },
                     "400": {
@@ -963,7 +965,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/event.RequestDto"
+                            "$ref": "#/definitions/dto.UpdateRequestDto"
                         }
                     }
                 ],
@@ -1103,7 +1105,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/game.RequestDto"
+                            "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -1207,7 +1209,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/game.RequestDto"
+                            "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -1486,7 +1488,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/haircut.RequestDto"
+                            "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -1664,7 +1666,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/location.RequestDto"
+                            "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -1770,7 +1772,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/location.RequestDto"
+                            "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -1906,7 +1908,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/membership.RequestDto"
+                            "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -2219,7 +2221,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/membership.RequestDto"
+                            "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -2426,7 +2428,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/program.RequestDto"
+                            "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -2566,7 +2568,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/program.RequestDto"
+                            "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -2986,7 +2988,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/schedule.RequestDto"
+                            "$ref": "#/definitions/schedule.ScheduleRequestDto"
                         }
                     }
                 ],
@@ -3106,7 +3108,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/schedule.RequestDto"
+                            "$ref": "#/definitions/schedule.ScheduleRequestDto"
                         }
                     }
                 ],
@@ -3288,7 +3290,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/staff.RequestDto"
+                            "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -3426,7 +3428,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/team.RequestDto"
+                            "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -3485,7 +3487,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/team.RequestDto"
+                            "$ref": "#/definitions/dto.RequestDto"
                         }
                     }
                 ],
@@ -3839,64 +3841,7 @@ const docTemplate = `{
                 }
             }
         },
-        "event.EventResponseDto": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "end_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "location": {
-                    "$ref": "#/definitions/event.LocationInfo"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "program": {
-                    "$ref": "#/definitions/event.ProgramInfo"
-                },
-                "start_at": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "event.LocationInfo": {
-            "type": "object",
-            "properties": {
-                "address": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "event.ProgramInfo": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                }
-            }
-        },
-        "event.RequestDto": {
+        "dto.CreateRequestDto": {
             "type": "object",
             "required": [
                 "end_at",
@@ -3929,29 +3874,126 @@ const docTemplate = `{
                 }
             }
         },
-        "game.RequestDto": {
+        "dto.EventResponseDto": {
             "type": "object",
-            "required": [
-                "name"
-            ],
             "properties": {
-                "description": {
+                "created_at": {
                     "type": "string"
                 },
-                "lose_score": {
-                    "type": "integer"
+                "end_at": {
+                    "type": "string"
                 },
-                "lose_team": {
+                "id": {
+                    "type": "string"
+                },
+                "location": {
+                    "$ref": "#/definitions/dto.LocationInfo"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "program": {
+                    "$ref": "#/definitions/dto.ProgramInfo"
+                },
+                "start_at": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.LocationInfo": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ProgramInfo": {
+            "type": "object",
+            "properties": {
+                "id": {
                     "type": "string"
                 },
                 "name": {
                     "type": "string"
                 },
-                "win_score": {
-                    "type": "integer"
-                },
-                "win_team": {
+                "type": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.RequestDto": {
+            "type": "object",
+            "required": [
+                "end_at",
+                "start_at"
+            ],
+            "properties": {
+                "capacity": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "end_at": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "location_id": {
+                    "type": "string",
+                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+                },
+                "program_id": {
+                    "type": "string",
+                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+                },
+                "start_at": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "team_id": {
+                    "type": "string",
+                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+                }
+            }
+        },
+        "dto.UpdateRequestDto": {
+            "type": "object",
+            "required": [
+                "end_at",
+                "start_at"
+            ],
+            "properties": {
+                "capacity": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "end_at": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "location_id": {
+                    "type": "string",
+                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+                },
+                "program_id": {
+                    "type": "string",
+                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+                },
+                "start_at": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "team_id": {
+                    "type": "string",
+                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
                 }
             }
         },
@@ -4058,27 +4100,6 @@ const docTemplate = `{
                 }
             }
         },
-        "haircut.RequestDto": {
-            "type": "object",
-            "required": [
-                "begin_time",
-                "end_time"
-            ],
-            "properties": {
-                "barber_id": {
-                    "type": "string",
-                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
-                },
-                "begin_time": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
-                "end_time": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                }
-            }
-        },
         "identity.AthleteResponseDto": {
             "type": "object",
             "properties": {
@@ -4166,21 +4187,6 @@ const docTemplate = `{
                 }
             }
         },
-        "location.RequestDto": {
-            "type": "object",
-            "required": [
-                "address",
-                "name"
-            ],
-            "properties": {
-                "address": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
         "location.ResponseDto": {
             "type": "object",
             "properties": {
@@ -4192,22 +4198,6 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
-                }
-            }
-        },
-        "membership.RequestDto": {
-            "type": "object",
-            "required": [
-                "name"
-            ],
-            "properties": {
-                "description": {
-                    "type": "string",
-                    "example": "Access to all premium features"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "Premium Membership"
                 }
             }
         },
@@ -4310,31 +4300,6 @@ const docTemplate = `{
                 }
             }
         },
-        "program.RequestDto": {
-            "type": "object",
-            "required": [
-                "level",
-                "name",
-                "type"
-            ],
-            "properties": {
-                "capacity": {
-                    "type": "integer"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "level": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                }
-            }
-        },
         "program.Response": {
             "type": "object",
             "properties": {
@@ -4392,7 +4357,7 @@ const docTemplate = `{
                 }
             }
         },
-        "schedule.RequestDto": {
+        "schedule.ScheduleRequestDto": {
             "type": "object",
             "required": [
                 "day",
@@ -4402,10 +4367,6 @@ const docTemplate = `{
                 "session_start_time"
             ],
             "properties": {
-                "capacity": {
-                    "type": "integer",
-                    "example": 100
-                },
                 "day": {
                     "type": "string",
                     "example": "THURSDAY"
@@ -4579,24 +4540,6 @@ const docTemplate = `{
                 }
             }
         },
-        "team.RequestDto": {
-            "type": "object",
-            "required": [
-                "capacity",
-                "name"
-            ],
-            "properties": {
-                "capacity": {
-                    "type": "integer"
-                },
-                "coach_id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
         "team.Response": {
             "type": "object",
             "properties": {
@@ -4632,11 +4575,11 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "",
+	Version:          "1.0",
 	Host:             "",
 	BasePath:         "",
 	Schemes:          []string{},
-	Title:            "",
+	Title:            "Rise API",
 	Description:      "",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,

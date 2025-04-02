@@ -10,6 +10,7 @@ import (
 	membershipDb "api/internal/domains/membership/persistence/sqlc/generated"
 	purchaseDb "api/internal/domains/payment/persistence/sqlc/generated"
 	programDb "api/internal/domains/program/persistence/sqlc/generated"
+	scheduleDb "api/internal/domains/schedule/persistence/sqlc/generated"
 	teamDb "api/internal/domains/team/persistence/sqlc/generated"
 
 	"api/internal/services/square"
@@ -41,6 +42,7 @@ type QueriesType struct {
 	MembershipDb *membershipDb.Queries
 	LocationDb   *locationDb.Queries
 	EventDb      *eventDb.Queries
+	ScheduleDb   *scheduleDb.Queries
 	BarberDb     *barberDb.Queries
 	GameDb       *gameDb.Queries
 	TeamDb       *teamDb.Queries
@@ -82,6 +84,7 @@ func initializeQueries(db *sql.DB) *QueriesType {
 		MembershipDb: membershipDb.New(db),
 		LocationDb:   locationDb.New(db),
 		EventDb:      eventDb.New(db),
+		ScheduleDb:   scheduleDb.New(db),
 		BarberDb:     barberDb.New(db),
 		GameDb:       gameDb.New(db),
 		TeamDb:       teamDb.New(db),

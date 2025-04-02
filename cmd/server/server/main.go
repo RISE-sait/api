@@ -25,11 +25,14 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
+// @title			Rise API
+// @version		1.0
+//
+//	@contact.email	klintlee1@gmail.com
+//
 // @SecurityDefinitions.apiKey Bearer
 // @in header
 // @name Authorization
-// @title Rise API
-// @version 1.0
 func main() {
 
 	swaggerUrl := os.Getenv("SWAGGER_URL")

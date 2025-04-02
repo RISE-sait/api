@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.27.0
 
-package db_event
+package db_schedule
 
 import (
 	"database/sql"
@@ -512,7 +512,7 @@ type EventsCustomerEnrollment struct {
 type EventsEvent struct {
 	ID         uuid.UUID     `json:"id"`
 	ScheduleID uuid.NullUUID `json:"schedule_id"`
-	LocationID uuid.UUID     `json:"location_id"`
+	LocationID uuid.NullUUID `json:"location_id"`
 	StartAt    time.Time     `json:"start_at"`
 	EndAt      time.Time     `json:"end_at"`
 	CreatedBy  uuid.UUID     `json:"created_by"`

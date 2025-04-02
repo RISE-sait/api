@@ -1,13 +1,13 @@
 services:
   db:
-   image: 'postgres'
-   container_name: '${COMPOSE_PROJECT_NAME}_db'
-   ports:
-     - '5432:5432'
-   environment:
-     POSTGRES_USER: 'postgres'
-     POSTGRES_PASSWORD: 'root'
-     POSTGRES_DB: 'postgres'
+    image: 'postgres'
+    container_name: '${COMPOSE_PROJECT_NAME}_db'
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: 'root'
+      POSTGRES_DB: 'postgres'
 
   go-server:
     build:

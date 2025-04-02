@@ -12,7 +12,6 @@ func GetClientsEnrollments(clientIds, eventIds []uuid.UUID) dbSeed.InsertCustome
 		clientArray      []uuid.UUID
 		eventArray       []uuid.UUID
 		checkedInAtArray []time.Time
-		isCancelledArray []bool
 	)
 
 	randomSource := rand.NewSource(time.Now().UnixNano())
@@ -54,20 +53,12 @@ func GetClientsEnrollments(clientIds, eventIds []uuid.UUID) dbSeed.InsertCustome
 			// Mark customer as assigned to this event
 			assignedCustomers[clientID] = true
 
-			// Randomize enrollment details
-			isCancelled := randomGenerator.Intn(4) == 0 // 25% probability of cancellation
-
 			var checkedInAt time.Time
-			if !isCancelled && randomGenerator.Intn(2) == 0 { // 50% probability of checked in if not cancelled
-				daysAgo := randomGenerator.Intn(365) // Random day within the last year
-				checkedInAt = time.Now().AddDate(0, 0, -daysAgo)
-			}
 
 			// Append to the arrays
 			clientArray = append(clientArray, clientID)
 			eventArray = append(eventArray, eventID)
 			checkedInAtArray = append(checkedInAtArray, checkedInAt)
-			isCancelledArray = append(isCancelledArray, isCancelled)
 		}
 	}
 
@@ -75,7 +66,6 @@ func GetClientsEnrollments(clientIds, eventIds []uuid.UUID) dbSeed.InsertCustome
 		CustomerIDArray:  clientArray,
 		EventIDArray:     eventArray,
 		CheckedInAtArray: checkedInAtArray,
-		IsCancelledArray: isCancelledArray,
 	}
 }
 

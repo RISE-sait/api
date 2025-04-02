@@ -1,114 +1,122 @@
-package event
+package dto
 
 import (
-	"api/internal/custom_types"
 	values "api/internal/domains/event/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
-	"log"
-	"time"
-
 	"github.com/google/uuid"
+	"net/http"
+	"time"
 )
 
 type RequestDto struct {
-	Day               string    `json:"day" validate:"required" example:"THURSDAY"`
-	RecurrenceStartAt string    `json:"recurrence_start_at" validate:"required" example:"2023-10-05T07:00:00Z"`
-	RecurrenceEndAt   string    `json:"recurrence_end_at" validate:"required" example:"2023-10-05T07:00:00Z"`
-	SessionStartTime  string    `json:"session_start_time" validate:"required" example:"23:00:00+00:00"`
-	SessionEndTime    string    `json:"session_end_time" validate:"required" example:"23:00:00+00:00"`
-	ProgramID         uuid.UUID `json:"program_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
-	LocationID        uuid.UUID `json:"location_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
-	Capacity          *int32    `json:"capacity" example:"100"`
+	StartAt    string    `json:"start_at" validate:"required" example:"2023-10-05T07:00:00Z"`
+	EndAt      string    `json:"end_at" validate:"required" example:"2023-10-05T07:00:00Z"`
+	ProgramID  uuid.UUID `json:"program_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
+	LocationID uuid.UUID `json:"location_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
+	TeamID     uuid.UUID `json:"team_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
+	Capacity   int32     `json:"capacity" example:"100"`
 }
 
-// validate validates the request DTO, parses the event and session start and end times,
-// and returns the parsed values. If any validation or parsing fails, an error is returned.
+type CreateRequestDto struct {
+	RequestDto
+	Capacity int32 `json:"capacity" example:"100"`
+}
+
+type UpdateRequestDto struct {
+	RequestDto
+	Capacity *int32 `json:"capacity" example:"100"`
+}
+
+// validate validates the request DTO and returns parsed values.
+// It performs the following validations:
+//   - Validates the DTO structure using validators.ValidateDto
+//   - Ensures the StartAt and EndAt strings are valid date-time formats
+//   - Verifies ProgramID and LocationID and TeamID are valid UUIDs
 //
-// @return eventBeginDateTime The parsed event start date and time (time.Time). This is the first return value.
-// @return eventEndDateTime The parsed event end date and time (time.Time). This is the second return value.
-// @return An error *errLib.CommonError if any validation or parsing fails. This is the last return value.
-func (dto RequestDto) validate() (time.Time, time.Time, custom_types.TimeWithTimeZone, custom_types.TimeWithTimeZone, *errLib.CommonError) {
+// Returns:
+//   - startAt (time.Time): The parsed start date-time
+//   - endAt (time.Time): The parsed end date-time
+//   - error (*errLib.CommonError): Error information if validation fails, nil otherwise
+func (dto RequestDto) validate() (time.Time, time.Time, *errLib.CommonError) {
+
 	if err := validators.ValidateDto(&dto); err != nil {
-		return time.Time{}, time.Time{}, custom_types.TimeWithTimeZone{}, custom_types.TimeWithTimeZone{}, err
+		return time.Time{}, time.Time{}, err
 	}
 
-	recurrenceBeginDateTime, err := validators.ParseDateTime(dto.RecurrenceStartAt)
+	startAt, err := validators.ParseDateTime(dto.StartAt)
 
 	if err != nil {
-		return time.Time{}, time.Time{}, custom_types.TimeWithTimeZone{}, custom_types.TimeWithTimeZone{}, err
+		return time.Time{}, time.Time{}, err
 	}
 
-	recurrenceEndDateTime, err := validators.ParseDateTime(dto.RecurrenceEndAt)
+	endAt, err := validators.ParseDateTime(dto.EndAt)
 
 	if err != nil {
-		return time.Time{}, time.Time{}, custom_types.TimeWithTimeZone{}, custom_types.TimeWithTimeZone{}, err
+		return time.Time{}, time.Time{}, err
 	}
 
-	sessionBeginTime, err := validators.ParseTime(dto.SessionStartTime)
+	return startAt, endAt, nil
 
-	if err != nil {
-		return time.Time{}, time.Time{}, custom_types.TimeWithTimeZone{}, custom_types.TimeWithTimeZone{}, err
-	}
-
-	sessionEndTime, err := validators.ParseTime(dto.SessionEndTime)
-
-	if err != nil {
-		return time.Time{}, time.Time{}, custom_types.TimeWithTimeZone{}, custom_types.TimeWithTimeZone{}, err
-	}
-
-	return recurrenceBeginDateTime, recurrenceEndDateTime, sessionBeginTime, sessionEndTime, nil
 }
 
-func (dto RequestDto) ToCreateEventValues() (values.CreateEventValues, *errLib.CommonError) {
-
-	recurrenceBeginDateTime, recurrenceEndDateTime, sessionBeginTime, sessionEndTime, err := dto.validate()
-
+func (dto CreateRequestDto) ToCreateEventValues(creator uuid.UUID) (values.CreateEventValues, *errLib.CommonError) {
+	startAt, endAt, err := dto.validate()
 	if err != nil {
 		return values.CreateEventValues{}, err
 	}
 
+	if dto.Capacity <= 0 {
+		return values.CreateEventValues{}, errLib.New("Capacity must be greater than 0", http.StatusBadRequest)
+	}
+
 	return values.CreateEventValues{
+		CreatedBy: creator,
+		Capacity:  dto.Capacity,
 		Details: values.Details{
-			RecurrenceStartAt: recurrenceBeginDateTime,
-			RecurrenceEndAt:   &recurrenceEndDateTime,
-			EventStartTime:    sessionBeginTime,
-			EventEndTime:      sessionEndTime,
-			ProgramID:         dto.ProgramID,
-			LocationID:        dto.LocationID,
-			Capacity:          dto.Capacity,
-			Day:               dto.Day,
+			StartAt: startAt,
+			EndAt:   endAt,
+		},
+		MutationValues: values.MutationValues{
+			ProgramID:  dto.ProgramID,
+			LocationID: dto.LocationID,
+			TeamID:     dto.TeamID,
 		},
 	}, nil
 }
 
-func (dto RequestDto) ToUpdateEventValues(idStr string) (values.UpdateEventValues, *errLib.CommonError) {
-
+func (dto UpdateRequestDto) ToUpdateEventValues(idStr string, updater uuid.UUID) (values.UpdateEventValues, *errLib.CommonError) {
 	id, err := validators.ParseUUID(idStr)
-
 	if err != nil {
 		return values.UpdateEventValues{}, err
 	}
 
-	recurrenceBeginDateTime, recurrenceEndDateTime, sessionBeginTime, sessionEndTime, err := dto.validate()
-
+	startAt, endAt, err := dto.validate()
 	if err != nil {
-
-		log.Println("Error: ", err)
 		return values.UpdateEventValues{}, err
 	}
 
-	return values.UpdateEventValues{
-		ID: id,
+	v := values.UpdateEventValues{
+		ID:        id,
+		UpdatedBy: updater,
 		Details: values.Details{
-			RecurrenceStartAt: recurrenceBeginDateTime,
-			RecurrenceEndAt:   &recurrenceEndDateTime,
-			EventStartTime:    sessionBeginTime,
-			EventEndTime:      sessionEndTime,
-			Day:               dto.Day,
-			ProgramID:         dto.ProgramID,
-			Capacity:          dto.Capacity,
-			LocationID:        dto.LocationID,
+			StartAt: startAt,
+			EndAt:   endAt,
 		},
-	}, nil
+		MutationValues: values.MutationValues{
+			ProgramID:  dto.ProgramID,
+			LocationID: dto.LocationID,
+			TeamID:     dto.TeamID,
+		},
+	}
+
+	if dto.Capacity != nil {
+		if *dto.Capacity <= 0 {
+			return values.UpdateEventValues{}, errLib.New("Capacity must be greater than 0", http.StatusBadRequest)
+		}
+	}
+
+	v.Capacity = dto.Capacity
+
+	return v, nil
 }

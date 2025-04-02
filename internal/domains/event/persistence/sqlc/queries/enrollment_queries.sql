@@ -15,8 +15,9 @@ SELECT
         WHEN COALESCE(e.capacity, t.capacity) IS NULL THEN false
         ELSE COUNT(ce.customer_id) >= COALESCE(e.capacity, t.capacity)
     END)::boolean AS is_full
-FROM events.events e 
-LEFT JOIN athletic.teams t ON e.team_id = t.id
+FROM events.events e
+         LEFT JOIN public.schedules s ON e.schedule_id = s.id
+         LEFT JOIN athletic.teams t ON s.team_id = t.id
 LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
 WHERE e.id = @event_id
 GROUP BY e.id, e.capacity, t.capacity;

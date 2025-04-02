@@ -18,6 +18,10 @@ import (
 
 	eventHandler "api/internal/domains/event/handler"
 	eventRepo "api/internal/domains/event/persistence/repository"
+
+	scheduleHandler "api/internal/domains/schedule/handler"
+	scheduleRepo "api/internal/domains/schedule/persistence/repository"
+
 	barberServicesHandler "api/internal/domains/haircut/handler/barber_services"
 	haircutEvents "api/internal/domains/haircut/handler/events"
 	haircut "api/internal/domains/haircut/handler/haircuts"
@@ -49,6 +53,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		// Core functionalities
 		"/programs":  RegisterProgramRoutes,
 		"/events":    RegisterEventRoutes,
+		"/schedules": RegisterScheduleRoutes,
 		"/locations": RegisterLocationsRoutes,
 		"/games":     RegisterGamesRoutes,
 		"/teams":     RegisterTeamsRoutes,
@@ -128,7 +133,7 @@ func RegisterMembershipRoutes(container *di.Container) func(chi.Router) {
 	membershipPlansHandler := membership.NewPlansHandlers(container)
 
 	return func(r chi.Router) {
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Get("/", membershipsHandler.GetMemberships)
+		r.Get("/", membershipsHandler.GetMemberships)
 		r.Get("/{id}", membershipsHandler.GetMembershipById)
 
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/", membershipsHandler.CreateMembership)
@@ -206,7 +211,7 @@ func RegisterProgramRoutes(container *di.Container) func(chi.Router) {
 		r.Get("/levels", h.GetProgramLevels)
 		r.Post("/", h.CreateProgram)
 		r.Put("/{id}", h.UpdateProgram)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", h.DeleteProgram)
+		r.Delete("/{id}", h.DeleteProgram)
 	}
 }
 
@@ -228,9 +233,25 @@ func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Get("/", handler.GetEvents)
 		r.Get("/{id}", handler.GetEvent)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleCoach, contextUtils.RoleInstructor, contextUtils.RoleAdmin)).Post("/", handler.CreateEvent)
+		r.Post("/", handler.CreateEvent)
 		r.With(middlewares.JWTAuthMiddleware(true)).Put("/{id}", handler.UpdateEvent)
 		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/{id}", handler.DeleteEvent)
+
+		r.Route("/{event_id}/staffs", RegisterEventStaffRoutes(container))
+		r.Route("/{event_id}/customers", RegisterEventCustomerRoutes(container))
+	}
+}
+
+func RegisterScheduleRoutes(container *di.Container) func(chi.Router) {
+	repo := scheduleRepo.NewSchedulesRepository(container.Queries.ScheduleDb)
+	handler := scheduleHandler.NewSchedulesHandler(repo)
+
+	return func(r chi.Router) {
+		r.Get("/", handler.GetSchedules)
+		r.Get("/{id}", handler.GetSchedule)
+		r.Post("/", handler.CreateSchedule)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}", handler.UpdateSchedule)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", handler.DeleteSchedule)
 
 		r.Route("/{event_id}/staffs", RegisterEventStaffRoutes(container))
 		r.Route("/{event_id}/customers", RegisterEventCustomerRoutes(container))

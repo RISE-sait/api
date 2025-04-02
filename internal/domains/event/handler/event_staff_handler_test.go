@@ -71,7 +71,7 @@ package event
 //	return courses, err
 //}
 //
-//func (m *MockEventsRepository) DeleteEvent(c context.Context, id uuid.UUID) *errLib.CommonError {
+//func (m *MockEventsRepository) DeleteSchedule(c context.Context, id uuid.UUID) *errLib.CommonError {
 //	args := m.Called(c, id)
 //
 //	if args.Get(0) != nil {
@@ -81,7 +81,7 @@ package event
 //	return nil
 //}
 //
-//func (m *MockEventsRepository) CreateEvent(c context.Context, courseDetails *values.EventDetails) (*entity.Event, *errLib.CommonError) {
+//func (m *MockEventsRepository) CreateSchedule(c context.Context, courseDetails *values.Details) (*entity.Event, *errLib.CommonError) {
 //	args := m.Called(c, courseDetails)
 //
 //	var course *entity.Event

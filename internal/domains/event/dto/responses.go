@@ -33,7 +33,7 @@ type (
 		EndAt        string    `json:"end_at"`
 		LocationInfo `json:"location"`
 		*ProgramInfo `json:"program,omitempty"`
-		*TeamInfo
+		*TeamInfo    `json:"team,omitempty"`
 	}
 )
 

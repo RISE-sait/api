@@ -81,7 +81,7 @@ package event
 //	return nil
 //}
 //
-//func (m *MockEventsRepository) CreateSchedule(c context.Context, courseDetails *values.Details) (*entity.Event, *errLib.CommonError) {
+//func (m *MockEventsRepository) CreateSchedule(c context.Context, courseDetails *values.DateTimeDetails) (*entity.Event, *errLib.CommonError) {
 //	args := m.Called(c, courseDetails)
 //
 //	var course *entity.Event

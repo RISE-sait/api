@@ -102,7 +102,7 @@ game_ids AS (
     FROM prepared_data
     RETURNING id
 )
-INSERT INTO public.games (id, win_team, lose_team, win_score, lose_score)
+INSERT INTO program.games (id, win_team, lose_team, win_score, lose_score)
 VALUES (unnest(ARRAY(SELECT id FROM game_ids)), unnest($1::uuid[]), unnest($2::uuid[]), unnest($3::int[]), unnest($4::int[]))
 `
 

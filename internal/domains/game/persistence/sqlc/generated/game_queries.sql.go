@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,7 +19,7 @@ WITH program_insert AS (
     VALUES ($1, 'game')
     RETURNING id
 )
-INSERT INTO public.games (id, win_team, lose_team, win_score, lose_score)
+INSERT INTO program.games (id, win_team, lose_team, win_score, lose_score)
 VALUES ((SELECT id FROM program_insert), $2, $3, $4, $5)
 `
 
@@ -45,7 +46,7 @@ func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (int64, 
 }
 
 const deleteGame = `-- name: DeleteGame :execrows
-DELETE FROM games WHERE id = $1
+DELETE FROM program.games WHERE id = $1
 `
 
 func (q *Queries) DeleteGame(ctx context.Context, id uuid.UUID) (int64, error) {
@@ -57,9 +58,9 @@ func (q *Queries) DeleteGame(ctx context.Context, id uuid.UUID) (int64, error) {
 }
 
 const getGameById = `-- name: GetGameById :one
-SELECT p.id, p.name, p.description, p.level, p.type, p.created_at, p.updated_at, wt.id as "win_team_id", lt.id as "lose_team_id",
+SELECT p.id, p.name, p.description, p.level, p.type, p.capacity, p.created_at, p.updated_at, wt.id as "win_team_id", lt.id as "lose_team_id",
 wt.name as "win_team_name", wt.name as "lose_team_name", 
-g.win_score, g.lose_score, p."type" FROM games g
+g.win_score, g.lose_score, p."type" FROM program.games g
 JOIN athletic.teams wt ON g.win_team = wt.id
 JOIN athletic.teams lt ON g.lose_team = lt.id
 JOIN program.programs p ON g.id = p.id
@@ -72,6 +73,7 @@ type GetGameByIdRow struct {
 	Description  string              `json:"description"`
 	Level        ProgramProgramLevel `json:"level"`
 	Type         ProgramProgramType  `json:"type"`
+	Capacity     sql.NullInt32       `json:"capacity"`
 	CreatedAt    time.Time           `json:"created_at"`
 	UpdatedAt    time.Time           `json:"updated_at"`
 	WinTeamID    uuid.UUID           `json:"win_team_id"`
@@ -92,6 +94,7 @@ func (q *Queries) GetGameById(ctx context.Context, id uuid.UUID) (GetGameByIdRow
 		&i.Description,
 		&i.Level,
 		&i.Type,
+		&i.Capacity,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.WinTeamID,
@@ -106,10 +109,10 @@ func (q *Queries) GetGameById(ctx context.Context, id uuid.UUID) (GetGameByIdRow
 }
 
 const getGames = `-- name: GetGames :many
-SELECT p.id, p.name, p.description, p.level, p.type, p.created_at, p.updated_at, wt.id as "win_team_id", lt.id as "lose_team_id",
+SELECT p.id, p.name, p.description, p.level, p.type, p.capacity, p.created_at, p.updated_at, wt.id as "win_team_id", lt.id as "lose_team_id",
 wt.name as "win_team_name", wt.name as "lose_team_name",
 g.win_score, g.lose_score, p."type"
-FROM games g
+FROM program.games g
 JOIN athletic.teams wt ON g.win_team = wt.id
 JOIN athletic.teams lt ON g.lose_team = lt.id
 JOIN program.programs p ON g.id = p.id
@@ -121,6 +124,7 @@ type GetGamesRow struct {
 	Description  string              `json:"description"`
 	Level        ProgramProgramLevel `json:"level"`
 	Type         ProgramProgramType  `json:"type"`
+	Capacity     sql.NullInt32       `json:"capacity"`
 	CreatedAt    time.Time           `json:"created_at"`
 	UpdatedAt    time.Time           `json:"updated_at"`
 	WinTeamID    uuid.UUID           `json:"win_team_id"`
@@ -147,6 +151,7 @@ func (q *Queries) GetGames(ctx context.Context) ([]GetGamesRow, error) {
 			&i.Description,
 			&i.Level,
 			&i.Type,
+			&i.Capacity,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.WinTeamID,
@@ -177,7 +182,7 @@ WITH program_update AS (
     WHERE p.id = $1
     RETURNING id
 )
-UPDATE games g
+UPDATE program.games g
 SET win_team = $3,
     lose_team = $4,
     win_score = $5,

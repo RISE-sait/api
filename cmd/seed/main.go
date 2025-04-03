@@ -396,10 +396,10 @@ func seedFakeEnrollmentFees(ctx context.Context, db *sql.DB, programIds, members
 	}
 }
 
-func insertSchedulesReturnEvents(ctx context.Context, db *sql.DB) []uuid.UUID {
+func seedEvents(ctx context.Context, db *sql.DB) []uuid.UUID {
 	seedQueries := dbSeed.New(db)
 
-	arg := data.InsertSchedulesReturnEvents(seedQueries)
+	arg := data.GetEvents()
 
 	// Insert events and sessions into the database
 	ids, err := seedQueries.InsertEvents(ctx, arg)
@@ -494,7 +494,7 @@ func main() {
 
 	seedLocations(ctx, db)
 
-	eventIds := insertSchedulesReturnEvents(ctx, db)
+	eventIds := seedEvents(ctx, db)
 
 	membershipIds := seedMemberships(ctx, db)
 

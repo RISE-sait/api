@@ -1,4 +1,4 @@
-package dto
+package event
 
 import (
 	values "api/internal/domains/event/values"
@@ -20,12 +20,11 @@ type RequestDto struct {
 
 type CreateRequestDto struct {
 	RequestDto
-	Capacity int32 `json:"capacity" example:"100"`
 }
 
 type UpdateRequestDto struct {
+	ID uuid.UUID `json:"id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
 	RequestDto
-	Capacity *int32 `json:"capacity" example:"100"`
 }
 
 // validate validates the request DTO and returns parsed values.
@@ -67,17 +66,15 @@ func (dto CreateRequestDto) ToCreateEventValues(creator uuid.UUID) (values.Creat
 	}
 
 	if dto.Capacity <= 0 {
-		return values.CreateEventValues{}, errLib.New("Capacity must be greater than 0", http.StatusBadRequest)
+		return values.CreateEventValues{}, errLib.New("Capacity must be provided, and greater than 0", http.StatusBadRequest)
 	}
 
 	return values.CreateEventValues{
 		CreatedBy: creator,
-		Capacity:  dto.Capacity,
 		Details: values.Details{
-			StartAt: startAt,
-			EndAt:   endAt,
-		},
-		MutationValues: values.MutationValues{
+			Capacity:   dto.Capacity,
+			StartAt:    startAt,
+			EndAt:      endAt,
 			ProgramID:  dto.ProgramID,
 			LocationID: dto.LocationID,
 			TeamID:     dto.TeamID,
@@ -100,23 +97,14 @@ func (dto UpdateRequestDto) ToUpdateEventValues(idStr string, updater uuid.UUID)
 		ID:        id,
 		UpdatedBy: updater,
 		Details: values.Details{
-			StartAt: startAt,
-			EndAt:   endAt,
-		},
-		MutationValues: values.MutationValues{
+			Capacity:   dto.Capacity,
+			StartAt:    startAt,
+			EndAt:      endAt,
 			ProgramID:  dto.ProgramID,
 			LocationID: dto.LocationID,
 			TeamID:     dto.TeamID,
 		},
 	}
-
-	if dto.Capacity != nil {
-		if *dto.Capacity <= 0 {
-			return values.UpdateEventValues{}, errLib.New("Capacity must be greater than 0", http.StatusBadRequest)
-		}
-	}
-
-	v.Capacity = dto.Capacity
 
 	return v, nil
 }

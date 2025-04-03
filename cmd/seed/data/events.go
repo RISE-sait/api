@@ -2,16 +2,12 @@ package data
 
 import (
 	dbSeed "api/cmd/seed/sqlc/generated"
-	"api/internal/custom_types"
-	"context"
-	"database/sql"
-	"github.com/google/uuid"
 	"log"
 	"strings"
 	"time"
 )
 
-func InsertSchedulesReturnEvents(q *dbSeed.Queries) dbSeed.InsertEventsParams {
+func GetEvents() dbSeed.InsertEventsParams {
 
 	var (
 		startAtArray        []time.Time
@@ -19,8 +15,8 @@ func InsertSchedulesReturnEvents(q *dbSeed.Queries) dbSeed.InsertEventsParams {
 		locationNameArray   []string
 		createdByEmailArray []string
 		updatedByEmailArray []string
+		programNameArray    []string
 		capacityArray       []int32
-		scheduleIDArray     []uuid.UUID
 	)
 
 	for _, practice := range Practices {
@@ -29,7 +25,8 @@ func InsertSchedulesReturnEvents(q *dbSeed.Queries) dbSeed.InsertEventsParams {
 
 		for _, schedule := range practice.Schedules {
 
-			var programStartAt time.Time
+			var programStartAt, programEndAt time.Time
+
 			if schedule.ProgramStartDate == "" {
 				programStartAt = time.Now().Truncate(24 * time.Hour) // Start at midnight today
 				log.Printf("Using current date for practice '%s' with no start date", practice.Name)
@@ -42,46 +39,19 @@ func InsertSchedulesReturnEvents(q *dbSeed.Queries) dbSeed.InsertEventsParams {
 				}
 			}
 
-			eventStartTimeStr := schedule.EventStartTime + ":00" // Add seconds
-			eventStartTime := custom_types.TimeWithTimeZone{Time: eventStartTimeStr}
-
-			eventEndTimeStr := schedule.EventEndTime + ":00" // Add seconds
-			eventEndTime := custom_types.TimeWithTimeZone{Time: eventEndTimeStr}
-
-			day := dbSeed.DayEnum(strings.ToUpper(schedule.Day))
-
-			scheduleParam := dbSeed.InsertScheduleParams{
-				RecurrenceStartAt: programStartAt, // Already at 00:01
-				EventStartTime:    eventStartTime,
-				EventEndTime:      eventEndTime,
-				Day:               day,
-				ProgramName:       sql.NullString{String: practice.Name, Valid: true},
-				LocationName:      schedule.Location,
-			}
-
 			if schedule.ProgramEndDate != "" {
-				programEndAt, err := time.Parse("2006-01-02 15:04", schedule.ProgramEndDate+" 17:00")
+				end, err := time.Parse("2006-01-02 15:04", schedule.ProgramEndDate+" 17:00")
 				if err != nil {
 					log.Printf("Invalid program end date '%s': %v", schedule.ProgramEndDate, err)
 					continue
 				}
 
-				scheduleParam.RecurrenceEndAt = sql.NullTime{
-					Time:  programEndAt, // Set to 17:00
-					Valid: true,
-				}
+				programEndAt = end
 			}
-
-			scheduleID, err := q.InsertSchedule(context.Background(), scheduleParam) // Assume batch insert
-			if err != nil {
-				log.Fatalf("Failed to insert schedules: %v", err)
-			}
-
-			// for events
 
 			endDate := programStartAt.AddDate(0, 5, 0) // Default: 5 months from start
-			if scheduleParam.RecurrenceEndAt.Valid {
-				endDate = scheduleParam.RecurrenceEndAt.Time
+			if !programEndAt.IsZero() {
+				endDate = programEndAt
 			}
 
 			eventStart, err := time.Parse("15:04", schedule.EventStartTime)
@@ -122,7 +92,7 @@ func InsertSchedulesReturnEvents(q *dbSeed.Queries) dbSeed.InsertEventsParams {
 				createdByEmailArray = append(createdByEmailArray, "klintlee1@gmail.com")
 				updatedByEmailArray = append(updatedByEmailArray, "klintlee1@gmail.com")
 				capacityArray = append(capacityArray, int32(capacity))
-				scheduleIDArray = append(scheduleIDArray, scheduleID)
+				programNameArray = append(programNameArray, practice.Name)
 			}
 		}
 	}
@@ -134,6 +104,6 @@ func InsertSchedulesReturnEvents(q *dbSeed.Queries) dbSeed.InsertEventsParams {
 		CreatedByEmailArray: createdByEmailArray,
 		UpdatedByEmailArray: updatedByEmailArray,
 		CapacityArray:       capacityArray,
-		ScheduleIDArray:     scheduleIDArray,
+		ProgramNameArray:    programNameArray,
 	}
 }

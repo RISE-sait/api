@@ -16,11 +16,11 @@ import (
 
 // EventsHandler provides HTTP handlers for managing events.
 type EventsHandler struct {
-	Repo *repository.EventsRepository
+	EventsRepository *repository.EventsRepository
 }
 
-func NewEventsHandler(repo *repository.EventsRepository) *EventsHandler {
-	return &EventsHandler{Repo: repo}
+func NewEventsHandler(eventsRepo *repository.EventsRepository) *EventsHandler {
+	return &EventsHandler{EventsRepository: eventsRepo}
 }
 
 // GetEvents retrieves all events based on filter criteria.
@@ -117,7 +117,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	events, err := h.Repo.GetEvents(r.Context(), programType, programID, locationID, userID, teamID, createdBy, updatedBy, before, after)
+	events, err := h.EventsRepository.GetEvents(r.Context(), programType, programID, locationID, userID, teamID, createdBy, updatedBy, before, after)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -129,12 +129,13 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 
 	for _, event := range events {
 
-		eventDto := dto.NewEventResponseDto(event)
+		eventDto := dto.NewEventResponseDto(event, false)
 
 		responseDto = append(responseDto, eventDto)
 	}
 
 	responseHandlers.RespondWithSuccess(w, responseDto, http.StatusOK)
+
 }
 
 // GetEvent retrieves detailed information about a specific event.
@@ -164,12 +165,12 @@ func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if event, err := h.Repo.GetEvent(r.Context(), eventId); err != nil {
+	if event, err := h.EventsRepository.GetEvent(r.Context(), eventId); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {
 
-		responseDto := dto.NewEventResponseDto(event)
+		responseDto := dto.NewEventResponseDto(event, true)
 
 		responseHandlers.RespondWithSuccess(w, responseDto, http.StatusOK)
 	}
@@ -189,10 +190,10 @@ func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 // @Router /events [post]
 func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 
-	userID, err := contextUtils.GetUserID(r.Context())
+	userID, ctxErr := contextUtils.GetUserID(r.Context())
 
-	if err != nil {
-		responseHandlers.RespondWithError(w, err)
+	if ctxErr != nil {
+		responseHandlers.RespondWithError(w, ctxErr)
 		return
 	}
 
@@ -207,7 +208,7 @@ func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {
-		if err = h.Repo.CreateEvent(r.Context(), eventCreate); err != nil {
+		if err = h.EventsRepository.CreateEvent(r.Context(), eventCreate); err != nil {
 			responseHandlers.RespondWithError(w, err)
 			return
 		}
@@ -271,7 +272,7 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 
 	// Authorization check
 
-	creatorID, err := h.Repo.GetEventCreatedBy(r.Context(), params.ID)
+	creatorID, err := h.EventsRepository.GetEventCreatedBy(r.Context(), params.ID)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -287,7 +288,7 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Repo.UpdateEvent(r.Context(), params); err != nil {
+	if err = h.EventsRepository.UpdateEvent(r.Context(), params); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -331,7 +332,7 @@ func (h *EventsHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 
 	// Authorization check
 
-	creatorID, err := h.Repo.GetEventCreatedBy(r.Context(), id)
+	creatorID, err := h.EventsRepository.GetEventCreatedBy(r.Context(), id)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -347,7 +348,7 @@ func (h *EventsHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Repo.DeleteEvent(r.Context(), id); err != nil {
+	if err = h.EventsRepository.DeleteEvent(r.Context(), id); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

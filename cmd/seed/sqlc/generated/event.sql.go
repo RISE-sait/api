@@ -7,10 +7,8 @@ package db_seed
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
-	"api/internal/custom_types"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
@@ -58,49 +56,49 @@ func (q *Queries) InsertCustomersEnrollments(ctx context.Context, arg InsertCust
 }
 
 const insertEvents = `-- name: InsertEvents :many
-WITH events_data AS (SELECT unnest($1::timestamptz[]) as start_at,
-                            unnest($2::timestamptz[])   as end_at,
-                            unnest($3::varchar[])   as location_name,
-                            unnest($4::varchar[])    AS created_by_email,
-                            unnest($5::varchar[])    AS updated_by_email,
-                            unnest($6::int[])         AS capacity,
-                            unnest($7::uuid[])     AS schedule_id
-                     )
+WITH events_data AS (SELECT unnest($1::timestamptz[])     as start_at,
+                            unnest($2::timestamptz[])       as end_at,
+                            unnest($3::varchar[]) as program_name,
+                            unnest($4::varchar[])    as location_name,
+                            unnest($5::varchar[]) AS created_by_email,
+                            unnest($6::varchar[]) AS updated_by_email,
+                            unnest($7::int[])         AS capacity)
 INSERT
-INTO events.events (start_at, end_at, location_id, created_by, updated_by, capacity, schedule_id)
+INTO events.events (start_at, end_at, program_id, location_id, created_by, updated_by, capacity)
 SELECT e.start_at,
        e.end_at,
-         l.id,
+       p.id,
+       l.id,
        creator.id,
-         updater.id,
-       e.capacity,
-       NULLIF(e.schedule_id, '00000000-0000-0000-0000-000000000000')
+       updater.id,
+       e.capacity
 FROM events_data e
-         LEFT JOIN users.users creator ON creator.email = e.created_by_email
-            LEFT JOIN users.users updater ON updater.email = e.updated_by_email
-JOIN location.locations l ON l.name = e.location_name
+         JOIN program.programs p ON p.name = e.program_name
+         JOIN users.users creator ON creator.email = e.created_by_email
+         JOIN users.users updater ON updater.email = e.updated_by_email
+         JOIN location.locations l ON l.name = e.location_name
 RETURNING id
 `
 
 type InsertEventsParams struct {
 	StartAtArray        []time.Time `json:"start_at_array"`
 	EndAtArray          []time.Time `json:"end_at_array"`
+	ProgramNameArray    []string    `json:"program_name_array"`
 	LocationNameArray   []string    `json:"location_name_array"`
 	CreatedByEmailArray []string    `json:"created_by_email_array"`
 	UpdatedByEmailArray []string    `json:"updated_by_email_array"`
 	CapacityArray       []int32     `json:"capacity_array"`
-	ScheduleIDArray     []uuid.UUID `json:"schedule_id_array"`
 }
 
 func (q *Queries) InsertEvents(ctx context.Context, arg InsertEventsParams) ([]uuid.UUID, error) {
 	rows, err := q.db.QueryContext(ctx, insertEvents,
 		pq.Array(arg.StartAtArray),
 		pq.Array(arg.EndAtArray),
+		pq.Array(arg.ProgramNameArray),
 		pq.Array(arg.LocationNameArray),
 		pq.Array(arg.CreatedByEmailArray),
 		pq.Array(arg.UpdatedByEmailArray),
 		pq.Array(arg.CapacityArray),
-		pq.Array(arg.ScheduleIDArray),
 	)
 	if err != nil {
 		return nil, err
@@ -141,51 +139,4 @@ type InsertEventsStaffParams struct {
 func (q *Queries) InsertEventsStaff(ctx context.Context, arg InsertEventsStaffParams) error {
 	_, err := q.db.ExecContext(ctx, insertEventsStaff, pq.Array(arg.EventIDArray), pq.Array(arg.StaffIDArray))
 	return err
-}
-
-const insertSchedule = `-- name: InsertSchedule :one
-INSERT INTO public.schedules (
-    recurrence_start_at,
-    recurrence_end_at,
-    event_start_time,
-    event_end_time,
-    program_id,
-    day,
-    location_id
-)
-VALUES (
-           $1,
-           $2,
-           $3,
-           $4,
-           (SELECT id FROM program.programs p WHERE p.name = $6),
-           $5,
-           (SELECT id FROM location.locations l WHERE l.name = $7)
-       )
-RETURNING id
-`
-
-type InsertScheduleParams struct {
-	RecurrenceStartAt time.Time                     `json:"recurrence_start_at"`
-	RecurrenceEndAt   sql.NullTime                  `json:"recurrence_end_at"`
-	EventStartTime    custom_types.TimeWithTimeZone `json:"event_start_time"`
-	EventEndTime      custom_types.TimeWithTimeZone `json:"event_end_time"`
-	Day               DayEnum                       `json:"day"`
-	ProgramName       sql.NullString                `json:"program_name"`
-	LocationName      string                        `json:"location_name"`
-}
-
-func (q *Queries) InsertSchedule(ctx context.Context, arg InsertScheduleParams) (uuid.UUID, error) {
-	row := q.db.QueryRowContext(ctx, insertSchedule,
-		arg.RecurrenceStartAt,
-		arg.RecurrenceEndAt,
-		arg.EventStartTime,
-		arg.EventEndTime,
-		arg.Day,
-		arg.ProgramName,
-		arg.LocationName,
-	)
-	var id uuid.UUID
-	err := row.Scan(&id)
-	return id, err
 }

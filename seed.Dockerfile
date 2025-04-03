@@ -11,7 +11,6 @@ RUN go get github.com/google/uuid github.com/lib/pq github.com/shopspring/decima
 # Copy everything else
 COPY ./cmd/seed ./cmd/seed
 COPY ./config ./config
-COPY ./internal/custom_types ./internal/custom_types
 COPY ./internal/libs/validators ./internal/libs/validators
 COPY ./internal/libs/errors ./internal/libs/errors
 

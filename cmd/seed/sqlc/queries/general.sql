@@ -38,7 +38,8 @@ game_ids AS (
     FROM prepared_data
     RETURNING id
 )
-INSERT INTO public.games (id, win_team, lose_team, win_score, lose_score)
+INSERT
+INTO program.games (id, win_team, lose_team, win_score, lose_score)
 VALUES (unnest(ARRAY(SELECT id FROM game_ids)), unnest(@win_team_array::uuid[]), unnest(@lose_team_array::uuid[]), unnest(@win_score_array::int[]), unnest(@lose_score_array::int[]));
 
 -- name: InsertTeams :many

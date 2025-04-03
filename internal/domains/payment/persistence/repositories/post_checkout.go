@@ -1,0 +1,108 @@
+package payment
+
+import (
+	"api/internal/di"
+	db "api/internal/domains/payment/persistence/sqlc/generated"
+	"api/internal/domains/payment/values"
+	errLib "api/internal/libs/errors"
+	contextUtils "api/utils/context"
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"github.com/google/uuid"
+	"log"
+	"net/http"
+)
+
+type PostCheckoutRepository struct {
+	Queries *db.Queries
+}
+
+func NewPostCheckoutRepository(container *di.Container) *PostCheckoutRepository {
+	return &PostCheckoutRepository{
+		Queries: container.Queries.PurchasesDb,
+	}
+}
+
+func (r *PostCheckoutRepository) EnrollCustomerInProgramEvents(ctx context.Context, customerID, programID uuid.UUID) *errLib.CommonError {
+
+	if err := r.Queries.EnrollCustomerInProgramEvents(ctx, db.EnrollCustomerInProgramEventsParams{
+		CustomerID: customerID,
+		ProgramID: uuid.NullUUID{
+			UUID:  programID,
+			Valid: true,
+		},
+	}); err != nil {
+		return errLib.New(fmt.Sprintf("error enrolling customer in program events: %v", err), http.StatusBadRequest)
+	}
+	return nil
+}
+
+func (r *PostCheckoutRepository) GetProgramRegistrationInfoForCustomer(ctx context.Context, programID uuid.UUID) (values.ProgramRegistrationInfo, *errLib.CommonError) {
+
+	var response values.ProgramRegistrationInfo
+
+	customerID, ctxErr := contextUtils.GetUserID(ctx)
+	if ctxErr != nil {
+		return response, ctxErr
+	}
+
+	program, err := r.Queries.GetProgram(ctx, programID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return response, errLib.New(fmt.Sprintf("program not found: %v", programID), http.StatusNotFound)
+		}
+		log.Printf("Error getting program: %v", err)
+		return response, errLib.New("failed to get program", http.StatusInternalServerError)
+	}
+
+	if isFull, err := r.Queries.GetProgramIsFull(ctx, programID); err != nil {
+		log.Printf("Error getting program capacity: %v", err)
+		return response, errLib.New("failed to get program capacity", http.StatusInternalServerError)
+	} else if isFull {
+		return response, errLib.New("program is full", http.StatusBadRequest)
+	}
+
+	response.ProgramName = program.Name
+
+	if isCustomerExist, err := r.Queries.IsCustomerExist(ctx, customerID); err != nil {
+		log.Printf("Error getting customer: %v", err)
+		return response, errLib.New("failed to get customer", http.StatusInternalServerError)
+	} else if !isCustomerExist {
+		return response, errLib.New(fmt.Sprintf("customer not found: %v", customerID), http.StatusNotFound)
+	}
+
+	prices, err := r.Queries.GetProgramRegistrationPricesForCustomer(ctx, db.GetProgramRegistrationPricesForCustomerParams{
+		CustomerID: customerID,
+		ProgramID:  programID,
+	})
+	if err != nil {
+		log.Printf("Error getting GetProgramRegisterPricesForCustomer: %v", err)
+		return response, errLib.New("failed to check get registration prices for customer", http.StatusInternalServerError)
+	}
+
+	memberProgramPrice := prices.MemberProgramPrice
+	memberDropInPrice := prices.MemberDropInPrice
+
+	nonMemberProgramPrice := prices.NonMemberProgramPrice
+	nonMemberDropInPrice := prices.NonMemberDropInPrice
+
+	// check if the customer is a member, and if it's paid by program or drop-in
+	switch {
+	case memberProgramPrice.Valid:
+		response.Price = memberProgramPrice
+	case memberDropInPrice.Valid:
+		response.Price = memberDropInPrice
+	case nonMemberProgramPrice.Valid:
+		response.Price = nonMemberProgramPrice
+	case nonMemberDropInPrice.Valid:
+		response.Price = nonMemberDropInPrice
+	}
+
+	if response.Price.Valid {
+		return response, nil
+	}
+
+	return response, errLib.New(fmt.Sprintf("customer is ineligible for program registration: %v", program.Name), http.StatusBadRequest)
+}

@@ -15,17 +15,17 @@ import (
 	"net/http"
 )
 
-type Repository struct {
+type CheckoutRepository struct {
 	Queries *db.Queries
 }
 
-func NewRepository(container *di.Container) *Repository {
-	return &Repository{
+func NewCheckoutRepository(container *di.Container) *CheckoutRepository {
+	return &CheckoutRepository{
 		Queries: container.Queries.PurchasesDb,
 	}
 }
 
-func (r *Repository) GetMembershipPlanJoiningRequirement(ctx context.Context, planID uuid.UUID) (values.MembershipPlanJoiningRequirement, *errLib.CommonError) {
+func (r *CheckoutRepository) GetMembershipPlanJoiningRequirement(ctx context.Context, planID uuid.UUID) (values.MembershipPlanJoiningRequirement, *errLib.CommonError) {
 
 	if requirements, err := r.Queries.GetMembershipPlanJoiningRequirements(ctx, planID); err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
@@ -58,7 +58,7 @@ func (r *Repository) GetMembershipPlanJoiningRequirement(ctx context.Context, pl
 	}
 }
 
-func (r *Repository) GetProgramRegistrationInfoForCustomer(ctx context.Context, programID uuid.UUID) (values.ProgramRegistrationInfo, *errLib.CommonError) {
+func (r *CheckoutRepository) GetProgramRegistrationInfoForCustomer(ctx context.Context, programID uuid.UUID) (values.ProgramRegistrationInfo, *errLib.CommonError) {
 
 	var response values.ProgramRegistrationInfo
 

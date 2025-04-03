@@ -14,21 +14,21 @@ import (
 	"net/http"
 )
 
-type Service struct {
-	PurchaseRepo        *repository.Repository
+type CheckoutService struct {
+	PurchaseRepo        *repository.CheckoutRepository
 	MembershipPlansRepo *membership.PlansRepository
 	SquareClient        *squareClient.Client
 }
 
-func NewPurchaseService(container *di.Container) *Service {
-	return &Service{
-		PurchaseRepo:        repository.NewRepository(container),
+func NewCheckoutService(container *di.Container) *CheckoutService {
+	return &CheckoutService{
+		PurchaseRepo:        repository.NewCheckoutRepository(container),
 		MembershipPlansRepo: membership.NewMembershipPlansRepository(container),
 		SquareClient:        container.SquareClient,
 	}
 }
 
-func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID uuid.UUID) (string, *errLib.CommonError) {
+func (s *CheckoutService) CheckoutMembershipPlan(ctx context.Context, membershipPlanID uuid.UUID) (string, *errLib.CommonError) {
 
 	requirements, err := s.PurchaseRepo.GetMembershipPlanJoiningRequirement(ctx, membershipPlanID)
 
@@ -36,8 +36,17 @@ func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID u
 		return "", err
 	}
 
+	lineItems := []types.CheckoutItem{
+		{
+			ID:       membershipPlanID,
+			Name:     requirements.Name,
+			Quantity: 1,
+			Price:    requirements.Price,
+		},
+	}
+
 	if requirements.IsOneTimePayment {
-		return stripe.CreateOneTimePayment(ctx, requirements.Name, 1, requirements.Price)
+		return stripe.CreateOneTimePayment(ctx, lineItems, types.MembershipPlan)
 	}
 
 	if !types.IsPaymentFrequencyValid(types.PaymentFrequency(requirements.PaymentFrequency)) {
@@ -53,7 +62,7 @@ func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID u
 	}
 }
 
-func (s *Service) CheckoutProgram(ctx context.Context, programID uuid.UUID) (string, *errLib.CommonError) {
+func (s *CheckoutService) CheckoutProgram(ctx context.Context, programID uuid.UUID) (string, *errLib.CommonError) {
 
 	joinProgramRequirements, err := s.PurchaseRepo.GetProgramRegistrationInfoForCustomer(ctx, programID)
 
@@ -65,7 +74,16 @@ func (s *Service) CheckoutProgram(ctx context.Context, programID uuid.UUID) (str
 		return "", errLib.New("User is not eligible to join program", http.StatusBadRequest)
 	}
 
-	if link, err := stripe.CreateOneTimePayment(ctx, joinProgramRequirements.ProgramName, 1, joinProgramRequirements.Price.Decimal); err != nil {
+	items := []types.CheckoutItem{
+		{
+			ID:       programID,
+			Name:     joinProgramRequirements.ProgramName,
+			Quantity: 1,
+			Price:    joinProgramRequirements.Price.Decimal,
+		},
+	}
+
+	if link, err := stripe.CreateOneTimePayment(ctx, items, types.Program); err != nil {
 		return "", err
 	} else {
 		return link, nil

@@ -12,6 +12,26 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+const enrollCustomerInProgramEvents = `-- name: EnrollCustomerInProgramEvents :exec
+INSERT INTO events.customer_enrollment (customer_id, event_id)
+SELECT $1, -- Customer ID parameter
+       e.id
+FROM events.events e
+         LEFT JOIN public.schedules s ON e.schedule_id = s.id
+WHERE s.program_id = $2
+  AND e.start_at >= current_timestamp
+`
+
+type EnrollCustomerInProgramEventsParams struct {
+	CustomerID uuid.UUID     `json:"customer_id"`
+	ProgramID  uuid.NullUUID `json:"program_id"`
+}
+
+func (q *Queries) EnrollCustomerInProgramEvents(ctx context.Context, arg EnrollCustomerInProgramEventsParams) error {
+	_, err := q.db.ExecContext(ctx, enrollCustomerInProgramEvents, arg.CustomerID, arg.ProgramID)
+	return err
+}
+
 const getProgram = `-- name: GetProgram :one
 SELECT id, name
 FROM program.programs
@@ -32,14 +52,13 @@ func (q *Queries) GetProgram(ctx context.Context, id uuid.UUID) (GetProgramRow, 
 
 const getProgramIsFull = `-- name: GetProgramIsFull :one
 SELECT COUNT(ce.id) >= p.capacity AS is_full
-FROM
-    program.programs p
-        LEFT JOIN
-    public.schedules s ON p.id = s.program_id
-        LEFT JOIN
-    events.events e ON s.id = e.schedule_id
-        LEFT JOIN
-    events.customer_enrollment ce ON e.id = ce.event_id
+FROM program.programs p
+         LEFT JOIN
+     public.schedules s ON p.id = s.program_id
+         LEFT JOIN
+     events.events e ON s.id = e.schedule_id
+         LEFT JOIN
+     events.customer_enrollment ce ON e.id = ce.event_id
 WHERE p.id = $1
 group by p.capacity
 `

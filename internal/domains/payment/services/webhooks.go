@@ -1,8 +1,13 @@
 package payment
 
 import (
+	"api/internal/di"
+	repository "api/internal/domains/payment/persistence/repositories"
+	types "api/internal/domains/payment/types"
 	errLib "api/internal/libs/errors"
+	"context"
 	"encoding/json"
+	"github.com/google/uuid"
 	"log"
 	"net/http"
 	"strconv"
@@ -14,7 +19,17 @@ import (
 	"github.com/stripe/stripe-go/v81/subscription"
 )
 
-func HandleCheckoutSessionCompleted(event stripe.Event) *errLib.CommonError {
+type WebhookService struct {
+	PostCheckoutRepository *repository.PostCheckoutRepository
+}
+
+func NewWebhookService(container *di.Container) *WebhookService {
+	return &WebhookService{
+		PostCheckoutRepository: repository.NewPostCheckoutRepository(container),
+	}
+}
+
+func (s *WebhookService) HandleCheckoutSessionCompleted(event stripe.Event) *errLib.CommonError {
 	var session stripe.CheckoutSession
 	if err := json.Unmarshal(event.Data.Raw, &session); err != nil {
 		return errLib.New("Failed to parse session", http.StatusBadRequest)
@@ -22,32 +37,87 @@ func HandleCheckoutSessionCompleted(event stripe.Event) *errLib.CommonError {
 
 	switch session.Mode {
 	case stripe.CheckoutSessionModePayment:
-		return handleItemCheckout(session)
+		return s.handleItemCheckoutComplete(session)
 	case stripe.CheckoutSessionModeSubscription:
-		return handleSubscriptionWithEndDate(session)
+		return s.handleSubscriptionWithEndDate(session)
 	}
 
 	return nil
 }
 
-func handleItemCheckout(session stripe.CheckoutSession) *errLib.CommonError {
-	// Handle the checkout session for a one-time payment
-	// Implement your logic here
+func (s *WebhookService) handleItemCheckoutComplete(session stripe.CheckoutSession) *errLib.CommonError {
 
-	log.Println("dwwew")
-	log.Println(session.Metadata)
+	userIDStr := session.Metadata["userID"]
+	itemType := types.OneTimePaymentCheckoutItemType(session.Metadata["itemType"])
+
+	if userIDStr == "" {
+		return errLib.New("userID not found in metadata", http.StatusBadRequest)
+	}
+
+	if !types.IsOneTimePaymentCheckoutItemTypeValid(itemType) {
+		return errLib.New("itemType not found in metadata", http.StatusBadRequest)
+	}
+
+	switch itemType {
+	case types.Program:
+
+		return s.handleProgramCheckoutComplete(session)
+	}
+	return nil
+}
+
+func (s *WebhookService) handleProgramCheckoutComplete(session stripe.CheckoutSession) *errLib.CommonError {
+
+	userIDStr := session.Metadata["userID"]
+	if userIDStr == "" {
+		return errLib.New("userID not found in metadata", http.StatusBadRequest)
+	}
+
+	customerID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return errLib.New("Failed to parse userID", http.StatusBadRequest)
+	}
+
+	var programID uuid.UUID
+
+	if session.LineItems == nil || len(session.LineItems.Data) == 0 {
+		log.Println(session.LineItems)
+		return errLib.New("No line items found in session", http.StatusBadRequest)
+	}
+
+	// Get first line item (assuming single item checkout)
+	lineItem := session.LineItems.Data[0]
+	if lineItem.Price != nil && lineItem.Price.Product != nil {
+		if idStr, exists := lineItem.Price.Product.Metadata["item_id"]; exists {
+			programID, err = uuid.Parse(idStr)
+			if err != nil {
+				return errLib.New("failed to parse program ID from line items", http.StatusBadRequest)
+			}
+		}
+	}
+
+	if programID == uuid.Nil {
+		return errLib.New("program ID not found in line items", http.StatusBadRequest)
+	}
+
+	if repoErr := s.PostCheckoutRepository.EnrollCustomerInProgramEvents(context.Background(), customerID, programID); repoErr != nil {
+		return repoErr
+	}
 
 	return nil
 }
 
-func handleSubscriptionWithEndDate(session stripe.CheckoutSession) *errLib.CommonError {
-
-	log.Println("session")
-	log.Println(session)
+func (s *WebhookService) handleSubscriptionWithEndDate(session stripe.CheckoutSession) *errLib.CommonError {
 
 	totalBillingPeriodsStr := session.Metadata["totalBillingPeriods"]
 	if totalBillingPeriodsStr == "" {
 		return nil // Single payment, nothing to do
+	}
+
+	userIDStr := session.Metadata["userID"]
+
+	if userIDStr == "" {
+		return errLib.New("userID not found in metadata", http.StatusBadRequest)
 	}
 
 	totalBillingPeriods, err := strconv.Atoi(totalBillingPeriodsStr)

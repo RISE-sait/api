@@ -15,11 +15,11 @@ import (
 )
 
 type WebhookHandlers struct {
-	Service *service.Service
+	Service *service.WebhookService
 }
 
 func NewWebhookHandlers(container *di.Container) *WebhookHandlers {
-	return &WebhookHandlers{Service: service.NewPurchaseService(container)}
+	return &WebhookHandlers{Service: service.NewWebhookService(container)}
 }
 
 // HandleStripeWebhook processes incoming Stripe  webhook events.
@@ -65,7 +65,7 @@ func (h *WebhookHandlers) HandleStripeWebhook(w http.ResponseWriter, r *http.Req
 
 	switch event.Type {
 	case "checkout.session.completed":
-		if sessionErr := service.HandleCheckoutSessionCompleted(event); sessionErr != nil {
+		if sessionErr := h.Service.HandleCheckoutSessionCompleted(event); sessionErr != nil {
 			responseHandlers.RespondWithError(w, sessionErr)
 			return
 		}

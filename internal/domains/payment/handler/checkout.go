@@ -13,11 +13,11 @@ import (
 )
 
 type CheckoutHandlers struct {
-	Service *service.Service
+	Service *service.CheckoutService
 }
 
 func NewCheckoutHandlers(container *di.Container) *CheckoutHandlers {
-	return &CheckoutHandlers{Service: service.NewPurchaseService(container)}
+	return &CheckoutHandlers{Service: service.NewCheckoutService(container)}
 }
 
 // CheckoutMembership allows a customer to check out a membership plan.

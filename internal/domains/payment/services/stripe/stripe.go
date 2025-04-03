@@ -17,21 +17,16 @@ import (
 
 func CreateOneTimePayment(
 	ctx context.Context,
-	itemName string,
-	quantity int,
-	price decimal.Decimal,
+	items []types.CheckoutItem,
+	itemType types.OneTimePaymentCheckoutItemType,
 ) (string, *errLib.CommonError) {
 
 	if strings.ReplaceAll(stripe.Key, " ", "") == "" {
 		return "", errLib.New("Stripe not initialized", http.StatusInternalServerError)
 	}
 
-	if itemName == "" {
-		return "", errLib.New("item name cannot be empty", http.StatusBadRequest)
-	}
-
-	if quantity <= 0 {
-		return "", errLib.New("quantity must be positive", http.StatusBadRequest)
+	if len(items) == 0 {
+		return "", errLib.New("items cannot be empty", http.StatusBadRequest)
 	}
 
 	userID, err := contextUtils.GetUserID(ctx)
@@ -40,24 +35,46 @@ func CreateOneTimePayment(
 		return "", err
 	}
 
-	priceInCents := price.Mul(decimal.NewFromInt(100)).IntPart()
+	lineItems := make([]*stripe.CheckoutSessionLineItemParams, len(items))
+	for i, item := range items {
+
+		if item.Quantity <= 0 {
+			return "", errLib.New("item quantity must be greater than 0", http.StatusBadRequest)
+		}
+
+		if item.Price.LessThanOrEqual(decimal.Zero) {
+			return "", errLib.New("item price must be greater than 0", http.StatusBadRequest)
+		}
+
+		priceInCents := item.Price.Mul(decimal.NewFromInt(100)).IntPart() // Convert dollars to cents
+
+		lineItems[i] = &stripe.CheckoutSessionLineItemParams{
+			PriceData: &stripe.CheckoutSessionLineItemPriceDataParams{
+				Currency: stripe.String("cad"),
+				ProductData: &stripe.CheckoutSessionLineItemPriceDataProductDataParams{
+					Name: stripe.String(item.Name),
+					Metadata: map[string]string{
+						"item_id": item.ID.String(),
+					},
+				},
+				UnitAmount: stripe.Int64(priceInCents),
+			},
+			Quantity: stripe.Int64(int64(item.Quantity)),
+		}
+	}
 
 	params := &stripe.CheckoutSessionParams{
-		PaymentIntentData: &stripe.CheckoutSessionPaymentIntentDataParams{
-			Metadata: map[string]string{"userID": userID.String()},
+		Metadata: map[string]string{
+			"userID":   userID.String(),
+			"itemType": string(itemType),
 		},
-		LineItems: []*stripe.CheckoutSessionLineItemParams{
-			{
-				PriceData: &stripe.CheckoutSessionLineItemPriceDataParams{
-					Currency: stripe.String("cad"),
-					ProductData: &stripe.CheckoutSessionLineItemPriceDataProductDataParams{
-						Name: stripe.String(itemName),
-					},
-					UnitAmount: stripe.Int64(priceInCents),
-				},
-				Quantity: stripe.Int64(int64(quantity)),
+		PaymentIntentData: &stripe.CheckoutSessionPaymentIntentDataParams{
+			Metadata: map[string]string{
+				"userID":   userID.String(),
+				"itemType": string(itemType),
 			},
 		},
+		LineItems:  lineItems,
 		Mode:       stripe.String("payment"),
 		SuccessURL: stripe.String("https://example.com/success"),
 	}
@@ -111,6 +128,7 @@ func CreateSubscription(
 	priceInCents := price.Mul(decimal.NewFromInt(100)).IntPart()
 
 	params := &stripe.CheckoutSessionParams{
+		Metadata: map[string]string{"userID": userID.String()},
 		SubscriptionData: &stripe.CheckoutSessionSubscriptionDataParams{
 			Metadata: map[string]string{
 				"userID":  userID.String(), // Accessible in subscription.Metadata

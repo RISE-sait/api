@@ -58,3 +58,12 @@ FROM program.programs p
      events.customer_enrollment ce ON e.id = ce.event_id
 WHERE p.id = $1
 group by p.capacity;
+
+-- name: EnrollCustomerInProgramEvents :exec
+INSERT INTO events.customer_enrollment (customer_id, event_id)
+SELECT $1, -- Customer ID parameter
+       e.id
+FROM events.events e
+         LEFT JOIN public.schedules s ON e.schedule_id = s.id
+WHERE s.program_id = $2
+  AND e.start_at >= current_timestamp;

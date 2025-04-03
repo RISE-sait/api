@@ -2,18 +2,15 @@ package membership
 
 import (
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 	"time"
 )
 
 type PlanDetails struct {
-	MembershipID     uuid.UUID
-	Name             string
-	Price            decimal.Decimal
-	JoiningFees      decimal.Decimal
-	PaymentFrequency string
-	AmtPeriods       *int32
-	IsAutoRenew      bool
+	MembershipID        uuid.UUID
+	Name                string
+	AmtPeriods          *int32
+	StripeJoiningFeesID string
+	StripePriceID       string
 }
 
 type PlanCreateValues struct {

@@ -50,7 +50,7 @@ func (q *Queries) DeleteProgram(ctx context.Context, id uuid.UUID) (int64, error
 }
 
 const getProgram = `-- name: GetProgram :one
-SELECT id, name, description, level, type, created_at, updated_at, capacity
+SELECT id, name, description, level, type, capacity, created_at, updated_at
 FROM program.programs
 WHERE id = $1
 `
@@ -64,15 +64,15 @@ func (q *Queries) GetProgram(ctx context.Context, id uuid.UUID) (ProgramProgram,
 		&i.Description,
 		&i.Level,
 		&i.Type,
+		&i.Capacity,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Capacity,
 	)
 	return i, err
 }
 
 const getProgramById = `-- name: GetProgramById :one
-SELECT id, name, description, level, type, created_at, updated_at, capacity FROM program.programs WHERE id = $1
+SELECT id, name, description, level, type, capacity, created_at, updated_at FROM program.programs WHERE id = $1
 `
 
 func (q *Queries) GetProgramById(ctx context.Context, id uuid.UUID) (ProgramProgram, error) {
@@ -84,15 +84,15 @@ func (q *Queries) GetProgramById(ctx context.Context, id uuid.UUID) (ProgramProg
 		&i.Description,
 		&i.Level,
 		&i.Type,
+		&i.Capacity,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Capacity,
 	)
 	return i, err
 }
 
 const getPrograms = `-- name: GetPrograms :many
-SELECT id, name, description, level, type, created_at, updated_at, capacity
+SELECT id, name, description, level, type, capacity, created_at, updated_at
 FROM program.programs
 WHERE type = $1
    OR $1 IS NULL
@@ -113,9 +113,9 @@ func (q *Queries) GetPrograms(ctx context.Context, type_ NullProgramProgramType)
 			&i.Description,
 			&i.Level,
 			&i.Type,
+			&i.Capacity,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.Capacity,
 		); err != nil {
 			return nil, err
 		}

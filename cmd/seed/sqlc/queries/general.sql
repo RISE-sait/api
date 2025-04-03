@@ -68,24 +68,16 @@ VALUES ((SELECT id FROM users.users WHERE email = 'viktor.djurasic+1@abcfitness.
         1,
         2);
 
--- name: InsertEnrollmentFees :exec
+-- name: InsertProgramMembership :exec
 WITH prepared_data AS (SELECT unnest(@program_id_array::uuid[])       AS program_id,
                               unnest(@membership_id_array::uuid[])    AS membership_id,
-                              unnest(@drop_in_price_array::numeric[]) AS drop_in_price,
-                              unnest(@program_price_array::numeric[]) AS program_price)
+                              unnest(@stripe_program_price_id_array::varchar[]) AS stripe_program_price_id)
 INSERT
-INTO enrollment_fees (program_id, membership_id, drop_in_price, program_price)
+INTO program.program_membership (program_id, membership_id, stripe_program_price_id)
 SELECT program_id,
        CASE
            WHEN membership_id = '00000000-0000-0000-0000-000000000000' THEN NULL::uuid
            ELSE membership_id
            END AS membership_id,
-       CASE
-           WHEN drop_in_price = 9999 THEN NULL::numeric
-           ELSE drop_in_price
-           END AS payg_price,
-       CASE
-           WHEN program_price = 9999 THEN NULL::numeric
-           ELSE program_price
-           END AS program_price
+       stripe_program_price_id
 FROM prepared_data;

@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
-	"github.com/shopspring/decimal"
 )
 
 const insertCoachStats = `-- name: InsertCoachStats :exec
@@ -51,46 +50,6 @@ func (q *Queries) InsertCourses(ctx context.Context, arg InsertCoursesParams) er
 	return err
 }
 
-const insertEnrollmentFees = `-- name: InsertEnrollmentFees :exec
-WITH prepared_data AS (SELECT unnest($1::uuid[])       AS program_id,
-                              unnest($2::uuid[])    AS membership_id,
-                              unnest($3::numeric[]) AS drop_in_price,
-                              unnest($4::numeric[]) AS program_price)
-INSERT
-INTO enrollment_fees (program_id, membership_id, drop_in_price, program_price)
-SELECT program_id,
-       CASE
-           WHEN membership_id = '00000000-0000-0000-0000-000000000000' THEN NULL::uuid
-           ELSE membership_id
-           END AS membership_id,
-       CASE
-           WHEN drop_in_price = 9999 THEN NULL::numeric
-           ELSE drop_in_price
-           END AS payg_price,
-       CASE
-           WHEN program_price = 9999 THEN NULL::numeric
-           ELSE program_price
-           END AS program_price
-FROM prepared_data
-`
-
-type InsertEnrollmentFeesParams struct {
-	ProgramIDArray    []uuid.UUID       `json:"program_id_array"`
-	MembershipIDArray []uuid.UUID       `json:"membership_id_array"`
-	DropInPriceArray  []decimal.Decimal `json:"drop_in_price_array"`
-	ProgramPriceArray []decimal.Decimal `json:"program_price_array"`
-}
-
-func (q *Queries) InsertEnrollmentFees(ctx context.Context, arg InsertEnrollmentFeesParams) error {
-	_, err := q.db.ExecContext(ctx, insertEnrollmentFees,
-		pq.Array(arg.ProgramIDArray),
-		pq.Array(arg.MembershipIDArray),
-		pq.Array(arg.DropInPriceArray),
-		pq.Array(arg.ProgramPriceArray),
-	)
-	return err
-}
-
 const insertGames = `-- name: InsertGames :exec
 WITH prepared_data as (
         SELECT unnest($5::text[]) as name,
@@ -102,7 +61,8 @@ game_ids AS (
     FROM prepared_data
     RETURNING id
 )
-INSERT INTO program.games (id, win_team, lose_team, win_score, lose_score)
+INSERT
+INTO program.games (id, win_team, lose_team, win_score, lose_score)
 VALUES (unnest(ARRAY(SELECT id FROM game_ids)), unnest($1::uuid[]), unnest($2::uuid[]), unnest($3::int[]), unnest($4::int[]))
 `
 
@@ -186,6 +146,32 @@ func (q *Queries) InsertPractices(ctx context.Context, arg InsertPracticesParams
 		return nil, err
 	}
 	return items, nil
+}
+
+const insertProgramMembership = `-- name: InsertProgramMembership :exec
+WITH prepared_data AS (SELECT unnest($1::uuid[])       AS program_id,
+                              unnest($2::uuid[])    AS membership_id,
+                              unnest($3::varchar[]) AS stripe_program_price_id)
+INSERT
+INTO program.program_membership (program_id, membership_id, stripe_program_price_id)
+SELECT program_id,
+       CASE
+           WHEN membership_id = '00000000-0000-0000-0000-000000000000' THEN NULL::uuid
+           ELSE membership_id
+           END AS membership_id,
+       stripe_program_price_id
+FROM prepared_data
+`
+
+type InsertProgramMembershipParams struct {
+	ProgramIDArray            []uuid.UUID `json:"program_id_array"`
+	MembershipIDArray         []uuid.UUID `json:"membership_id_array"`
+	StripeProgramPriceIDArray []string    `json:"stripe_program_price_id_array"`
+}
+
+func (q *Queries) InsertProgramMembership(ctx context.Context, arg InsertProgramMembershipParams) error {
+	_, err := q.db.ExecContext(ctx, insertProgramMembership, pq.Array(arg.ProgramIDArray), pq.Array(arg.MembershipIDArray), pq.Array(arg.StripeProgramPriceIDArray))
+	return err
 }
 
 const insertTeams = `-- name: InsertTeams :many

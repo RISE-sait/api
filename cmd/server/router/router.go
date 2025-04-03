@@ -147,7 +147,6 @@ func RegisterMembershipPlansRoutes(container *di.Container) func(chi.Router) {
 
 	return func(r chi.Router) {
 
-		r.Get("/payment-frequencies", h.GetMembershipPlanPaymentFrequencies)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/", h.CreateMembershipPlan)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}", h.UpdateMembershipPlan)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", h.DeleteMembershipPlan)
@@ -279,7 +278,7 @@ func RegisterCheckoutRoutes(container *di.Container) func(chi.Router) {
 	h := purchase.NewPaymentHandlers(container)
 
 	return func(r chi.Router) {
-		r.With(middlewares.JWTAuthMiddleware(true)).Post("/membership_plans/{id}", h.CheckoutMembership)
+		r.Post("/membership_plans/{id}", h.CheckoutMembership)
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/programs/{id}", h.CheckoutProgram)
 	}
 }

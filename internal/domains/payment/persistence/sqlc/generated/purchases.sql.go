@@ -11,20 +11,19 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 )
 
 const createCustomerMembershipPlan = `-- name: CreateCustomerMembershipPlan :exec
-INSERT INTO customer_membership_plans (customer_id, membership_plan_id, status, start_date, renewal_date)
+INSERT INTO users.customer_membership_plans (customer_id, membership_plan_id, status, start_date, renewal_date)
 VALUES ($1, $2, $3, $4, $5)
 `
 
 type CreateCustomerMembershipPlanParams struct {
-	CustomerID       uuid.UUID        `json:"customer_id"`
-	MembershipPlanID uuid.UUID        `json:"membership_plan_id"`
-	Status           MembershipStatus `json:"status"`
-	StartDate        time.Time        `json:"start_date"`
-	RenewalDate      sql.NullTime     `json:"renewal_date"`
+	CustomerID       uuid.UUID                  `json:"customer_id"`
+	MembershipPlanID uuid.UUID                  `json:"membership_plan_id"`
+	Status           MembershipMembershipStatus `json:"status"`
+	StartDate        time.Time                  `json:"start_date"`
+	RenewalDate      sql.NullTime               `json:"renewal_date"`
 }
 
 func (q *Queries) CreateCustomerMembershipPlan(ctx context.Context, arg CreateCustomerMembershipPlanParams) error {
@@ -39,7 +38,7 @@ func (q *Queries) CreateCustomerMembershipPlan(ctx context.Context, arg CreateCu
 }
 
 const getMembershipPlanJoiningRequirements = `-- name: GetMembershipPlanJoiningRequirements :one
-SELECT id, name, price, joining_fee, auto_renew, membership_id, payment_frequency, amt_periods, created_at, updated_at
+SELECT id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at
 FROM membership.membership_plans
 WHERE id = $1
 `
@@ -50,11 +49,9 @@ func (q *Queries) GetMembershipPlanJoiningRequirements(ctx context.Context, id u
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.Price,
-		&i.JoiningFee,
-		&i.AutoRenew,
+		&i.StripePriceID,
+		&i.StripeJoiningFeeID,
 		&i.MembershipID,
-		&i.PaymentFrequency,
 		&i.AmtPeriods,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -80,75 +77,30 @@ func (q *Queries) GetProgram(ctx context.Context, id uuid.UUID) (GetProgramRow, 
 	return i, err
 }
 
-const getProgramRegisterPricesForCustomer = `-- name: GetProgramRegisterPricesForCustomer :one
-WITH active_membership_id AS
-    (
-SELECT mp.membership_id
-              FROM public.customer_membership_plans cmp
-            LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
-            LEFT JOIN membership.memberships m ON m.id = mp.membership_id
-              WHERE customer_id = $2
-                AND status = 'active' ORDER BY cmp.start_date DESC LIMIT 1
-         )
-
-SELECT
-    -- Member program price (if available)
-    (SELECT ef.program_price
-     FROM public.enrollment_fees ef
-     WHERE ef.program_id = p.id
-       AND ef.membership_id = (SELECT membership_id FROM active_membership_id))
-           AS member_program_price,
-
-    -- Member drop-in price (if available)
-    (SELECT ef.drop_in_price
-     FROM public.enrollment_fees ef
-     WHERE ef.program_id = p.id
-       AND ef.membership_id = (SELECT membership_id FROM active_membership_id))
-           AS member_drop_in_price,
-
-    -- Non-member program price
-    (SELECT ef.program_price
-     FROM public.enrollment_fees ef
-     WHERE ef.program_id = p.id
-       AND ef.membership_id IS NULL)
-           AS non_member_program_price,
-
-    -- Non-member drop-in price
-    (SELECT ef.drop_in_price
-     FROM public.enrollment_fees ef
-     WHERE ef.program_id = p.id
-       AND ef.membership_id IS NULL)
-           AS non_member_drop_in_price,
-
-    p.name AS program_name
-FROM program.programs p
-WHERE p.id = $1
+const getProgramRegistrationPriceIDForCustomer = `-- name: GetProgramRegistrationPriceIDForCustomer :one
+SELECT pm.stripe_program_price_id
+FROM program.program_membership pm
+WHERE pm.membership_id = (SELECT mp.membership_id
+                          FROM users.customer_membership_plans cmp
+                                   LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
+                                   LEFT JOIN membership.memberships m ON m.id = mp.membership_id
+                          WHERE customer_id = $1
+                            AND status = 'active'
+                          ORDER BY cmp.start_date DESC
+                          LIMIT 1)
+    AND pm.program_id = $2
 `
 
-type GetProgramRegisterPricesForCustomerParams struct {
-	ProgramID  uuid.UUID `json:"program_id"`
+type GetProgramRegistrationPriceIDForCustomerParams struct {
 	CustomerID uuid.UUID `json:"customer_id"`
+	ProgramID  uuid.UUID `json:"program_id"`
 }
 
-type GetProgramRegisterPricesForCustomerRow struct {
-	MemberProgramPrice    decimal.NullDecimal `json:"member_program_price"`
-	MemberDropInPrice     decimal.NullDecimal `json:"member_drop_in_price"`
-	NonMemberProgramPrice decimal.NullDecimal `json:"non_member_program_price"`
-	NonMemberDropInPrice  decimal.NullDecimal `json:"non_member_drop_in_price"`
-	ProgramName           string              `json:"program_name"`
-}
-
-func (q *Queries) GetProgramRegisterPricesForCustomer(ctx context.Context, arg GetProgramRegisterPricesForCustomerParams) (GetProgramRegisterPricesForCustomerRow, error) {
-	row := q.db.QueryRowContext(ctx, getProgramRegisterPricesForCustomer, arg.ProgramID, arg.CustomerID)
-	var i GetProgramRegisterPricesForCustomerRow
-	err := row.Scan(
-		&i.MemberProgramPrice,
-		&i.MemberDropInPrice,
-		&i.NonMemberProgramPrice,
-		&i.NonMemberDropInPrice,
-		&i.ProgramName,
-	)
-	return i, err
+func (q *Queries) GetProgramRegistrationPriceIDForCustomer(ctx context.Context, arg GetProgramRegistrationPriceIDForCustomerParams) (string, error) {
+	row := q.db.QueryRowContext(ctx, getProgramRegistrationPriceIDForCustomer, arg.CustomerID, arg.ProgramID)
+	var stripe_program_price_id string
+	err := row.Scan(&stripe_program_price_id)
+	return stripe_program_price_id, err
 }
 
 const isCustomerExist = `-- name: IsCustomerExist :one

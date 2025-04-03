@@ -34,19 +34,16 @@ func (r *Repository) GetMembershipPlanJoiningRequirement(ctx context.Context, pl
 		}
 	} else {
 		response := values.MembershipPlanJoiningRequirement{
-			ID:               requirements.ID,
-			Name:             requirements.Name,
-			Price:            requirements.Price,
-			JoiningFee:       requirements.JoiningFee,
-			AutoRenew:        requirements.AutoRenew,
-			MembershipID:     requirements.MembershipID,
-			PaymentFrequency: string(requirements.PaymentFrequency),
-			CreatedAt:        requirements.CreatedAt,
-			UpdatedAt:        requirements.UpdatedAt,
+			ID:            requirements.ID,
+			Name:          requirements.Name,
+			StripePriceID: requirements.StripePriceID,
+			MembershipID:  requirements.MembershipID,
+			CreatedAt:     requirements.CreatedAt,
+			UpdatedAt:     requirements.UpdatedAt,
 		}
 
-		if requirements.PaymentFrequency == db.PaymentFrequencyOnce {
-			response.IsOneTimePayment = true
+		if requirements.StripeJoiningFeeID.Valid {
+			response.StripeJoiningFeeID = requirements.StripeJoiningFeeID.String
 		}
 
 		if requirements.AmtPeriods.Valid {
@@ -57,58 +54,39 @@ func (r *Repository) GetMembershipPlanJoiningRequirement(ctx context.Context, pl
 	}
 }
 
-func (r *Repository) GetProgramRegistrationInfoByCustomer(ctx context.Context, customerID, programID uuid.UUID) (values.ProgramRegistrationInfo, *errLib.CommonError) {
+func (r *Repository) GetProgramRegistrationPriceIDByCustomer(ctx context.Context, customerID, programID uuid.UUID) (string, *errLib.CommonError) {
 
 	var response values.ProgramRegistrationInfo
 
 	program, err := r.Queries.GetProgram(ctx, programID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return response, errLib.New(fmt.Sprintf("program not found: %v", programID), http.StatusNotFound)
+			return "", errLib.New(fmt.Sprintf("program not found: %v", programID), http.StatusNotFound)
 		}
 		log.Printf("Error getting program: %v", err)
-		return response, errLib.New("failed to get program", http.StatusInternalServerError)
+		return "", errLib.New("failed to get program", http.StatusInternalServerError)
 	}
 
 	response.ProgramName = program.Name
 
 	if isCustomerExist, err := r.Queries.IsCustomerExist(ctx, customerID); err != nil {
 		log.Printf("Error getting customer: %v", err)
-		return response, errLib.New("failed to get customer", http.StatusInternalServerError)
+		return "", errLib.New("failed to get customer", http.StatusInternalServerError)
 	} else if !isCustomerExist {
-		return response, errLib.New(fmt.Sprintf("customer not found: %v", customerID), http.StatusNotFound)
+		return "", errLib.New(fmt.Sprintf("customer not found: %v", customerID), http.StatusNotFound)
 	}
 
-	prices, err := r.Queries.GetProgramRegisterPricesForCustomer(ctx, db.GetProgramRegisterPricesForCustomerParams{
+	priceID, err := r.Queries.GetProgramRegistrationPriceIDForCustomer(ctx, db.GetProgramRegistrationPriceIDForCustomerParams{
 		CustomerID: customerID,
 		ProgramID:  programID,
 	})
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", errLib.New(fmt.Sprintf("customer is not eligible for program registration: %v", program.Name), http.StatusBadRequest)
+		}
 		log.Printf("Error getting GetProgramRegisterPricesForCustomer: %v", err)
-		return response, errLib.New("failed to check get registration prices for customer", http.StatusInternalServerError)
+		return "", errLib.New("failed to check get registration prices for customer", http.StatusInternalServerError)
 	}
 
-	memberProgramPrice := prices.MemberProgramPrice
-	memberDropInPrice := prices.MemberDropInPrice
-
-	nonMemberProgramPrice := prices.NonMemberProgramPrice
-	nonMemberDropInPrice := prices.NonMemberDropInPrice
-
-	// check if the customer is a member, and if it's paid by program or drop-in
-	switch {
-	case memberProgramPrice.Valid:
-		response.Price = memberProgramPrice
-	case memberDropInPrice.Valid:
-		response.Price = memberDropInPrice
-	case nonMemberProgramPrice.Valid:
-		response.Price = nonMemberProgramPrice
-	case nonMemberDropInPrice.Valid:
-		response.Price = nonMemberDropInPrice
-	}
-
-	if response.Price.Valid {
-		return response, nil
-	}
-
-	return response, errLib.New(fmt.Sprintf("customer is ineligible for program registration: %v", program.Name), http.StatusBadRequest)
+	return priceID, nil
 }

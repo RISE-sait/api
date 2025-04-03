@@ -97,23 +97,6 @@ func (h *PlansHandlers) GetMembershipPlans(w http.ResponseWriter, r *http.Reques
 	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusOK)
 }
 
-// GetMembershipPlanPaymentFrequencies retrieves available payment frequencies.
-// @Summary Get payment frequencies for membership plans
-// @Description Retrieves a list of available payment frequencies for membership plans.
-// @Tags membership-plans
-// @Accept json
-// @Produce json
-// @Success 200 {object} map[string][]string "List of payment frequencies"
-// @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /memberships/plans/payment-frequencies [get]
-func (h *PlansHandlers) GetMembershipPlanPaymentFrequencies(w http.ResponseWriter, r *http.Request) {
-	freqs := h.Repo.GetMembershipPlanPaymentFrequencies()
-
-	response := map[string][]string{"payment_frequencies": freqs}
-
-	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
-}
-
 // UpdateMembershipPlan updates an existing membership plan.
 // @Summary Update a membership plan
 // @Description Update a membership plan

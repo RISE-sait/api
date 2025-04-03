@@ -1,13 +1,11 @@
 package stripe
 
 import (
-	types "api/internal/domains/payment/types"
+	_ "api/internal/di"
 	errLib "api/internal/libs/errors"
 	contextUtils "api/utils/context"
 	"context"
-	"github.com/shopspring/decimal"
-
-	_ "api/internal/di"
+	"github.com/google/uuid"
 	_ "github.com/square/square-go-sdk/client"
 	"github.com/stripe/stripe-go/v81"
 	"github.com/stripe/stripe-go/v81/checkout/session"
@@ -17,17 +15,16 @@ import (
 
 func CreateOneTimePayment(
 	ctx context.Context,
-	itemName string,
+	itemStripePriceID string,
 	quantity int,
-	price decimal.Decimal,
 ) (string, *errLib.CommonError) {
 
 	if strings.ReplaceAll(stripe.Key, " ", "") == "" {
 		return "", errLib.New("Stripe not initialized", http.StatusInternalServerError)
 	}
 
-	if itemName == "" {
-		return "", errLib.New("item name cannot be empty", http.StatusBadRequest)
+	if itemStripePriceID == "" {
+		return "", errLib.New("item stripe price ID cannot be empty", http.StatusBadRequest)
 	}
 
 	if quantity <= 0 {
@@ -40,21 +37,16 @@ func CreateOneTimePayment(
 		return "", err
 	}
 
-	priceInCents := price.Mul(decimal.NewFromInt(100)).IntPart()
-
 	params := &stripe.CheckoutSessionParams{
 		PaymentIntentData: &stripe.CheckoutSessionPaymentIntentDataParams{
-			Metadata: map[string]string{"userID": userID.String()},
+			Metadata: map[string]string{
+				"userID":  userID.String(),
+				"priceID": itemStripePriceID,
+			},
 		},
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			{
-				PriceData: &stripe.CheckoutSessionLineItemPriceDataParams{
-					Currency: stripe.String("cad"),
-					ProductData: &stripe.CheckoutSessionLineItemPriceDataProductDataParams{
-						Name: stripe.String(itemName),
-					},
-					UnitAmount: stripe.Int64(priceInCents),
-				},
+				Price:    stripe.String(itemStripePriceID), // Use pre-created Price ID
 				Quantity: stripe.Int64(int64(quantity)),
 			},
 		},
@@ -71,70 +63,44 @@ func CreateOneTimePayment(
 
 func CreateSubscription(
 	ctx context.Context,
-	planName string,
-	price decimal.Decimal,
-	frequency types.PaymentFrequency,
-	periods int32,
+	stripePlanID string,
+	stripeJoiningFeesID string,
 ) (string, *errLib.CommonError) {
 
-	if planName == "" {
-		return "", errLib.New("plan name cannot be empty", http.StatusBadRequest)
-	}
+	//userID, err := contextUtils.GetUserID(ctx)
+	//
+	//if err != nil {
+	//	return "", err
+	//}
 
-	if price.LessThanOrEqual(decimal.Zero) {
-		return "", errLib.New("price must be positive", http.StatusBadRequest)
-	}
-
-	if periods < 2 {
-		return "", errLib.New("periods must be at least 2 for subscriptions. Use create one time payment if its not recurring", http.StatusBadRequest)
-	}
-
-	userID, err := contextUtils.GetUserID(ctx)
-
-	if err != nil {
-		return "", err
-	}
+	userID := uuid.MustParse("844047ca-e27d-42f4-b245-ba6ae28b090a")
 
 	if strings.ReplaceAll(stripe.Key, " ", "") == "" {
 		return "", errLib.New("Stripe not initialized", http.StatusInternalServerError)
 	}
 
-	interval := string(frequency)
-
-	intervalCount := 1
-
-	if frequency == types.Biweekly {
-		interval = "week"
-		intervalCount = 2
-	}
-
-	priceInCents := price.Mul(decimal.NewFromInt(100)).IntPart()
-
 	params := &stripe.CheckoutSessionParams{
 		SubscriptionData: &stripe.CheckoutSessionSubscriptionDataParams{
 			Metadata: map[string]string{
-				"userID":  userID.String(), // Accessible in subscription.Metadata
-				"periods": string(periods),
+				"userID": userID.String(), // Accessible in subscription.Metadata
+				"planID": stripePlanID,
 			},
 		},
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			{
-				PriceData: &stripe.CheckoutSessionLineItemPriceDataParams{
-					Currency: stripe.String("cad"),
-					ProductData: &stripe.CheckoutSessionLineItemPriceDataProductDataParams{
-						Name: stripe.String(planName),
-					},
-					Recurring: &stripe.CheckoutSessionLineItemPriceDataRecurringParams{
-						Interval:      stripe.String(interval),
-						IntervalCount: stripe.Int64(int64(intervalCount)),
-					},
-					UnitAmount: stripe.Int64(priceInCents),
-				},
+				Price:    stripe.String(stripePlanID),
 				Quantity: stripe.Int64(1),
 			},
 		},
 		Mode:       stripe.String("subscription"),
 		SuccessURL: stripe.String("https://example.com/success"),
+	}
+
+	if stripeJoiningFeesID != "" {
+		params.LineItems = append(params.LineItems, &stripe.CheckoutSessionLineItemParams{
+			Price:    stripe.String(stripeJoiningFeesID),
+			Quantity: stripe.Int64(1),
+		})
 	}
 
 	s, sessionErr := session.New(params)

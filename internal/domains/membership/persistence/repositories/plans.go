@@ -26,12 +26,13 @@ func NewMembershipPlansRepository(container *di.Container) *PlansRepository {
 func (r *PlansRepository) CreateMembershipPlan(c context.Context, membershipPlan values.PlanCreateValues) *errLib.CommonError {
 
 	dbParams := db.CreateMembershipPlanParams{
-		MembershipID:     membershipPlan.MembershipID,
-		Name:             membershipPlan.Name,
-		Price:            membershipPlan.Price,
-		PaymentFrequency: db.PaymentFrequency(membershipPlan.PaymentFrequency),
-		AutoRenew:        membershipPlan.IsAutoRenew,
-		JoiningFee:       membershipPlan.JoiningFees,
+		MembershipID: membershipPlan.MembershipID,
+		Name:         membershipPlan.Name,
+		StripeJoiningFeeID: sql.NullString{
+			String: membershipPlan.StripeJoiningFeesID,
+			Valid:  membershipPlan.StripeJoiningFeesID != "",
+		},
+		StripePriceID: membershipPlan.StripePriceID,
 	}
 
 	if membershipPlan.AmtPeriods != nil {
@@ -70,12 +71,10 @@ func (r *PlansRepository) GetMembershipPlanById(ctx context.Context, id uuid.UUI
 	plan := values.PlanReadValues{
 		ID: dbPlan.ID,
 		PlanDetails: values.PlanDetails{
-			MembershipID:     dbPlan.MembershipID,
-			Name:             dbPlan.Name,
-			Price:            dbPlan.Price,
-			PaymentFrequency: string(dbPlan.PaymentFrequency),
-			IsAutoRenew:      dbPlan.AutoRenew,
-			JoiningFees:      dbPlan.JoiningFee,
+			MembershipID:        dbPlan.MembershipID,
+			Name:                dbPlan.Name,
+			StripeJoiningFeesID: dbPlan.StripeJoiningFeeID.String,
+			StripePriceID:       dbPlan.StripePriceID,
 		},
 		CreatedAt: dbPlan.CreatedAt,
 		UpdatedAt: dbPlan.UpdatedAt,
@@ -86,18 +85,6 @@ func (r *PlansRepository) GetMembershipPlanById(ctx context.Context, id uuid.UUI
 	}
 
 	return plan, nil
-}
-
-func (r *PlansRepository) GetMembershipPlanPaymentFrequencies() []string {
-	dbFreqs := db.AllPaymentFrequencyValues()
-
-	var freq []string
-
-	for _, dbFreq := range dbFreqs {
-		freq = append(freq, string(dbFreq))
-	}
-
-	return freq
 }
 
 func (r *PlansRepository) GetMembershipPlans(ctx context.Context, membershipId uuid.UUID) ([]values.PlanReadValues, *errLib.CommonError) {
@@ -116,12 +103,10 @@ func (r *PlansRepository) GetMembershipPlans(ctx context.Context, membershipId u
 		plan := values.PlanReadValues{
 			ID: dbPlan.ID,
 			PlanDetails: values.PlanDetails{
-				MembershipID:     dbPlan.MembershipID,
-				Name:             dbPlan.Name,
-				Price:            dbPlan.Price,
-				PaymentFrequency: string(dbPlan.PaymentFrequency),
-				JoiningFees:      dbPlan.JoiningFee,
-				IsAutoRenew:      dbPlan.AutoRenew,
+				MembershipID:        dbPlan.MembershipID,
+				Name:                dbPlan.Name,
+				StripeJoiningFeesID: dbPlan.StripeJoiningFeeID.String,
+				StripePriceID:       dbPlan.StripePriceID,
 			},
 			CreatedAt: dbPlan.CreatedAt,
 			UpdatedAt: dbPlan.UpdatedAt,
@@ -140,11 +125,13 @@ func (r *PlansRepository) GetMembershipPlans(ctx context.Context, membershipId u
 func (r *PlansRepository) UpdateMembershipPlan(c context.Context, plan values.PlanUpdateValues) *errLib.CommonError {
 
 	dbMembershipParams := db.UpdateMembershipPlanParams{
-		Name:             plan.Name,
-		Price:            plan.Price,
-		PaymentFrequency: db.PaymentFrequency(plan.PaymentFrequency),
-		MembershipID:     plan.MembershipID,
-		ID:               plan.ID,
+		MembershipID: plan.MembershipID,
+		Name:         plan.Name,
+		StripeJoiningFeeID: sql.NullString{
+			String: plan.StripeJoiningFeesID,
+			Valid:  plan.StripeJoiningFeesID != "",
+		},
+		StripePriceID: plan.StripePriceID,
 	}
 
 	if plan.AmtPeriods != nil {

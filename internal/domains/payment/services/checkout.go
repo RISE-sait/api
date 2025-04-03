@@ -5,13 +5,10 @@ import (
 	membership "api/internal/domains/membership/persistence/repositories"
 	repository "api/internal/domains/payment/persistence/repositories"
 	"api/internal/domains/payment/services/stripe"
-	types "api/internal/domains/payment/types"
 	errLib "api/internal/libs/errors"
 	"context"
 	"github.com/google/uuid"
 	squareClient "github.com/square/square-go-sdk/client"
-	"log"
-	"net/http"
 )
 
 type Service struct {
@@ -36,17 +33,7 @@ func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID u
 		return "", err
 	}
 
-	if requirements.IsOneTimePayment {
-		return stripe.CreateOneTimePayment(ctx, requirements.Name, 1, requirements.Price)
-	}
-
-	if !types.IsPaymentFrequencyValid(types.PaymentFrequency(requirements.PaymentFrequency)) {
-
-		log.Printf("Invalid payment frequency when checking out membership plan. Plan ID: %v", membershipPlanID)
-		return "", errLib.New("Internal Server Error when checking out membership plan ", http.StatusInternalServerError)
-	}
-
-	if link, err := stripe.CreateSubscription(ctx, requirements.Name, requirements.Price, types.PaymentFrequency(requirements.PaymentFrequency), *requirements.AmtPeriods); err != nil {
+	if link, err := stripe.CreateSubscription(ctx, requirements.StripePriceID, requirements.StripeJoiningFeeID); err != nil {
 		return "", err
 	} else {
 		return link, nil
@@ -55,17 +42,13 @@ func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID u
 
 func (s *Service) CheckoutProgram(ctx context.Context, userID, programID uuid.UUID) (string, *errLib.CommonError) {
 
-	joinProgramRequirements, err := s.PurchaseRepo.GetProgramRegistrationInfoByCustomer(ctx, userID, programID)
+	priceID, err := s.PurchaseRepo.GetProgramRegistrationPriceIDByCustomer(ctx, userID, programID)
 
 	if err != nil {
 		return "", err
 	}
 
-	if !joinProgramRequirements.Price.Valid {
-		return "", errLib.New("User is not eligible to join program", http.StatusBadRequest)
-	}
-
-	if link, err := stripe.CreateOneTimePayment(ctx, joinProgramRequirements.ProgramName, 1, joinProgramRequirements.Price.Decimal); err != nil {
+	if link, err := stripe.CreateOneTimePayment(ctx, priceID, 1); err != nil {
 		return "", err
 	} else {
 		return link, nil

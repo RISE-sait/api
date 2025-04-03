@@ -1,42 +1,25 @@
 -- name: InsertEvents :many
 WITH events_data AS (SELECT unnest(@start_at_array::timestamptz[])     as start_at,
                             unnest(@end_at_array::timestamptz[])       as end_at,
+                            unnest(@program_name_array::varchar[]) as program_name,
                             unnest(@location_name_array::varchar[])    as location_name,
                             unnest(@created_by_email_array::varchar[]) AS created_by_email,
                             unnest(@updated_by_email_array::varchar[]) AS updated_by_email,
-                            unnest(@capacity_array::int[])             AS capacity,
-                            unnest(@schedule_id_array::uuid[])         AS schedule_id)
+                            unnest(@capacity_array::int[])         AS capacity)
 INSERT
-INTO events.events (start_at, end_at, location_id, created_by, updated_by, capacity, schedule_id)
+INTO events.events (start_at, end_at, program_id, location_id, created_by, updated_by, capacity)
 SELECT e.start_at,
        e.end_at,
+       p.id,
        l.id,
        creator.id,
        updater.id,
-       e.capacity,
-       NULLIF(e.schedule_id, '00000000-0000-0000-0000-000000000000')
+       e.capacity
 FROM events_data e
-         LEFT JOIN users.users creator ON creator.email = e.created_by_email
-         LEFT JOIN users.users updater ON updater.email = e.updated_by_email
+         JOIN program.programs p ON p.name = e.program_name
+         JOIN users.users creator ON creator.email = e.created_by_email
+         JOIN users.users updater ON updater.email = e.updated_by_email
          JOIN location.locations l ON l.name = e.location_name
-RETURNING id;
-
-
--- name: InsertSchedule :one
-INSERT INTO public.schedules (recurrence_start_at,
-                              recurrence_end_at,
-                              event_start_time,
-                              event_end_time,
-                              program_id,
-                              day,
-                              location_id)
-VALUES ($1,
-        $2,
-        $3,
-        $4,
-        (SELECT id FROM program.programs p WHERE p.name = sqlc.narg('program_name')),
-        $5,
-        (SELECT id FROM location.locations l WHERE l.name = sqlc.arg('location_name')))
 RETURNING id;
 
 

@@ -591,7 +591,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/dto.EventResponseDto"
+                                "$ref": "#/definitions/event.EventResponseDto"
                             }
                         }
                     },
@@ -635,7 +635,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CreateRequestDto"
+                            "$ref": "#/definitions/event.CreateRequestDto"
                         }
                     }
                 ],
@@ -908,7 +908,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Event details retrieved successfully",
                         "schema": {
-                            "$ref": "#/definitions/dto.EventResponseDto"
+                            "$ref": "#/definitions/event.EventResponseDto"
                         }
                     },
                     "400": {
@@ -965,7 +965,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.UpdateRequestDto"
+                            "$ref": "#/definitions/event.UpdateRequestDto"
                         }
                     }
                 ],
@@ -1105,7 +1105,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RequestDto"
+                            "$ref": "#/definitions/game.RequestDto"
                         }
                     }
                 ],
@@ -1209,7 +1209,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RequestDto"
+                            "$ref": "#/definitions/game.RequestDto"
                         }
                     }
                 ],
@@ -1488,7 +1488,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RequestDto"
+                            "$ref": "#/definitions/haircut.RequestDto"
                         }
                     }
                 ],
@@ -1666,7 +1666,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RequestDto"
+                            "$ref": "#/definitions/location.RequestDto"
                         }
                     }
                 ],
@@ -1772,7 +1772,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RequestDto"
+                            "$ref": "#/definitions/location.RequestDto"
                         }
                     }
                 ],
@@ -1908,7 +1908,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RequestDto"
+                            "$ref": "#/definitions/membership.RequestDto"
                         }
                     }
                 ],
@@ -2221,7 +2221,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RequestDto"
+                            "$ref": "#/definitions/membership.RequestDto"
                         }
                     }
                 ],
@@ -2428,7 +2428,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RequestDto"
+                            "$ref": "#/definitions/program.RequestDto"
                         }
                     }
                 ],
@@ -2568,7 +2568,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RequestDto"
+                            "$ref": "#/definitions/program.RequestDto"
                         }
                     }
                 ],
@@ -2891,7 +2891,6 @@ const docTemplate = `{
         },
         "/schedules": {
             "get": {
-                "description": "Retrieve all schedules with optional filters by program, location, user, team, and program type",
                 "consumes": [
                     "application/json"
                 ],
@@ -2899,300 +2898,90 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "schedules"
+                    "Schedules"
                 ],
-                "summary": "Get schedules",
                 "parameters": [
                     {
                         "type": "string",
-                        "format": "uuid",
+                        "example": "\"2025-03-01\"",
+                        "description": "Start date of the events range (YYYY-MM-DD format)",
+                        "name": "after",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"2025-03-31\"",
+                        "description": "End date of the events range (YYYY-MM-DD format)",
+                        "name": "before",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
                         "description": "Filter by program ID (UUID format)",
                         "name": "program_id",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "format": "uuid",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
                         "description": "Filter by user ID (UUID format)",
                         "name": "user_id",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "format": "uuid",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
                         "description": "Filter by team ID (UUID format)",
                         "name": "team_id",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "format": "uuid",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
                         "description": "Filter by location ID (UUID format)",
                         "name": "location_id",
                         "in": "query"
                     },
                     {
+                        "enum": [
+                            "game",
+                            "practice",
+                            "course",
+                            "others"
+                        ],
                         "type": "string",
-                        "description": "Filter by program type (practice, course, game, others)",
+                        "description": "Filter by program type",
                         "name": "program_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                        "description": "Filter by creator ID (UUID format)",
+                        "name": "created_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                        "description": "Filter by updater ID (UUID format)",
+                        "name": "updated_by",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "List of schedules retrieved successfully",
+                        "description": "Schedule retrieved successfully",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/schedule.ScheduleResponseDto"
+                                "$ref": "#/definitions/event.ScheduleResponseDto"
                             }
                         }
                     },
                     "400": {
-                        "description": "Invalid request parameters",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Creates a new schedule with the provided details",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "schedules"
-                ],
-                "summary": "Create schedule",
-                "parameters": [
-                    {
-                        "description": "Schedule creation data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/schedule.ScheduleRequestDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Schedule created successfully",
-                        "schema": {
-                            "$ref": "#/definitions/schedule.ScheduleResponseDto"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request body",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/schedules/{id}": {
-            "get": {
-                "description": "Retrieves details of a specific schedule by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "schedules"
-                ],
-                "summary": "Get schedule details",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "format": "uuid",
-                        "description": "Schedule ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Schedule details retrieved successfully",
-                        "schema": {
-                            "$ref": "#/definitions/schedule.ScheduleResponseDto"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid schedule ID format",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Schedule not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Updates the specified schedule with new data",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "schedules"
-                ],
-                "summary": "Update schedule",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "format": "uuid",
-                        "description": "Schedule ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Schedule update data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/schedule.ScheduleRequestDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "Schedule updated successfully"
-                    },
-                    "400": {
-                        "description": "Invalid request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Schedule not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Deletes the specified schedule",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "schedules"
-                ],
-                "summary": "Delete schedule",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "format": "uuid",
-                        "description": "Schedule ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "Schedule deleted successfully"
-                    },
-                    "400": {
-                        "description": "Invalid schedule ID",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Schedule not found",
+                        "description": "Invalid parameters",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3290,7 +3079,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RequestDto"
+                            "$ref": "#/definitions/staff.RequestDto"
                         }
                     }
                 ],
@@ -3428,7 +3217,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RequestDto"
+                            "$ref": "#/definitions/team.RequestDto"
                         }
                     }
                 ],
@@ -3487,7 +3276,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RequestDto"
+                            "$ref": "#/definitions/team.RequestDto"
                         }
                     }
                 ],
@@ -3841,7 +3630,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.CreateRequestDto": {
+        "event.CreateRequestDto": {
             "type": "object",
             "required": [
                 "end_at",
@@ -3874,11 +3663,46 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.EventResponseDto": {
+        "event.CustomerResponseDto": {
             "type": "object",
             "properties": {
-                "created_at": {
+                "email": {
                     "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "gender": {
+                    "type": "string"
+                },
+                "has_cancelled_enrollment": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.EventResponseDto": {
+            "type": "object",
+            "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
+                "created_by": {
+                    "$ref": "#/definitions/event.PersonResponseDto"
+                },
+                "customers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/event.CustomerResponseDto"
+                    }
                 },
                 "end_at": {
                     "type": "string"
@@ -3887,23 +3711,29 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "location": {
-                    "$ref": "#/definitions/dto.LocationInfo"
-                },
-                "name": {
-                    "type": "string"
+                    "$ref": "#/definitions/event.LocationInfo"
                 },
                 "program": {
-                    "$ref": "#/definitions/dto.ProgramInfo"
+                    "$ref": "#/definitions/event.ProgramInfo"
+                },
+                "staff": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/event.StaffResponseDto"
+                    }
                 },
                 "start_at": {
                     "type": "string"
                 },
-                "updated_at": {
-                    "type": "string"
+                "team": {
+                    "$ref": "#/definitions/event.TeamInfo"
+                },
+                "updated_by": {
+                    "$ref": "#/definitions/event.PersonResponseDto"
                 }
             }
         },
-        "dto.LocationInfo": {
+        "event.Location": {
             "type": "object",
             "properties": {
                 "address": {
@@ -3917,7 +3747,35 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ProgramInfo": {
+        "event.LocationInfo": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.PersonResponseDto": {
+            "type": "object",
+            "properties": {
+                "first_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.Program": {
             "type": "object",
             "properties": {
                 "id": {
@@ -3931,7 +3789,98 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.RequestDto": {
+        "event.ProgramInfo": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.ScheduleResponseDto": {
+            "type": "object",
+            "properties": {
+                "day": {
+                    "type": "string"
+                },
+                "location": {
+                    "$ref": "#/definitions/event.Location"
+                },
+                "program": {
+                    "$ref": "#/definitions/event.Program"
+                },
+                "recurrence_end_at": {
+                    "type": "string"
+                },
+                "recurrence_start_at": {
+                    "type": "string"
+                },
+                "session_end_at": {
+                    "type": "string"
+                },
+                "session_start_at": {
+                    "type": "string"
+                },
+                "team": {
+                    "$ref": "#/definitions/event.Team"
+                }
+            }
+        },
+        "event.StaffResponseDto": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "gender": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "role_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.Team": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.TeamInfo": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.UpdateRequestDto": {
             "type": "object",
             "required": [
                 "end_at",
@@ -3945,6 +3894,10 @@ const docTemplate = `{
                 "end_at": {
                     "type": "string",
                     "example": "2023-10-05T07:00:00Z"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
                 },
                 "location_id": {
                     "type": "string",
@@ -3964,36 +3917,29 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.UpdateRequestDto": {
+        "game.RequestDto": {
             "type": "object",
             "required": [
-                "end_at",
-                "start_at"
+                "name"
             ],
             "properties": {
-                "capacity": {
-                    "type": "integer",
-                    "example": 100
+                "description": {
+                    "type": "string"
                 },
-                "end_at": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
+                "lose_score": {
+                    "type": "integer"
                 },
-                "location_id": {
-                    "type": "string",
-                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+                "lose_team": {
+                    "type": "string"
                 },
-                "program_id": {
-                    "type": "string",
-                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+                "name": {
+                    "type": "string"
                 },
-                "start_at": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
+                "win_score": {
+                    "type": "integer"
                 },
-                "team_id": {
-                    "type": "string",
-                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+                "win_team": {
+                    "type": "string"
                 }
             }
         },
@@ -4100,6 +4046,27 @@ const docTemplate = `{
                 }
             }
         },
+        "haircut.RequestDto": {
+            "type": "object",
+            "required": [
+                "begin_time",
+                "end_time"
+            ],
+            "properties": {
+                "barber_id": {
+                    "type": "string",
+                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+                },
+                "begin_time": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "end_time": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                }
+            }
+        },
         "identity.AthleteResponseDto": {
             "type": "object",
             "properties": {
@@ -4187,6 +4154,21 @@ const docTemplate = `{
                 }
             }
         },
+        "location.RequestDto": {
+            "type": "object",
+            "required": [
+                "address",
+                "name"
+            ],
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "location.ResponseDto": {
             "type": "object",
             "properties": {
@@ -4198,6 +4180,22 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "membership.RequestDto": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "example": "Access to all premium features"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Premium Membership"
                 }
             }
         },
@@ -4300,6 +4298,31 @@ const docTemplate = `{
                 }
             }
         },
+        "program.RequestDto": {
+            "type": "object",
+            "required": [
+                "level",
+                "name",
+                "type"
+            ],
+            "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "level": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
         "program.Response": {
             "type": "object",
             "properties": {
@@ -4325,117 +4348,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "schedule.LocationInfo": {
-            "type": "object",
-            "properties": {
-                "address": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "schedule.ProgramInfo": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                }
-            }
-        },
-        "schedule.ScheduleRequestDto": {
-            "type": "object",
-            "required": [
-                "day",
-                "recurrence_end_at",
-                "recurrence_start_at",
-                "session_end_time",
-                "session_start_time"
-            ],
-            "properties": {
-                "day": {
-                    "type": "string",
-                    "example": "THURSDAY"
-                },
-                "location_id": {
-                    "type": "string",
-                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
-                },
-                "program_id": {
-                    "type": "string",
-                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
-                },
-                "recurrence_end_at": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
-                "recurrence_start_at": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
-                "session_end_time": {
-                    "type": "string",
-                    "example": "23:00:00+00:00"
-                },
-                "session_start_time": {
-                    "type": "string",
-                    "example": "23:00:00+00:00"
-                }
-            }
-        },
-        "schedule.ScheduleResponseDto": {
-            "type": "object",
-            "properties": {
-                "day": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "location": {
-                    "$ref": "#/definitions/schedule.LocationInfo"
-                },
-                "program": {
-                    "$ref": "#/definitions/schedule.ProgramInfo"
-                },
-                "recurrence_end_at": {
-                    "type": "string"
-                },
-                "recurrence_start_at": {
-                    "type": "string"
-                },
-                "session_end_at": {
-                    "type": "string"
-                },
-                "session_start_at": {
-                    "type": "string"
-                },
-                "team": {
-                    "$ref": "#/definitions/schedule.TeamInfo"
-                }
-            }
-        },
-        "schedule.TeamInfo": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "name": {
                     "type": "string"
                 }
             }
@@ -4536,6 +4448,24 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "team.RequestDto": {
+            "type": "object",
+            "required": [
+                "capacity",
+                "name"
+            ],
+            "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
+                "coach_id": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }

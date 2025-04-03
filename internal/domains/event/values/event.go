@@ -7,37 +7,29 @@ import (
 )
 
 type Details struct {
-	ScheduleID uuid.UUID
 	StartAt    time.Time
 	EndAt      time.Time
-}
-
-type MutationValues struct {
 	ProgramID  uuid.UUID
 	LocationID uuid.UUID
 	TeamID     uuid.UUID
+	Capacity   int32
 }
 
 type CreateEventValues struct {
 	CreatedBy uuid.UUID
-	Capacity  int32
 	Details
-	MutationValues
 }
 
 type UpdateEventValues struct {
 	ID        uuid.UUID
 	UpdatedBy uuid.UUID
-	Capacity  *int32
 	Details
-	MutationValues
 }
 
 type ReadPersonValues struct {
 	ID        uuid.UUID
 	FirstName string
 	LastName  string
-	Email     *string
 }
 
 type ReadEventValues struct {
@@ -49,7 +41,8 @@ type ReadEventValues struct {
 	CreatedBy ReadPersonValues
 	UpdatedBy ReadPersonValues
 
-	Details
+	StartAt time.Time
+	EndAt   time.Time
 
 	Capacity int32
 
@@ -77,20 +70,17 @@ type ReadEventValues struct {
 }
 
 type Customer struct {
-	ID        uuid.UUID
-	Email     *string
-	FirstName string
-	LastName  string
-	Phone     *string
-	Gender    *string
+	ReadPersonValues
+	Email                  *string
+	Phone                  *string
+	Gender                 *string
+	HasCancelledEnrollment bool
 }
 
 type Staff struct {
-	ID        uuid.UUID
-	Email     string
-	FirstName string
-	LastName  string
-	Phone     string
-	Gender    *string
-	RoleName  string
+	ReadPersonValues
+	Email    string
+	Phone    string
+	Gender   *string
+	RoleName string
 }

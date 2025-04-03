@@ -38,13 +38,14 @@ func (r *EventsRepository) CreateEvent(ctx context.Context, eventDetails values.
 			Valid: true,
 		},
 		LocationID: eventDetails.LocationID,
-	}
-
-	if eventDetails.ScheduleID != uuid.Nil {
-		dbParams.ScheduleID = uuid.NullUUID{
-			UUID:  eventDetails.ScheduleID,
-			Valid: true,
-		}
+		TeamID: uuid.NullUUID{
+			UUID:  eventDetails.TeamID,
+			Valid: eventDetails.TeamID != uuid.Nil,
+		},
+		ProgramID: uuid.NullUUID{
+			UUID:  eventDetails.ProgramID,
+			Valid: eventDetails.ProgramID != uuid.Nil,
+		},
 	}
 
 	if dbErr := r.Queries.CreateEvent(ctx, dbParams); dbErr != nil {
@@ -64,12 +65,16 @@ func (r *EventsRepository) CreateEvent(ctx context.Context, eventDetails values.
 					Message: "The referenced user doesn't exist",
 					Status:  http.StatusBadRequest,
 				},
-				"events_location_id_fkey": {
-					Message: "The referenced location doesn't exist",
+				"fk_program": {
+					Message: "The referenced program doesn't exist",
 					Status:  http.StatusBadRequest,
 				},
-				"events_schedule_id_fkey": {
-					Message: "The referenced schedule doesn't exist",
+				"fk_team": {
+					Message: "The referenced team doesn't exist",
+					Status:  http.StatusBadRequest,
+				},
+				"events_location_id_fkey": {
+					Message: "The referenced location doesn't exist",
 					Status:  http.StatusBadRequest,
 				},
 				"check_start_end": {
@@ -130,11 +135,9 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 				ID:        row.ID,
 				CreatedAt: row.CreatedAt,
 				UpdatedAt: row.UpdatedAt,
-				Details: values.Details{
-					StartAt: row.StartAt,
-					EndAt:   row.EndAt,
-				},
-				Capacity: row.Capacity.Int32,
+				StartAt:   row.StartAt,
+				EndAt:     row.EndAt,
+				Capacity:  row.Capacity.Int32,
 				Location: struct {
 					ID      uuid.UUID
 					Name    string
@@ -184,13 +187,15 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 		// Add staff member if exists in this row
 		if row.StaffID.Valid {
 			staff := values.Staff{
-				ID:        row.StaffID.UUID,
-				Email:     row.StaffEmail.String,
-				FirstName: row.StaffFirstName.String,
-				LastName:  row.StaffLastName.String,
-				Phone:     row.StaffPhone.String,
-				Gender:    stringToPtr(row.StaffGender),
-				RoleName:  row.StaffRoleName.String,
+				ReadPersonValues: values.ReadPersonValues{
+
+					ID:        row.StaffID.UUID,
+					FirstName: row.StaffFirstName.String,
+					LastName:  row.StaffLastName.String,
+				},
+				Phone:    row.StaffPhone.String,
+				Gender:   stringToPtr(row.StaffGender),
+				RoleName: row.StaffRoleName.String,
 			}
 			// Check for duplicates
 			exists := false
@@ -208,12 +213,14 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 		// Add customer if exists in this row
 		if row.CustomerID.Valid {
 			customer := values.Customer{
-				ID:        row.CustomerID.UUID,
-				FirstName: row.CustomerFirstName.String,
-				LastName:  row.CustomerLastName.String,
-				Email:     stringToPtr(row.CustomerEmail),
-				Phone:     stringToPtr(row.CustomerPhone),
-				Gender:    stringToPtr(row.CustomerGender),
+				ReadPersonValues: values.ReadPersonValues{
+					ID:        row.CustomerID.UUID,
+					FirstName: row.CustomerFirstName.String,
+					LastName:  row.CustomerLastName.String,
+				},
+				Phone:                  stringToPtr(row.CustomerPhone),
+				Gender:                 stringToPtr(row.CustomerGender),
+				HasCancelledEnrollment: row.CustomerEnrollmentIsCancelled.Bool,
 			}
 			event.Customers = append(event.Customers, customer)
 		}
@@ -269,12 +276,11 @@ func (r *EventsRepository) GetEvents(ctx context.Context, programTypeStr string,
 
 		event := values.ReadEventValues{
 			ID:        row.ID,
+			Capacity:  row.Capacity.Int32,
 			CreatedAt: row.CreatedAt,
 			UpdatedAt: row.UpdatedAt,
-			Details: values.Details{
-				StartAt: row.StartAt,
-				EndAt:   row.EndAt,
-			},
+			StartAt:   row.StartAt,
+			EndAt:     row.EndAt,
 			Location: struct {
 				ID      uuid.UUID
 				Name    string
@@ -348,15 +354,21 @@ func (r *EventsRepository) UpdateEvent(ctx context.Context, event values.UpdateE
 	dbEventParams := db.UpdateEventParams{
 		StartAt:    event.StartAt,
 		EndAt:      event.EndAt,
-		ScheduleID: uuid.NullUUID{UUID: event.ScheduleID, Valid: event.ScheduleID != uuid.Nil},
 		UpdatedBy:  userID,
-	}
-
-	if event.Capacity != nil {
-		dbEventParams.Capacity = sql.NullInt32{
-			Int32: *event.Capacity,
-			Valid: true,
-		}
+		ID:         event.ID,
+		LocationID: event.LocationID,
+		TeamID: uuid.NullUUID{
+			UUID:  event.TeamID,
+			Valid: event.TeamID != uuid.Nil,
+		},
+		ProgramID: uuid.NullUUID{
+			UUID:  event.ProgramID,
+			Valid: event.ProgramID != uuid.Nil,
+		},
+		Capacity: sql.NullInt32{
+			Int32: event.Capacity,
+			Valid: event.Capacity != 0,
+		},
 	}
 
 	if dbErr := r.Queries.UpdateEvent(ctx, dbEventParams); dbErr != nil {
@@ -376,12 +388,16 @@ func (r *EventsRepository) UpdateEvent(ctx context.Context, event values.UpdateE
 					Message: "The referenced user doesn't exist",
 					Status:  http.StatusBadRequest,
 				},
-				"events_location_id_fkey": {
-					Message: "The referenced location doesn't exist",
+				"fk_program": {
+					Message: "The referenced program doesn't exist",
 					Status:  http.StatusBadRequest,
 				},
-				"events_schedule_id_fkey": {
-					Message: "The referenced schedule doesn't exist",
+				"fk_team": {
+					Message: "The referenced team doesn't exist",
+					Status:  http.StatusBadRequest,
+				},
+				"events_location_id_fkey": {
+					Message: "The referenced location doesn't exist",
 					Status:  http.StatusBadRequest,
 				},
 				"check_start_end": {

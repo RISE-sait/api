@@ -19,9 +19,6 @@ import (
 	eventHandler "api/internal/domains/event/handler"
 	eventRepo "api/internal/domains/event/persistence/repository"
 
-	scheduleHandler "api/internal/domains/schedule/handler"
-	scheduleRepo "api/internal/domains/schedule/persistence/repository"
-
 	barberServicesHandler "api/internal/domains/haircut/handler/barber_services"
 	haircutEvents "api/internal/domains/haircut/handler/events"
 	haircut "api/internal/domains/haircut/handler/haircuts"
@@ -226,6 +223,18 @@ func RegisterStaffRoutes(container *di.Container) func(chi.Router) {
 	}
 }
 
+func RegisterScheduleRoutes(container *di.Container) func(chi.Router) {
+	repo := eventRepo.NewSchedulesRepository(container.Queries.EventDb)
+	handler := eventHandler.NewSchedulesHandler(repo)
+
+	return func(r chi.Router) {
+		r.Get("/", handler.GetSchedules)
+
+		r.Route("/{event_id}/staffs", RegisterEventStaffRoutes(container))
+		r.Route("/{event_id}/customers", RegisterEventCustomerRoutes(container))
+	}
+}
+
 func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 	repo := eventRepo.NewEventsRepository(container.Queries.EventDb)
 	handler := eventHandler.NewEventsHandler(repo)
@@ -233,25 +242,9 @@ func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Get("/", handler.GetEvents)
 		r.Get("/{id}", handler.GetEvent)
-		r.Post("/", handler.CreateEvent)
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/", handler.CreateEvent)
 		r.With(middlewares.JWTAuthMiddleware(true)).Put("/{id}", handler.UpdateEvent)
 		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/{id}", handler.DeleteEvent)
-
-		r.Route("/{event_id}/staffs", RegisterEventStaffRoutes(container))
-		r.Route("/{event_id}/customers", RegisterEventCustomerRoutes(container))
-	}
-}
-
-func RegisterScheduleRoutes(container *di.Container) func(chi.Router) {
-	repo := scheduleRepo.NewSchedulesRepository(container.Queries.ScheduleDb)
-	handler := scheduleHandler.NewSchedulesHandler(repo)
-
-	return func(r chi.Router) {
-		r.Get("/", handler.GetSchedules)
-		r.Get("/{id}", handler.GetSchedule)
-		r.Post("/", handler.CreateSchedule)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}", handler.UpdateSchedule)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", handler.DeleteSchedule)
 
 		r.Route("/{event_id}/staffs", RegisterEventStaffRoutes(container))
 		r.Route("/{event_id}/customers", RegisterEventCustomerRoutes(container))

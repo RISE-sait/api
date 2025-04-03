@@ -458,14 +458,6 @@ type EventsStaff struct {
 	StaffID uuid.UUID `json:"staff_id"`
 }
 
-type Game struct {
-	ID        uuid.UUID `json:"id"`
-	WinTeam   uuid.UUID `json:"win_team"`
-	LoseTeam  uuid.UUID `json:"lose_team"`
-	WinScore  int32     `json:"win_score"`
-	LoseScore int32     `json:"lose_score"`
-}
-
 type HaircutBarberService struct {
 	ID        uuid.UUID `json:"id"`
 	BarberID  uuid.UUID `json:"barber_id"`
@@ -523,6 +515,14 @@ type MembershipMembershipPlan struct {
 	AmtPeriods       sql.NullInt32    `json:"amt_periods"`
 	CreatedAt        time.Time        `json:"created_at"`
 	UpdatedAt        time.Time        `json:"updated_at"`
+}
+
+type ProgramGame struct {
+	ID        uuid.UUID `json:"id"`
+	WinTeam   uuid.UUID `json:"win_team"`
+	LoseTeam  uuid.UUID `json:"lose_team"`
+	WinScore  int32     `json:"win_score"`
+	LoseScore int32     `json:"lose_score"`
 }
 
 type ProgramProgram struct {

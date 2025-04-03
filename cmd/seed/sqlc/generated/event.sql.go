@@ -58,11 +58,11 @@ func (q *Queries) InsertCustomersEnrollments(ctx context.Context, arg InsertCust
 const insertEvents = `-- name: InsertEvents :many
 WITH events_data AS (SELECT unnest($1::timestamptz[])     as start_at,
                             unnest($2::timestamptz[])       as end_at,
-                            unnest($3::varchar[])         as program_name,
+                            unnest($3::varchar[]) as program_name,
                             unnest($4::varchar[])    as location_name,
                             unnest($5::varchar[]) AS created_by_email,
                             unnest($6::varchar[]) AS updated_by_email,
-                            unnest($7::int[])             AS capacity)
+                            unnest($7::int[])         AS capacity)
 INSERT
 INTO events.events (start_at, end_at, program_id, location_id, created_by, updated_by, capacity)
 SELECT e.start_at,
@@ -73,7 +73,7 @@ SELECT e.start_at,
        updater.id,
        e.capacity
 FROM events_data e
-    JOIN program.programs p ON p.name = e.program_name
+         JOIN program.programs p ON p.name = e.program_name
          JOIN users.users creator ON creator.email = e.created_by_email
          JOIN users.users updater ON updater.email = e.updated_by_email
          JOIN location.locations l ON l.name = e.location_name

@@ -272,7 +272,7 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 
 	// Authorization check
 
-	creatorID, err := h.EventsRepository.GetEventCreatedBy(r.Context(), params.ID)
+	event, err := h.EventsRepository.GetEvent(r.Context(), params.ID)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -280,7 +280,7 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	isAdmin := userRole == contextUtils.RoleAdmin || userRole == contextUtils.RoleSuperAdmin
-	isCreator := creatorID == loggedInUserID
+	isCreator := event.CreatedBy.ID == loggedInUserID
 
 	// Check if the user is an admin or the creator of the event, if not, return forbidden
 	if !isAdmin && !isCreator {
@@ -332,7 +332,7 @@ func (h *EventsHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 
 	// Authorization check
 
-	creatorID, err := h.EventsRepository.GetEventCreatedBy(r.Context(), id)
+	event, err := h.EventsRepository.GetEvent(r.Context(), id)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -340,7 +340,7 @@ func (h *EventsHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	isAdmin := userRole == contextUtils.RoleAdmin || userRole == contextUtils.RoleSuperAdmin
-	isCreator := creatorID == loggedInUserID
+	isCreator := event.CreatedBy.ID == loggedInUserID
 
 	// Check if the user is an admin or the creator of the event, if not, return forbidden
 	if !isAdmin && !isCreator {

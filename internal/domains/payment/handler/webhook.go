@@ -44,13 +44,16 @@ func (h *WebhookHandlers) HandleStripeWebhook(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// todo: use the actual webhook secret
-	_ = config.Env.StripeSecretKey
+	stripeWebhookSecret := config.Env.StripeWebhookSecret
+
+	if stripeWebhookSecret == "" {
+		responseHandlers.RespondWithError(w, errLib.New("Stripe webhook secret not configured", http.StatusInternalServerError))
+		return
+	}
 
 	event, err := webhook.ConstructEvent(
 		payload,
-		r.Header.Get("Stripe-Signature"),
-		"whsec_68a8a36d1730091183170adb4d92760d482714b73b4da2d7b4fd7489b294195f",
+		r.Header.Get("Stripe-Signature"), stripeWebhookSecret,
 	)
 
 	if err != nil {

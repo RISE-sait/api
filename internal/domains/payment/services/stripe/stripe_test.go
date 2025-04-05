@@ -27,7 +27,7 @@ func TestCreateOneTimePayment(t *testing.T) {
 	}{
 		{
 			name:     "successful payment",
-			priceID:  "price_1RAJEOAB1pU7EbknIH4e3bBu",
+			priceID:  "price_1R9srEAB1pU7EbknzAO7IVi8",
 			quantity: 1,
 			wantErr:  false,
 		},

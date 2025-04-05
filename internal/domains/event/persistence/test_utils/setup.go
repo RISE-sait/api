@@ -15,7 +15,12 @@ CREATE SCHEMA IF NOT EXISTS events;
 
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 
+ DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'day_enum') THEN
 	CREATE TYPE day_enum AS ENUM ('MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY');
+ END IF;
+        END $$;
 
 create table if not exists events.events
 (

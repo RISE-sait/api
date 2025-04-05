@@ -25,23 +25,36 @@ import (
 	programDb "api/internal/domains/program/persistence/sqlc/generated"
 )
 
-func dbSetup(t *testing.T) (identityQ *identityDb.Queries, eventQ *eventDb.Queries, programQ *programDb.Queries, locationQ *locationDb.Queries) {
+func dbSetup(t *testing.T) (identityQ *identityDb.Queries, eventQ *eventDb.Queries, programQ *programDb.Queries, locationQ *locationDb.Queries, cleanup func()) {
 	dbConn, _ := test_utils.SetupTestDB(t)
 
-	identityQueries, _ := identityTestUtils.SetupIdentityTestDb(t, dbConn)
-	_, _ = userTestUtils.SetupUsersTestDb(t, dbConn)
-	_, _ = userTestUtils.SetupStaffsTestDb(t, dbConn)
-	_, _ = teamTestUtils.SetupTeamTestDbQueries(t, dbConn)
-	programQueries, _ := programTestUtils.SetupProgramTestDbQueries(t, dbConn)
-	locationQueries, _ := locationTestUtils.SetupLocationTestDbQueries(t, dbConn)
-	eventQueries, _ := eventTestUtils.SetupEventTestDbQueries(t, dbConn)
+	identityQueries, identityCleanup := identityTestUtils.SetupIdentityTestDb(t, dbConn)
 
-	return identityQueries, eventQueries, programQueries, locationQueries
+	_, userCleanup := userTestUtils.SetupUsersTestDb(t, dbConn)
+	_, staffCleanup := userTestUtils.SetupStaffsTestDb(t, dbConn)
+	_, teamCleanup := teamTestUtils.SetupTeamTestDbQueries(t, dbConn)
+	programQueries, programCleanup := programTestUtils.SetupProgramTestDbQueries(t, dbConn)
+	locationQueries, locationCleanup := locationTestUtils.SetupLocationTestDbQueries(t, dbConn)
+	eventQueries, eventCleanup := eventTestUtils.SetupEventTestDbQueries(t, dbConn)
+
+	cleanup = func() {
+		eventCleanup()
+		locationCleanup()
+		programCleanup()
+		teamCleanup()
+		staffCleanup()
+		userCleanup()
+		identityCleanup()
+	}
+
+	return identityQueries, eventQueries, programQueries, locationQueries, cleanup
 }
 
 func TestCreateEvent(t *testing.T) {
 
-	identityQueries, eventQueries, programQueries, locationQueries := dbSetup(t)
+	identityQueries, eventQueries, programQueries, locationQueries, cleanup := dbSetup(t)
+
+	defer cleanup()
 
 	// Create a user to be the creator of the event
 	createUserParams := identityDb.CreateUserParams{
@@ -97,7 +110,10 @@ func TestCreateEvent(t *testing.T) {
 }
 
 func TestUpdateEvent(t *testing.T) {
-	identityQueries, eventQueries, programQueries, locationQueries := dbSetup(t)
+
+	identityQueries, eventQueries, programQueries, locationQueries, cleanup := dbSetup(t)
+
+	defer cleanup()
 
 	// Create a user to be the creator of the event
 	createUserParams := identityDb.CreateUserParams{
@@ -170,7 +186,10 @@ func TestUpdateEvent(t *testing.T) {
 }
 
 func TestDeleteEvent(t *testing.T) {
-	identityQueries, eventQueries, programQueries, locationQueries := dbSetup(t)
+
+	identityQueries, eventQueries, programQueries, locationQueries, cleanup := dbSetup(t)
+
+	defer cleanup()
 
 	// Create a user to be the creator of the event
 	createUserParams := identityDb.CreateUserParams{

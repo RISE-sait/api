@@ -60,7 +60,9 @@ func (r *Repository) Update(ctx context.Context, program values.UpdateProgramVal
 		}
 	}
 
-	if err := r.Queries.UpdateProgram(ctx, params); err != nil {
+	_, err := r.Queries.UpdateProgram(ctx, params)
+
+	if err != nil {
 		// Check if the error is a unique violation (duplicate name)
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
@@ -191,7 +193,9 @@ func (r *Repository) Create(c context.Context, details values.CreateProgramValue
 		}
 	}
 
-	if err := r.Queries.CreateProgram(c, dbPracticeParams); err != nil {
+	_, err := r.Queries.CreateProgram(c, dbPracticeParams)
+
+	if err != nil {
 		// Check if the error is a unique violation (error code 23505)
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {

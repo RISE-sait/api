@@ -10,56 +10,95 @@ import (
 func SetupEventTestDbQueries(t *testing.T, testDb *sql.DB) (*db.Queries, func()) {
 
 	migrationScript := `
-	CREATE TYPE day_enum AS ENUM ('MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY');
 
-CREATE TABLE events (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
-    event_start_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    event_end_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    session_start_time TIMETZ NOT NULL,
-    session_end_time TIMETZ NOT NULL,
-    day day_enum NOT NULL,
-    practice_id UUID,
-    course_id UUID,
-    game_id UUID,
-    location_id UUID NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT fk_game FOREIGN KEY (game_id) REFERENCES games (id),
-    CONSTRAINT fk_course FOREIGN KEY (course_id) REFERENCES course.courses (id),
-    CONSTRAINT fk_practice FOREIGN KEY (practice_id) REFERENCES practices (id),
-    CONSTRAINT fk_location FOREIGN KEY (location_id) REFERENCES location.locations (id),
-    CONSTRAINT event_end_after_start CHECK (event_end_at > event_start_at),
-    CONSTRAINT session_end_after_start CHECK (session_end_time > events.session_start_time)
+CREATE SCHEMA IF NOT EXISTS events;
+
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
+ DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'day_enum') THEN
+	CREATE TYPE day_enum AS ENUM ('MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY');
+ END IF;
+        END $$;
+
+create table if not exists events.events
+(
+    id                  uuid                     default gen_random_uuid() not null
+        primary key,
+    location_id         uuid                                               not null
+        references location.locations
+            on delete restrict,
+    program_id          uuid
+        constraint fk_program
+            references program.programs
+            on delete set null,
+    team_id             uuid
+        constraint fk_team
+            references athletic.teams
+            on delete set null,
+    start_at            timestamp with time zone                           not null,
+    end_at              timestamp with time zone                           not null,
+    created_by          uuid                                               not null
+        constraint fk_created_by
+            references users.users
+            on delete cascade,
+    updated_by          uuid                                               not null
+        constraint fk_updated_by
+            references users.users
+            on delete cascade,
+    capacity            integer,
+    is_cancelled        boolean                  default false             not null,
+    cancellation_reason text,
+    created_at          timestamp with time zone default CURRENT_TIMESTAMP not null,
+    updated_at          timestamp with time zone default CURRENT_TIMESTAMP not null,
+    constraint no_overlapping_events
+        exclude using gist (location_id with =, tstzrange(start_at, end_at) with &&),
+    constraint check_start_end
+        check (start_at < end_at)
 );
 
-CREATE OR REPLACE FUNCTION check_event_constraint()
-    RETURNS TRIGGER
-AS $$
-BEGIN
-    IF EXISTS (
-        SELECT 1
-        FROM events e
-        WHERE e.location_id = NEW.location_id
-          AND (
-            (NEW.event_start_at <= e.event_end_at AND NEW.event_end_at >= e.event_start_at)
-            )
-          AND (
-            (NEW.session_start_time <= e.session_end_time AND NEW.session_end_time >= e.session_start_time)
-            )
-          AND e.day = NEW.day
-    ) THEN
-        RAISE EXCEPTION 'An event at this location overlaps with an existing event. Please choose a different time.';
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+alter table events.events
+    owner to postgres;
 
--- Create the trigger to enforce the constraint
-CREATE TRIGGER trg_check_event_constraint
-    BEFORE INSERT OR UPDATE ON events
-    FOR EACH ROW
-EXECUTE FUNCTION check_event_constraint();
+create table if not exists events.customer_enrollment
+(
+    id            uuid                     default gen_random_uuid() not null
+        primary key,
+    customer_id   uuid                                               not null
+        constraint fk_customer
+            references users.users
+            on delete cascade,
+    event_id      uuid                                               not null
+        constraint fk_event
+            references events.events
+            on delete cascade,
+    created_at    timestamp with time zone default CURRENT_TIMESTAMP not null,
+    updated_at    timestamp with time zone default CURRENT_TIMESTAMP not null,
+    checked_in_at timestamp with time zone,
+    is_cancelled  boolean                  default false             not null,
+    constraint unique_customer_event
+        unique (customer_id, event_id)
+);
+
+alter table events.customer_enrollment
+    owner to postgres;
+
+create table if not exists events.staff
+(
+    event_id uuid not null
+        constraint fk_event
+            references events.events
+            on delete cascade,
+    staff_id uuid not null
+        constraint fk_staff
+            references staff.staff
+            on delete cascade,
+    primary key (event_id, staff_id)
+);
+
+alter table events.staff
+    owner to postgres;
 `
 
 	_, err := testDb.Exec(migrationScript)
@@ -67,11 +106,14 @@ EXECUTE FUNCTION check_event_constraint();
 
 	// Return the repo and cleanup function
 	repo := db.New(testDb)
-	cleanUpScript := `DELETE FROM events`
+	cleanUpScript := `DELETE FROM events.customer_enrollment cascade;
+DELETE FROM events.staff cascade;
+    DELETE FROM events.events cascade;
+	`
 
 	// Cleanup function to delete data after test
 	return repo, func() {
-		_, err := testDb.Exec(cleanUpScript)
+		_, err = testDb.Exec(cleanUpScript)
 		require.NoError(t, err)
 	}
 }

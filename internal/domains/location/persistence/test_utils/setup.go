@@ -3,23 +3,26 @@ package test_utils
 import (
 	db "api/internal/domains/location/persistence/sqlc/generated"
 	"database/sql"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
-func SetupFacilityTestDbQueries(t *testing.T, testDb *sql.DB) (*db.Queries, func()) {
+func SetupLocationTestDbQueries(t *testing.T, testDb *sql.DB) (*db.Queries, func()) {
 
 	migrationScript := `
 
-CREATE SCHEMA IF NOT EXISTS location;
+create schema if not exists location;
 
-create table location.locations
+create table if not exists location.locations
 (
-    id      uuid default gen_random_uuid() not null
+    id         uuid                     default gen_random_uuid() not null
         primary key,
-    name    varchar(100)                   not null
+    name       varchar(100)                                       not null
         unique,
-    address varchar(255)                   not null
+    address    varchar(255)                                       not null,
+    created_at timestamp with time zone default CURRENT_TIMESTAMP not null,
+    updated_at timestamp with time zone default CURRENT_TIMESTAMP not null
 );
 
 alter table location.locations
@@ -32,7 +35,7 @@ alter table location.locations
 
 	// Return the repo and cleanup function
 	repo := db.New(testDb)
-	cleanUpScript := `DELETE FROM location.locations`
+	cleanUpScript := `DELETE FROM location.locations;`
 
 	// Cleanup function to delete data after test
 	return repo, func() {

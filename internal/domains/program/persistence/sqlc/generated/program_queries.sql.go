@@ -12,9 +12,10 @@ import (
 	"github.com/google/uuid"
 )
 
-const createProgram = `-- name: CreateProgram :exec
+const createProgram = `-- name: CreateProgram :one
 INSERT INTO program.programs (name, description, level, type, capacity)
 VALUES ($1, $2, $3, $4, $5)
+RETURNING id, name, description, level, type, capacity, created_at, updated_at
 `
 
 type CreateProgramParams struct {
@@ -26,15 +27,26 @@ type CreateProgramParams struct {
 }
 
 // Active: 1739459832645@@127.0.0.1@5432@postgres
-func (q *Queries) CreateProgram(ctx context.Context, arg CreateProgramParams) error {
-	_, err := q.db.ExecContext(ctx, createProgram,
+func (q *Queries) CreateProgram(ctx context.Context, arg CreateProgramParams) (ProgramProgram, error) {
+	row := q.db.QueryRowContext(ctx, createProgram,
 		arg.Name,
 		arg.Description,
 		arg.Level,
 		arg.Type,
 		arg.Capacity,
 	)
-	return err
+	var i ProgramProgram
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Level,
+		&i.Type,
+		&i.Capacity,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const deleteProgram = `-- name: DeleteProgram :execrows
@@ -130,7 +142,7 @@ func (q *Queries) GetPrograms(ctx context.Context, type_ NullProgramProgramType)
 	return items, nil
 }
 
-const updateProgram = `-- name: UpdateProgram :exec
+const updateProgram = `-- name: UpdateProgram :one
 UPDATE program.programs
 SET
     name = $1,
@@ -140,6 +152,7 @@ SET
     capacity = $5,
     updated_at = CURRENT_TIMESTAMP
 WHERE id = $6
+RETURNING id, name, description, level, type, capacity, created_at, updated_at
 `
 
 type UpdateProgramParams struct {
@@ -151,8 +164,8 @@ type UpdateProgramParams struct {
 	ID          uuid.UUID           `json:"id"`
 }
 
-func (q *Queries) UpdateProgram(ctx context.Context, arg UpdateProgramParams) error {
-	_, err := q.db.ExecContext(ctx, updateProgram,
+func (q *Queries) UpdateProgram(ctx context.Context, arg UpdateProgramParams) (ProgramProgram, error) {
+	row := q.db.QueryRowContext(ctx, updateProgram,
 		arg.Name,
 		arg.Description,
 		arg.Level,
@@ -160,5 +173,16 @@ func (q *Queries) UpdateProgram(ctx context.Context, arg UpdateProgramParams) er
 		arg.Capacity,
 		arg.ID,
 	)
-	return err
+	var i ProgramProgram
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Level,
+		&i.Type,
+		&i.Capacity,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

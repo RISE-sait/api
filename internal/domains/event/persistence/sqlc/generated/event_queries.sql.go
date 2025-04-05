@@ -14,10 +14,11 @@ import (
 	"github.com/lib/pq"
 )
 
-const createEvent = `-- name: CreateEvent :exec
+const createEvent = `-- name: CreateEvent :one
 INSERT INTO events.events (location_id, program_id, team_id, start_at, end_at, created_by, updated_by, capacity)
 VALUES ($1, $2, $3, $4, $5,
         $7::uuid, $7::uuid, $6)
+RETURNING id, location_id, program_id, team_id, start_at, end_at, created_by, updated_by, capacity, is_cancelled, cancellation_reason, created_at, updated_at
 `
 
 type CreateEventParams struct {
@@ -30,8 +31,8 @@ type CreateEventParams struct {
 	CreatedBy  uuid.UUID     `json:"created_by"`
 }
 
-func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) error {
-	_, err := q.db.ExecContext(ctx, createEvent,
+func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (EventsEvent, error) {
+	row := q.db.QueryRowContext(ctx, createEvent,
 		arg.LocationID,
 		arg.ProgramID,
 		arg.TeamID,
@@ -40,7 +41,23 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) error 
 		arg.Capacity,
 		arg.CreatedBy,
 	)
-	return err
+	var i EventsEvent
+	err := row.Scan(
+		&i.ID,
+		&i.LocationID,
+		&i.ProgramID,
+		&i.TeamID,
+		&i.StartAt,
+		&i.EndAt,
+		&i.CreatedBy,
+		&i.UpdatedBy,
+		&i.Capacity,
+		&i.IsCancelled,
+		&i.CancellationReason,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const createEvents = `-- name: CreateEvents :exec
@@ -401,7 +418,7 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 	return items, nil
 }
 
-const updateEvent = `-- name: UpdateEvent :exec
+const updateEvent = `-- name: UpdateEvent :one
 UPDATE events.events
 SET start_at            = $1,
     end_at              = $2,
@@ -414,6 +431,7 @@ SET start_at            = $1,
     updated_at          = current_timestamp,
     updated_by          = $10::uuid
 WHERE id = $9
+RETURNING id, location_id, program_id, team_id, start_at, end_at, created_by, updated_by, capacity, is_cancelled, cancellation_reason, created_at, updated_at
 `
 
 type UpdateEventParams struct {
@@ -429,8 +447,8 @@ type UpdateEventParams struct {
 	UpdatedBy          uuid.UUID      `json:"updated_by"`
 }
 
-func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) error {
-	_, err := q.db.ExecContext(ctx, updateEvent,
+func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (EventsEvent, error) {
+	row := q.db.QueryRowContext(ctx, updateEvent,
 		arg.StartAt,
 		arg.EndAt,
 		arg.LocationID,
@@ -442,5 +460,21 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) error 
 		arg.ID,
 		arg.UpdatedBy,
 	)
-	return err
+	var i EventsEvent
+	err := row.Scan(
+		&i.ID,
+		&i.LocationID,
+		&i.ProgramID,
+		&i.TeamID,
+		&i.StartAt,
+		&i.EndAt,
+		&i.CreatedBy,
+		&i.UpdatedBy,
+		&i.Capacity,
+		&i.IsCancelled,
+		&i.CancellationReason,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

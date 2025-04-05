@@ -1,7 +1,8 @@
--- name: CreateEvent :exec
+-- name: CreateEvent :one
 INSERT INTO events.events (location_id, program_id, team_id, start_at, end_at, created_by, updated_by, capacity)
 VALUES ($1, $2, $3, $4, $5,
-        sqlc.arg('created_by')::uuid, sqlc.arg('created_by')::uuid, $6);
+        sqlc.arg('created_by')::uuid, sqlc.arg('created_by')::uuid, $6)
+RETURNING *;
 
 -- name: CreateEvents :exec
 INSERT INTO events.events
@@ -105,7 +106,7 @@ FROM events.events e
 WHERE e.id = $1
 ORDER BY s.id, uc.id;
 
--- name: UpdateEvent :exec
+-- name: UpdateEvent :one
 UPDATE events.events
 SET start_at            = $1,
     end_at              = $2,
@@ -117,7 +118,8 @@ SET start_at            = $1,
     capacity            = $8,
     updated_at          = current_timestamp,
     updated_by          = sqlc.arg('updated_by')::uuid
-WHERE id = $9;
+WHERE id = $9
+RETURNING *;
 
 -- name: GetEventCreatedBy :one
 SELECT created_by

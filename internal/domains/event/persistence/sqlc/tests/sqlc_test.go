@@ -1,4 +1,4 @@
-package tests
+package events_test
 
 //
 //import (

@@ -1,4 +1,4 @@
-package program
+package program_test
 
 import (
 	databaseErrors "api/internal/constants"
@@ -35,24 +35,15 @@ func TestCreateProgram(t *testing.T) {
 		Type:        db.ProgramProgramTypeCourse,
 	}
 
-	err := queries.CreateProgram(context.Background(), CreateProgramParams)
+	createdProgram, err := queries.CreateProgram(context.Background(), CreateProgramParams)
 
 	require.NoError(t, err)
-
-	programs, err := queries.GetPrograms(context.Background(), db.NullProgramProgramType{
-		ProgramProgramType: db.ProgramProgramTypeCourse,
-		Valid:              true,
-	})
-
-	require.NoError(t, err)
-
-	practice := programs[0]
 
 	// Assert course data
-	require.Equal(t, CreateProgramParams.Name, practice.Name)
-	require.Equal(t, CreateProgramParams.Description, practice.Description)
-	require.Equal(t, CreateProgramParams.Level, practice.Level)
-	require.Equal(t, CreateProgramParams.Type, practice.Type)
+	require.Equal(t, CreateProgramParams.Name, createdProgram.Name)
+	require.Equal(t, CreateProgramParams.Description, createdProgram.Description)
+	require.Equal(t, CreateProgramParams.Level, createdProgram.Level)
+	require.Equal(t, CreateProgramParams.Type, createdProgram.Type)
 }
 
 func TestUpdateProgramValid(t *testing.T) {
@@ -74,37 +65,26 @@ func TestUpdateProgramValid(t *testing.T) {
 		Type:        db.ProgramProgramTypeCourse,
 	}
 
-	err := queries.CreateProgram(context.Background(), CreateProgramParams)
+	createdProgram, err := queries.CreateProgram(context.Background(), CreateProgramParams)
 	require.NoError(t, err)
-
-	programs, err := queries.GetPrograms(context.Background(), db.NullProgramProgramType{
-		ProgramProgramType: db.ProgramProgramTypeCourse,
-		Valid:              true,
-	})
-
-	require.NoError(t, err)
-
-	practice := programs[0]
 
 	// Now, update the course
 	newName := "Advanced Go Course"
 	updateParams := db.UpdateProgramParams{
-		ID:          practice.ID,
+		ID:          createdProgram.ID,
 		Name:        newName,
 		Description: "Learn advanced Go programming",
 		Level:       db.ProgramProgramLevelAll,
 		Type:        db.ProgramProgramTypeCourse,
 	}
 
-	err = queries.UpdateProgram(context.Background(), updateParams)
+	updatedProgram, err := queries.UpdateProgram(context.Background(), updateParams)
 
-	// Get the updated course and verify
-	updatedCourse, err := queries.GetProgramById(context.Background(), practice.ID)
 	require.NoError(t, err)
-	require.Equal(t, newName, updatedCourse.Name)
-	require.Equal(t, "Learn advanced Go programming", updatedCourse.Description)
-	require.Equal(t, db.ProgramProgramLevelAll, updatedCourse.Level)
-	require.Equal(t, db.ProgramProgramTypeCourse, updatedCourse.Type)
+	require.Equal(t, newName, updatedProgram.Name)
+	require.Equal(t, "Learn advanced Go programming", updatedProgram.Description)
+	require.Equal(t, db.ProgramProgramLevelAll, updatedProgram.Level)
+	require.Equal(t, db.ProgramProgramTypeCourse, updatedProgram.Type)
 }
 
 func TestUpdatePracticeInvalidLevel(t *testing.T) {
@@ -126,27 +106,18 @@ func TestUpdatePracticeInvalidLevel(t *testing.T) {
 		Type:        db.ProgramProgramTypeCourse,
 	}
 
-	err := queries.CreateProgram(context.Background(), CreateProgramParams)
+	createdProgram, err := queries.CreateProgram(context.Background(), CreateProgramParams)
 	require.NoError(t, err)
-
-	programs, err := queries.GetPrograms(context.Background(), db.NullProgramProgramType{
-		ProgramProgramType: db.ProgramProgramTypeCourse,
-		Valid:              true,
-	})
-
-	require.NoError(t, err)
-
-	practice := programs[0]
 
 	// Now, update the course
 	newName := "Advanced Go Course"
 	updateParams := db.UpdateProgramParams{
-		ID:          practice.ID,
+		ID:          createdProgram.ID,
 		Name:        newName,
 		Description: "Learn advanced Go programming",
 	}
 
-	err = queries.UpdateProgram(context.Background(), updateParams)
+	_, err = queries.UpdateProgram(context.Background(), updateParams)
 	var pgErr *pq.Error
 	require.True(t, errors.As(err, &pgErr))
 	require.Equal(t, databaseErrors.InvalidTextRepresentation, string(pgErr.Code))
@@ -171,11 +142,11 @@ func TestCreateProgramUniqueNameConstraint(t *testing.T) {
 		Type:        db.ProgramProgramTypeCourse,
 	}
 
-	err := queries.CreateProgram(context.Background(), createCourseParams)
+	_, err := queries.CreateProgram(context.Background(), createCourseParams)
 	require.NoError(t, err)
 
 	// Attempt to create another course with the same name
-	err = queries.CreateProgram(context.Background(), createCourseParams)
+	_, err = queries.CreateProgram(context.Background(), createCourseParams)
 	require.Error(t, err)
 
 	var pgErr *pq.Error
@@ -199,8 +170,13 @@ func TestGetAllPrograms(t *testing.T) {
 			Level:       db.ProgramProgramLevelAll,
 			Type:        db.ProgramProgramTypeCourse,
 		}
-		err := queries.CreateProgram(context.Background(), createCourseParams)
+		createdProgram, err := queries.CreateProgram(context.Background(), createCourseParams)
 		require.NoError(t, err)
+
+		require.Equal(t, createCourseParams.Name, createdProgram.Name)
+		require.Equal(t, createCourseParams.Description, createdProgram.Description)
+		require.Equal(t, createCourseParams.Level, createdProgram.Level)
+		require.Equal(t, createCourseParams.Type, createdProgram.Type)
 	}
 
 	// Fetch all courses
@@ -231,8 +207,9 @@ func TestUpdateNonExistentProgram(t *testing.T) {
 		Type:        db.ProgramProgramTypeGame,
 	}
 
-	err := queries.UpdateProgram(context.Background(), updateParams)
-	require.Nil(t, err)
+	_, err := queries.UpdateProgram(context.Background(), updateParams)
+	require.Error(t, err)
+	require.Equal(t, sql.ErrNoRows, err)
 }
 
 func TestCreateCourseWithWrongLevel(t *testing.T) {
@@ -251,7 +228,7 @@ func TestCreateCourseWithWrongLevel(t *testing.T) {
 		Type:        db.ProgramProgramTypeCourse,
 	}
 
-	err := queries.CreateProgram(context.Background(), CreateProgramParams)
+	_, err := queries.CreateProgram(context.Background(), CreateProgramParams)
 
 	require.Error(t, err)
 
@@ -277,26 +254,17 @@ func TestDeleteProgram(t *testing.T) {
 		Type:        db.ProgramProgramTypeCourse,
 	}
 
-	err := queries.CreateProgram(context.Background(), CreateProgramParams)
+	createdProgram, err := queries.CreateProgram(context.Background(), CreateProgramParams)
 	require.NoError(t, err)
-
-	programs, err := queries.GetPrograms(context.Background(), db.NullProgramProgramType{
-		ProgramProgramType: db.ProgramProgramTypeCourse,
-		Valid:              true,
-	})
-
-	require.NoError(t, err)
-
-	createdPractice := programs[0]
 
 	// Delete the course
-	impactedRows, err := queries.DeleteProgram(context.Background(), createdPractice.ID)
+	impactedRows, err := queries.DeleteProgram(context.Background(), createdProgram.ID)
 	require.NoError(t, err)
 
 	require.Equal(t, impactedRows, int64(1))
 
 	// Attempt to fetch the deleted course (expecting error)
-	_, err = queries.GetProgramById(context.Background(), createdPractice.ID)
+	_, err = queries.GetProgramById(context.Background(), createdProgram.ID)
 
 	require.Error(t, err)
 

@@ -2,11 +2,9 @@ package stripe_test
 
 import (
 	payment "api/internal/domains/payment/services/stripe"
-	types "api/internal/domains/payment/types"
 	contextUtils "api/utils/context"
 	"context"
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 	"log"
 	"net/http"
 	"strings"
@@ -21,50 +19,38 @@ func TestCreateOneTimePayment(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextUtils.UserIDKey, uuid.New())
 	tests := []struct {
 		name     string
-		itemName string
+		priceID  string
 		quantity int
-		price    decimal.Decimal
 		wantErr  bool
 		errMsg   string
 		httpCode int
 	}{
 		{
 			name:     "successful payment",
-			itemName: "Test Product",
+			priceID:  "price_1RAJEOAB1pU7EbknIH4e3bBu",
 			quantity: 1,
-			price:    decimal.NewFromFloat(19.99),
 			wantErr:  false,
 		},
 		{
-			name:     "empty item name",
-			itemName: "",
+			name:     "empty price ID",
 			quantity: 1,
-			price:    decimal.NewFromFloat(19.99),
 			wantErr:  true,
-			errMsg:   "item name cannot be empty",
+			errMsg:   "item stripe price ID cannot be empty",
 			httpCode: http.StatusBadRequest,
 		},
 		{
 			name:     "zero quantity",
-			itemName: "Test Product",
+			priceID:  "Test Product",
 			quantity: 0,
-			price:    decimal.NewFromFloat(19.99),
 			wantErr:  true,
 			errMsg:   "quantity must be positive",
 			httpCode: http.StatusBadRequest,
-		},
-		{
-			name:     "zero price",
-			itemName: "Test Product",
-			quantity: 1,
-			price:    decimal.Zero,
-			wantErr:  false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			paymentLink, err := payment.CreateOneTimePayment(ctx, tt.itemName, tt.quantity, tt.price)
+			paymentLink, err := payment.CreateOneTimePayment(ctx, tt.priceID, tt.quantity)
 
 			if tt.wantErr {
 				if err == nil {
@@ -95,51 +81,42 @@ func TestCreateOneTimePayment(t *testing.T) {
 func TestCreateSubscription(t *testing.T) {
 	// Common test setup
 	ctx := context.WithValue(context.Background(), contextUtils.UserIDKey, uuid.New())
-	basePlan := "Premium Membership"
-	basePrice := decimal.NewFromFloat(9.99)
 
 	tests := []struct {
-		name     string
-		planName string
-		price    decimal.Decimal
-		interval types.PaymentFrequency
-		periods  int32
-		wantErr  bool
-		errMsg   string
+		name          string
+		priceID       string
+		joiningFeesID string
+		periods       int32
+		wantErr       bool
+		errMsg        string
 	}{
 		{
-			name:     "successful monthly subscription",
-			planName: basePlan,
-			price:    basePrice,
-			interval: types.Month,
-			periods:  12,
-			wantErr:  false,
+			name:          "successful subscription",
+			priceID:       "price_1RAJEOAB1pU7EbknIH4e3bBu",
+			joiningFeesID: "price_1RA7MAAB1pU7EbknpkvwLmyp",
+			periods:       12,
+			wantErr:       false,
 		},
 		{
-			name:     "successful biweekly subscription",
-			planName: basePlan,
-			price:    basePrice,
-			interval: types.Biweekly,
-			periods:  12,
-			wantErr:  false,
+			name:          "single period subscription",
+			priceID:       "price_1RAJEOAB1pU7EbknIH4e3bBu",
+			joiningFeesID: "price_1RA7MAAB1pU7EbknpkvwLmyp",
+			periods:       1,
+			wantErr:       true,
+			errMsg:        "periods must be at least 2 for subscriptions. Use create one time payment if its not recurring",
 		},
 		{
-			name:     "empty plan name",
-			planName: "",
-			price:    basePrice,
-			interval: types.Month,
-			periods:  12,
-			wantErr:  true,
-			errMsg:   "plan name cannot be empty",
+			name:          "missing price ID",
+			joiningFeesID: "price_1RA7MAAB1pU7EbknpkvwLmyp",
+			periods:       12,
+			wantErr:       true,
+			errMsg:        "item stripe price ID cannot be empty",
 		},
 		{
-			name:     "single period subscription",
-			planName: basePlan,
-			price:    basePrice,
-			interval: types.Month,
-			periods:  1,
-			wantErr:  true,
-			errMsg:   "periods must be at least 2 for subscriptions. Use create one time payment if its not recurring",
+			name:    "missing joining fees ID",
+			priceID: "price_1RAJEOAB1pU7EbknIH4e3bBu",
+			periods: 12,
+			wantErr: false,
 		},
 	}
 
@@ -147,10 +124,8 @@ func TestCreateSubscription(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			subscriptionLink, err := payment.CreateSubscription(
 				ctx,
-				tt.planName,
-				tt.price,
-				tt.interval,
-				tt.periods,
+				tt.priceID,
+				tt.joiningFeesID,
 			)
 
 			if tt.wantErr {
@@ -213,10 +188,8 @@ func TestCreateSubscription_Context(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			subscriptionLink, err := payment.CreateSubscription(
 				tt.ctx,
-				"Test Plan",
-				decimal.NewFromFloat(9.99),
-				types.Month,
-				12,
+				"price_1RAJEOAB1pU7EbknIH4e3bBu",
+				"price_1RA7MAAB1pU7EbknpkvwLmyp",
 			)
 
 			if tt.wantErr {

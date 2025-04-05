@@ -64,7 +64,7 @@ func CreateOneTimePayment(
 
 func CreateSubscription(
 	ctx context.Context,
-	stripePlanID string,
+	stripePlanPriceID string,
 	stripeJoiningFeesID string,
 ) (string, *errLib.CommonError) {
 
@@ -78,6 +78,10 @@ func CreateSubscription(
 		return "", errLib.New("Stripe not initialized", http.StatusInternalServerError)
 	}
 
+	if stripePlanPriceID == "" {
+		return "", errLib.New("item stripe price ID cannot be empty", http.StatusBadRequest)
+	}
+
 	params := &stripe.CheckoutSessionParams{
 		Metadata: map[string]string{
 			"userID": userID.String(), // Accessible in subscription.Metadata
@@ -89,7 +93,7 @@ func CreateSubscription(
 		},
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			{
-				Price:    stripe.String(stripePlanID),
+				Price:    stripe.String(stripePlanPriceID),
 				Quantity: stripe.Int64(1),
 			},
 		},

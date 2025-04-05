@@ -86,7 +86,6 @@ func TestCreateSubscription(t *testing.T) {
 		name          string
 		priceID       string
 		joiningFeesID string
-		periods       int32
 		wantErr       bool
 		errMsg        string
 	}{
@@ -94,28 +93,24 @@ func TestCreateSubscription(t *testing.T) {
 			name:          "successful subscription",
 			priceID:       "price_1RAJEOAB1pU7EbknIH4e3bBu",
 			joiningFeesID: "price_1RA7MAAB1pU7EbknpkvwLmyp",
-			periods:       12,
 			wantErr:       false,
 		},
 		{
 			name:          "single period subscription",
 			priceID:       "price_1RAJEOAB1pU7EbknIH4e3bBu",
 			joiningFeesID: "price_1RA7MAAB1pU7EbknpkvwLmyp",
-			periods:       1,
 			wantErr:       true,
 			errMsg:        "periods must be at least 2 for subscriptions. Use create one time payment if its not recurring",
 		},
 		{
 			name:          "missing price ID",
 			joiningFeesID: "price_1RA7MAAB1pU7EbknpkvwLmyp",
-			periods:       12,
 			wantErr:       true,
 			errMsg:        "item stripe price ID cannot be empty",
 		},
 		{
 			name:    "missing joining fees ID",
 			priceID: "price_1RAJEOAB1pU7EbknIH4e3bBu",
-			periods: 12,
 			wantErr: false,
 		},
 	}

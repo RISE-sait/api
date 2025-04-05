@@ -162,7 +162,7 @@ END $$;
 
 alter type public.membership_status owner to postgres;
 
-create table if not exists  public.customer_membership_plans
+create table if not exists  users.customer_membership_plans
 (
     id                 uuid                     default gen_random_uuid()           not null
         primary key,
@@ -179,7 +179,7 @@ create table if not exists  public.customer_membership_plans
     updated_at         timestamp with time zone default CURRENT_TIMESTAMP           not null
 );
 
-alter table public.customer_membership_plans
+alter table users.customer_membership_plans
     owner to postgres;
 
 `

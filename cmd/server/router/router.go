@@ -26,7 +26,7 @@ import (
 	"api/internal/domains/identity/handler/registration"
 	locationsHandler "api/internal/domains/location/handler"
 	membership "api/internal/domains/membership/handler"
-	purchase "api/internal/domains/payment/handler"
+	payment "api/internal/domains/payment/handler"
 	"api/internal/middlewares"
 
 	"github.com/go-chi/chi"
@@ -275,17 +275,17 @@ func RegisterEventStaffRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterCheckoutRoutes(container *di.Container) func(chi.Router) {
 
-	h := purchase.NewPaymentHandlers(container)
+	h := payment.NewCheckoutHandlers(container)
 
 	return func(r chi.Router) {
-		r.Post("/membership_plans/{id}", h.CheckoutMembership)
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/membership_plans/{id}", h.CheckoutMembership)
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/programs/{id}", h.CheckoutProgram)
 	}
 }
 
 func RegisterWebhooksRoutes(container *di.Container) func(chi.Router) {
 
-	h := purchase.NewPaymentHandlers(container)
+	h := payment.NewWebhookHandlers(container)
 
 	return func(r chi.Router) {
 		r.Post("/stripe", h.HandleStripeWebhook)

@@ -12,14 +12,14 @@ import (
 )
 
 type Service struct {
-	PurchaseRepo        *repository.Repository
+	CheckoutRepo        *repository.CheckoutRepository
 	MembershipPlansRepo *membership.PlansRepository
 	SquareClient        *squareClient.Client
 }
 
 func NewPurchaseService(container *di.Container) *Service {
 	return &Service{
-		PurchaseRepo:        repository.NewRepository(container),
+		CheckoutRepo:        repository.NewCheckoutRepository(container),
 		MembershipPlansRepo: membership.NewMembershipPlansRepository(container),
 		SquareClient:        container.SquareClient,
 	}
@@ -27,30 +27,22 @@ func NewPurchaseService(container *di.Container) *Service {
 
 func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID uuid.UUID) (string, *errLib.CommonError) {
 
-	requirements, err := s.PurchaseRepo.GetMembershipPlanJoiningRequirement(ctx, membershipPlanID)
+	requirements, err := s.CheckoutRepo.GetMembershipPlanJoiningRequirement(ctx, membershipPlanID)
 
 	if err != nil {
 		return "", err
 	}
 
-	if link, err := stripe.CreateSubscription(ctx, requirements.StripePriceID, requirements.StripeJoiningFeeID); err != nil {
-		return "", err
-	} else {
-		return link, nil
-	}
+	return stripe.CreateSubscription(ctx, requirements.StripePriceID, requirements.StripeJoiningFeeID)
 }
 
-func (s *Service) CheckoutProgram(ctx context.Context, userID, programID uuid.UUID) (string, *errLib.CommonError) {
+func (s *Service) CheckoutProgram(ctx context.Context, programID uuid.UUID) (string, *errLib.CommonError) {
 
-	priceID, err := s.PurchaseRepo.GetProgramRegistrationPriceIDByCustomer(ctx, userID, programID)
+	priceID, err := s.CheckoutRepo.GetProgramRegistrationPriceIdForCustomer(ctx, programID)
 
 	if err != nil {
 		return "", err
 	}
 
-	if link, err := stripe.CreateOneTimePayment(ctx, priceID, 1); err != nil {
-		return "", err
-	} else {
-		return link, nil
-	}
+	return stripe.CreateOneTimePayment(ctx, priceID, 1)
 }

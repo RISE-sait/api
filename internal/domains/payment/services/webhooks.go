@@ -1,79 +1,242 @@
 package payment
 
 import (
+	"api/internal/di"
+	repository "api/internal/domains/payment/persistence/repositories"
 	errLib "api/internal/libs/errors"
+	"context"
 	"encoding/json"
+	"github.com/google/uuid"
+	"github.com/stripe/stripe-go/v81/checkout/session"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/stripe/stripe-go/v81"
-	"github.com/stripe/stripe-go/v81/price"
-	"github.com/stripe/stripe-go/v81/product"
 	"github.com/stripe/stripe-go/v81/subscription"
 )
 
-func HandleCheckoutSessionCompleted(event stripe.Event) *errLib.CommonError {
-	var session stripe.CheckoutSession
-	if err := json.Unmarshal(event.Data.Raw, &session); err != nil {
+type WebhookService struct {
+	PostCheckoutRepository *repository.PostCheckoutRepository
+}
+
+func NewWebhookService(container *di.Container) *WebhookService {
+	return &WebhookService{
+		PostCheckoutRepository: repository.NewPostCheckoutRepository(container),
+	}
+}
+
+func (s *WebhookService) HandleCheckoutSessionCompleted(event stripe.Event) *errLib.CommonError {
+	var checkSession stripe.CheckoutSession
+	if err := json.Unmarshal(event.Data.Raw, &checkSession); err != nil {
+		log.Printf("Failed to parse session: %v", err)
 		return errLib.New("Failed to parse session", http.StatusBadRequest)
 	}
 
-	totalBillingPeriodsStr := session.Metadata["totalBillingPeriods"]
-	if totalBillingPeriodsStr == "" {
-		return nil // Single payment, nothing to do
+	switch checkSession.Mode {
+	case stripe.CheckoutSessionModePayment:
+		return s.handleProgramCheckoutComplete(checkSession)
+	case stripe.CheckoutSessionModeSubscription:
+		return s.handleSubscriptionCheckoutComplete(checkSession)
 	}
 
-	totalBillingPeriods, err := strconv.Atoi(totalBillingPeriodsStr)
+	return nil
+}
+
+func (s *WebhookService) handleProgramCheckoutComplete(checkoutSession stripe.CheckoutSession) *errLib.CommonError {
+
+	fullSession, err := s.getExpandedSession(checkoutSession.ID)
 	if err != nil {
-		return errLib.New("Failed to parse totalBillingPeriods", http.StatusBadRequest)
+		return err
 	}
 
-	sub, err := subscription.Get(session.Subscription.ID, nil)
+	// 2. Validate line items and get price ID
+	priceIDs, err := s.validateLineItems(fullSession.LineItems)
 	if err != nil {
-		return errLib.New("Failed to get subscription", http.StatusInternalServerError)
+		return err
+	}
+
+	priceId := priceIDs[0]
+
+	programID, err := s.PostCheckoutRepository.GetProgramIdByStripePriceId(context.Background(), priceId)
+
+	if err != nil {
+		return errLib.New("Invalid program ID format", http.StatusBadRequest)
+	}
+
+	userIDStr := fullSession.Metadata["userID"]
+
+	if userIDStr == "" {
+		return errLib.New("userID not found in metadata", http.StatusBadRequest)
+	}
+
+	customerID, uuidErr := uuid.Parse(userIDStr)
+
+	if uuidErr != nil {
+		return errLib.New("Invalid user ID format", http.StatusBadRequest)
+	}
+
+	if repoErr := s.PostCheckoutRepository.EnrollCustomerInProgramEvents(context.Background(), customerID, programID); repoErr != nil {
+		return repoErr
+	}
+
+	return nil
+}
+
+func (s *WebhookService) handleSubscriptionCheckoutComplete(checkoutSession stripe.CheckoutSession) *errLib.CommonError {
+	// 1. Validate and expand session
+	fullSession, err := s.getExpandedSession(checkoutSession.ID)
+	if err != nil {
+		return err
+	}
+
+	// 2. Validate line items and get price ID
+	priceIDs, err := s.validateLineItems(fullSession.LineItems)
+	if err != nil {
+		return err
+	}
+
+	priceID := priceIDs[0]
+
+	// 3. Parse metadata
+	userIdStr := fullSession.Metadata["userID"]
+
+	if userIdStr == "" {
+		return errLib.New("userID not found in metadata", http.StatusBadRequest)
+	}
+
+	userID, uuidErr := uuid.Parse(userIdStr)
+
+	if uuidErr != nil {
+		return errLib.New("Invalid user ID format", http.StatusBadRequest)
+	}
+
+	planID, amtPeriods, err := s.PostCheckoutRepository.GetMembershipPlanByStripePriceID(context.Background(), priceID)
+
+	if err != nil {
+		return err
+	}
+
+	if amtPeriods != nil {
+		return s.processSubscriptionWithEndDate(
+			fullSession.Subscription.ID,
+			*amtPeriods,
+			userID,
+			planID,
+		)
+	}
+	return s.PostCheckoutRepository.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, time.Time{})
+}
+
+func (s *WebhookService) getExpandedSession(sessionID string) (*stripe.CheckoutSession, *errLib.CommonError) {
+	params := &stripe.CheckoutSessionParams{
+		Expand: []*string{
+			stripe.String("line_items.data.price"),
+			stripe.String("subscription"),
+		},
+	}
+
+	checkoutSession, err := session.Get(sessionID, params)
+	if err != nil {
+		return nil, errLib.New("Failed to retrieve session details: "+err.Error(), http.StatusInternalServerError)
+	}
+	return checkoutSession, nil
+}
+
+func (s *WebhookService) validateLineItems(lineItems *stripe.LineItemList) ([]string, *errLib.CommonError) {
+	if lineItems == nil || len(lineItems.Data) == 0 {
+		return nil, errLib.New("No line items found in session", http.StatusBadRequest)
+	}
+
+	var priceIds []string
+
+	for _, datum := range lineItems.Data {
+		priceIds = append(priceIds, datum.Price.ID)
+	}
+
+	return priceIds, nil
+}
+
+func (s *WebhookService) processSubscriptionWithEndDate(subscriptionID string, totalBillingPeriods int32, userID, planID uuid.UUID) *errLib.CommonError {
+	sub, err := s.getExpandedSubscription(subscriptionID)
+	if err != nil {
+		return err
+	}
+
+	cancelAtUnix, cancelAtDateTime, err := s.calculateCancelAt(sub, int(totalBillingPeriods))
+	if err != nil {
+		return err
+	}
+
+	if err = s.PostCheckoutRepository.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, cancelAtDateTime); err != nil {
+		return err
+	}
+
+	return s.updateSubscriptionCancelAt(sub.ID, cancelAtUnix)
+}
+
+func (s *WebhookService) getExpandedSubscription(subscriptionID string) (*stripe.Subscription, *errLib.CommonError) {
+	params := &stripe.SubscriptionParams{
+		Expand: []*string{
+			stripe.String("items.data.price"),
+			stripe.String("items.data.price.product"),
+		},
+	}
+
+	sub, err := subscription.Get(subscriptionID, params)
+	if err != nil {
+		return nil, errLib.New("Failed to get subscription: "+err.Error(), http.StatusInternalServerError)
 	}
 
 	if len(sub.Items.Data) == 0 {
-		return errLib.New("No items in subscription", http.StatusBadRequest)
+		return nil, errLib.New("No items in subscription", http.StatusBadRequest)
 	}
 
-	subItem := sub.Items.Data[0]
-	retrievedProduct, err := product.Get(subItem.Price.Product.ID, nil)
-	if err != nil {
-		log.Printf("Failed to get product: %v", err)
-		return errLib.New("Failed to get product details", http.StatusInternalServerError)
+	item := sub.Items.Data[0]
+	if item.Price == nil || item.Price.Product == nil {
+		return nil, errLib.New("Price or product information missing", http.StatusBadRequest)
 	}
 
-	retrievedPrice, err := price.Get(subItem.Price.ID, nil)
-	if err != nil {
-		return errLib.New("Failed to get price details", http.StatusInternalServerError)
+	if item.Price.Recurring == nil {
+		return nil, errLib.New("Price is not recurring", http.StatusBadRequest)
 	}
 
-	_ = retrievedProduct.Name
+	return sub, nil
+}
 
-	var cancelAt int64
-	switch retrievedPrice.Recurring.Interval {
+func (s *WebhookService) calculateCancelAt(sub *stripe.Subscription, periods int) (cancelAtUnix int64, cancelAtDate time.Time, error *errLib.CommonError) {
+	item := sub.Items.Data[0]
+	interval := item.Price.Recurring.Interval
+	intervalCount := int(item.Price.Recurring.IntervalCount)
+
+	now := time.Now()
+	var cancelTime time.Time
+
+	switch interval {
 	case stripe.PriceRecurringIntervalMonth:
-		cancelAt = time.Now().AddDate(0, int(retrievedPrice.Recurring.IntervalCount)*totalBillingPeriods, 0).Unix()
+		cancelTime = now.AddDate(0, intervalCount*periods, 0)
 	case stripe.PriceRecurringIntervalYear:
-		cancelAt = time.Now().AddDate(int(retrievedPrice.Recurring.IntervalCount)*totalBillingPeriods, 0, 0).Unix()
+		cancelTime = now.AddDate(intervalCount*periods, 0, 0)
 	case stripe.PriceRecurringIntervalWeek:
-		cancelAt = time.Now().AddDate(0, 0, int(retrievedPrice.Recurring.IntervalCount)*totalBillingPeriods).Unix()
+		cancelTime = now.AddDate(0, 0, intervalCount*periods)
 	default:
-		return errLib.New("Invalid billing interval", http.StatusBadRequest)
+		return 0, time.Time{}, errLib.New("invalid billing interval", http.StatusBadRequest)
 	}
 
-	if _, err = subscription.Update(
-		sub.ID,
+	return cancelTime.Unix(), cancelTime, nil
+
+}
+
+func (s *WebhookService) updateSubscriptionCancelAt(subscriptionID string, cancelAt int64) *errLib.CommonError {
+	_, err := subscription.Update(
+		subscriptionID,
 		&stripe.SubscriptionParams{
 			CancelAt: stripe.Int64(cancelAt),
 		},
-	); err != nil {
+	)
+	if err != nil {
 		log.Printf("Failed to update subscription: %v", err)
-		return errLib.New("Failed to set cancel date", http.StatusInternalServerError)
+		return errLib.New("Failed to set cancel date: "+err.Error(), http.StatusInternalServerError)
 	}
-
 	return nil
 }

@@ -18,7 +18,7 @@ import (
 
 func clearTables(ctx context.Context, db *sql.DB) {
 	// Define the schemas you want to truncate tables from
-	schemas := []string{"audit", "events", "haircut",
+	schemas := []string{"athletic", "audit", "events", "haircut",
 		"location", "membership", "program", "public", "staff", "users", "waiver"}
 
 	// Build the TRUNCATE query
@@ -213,6 +213,42 @@ func seedPractices(ctx context.Context, db *sql.DB) {
 		NameArray:        nameArray,
 		DescriptionArray: descriptionArray,
 		LevelArray:       levelArray,
+	})
+
+	if err != nil {
+		log.Fatalf("Failed to insert practices: %v", err)
+	}
+}
+
+func seedProgramsMembershipsEligibility(ctx context.Context, db *sql.DB) {
+
+	seedQueries := dbSeed.New(db)
+
+	practices := data.Practices
+
+	var (
+		programNameArray    []string
+		membershipNameArray []string
+		stripePriceIDArray  []string
+	)
+
+	for _, practice := range practices {
+		for _, eligibility := range practice.MembershipsEligibility {
+			programNameArray = append(programNameArray, practice.Name)
+			membershipNameArray = append(membershipNameArray, eligibility.Name)
+
+			if eligibility.StripePriceID == nil {
+				stripePriceIDArray = append(stripePriceIDArray, "")
+			} else {
+				stripePriceIDArray = append(stripePriceIDArray, *eligibility.StripePriceID)
+			}
+		}
+	}
+
+	err := seedQueries.InsertProgramMembership(ctx, dbSeed.InsertProgramMembershipParams{
+		ProgramNameArray:          programNameArray,
+		MembershipNameArray:       membershipNameArray,
+		StripeProgramPriceIDArray: stripePriceIDArray,
 	})
 
 	if err != nil {
@@ -483,6 +519,8 @@ func main() {
 	seedMemberships(ctx, db)
 
 	seedMembershipPlans(ctx, db)
+
+	seedProgramsMembershipsEligibility(ctx, db)
 
 	updateFakeParents(ctx, db)
 

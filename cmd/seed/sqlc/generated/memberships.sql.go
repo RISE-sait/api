@@ -14,9 +14,9 @@ import (
 )
 
 const insertClientsMembershipPlans = `-- name: InsertClientsMembershipPlans :exec
-WITH prepared_data as (SELECT unnest($1::text[])      as customer_email,
-                              unnest($2::text[])      as membership_plan_name,
-                              unnest($3::timestamptz[])   as start_date,
+WITH prepared_data as (SELECT unnest($1::text[])    as customer_email,
+                              unnest($2::text[])    as membership_plan_name,
+                              unnest($3::timestamptz[]) as start_date,
                               unnest($4::timestamptz[]) as renewal_date)
 INSERT
 INTO users.customer_membership_plans (customer_id, membership_plan_id, start_date, renewal_date)

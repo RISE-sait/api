@@ -5,7 +5,6 @@ import (
 	errLib "api/internal/libs/errors"
 	contextUtils "api/utils/context"
 	"context"
-	"github.com/google/uuid"
 	_ "github.com/square/square-go-sdk/client"
 	"github.com/stripe/stripe-go/v81"
 	"github.com/stripe/stripe-go/v81/checkout/session"
@@ -38,10 +37,12 @@ func CreateOneTimePayment(
 	}
 
 	params := &stripe.CheckoutSessionParams{
+		Metadata: map[string]string{
+			"userID": userID.String(), // Accessible in subscription.Metadata
+		},
 		PaymentIntentData: &stripe.CheckoutSessionPaymentIntentDataParams{
 			Metadata: map[string]string{
-				"userID":  userID.String(),
-				"priceID": itemStripePriceID,
+				"userID": userID.String(),
 			},
 		},
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
@@ -67,23 +68,23 @@ func CreateSubscription(
 	stripeJoiningFeesID string,
 ) (string, *errLib.CommonError) {
 
-	//userID, err := contextUtils.GetUserID(ctx)
-	//
-	//if err != nil {
-	//	return "", err
-	//}
+	userID, err := contextUtils.GetUserID(ctx)
 
-	userID := uuid.MustParse("844047ca-e27d-42f4-b245-ba6ae28b090a")
+	if err != nil {
+		return "", err
+	}
 
 	if strings.ReplaceAll(stripe.Key, " ", "") == "" {
 		return "", errLib.New("Stripe not initialized", http.StatusInternalServerError)
 	}
 
 	params := &stripe.CheckoutSessionParams{
+		Metadata: map[string]string{
+			"userID": userID.String(), // Accessible in subscription.Metadata
+		},
 		SubscriptionData: &stripe.CheckoutSessionSubscriptionDataParams{
 			Metadata: map[string]string{
 				"userID": userID.String(), // Accessible in subscription.Metadata
-				"planID": stripePlanID,
 			},
 		},
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
@@ -95,6 +96,9 @@ func CreateSubscription(
 		Mode:       stripe.String("subscription"),
 		SuccessURL: stripe.String("https://example.com/success"),
 	}
+
+	params.AddExpand("line_items.data.price")
+	params.AddExpand("subscription")
 
 	if stripeJoiningFeesID != "" {
 		params.LineItems = append(params.LineItems, &stripe.CheckoutSessionLineItemParams{

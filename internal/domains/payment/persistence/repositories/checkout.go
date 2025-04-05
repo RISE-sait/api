@@ -14,17 +14,17 @@ import (
 	"net/http"
 )
 
-type Repository struct {
+type CheckoutRepository struct {
 	Queries *db.Queries
 }
 
-func NewRepository(container *di.Container) *Repository {
-	return &Repository{
+func NewCheckoutRepository(container *di.Container) *CheckoutRepository {
+	return &CheckoutRepository{
 		Queries: container.Queries.PurchasesDb,
 	}
 }
 
-func (r *Repository) GetMembershipPlanJoiningRequirement(ctx context.Context, planID uuid.UUID) (values.MembershipPlanJoiningRequirement, *errLib.CommonError) {
+func (r *CheckoutRepository) GetMembershipPlanJoiningRequirement(ctx context.Context, planID uuid.UUID) (values.MembershipPlanJoiningRequirement, *errLib.CommonError) {
 
 	if requirements, err := r.Queries.GetMembershipPlanJoiningRequirements(ctx, planID); err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
@@ -54,9 +54,14 @@ func (r *Repository) GetMembershipPlanJoiningRequirement(ctx context.Context, pl
 	}
 }
 
-func (r *Repository) GetProgramRegistrationPriceIDByCustomer(ctx context.Context, customerID, programID uuid.UUID) (string, *errLib.CommonError) {
+func (r *CheckoutRepository) GetProgramRegistrationPriceIdForCustomer(ctx context.Context, programID uuid.UUID) (string, *errLib.CommonError) {
 
-	var response values.ProgramRegistrationInfo
+	//customerID, ctxErr := contextUtils.GetUserID(ctx)
+	//if ctxErr != nil {
+	//	return "", ctxErr
+	//}
+
+	customerID := uuid.MustParse("b450fec9-915a-4291-ae8f-63a37c4bf977")
 
 	program, err := r.Queries.GetProgram(ctx, programID)
 	if err != nil {
@@ -67,7 +72,19 @@ func (r *Repository) GetProgramRegistrationPriceIDByCustomer(ctx context.Context
 		return "", errLib.New("failed to get program", http.StatusInternalServerError)
 	}
 
-	response.ProgramName = program.Name
+	if status, err := r.Queries.GetProgramCapacityStatus(ctx, programID); err != nil {
+		log.Printf("Error getting program capacity status: %v", err)
+		return "", errLib.New("failed to get program stauts", http.StatusInternalServerError)
+	} else {
+
+		if !status.Capacity.Valid {
+			return "", errLib.New(fmt.Sprintf("program has no capacity: %v", program.Name), http.StatusBadRequest)
+		}
+
+		if status.EnrolledCount >= int64(status.Capacity.Int32) {
+			return "", errLib.New(fmt.Sprintf("program is full: %v", program.Name), http.StatusBadRequest)
+		}
+	}
 
 	if isCustomerExist, err := r.Queries.IsCustomerExist(ctx, customerID); err != nil {
 		log.Printf("Error getting customer: %v", err)
@@ -76,7 +93,7 @@ func (r *Repository) GetProgramRegistrationPriceIDByCustomer(ctx context.Context
 		return "", errLib.New(fmt.Sprintf("customer not found: %v", customerID), http.StatusNotFound)
 	}
 
-	priceID, err := r.Queries.GetProgramRegistrationPriceIDForCustomer(ctx, db.GetProgramRegistrationPriceIDForCustomerParams{
+	priceID, err := r.Queries.GetProgramRegistrationPriceIdForCustomer(ctx, db.GetProgramRegistrationPriceIdForCustomerParams{
 		CustomerID: customerID,
 		ProgramID:  programID,
 	})

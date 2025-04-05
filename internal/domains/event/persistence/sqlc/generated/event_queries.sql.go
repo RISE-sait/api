@@ -129,7 +129,7 @@ SELECT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.cre
        uc.phone           AS customer_phone,
        uc.gender          AS customer_gender,
 
-       ce.is_cancelled AS customer_enrollment_is_cancelled,
+       ce.is_cancelled    AS customer_enrollment_is_cancelled,
 
        -- Team field (added missing team reference)
        t.id               AS team_id,

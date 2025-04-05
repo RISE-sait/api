@@ -9,12 +9,8 @@ type Practice struct {
 }
 
 type MembershipsEligibility struct {
-	Name string
-	*EligibleMembership
-}
-
-type EligibleMembership struct {
-	Price float64
+	Name          string
+	StripePriceID *string
 }
 
 type Schedule struct {
@@ -27,25 +23,29 @@ type Schedule struct {
 	TrainerNames     []string
 }
 
+func strToPtr(str string) *string {
+	return &str
+}
+
 var Practices = []Practice{
 	{
 		Name:        "Monday- Shooting Class",
 		Description: "Shooting Class, All ages",
 		Capacity:    30,
 		MembershipsEligibility: []MembershipsEligibility{
-			{Name: "PAYG", EligibleMembership: &EligibleMembership{Price: 15}},
-			{Name: "1. Rise Basketball Full Year Membership", EligibleMembership: &EligibleMembership{Price: 0}},
+			{Name: "PAYG"},
+			{Name: "1. Rise Basketball Full Year Membership"},
 			{Name: "2. Jr.Rise Elite Hooper (Ages 5-8)"},
-			{Name: "2025 Spring Club Membership", EligibleMembership: &EligibleMembership{Price: 15}},
-			{Name: "3. Seasonal Membership- Winter Rise League", EligibleMembership: &EligibleMembership{Price: 15}},
+			{Name: "2025 Spring Club Membership"},
+			{Name: "3. Seasonal Membership- Winter Rise League"},
 			{Name: "4. High School Pro Club"},
 			{Name: "5. Gym Membership"},
 			{Name: "Jr. Rise Seasonal (3 Months)"},
 			{Name: "Open Gym- Strength Room and Courts"},
-			{Name: "PAYMENT PLAN 2025 SPRING CLUB", EligibleMembership: &EligibleMembership{Price: 15}},
-			{Name: "Rise Basketball Full Year Membership", EligibleMembership: &EligibleMembership{Price: 0}},
-			{Name: "Rise Full Year Family Member Guided Strength Gym Membership", EligibleMembership: &EligibleMembership{Price: 0}},
-			{Name: "Seasonal member - Rise WINTER LEAGUE", EligibleMembership: &EligibleMembership{Price: 15}},
+			{Name: "PAYMENT PLAN 2025 SPRING CLUB"},
+			{Name: "Rise Basketball Full Year Membership"},
+			{Name: "Rise Full Year Family Member Guided Strength Gym Membership"},
+			{Name: "Seasonal member - Rise WINTER LEAGUE"},
 			{Name: "SPRING RISE LEAGUE 2025"},
 			{Name: "Strength Room Unlimited Membership"},
 		},
@@ -73,19 +73,19 @@ var Practices = []Practice{
 		Description: "Enjoy full access to one of our open courts for basketball during designated times. Be sure to check availability and schedule. See front desk for available court. Courts may be subject to change.",
 		Capacity:    1000,
 		MembershipsEligibility: []MembershipsEligibility{
-			{Name: "PAYG", EligibleMembership: &EligibleMembership{Price: 15}},
-			{Name: "1. Rise Basketball Full Year Membership", EligibleMembership: &EligibleMembership{Price: 0}},
-			{Name: "2. Jr.Rise Elite Hooper (Ages 5-8)", EligibleMembership: &EligibleMembership{Price: 0}},
-			{Name: "2025 Spring Club Membership", EligibleMembership: &EligibleMembership{Price: 15}},
-			{Name: "3. Seasonal Membership- Winter Rise League", EligibleMembership: &EligibleMembership{Price: 15}},
-			{Name: "4. High School Pro Club", EligibleMembership: &EligibleMembership{Price: 15}},
+			{Name: "PAYG"},
+			{Name: "1. Rise Basketball Full Year Membership"},
+			{Name: "2. Jr.Rise Elite Hooper (Ages 5-8)"},
+			{Name: "2025 Spring Club Membership"},
+			{Name: "3. Seasonal Membership- Winter Rise League"},
+			{Name: "4. High School Pro Club"},
 			{Name: "5. Gym Membership"},
 			{Name: "Jr. Rise Seasonal (3 Months)"},
 			{Name: "Open Gym- Strength Room and Courts"},
-			{Name: "PAYMENT PLAN 2025 SPRING CLUB", EligibleMembership: &EligibleMembership{Price: 15}},
-			{Name: "Rise Basketball Full Year Membership", EligibleMembership: &EligibleMembership{Price: 0}},
+			{Name: "PAYMENT PLAN 2025 SPRING CLUB"},
+			{Name: "Rise Basketball Full Year Membership"},
 			{Name: "Rise Full Year Family Member Guided Strength Gym Membership"},
-			{Name: "Seasonal member - Rise WINTER LEAGUE", EligibleMembership: &EligibleMembership{Price: 15}},
+			{Name: "Seasonal member - Rise WINTER LEAGUE"},
 			{Name: "SPRING RISE LEAGUE 2025"},
 			{Name: "Strength Room Unlimited Membership"},
 		},
@@ -106,19 +106,19 @@ var Practices = []Practice{
 		Description: "Strength",
 		Capacity:    15,
 		MembershipsEligibility: []MembershipsEligibility{
-			{Name: "PAYG", EligibleMembership: &EligibleMembership{Price: 15}},
-			{Name: "1. Rise Basketball Full Year Membership", EligibleMembership: &EligibleMembership{Price: 0}},
+			{Name: "PAYG"},
+			{Name: "1. Rise Basketball Full Year Membership"},
 			{Name: "2. Jr.Rise Elite Hooper (Ages 5-8)"},
-			{Name: "2025 Spring Club Membership", EligibleMembership: &EligibleMembership{Price: 15}},
-			{Name: "3. Seasonal Membership- Winter Rise League", EligibleMembership: &EligibleMembership{Price: 15}},
+			{Name: "2025 Spring Club Membership"},
+			{Name: "3. Seasonal Membership- Winter Rise League"},
 			{Name: "4. High School Pro Club"},
 			{Name: "5. Gym Membership"},
 			{Name: "Jr. Rise Seasonal (3 Months)"},
-			{Name: "Open Gym- Strength Room and Courts", EligibleMembership: &EligibleMembership{Price: 15}},
-			{Name: "PAYMENT PLAN 2025 SPRING CLUB", EligibleMembership: &EligibleMembership{Price: 15}},
-			{Name: "Rise Basketball Full Year Membership", EligibleMembership: &EligibleMembership{Price: 0}},
-			{Name: "Rise Full Year Family Member Guided Strength Gym Membership", EligibleMembership: &EligibleMembership{Price: 0}},
-			{Name: "Seasonal member - Rise WINTER LEAGUE", EligibleMembership: &EligibleMembership{Price: 15}},
+			{Name: "Open Gym- Strength Room and Courts"},
+			{Name: "PAYMENT PLAN 2025 SPRING CLUB"},
+			{Name: "Rise Basketball Full Year Membership"},
+			{Name: "Rise Full Year Family Member Guided Strength Gym Membership"},
+			{Name: "Seasonal member - Rise WINTER LEAGUE"},
 			{Name: "SPRING RISE LEAGUE 2025"},
 			{Name: "Strength Room Unlimited Membership"},
 		},
@@ -137,19 +137,18 @@ var Practices = []Practice{
 		Description: "Join us for skills, drills and fun on the Court! DATES: April 22, 23, 24, 25TIMES: 10AM-3:30PMPlease bring indoor shoes, a ball, water bottles, Lunch and Snacks",
 		Capacity:    300,
 		MembershipsEligibility: []MembershipsEligibility{
-			{Name: "PAYG", EligibleMembership: &EligibleMembership{Price: 252}},
-			{Name: "Rise Basketball Full Year Membership", EligibleMembership: &EligibleMembership{Price: 226.8}},
+			{Name: "PAYG", StripePriceID: strToPtr("price_1R9snzAB1pU7Ebknp5imRy62")},
+			{Name: "Rise Basketball Full Year Membership", StripePriceID: strToPtr("price_1R9sq7AB1pU7EbknKtPXbwAt")},
 			{Name: "Jr.Rise Elite Hooper (Ages 5-8)"},
-			{Name: "2025 Spring Club Membership", EligibleMembership: &EligibleMembership{Price: 252}},
-			{Name: "Seasonal Membership- Winter Rise League", EligibleMembership: &EligibleMembership{Price: 252}},
+			{Name: "2025 Spring Club Membership", StripePriceID: strToPtr("price_1R9sraAB1pU7EbknLtevElCK")},
+			{Name: "Seasonal Membership- Winter Rise League", StripePriceID: strToPtr("price_1R9stMAB1pU7EbknRFXXU8hh")},
 			{Name: "High School Pro Club"},
 			{Name: "Gym Membership"},
 			{Name: "Jr. Rise Seasonal (3 Months)"},
 			{Name: "Open Gym- Strength Room and Courts"},
-			{Name: "PAYMENT PLAN 2025 SPRING CLUB", EligibleMembership: &EligibleMembership{Price: 252}},
-			{Name: "Rise Basketball Full Year Membership", EligibleMembership: &EligibleMembership{Price: 226.8}},
+			{Name: "PAYMENT PLAN 2025 SPRING CLUB", StripePriceID: strToPtr("price_1R9ssQAB1pU7EbknVn9Lskuh")},
 			{Name: "Rise Full Year Family Member Guided Strength Gym Membership"},
-			{Name: "Seasonal member - Rise WINTER LEAGUE", EligibleMembership: &EligibleMembership{Price: 252}},
+			{Name: "Seasonal member - Rise WINTER LEAGUE", StripePriceID: strToPtr("price_1R9srEAB1pU7EbknzAO7IVi8")},
 			{Name: "SPRING RISE LEAGUE 2025"},
 			{Name: "Strength Room Unlimited Membership"},
 		},
@@ -170,8 +169,8 @@ var Practices = []Practice{
 		Description: "Available Age Groups: U11 Boys & Girls U13 Boys & Girls U15 Boys & Girls U17 Boys & Girls U18 Boys & Girls",
 		Capacity:    100,
 		MembershipsEligibility: []MembershipsEligibility{
-			{Name: "PAYG", EligibleMembership: &EligibleMembership{Price: 650}},
-			{Name: "Clients", EligibleMembership: &EligibleMembership{Price: 650}},
+			{Name: "PAYG"},
+			{Name: "Clients"},
 		},
 		Schedules: []Schedule{
 			{

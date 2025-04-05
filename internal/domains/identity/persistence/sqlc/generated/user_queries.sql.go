@@ -117,12 +117,11 @@ WITH u
                AND (u2.email = $2 OR $2 IS NULL)
              LIMIT 1),
      latest_cmp AS (SELECT DISTINCT ON (customer_id) id, customer_id, membership_plan_id, start_date, renewal_date, status, created_at, updated_at
-                    FROM public.customer_membership_plans
+                    FROM users.customer_membership_plans
                     WHERE customer_id = (SELECT id FROM u)
                     ORDER BY customer_id, start_date DESC)
 SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.age, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at,
        mp.name          as membership_plan_name,
-       mp.auto_renew    as membership_plan_auto_renew,
        cmp.start_date   as membership_plan_start_date,
        cmp.renewal_date as membership_plan_renewal_date,
        m.name        as membership_name,
@@ -164,7 +163,6 @@ type GetUserByIdOrEmailRow struct {
 	CreatedAt                 time.Time      `json:"created_at"`
 	UpdatedAt                 time.Time      `json:"updated_at"`
 	MembershipPlanName        sql.NullString `json:"membership_plan_name"`
-	MembershipPlanAutoRenew   sql.NullBool   `json:"membership_plan_auto_renew"`
 	MembershipPlanStartDate   sql.NullTime   `json:"membership_plan_start_date"`
 	MembershipPlanRenewalDate sql.NullTime   `json:"membership_plan_renewal_date"`
 	MembershipName            sql.NullString `json:"membership_name"`
@@ -197,7 +195,6 @@ func (q *Queries) GetUserByIdOrEmail(ctx context.Context, arg GetUserByIdOrEmail
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.MembershipPlanName,
-		&i.MembershipPlanAutoRenew,
 		&i.MembershipPlanStartDate,
 		&i.MembershipPlanRenewalDate,
 		&i.MembershipName,

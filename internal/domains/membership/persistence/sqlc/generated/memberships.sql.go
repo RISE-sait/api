@@ -44,7 +44,7 @@ func (q *Queries) DeleteMembership(ctx context.Context, id uuid.UUID) (int64, er
 }
 
 const getMembershipById = `-- name: GetMembershipById :one
-SELECT id, name, description, created_at, updated_at, benefits FROM membership.memberships WHERE id = $1
+SELECT id, name, description, benefits, created_at, updated_at FROM membership.memberships WHERE id = $1
 `
 
 func (q *Queries) GetMembershipById(ctx context.Context, id uuid.UUID) (MembershipMembership, error) {
@@ -54,15 +54,15 @@ func (q *Queries) GetMembershipById(ctx context.Context, id uuid.UUID) (Membersh
 		&i.ID,
 		&i.Name,
 		&i.Description,
+		&i.Benefits,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Benefits,
 	)
 	return i, err
 }
 
 const getMemberships = `-- name: GetMemberships :many
-SELECT id, name, description, created_at, updated_at, benefits FROM membership.memberships
+SELECT id, name, description, benefits, created_at, updated_at FROM membership.memberships
 `
 
 func (q *Queries) GetMemberships(ctx context.Context) ([]MembershipMembership, error) {
@@ -78,9 +78,9 @@ func (q *Queries) GetMemberships(ctx context.Context) ([]MembershipMembership, e
 			&i.ID,
 			&i.Name,
 			&i.Description,
+			&i.Benefits,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.Benefits,
 		); err != nil {
 			return nil, err
 		}

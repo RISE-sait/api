@@ -67,7 +67,7 @@ func (q *Queries) GetStaffById(ctx context.Context, id uuid.UUID) (GetStaffByIdR
 }
 
 const getStaffRoles = `-- name: GetStaffRoles :many
-SELECT id, role_name
+SELECT id, role_name, created_at, updated_at
 FROM staff.staff_roles
 `
 
@@ -80,7 +80,12 @@ func (q *Queries) GetStaffRoles(ctx context.Context) ([]StaffStaffRole, error) {
 	var items []StaffStaffRole
 	for rows.Next() {
 		var i StaffStaffRole
-		if err := rows.Scan(&i.ID, &i.RoleName); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.RoleName,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

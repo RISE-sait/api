@@ -14,24 +14,24 @@ import (
 )
 
 const getEventsSchedules = `-- name: GetEventsSchedules :many
-SELECT trim(to_char(start_at, 'Day'))     AS day_of_week, -- More readable
-       to_char(start_at, 'HH24:MI') AS start_time,
-       to_char(end_at, 'HH24:MI')   AS end_time,
-       p.id                         AS program_id,
-       p.name                       AS program_name,
-       p.description                AS program_description,
-       p.type                       AS program_type,
+SELECT trim(to_char(start_at, 'Day')) AS day_of_week, -- More readable
+       to_char(start_at, 'HH24:MI')   AS start_time,
+       to_char(end_at, 'HH24:MI')     AS end_time,
+       p.id                           AS program_id,
+       p.name                         AS program_name,
+       p.description                  AS program_description,
+       p.type                         AS program_type,
 
        location_id,
-       l.name                       AS location_name,
-       l.address                    AS location_address,
+       l.name                         AS location_name,
+       l.address                      AS location_address,
 
-       t.id                         AS team_id,
-       t.name                       AS team_name,
+       t.id                           AS team_id,
+       t.name                         AS team_name,
 
-       COUNT(*)                     AS event_count,
-       MIN(start_at)::timestamp     AS first_occurrence,
-       MAX(end_at)::timestamp       AS last_occurrence
+       COUNT(*)                       AS event_count,
+       MIN(start_at)::timestamp       AS first_occurrence,
+       MAX(end_at)::timestamp         AS last_occurrence
 FROM events.events e
          LEFT JOIN events.staff es ON e.id = es.event_id
          LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id

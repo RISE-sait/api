@@ -29,6 +29,7 @@ type config struct {
 	GcpServiceAccountCredentials string
 	SquareAccessToken            string
 	StripeSecretKey              string
+	StripeWebhookSecret          string
 }
 
 var Env = initConfig()
@@ -50,6 +51,7 @@ func initConfig() *config {
 		GcpServiceAccountCredentials: getEnv("GCP_SERVICE_ACCOUNT_CREDENTIALS", ""),
 		SquareAccessToken:            getEnv("SQUARE_ACCESS_TOKEN", ""),
 		StripeSecretKey:              getEnv("STRIPE_SECRET_KEY", ""),
+		StripeWebhookSecret:          getEnv("STRIPE_WEBHOOK_SECRET", ""),
 	}
 }
 

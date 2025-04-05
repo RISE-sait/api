@@ -18,7 +18,7 @@ import (
 
 func clearTables(ctx context.Context, db *sql.DB) {
 	// Define the schemas you want to truncate tables from
-	schemas := []string{"audit", "events", "haircut",
+	schemas := []string{"athletic", "audit", "events", "haircut",
 		"location", "membership", "program", "public", "staff", "users", "waiver"}
 
 	// Build the TRUNCATE query
@@ -191,7 +191,7 @@ func seedFakeAthletes(ctx context.Context, db *sql.DB, ids []uuid.UUID) {
 	}
 }
 
-func seedPractices(ctx context.Context, db *sql.DB) []uuid.UUID {
+func seedPractices(ctx context.Context, db *sql.DB) {
 
 	seedQueries := dbSeed.New(db)
 
@@ -209,7 +209,7 @@ func seedPractices(ctx context.Context, db *sql.DB) []uuid.UUID {
 		levelArray = append(levelArray, dbSeed.ProgramProgramLevelAll)
 	}
 
-	ids, err := seedQueries.InsertPractices(ctx, dbSeed.InsertPracticesParams{
+	_, err := seedQueries.InsertPractices(ctx, dbSeed.InsertPracticesParams{
 		NameArray:        nameArray,
 		DescriptionArray: descriptionArray,
 		LevelArray:       levelArray,
@@ -218,8 +218,42 @@ func seedPractices(ctx context.Context, db *sql.DB) []uuid.UUID {
 	if err != nil {
 		log.Fatalf("Failed to insert practices: %v", err)
 	}
+}
 
-	return ids
+func seedProgramsMembershipsEligibility(ctx context.Context, db *sql.DB) {
+
+	seedQueries := dbSeed.New(db)
+
+	practices := data.Practices
+
+	var (
+		programNameArray    []string
+		membershipNameArray []string
+		stripePriceIDArray  []string
+	)
+
+	for _, practice := range practices {
+		for _, eligibility := range practice.MembershipsEligibility {
+			programNameArray = append(programNameArray, practice.Name)
+			membershipNameArray = append(membershipNameArray, eligibility.Name)
+
+			if eligibility.StripePriceID == nil {
+				stripePriceIDArray = append(stripePriceIDArray, "")
+			} else {
+				stripePriceIDArray = append(stripePriceIDArray, *eligibility.StripePriceID)
+			}
+		}
+	}
+
+	err := seedQueries.InsertProgramMembership(ctx, dbSeed.InsertProgramMembershipParams{
+		ProgramNameArray:          programNameArray,
+		MembershipNameArray:       membershipNameArray,
+		StripeProgramPriceIDArray: stripePriceIDArray,
+	})
+
+	if err != nil {
+		log.Fatalf("Failed to insert practices: %v", err)
+	}
 }
 
 func seedStaffRoles(ctx context.Context, db *sql.DB) {
@@ -336,7 +370,7 @@ func seedMembershipPlans(ctx context.Context, db *sql.DB) {
 	}
 }
 
-func seedMemberships(ctx context.Context, db *sql.DB) []uuid.UUID {
+func seedMemberships(ctx context.Context, db *sql.DB) {
 
 	seedQueries := dbSeed.New(db)
 
@@ -371,7 +405,7 @@ func seedMemberships(ctx context.Context, db *sql.DB) []uuid.UUID {
 
 	}
 
-	ids, err := seedQueries.InsertMemberships(ctx, dbSeed.InsertMembershipsParams{
+	_, err := seedQueries.InsertMemberships(ctx, dbSeed.InsertMembershipsParams{
 		NameArray:        nameArray,
 		DescriptionArray: descriptionArray,
 		BenefitsArray:    benefitsArray,
@@ -379,20 +413,6 @@ func seedMemberships(ctx context.Context, db *sql.DB) []uuid.UUID {
 
 	if err != nil {
 		log.Fatalf("Failed to insert memberships: %v", err)
-	}
-
-	return ids
-}
-
-func seedFakeEnrollmentFees(ctx context.Context, db *sql.DB, programIds, membershipIds []uuid.UUID) {
-	seedQueries := dbSeed.New(db)
-
-	arg := data.GetEnrollmentFees(programIds, membershipIds)
-
-	// Insert events and sessions into the database
-	if err := seedQueries.InsertEnrollmentFees(ctx, arg); err != nil {
-		log.Fatalf("Failed to insert events: %v", err)
-		return
 	}
 }
 
@@ -486,7 +506,7 @@ func main() {
 
 	teamIds := seedFakeTeams(ctx, db)
 
-	practiceIds := seedPractices(ctx, db)
+	seedPractices(ctx, db)
 
 	seedFakeCourses(ctx, db)
 
@@ -496,9 +516,11 @@ func main() {
 
 	eventIds := seedEvents(ctx, db)
 
-	membershipIds := seedMemberships(ctx, db)
+	seedMemberships(ctx, db)
 
 	seedMembershipPlans(ctx, db)
+
+	seedProgramsMembershipsEligibility(ctx, db)
 
 	updateFakeParents(ctx, db)
 
@@ -509,8 +531,6 @@ func main() {
 	seedFakeClientsEnrollments(ctx, db, clientIds, eventIds)
 
 	seedFakeEventStaff(ctx, db, eventIds, staffIds)
-
-	seedFakeEnrollmentFees(ctx, db, practiceIds, membershipIds)
 
 	seedHaircutServices(ctx, db)
 

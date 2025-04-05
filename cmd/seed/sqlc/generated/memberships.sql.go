@@ -11,22 +11,22 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
-	"github.com/shopspring/decimal"
 )
 
 const insertClientsMembershipPlans = `-- name: InsertClientsMembershipPlans :exec
-WITH prepared_data as (SELECT unnest($1::text[])       as customer_email,
-                              unnest($2::text[])     as membership_plan_name,
-                              unnest($3::timestamptz[])          as start_date,
+WITH prepared_data as (SELECT unnest($1::text[])    as customer_email,
+                              unnest($2::text[])    as membership_plan_name,
+                              unnest($3::timestamptz[]) as start_date,
                               unnest($4::timestamptz[]) as renewal_date)
-INSERT INTO public.customer_membership_plans (customer_id, membership_plan_id, start_date, renewal_date)
+INSERT
+INTO users.customer_membership_plans (customer_id, membership_plan_id, start_date, renewal_date)
 SELECT u.id,
-mp.id,
-p.start_date,
+       mp.id,
+       p.start_date,
        NULLIF(p.renewal_date, '1970-01-01 00:00:00+00'::timestamptz)
 FROM prepared_data p
-                 JOIN users.users u ON u.email = p.customer_email
-JOIN membership.membership_plans mp ON mp.name = membership_plan_name
+         JOIN users.users u ON u.email = p.customer_email
+         JOIN membership.membership_plans mp ON mp.name = membership_plan_name
 `
 
 type InsertClientsMembershipPlansParams struct {
@@ -47,49 +47,38 @@ func (q *Queries) InsertClientsMembershipPlans(ctx context.Context, arg InsertCl
 }
 
 const insertMembershipPlans = `-- name: InsertMembershipPlans :exec
-INSERT INTO membership.membership_plans (name, price, joining_fee, auto_renew, membership_id, payment_frequency,
-                                         amt_periods)
+INSERT INTO membership.membership_plans (name, stripe_joining_fee_id, stripe_price_id, membership_id, amt_periods)
 SELECT name,
-       price,
-       joining_fee,
-       auto_renew,
+       stripe_joining_fee_id,
+       stripe_price_id,
        (SELECT id FROM membership.memberships m WHERE m.name = membership_name),
-       payment_frequency,
        CASE WHEN ap.amt_periods = 0 THEN NULL ELSE ap.amt_periods END
 FROM unnest($1::text[]) WITH ORDINALITY AS n(name, ord)
          JOIN
-     unnest($2::numeric[]) WITH ORDINALITY AS p(price, ord) ON n.ord = p.ord
+     unnest($2::varchar[]) WITH ORDINALITY AS f(stripe_joining_fee_id, ord) ON n.ord = f.ord
          JOIN
-     unnest($3::numeric[]) WITH ORDINALITY AS j(joining_fee, ord) ON n.ord = j.ord
+     unnest($3::varchar[]) WITH ORDINALITY AS p(stripe_price_id, ord) ON n.ord = p.ord
          JOIN
-     unnest($4::boolean[]) WITH ORDINALITY AS a(auto_renew, ord) ON n.ord = a.ord
+     unnest($4::text[]) WITH ORDINALITY AS m(membership_name, ord) ON n.ord = m.ord
          JOIN
-     unnest($5::text[]) WITH ORDINALITY AS m(membership_name, ord) ON n.ord = m.ord
-         JOIN
-     unnest($6::payment_frequency[]) WITH ORDINALITY AS f(payment_frequency, ord) ON n.ord = f.ord
-         JOIN
-     unnest($7::int[]) WITH ORDINALITY AS ap(amt_periods, ord) ON n.ord = ap.ord
+     unnest($5::int[]) WITH ORDINALITY AS ap(amt_periods, ord) ON n.ord = ap.ord
 RETURNING id
 `
 
 type InsertMembershipPlansParams struct {
-	NameArray             []string           `json:"name_array"`
-	PriceArray            []decimal.Decimal  `json:"price_array"`
-	JoiningFeeArray       []decimal.Decimal  `json:"joining_fee_array"`
-	AutoRenewArray        []bool             `json:"auto_renew_array"`
-	MembershipNameArray   []string           `json:"membership_name_array"`
-	PaymentFrequencyArray []PaymentFrequency `json:"payment_frequency_array"`
-	AmtPeriodsArray       []int32            `json:"amt_periods_array"`
+	NameArray               []string `json:"name_array"`
+	StripeJoiningFeeIDArray []string `json:"stripe_joining_fee_id_array"`
+	StripePriceIDArray      []string `json:"stripe_price_id_array"`
+	MembershipNameArray     []string `json:"membership_name_array"`
+	AmtPeriodsArray         []int32  `json:"amt_periods_array"`
 }
 
 func (q *Queries) InsertMembershipPlans(ctx context.Context, arg InsertMembershipPlansParams) error {
 	_, err := q.db.ExecContext(ctx, insertMembershipPlans,
 		pq.Array(arg.NameArray),
-		pq.Array(arg.PriceArray),
-		pq.Array(arg.JoiningFeeArray),
-		pq.Array(arg.AutoRenewArray),
+		pq.Array(arg.StripeJoiningFeeIDArray),
+		pq.Array(arg.StripePriceIDArray),
 		pq.Array(arg.MembershipNameArray),
-		pq.Array(arg.PaymentFrequencyArray),
 		pq.Array(arg.AmtPeriodsArray),
 	)
 	return err

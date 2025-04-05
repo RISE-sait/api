@@ -74,134 +74,67 @@ func AllAuditAuditStatusValues() []AuditAuditStatus {
 	}
 }
 
-type MembershipStatus string
+type MembershipMembershipStatus string
 
 const (
-	MembershipStatusActive   MembershipStatus = "active"
-	MembershipStatusInactive MembershipStatus = "inactive"
-	MembershipStatusCanceled MembershipStatus = "canceled"
-	MembershipStatusExpired  MembershipStatus = "expired"
+	MembershipMembershipStatusActive   MembershipMembershipStatus = "active"
+	MembershipMembershipStatusInactive MembershipMembershipStatus = "inactive"
+	MembershipMembershipStatusCanceled MembershipMembershipStatus = "canceled"
+	MembershipMembershipStatusExpired  MembershipMembershipStatus = "expired"
 )
 
-func (e *MembershipStatus) Scan(src interface{}) error {
+func (e *MembershipMembershipStatus) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = MembershipStatus(s)
+		*e = MembershipMembershipStatus(s)
 	case string:
-		*e = MembershipStatus(s)
+		*e = MembershipMembershipStatus(s)
 	default:
-		return fmt.Errorf("unsupported scan type for MembershipStatus: %T", src)
+		return fmt.Errorf("unsupported scan type for MembershipMembershipStatus: %T", src)
 	}
 	return nil
 }
 
-type NullMembershipStatus struct {
-	MembershipStatus MembershipStatus `json:"membership_status"`
-	Valid            bool             `json:"valid"` // Valid is true if MembershipStatus is not NULL
+type NullMembershipMembershipStatus struct {
+	MembershipMembershipStatus MembershipMembershipStatus `json:"membership_membership_status"`
+	Valid                      bool                       `json:"valid"` // Valid is true if MembershipMembershipStatus is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullMembershipStatus) Scan(value interface{}) error {
+func (ns *NullMembershipMembershipStatus) Scan(value interface{}) error {
 	if value == nil {
-		ns.MembershipStatus, ns.Valid = "", false
+		ns.MembershipMembershipStatus, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.MembershipStatus.Scan(value)
+	return ns.MembershipMembershipStatus.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullMembershipStatus) Value() (driver.Value, error) {
+func (ns NullMembershipMembershipStatus) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.MembershipStatus), nil
+	return string(ns.MembershipMembershipStatus), nil
 }
 
-func (e MembershipStatus) Valid() bool {
+func (e MembershipMembershipStatus) Valid() bool {
 	switch e {
-	case MembershipStatusActive,
-		MembershipStatusInactive,
-		MembershipStatusCanceled,
-		MembershipStatusExpired:
+	case MembershipMembershipStatusActive,
+		MembershipMembershipStatusInactive,
+		MembershipMembershipStatusCanceled,
+		MembershipMembershipStatusExpired:
 		return true
 	}
 	return false
 }
 
-func AllMembershipStatusValues() []MembershipStatus {
-	return []MembershipStatus{
-		MembershipStatusActive,
-		MembershipStatusInactive,
-		MembershipStatusCanceled,
-		MembershipStatusExpired,
-	}
-}
-
-type PaymentFrequency string
-
-const (
-	PaymentFrequencyOnce     PaymentFrequency = "once"
-	PaymentFrequencyWeek     PaymentFrequency = "week"
-	PaymentFrequencyBiweekly PaymentFrequency = "biweekly"
-	PaymentFrequencyMonth    PaymentFrequency = "month"
-	PaymentFrequencyDay      PaymentFrequency = "day"
-)
-
-func (e *PaymentFrequency) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = PaymentFrequency(s)
-	case string:
-		*e = PaymentFrequency(s)
-	default:
-		return fmt.Errorf("unsupported scan type for PaymentFrequency: %T", src)
-	}
-	return nil
-}
-
-type NullPaymentFrequency struct {
-	PaymentFrequency PaymentFrequency `json:"payment_frequency"`
-	Valid            bool             `json:"valid"` // Valid is true if PaymentFrequency is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullPaymentFrequency) Scan(value interface{}) error {
-	if value == nil {
-		ns.PaymentFrequency, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.PaymentFrequency.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullPaymentFrequency) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.PaymentFrequency), nil
-}
-
-func (e PaymentFrequency) Valid() bool {
-	switch e {
-	case PaymentFrequencyOnce,
-		PaymentFrequencyWeek,
-		PaymentFrequencyBiweekly,
-		PaymentFrequencyMonth,
-		PaymentFrequencyDay:
-		return true
-	}
-	return false
-}
-
-func AllPaymentFrequencyValues() []PaymentFrequency {
-	return []PaymentFrequency{
-		PaymentFrequencyOnce,
-		PaymentFrequencyWeek,
-		PaymentFrequencyBiweekly,
-		PaymentFrequencyMonth,
-		PaymentFrequencyDay,
+func AllMembershipMembershipStatusValues() []MembershipMembershipStatus {
+	return []MembershipMembershipStatus{
+		MembershipMembershipStatusActive,
+		MembershipMembershipStatusInactive,
+		MembershipMembershipStatusCanceled,
+		MembershipMembershipStatusExpired,
 	}
 }
 
@@ -371,54 +304,6 @@ type AuditOutbox struct {
 	CreatedAt    time.Time        `json:"created_at"`
 }
 
-type CustomerDiscountUsage struct {
-	CustomerID uuid.UUID `json:"customer_id"`
-	DiscountID uuid.UUID `json:"discount_id"`
-	UsageCount int32     `json:"usage_count"`
-	LastUsedAt time.Time `json:"last_used_at"`
-}
-
-type CustomerMembershipPlan struct {
-	ID               uuid.UUID        `json:"id"`
-	CustomerID       uuid.UUID        `json:"customer_id"`
-	MembershipPlanID uuid.UUID        `json:"membership_plan_id"`
-	StartDate        time.Time        `json:"start_date"`
-	RenewalDate      sql.NullTime     `json:"renewal_date"`
-	Status           MembershipStatus `json:"status"`
-	CreatedAt        time.Time        `json:"created_at"`
-	UpdatedAt        time.Time        `json:"updated_at"`
-}
-
-type Discount struct {
-	ID              uuid.UUID      `json:"id"`
-	Name            string         `json:"name"`
-	Description     sql.NullString `json:"description"`
-	DiscountPercent int32          `json:"discount_percent"`
-	IsUseUnlimited  bool           `json:"is_use_unlimited"`
-	UsePerClient    sql.NullInt32  `json:"use_per_client"`
-	IsActive        bool           `json:"is_active"`
-	ValidFrom       time.Time      `json:"valid_from"`
-	ValidTo         sql.NullTime   `json:"valid_to"`
-	CreatedAt       time.Time      `json:"created_at"`
-	UpdatedAt       time.Time      `json:"updated_at"`
-}
-
-type DiscountRestrictedMembershipPlan struct {
-	DiscountID       uuid.UUID `json:"discount_id"`
-	MembershipPlanID uuid.UUID `json:"membership_plan_id"`
-	CreatedAt        time.Time `json:"created_at"`
-}
-
-type EnrollmentFee struct {
-	ID           uuid.UUID      `json:"id"`
-	ProgramID    uuid.UUID      `json:"program_id"`
-	MembershipID uuid.NullUUID  `json:"membership_id"`
-	DropInPrice  sql.NullString `json:"drop_in_price"`
-	ProgramPrice sql.NullString `json:"program_price"`
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
-}
-
 type EventsAttendance struct {
 	ID          uuid.UUID    `json:"id"`
 	EventID     uuid.UUID    `json:"event_id"`
@@ -455,14 +340,6 @@ type EventsEvent struct {
 type EventsStaff struct {
 	EventID uuid.UUID `json:"event_id"`
 	StaffID uuid.UUID `json:"staff_id"`
-}
-
-type Game struct {
-	ID        uuid.UUID `json:"id"`
-	WinTeam   uuid.UUID `json:"win_team"`
-	LoseTeam  uuid.UUID `json:"lose_team"`
-	WinScore  int32     `json:"win_score"`
-	LoseScore int32     `json:"lose_score"`
 }
 
 type HaircutBarberService struct {
@@ -512,16 +389,22 @@ type MembershipMembership struct {
 }
 
 type MembershipMembershipPlan struct {
-	ID               uuid.UUID        `json:"id"`
-	Name             string           `json:"name"`
-	Price            string           `json:"price"`
-	JoiningFee       string           `json:"joining_fee"`
-	AutoRenew        bool             `json:"auto_renew"`
-	MembershipID     uuid.UUID        `json:"membership_id"`
-	PaymentFrequency PaymentFrequency `json:"payment_frequency"`
-	AmtPeriods       sql.NullInt32    `json:"amt_periods"`
-	CreatedAt        time.Time        `json:"created_at"`
-	UpdatedAt        time.Time        `json:"updated_at"`
+	ID                 uuid.UUID      `json:"id"`
+	Name               string         `json:"name"`
+	StripePriceID      string         `json:"stripe_price_id"`
+	StripeJoiningFeeID sql.NullString `json:"stripe_joining_fee_id"`
+	MembershipID       uuid.UUID      `json:"membership_id"`
+	AmtPeriods         sql.NullInt32  `json:"amt_periods"`
+	CreatedAt          time.Time      `json:"created_at"`
+	UpdatedAt          time.Time      `json:"updated_at"`
+}
+
+type ProgramGame struct {
+	ID        uuid.UUID `json:"id"`
+	WinTeam   uuid.UUID `json:"win_team"`
+	LoseTeam  uuid.UUID `json:"lose_team"`
+	WinScore  int32     `json:"win_score"`
+	LoseScore int32     `json:"lose_score"`
 }
 
 type ProgramProgram struct {
@@ -533,6 +416,14 @@ type ProgramProgram struct {
 	Capacity    sql.NullInt32       `json:"capacity"`
 	CreatedAt   time.Time           `json:"created_at"`
 	UpdatedAt   time.Time           `json:"updated_at"`
+}
+
+type ProgramProgramMembership struct {
+	ProgramID            uuid.UUID     `json:"program_id"`
+	MembershipID         uuid.NullUUID `json:"membership_id"`
+	StripeProgramPriceID string        `json:"stripe_program_price_id"`
+	CreatedAt            time.Time     `json:"created_at"`
+	UpdatedAt            time.Time     `json:"updated_at"`
 }
 
 type StaffStaff struct {
@@ -560,6 +451,17 @@ type StaffStaffRole struct {
 type UsersCustomerCredit struct {
 	CustomerID uuid.UUID `json:"customer_id"`
 	Credits    int32     `json:"credits"`
+}
+
+type UsersCustomerMembershipPlan struct {
+	ID               uuid.UUID                  `json:"id"`
+	CustomerID       uuid.UUID                  `json:"customer_id"`
+	MembershipPlanID uuid.UUID                  `json:"membership_plan_id"`
+	StartDate        time.Time                  `json:"start_date"`
+	RenewalDate      sql.NullTime               `json:"renewal_date"`
+	Status           MembershipMembershipStatus `json:"status"`
+	CreatedAt        time.Time                  `json:"created_at"`
+	UpdatedAt        time.Time                  `json:"updated_at"`
 }
 
 type UsersUser struct {

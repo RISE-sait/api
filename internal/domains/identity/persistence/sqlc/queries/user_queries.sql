@@ -22,12 +22,11 @@ WITH u
                AND (u2.email = sqlc.narg('email') OR sqlc.narg('email') IS NULL)
              LIMIT 1),
      latest_cmp AS (SELECT DISTINCT ON (customer_id) *
-                    FROM public.customer_membership_plans
+                    FROM users.customer_membership_plans
                     WHERE customer_id = (SELECT id FROM u)
                     ORDER BY customer_id, start_date DESC)
 SELECT u.*,
        mp.name          as membership_plan_name,
-       mp.auto_renew    as membership_plan_auto_renew,
        cmp.start_date   as membership_plan_start_date,
        cmp.renewal_date as membership_plan_renewal_date,
        m.name        as membership_name,

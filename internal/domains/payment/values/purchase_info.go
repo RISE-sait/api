@@ -2,7 +2,6 @@ package values
 
 import (
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 	"time"
 )
 
@@ -13,21 +12,13 @@ type MembershipPlanPurchaseInfo struct {
 	RenewalDate      *time.Time
 }
 
-type ProgramRegistrationInfo struct {
-	ProgramName string
-	Price       decimal.NullDecimal
-}
-
 type MembershipPlanJoiningRequirement struct {
-	ID               uuid.UUID
-	Name             string
-	Price            decimal.Decimal
-	JoiningFee       decimal.Decimal
-	AutoRenew        bool
-	MembershipID     uuid.UUID
-	PaymentFrequency string
-	AmtPeriods       *int32
-	IsOneTimePayment bool
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	ID                 uuid.UUID
+	Name               string
+	StripePriceID      string
+	StripeJoiningFeeID string
+	MembershipID       uuid.UUID
+	AmtPeriods         *int32
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
 }

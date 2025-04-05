@@ -23,10 +23,10 @@ SELECT u.*,
        a.rebounds,
        a.steals
 FROM users.users u
-         LEFT JOIN public.customer_membership_plans cmp ON (
+         LEFT JOIN users.customer_membership_plans cmp ON (
     cmp.customer_id = u.id AND
     cmp.start_date = (SELECT MAX(start_date)
-                      FROM public.customer_membership_plans
+                      FROM users.customer_membership_plans
                       WHERE customer_id = u.id)
     )
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
@@ -52,10 +52,10 @@ SELECT u.*,
        a.rebounds,
        a.steals
 FROM users.users u
-         LEFT JOIN public.customer_membership_plans cmp ON (
+         LEFT JOIN users.customer_membership_plans cmp ON (
     cmp.customer_id = u.id AND
     cmp.start_date = (SELECT MAX(start_date)
-                      FROM public.customer_membership_plans
+                      FROM users.customer_membership_plans
                       WHERE customer_id = u.id)
     )
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id

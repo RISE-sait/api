@@ -101,22 +101,8 @@ func (r *EventsRepository) CreateEvent(ctx context.Context, eventDetails values.
 	return nil
 }
 
-func (r *EventsRepository) GetEventCreatedBy(ctx context.Context, eventID uuid.UUID) (uuid.UUID, *errLib.CommonError) {
-	userID, err := r.Queries.GetEventCreatedBy(ctx, eventID)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return uuid.Nil, errLib.New("Event not found", http.StatusNotFound)
-		}
-		log.Println("Failed to get event from db: ", err.Error())
-		return uuid.Nil, errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-
-	return userID, nil
-}
-
 func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEventValues, *errLib.CommonError) {
-	rows, err := r.Queries.GetEventById(ctx, id)
+	dbEvent, err := r.Queries.GetEventById(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return values.ReadEventValues{}, errLib.New("Event not found", http.StatusNotFound)
@@ -125,115 +111,90 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 		return values.ReadEventValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	var event values.ReadEventValues
-	event.Staffs = []values.Staff{}
-	event.Customers = []values.Customer{}
+	eventValue := values.ReadEventValues{
+		ID:        dbEvent.ID,
+		CreatedAt: dbEvent.CreatedAt,
+		UpdatedAt: dbEvent.UpdatedAt,
+		StartAt:   dbEvent.StartAt,
+		EndAt:     dbEvent.EndAt,
+		Capacity:  dbEvent.Capacity.Int32,
+		Location: struct {
+			ID      uuid.UUID
+			Name    string
+			Address string
+		}{
+			ID:      dbEvent.LocationID,
+			Name:    dbEvent.LocationName,
+			Address: dbEvent.LocationAddress,
+		},
+		CreatedBy: values.ReadPersonValues{
+			ID:        dbEvent.CreatedBy,
+			FirstName: dbEvent.CreatorFirstName,
+			LastName:  dbEvent.CreatorLastName,
+		},
+		UpdatedBy: values.ReadPersonValues{
+			ID:        dbEvent.UpdatedBy,
+			FirstName: dbEvent.UpdaterFirstName,
+			LastName:  dbEvent.UpdaterLastName,
+		},
+	}
 
-	for i, row := range rows {
+	eventCustomers := make([]values.Customer, 0)
+	eventStaffs := make([]values.Staff, 0)
 
-		if i == 0 {
+	dbStaffs, err := r.Queries.GetEventStaffs(ctx, id)
 
-			event = values.ReadEventValues{
-				ID:        row.ID,
-				CreatedAt: row.CreatedAt,
-				UpdatedAt: row.UpdatedAt,
-				StartAt:   row.StartAt,
-				EndAt:     row.EndAt,
-				Capacity:  row.Capacity.Int32,
-				Location: struct {
-					ID      uuid.UUID
-					Name    string
-					Address string
-				}{
-					ID:      row.LocationID,
-					Name:    row.LocationName,
-					Address: row.LocationAddress,
-				},
-				CreatedBy: values.ReadPersonValues{
-					ID:        row.CreatedBy,
-					FirstName: row.CreatorFirstName,
-					LastName:  row.CreatorLastName,
-				},
-				UpdatedBy: values.ReadPersonValues{
-					ID:        row.UpdatedBy,
-					FirstName: row.UpdaterFirstName,
-					LastName:  row.UpdaterLastName,
-				},
-			}
+	if err != nil {
+		log.Println("Failed to get event staffs from db: ", err.Error())
+		return values.ReadEventValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
 
-			if row.TeamID.Valid && row.TeamName.Valid {
-				event.Team = &struct {
-					ID   uuid.UUID
-					Name string
-				}{
-					ID:   row.TeamID.UUID,
-					Name: row.TeamName.String,
-				}
-			}
+	for _, dbStaff := range dbStaffs {
 
-			if row.ProgramID.Valid && row.ProgramName.Valid {
-				event.Program = &struct {
-					ID          uuid.UUID
-					Name        string
-					Description string
-					Type        string
-				}{
-					ID:          row.ProgramID.UUID,
-					Name:        row.ProgramName.String,
-					Description: row.ProgramDescription.String,
-					Type:        string(row.ProgramType.ProgramProgramType),
-				}
-			}
-		}
-
-		// Add staff member if exists in this row
-		if row.StaffID.Valid {
+		// Add staff member if exists in this dbStaff
+		if dbStaff.StaffID.Valid {
 			staff := values.Staff{
 				ReadPersonValues: values.ReadPersonValues{
 
-					ID:        row.StaffID.UUID,
-					FirstName: row.StaffFirstName.String,
-					LastName:  row.StaffLastName.String,
+					ID:        dbStaff.StaffID.UUID,
+					FirstName: dbStaff.StaffFirstName.String,
+					LastName:  dbStaff.StaffLastName.String,
 				},
-				Phone:    row.StaffPhone.String,
-				Gender:   stringToPtr(row.StaffGender),
-				RoleName: row.StaffRoleName.String,
+				Phone:    dbStaff.StaffPhone.String,
+				Gender:   stringToPtr(dbStaff.StaffGender),
+				RoleName: dbStaff.StaffRoleName.String,
 			}
-			// Check for duplicates
-			exists := false
-			for _, s := range event.Staffs {
-				if s.ID == staff.ID {
-					exists = true
-					break
-				}
-			}
-			if !exists {
-				event.Staffs = append(event.Staffs, staff)
-			}
-		}
 
-		// Add customer if exists in this row
-		if row.CustomerID.Valid {
+			eventStaffs = append(eventStaffs, staff)
+		}
+	}
+
+	dbCustomers, err := r.Queries.GetEventCustomers(ctx, id)
+
+	if err != nil {
+		log.Println("Failed to get event customers from db: ", err.Error())
+		return values.ReadEventValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	for _, dbCustomer := range dbCustomers {
+
+		// Add staff member if exists in this dbStaff
+		if dbCustomer.CustomerID.Valid {
 			customer := values.Customer{
 				ReadPersonValues: values.ReadPersonValues{
-					ID:        row.CustomerID.UUID,
-					FirstName: row.CustomerFirstName.String,
-					LastName:  row.CustomerLastName.String,
+
+					ID:        dbCustomer.CustomerID.UUID,
+					FirstName: dbCustomer.CustomerFirstName.String,
+					LastName:  dbCustomer.CustomerLastName.String,
 				},
-				Phone:                  stringToPtr(row.CustomerPhone),
-				Gender:                 stringToPtr(row.CustomerGender),
-				HasCancelledEnrollment: row.CustomerEnrollmentIsCancelled.Bool,
+				Phone:  stringToPtr(dbCustomer.CustomerPhone),
+				Gender: stringToPtr(dbCustomer.CustomerGender),
 			}
-			event.Customers = append(event.Customers, customer)
+			eventCustomers = append(eventCustomers, customer)
 		}
 	}
 
-	// If no rows were returned at all
-	if event.ID == uuid.Nil {
-		return values.ReadEventValues{}, errLib.New("Event not found", http.StatusNotFound)
-	}
-
-	return event, nil
+	return eventValue, nil
 }
 
 func (r *EventsRepository) GetEvents(ctx context.Context, programTypeStr string, programID, locationID, userID, teamID, createdBy, updatedBy uuid.UUID, before, after time.Time) ([]values.ReadEventValues, *errLib.CommonError) {

@@ -56,7 +56,35 @@ WHERE (
               AND (sqlc.narg('include_cancelled')::boolean IS NULL OR e.is_cancelled = sqlc.narg('include_cancelled'))
           );
 
--- name: GetEventById :many
+-- name: GetEventCustomers :many
+SELECT u.id            AS customer_id,
+       u.first_name    AS customer_first_name,
+       u.last_name     AS customer_last_name,
+       u.email         AS customer_email,
+       u.phone         AS customer_phone,
+       u.gender        AS customer_gender,
+
+       ce.is_cancelled AS customer_enrollment_is_cancelled
+
+FROM events.customer_enrollment ce
+         LEFT JOIN users.users u ON ce.customer_id = u.id
+WHERE ce.event_id = $1;
+
+-- name: GetEventStaffs :many
+SELECT s.id         AS staff_id,
+       sr.role_name AS staff_role_name,
+       u.email      AS staff_email,
+       u.first_name AS staff_first_name,
+       u.last_name  AS staff_last_name,
+       u.gender     AS staff_gender,
+       u.phone      AS staff_phone
+FROM events.staff es
+         LEFT JOIN staff.staff s ON es.staff_id = s.id
+         LEFT JOIN staff.staff_roles sr ON s.role_id = sr.id
+         LEFT JOIN users.users u ON s.id = u.id
+WHERE es.event_id = $1;
+
+-- name: GetEventById :one
 SELECT e.*,
 
        creator.first_name AS creator_first_name,
@@ -70,23 +98,6 @@ SELECT e.*,
        p."type"           AS program_type,
        l.name             AS location_name,
        l.address          AS location_address,
-       -- Staff fields
-       s.id               AS staff_id,
-       sr.role_name       AS staff_role_name,
-       us.email           AS staff_email,
-       us.first_name      AS staff_first_name,
-       us.last_name       AS staff_last_name,
-       us.gender          AS staff_gender,
-       us.phone           AS staff_phone,
-       -- Customer fields
-       uc.id              AS customer_id,
-       uc.first_name      AS customer_first_name,
-       uc.last_name       AS customer_last_name,
-       uc.email           AS customer_email,
-       uc.phone           AS customer_phone,
-       uc.gender          AS customer_gender,
-
-       ce.is_cancelled    AS customer_enrollment_is_cancelled,
 
        -- Team field (added missing team reference)
        t.id               AS team_id,
@@ -96,15 +107,8 @@ FROM events.events e
          JOIN users.users updater ON updater.id = e.updated_by
          LEFT JOIN program.programs p ON e.program_id = p.id
          JOIN location.locations l ON e.location_id = l.id
-         LEFT JOIN events.staff es ON e.id = es.event_id
-         LEFT JOIN staff.staff s ON es.staff_id = s.id
-         LEFT JOIN staff.staff_roles sr ON s.role_id = sr.id
-         LEFT JOIN users.users us ON s.id = us.id
-         LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
-         LEFT JOIN users.users uc ON ce.customer_id = uc.id
          LEFT JOIN athletic.teams t ON t.id = e.team_id
-WHERE e.id = $1
-ORDER BY s.id, uc.id;
+WHERE e.id = $1;
 
 -- name: UpdateEvent :one
 UPDATE events.events
@@ -120,11 +124,6 @@ SET start_at            = $1,
     updated_by          = sqlc.arg('updated_by')::uuid
 WHERE id = $9
 RETURNING *;
-
--- name: GetEventCreatedBy :one
-SELECT created_by
-FROM events.events
-WHERE id = $1;
 
 -- name: DeleteEvent :exec
 DELETE

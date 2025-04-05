@@ -243,10 +243,8 @@ func TestDeleteEvent(t *testing.T) {
 
 	// Try to fetch the deleted event
 
-	eventInfo, err := eventQueries.GetEventById(context.Background(), createdEvent.ID)
+	_, err = eventQueries.GetEventById(context.Background(), createdEvent.ID)
 
-	require.Nil(t, err)
-
-	require.Equal(t, len(eventInfo), 0)
-
+	require.Error(t, err)
+	require.Equal(t, sql.ErrNoRows, err)
 }

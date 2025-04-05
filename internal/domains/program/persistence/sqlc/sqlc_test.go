@@ -208,7 +208,8 @@ func TestUpdateNonExistentProgram(t *testing.T) {
 	}
 
 	_, err := queries.UpdateProgram(context.Background(), updateParams)
-	require.Nil(t, err)
+	require.Error(t, err)
+	require.Equal(t, sql.ErrNoRows, err)
 }
 
 func TestCreateCourseWithWrongLevel(t *testing.T) {

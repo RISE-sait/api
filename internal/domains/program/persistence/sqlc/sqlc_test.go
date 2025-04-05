@@ -1,4 +1,4 @@
-package program
+package program_test
 
 import (
 	databaseErrors "api/internal/constants"

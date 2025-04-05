@@ -399,6 +399,15 @@ type MembershipMembershipPlan struct {
 	UpdatedAt          time.Time      `json:"updated_at"`
 }
 
+type ProgramCustomerEnrollment struct {
+	ID          uuid.UUID `json:"id"`
+	CustomerID  uuid.UUID `json:"customer_id"`
+	ProgramID   uuid.UUID `json:"program_id"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	IsCancelled bool      `json:"is_cancelled"`
+}
+
 type ProgramGame struct {
 	ID        uuid.UUID `json:"id"`
 	WinTeam   uuid.UUID `json:"win_team"`

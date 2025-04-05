@@ -48,7 +48,9 @@ func (r *EventsRepository) CreateEvent(ctx context.Context, eventDetails values.
 		},
 	}
 
-	if dbErr := r.Queries.CreateEvent(ctx, dbParams); dbErr != nil {
+	_, dbErr := r.Queries.CreateEvent(ctx, dbParams)
+
+	if dbErr != nil {
 
 		var pqErr *pq.Error
 		if errors.As(dbErr, &pqErr) {
@@ -371,7 +373,9 @@ func (r *EventsRepository) UpdateEvent(ctx context.Context, event values.UpdateE
 		},
 	}
 
-	if dbErr := r.Queries.UpdateEvent(ctx, dbEventParams); dbErr != nil {
+	_, dbErr := r.Queries.UpdateEvent(ctx, dbEventParams)
+
+	if dbErr != nil {
 
 		var pqErr *pq.Error
 		if errors.As(dbErr, &pqErr) {

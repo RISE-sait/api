@@ -12,6 +12,35 @@ func SetupProgramTestDbQueries(t *testing.T, testDb *sql.DB) (*db.Queries, func(
 
 	migrationScript := `
 
+create schema if not exists users;
+
+create table if not exists users.users
+(
+    id                          uuid                     default gen_random_uuid() not null
+        primary key,
+    hubspot_id                  text
+        unique,
+    country_alpha2_code         char(2)                                            not null,
+    gender                      char
+        constraint users_gender_check
+            check (gender = ANY (ARRAY ['M'::bpchar, 'F'::bpchar])),
+    first_name                  varchar(20)                                        not null,
+    last_name                   varchar(20)                                        not null,
+    age                         integer                                            not null,
+    parent_id                   uuid
+        references users.users,
+    phone                       varchar(25),
+    email                       varchar(255)
+        unique,
+    has_marketing_email_consent boolean                                            not null,
+    has_sms_consent             boolean                                            not null,
+    created_at                  timestamp with time zone default CURRENT_TIMESTAMP not null,
+    updated_at                  timestamp with time zone default CURRENT_TIMESTAMP not null
+);
+
+alter table users.users
+    owner to postgres;
+
 create schema if not exists program;
 
 DO $$ 

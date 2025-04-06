@@ -5,7 +5,6 @@ import (
 	errLib "api/internal/libs/errors"
 	contextUtils "api/utils/context"
 	"context"
-	"github.com/google/uuid"
 	_ "github.com/square/square-go-sdk/client"
 	"github.com/stripe/stripe-go/v81"
 	"github.com/stripe/stripe-go/v81/checkout/session"
@@ -69,13 +68,11 @@ func CreateSubscription(
 	stripeJoiningFeesID string,
 ) (string, *errLib.CommonError) {
 
-	//userID, err := contextUtils.GetUserID(ctx)
+	userID, err := contextUtils.GetUserID(ctx)
 
-	//if err != nil {
-	//	return "", err
-	//}
-
-	userID := uuid.MustParse("1d4555dd-2ba9-4ba3-947a-e9d34a3295c1")
+	if err != nil {
+		return "", err
+	}
 
 	if strings.ReplaceAll(stripe.Key, " ", "") == "" {
 		return "", errLib.New("Stripe not initialized", http.StatusInternalServerError)

@@ -8,16 +8,16 @@ RETURNING *;
 INSERT INTO events.events
 (location_id, program_id, team_id, start_at, end_at, created_by, updated_by, capacity, is_cancelled,
  cancellation_reason)
-SELECT unnest($1::uuid[]),
-       unnest($2::uuid[]),
-       unnest($3::uuid[]),
-       unnest($4::timestamptz[]),
-       unnest($5::timestamptz[]),
-       unnest($6::uuid[]),
-       unnest($7::uuid[]),
-       unnest($8::int[]),
-       unnest($9::bool[]),
-       unnest($10::text[]);
+SELECT unnest(sqlc.arg('location_ids')::uuid[]),
+       unnest(sqlc.arg('program_ids')::uuid[]),
+       unnest(sqlc.arg('team_ids')::uuid[]),
+       unnest(sqlc.arg('start_at_array')::timestamptz[]),
+       unnest(sqlc.arg('end_at_array')::timestamptz[]),
+       unnest(sqlc.arg('created_by_ids')::uuid[]),
+       unnest(sqlc.arg('updated_by_ids')::uuid[]),
+       unnest(sqlc.arg('capacities')::int[]),
+       unnest(sqlc.arg('is_cancelled_array')::bool[]),
+       unnest(sqlc.arg('cancellation_reasons')::text[]);
 
 -- name: GetEvents :many
 SELECT DISTINCT e.*,
@@ -67,7 +67,7 @@ SELECT u.id            AS customer_id,
        ce.is_cancelled AS customer_enrollment_is_cancelled
 
 FROM events.customer_enrollment ce
-         LEFT JOIN users.users u ON ce.customer_id = u.id
+         JOIN users.users u ON ce.customer_id = u.id
 WHERE ce.event_id = $1;
 
 -- name: GetEventStaffs :many
@@ -79,9 +79,9 @@ SELECT s.id         AS staff_id,
        u.gender     AS staff_gender,
        u.phone      AS staff_phone
 FROM events.staff es
-         LEFT JOIN staff.staff s ON es.staff_id = s.id
-         LEFT JOIN staff.staff_roles sr ON s.role_id = sr.id
-         LEFT JOIN users.users u ON s.id = u.id
+         JOIN staff.staff s ON es.staff_id = s.id
+         JOIN staff.staff_roles sr ON s.role_id = sr.id
+         JOIN users.users u ON s.id = u.id
 WHERE es.event_id = $1;
 
 -- name: GetEventById :one

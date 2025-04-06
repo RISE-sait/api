@@ -1,7 +1,7 @@
-package event
+package enrollment
 
 import (
-	db "api/internal/domains/event/persistence/sqlc/generated"
+	db "api/internal/domains/enrollment/persistence/sqlc/generated"
 	errLib "api/internal/libs/errors"
 
 	"context"

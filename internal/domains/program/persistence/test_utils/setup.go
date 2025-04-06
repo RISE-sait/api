@@ -45,6 +45,30 @@ create table if not exists program.programs
 alter table program.programs
     owner to postgres;
 
+create table if not exists program.customer_enrollment
+(
+    id           uuid                     default gen_random_uuid() not null
+        primary key,
+    customer_id  uuid                                               not null
+        constraint fk_customer
+            references users.users
+            on delete cascade,
+    program_id   uuid                                               not null
+        constraint fk_program
+            references program.programs
+            on delete cascade,
+    created_at   timestamp with time zone default CURRENT_TIMESTAMP not null,
+    updated_at   timestamp with time zone default CURRENT_TIMESTAMP not null,
+    is_cancelled boolean                  default false             not null,
+    constraint unique_customer_program
+        unique (customer_id, program_id)
+);
+
+alter table program.customer_enrollment
+    owner to postgres;
+
+
+
 `
 
 	_, err := testDb.Exec(migrationScript)

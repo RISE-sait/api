@@ -2,7 +2,10 @@ package router
 
 import (
 	"api/internal/di"
-	enrollmentService "api/internal/domains/event/service"
+
+	enrollmentHandler "api/internal/domains/enrollment/handler"
+	enrollmentRepo "api/internal/domains/enrollment/persistence/repository"
+
 	"api/internal/domains/game"
 	gameRepo "api/internal/domains/game/persistence"
 	haircutRepo "api/internal/domains/haircut/persistence/repository"
@@ -228,9 +231,6 @@ func RegisterScheduleRoutes(container *di.Container) func(chi.Router) {
 
 	return func(r chi.Router) {
 		r.Get("/", handler.GetSchedules)
-
-		r.Route("/{event_id}/staffs", RegisterEventStaffRoutes(container))
-		r.Route("/{event_id}/customers", RegisterEventCustomerRoutes(container))
 	}
 }
 
@@ -246,26 +246,13 @@ func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/{id}", handler.DeleteEvent)
 
 		r.Route("/{event_id}/staffs", RegisterEventStaffRoutes(container))
-		r.Route("/{event_id}/customers", RegisterEventCustomerRoutes(container))
-	}
-}
-
-func RegisterEventCustomerRoutes(container *di.Container) func(chi.Router) {
-
-	repo := eventRepo.NewEnrollmentRepository(container.Queries.EventDb)
-	service := enrollmentService.NewEnrollmentService(repo)
-	h := eventHandler.NewCustomerEnrollmentHandler(service)
-
-	return func(r chi.Router) {
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/{customer_id}", h.EnrollCustomer)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{customer_id}", h.UnenrollCustomer)
 	}
 }
 
 func RegisterEventStaffRoutes(container *di.Container) func(chi.Router) {
 
-	repo := eventRepo.NewEventStaffsRepository(container.Queries.EventDb)
-	h := eventHandler.NewEventStaffsHandler(repo)
+	repo := enrollmentRepo.NewEventStaffsRepository(container.Queries.EnrollmentDb)
+	h := enrollmentHandler.NewEventStaffsHandler(repo)
 
 	return func(r chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/{staff_id}", h.AssignStaffToEvent)
@@ -278,7 +265,7 @@ func RegisterCheckoutRoutes(container *di.Container) func(chi.Router) {
 	h := payment.NewCheckoutHandlers(container)
 
 	return func(r chi.Router) {
-		r.With(middlewares.JWTAuthMiddleware(true)).Post("/membership_plans/{id}", h.CheckoutMembership)
+		r.Post("/membership_plans/{id}", h.CheckoutMembership)
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/programs/{id}", h.CheckoutProgram)
 	}
 }

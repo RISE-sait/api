@@ -1,4 +1,4 @@
-package event
+package enrollment_test
 
 //
 //import (

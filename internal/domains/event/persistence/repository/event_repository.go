@@ -151,22 +151,19 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 
 	for _, dbStaff := range dbStaffs {
 
-		// Add staff member if exists in this dbStaff
-		if dbStaff.StaffID.Valid {
-			staff := values.Staff{
-				ReadPersonValues: values.ReadPersonValues{
+		staff := values.Staff{
+			ReadPersonValues: values.ReadPersonValues{
 
-					ID:        dbStaff.StaffID.UUID,
-					FirstName: dbStaff.StaffFirstName.String,
-					LastName:  dbStaff.StaffLastName.String,
-				},
-				Phone:    dbStaff.StaffPhone.String,
-				Gender:   stringToPtr(dbStaff.StaffGender),
-				RoleName: dbStaff.StaffRoleName.String,
-			}
-
-			eventStaffs = append(eventStaffs, staff)
+				ID:        dbStaff.StaffID,
+				FirstName: dbStaff.StaffFirstName,
+				LastName:  dbStaff.StaffLastName,
+			},
+			Phone:    dbStaff.StaffPhone.String,
+			Gender:   stringToPtr(dbStaff.StaffGender),
+			RoleName: dbStaff.StaffRoleName,
 		}
+
+		eventStaffs = append(eventStaffs, staff)
 	}
 
 	dbCustomers, err := r.Queries.GetEventCustomers(ctx, id)
@@ -178,20 +175,17 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 
 	for _, dbCustomer := range dbCustomers {
 
-		// Add staff member if exists in this dbStaff
-		if dbCustomer.CustomerID.Valid {
-			customer := values.Customer{
-				ReadPersonValues: values.ReadPersonValues{
+		customer := values.Customer{
+			ReadPersonValues: values.ReadPersonValues{
 
-					ID:        dbCustomer.CustomerID.UUID,
-					FirstName: dbCustomer.CustomerFirstName.String,
-					LastName:  dbCustomer.CustomerLastName.String,
-				},
-				Phone:  stringToPtr(dbCustomer.CustomerPhone),
-				Gender: stringToPtr(dbCustomer.CustomerGender),
-			}
-			eventCustomers = append(eventCustomers, customer)
+				ID:        dbCustomer.CustomerID,
+				FirstName: dbCustomer.CustomerFirstName,
+				LastName:  dbCustomer.CustomerLastName,
+			},
+			Phone:  stringToPtr(dbCustomer.CustomerPhone),
+			Gender: stringToPtr(dbCustomer.CustomerGender),
 		}
+		eventCustomers = append(eventCustomers, customer)
 	}
 
 	return eventValue, nil

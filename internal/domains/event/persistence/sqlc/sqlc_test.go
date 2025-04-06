@@ -1,19 +1,13 @@
-package events_test
+package sqlc_test
 
 import (
-	eventTestUtils "api/internal/domains/event/persistence/test_utils"
 	locationDb "api/internal/domains/location/persistence/sqlc/generated"
-	locationTestUtils "api/internal/domains/location/persistence/test_utils"
-	programTestUtils "api/internal/domains/program/persistence/test_utils"
-	teamTestUtils "api/internal/domains/team/persistence/test_utils"
+	dbTestUtils "api/utils/test_utils"
 
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
-	identityTestUtils "api/internal/domains/identity/persistence/test_utils"
-	userTestUtils "api/internal/domains/user/persistence/test_utils"
 
 	"database/sql"
 
-	"api/utils/test_utils"
 	"context"
 	"github.com/google/uuid"
 	"testing"
@@ -25,34 +19,9 @@ import (
 	programDb "api/internal/domains/program/persistence/sqlc/generated"
 )
 
-func dbSetup(t *testing.T) (identityQ *identityDb.Queries, eventQ *eventDb.Queries, programQ *programDb.Queries, locationQ *locationDb.Queries, cleanup func()) {
-	dbConn, _ := test_utils.SetupTestDB(t)
-
-	identityQueries, identityCleanup := identityTestUtils.SetupIdentityTestDb(t, dbConn)
-
-	_, userCleanup := userTestUtils.SetupUsersTestDb(t, dbConn)
-	_, staffCleanup := userTestUtils.SetupStaffsTestDb(t, dbConn)
-	_, teamCleanup := teamTestUtils.SetupTeamTestDbQueries(t, dbConn)
-	programQueries, programCleanup := programTestUtils.SetupProgramTestDbQueries(t, dbConn)
-	locationQueries, locationCleanup := locationTestUtils.SetupLocationTestDbQueries(t, dbConn)
-	eventQueries, eventCleanup := eventTestUtils.SetupEventTestDbQueries(t, dbConn)
-
-	cleanup = func() {
-		eventCleanup()
-		locationCleanup()
-		programCleanup()
-		teamCleanup()
-		staffCleanup()
-		userCleanup()
-		identityCleanup()
-	}
-
-	return identityQueries, eventQueries, programQueries, locationQueries, cleanup
-}
-
 func TestCreateEvent(t *testing.T) {
 
-	identityQueries, eventQueries, programQueries, locationQueries, cleanup := dbSetup(t)
+	identityQueries, eventQueries, programQueries, _, locationQueries, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -111,7 +80,7 @@ func TestCreateEvent(t *testing.T) {
 
 func TestUpdateEvent(t *testing.T) {
 
-	identityQueries, eventQueries, programQueries, locationQueries, cleanup := dbSetup(t)
+	identityQueries, eventQueries, programQueries, _, locationQueries, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -187,7 +156,7 @@ func TestUpdateEvent(t *testing.T) {
 
 func TestDeleteEvent(t *testing.T) {
 
-	identityQueries, eventQueries, programQueries, locationQueries, cleanup := dbSetup(t)
+	identityQueries, eventQueries, programQueries, _, locationQueries, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	defer cleanup()
 

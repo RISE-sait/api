@@ -1,21 +1,12 @@
 package events_test
 
 import (
-	eventTestUtils "api/internal/domains/event/persistence/test_utils"
-
-	enrollmentTestUtils "api/internal/domains/enrollment/persistence/test_utils"
 	locationDb "api/internal/domains/location/persistence/sqlc/generated"
-	locationTestUtils "api/internal/domains/location/persistence/test_utils"
-	programTestUtils "api/internal/domains/program/persistence/test_utils"
-	teamTestUtils "api/internal/domains/team/persistence/test_utils"
 
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
-	identityTestUtils "api/internal/domains/identity/persistence/test_utils"
-	userTestUtils "api/internal/domains/user/persistence/test_utils"
 
 	"database/sql"
 
-	"api/utils/test_utils"
 	"context"
 	"github.com/google/uuid"
 	"testing"
@@ -27,38 +18,12 @@ import (
 	programDb "api/internal/domains/program/persistence/sqlc/generated"
 
 	enrollmentDb "api/internal/domains/enrollment/persistence/sqlc/generated"
+	dbTestUtils "api/utils/test_utils"
 )
-
-func dbSetup(t *testing.T) (identityQ *identityDb.Queries, eventQ *eventDb.Queries, programQ *programDb.Queries, enrollmentQ *enrollmentDb.Queries, locationQ *locationDb.Queries, cleanup func()) {
-	dbConn, _ := test_utils.SetupTestDB(t)
-
-	identityQueries, identityCleanup := identityTestUtils.SetupIdentityTestDb(t, dbConn)
-
-	_, userCleanup := userTestUtils.SetupUsersTestDb(t, dbConn)
-	_, staffCleanup := userTestUtils.SetupStaffsTestDb(t, dbConn)
-	_, teamCleanup := teamTestUtils.SetupTeamTestDbQueries(t, dbConn)
-	programQueries, programCleanup := programTestUtils.SetupProgramTestDbQueries(t, dbConn)
-	locationQueries, locationCleanup := locationTestUtils.SetupLocationTestDbQueries(t, dbConn)
-	eventQueries, eventCleanup := eventTestUtils.SetupEventTestDbQueries(t, dbConn)
-	enrollmentQueries, enrollmentCleanup := enrollmentTestUtils.SetupEnrollmentTestDbQueries(t, dbConn)
-
-	cleanup = func() {
-		enrollmentCleanup()
-		eventCleanup()
-		locationCleanup()
-		programCleanup()
-		teamCleanup()
-		staffCleanup()
-		userCleanup()
-		identityCleanup()
-	}
-
-	return identityQueries, eventQueries, programQueries, enrollmentQueries, locationQueries, cleanup
-}
 
 func TestEnrollCustomerInEvent(t *testing.T) {
 
-	identityQueries, eventQueries, programQueries, enrollmentQueries, locationQueries, cleanup := dbSetup(t)
+	identityQueries, eventQueries, programQueries, enrollmentQueries, locationQueries, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -143,7 +108,7 @@ func TestEnrollCustomerInEvent(t *testing.T) {
 
 func TestEnrollCustomerInProgramEvents(t *testing.T) {
 
-	identityQueries, eventQueries, programQueries, postPaymentQueries, locationQueries, cleanup := dbSetup(t)
+	identityQueries, eventQueries, programQueries, enrollmentQueries, locationQueries, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -227,7 +192,7 @@ func TestEnrollCustomerInProgramEvents(t *testing.T) {
 		ProgramID:  createdProgram.ID,
 	}
 
-	err = postPaymentQueries.EnrollCustomerInProgramEvents(context.Background(), enrollParams)
+	err = enrollmentQueries.EnrollCustomerInProgramEvents(context.Background(), enrollParams)
 	require.NoError(t, err)
 
 	events, err := eventQueries.GetEvents(context.Background(), eventDb.GetEventsParams{

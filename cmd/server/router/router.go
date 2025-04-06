@@ -265,7 +265,7 @@ func RegisterCheckoutRoutes(container *di.Container) func(chi.Router) {
 	h := payment.NewCheckoutHandlers(container)
 
 	return func(r chi.Router) {
-		r.Post("/membership_plans/{id}", h.CheckoutMembership)
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/membership_plans/{id}", h.CheckoutMembership)
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/programs/{id}", h.CheckoutProgram)
 	}
 }

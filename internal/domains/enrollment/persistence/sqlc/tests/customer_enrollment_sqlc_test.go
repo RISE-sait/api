@@ -2,8 +2,8 @@ package events_test
 
 import (
 	eventTestUtils "api/internal/domains/event/persistence/test_utils"
-	paymentTestUtils "api/internal/domains/payment/persistence/test_utils"
 
+	enrollmentTestUtils "api/internal/domains/enrollment/persistence/test_utils"
 	locationDb "api/internal/domains/location/persistence/sqlc/generated"
 	locationTestUtils "api/internal/domains/location/persistence/test_utils"
 	programTestUtils "api/internal/domains/program/persistence/test_utils"
@@ -26,10 +26,10 @@ import (
 	eventDb "api/internal/domains/event/persistence/sqlc/generated"
 	programDb "api/internal/domains/program/persistence/sqlc/generated"
 
-	paymentDb "api/internal/domains/payment/persistence/sqlc/generated"
+	enrollmentDb "api/internal/domains/enrollment/persistence/sqlc/generated"
 )
 
-func dbSetup(t *testing.T) (identityQ *identityDb.Queries, eventQ *eventDb.Queries, programQ *programDb.Queries, postPaymentQueries *paymentDb.Queries, locationQ *locationDb.Queries, cleanup func()) {
+func dbSetup(t *testing.T) (identityQ *identityDb.Queries, eventQ *eventDb.Queries, programQ *programDb.Queries, enrollmentQ *enrollmentDb.Queries, locationQ *locationDb.Queries, cleanup func()) {
 	dbConn, _ := test_utils.SetupTestDB(t)
 
 	identityQueries, identityCleanup := identityTestUtils.SetupIdentityTestDb(t, dbConn)
@@ -40,10 +40,10 @@ func dbSetup(t *testing.T) (identityQ *identityDb.Queries, eventQ *eventDb.Queri
 	programQueries, programCleanup := programTestUtils.SetupProgramTestDbQueries(t, dbConn)
 	locationQueries, locationCleanup := locationTestUtils.SetupLocationTestDbQueries(t, dbConn)
 	eventQueries, eventCleanup := eventTestUtils.SetupEventTestDbQueries(t, dbConn)
-	postPaymentQueries, postPaymentCleanup := paymentTestUtils.SetupPostPaymentTestDbQueries(t, dbConn)
+	enrollmentQueries, enrollmentCleanup := enrollmentTestUtils.SetupEnrollmentTestDbQueries(t, dbConn)
 
 	cleanup = func() {
-		postPaymentCleanup()
+		enrollmentCleanup()
 		eventCleanup()
 		locationCleanup()
 		programCleanup()
@@ -53,12 +53,12 @@ func dbSetup(t *testing.T) (identityQ *identityDb.Queries, eventQ *eventDb.Queri
 		identityCleanup()
 	}
 
-	return identityQueries, eventQueries, programQueries, postPaymentQueries, locationQueries, cleanup
+	return identityQueries, eventQueries, programQueries, enrollmentQueries, locationQueries, cleanup
 }
 
 func TestEnrollCustomerInEvent(t *testing.T) {
 
-	identityQueries, eventQueries, programQueries, postPaymentQueries, locationQueries, cleanup := dbSetup(t)
+	identityQueries, eventQueries, programQueries, enrollmentQueries, locationQueries, cleanup := dbSetup(t)
 
 	defer cleanup()
 
@@ -117,12 +117,12 @@ func TestEnrollCustomerInEvent(t *testing.T) {
 	require.NoError(t, err)
 
 	// Enroll the customer in the event
-	enrollParams := paymentDb.EnrollCustomerInEventParams{
+	enrollParams := enrollmentDb.EnrollCustomerInEventParams{
 		CustomerID: createdCustomer.ID,
 		EventID:    createdEvent.ID,
 	}
 
-	err = postPaymentQueries.EnrollCustomerInEvent(context.Background(), enrollParams)
+	err = enrollmentQueries.EnrollCustomerInEvent(context.Background(), enrollParams)
 
 	require.NoError(t, err)
 
@@ -222,7 +222,7 @@ func TestEnrollCustomerInProgramEvents(t *testing.T) {
 
 	require.NoError(t, err)
 
-	enrollParams := paymentDb.EnrollCustomerInProgramEventsParams{
+	enrollParams := enrollmentDb.EnrollCustomerInProgramEventsParams{
 		CustomerID: createdUser.ID,
 		ProgramID:  createdProgram.ID,
 	}

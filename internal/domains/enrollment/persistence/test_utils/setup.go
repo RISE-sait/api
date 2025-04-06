@@ -1,13 +1,13 @@
 package enrollment_test_utils
 
 import (
-	db "api/internal/domains/event/persistence/sqlc/generated"
+	db "api/internal/domains/enrollment/persistence/sqlc/generated"
 	"database/sql"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
-func SetupEventTestDbQueries(t *testing.T, testDb *sql.DB) (*db.Queries, func()) {
+func SetupEnrollmentTestDbQueries(t *testing.T, testDb *sql.DB) (*db.Queries, func()) {
 
 	migrationScript := `
 

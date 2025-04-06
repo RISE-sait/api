@@ -84,7 +84,7 @@ SELECT COUNT(ce.customer_id) >= COALESCE(e.capacity, p.capacity, t.capacity)::bo
 FROM events.events e
          LEFT JOIN program.programs p ON e.program_id = p.id
          LEFT JOIN athletic.teams t ON e.team_id = t.id
-LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
+         LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
 WHERE e.id = $1
 GROUP BY e.id, e.capacity, p.capacity, t.capacity
 `

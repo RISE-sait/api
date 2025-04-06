@@ -13,10 +13,11 @@ import (
 	"github.com/google/uuid"
 )
 
-const createApprovedStaff = `-- name: CreateApprovedStaff :execrows
+const createApprovedStaff = `-- name: CreateApprovedStaff :one
 INSERT INTO staff.staff (id, role_id, is_active)
 VALUES ($1,
         (SELECT id from staff.staff_roles where role_name = $2), $3)
+RETURNING id, is_active, created_at, updated_at, role_id
 `
 
 type CreateApprovedStaffParams struct {
@@ -25,12 +26,17 @@ type CreateApprovedStaffParams struct {
 	IsActive bool      `json:"is_active"`
 }
 
-func (q *Queries) CreateApprovedStaff(ctx context.Context, arg CreateApprovedStaffParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, createApprovedStaff, arg.ID, arg.RoleName, arg.IsActive)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
+func (q *Queries) CreateApprovedStaff(ctx context.Context, arg CreateApprovedStaffParams) (StaffStaff, error) {
+	row := q.db.QueryRowContext(ctx, createApprovedStaff, arg.ID, arg.RoleName, arg.IsActive)
+	var i StaffStaff
+	err := row.Scan(
+		&i.ID,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.RoleID,
+	)
+	return i, err
 }
 
 const getStaffById = `-- name: GetStaffById :one

@@ -7,28 +7,34 @@ package db
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
 )
 
-const createMembership = `-- name: CreateMembership :execrows
+const createMembership = `-- name: CreateMembership :one
 INSERT INTO membership.memberships (name, description, benefits)
 VALUES ($1, $2, $3)
+RETURNING id, name, description, benefits, created_at, updated_at
 `
 
 type CreateMembershipParams struct {
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
-	Benefits    string         `json:"benefits"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Benefits    string `json:"benefits"`
 }
 
-func (q *Queries) CreateMembership(ctx context.Context, arg CreateMembershipParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, createMembership, arg.Name, arg.Description, arg.Benefits)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
+func (q *Queries) CreateMembership(ctx context.Context, arg CreateMembershipParams) (MembershipMembership, error) {
+	row := q.db.QueryRowContext(ctx, createMembership, arg.Name, arg.Description, arg.Benefits)
+	var i MembershipMembership
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Benefits,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const deleteMembership = `-- name: DeleteMembership :execrows
@@ -95,24 +101,38 @@ func (q *Queries) GetMemberships(ctx context.Context) ([]MembershipMembership, e
 	return items, nil
 }
 
-const updateMembership = `-- name: UpdateMembership :execrows
+const updateMembership = `-- name: UpdateMembership :one
 UPDATE membership.memberships
 SET name        = $1,
     description = $2,
+    benefits    = $3,
     updated_at  = CURRENT_TIMESTAMP
-WHERE id = $3
+WHERE id = $4
+RETURNING id, name, description, benefits, created_at, updated_at
 `
 
 type UpdateMembershipParams struct {
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
-	ID          uuid.UUID      `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Benefits    string    `json:"benefits"`
+	ID          uuid.UUID `json:"id"`
 }
 
-func (q *Queries) UpdateMembership(ctx context.Context, arg UpdateMembershipParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateMembership, arg.Name, arg.Description, arg.ID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
+func (q *Queries) UpdateMembership(ctx context.Context, arg UpdateMembershipParams) (MembershipMembership, error) {
+	row := q.db.QueryRowContext(ctx, updateMembership,
+		arg.Name,
+		arg.Description,
+		arg.Benefits,
+		arg.ID,
+	)
+	var i MembershipMembership
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Benefits,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

@@ -21,7 +21,7 @@ import (
 
 func TestCreateEvent(t *testing.T) {
 
-	identityQueries, eventQueries, programQueries, _, locationQueries, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+	identityQueries, eventQueries, programQueries, _, locationQueries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -80,7 +80,7 @@ func TestCreateEvent(t *testing.T) {
 
 func TestUpdateEvent(t *testing.T) {
 
-	identityQueries, eventQueries, programQueries, _, locationQueries, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+	identityQueries, eventQueries, programQueries, _, locationQueries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -156,7 +156,7 @@ func TestUpdateEvent(t *testing.T) {
 
 func TestDeleteEvent(t *testing.T) {
 
-	identityQueries, eventQueries, programQueries, _, locationQueries, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+	identityQueries, eventQueries, programQueries, _, locationQueries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	defer cleanup()
 

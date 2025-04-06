@@ -24,3 +24,8 @@ WHERE s.id = $3;
 DELETE
 FROM staff.staff
 WHERE id = $1;
+
+-- name: CreateStaffRole :one
+INSERT INTO staff.staff_roles (role_name)
+VALUES ($1)
+RETURNING *;

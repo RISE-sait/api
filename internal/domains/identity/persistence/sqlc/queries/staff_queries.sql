@@ -9,7 +9,8 @@ WHERE u.id = $1;
 SELECT *
 FROM staff.staff_roles;
 
--- name: CreateApprovedStaff :execrows
+-- name: CreateApprovedStaff :one
 INSERT INTO staff.staff (id, role_id, is_active)
 VALUES ($1,
-        (SELECT id from staff.staff_roles where role_name = $2), $3);
+        (SELECT id from staff.staff_roles where role_name = $2), $3)
+RETURNING *;

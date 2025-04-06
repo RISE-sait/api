@@ -162,6 +162,31 @@ func (r *CustomerRepository) GetCustomer(ctx context.Context, id uuid.UUID, emai
 	return customer, nil
 }
 
+func (r *CustomerRepository) AddAthleteToTeam(ctx context.Context, customerID, teamID uuid.UUID) *errLib.CommonError {
+
+	args := db.AddAthleteToTeamParams{
+		CustomerID: customerID,
+		TeamID: uuid.NullUUID{
+			UUID:  teamID,
+			Valid: true,
+		},
+	}
+
+	updatedRows, err := r.Queries.AddAthleteToTeam(ctx, args)
+
+	if err != nil {
+
+		log.Printf("Unhandled error: %v", err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	if updatedRows == 0 {
+		return errLib.New("Person with the associated ID, or the team not found", http.StatusNotFound)
+	}
+
+	return nil
+}
+
 func (r *CustomerRepository) UpdateStats(ctx context.Context, valuesToUpdate userValues.StatsUpdateValue) *errLib.CommonError {
 
 	var args db.UpdateAthleteStatsParams

@@ -77,30 +77,30 @@ SELECT unnest($1::uuid[]),
 `
 
 type CreateEventsParams struct {
-	Column1  []uuid.UUID `json:"column_1"`
-	Column2  []uuid.UUID `json:"column_2"`
-	Column3  []uuid.UUID `json:"column_3"`
-	Column4  []time.Time `json:"column_4"`
-	Column5  []time.Time `json:"column_5"`
-	Column6  []uuid.UUID `json:"column_6"`
-	Column7  []uuid.UUID `json:"column_7"`
-	Column8  []int32     `json:"column_8"`
-	Column9  []bool      `json:"column_9"`
-	Column10 []string    `json:"column_10"`
+	LocationIds         []uuid.UUID `json:"location_ids"`
+	ProgramIds          []uuid.UUID `json:"program_ids"`
+	TeamIds             []uuid.UUID `json:"team_ids"`
+	StartAtArray        []time.Time `json:"start_at_array"`
+	EndAtArray          []time.Time `json:"end_at_array"`
+	CreatedByIds        []uuid.UUID `json:"created_by_ids"`
+	UpdatedByIds        []uuid.UUID `json:"updated_by_ids"`
+	Capacities          []int32     `json:"capacities"`
+	IsCancelledArray    []bool      `json:"is_cancelled_array"`
+	CancellationReasons []string    `json:"cancellation_reasons"`
 }
 
 func (q *Queries) CreateEvents(ctx context.Context, arg CreateEventsParams) error {
 	_, err := q.db.ExecContext(ctx, createEvents,
-		pq.Array(arg.Column1),
-		pq.Array(arg.Column2),
-		pq.Array(arg.Column3),
-		pq.Array(arg.Column4),
-		pq.Array(arg.Column5),
-		pq.Array(arg.Column6),
-		pq.Array(arg.Column7),
-		pq.Array(arg.Column8),
-		pq.Array(arg.Column9),
-		pq.Array(arg.Column10),
+		pq.Array(arg.LocationIds),
+		pq.Array(arg.ProgramIds),
+		pq.Array(arg.TeamIds),
+		pq.Array(arg.StartAtArray),
+		pq.Array(arg.EndAtArray),
+		pq.Array(arg.CreatedByIds),
+		pq.Array(arg.UpdatedByIds),
+		pq.Array(arg.Capacities),
+		pq.Array(arg.IsCancelledArray),
+		pq.Array(arg.CancellationReasons),
 	)
 	return err
 }
@@ -203,25 +203,24 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdR
 }
 
 const getEventCustomers = `-- name: GetEventCustomers :many
-SELECT
-       u.id              AS customer_id,
-       u.first_name      AS customer_first_name,
-       u.last_name       AS customer_last_name,
-       u.email           AS customer_email,
-       u.phone           AS customer_phone,
-       u.gender          AS customer_gender,
+SELECT u.id            AS customer_id,
+       u.first_name    AS customer_first_name,
+       u.last_name     AS customer_last_name,
+       u.email         AS customer_email,
+       u.phone         AS customer_phone,
+       u.gender        AS customer_gender,
 
-       ce.is_cancelled    AS customer_enrollment_is_cancelled
+       ce.is_cancelled AS customer_enrollment_is_cancelled
 
 FROM events.customer_enrollment ce
-LEFT JOIN users.users u ON ce.customer_id = u.id
+    JOIN users.users u ON ce.customer_id = u.id
 WHERE ce.event_id = $1
 `
 
 type GetEventCustomersRow struct {
-	CustomerID                    uuid.NullUUID  `json:"customer_id"`
-	CustomerFirstName             sql.NullString `json:"customer_first_name"`
-	CustomerLastName              sql.NullString `json:"customer_last_name"`
+	CustomerID                    uuid.UUID      `json:"customer_id"`
+	CustomerFirstName             string         `json:"customer_first_name"`
+	CustomerLastName              string         `json:"customer_last_name"`
 	CustomerEmail                 sql.NullString `json:"customer_email"`
 	CustomerPhone                 sql.NullString `json:"customer_phone"`
 	CustomerGender                sql.NullString `json:"customer_gender"`
@@ -260,27 +259,26 @@ func (q *Queries) GetEventCustomers(ctx context.Context, eventID uuid.UUID) ([]G
 }
 
 const getEventStaffs = `-- name: GetEventStaffs :many
-SELECT
-       s.id               AS staff_id,
-       sr.role_name       AS staff_role_name,
-       u.email           AS staff_email,
-       u.first_name      AS staff_first_name,
-       u.last_name       AS staff_last_name,
-       u.gender          AS staff_gender,
-       u.phone           AS staff_phone
+SELECT s.id         AS staff_id,
+       sr.role_name AS staff_role_name,
+       u.email      AS staff_email,
+       u.first_name AS staff_first_name,
+       u.last_name  AS staff_last_name,
+       u.gender     AS staff_gender,
+       u.phone      AS staff_phone
 FROM events.staff es
-    LEFT JOIN staff.staff s ON es.staff_id = s.id
-         LEFT JOIN staff.staff_roles sr ON s.role_id = sr.id
-         LEFT JOIN users.users u ON s.id = u.id
+         JOIN staff.staff s ON es.staff_id = s.id
+         JOIN staff.staff_roles sr ON s.role_id = sr.id
+         JOIN users.users u ON s.id = u.id
 WHERE es.event_id = $1
 `
 
 type GetEventStaffsRow struct {
-	StaffID        uuid.NullUUID  `json:"staff_id"`
-	StaffRoleName  sql.NullString `json:"staff_role_name"`
+	StaffID        uuid.UUID      `json:"staff_id"`
+	StaffRoleName  string         `json:"staff_role_name"`
 	StaffEmail     sql.NullString `json:"staff_email"`
-	StaffFirstName sql.NullString `json:"staff_first_name"`
-	StaffLastName  sql.NullString `json:"staff_last_name"`
+	StaffFirstName string         `json:"staff_first_name"`
+	StaffLastName  string         `json:"staff_last_name"`
 	StaffGender    sql.NullString `json:"staff_gender"`
 	StaffPhone     sql.NullString `json:"staff_phone"`
 }

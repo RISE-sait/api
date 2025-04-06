@@ -33,7 +33,7 @@ const unassignStaffFromEvent = `-- name: UnassignStaffFromEvent :execrows
 DELETE
 FROM events.staff
 where staff_id = $1
-and event_id = $2
+  and event_id = $2
 `
 
 type UnassignStaffFromEventParams struct {

@@ -7,66 +7,9 @@ package db_payment
 
 import (
 	"context"
-	"database/sql"
-	"time"
 
 	"github.com/google/uuid"
 )
-
-const enrollCustomerInMembershipPlan = `-- name: EnrollCustomerInMembershipPlan :exec
-INSERT INTO users.customer_membership_plans (customer_id, membership_plan_id, status, start_date, renewal_date)
-VALUES ($1, $2, $3, $4, $5)
-`
-
-type EnrollCustomerInMembershipPlanParams struct {
-	CustomerID       uuid.UUID                  `json:"customer_id"`
-	MembershipPlanID uuid.UUID                  `json:"membership_plan_id"`
-	Status           MembershipMembershipStatus `json:"status"`
-	StartDate        time.Time                  `json:"start_date"`
-	RenewalDate      sql.NullTime               `json:"renewal_date"`
-}
-
-func (q *Queries) EnrollCustomerInMembershipPlan(ctx context.Context, arg EnrollCustomerInMembershipPlanParams) error {
-	_, err := q.db.ExecContext(ctx, enrollCustomerInMembershipPlan,
-		arg.CustomerID,
-		arg.MembershipPlanID,
-		arg.Status,
-		arg.StartDate,
-		arg.RenewalDate,
-	)
-	return err
-}
-
-const enrollCustomerInProgramEvents = `-- name: EnrollCustomerInProgramEvents :exec
-WITH eligible_events AS (
-    SELECT e.id
-    FROM events.events e
-    WHERE e.program_id = $1
-      AND e.start_at >= current_timestamp
-      AND NOT EXISTS (
-        SELECT 1
-        FROM events.customer_enrollment ce
-        WHERE ce.customer_id = $2
-          AND ce.event_id = e.id
-    )
-),
-event_inserts as (
-    INSERT INTO events.customer_enrollment (customer_id, event_id)
-        SELECT $2, id FROM eligible_events
-           )
-INSERT INTO program.customer_enrollment(customer_id, program_id, is_cancelled)
-VALUES ($2, $1, false)
-`
-
-type EnrollCustomerInProgramEventsParams struct {
-	ProgramID  uuid.UUID `json:"program_id"`
-	CustomerID uuid.UUID `json:"customer_id"`
-}
-
-func (q *Queries) EnrollCustomerInProgramEvents(ctx context.Context, arg EnrollCustomerInProgramEventsParams) error {
-	_, err := q.db.ExecContext(ctx, enrollCustomerInProgramEvents, arg.ProgramID, arg.CustomerID)
-	return err
-}
 
 const getCustomersTeam = `-- name: GetCustomersTeam :one
 SELECT t.id

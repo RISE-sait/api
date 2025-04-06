@@ -31,11 +31,10 @@ func (q *Queries) GetProgram(ctx context.Context, id uuid.UUID) (GetProgramRow, 
 }
 
 const getProgramCapacityStatus = `-- name: GetProgramCapacityStatus :one
-SELECT
-        capacity,
-        (SELECT COUNT(*) FROM program.customer_enrollment ce WHERE ce.program_id = $1) AS enrolled_count
-    FROM program.programs
-    WHERE id = $1
+SELECT capacity,
+       (SELECT COUNT(*) FROM program.customer_enrollment ce WHERE ce.program_id = $1) AS enrolled_count
+FROM program.programs
+WHERE id = $1
 `
 
 type GetProgramCapacityStatusRow struct {

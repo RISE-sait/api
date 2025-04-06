@@ -1,7 +1,7 @@
-package event
+package enrollment
 
 import (
-	repository "api/internal/domains/event/persistence/repository"
+	repository "api/internal/domains/enrollment/persistence/repository"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"

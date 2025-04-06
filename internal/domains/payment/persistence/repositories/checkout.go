@@ -3,8 +3,9 @@ package payment
 import (
 	"api/internal/di"
 	db "api/internal/domains/payment/persistence/sqlc/generated"
-	"api/internal/domains/payment/values"
+	values "api/internal/domains/payment/values"
 	errLib "api/internal/libs/errors"
+	contextUtils "api/utils/context"
 	"context"
 	"database/sql"
 	"errors"
@@ -56,12 +57,10 @@ func (r *CheckoutRepository) GetMembershipPlanJoiningRequirement(ctx context.Con
 
 func (r *CheckoutRepository) GetProgramRegistrationPriceIdForCustomer(ctx context.Context, programID uuid.UUID) (string, *errLib.CommonError) {
 
-	//customerID, ctxErr := contextUtils.GetUserID(ctx)
-	//if ctxErr != nil {
-	//	return "", ctxErr
-	//}
-
-	customerID := uuid.MustParse("b450fec9-915a-4291-ae8f-63a37c4bf977")
+	customerID, ctxErr := contextUtils.GetUserID(ctx)
+	if ctxErr != nil {
+		return "", ctxErr
+	}
 
 	program, err := r.Queries.GetProgram(ctx, programID)
 	if err != nil {

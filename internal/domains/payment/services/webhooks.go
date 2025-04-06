@@ -2,6 +2,7 @@ package payment
 
 import (
 	"api/internal/di"
+	enrollment "api/internal/domains/enrollment/service"
 	repository "api/internal/domains/payment/persistence/repositories"
 	errLib "api/internal/libs/errors"
 	"context"
@@ -18,11 +19,13 @@ import (
 
 type WebhookService struct {
 	PostCheckoutRepository *repository.PostCheckoutRepository
+	EnrollmentService      *enrollment.CustomerEnrollmentService
 }
 
 func NewWebhookService(container *di.Container) *WebhookService {
 	return &WebhookService{
 		PostCheckoutRepository: repository.NewPostCheckoutRepository(container),
+		EnrollmentService:      enrollment.NewCustomerEnrollmentService(container),
 	}
 }
 
@@ -76,7 +79,7 @@ func (s *WebhookService) handleProgramCheckoutComplete(checkoutSession stripe.Ch
 		return errLib.New("Invalid user ID format", http.StatusBadRequest)
 	}
 
-	if repoErr := s.PostCheckoutRepository.EnrollCustomerInProgramEvents(context.Background(), customerID, programID); repoErr != nil {
+	if repoErr := s.EnrollmentService.EnrollCustomerInProgramEvents(context.Background(), customerID, programID); repoErr != nil {
 		return repoErr
 	}
 
@@ -125,7 +128,7 @@ func (s *WebhookService) handleSubscriptionCheckoutComplete(checkoutSession stri
 			planID,
 		)
 	}
-	return s.PostCheckoutRepository.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, time.Time{})
+	return s.EnrollmentService.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, time.Time{})
 }
 
 func (s *WebhookService) getExpandedSession(sessionID string) (*stripe.CheckoutSession, *errLib.CommonError) {
@@ -168,7 +171,7 @@ func (s *WebhookService) processSubscriptionWithEndDate(subscriptionID string, t
 		return err
 	}
 
-	if err = s.PostCheckoutRepository.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, cancelAtDateTime); err != nil {
+	if err = s.EnrollmentService.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, cancelAtDateTime); err != nil {
 		return err
 	}
 

@@ -1,16 +1,9 @@
-package values
+package payment
 
 import (
 	"github.com/google/uuid"
 	"time"
 )
-
-type MembershipPlanPurchaseInfo struct {
-	CustomerId       uuid.UUID
-	MembershipPlanId uuid.UUID
-	Status           string
-	RenewalDate      *time.Time
-}
 
 type MembershipPlanJoiningRequirement struct {
 	ID                 uuid.UUID

@@ -22,8 +22,7 @@ func NewWebhookHandlers(container *di.Container) *WebhookHandlers {
 	return &WebhookHandlers{Service: service.NewWebhookService(container)}
 }
 
-// HandleStripeWebhook processes incoming Stripe  webhook events.
-// @Summary Receives and processes payment updates from Stripe .
+// HandleStripeWebhook processes incoming Stripe webhook payment events.
 // @Description - checkout.session.completed: Logs completed checkout sessions
 // @Tags payments
 // @Accept json

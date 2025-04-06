@@ -11,20 +11,16 @@ import (
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 
-	"api/utils/test_utils"
-
 	"github.com/stretchr/testify/require"
 
-	programTestUtils "api/internal/domains/program/persistence/test_utils"
+	dbTestUtils "api/utils/test_utils"
 
 	db "api/internal/domains/program/persistence/sqlc/generated"
 )
 
 func TestCreateProgram(t *testing.T) {
 
-	dbConn, _ := test_utils.SetupTestDB(t)
-
-	queries, cleanup := programTestUtils.SetupProgramTestDbQueries(t, dbConn)
+	_, _, queries, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -47,10 +43,7 @@ func TestCreateProgram(t *testing.T) {
 }
 
 func TestUpdateProgramValid(t *testing.T) {
-
-	dbConn, _ := test_utils.SetupTestDB(t)
-
-	queries, cleanup := programTestUtils.SetupProgramTestDbQueries(t, dbConn)
+	_, _, queries, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -89,9 +82,7 @@ func TestUpdateProgramValid(t *testing.T) {
 
 func TestUpdatePracticeInvalidLevel(t *testing.T) {
 
-	dbConn, _ := test_utils.SetupTestDB(t)
-
-	queries, cleanup := programTestUtils.SetupProgramTestDbQueries(t, dbConn)
+	_, _, queries, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -126,9 +117,7 @@ func TestUpdatePracticeInvalidLevel(t *testing.T) {
 
 func TestCreateProgramUniqueNameConstraint(t *testing.T) {
 
-	dbConn, _ := test_utils.SetupTestDB(t)
-
-	queries, cleanup := programTestUtils.SetupProgramTestDbQueries(t, dbConn)
+	_, _, queries, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -156,9 +145,7 @@ func TestCreateProgramUniqueNameConstraint(t *testing.T) {
 
 func TestGetAllPrograms(t *testing.T) {
 
-	dbConn, _ := test_utils.SetupTestDB(t)
-
-	queries, cleanup := programTestUtils.SetupProgramTestDbQueries(t, dbConn)
+	_, _, queries, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -190,9 +177,7 @@ func TestGetAllPrograms(t *testing.T) {
 
 func TestUpdateNonExistentProgram(t *testing.T) {
 
-	dbConn, _ := test_utils.SetupTestDB(t)
-
-	queries, cleanup := programTestUtils.SetupProgramTestDbQueries(t, dbConn)
+	_, _, queries, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -214,9 +199,7 @@ func TestUpdateNonExistentProgram(t *testing.T) {
 
 func TestCreateCourseWithWrongLevel(t *testing.T) {
 
-	dbConn, _ := test_utils.SetupTestDB(t)
-
-	queries, cleanup := programTestUtils.SetupProgramTestDbQueries(t, dbConn)
+	_, _, queries, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -239,9 +222,7 @@ func TestCreateCourseWithWrongLevel(t *testing.T) {
 
 func TestDeleteProgram(t *testing.T) {
 
-	dbConn, _ := test_utils.SetupTestDB(t)
-
-	queries, cleanup := programTestUtils.SetupProgramTestDbQueries(t, dbConn)
+	_, _, queries, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	defer cleanup()
 

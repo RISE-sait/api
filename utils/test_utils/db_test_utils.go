@@ -1,10 +1,17 @@
 package test_utils
 
 import (
+	enrollmentDb "api/internal/domains/enrollment/persistence/sqlc/generated"
+	eventDb "api/internal/domains/event/persistence/sqlc/generated"
+	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
+	locationDb "api/internal/domains/location/persistence/sqlc/generated"
+	programDb "api/internal/domains/program/persistence/sqlc/generated"
+
 	"context"
 	"database/sql"
 	"fmt"
 	"github.com/docker/docker/api/types/container"
+	"github.com/pressly/goose"
 	"os"
 	"sync"
 	"testing"
@@ -23,7 +30,7 @@ var (
 	cleanup    func()
 )
 
-func SetupTestDB(t *testing.T) (*sql.DB, func()) {
+func setupTestDB(t *testing.T) (*sql.DB, func()) {
 
 	once.Do(func() {
 		ctx := context.Background()
@@ -82,6 +89,45 @@ func SetupTestDB(t *testing.T) (*sql.DB, func()) {
 	}
 
 	return dbInstance, cleanup
+}
+
+func SetupTestDbQueries(t *testing.T, path string) (
+	identityQueries *identityDb.Queries,
+	eventQueries *eventDb.Queries,
+	programQueries *programDb.Queries,
+	enrollmentQueries *enrollmentDb.Queries,
+	locationQueries *locationDb.Queries,
+	cleanup func(),
+) {
+	// Initialize test database
+	testDb, _ := setupTestDB(t)
+
+	// Run migrations
+	err := goose.Up(testDb, path)
+	require.NoError(t, err)
+
+	// Initialize all query interfaces
+	identityQueries = identityDb.New(testDb)
+	eventQueries = eventDb.New(testDb)
+	programQueries = programDb.New(testDb)
+	enrollmentQueries = enrollmentDb.New(testDb)
+	locationQueries = locationDb.New(testDb)
+
+	// Setup cleanup function
+	cleanup = func() {
+		// Clean tables in reverse dependency order
+		_, err = testDb.Exec(`
+			DELETE FROM program.customer_enrollment;
+			DELETE FROM events.customer_enrollment;
+			DELETE FROM program.programs;
+			DELETE FROM events.events;
+			DELETE FROM location.locations;
+			DELETE FROM users.users;
+		`)
+		require.NoError(t, err)
+	}
+
+	return
 }
 
 func retryConnection(db *sql.DB, retries int, delay time.Duration) error {

@@ -2,8 +2,8 @@ package identity_tests
 
 import (
 	databaseErrors "api/internal/constants"
-	identityTestUtils "api/internal/domains/identity/persistence/test_utils"
-	"api/utils/test_utils"
+	dbTestUtils "api/utils/test_utils"
+
 	"context"
 	"database/sql"
 	"errors"
@@ -18,9 +18,7 @@ import (
 
 func TestCreateValidUser(t *testing.T) {
 
-	dbConn, _ := test_utils.SetupTestDB(t)
-
-	queries, cleanup := identityTestUtils.SetupIdentityTestDb(t, dbConn)
+	queries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -58,8 +56,9 @@ func TestCreateValidUser(t *testing.T) {
 }
 
 func TestCreateUserViolateUniqueEmailConstraint(t *testing.T) {
-	dbConn, _ := test_utils.SetupTestDB(t)
-	queries, cleanup := identityTestUtils.SetupIdentityTestDb(t, dbConn)
+
+	queries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
 	defer cleanup()
 
 	// Define test data
@@ -96,8 +95,9 @@ func TestCreateUserViolateUniqueEmailConstraint(t *testing.T) {
 }
 
 func TestUpdateUser(t *testing.T) {
-	dbConn, _ := test_utils.SetupTestDB(t)
-	queries, cleanup := identityTestUtils.SetupIdentityTestDb(t, dbConn)
+
+	queries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
 	defer cleanup()
 
 	// Define test data for creating a user
@@ -165,9 +165,7 @@ func TestUpdateUser(t *testing.T) {
 
 func TestGetNonExistingUser(t *testing.T) {
 
-	dbConn, _ := test_utils.SetupTestDB(t)
-
-	queries, cleanup := identityTestUtils.SetupIdentityTestDb(t, dbConn)
+	queries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -184,9 +182,7 @@ func TestGetNonExistingUser(t *testing.T) {
 
 func TestUpdateNonExistentUser(t *testing.T) {
 
-	dbConn, _ := test_utils.SetupTestDB(t)
-
-	queries, cleanup := identityTestUtils.SetupIdentityTestDb(t, dbConn)
+	queries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 

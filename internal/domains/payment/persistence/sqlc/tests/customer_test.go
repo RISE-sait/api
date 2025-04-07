@@ -8,8 +8,9 @@ import (
 
 	"context"
 	"database/sql"
-	"github.com/google/uuid"
 	"testing"
+
+	"github.com/google/uuid"
 
 	"github.com/stretchr/testify/require"
 )
@@ -43,27 +44,26 @@ func TestGetCustomerTeam(t *testing.T) {
 
 	require.NoError(t, err)
 
-	createdPendingStaff, err := identityQ.CreateUser(context.Background(), identityDb.CreateUserParams{
+	createdPendingStaff, err := identityQ.CreatePendingStaff(context.Background(), identityDb.CreatePendingStaffParams{
 		CountryAlpha2Code: "CA",
 		Age:               20,
 		Phone: sql.NullString{
 			String: "+14141234567",
 			Valid:  true,
 		},
-		HasMarketingEmailConsent: false,
-		HasSmsConsent:            false,
-		FirstName:                "John",
-		LastName:                 "Doe",
+		Email: "klintlee1@gmail.com",
+		Gender: sql.NullString{
+			String: "M",
+			Valid:  true,
+		},
+		RoleName:  createdStaffRole.RoleName,
+		FirstName: "John",
+		LastName:  "Doe",
 	})
 
 	require.NoError(t, err)
 
-	createdStaff, err := identityQ.CreateApprovedStaff(context.Background(), identityDb.CreateApprovedStaffParams{
-		ID:       createdPendingStaff.ID,
-		RoleName: createdStaffRole.RoleName,
-		IsActive: true,
-	})
-
+	createdStaff, err := identityQ.ApproveStaff(context.Background(), createdPendingStaff.ID)
 	require.NoError(t, err)
 
 	createdTeam, err := teamQ.CreateTeam(context.Background(), teamDb.CreateTeamParams{

@@ -1,7 +1,7 @@
 package customer
 
 import (
-	"api/internal/domains/identity/dto/common"
+	commonDto "api/internal/domains/identity/dto/common"
 	values "api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
@@ -10,8 +10,8 @@ import (
 )
 
 type ParentRegistrationRequestDto struct {
-	identity.UserNecessaryInfoRequestDto
-	PhoneNumber                string `json:"phone_number" validate:"omitempty,e164" example:"+15141234567"`
+	commonDto.UserBaseInfoRequestDto
+	PhoneNumber                string `json:"phone_number" validate:"e164" example:"+15141234567"`
 	HasConsentToSmS            bool   `json:"has_consent_to_sms"`
 	HasConsentToEmailMarketing bool   `json:"has_consent_to_email_marketing"`
 }

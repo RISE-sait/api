@@ -1,14 +1,14 @@
 package customer
 
 import (
-	identity "api/internal/domains/identity/dto/common"
+	commonDto "api/internal/domains/identity/dto/common"
 	values "api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
 )
 
 type ChildRegistrationRequestDto struct {
-	identity.UserNecessaryInfoRequestDto
+	commonDto.UserBaseInfoRequestDto
 	CustomerWaiversSigningDto []WaiverSigningRequestDto `json:"waivers"`
 }
 

@@ -6,38 +6,29 @@ import (
 	identityValues "api/internal/domains/identity/values"
 	userValues "api/internal/domains/user/values"
 	errLib "api/internal/libs/errors"
-	dbOutbox "api/internal/services/outbox/generated"
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
-	"github.com/google/uuid"
-	"github.com/lib/pq"
 	"log"
 	"net/http"
+
+	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 type StaffRepository struct {
 	IdentityQueries *dbIdentity.Queries
-	OutboxQueries   *dbOutbox.Queries
 }
 
-func NewStaffRepository(identityDb *dbIdentity.Queries, outboxDb *dbOutbox.Queries) *StaffRepository {
+func NewStaffRepository(identityDb *dbIdentity.Queries) *StaffRepository {
 	return &StaffRepository{
 		IdentityQueries: identityDb,
-		OutboxQueries:   outboxDb,
 	}
 }
 
-func (r *StaffRepository) CreateApprovedStaff(ctx context.Context, input identityValues.ApprovedStaffRegistrationRequestInfo) *errLib.CommonError {
+func (r *StaffRepository) ApproveStaff(ctx context.Context, id uuid.UUID) *errLib.CommonError {
 
-	args := dbIdentity.CreateApprovedStaffParams{
-		ID:       input.UserID,
-		RoleName: input.RoleName,
-		IsActive: input.IsActive,
-	}
-
-	createdStaff, err := r.IdentityQueries.CreateApprovedStaff(ctx, args)
+	approvedStaff, err := r.IdentityQueries.ApproveStaff(ctx, id)
 
 	if err != nil {
 
@@ -49,41 +40,63 @@ func (r *StaffRepository) CreateApprovedStaff(ctx context.Context, input identit
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	if createdStaff.ID == uuid.Nil {
+	if approvedStaff.ID == uuid.Nil {
 		return errLib.New("Staff not created", http.StatusInternalServerError)
 	}
 
 	return nil
 }
 
-func (r *StaffRepository) CreatePendingStaff(ctx context.Context, tx *sql.Tx, input identityValues.PendingStaffRegistrationRequestInfo) *errLib.CommonError {
+func (r *StaffRepository) CreatePendingStaff(ctx context.Context, input identityValues.StaffRegistrationRequestInfo) *errLib.CommonError {
 
-	q := r.OutboxQueries
-
-	if tx != nil {
-		q = r.OutboxQueries.WithTx(tx)
+	args := dbIdentity.CreatePendingStaffParams{
+		FirstName: input.FirstName,
+		LastName:  input.LastName,
+		Email:     input.Email,
+		Age:       input.Age,
+		Phone: sql.NullString{
+			String: input.Phone,
+			Valid:  input.Phone != "",
+		},
+		CountryAlpha2Code: input.CountryCode,
+		RoleName:          input.RoleName,
 	}
 
-	sqlStatement := fmt.Sprintf(
-		"CREATE staff (first_name, last_name, age, email, phone, role_name, is_active, country) VALUES ('%s', '%s', '%v', '%s', '%s', '%s', '%v', '%v')",
-		input.FirstName, input.LastName, input.Age, input.StaffRegistrationRequestInfo.Email, input.StaffRegistrationRequestInfo.Phone,
-		input.RoleName, input.IsActive, input.CountryCode,
-	)
-
-	args := dbOutbox.InsertIntoOutboxParams{
-		Status:       dbOutbox.AuditStatusPENDING,
-		SqlStatement: sqlStatement,
+	if input.Gender != "" {
+		args.Gender = sql.NullString{
+			String: input.Gender,
+			Valid:  true,
+		}
 	}
 
-	rows, err := q.InsertIntoOutbox(ctx, args)
+	registeredStaff, err := r.IdentityQueries.CreatePendingStaff(ctx, args)
 
 	if err != nil {
+		var pqErr *pq.Error
+
+		if errors.As(err, &pqErr) {
+			if pqErr.Code == databaseErrors.UniqueViolation {
+				return errLib.New("Staff with the email already exists", http.StatusConflict)
+			}
+			if pqErr.Constraint == "pending_staff_gender_check" {
+				return errLib.New("Invalid gender value", http.StatusBadRequest)
+			}
+			if pqErr.Constraint == "country_alpha2_code_check" {
+				return errLib.New("Invalid country code", http.StatusBadRequest)
+			}
+		}
+
+		if errors.Is(err, sql.ErrNoRows) {
+			log.Printf("Error creating pending staff: %v", err)
+			return errLib.New("Staff not registered", http.StatusInternalServerError)
+		}
 		log.Printf("Error inserting staff rows: %v", err)
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	if rows == 0 {
-		return errLib.New("Error: Staff not registered", http.StatusInternalServerError)
+	if registeredStaff.ID == uuid.Nil {
+		log.Printf("Error creating pending staff: %v", err)
+		return errLib.New("Staff not registered", http.StatusInternalServerError)
 	}
 
 	return nil
@@ -110,10 +123,9 @@ func (r *StaffRepository) GetStaffByUserId(ctx context.Context, id uuid.UUID) (u
 	}, nil
 }
 
-func (r *StaffRepository) GetStaffRolesTx(ctx context.Context, tx *sql.Tx) ([]string, *errLib.CommonError) {
-	txQueries := r.IdentityQueries.WithTx(tx)
+func (r *StaffRepository) GetStaffRolesTx(ctx context.Context) ([]string, *errLib.CommonError) {
 
-	dbRoles, err := txQueries.GetStaffRoles(ctx)
+	dbRoles, err := r.IdentityQueries.GetStaffRoles(ctx)
 
 	if err != nil {
 		log.Printf("Error fetching staff roles: %v", err)

@@ -30,7 +30,7 @@ func TestDecodeRequestBody(t *testing.T) {
 			}`,
 			expectError: false,
 			expectedValues: &ParentRegistrationRequestDto{
-				UserNecessaryInfoRequestDto: identity.UserNecessaryInfoRequestDto{
+				UserBaseInfoRequestDto: identity.UserBaseInfoRequestDto{
 					FirstName:   "John",
 					LastName:    "Doe",
 					Age:         30,
@@ -120,7 +120,7 @@ func TestDecodeRequestBody(t *testing.T) {
 
 func TestValidRequestDto(t *testing.T) {
 	dto := ParentRegistrationRequestDto{
-		UserNecessaryInfoRequestDto: identity.UserNecessaryInfoRequestDto{
+		UserBaseInfoRequestDto: identity.UserBaseInfoRequestDto{
 			FirstName:   "John",
 			LastName:    "Doe",
 			Age:         30,
@@ -148,7 +148,7 @@ func TestValidRequestDto(t *testing.T) {
 
 func TestMissingFirstNameRequestDto(t *testing.T) {
 	dto := ParentRegistrationRequestDto{
-		UserNecessaryInfoRequestDto: identity.UserNecessaryInfoRequestDto{
+		UserBaseInfoRequestDto: identity.UserBaseInfoRequestDto{
 			LastName:    "Doe",
 			Age:         30,
 			CountryCode: "US",
@@ -168,7 +168,7 @@ func TestMissingFirstNameRequestDto(t *testing.T) {
 
 func TestInvalidPhoneRequestDto(t *testing.T) {
 	dto := ParentRegistrationRequestDto{
-		UserNecessaryInfoRequestDto: identity.UserNecessaryInfoRequestDto{
+		UserBaseInfoRequestDto: identity.UserBaseInfoRequestDto{
 			FirstName:   "John",
 			LastName:    "Doe",
 			Age:         30,
@@ -189,7 +189,7 @@ func TestInvalidPhoneRequestDto(t *testing.T) {
 
 func TestInvalidEmailRequestDto(t *testing.T) {
 	dto := ParentRegistrationRequestDto{
-		UserNecessaryInfoRequestDto: identity.UserNecessaryInfoRequestDto{
+		UserBaseInfoRequestDto: identity.UserBaseInfoRequestDto{
 			FirstName:   "John",
 			LastName:    "Doe",
 			Age:         30,

@@ -1,7 +1,7 @@
 package customer
 
 import (
-	"api/internal/domains/identity/dto/common"
+	commonDto "api/internal/domains/identity/dto/common"
 	values "api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
@@ -9,7 +9,7 @@ import (
 )
 
 type AthleteRegistrationRequestDto struct {
-	identity.UserNecessaryInfoRequestDto
+	commonDto.UserBaseInfoRequestDto
 	CustomerWaiversSigningDto  []WaiverSigningRequestDto `json:"waivers"`
 	PhoneNumber                string                    `json:"phone_number" validate:"omitempty,e164" example:"+15141234567"`
 	HasConsentToSmS            bool                      `json:"has_consent_to_sms"`
@@ -27,7 +27,7 @@ func (dto AthleteRegistrationRequestDto) ToAthlete(email string) (values.Athlete
 		return values.AthleteRegistrationRequestInfo{}, err
 	}
 
-	if dto.CustomerWaiversSigningDto == nil || len(dto.CustomerWaiversSigningDto) == 0 {
+	if len(dto.CustomerWaiversSigningDto) == 0 {
 		return values.AthleteRegistrationRequestInfo{}, errLib.New("waivers: required", http.StatusBadRequest)
 	}
 

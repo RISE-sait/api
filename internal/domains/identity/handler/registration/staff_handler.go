@@ -51,7 +51,7 @@ func (h *StaffHandlers) RegisterStaff(w http.ResponseWriter, r *http.Request) {
 
 	var requestDto dto.RegistrationRequestDto
 
-	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
+	if err = validators.ParseJSON(r.Body, &requestDto); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

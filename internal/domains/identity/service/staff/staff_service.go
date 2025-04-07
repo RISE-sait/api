@@ -4,6 +4,7 @@ import (
 	"api/internal/di"
 	identityRepo "api/internal/domains/identity/persistence/repository"
 	staffValues "api/internal/domains/user/values"
+
 	"github.com/google/uuid"
 
 	"context"
@@ -18,7 +19,7 @@ func NewStaffRegistrationService(
 ) *RegistrationService {
 
 	return &RegistrationService{
-		StaffRepository: identityRepo.NewStaffRepository(container.Queries.IdentityDb, container.Queries.OutboxDb),
+		StaffRepository: identityRepo.NewStaffRepository(container.Queries.IdentityDb),
 	}
 }
 

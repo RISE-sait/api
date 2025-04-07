@@ -124,7 +124,7 @@ func TestGetCustomerNonExistingTeam(t *testing.T) {
 	team, err := paymentQ.GetCustomersTeam(context.Background(), createdCustomer.ID)
 
 	require.Nil(t, err)
-	require.Equal(t, uuid.Nil, team.ID)
+	require.Equal(t, uuid.Nil, team.ID.UUID)
 }
 
 func TestIsCustomerExist(t *testing.T) {

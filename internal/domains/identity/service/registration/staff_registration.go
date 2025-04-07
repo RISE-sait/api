@@ -12,6 +12,8 @@ import (
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 type StaffsRegistrationService struct {
@@ -65,6 +67,18 @@ func (s *StaffsRegistrationService) RegisterPendingStaff(
 	}
 
 	if err = s.StaffRepository.CreatePendingStaff(ctx, staffDetails); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *StaffsRegistrationService) ApproveStaff(
+	ctx context.Context,
+	id uuid.UUID,
+) *errLib.CommonError {
+
+	if err := s.StaffRepository.ApproveStaff(ctx, id); err != nil {
 		return err
 	}
 

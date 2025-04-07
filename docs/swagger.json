@@ -1,11 +1,11 @@
 {
     "swagger": "2.0",
     "info": {
-      "title": "Rise API",
-      "contact": {
-        "email": "klintlee1@gmail.com"
-      },
-      "version": "1.0"
+        "title": "Rise API",
+        "contact": {
+            "email": "klintlee1@gmail.com"
+        },
+        "version": "1.0"
     },
     "paths": {
         "/auth": {
@@ -582,7 +582,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                              "$ref": "#/definitions/event.EventResponseDto"
+                                "$ref": "#/definitions/event.EventResponseDto"
                             }
                         }
                     },
@@ -626,7 +626,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                          "$ref": "#/definitions/event.CreateRequestDto"
+                            "$ref": "#/definitions/event.CreateRequestDto"
                         }
                     }
                 ],
@@ -640,112 +640,6 @@
                     },
                     "400": {
                         "description": "Bad Request: Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/events/{event_id}/customers/{customer_id}": {
-            "post": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "enrollments"
-                ],
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Event ID",
-                        "name": "event_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Customer ID",
-                        "name": "customer_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Enrollment created successfully"
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "Delete an enrollment by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "enrollments"
-                ],
-                "summary": "Delete an enrollment",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Enrollment ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content: Enrollment deleted successfully"
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid ID",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Enrollment not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -899,7 +793,7 @@
                     "200": {
                         "description": "Event details retrieved successfully",
                         "schema": {
-                          "$ref": "#/definitions/event.EventResponseDto"
+                            "$ref": "#/definitions/event.EventResponseDto"
                         }
                     },
                     "400": {
@@ -956,7 +850,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                          "$ref": "#/definitions/event.UpdateRequestDto"
+                            "$ref": "#/definitions/event.UpdateRequestDto"
                         }
                     }
                 ],
@@ -1096,7 +990,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                          "$ref": "#/definitions/game.RequestDto"
+                            "$ref": "#/definitions/game.RequestDto"
                         }
                     }
                 ],
@@ -1200,7 +1094,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                          "$ref": "#/definitions/game.RequestDto"
+                            "$ref": "#/definitions/game.RequestDto"
                         }
                     }
                 ],
@@ -1479,7 +1373,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                          "$ref": "#/definitions/haircut.RequestDto"
+                            "$ref": "#/definitions/haircut.RequestDto"
                         }
                     }
                 ],
@@ -1657,7 +1551,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                          "$ref": "#/definitions/location.RequestDto"
+                            "$ref": "#/definitions/location.RequestDto"
                         }
                     }
                 ],
@@ -1763,7 +1657,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                          "$ref": "#/definitions/location.RequestDto"
+                            "$ref": "#/definitions/location.RequestDto"
                         }
                     }
                 ],
@@ -1899,7 +1793,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                          "$ref": "#/definitions/membership.RequestDto"
+                            "$ref": "#/definitions/membership.RequestDto"
                         }
                     }
                 ],
@@ -1962,42 +1856,6 @@
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/memberships/plans/payment-frequencies": {
-            "get": {
-                "description": "Retrieves a list of available payment frequencies for membership plans.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "membership-plans"
-                ],
-                "summary": "Get payment frequencies for membership plans",
-                "responses": {
-                    "200": {
-                        "description": "List of payment frequencies",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            }
                         }
                     },
                     "500": {
@@ -2212,7 +2070,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                          "$ref": "#/definitions/membership.RequestDto"
+                            "$ref": "#/definitions/membership.RequestDto"
                         }
                     }
                 ],
@@ -2419,7 +2277,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                          "$ref": "#/definitions/program.RequestDto"
+                            "$ref": "#/definitions/program.RequestDto"
                         }
                     }
                 ],
@@ -2559,7 +2417,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                          "$ref": "#/definitions/program.RequestDto"
+                            "$ref": "#/definitions/program.RequestDto"
                         }
                     }
                 ],
@@ -2880,109 +2738,182 @@
                 }
             }
         },
-      "/schedules": {
-        "get": {
-          "consumes": [
-            "application/json"
-          ],
-          "produces": [
-            "application/json"
-          ],
-          "tags": [
-            "Schedules"
-          ],
-          "parameters": [
-            {
-              "type": "string",
-              "example": "\"2025-03-01\"",
-              "description": "Start date of the events range (YYYY-MM-DD format)",
-              "name": "after",
-              "in": "query"
-            },
-            {
-              "type": "string",
-              "example": "\"2025-03-31\"",
-              "description": "End date of the events range (YYYY-MM-DD format)",
-              "name": "before",
-              "in": "query"
-            },
-            {
-              "type": "string",
-              "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-              "description": "Filter by program ID (UUID format)",
-              "name": "program_id",
-              "in": "query"
-            },
-            {
-              "type": "string",
-              "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-              "description": "Filter by user ID (UUID format)",
-              "name": "user_id",
-              "in": "query"
-            },
-            {
-              "type": "string",
-              "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-              "description": "Filter by team ID (UUID format)",
-              "name": "team_id",
-              "in": "query"
-            },
-            {
-              "type": "string",
-              "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-              "description": "Filter by location ID (UUID format)",
-              "name": "location_id",
-              "in": "query"
-            },
-            {
-              "enum": [
-                "game",
-                "practice",
-                "course",
-                "others"
-              ],
-              "type": "string",
-              "description": "Filter by program type",
-              "name": "program_type",
-              "in": "query"
-            },
-            {
-              "type": "string",
-              "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-              "description": "Filter by creator ID (UUID format)",
-              "name": "created_by",
-              "in": "query"
-            },
-            {
-              "type": "string",
-              "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-              "description": "Filter by updater ID (UUID format)",
-              "name": "updated_by",
-              "in": "query"
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "Schedule retrieved successfully",
-              "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/definitions/event.ScheduleResponseDto"
+        "/register/staff/approve/{id}": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Approves a pending staff member's account in the system",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "registration"
+                ],
+                "summary": "Approve a pending staff member",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID of staff member to approve",
+                        "name": "staff_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Staff approved successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized: Invalid or missing authentication token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden: User does not have admin privileges",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Staff member not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error: Failed to approve staff",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
                 }
-              }
-            },
-            "400": {
-              "description": "Invalid parameters",
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            },
-            "500": {
-              "description": "Internal server error",
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
+            }
+        },
+        "/schedules": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Schedules"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "\"2025-03-01\"",
+                        "description": "Start date of the events range (YYYY-MM-DD format)",
+                        "name": "after",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"2025-03-31\"",
+                        "description": "End date of the events range (YYYY-MM-DD format)",
+                        "name": "before",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                        "description": "Filter by program ID (UUID format)",
+                        "name": "program_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                        "description": "Filter by user ID (UUID format)",
+                        "name": "user_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                        "description": "Filter by team ID (UUID format)",
+                        "name": "team_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                        "description": "Filter by location ID (UUID format)",
+                        "name": "location_id",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "game",
+                            "practice",
+                            "course",
+                            "others"
+                        ],
+                        "type": "string",
+                        "description": "Filter by program type",
+                        "name": "program_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                        "description": "Filter by creator ID (UUID format)",
+                        "name": "created_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                        "description": "Filter by updater ID (UUID format)",
+                        "name": "updated_by",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Schedule retrieved successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/event.ScheduleResponseDto"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -3070,7 +3001,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                          "$ref": "#/definitions/staff.RequestDto"
+                            "$ref": "#/definitions/staff.RequestDto"
                         }
                     }
                 ],
@@ -3208,7 +3139,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                          "$ref": "#/definitions/team.RequestDto"
+                            "$ref": "#/definitions/team.RequestDto"
                         }
                     }
                 ],
@@ -3267,7 +3198,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                          "$ref": "#/definitions/team.RequestDto"
+                            "$ref": "#/definitions/team.RequestDto"
                         }
                     }
                 ],
@@ -3362,7 +3293,6 @@
                 "tags": [
                     "payments"
                 ],
-                "summary": "Receives and processes payment updates from Stripe .",
                 "parameters": [
                     {
                         "type": "string",
@@ -3425,6 +3355,13 @@
                 "first_name": {
                     "type": "string"
                 },
+                "gender": {
+                    "type": "string",
+                    "enum": [
+                        "M",
+                        "F"
+                    ]
+                },
                 "has_consent_to_email_marketing": {
                     "type": "boolean"
                 },
@@ -3486,6 +3423,13 @@
                 "first_name": {
                     "type": "string"
                 },
+                "gender": {
+                    "type": "string",
+                    "enum": [
+                        "M",
+                        "F"
+                    ]
+                },
                 "last_name": {
                     "type": "string"
                 },
@@ -3533,6 +3477,13 @@
                 },
                 "first_name": {
                     "type": "string"
+                },
+                "gender": {
+                    "type": "string",
+                    "enum": [
+                        "M",
+                        "F"
+                    ]
                 },
                 "has_consent_to_email_marketing": {
                     "type": "boolean"
@@ -3621,124 +3572,110 @@
                 }
             }
         },
-      "event.CreateRequestDto": {
-        "type": "object",
-        "required": [
-          "end_at",
-          "start_at"
-        ],
-        "properties": {
-          "capacity": {
-            "type": "integer",
-            "example": 100
-          },
-          "end_at": {
-            "type": "string",
-            "example": "2023-10-05T07:00:00Z"
-          },
-          "location_id": {
-            "type": "string",
-            "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
-          },
-          "program_id": {
-            "type": "string",
-            "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
-          },
-          "start_at": {
-            "type": "string",
-            "example": "2023-10-05T07:00:00Z"
-          },
-          "team_id": {
-            "type": "string",
-            "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
-          }
-        }
-      },
-      "event.CustomerResponseDto": {
+        "event.CreateRequestDto": {
+            "type": "object",
+            "required": [
+                "end_at",
+                "start_at"
+            ],
+            "properties": {
+                "capacity": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "end_at": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "location_id": {
+                    "type": "string",
+                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+                },
+                "program_id": {
+                    "type": "string",
+                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+                },
+                "start_at": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "team_id": {
+                    "type": "string",
+                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+                }
+            }
+        },
+        "event.CustomerResponseDto": {
             "type": "object",
             "properties": {
-              "email": {
-                "type": "string"
-              },
-              "first_name": {
-                "type": "string"
-              },
-              "gender": {
-                "type": "string"
-              },
-              "has_cancelled_enrollment": {
-                "type": "boolean"
-              },
-              "id": {
-                "type": "string"
-              },
-              "last_name": {
-                "type": "string"
-              },
-              "phone": {
+                "email": {
                     "type": "string"
-              }
-            }
-      },
-      "event.EventResponseDto": {
-        "type": "object",
-        "properties": {
-          "capacity": {
-            "type": "integer"
-          },
-          "created_by": {
-            "$ref": "#/definitions/event.PersonResponseDto"
-          },
-          "customers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/definitions/event.CustomerResponseDto"
-            }
                 },
-          "end_at": {
+                "first_name": {
+                    "type": "string"
+                },
+                "gender": {
+                    "type": "string"
+                },
+                "has_cancelled_enrollment": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.EventResponseDto": {
+            "type": "object",
+            "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
+                "created_by": {
+                    "$ref": "#/definitions/event.PersonResponseDto"
+                },
+                "customers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/event.CustomerResponseDto"
+                    }
+                },
+                "end_at": {
                     "type": "string"
                 },
                 "id": {
                     "type": "string"
                 },
                 "location": {
-                  "$ref": "#/definitions/event.LocationInfo"
+                    "$ref": "#/definitions/event.LocationInfo"
                 },
                 "program": {
-                  "$ref": "#/definitions/event.ProgramInfo"
+                    "$ref": "#/definitions/event.ProgramInfo"
                 },
-          "staff": {
-            "type": "array",
-            "items": {
-              "$ref": "#/definitions/event.StaffResponseDto"
-            }
+                "staff": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/event.StaffResponseDto"
+                    }
                 },
-          "start_at": {
+                "start_at": {
                     "type": "string"
                 },
-          "team": {
-            "$ref": "#/definitions/event.TeamInfo"
-          },
-          "updated_by": {
-            "$ref": "#/definitions/event.PersonResponseDto"
-          }
-        }
-      },
-      "event.Location": {
-        "type": "object",
-        "properties": {
-          "address": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "name": {
-                    "type": "string"
+                "team": {
+                    "$ref": "#/definitions/event.TeamInfo"
+                },
+                "updated_by": {
+                    "$ref": "#/definitions/event.PersonResponseDto"
                 }
             }
         },
-      "event.LocationInfo": {
+        "event.Location": {
             "type": "object",
             "properties": {
                 "address": {
@@ -3752,35 +3689,35 @@
                 }
             }
         },
-      "event.PersonResponseDto": {
-        "type": "object",
-        "properties": {
-          "first_name": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "last_name": {
-            "type": "string"
-          }
-        }
-      },
-      "event.Program": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          }
-        }
-      },
-      "event.ProgramInfo": {
+        "event.LocationInfo": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.PersonResponseDto": {
+            "type": "object",
+            "properties": {
+                "first_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.Program": {
             "type": "object",
             "properties": {
                 "id": {
@@ -3794,102 +3731,116 @@
                 }
             }
         },
-      "event.ScheduleResponseDto": {
-        "type": "object",
-        "properties": {
-          "day": {
-            "type": "string"
-          },
-          "location": {
-            "$ref": "#/definitions/event.Location"
-          },
-          "program": {
-            "$ref": "#/definitions/event.Program"
-          },
-          "recurrence_end_at": {
-            "type": "string"
-          },
-          "recurrence_start_at": {
-            "type": "string"
-          },
-          "session_end_at": {
-            "type": "string"
-          },
-          "session_start_at": {
-            "type": "string"
-          },
-          "team": {
-            "$ref": "#/definitions/event.Team"
-          }
-        }
-      },
-      "event.StaffResponseDto": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "type": "string"
-          },
-          "first_name": {
-            "type": "string"
-          },
-          "gender": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "last_name": {
-            "type": "string"
-          },
-          "phone": {
-            "type": "string"
-          },
-          "role_name": {
-            "type": "string"
-          }
-        }
-      },
-      "event.Team": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          }
-        }
-      },
-      "event.TeamInfo": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          }
-        }
-      },
-      "event.UpdateRequestDto": {
+        "event.ProgramInfo": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.ScheduleResponseDto": {
+            "type": "object",
+            "properties": {
+                "day": {
+                    "type": "string"
+                },
+                "location": {
+                    "$ref": "#/definitions/event.Location"
+                },
+                "program": {
+                    "$ref": "#/definitions/event.Program"
+                },
+                "recurrence_end_at": {
+                    "type": "string"
+                },
+                "recurrence_start_at": {
+                    "type": "string"
+                },
+                "session_end_at": {
+                    "type": "string"
+                },
+                "session_start_at": {
+                    "type": "string"
+                },
+                "team": {
+                    "$ref": "#/definitions/event.Team"
+                }
+            }
+        },
+        "event.StaffResponseDto": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "gender": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "role_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.Team": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.TeamInfo": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "event.UpdateRequestDto": {
             "type": "object",
             "required": [
-              "end_at",
-              "start_at"
+                "end_at",
+                "start_at"
             ],
             "properties": {
                 "capacity": {
                     "type": "integer",
                     "example": 100
                 },
-              "end_at": {
+                "end_at": {
                     "type": "string",
-                "example": "2023-10-05T07:00:00Z"
+                    "example": "2023-10-05T07:00:00Z"
                 },
-              "id": {
-                "type": "string",
-                "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
-              },
+                "id": {
+                    "type": "string",
+                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+                },
                 "location_id": {
                     "type": "string",
                     "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
@@ -3898,39 +3849,39 @@
                     "type": "string",
                     "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
                 },
-              "start_at": {
+                "start_at": {
                     "type": "string",
                     "example": "2023-10-05T07:00:00Z"
                 },
-              "team_id": {
+                "team_id": {
                     "type": "string",
-                "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
                 }
             }
         },
-      "game.RequestDto": {
+        "game.RequestDto": {
             "type": "object",
             "required": [
-              "name"
+                "name"
             ],
             "properties": {
-              "description": {
-                "type": "string"
+                "description": {
+                    "type": "string"
                 },
-              "lose_score": {
-                "type": "integer"
+                "lose_score": {
+                    "type": "integer"
                 },
-              "lose_team": {
-                "type": "string"
+                "lose_team": {
+                    "type": "string"
                 },
-              "name": {
-                "type": "string"
+                "name": {
+                    "type": "string"
                 },
-              "win_score": {
-                "type": "integer"
+                "win_score": {
+                    "type": "integer"
                 },
-              "win_team": {
-                "type": "string"
+                "win_team": {
+                    "type": "string"
                 }
             }
         },
@@ -4037,27 +3988,27 @@
                 }
             }
         },
-      "haircut.RequestDto": {
-        "type": "object",
-        "required": [
-          "begin_time",
-          "end_time"
-        ],
-        "properties": {
-          "barber_id": {
-            "type": "string",
-            "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
-          },
-          "begin_time": {
-            "type": "string",
-            "example": "2023-10-05T07:00:00Z"
-          },
-          "end_time": {
-            "type": "string",
-            "example": "2023-10-05T07:00:00Z"
-          }
-        }
-      },
+        "haircut.RequestDto": {
+            "type": "object",
+            "required": [
+                "begin_time",
+                "end_time"
+            ],
+            "properties": {
+                "barber_id": {
+                    "type": "string",
+                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+                },
+                "begin_time": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "end_time": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                }
+            }
+        },
         "identity.AthleteResponseDto": {
             "type": "object",
             "properties": {
@@ -4145,21 +4096,21 @@
                 }
             }
         },
-      "location.RequestDto": {
-        "type": "object",
-        "required": [
-          "address",
-          "name"
-        ],
-        "properties": {
-          "address": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          }
-        }
-      },
+        "location.RequestDto": {
+            "type": "object",
+            "required": [
+                "address",
+                "name"
+            ],
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "location.ResponseDto": {
             "type": "object",
             "properties": {
@@ -4174,22 +4125,22 @@
                 }
             }
         },
-      "membership.RequestDto": {
-        "type": "object",
-        "required": [
-          "name"
-        ],
-        "properties": {
-          "description": {
-            "type": "string",
-            "example": "Access to all premium features"
-          },
-          "name": {
-            "type": "string",
-            "example": "Premium Membership"
-          }
-        }
-      },
+        "membership.RequestDto": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "example": "Access to all premium features"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Premium Membership"
+                }
+            }
+        },
         "membership.Response": {
             "type": "object",
             "properties": {
@@ -4217,8 +4168,7 @@
             "type": "object",
             "required": [
                 "membership_id",
-                "payment_frequency",
-                "price"
+                "stripe_price_id"
             ],
             "properties": {
                 "amt_periods": {
@@ -4230,10 +4180,10 @@
                 "name": {
                     "type": "string"
                 },
-                "payment_frequency": {
+                "stripe_joining_fees_id": {
                     "type": "string"
                 },
-                "price": {
+                "stripe_price_id": {
                     "type": "string"
                 }
             }
@@ -4250,19 +4200,16 @@
                 "id": {
                     "type": "string"
                 },
-                "joining_fees": {
-                    "type": "string"
-                },
                 "membership_id": {
                     "type": "string"
                 },
                 "name": {
                     "type": "string"
                 },
-                "payment_frequency": {
+                "stripe_joining_fees_id": {
                     "type": "string"
                 },
-                "price": {
+                "stripe_price_id": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -4289,13 +4236,13 @@
                 }
             }
         },
-      "program.RequestDto": {
+        "program.RequestDto": {
             "type": "object",
-        "required": [
-          "level",
-          "name",
-          "type"
-        ],
+            "required": [
+                "level",
+                "name",
+                "type"
+            ],
             "properties": {
                 "capacity": {
                     "type": "integer"
@@ -4314,32 +4261,32 @@
                 }
             }
         },
-      "program.Response": {
-        "type": "object",
-        "properties": {
-          "capacity": {
-            "type": "integer"
-          },
-          "created_at": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "level": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          },
-          "updated_at": {
-            "type": "string"
+        "program.Response": {
+            "type": "object",
+            "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "level": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
                 }
             }
         },
@@ -4371,6 +4318,13 @@
                 },
                 "first_name": {
                     "type": "string"
+                },
+                "gender": {
+                    "type": "string",
+                    "enum": [
+                        "M",
+                        "F"
+                    ]
                 },
                 "is_active_staff": {
                     "type": "boolean"
@@ -4443,21 +4397,21 @@
                 }
             }
         },
-      "team.RequestDto": {
-        "type": "object",
-        "required": [
-          "capacity",
-          "name"
-        ],
-        "properties": {
-          "capacity": {
-            "type": "integer"
-          },
-          "coach_id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
+        "team.RequestDto": {
+            "type": "object",
+            "required": [
+                "capacity",
+                "name"
+            ],
+            "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
+                "coach_id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },

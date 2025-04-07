@@ -92,7 +92,8 @@ func TestGetCustomerTeam(t *testing.T) {
 
 	require.NoError(t, err)
 
-	require.Equal(t, createdTeam.ID, team.ID)
+	require.True(t, team.ID.Valid)
+	require.Equal(t, createdTeam.ID, team.ID.UUID)
 }
 
 func TestGetCustomerNonExistingTeam(t *testing.T) {

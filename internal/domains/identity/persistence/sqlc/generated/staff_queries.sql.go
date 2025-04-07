@@ -13,28 +13,107 @@ import (
 	"github.com/google/uuid"
 )
 
-const createApprovedStaff = `-- name: CreateApprovedStaff :one
-INSERT INTO staff.staff (id, role_id, is_active)
-VALUES ($1,
-        (SELECT id from staff.staff_roles where role_name = $2), $3)
-RETURNING id, is_active, created_at, updated_at, role_id
+const approveStaff = `-- name: ApproveStaff :one
+WITH approved_staff as (SELECT id, first_name, last_name, email, gender, age, phone, country_alpha2_code, role_id, created_at, updated_at
+                                                FROM staff.pending_staff ps
+                                                WHERE ps.id = $1),
+         u AS (
+                 INSERT INTO users.users (country_alpha2_code, gender, first_name, last_name, age, 
+                                                                  parent_id, phone, email, has_sms_consent, has_marketing_email_consent)
+                         SELECT 
+                                         aps.country_alpha2_code,
+                                         aps.gender,
+                                         aps.first_name,
+                                         aps.last_name,
+                                         aps.age,
+                                         NULL,
+                                         aps.phone,
+                                         aps.email,
+                                         false,
+                                         false
+                                                
+                         FROM approved_staff aps
+                         RETURNING id
+                                ),
+         s AS (
+                INSERT INTO staff.staff (id, role_id, is_active)
+                VALUES (
+                                (SELECT u.id FROM u),
+                                (SELECT aps2.role_id from approved_staff aps2),
+                                true
+                )
+                RETURNING id, is_active, created_at, updated_at, role_id
+         ),
+         d AS (
+                DELETE FROM staff.pending_staff
+                WHERE id = $1
+         )
+SELECT id, is_active, created_at, updated_at, role_id FROM s
 `
 
-type CreateApprovedStaffParams struct {
-	ID       uuid.UUID `json:"id"`
-	RoleName string    `json:"role_name"`
-	IsActive bool      `json:"is_active"`
+type ApproveStaffRow struct {
+	ID        uuid.UUID `json:"id"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	RoleID    uuid.UUID `json:"role_id"`
 }
 
-func (q *Queries) CreateApprovedStaff(ctx context.Context, arg CreateApprovedStaffParams) (StaffStaff, error) {
-	row := q.db.QueryRowContext(ctx, createApprovedStaff, arg.ID, arg.RoleName, arg.IsActive)
-	var i StaffStaff
+func (q *Queries) ApproveStaff(ctx context.Context, id uuid.UUID) (ApproveStaffRow, error) {
+	row := q.db.QueryRowContext(ctx, approveStaff, id)
+	var i ApproveStaffRow
 	err := row.Scan(
 		&i.ID,
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.RoleID,
+	)
+	return i, err
+}
+
+const createPendingStaff = `-- name: CreatePendingStaff :one
+INSERT INTO staff.pending_staff(first_name, last_name, email, gender, age, phone, country_alpha2_code, role_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7,
+        (SELECT id FROM staff.staff_roles WHERE role_name = $8))
+RETURNING id, first_name, last_name, email, gender, age, phone, country_alpha2_code, role_id, created_at, updated_at
+`
+
+type CreatePendingStaffParams struct {
+	FirstName         string         `json:"first_name"`
+	LastName          string         `json:"last_name"`
+	Email             string         `json:"email"`
+	Gender            sql.NullString `json:"gender"`
+	Age               int32          `json:"age"`
+	Phone             sql.NullString `json:"phone"`
+	CountryAlpha2Code string         `json:"country_alpha2_code"`
+	RoleName          string         `json:"role_name"`
+}
+
+func (q *Queries) CreatePendingStaff(ctx context.Context, arg CreatePendingStaffParams) (StaffPendingStaff, error) {
+	row := q.db.QueryRowContext(ctx, createPendingStaff,
+		arg.FirstName,
+		arg.LastName,
+		arg.Email,
+		arg.Gender,
+		arg.Age,
+		arg.Phone,
+		arg.CountryAlpha2Code,
+		arg.RoleName,
+	)
+	var i StaffPendingStaff
+	err := row.Scan(
+		&i.ID,
+		&i.FirstName,
+		&i.LastName,
+		&i.Email,
+		&i.Gender,
+		&i.Age,
+		&i.Phone,
+		&i.CountryAlpha2Code,
+		&i.RoleID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

@@ -108,6 +108,8 @@ func parseValidationErrors(err error, structType reflect.Type) *errLib.CommonErr
 				customMessage = fmt.Sprintf("%s: must be greater than %s", fieldName, getJSONFieldNameForParam(e.Param(), structType))
 			case "gtcsfield":
 				customMessage = fmt.Sprintf("%s: must be greater than %s", fieldName, getJSONFieldNameForParam(e.Param(), structType))
+			case "oneof":
+				customMessage = fmt.Sprintf("%s: must be one of the following values: %s", fieldName, strings.Join(strings.Split(e.Param(), ","), ", "))
 			default:
 				customMessage = fmt.Sprintf("%s: validation failed on '%s'", fieldName, e.Tag())
 			}

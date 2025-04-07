@@ -5,13 +5,14 @@ import (
 	identityRepo "api/internal/domains/identity/persistence/repository"
 	"api/internal/domains/identity/persistence/repository/user"
 	"api/internal/domains/identity/service/firebase"
-	"api/internal/domains/identity/values"
+	identity "api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
-	"api/internal/libs/jwt"
+	jwtLib "api/internal/libs/jwt"
 	"context"
-	"github.com/google/uuid"
 	"log"
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
 type Service struct {
@@ -28,7 +29,7 @@ func NewAuthenticationService(container *di.Container) *Service {
 	return &Service{
 		FirebaseService: firebase.NewFirebaseService(container),
 		UserRepo:        user.NewUserRepository(identityDb, outboxDb),
-		StaffRepo:       identityRepo.NewStaffRepository(identityDb, outboxDb),
+		StaffRepo:       identityRepo.NewStaffRepository(identityDb),
 	}
 }
 

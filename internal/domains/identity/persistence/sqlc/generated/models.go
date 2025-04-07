@@ -435,6 +435,20 @@ type ProgramProgramMembership struct {
 	UpdatedAt            time.Time     `json:"updated_at"`
 }
 
+type StaffPendingStaff struct {
+	ID                uuid.UUID      `json:"id"`
+	FirstName         string         `json:"first_name"`
+	LastName          string         `json:"last_name"`
+	Email             string         `json:"email"`
+	Gender            sql.NullString `json:"gender"`
+	Age               int32          `json:"age"`
+	Phone             sql.NullString `json:"phone"`
+	CountryAlpha2Code string         `json:"country_alpha2_code"`
+	RoleID            uuid.UUID      `json:"role_id"`
+	CreatedAt         sql.NullTime   `json:"created_at"`
+	UpdatedAt         sql.NullTime   `json:"updated_at"`
+}
+
 type StaffStaff struct {
 	ID        uuid.UUID `json:"id"`
 	IsActive  bool      `json:"is_active"`

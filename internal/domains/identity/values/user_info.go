@@ -1,8 +1,9 @@
 package identity
 
 import (
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type UserRegistrationRequestNecessaryInfo struct {
@@ -10,6 +11,7 @@ type UserRegistrationRequestNecessaryInfo struct {
 	FirstName   string
 	LastName    string
 	CountryCode string
+	Gender      string
 }
 
 type MembershipReadInfo struct {
@@ -85,13 +87,4 @@ type StaffRegistrationRequestInfo struct {
 	Phone    string
 	IsActive bool
 	RoleName string
-}
-
-type ApprovedStaffRegistrationRequestInfo struct {
-	UserID uuid.UUID
-	StaffRegistrationRequestInfo
-}
-
-type PendingStaffRegistrationRequestInfo struct {
-	StaffRegistrationRequestInfo
 }

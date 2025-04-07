@@ -17,7 +17,7 @@ import (
 
 func TestCreateMembership(t *testing.T) {
 
-	_, _, _, _, _, queries, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	_, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -40,7 +40,7 @@ func TestCreateMembership(t *testing.T) {
 
 func TestCreateExistingMembership(t *testing.T) {
 
-	_, _, _, _, _, queries, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	_, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -73,7 +73,7 @@ func TestCreateExistingMembership(t *testing.T) {
 
 func TestUpdateMembership(t *testing.T) {
 
-	_, _, _, _, _, queries, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	_, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -105,7 +105,7 @@ func TestUpdateMembership(t *testing.T) {
 
 func TestUpdateNonExistingMembership(t *testing.T) {
 
-	_, _, _, _, _, queries, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	_, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -123,7 +123,7 @@ func TestUpdateNonExistingMembership(t *testing.T) {
 
 func TestDeleteMembership(t *testing.T) {
 
-	_, _, _, _, _, queries, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	_, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 

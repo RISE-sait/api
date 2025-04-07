@@ -664,112 +664,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/events/{event_id}/customers/{customer_id}": {
-            "post": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "enrollments"
-                ],
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Event ID",
-                        "name": "event_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Customer ID",
-                        "name": "customer_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Enrollment created successfully"
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "Delete an enrollment by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "enrollments"
-                ],
-                "summary": "Delete an enrollment",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Enrollment ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content: Enrollment deleted successfully"
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid ID",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Enrollment not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/events/{event_id}/staffs/{staff_id}": {
             "post": {
                 "description": "Assign a staff member to an event using event_id and staff_id in the request body.",
@@ -1983,42 +1877,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/memberships/plans/payment-frequencies": {
-            "get": {
-                "description": "Retrieves a list of available payment frequencies for membership plans.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "membership-plans"
-                ],
-                "summary": "Get payment frequencies for membership plans",
-                "responses": {
-                    "200": {
-                        "description": "List of payment frequencies",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/memberships/plans/{id}": {
             "put": {
                 "security": [
@@ -2889,6 +2747,79 @@ const docTemplate = `{
                 }
             }
         },
+        "/register/staff/approve/{id}": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Approves a pending staff member's account in the system",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "registration"
+                ],
+                "summary": "Approve a pending staff member",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID of staff member to approve",
+                        "name": "staff_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Staff approved successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized: Invalid or missing authentication token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden: User does not have admin privileges",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Staff member not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error: Failed to approve staff",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/schedules": {
             "get": {
                 "consumes": [
@@ -3371,7 +3302,6 @@ const docTemplate = `{
                 "tags": [
                     "payments"
                 ],
-                "summary": "Receives and processes payment updates from Stripe .",
                 "parameters": [
                     {
                         "type": "string",
@@ -3434,6 +3364,13 @@ const docTemplate = `{
                 "first_name": {
                     "type": "string"
                 },
+                "gender": {
+                    "type": "string",
+                    "enum": [
+                        "M",
+                        "F"
+                    ]
+                },
                 "has_consent_to_email_marketing": {
                     "type": "boolean"
                 },
@@ -3495,6 +3432,13 @@ const docTemplate = `{
                 "first_name": {
                     "type": "string"
                 },
+                "gender": {
+                    "type": "string",
+                    "enum": [
+                        "M",
+                        "F"
+                    ]
+                },
                 "last_name": {
                     "type": "string"
                 },
@@ -3542,6 +3486,13 @@ const docTemplate = `{
                 },
                 "first_name": {
                     "type": "string"
+                },
+                "gender": {
+                    "type": "string",
+                    "enum": [
+                        "M",
+                        "F"
+                    ]
                 },
                 "has_consent_to_email_marketing": {
                     "type": "boolean"
@@ -4226,8 +4177,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "membership_id",
-                "payment_frequency",
-                "price"
+                "stripe_price_id"
             ],
             "properties": {
                 "amt_periods": {
@@ -4239,10 +4189,10 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "payment_frequency": {
+                "stripe_joining_fees_id": {
                     "type": "string"
                 },
-                "price": {
+                "stripe_price_id": {
                     "type": "string"
                 }
             }
@@ -4259,19 +4209,16 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "joining_fees": {
-                    "type": "string"
-                },
                 "membership_id": {
                     "type": "string"
                 },
                 "name": {
                     "type": "string"
                 },
-                "payment_frequency": {
+                "stripe_joining_fees_id": {
                     "type": "string"
                 },
-                "price": {
+                "stripe_price_id": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -4380,6 +4327,13 @@ const docTemplate = `{
                 },
                 "first_name": {
                     "type": "string"
+                },
+                "gender": {
+                    "type": "string",
+                    "enum": [
+                        "M",
+                        "F"
+                    ]
                 },
                 "is_active_staff": {
                     "type": "boolean"

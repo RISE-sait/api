@@ -257,6 +257,7 @@ func RegisterEventStaffRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/{staff_id}", h.AssignStaffToEvent)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{staff_id}", h.UnassignStaffFromEvent)
+
 	}
 }
 
@@ -302,6 +303,7 @@ func RegisterRegistrationRoutes(container *di.Container) func(chi.Router) {
 		r.Post("/athlete", athleteHandler.RegisterAthlete)
 
 		r.Post("/staff", staffHandler.RegisterStaff)
+		r.With(middlewares.JWTAuthMiddleware(false)).Post("/staff/approve/{id}", staffHandler.ApproveStaff)
 		r.Post("/child", childRegistrationHandler.RegisterChild)
 		r.Post("/parent", parentRegistrationHandler.RegisterParent)
 	}

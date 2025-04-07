@@ -6,10 +6,14 @@ import (
 	firebaseService "api/internal/domains/identity/service/firebase"
 	registrationService "api/internal/domains/identity/service/registration"
 	identityUtils "api/internal/domains/identity/utils"
+	"github.com/google/uuid"
 
+	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
+
+	"github.com/go-chi/chi"
 )
 
 type StaffHandlers struct {
@@ -77,4 +81,46 @@ func (h *StaffHandlers) RegisterStaff(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusCreated)
+}
+
+// ApproveStaff approves a pending staff member.
+// @Summary Approve a pending staff member
+// @Description Approves a pending staff member's account in the system
+// @Tags registration
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param staff_id path string true "ID of staff member to approve"
+// @Success 200 {object} map[string]interface{} "Staff approved successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 401 {object} map[string]interface{} "Unauthorized: Invalid or missing authentication token"
+// @Failure 403 {object} map[string]interface{} "Forbidden: User does not have admin privileges"
+// @Failure 404 {object} map[string]interface{} "Not Found: Staff member not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error: Failed to approve staff"
+// @Router /register/staff/approve/{id} [post]
+func (h *StaffHandlers) ApproveStaff(w http.ResponseWriter, r *http.Request) {
+
+	var staffID uuid.UUID
+
+	if staffIdStr := chi.URLParam(r, "id"); staffIdStr == "" {
+		responseHandlers.RespondWithError(w, errLib.New("staff ID is required", http.StatusBadRequest))
+		return
+	} else {
+		id, err := validators.ParseUUID(staffIdStr)
+
+		if err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		}
+
+		staffID = id
+	}
+
+	err := h.StaffRegistrationService.ApproveStaff(r.Context(), staffID)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	responseHandlers.RespondWithSuccess(w, nil, http.StatusOK)
 }

@@ -69,7 +69,7 @@ func (r *StaffRepository) CreatePendingStaff(ctx context.Context, input identity
 		}
 	}
 
-	registeredStaff, err := r.IdentityQueries.CreatePendingStaff(ctx, args)
+	_, err := r.IdentityQueries.CreatePendingStaff(ctx, args)
 
 	if err != nil {
 		var pqErr *pq.Error
@@ -92,11 +92,6 @@ func (r *StaffRepository) CreatePendingStaff(ctx context.Context, input identity
 		}
 		log.Printf("Error inserting staff rows: %v", err)
 		return errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-
-	if registeredStaff.ID == uuid.Nil {
-		log.Printf("Error creating pending staff: %v", err)
-		return errLib.New("Staff not registered", http.StatusInternalServerError)
 	}
 
 	return nil
@@ -123,7 +118,7 @@ func (r *StaffRepository) GetStaffByUserId(ctx context.Context, id uuid.UUID) (u
 	}, nil
 }
 
-func (r *StaffRepository) GetStaffRolesTx(ctx context.Context) ([]string, *errLib.CommonError) {
+func (r *StaffRepository) GetStaffRoles(ctx context.Context) ([]string, *errLib.CommonError) {
 
 	dbRoles, err := r.IdentityQueries.GetStaffRoles(ctx)
 

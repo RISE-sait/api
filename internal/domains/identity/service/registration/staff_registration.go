@@ -47,7 +47,7 @@ func (s *StaffsRegistrationService) RegisterPendingStaff(
 
 	roleExists := false
 
-	dbStaffRoles, err := s.StaffRepository.GetStaffRolesTx(ctx)
+	dbStaffRoles, err := s.StaffRepository.GetStaffRoles(ctx)
 	var staffRoles []string
 
 	if err != nil {

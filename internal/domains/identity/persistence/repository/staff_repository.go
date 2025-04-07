@@ -37,18 +37,20 @@ func (r *StaffRepository) CreateApprovedStaff(ctx context.Context, input identit
 		IsActive: input.IsActive,
 	}
 
-	rows, err := r.IdentityQueries.CreateApprovedStaff(ctx, args)
+	createdStaff, err := r.IdentityQueries.CreateApprovedStaff(ctx, args)
 
 	if err != nil {
+
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
 			return errLib.New("Staff with the ID already exists", http.StatusConflict)
 		}
+
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	if rows == 0 {
-		return errLib.New("Error: Staff not created", http.StatusInternalServerError)
+	if createdStaff.ID == uuid.Nil {
+		return errLib.New("Staff not created", http.StatusInternalServerError)
 	}
 
 	return nil

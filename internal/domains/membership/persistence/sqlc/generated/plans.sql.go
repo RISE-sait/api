@@ -12,9 +12,10 @@ import (
 	"github.com/google/uuid"
 )
 
-const createMembershipPlan = `-- name: CreateMembershipPlan :execrows
+const createMembershipPlan = `-- name: CreateMembershipPlan :one
 INSERT INTO membership.membership_plans (membership_id, name, stripe_joining_fee_id, stripe_price_id, amt_periods)
-VALUES ($1, $2, $3, $4,$5)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at
 `
 
 type CreateMembershipPlanParams struct {
@@ -25,18 +26,26 @@ type CreateMembershipPlanParams struct {
 	AmtPeriods         sql.NullInt32  `json:"amt_periods"`
 }
 
-func (q *Queries) CreateMembershipPlan(ctx context.Context, arg CreateMembershipPlanParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, createMembershipPlan,
+func (q *Queries) CreateMembershipPlan(ctx context.Context, arg CreateMembershipPlanParams) (MembershipMembershipPlan, error) {
+	row := q.db.QueryRowContext(ctx, createMembershipPlan,
 		arg.MembershipID,
 		arg.Name,
 		arg.StripeJoiningFeeID,
 		arg.StripePriceID,
 		arg.AmtPeriods,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
+	var i MembershipMembershipPlan
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.StripePriceID,
+		&i.StripeJoiningFeeID,
+		&i.MembershipID,
+		&i.AmtPeriods,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const deleteMembershipPlan = `-- name: DeleteMembershipPlan :execrows
@@ -111,15 +120,16 @@ func (q *Queries) GetMembershipPlans(ctx context.Context, membershipID uuid.UUID
 	return items, nil
 }
 
-const updateMembershipPlan = `-- name: UpdateMembershipPlan :execrows
+const updateMembershipPlan = `-- name: UpdateMembershipPlan :one
 UPDATE membership.membership_plans
 SET name              = $1,
-    stripe_price_id   = $2,
+    stripe_price_id       = $2,
     stripe_joining_fee_id = $3,
     amt_periods       = $4,
     membership_id     = $5,
     updated_at        = CURRENT_TIMESTAMP
 WHERE id = $6
+RETURNING id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at
 `
 
 type UpdateMembershipPlanParams struct {
@@ -131,8 +141,8 @@ type UpdateMembershipPlanParams struct {
 	ID                 uuid.UUID      `json:"id"`
 }
 
-func (q *Queries) UpdateMembershipPlan(ctx context.Context, arg UpdateMembershipPlanParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateMembershipPlan,
+func (q *Queries) UpdateMembershipPlan(ctx context.Context, arg UpdateMembershipPlanParams) (MembershipMembershipPlan, error) {
+	row := q.db.QueryRowContext(ctx, updateMembershipPlan,
 		arg.Name,
 		arg.StripePriceID,
 		arg.StripeJoiningFeeID,
@@ -140,8 +150,16 @@ func (q *Queries) UpdateMembershipPlan(ctx context.Context, arg UpdateMembership
 		arg.MembershipID,
 		arg.ID,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
+	var i MembershipMembershipPlan
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.StripePriceID,
+		&i.StripeJoiningFeeID,
+		&i.MembershipID,
+		&i.AmtPeriods,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

@@ -5,7 +5,11 @@ import (
 	eventDb "api/internal/domains/event/persistence/sqlc/generated"
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
 	locationDb "api/internal/domains/location/persistence/sqlc/generated"
+	membershipDb "api/internal/domains/membership/persistence/sqlc/generated"
+	paymentDb "api/internal/domains/payment/persistence/sqlc/generated"
 	programDb "api/internal/domains/program/persistence/sqlc/generated"
+	teamDb "api/internal/domains/team/persistence/sqlc/generated"
+	userDb "api/internal/domains/user/persistence/sqlc/generated"
 
 	"context"
 	"database/sql"
@@ -97,6 +101,10 @@ func SetupTestDbQueries(t *testing.T, path string) (
 	programQueries *programDb.Queries,
 	enrollmentQueries *enrollmentDb.Queries,
 	locationQueries *locationDb.Queries,
+	membershipQueries *membershipDb.Queries,
+	paymentQueries *paymentDb.Queries,
+	teamQueries *teamDb.Queries,
+	userQueries *userDb.Queries,
 	cleanup func(),
 ) {
 	// Initialize test database
@@ -112,17 +120,25 @@ func SetupTestDbQueries(t *testing.T, path string) (
 	programQueries = programDb.New(testDb)
 	enrollmentQueries = enrollmentDb.New(testDb)
 	locationQueries = locationDb.New(testDb)
+	membershipQueries = membershipDb.New(testDb)
+	paymentQueries = paymentDb.New(testDb)
+	teamQueries = teamDb.New(testDb)
+	userQueries = userDb.New(testDb)
 
 	// Setup cleanup function
 	cleanup = func() {
 		// Clean tables in reverse dependency order
 		_, err = testDb.Exec(`
-			DELETE FROM program.customer_enrollment;
-			DELETE FROM events.customer_enrollment;
-			DELETE FROM program.programs;
-			DELETE FROM events.events;
-			DELETE FROM location.locations;
-			DELETE FROM users.users;
+		    TRUNCATE 
+		        athletic.teams,
+        program.customer_enrollment,
+        events.customer_enrollment,
+        membership.memberships,
+        program.programs, 
+        events.events,
+        location.locations,
+        users.users
+    CASCADE;
 		`)
 		require.NoError(t, err)
 	}

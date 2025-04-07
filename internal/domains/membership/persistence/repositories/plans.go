@@ -42,15 +42,11 @@ func (r *PlansRepository) CreateMembershipPlan(c context.Context, membershipPlan
 		}
 	}
 
-	row, err := r.Queries.CreateMembershipPlan(c, dbParams)
+	_, err := r.Queries.CreateMembershipPlan(c, dbParams)
 
 	if err != nil {
 		log.Printf("Failed to create plan: %+v. Error: %v", membershipPlan, err.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-
-	if row == 0 {
-		return errLib.New("Membership not found", http.StatusNotFound)
 	}
 
 	return nil
@@ -141,16 +137,13 @@ func (r *PlansRepository) UpdateMembershipPlan(c context.Context, plan values.Pl
 		}
 	}
 
-	row, err := r.Queries.UpdateMembershipPlan(c, dbMembershipParams)
+	_, err := r.Queries.UpdateMembershipPlan(c, dbMembershipParams)
 
 	if err != nil {
 		log.Printf("Failed to update plan: %+v. Error: %v", plan, err.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	if row == 0 {
-		return errLib.New("Membership not found", http.StatusNotFound)
-	}
 	return nil
 }
 

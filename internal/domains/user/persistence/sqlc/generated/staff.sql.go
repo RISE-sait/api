@@ -13,6 +13,24 @@ import (
 	"github.com/google/uuid"
 )
 
+const createStaffRole = `-- name: CreateStaffRole :one
+INSERT INTO staff.staff_roles (role_name)
+VALUES ($1)
+RETURNING id, role_name, created_at, updated_at
+`
+
+func (q *Queries) CreateStaffRole(ctx context.Context, roleName string) (StaffStaffRole, error) {
+	row := q.db.QueryRowContext(ctx, createStaffRole, roleName)
+	var i StaffStaffRole
+	err := row.Scan(
+		&i.ID,
+		&i.RoleName,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const deleteStaff = `-- name: DeleteStaff :execrows
 DELETE
 FROM staff.staff

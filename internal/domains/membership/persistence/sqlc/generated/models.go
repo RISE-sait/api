@@ -381,12 +381,12 @@ type LocationLocation struct {
 }
 
 type MembershipMembership struct {
-	ID          uuid.UUID      `json:"id"`
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
-	Benefits    string         `json:"benefits"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Benefits    string    `json:"benefits"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type MembershipMembershipPlan struct {
@@ -398,6 +398,15 @@ type MembershipMembershipPlan struct {
 	AmtPeriods         sql.NullInt32  `json:"amt_periods"`
 	CreatedAt          time.Time      `json:"created_at"`
 	UpdatedAt          time.Time      `json:"updated_at"`
+}
+
+type ProgramCustomerEnrollment struct {
+	ID          uuid.UUID `json:"id"`
+	CustomerID  uuid.UUID `json:"customer_id"`
+	ProgramID   uuid.UUID `json:"program_id"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	IsCancelled bool      `json:"is_cancelled"`
 }
 
 type ProgramGame struct {

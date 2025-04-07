@@ -36,7 +36,7 @@ func (r *Repository) Update(ctx context.Context, team values.UpdateTeamValues) *
 		},
 	}
 
-	affectedRows, err := r.Queries.UpdateTeam(ctx, params)
+	_, err := r.Queries.UpdateTeam(ctx, params)
 
 	if err != nil {
 		// Check if the error is a unique violation (duplicate name)
@@ -49,10 +49,6 @@ func (r *Repository) Update(ctx context.Context, team values.UpdateTeamValues) *
 			return errLib.New("Database error", http.StatusInternalServerError)
 		}
 		return errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-
-	if affectedRows == 0 {
-		return errLib.New("Team failed to be updated. Unknown reason.", http.StatusInternalServerError)
 	}
 
 	return nil
@@ -118,7 +114,9 @@ func (r *Repository) Create(c context.Context, teamDetails values.CreateTeamValu
 		},
 	}
 
-	if err := r.Queries.CreateTeam(c, params); err != nil {
+	_, err := r.Queries.CreateTeam(c, params)
+
+	if err != nil {
 
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {

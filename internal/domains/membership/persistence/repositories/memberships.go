@@ -29,14 +29,11 @@ func NewMembershipsRepository(container *di.Container) *Repository {
 func (r *Repository) Create(c context.Context, membership *values.CreateValues) *errLib.CommonError {
 
 	dbParams := db.CreateMembershipParams{
-		Name: membership.Name, Description: sql.NullString{
-			String: membership.Description,
-			Valid:  true,
-		},
+		Name: membership.Name, Description: membership.Description,
 		Benefits: membership.Benefits,
 	}
 
-	affectedRows, err := r.Queries.CreateMembership(c, dbParams)
+	_, err := r.Queries.CreateMembership(c, dbParams)
 
 	if err != nil {
 		var pqErr *pq.Error
@@ -45,11 +42,6 @@ func (r *Repository) Create(c context.Context, membership *values.CreateValues) 
 		}
 		log.Println("Failed to create membership: ", err.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-
-	if affectedRows == 0 {
-		log.Printf("Failed to create membership for unknown reason. Membership: %+v", *membership)
-		return errLib.New("Failed to create membership for unknown reason. Contact Support.", http.StatusInternalServerError)
 	}
 
 	return nil
@@ -69,7 +61,7 @@ func (r *Repository) GetByID(c context.Context, id uuid.UUID) (*values.ReadValue
 		ID: membership.ID,
 		BaseValue: values.BaseValue{
 			Name:        membership.Name,
-			Description: membership.Description.String,
+			Description: membership.Description,
 			Benefits:    membership.Benefits,
 		},
 		UpdatedAt: membership.UpdatedAt,
@@ -90,7 +82,7 @@ func (r *Repository) List(c context.Context) ([]values.ReadValues, *errLib.Commo
 			ID: dbMembership.ID,
 			BaseValue: values.BaseValue{
 				Name:        dbMembership.Name,
-				Description: dbMembership.Description.String,
+				Description: dbMembership.Description,
 				Benefits:    dbMembership.Benefits,
 			},
 			UpdatedAt: dbMembership.UpdatedAt,
@@ -104,22 +96,16 @@ func (r *Repository) List(c context.Context) ([]values.ReadValues, *errLib.Commo
 func (r *Repository) Update(c context.Context, membership *values.UpdateValues) *errLib.CommonError {
 
 	dbMembershipParams := db.UpdateMembershipParams{
-		ID:   membership.ID,
-		Name: membership.Name,
-		Description: sql.NullString{
-			String: membership.Description,
-			Valid:  true,
-		},
+		ID:          membership.ID,
+		Name:        membership.Name,
+		Description: membership.Description,
+		Benefits:    membership.Benefits,
 	}
 
-	row, err := r.Queries.UpdateMembership(c, dbMembershipParams)
+	_, err := r.Queries.UpdateMembership(c, dbMembershipParams)
 
 	if err != nil {
 		return errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-
-	if row == 0 {
-		return errLib.New("Membership not found", http.StatusNotFound)
 	}
 
 	return nil

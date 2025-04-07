@@ -18,7 +18,7 @@ import (
 
 func TestCreateValidUser(t *testing.T) {
 
-	queries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	queries, _, _, _, _, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -57,7 +57,7 @@ func TestCreateValidUser(t *testing.T) {
 
 func TestCreateUserViolateUniqueEmailConstraint(t *testing.T) {
 
-	queries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	queries, _, _, _, _, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -96,7 +96,7 @@ func TestCreateUserViolateUniqueEmailConstraint(t *testing.T) {
 
 func TestUpdateUser(t *testing.T) {
 
-	queries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	queries, _, _, _, _, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -165,7 +165,7 @@ func TestUpdateUser(t *testing.T) {
 
 func TestGetNonExistingUser(t *testing.T) {
 
-	queries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	queries, _, _, _, _, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -182,7 +182,7 @@ func TestGetNonExistingUser(t *testing.T) {
 
 func TestUpdateNonExistentUser(t *testing.T) {
 
-	queries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	queries, _, _, _, _, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 

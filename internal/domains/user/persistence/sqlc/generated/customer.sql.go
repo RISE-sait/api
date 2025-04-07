@@ -13,6 +13,25 @@ import (
 	"github.com/google/uuid"
 )
 
+const addAthleteToTeam = `-- name: AddAthleteToTeam :execrows
+UPDATE athletic.athletes
+SET team_id = $1
+WHERE id = $2
+`
+
+type AddAthleteToTeamParams struct {
+	TeamID     uuid.NullUUID `json:"team_id"`
+	CustomerID uuid.UUID     `json:"customer_id"`
+}
+
+func (q *Queries) AddAthleteToTeam(ctx context.Context, arg AddAthleteToTeamParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, addAthleteToTeam, arg.TeamID, arg.CustomerID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const createAthleteInfo = `-- name: CreateAthleteInfo :execrows
 INSERT INTO athletic.athletes (id, rebounds, assists, losses, wins, points)
 VALUES ($1, $2, $3, $4, $5, $6)
@@ -56,21 +75,20 @@ SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last
        a.rebounds,
        a.steals
 FROM users.users u
-         LEFT JOIN public.customer_membership_plans cmp ON (
+         LEFT JOIN users.customer_membership_plans cmp ON (
     cmp.customer_id = u.id AND
     cmp.start_date = (SELECT MAX(start_date)
-                      FROM public.customer_membership_plans
+                      FROM users.customer_membership_plans
                       WHERE customer_id = u.id)
     )
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
          LEFT JOIN athletic.athletes a ON u.id = a.id
-WHERE
-    (u.id = $1 OR $1 IS NULL)
-   AND ( u.email = $2 OR $2 IS NULL )
-    AND NOT EXISTS (
-        SELECT 1 FROM staff.staff s WHERE s.id = u.id
-    )
+WHERE (u.id = $1 OR $1 IS NULL)
+  AND (u.email = $2 OR $2 IS NULL)
+  AND NOT EXISTS (SELECT 1
+                  FROM staff.staff s
+                  WHERE s.id = u.id)
 `
 
 type GetCustomerParams struct {
@@ -153,19 +171,19 @@ SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last
        a.rebounds,
        a.steals
 FROM users.users u
-         LEFT JOIN public.customer_membership_plans cmp ON (
+         LEFT JOIN users.customer_membership_plans cmp ON (
     cmp.customer_id = u.id AND
     cmp.start_date = (SELECT MAX(start_date)
-                      FROM public.customer_membership_plans
+                      FROM users.customer_membership_plans
                       WHERE customer_id = u.id)
     )
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
          LEFT JOIN athletic.athletes a ON u.id = a.id
 WHERE (u.parent_id = $1 OR $1 IS NULL)
-  AND NOT EXISTS (
-    SELECT 1 FROM staff.staff s WHERE s.id = u.id
-)
+  AND NOT EXISTS (SELECT 1
+                  FROM staff.staff s
+                  WHERE s.id = u.id)
 LIMIT $3 OFFSET $2
 `
 

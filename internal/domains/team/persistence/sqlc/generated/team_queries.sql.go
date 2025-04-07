@@ -11,9 +11,10 @@ import (
 	"github.com/google/uuid"
 )
 
-const createTeam = `-- name: CreateTeam :exec
+const createTeam = `-- name: CreateTeam :one
 INSERT INTO athletic.teams (name, capacity, coach_id)
 VALUES ($1, $2, $3)
+RETURNING id, name, capacity, created_at, updated_at, coach_id
 `
 
 type CreateTeamParams struct {
@@ -22,9 +23,18 @@ type CreateTeamParams struct {
 	CoachID  uuid.NullUUID `json:"coach_id"`
 }
 
-func (q *Queries) CreateTeam(ctx context.Context, arg CreateTeamParams) error {
-	_, err := q.db.ExecContext(ctx, createTeam, arg.Name, arg.Capacity, arg.CoachID)
-	return err
+func (q *Queries) CreateTeam(ctx context.Context, arg CreateTeamParams) (AthleticTeam, error) {
+	row := q.db.QueryRowContext(ctx, createTeam, arg.Name, arg.Capacity, arg.CoachID)
+	var i AthleticTeam
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Capacity,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CoachID,
+	)
+	return i, err
 }
 
 const deleteTeam = `-- name: DeleteTeam :execrows
@@ -96,13 +106,14 @@ func (q *Queries) GetTeams(ctx context.Context) ([]AthleticTeam, error) {
 	return items, nil
 }
 
-const updateTeam = `-- name: UpdateTeam :execrows
+const updateTeam = `-- name: UpdateTeam :one
 UPDATE athletic.teams
 SET name       = $1,
     coach_id   = $2,
     capacity   = $3,
     updated_at = CURRENT_TIMESTAMP
 WHERE id = $4
+RETURNING id, name, capacity, created_at, updated_at, coach_id
 `
 
 type UpdateTeamParams struct {
@@ -112,15 +123,21 @@ type UpdateTeamParams struct {
 	ID       uuid.UUID     `json:"id"`
 }
 
-func (q *Queries) UpdateTeam(ctx context.Context, arg UpdateTeamParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateTeam,
+func (q *Queries) UpdateTeam(ctx context.Context, arg UpdateTeamParams) (AthleticTeam, error) {
+	row := q.db.QueryRowContext(ctx, updateTeam,
 		arg.Name,
 		arg.CoachID,
 		arg.Capacity,
 		arg.ID,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
+	var i AthleticTeam
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Capacity,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CoachID,
+	)
+	return i, err
 }

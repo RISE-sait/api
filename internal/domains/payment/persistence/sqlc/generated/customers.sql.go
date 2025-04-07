@@ -7,22 +7,39 @@ package db_payment
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 )
 
 const getCustomersTeam = `-- name: GetCustomersTeam :one
-SELECT t.id
+SELECT t.id, t.name, t.capacity, t.created_at, t.updated_at, t.coach_id
 FROM athletic.athletes a
          LEFT JOIN athletic.teams t ON a.team_id = t.id
 WHERE a.id = $1
 `
 
-func (q *Queries) GetCustomersTeam(ctx context.Context, customerID uuid.UUID) (uuid.NullUUID, error) {
+type GetCustomersTeamRow struct {
+	ID        uuid.NullUUID  `json:"id"`
+	Name      sql.NullString `json:"name"`
+	Capacity  sql.NullInt32  `json:"capacity"`
+	CreatedAt sql.NullTime   `json:"created_at"`
+	UpdatedAt sql.NullTime   `json:"updated_at"`
+	CoachID   uuid.NullUUID  `json:"coach_id"`
+}
+
+func (q *Queries) GetCustomersTeam(ctx context.Context, customerID uuid.UUID) (GetCustomersTeamRow, error) {
 	row := q.db.QueryRowContext(ctx, getCustomersTeam, customerID)
-	var id uuid.NullUUID
-	err := row.Scan(&id)
-	return id, err
+	var i GetCustomersTeamRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Capacity,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CoachID,
+	)
+	return i, err
 }
 
 const isCustomerExist = `-- name: IsCustomerExist :one

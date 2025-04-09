@@ -21,7 +21,12 @@ import (
 
 func TestCreateEvent(t *testing.T) {
 
-	identityQueries, eventQueries, programQueries, _, locationQueries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+	db, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+
+	identityQueries := identityDb.New(db)
+	eventQueries := eventDb.New(db)
+	programQueries := programDb.New(db)
+	locationQueries := locationDb.New(db)
 
 	defer cleanup()
 
@@ -80,7 +85,12 @@ func TestCreateEvent(t *testing.T) {
 
 func TestUpdateEvent(t *testing.T) {
 
-	identityQueries, eventQueries, programQueries, _, locationQueries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+	db, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+
+	identityQueries := identityDb.New(db)
+	eventQueries := eventDb.New(db)
+	programQueries := programDb.New(db)
+	locationQueries := locationDb.New(db)
 
 	defer cleanup()
 
@@ -156,7 +166,12 @@ func TestUpdateEvent(t *testing.T) {
 
 func TestDeleteEvent(t *testing.T) {
 
-	identityQueries, eventQueries, programQueries, _, locationQueries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+	db, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+
+	identityQueries := identityDb.New(db)
+	eventQueries := eventDb.New(db)
+	programQueries := programDb.New(db)
+	locationQueries := locationDb.New(db)
 
 	defer cleanup()
 

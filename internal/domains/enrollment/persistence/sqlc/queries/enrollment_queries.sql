@@ -28,6 +28,13 @@ SET is_cancelled = true
 WHERE customer_id = $1
   AND event_id = $2;
 
+-- name: GetProgramIsFull :one
+SELECT COUNT(ce.customer_id) >= p.capacity AS is_full
+FROM program.programs p
+         LEFT JOIN program.customer_enrollment ce ON p.id = ce.program_id
+WHERE p.id = @program_id
+group by p.capacity;
+
 -- name: GetEventIsFull :one
 SELECT COUNT(ce.customer_id) >= COALESCE(e.capacity, p.capacity, t.capacity)::boolean AS is_full
 FROM events.events e

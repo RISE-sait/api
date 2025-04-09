@@ -380,12 +380,12 @@ type LocationLocation struct {
 }
 
 type MembershipMembership struct {
-	ID          uuid.UUID      `json:"id"`
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
-	Benefits    string         `json:"benefits"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Benefits    string    `json:"benefits"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type MembershipMembershipPlan struct {
@@ -433,6 +433,20 @@ type ProgramProgramMembership struct {
 	StripeProgramPriceID string        `json:"stripe_program_price_id"`
 	CreatedAt            time.Time     `json:"created_at"`
 	UpdatedAt            time.Time     `json:"updated_at"`
+}
+
+type StaffPendingStaff struct {
+	ID                uuid.UUID      `json:"id"`
+	FirstName         string         `json:"first_name"`
+	LastName          string         `json:"last_name"`
+	Email             string         `json:"email"`
+	Gender            sql.NullString `json:"gender"`
+	Age               int32          `json:"age"`
+	Phone             sql.NullString `json:"phone"`
+	CountryAlpha2Code string         `json:"country_alpha2_code"`
+	RoleID            uuid.UUID      `json:"role_id"`
+	CreatedAt         sql.NullTime   `json:"created_at"`
+	UpdatedAt         sql.NullTime   `json:"updated_at"`
 }
 
 type StaffStaff struct {

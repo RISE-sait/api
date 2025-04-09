@@ -96,6 +96,21 @@ func (q *Queries) GetEventIsFull(ctx context.Context, eventID uuid.UUID) (bool, 
 	return is_full, err
 }
 
+const getProgramIsFull = `-- name: GetProgramIsFull :one
+SELECT COUNT(ce.customer_id) >= p.capacity AS is_full
+FROM program.programs p
+         LEFT JOIN program.customer_enrollment ce ON p.id = ce.program_id
+WHERE p.id = $1
+group by p.capacity
+`
+
+func (q *Queries) GetProgramIsFull(ctx context.Context, programID uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, getProgramIsFull, programID)
+	var is_full bool
+	err := row.Scan(&is_full)
+	return is_full, err
+}
+
 const unEnrollCustomer = `-- name: UnEnrollCustomer :execrows
 UPDATE events.customer_enrollment
 SET is_cancelled = true

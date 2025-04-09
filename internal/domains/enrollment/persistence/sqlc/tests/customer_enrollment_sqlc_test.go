@@ -23,7 +23,7 @@ import (
 
 func TestEnrollCustomerInEvent(t *testing.T) {
 
-	identityQueries, eventQueries, programQueries, enrollmentQueries, locationQueries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	_, identityQueries, eventQueries, programQueries, enrollmentQueries, locationQueries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -108,7 +108,7 @@ func TestEnrollCustomerInEvent(t *testing.T) {
 
 func TestEnrollCustomerInProgramEvents(t *testing.T) {
 
-	identityQueries, eventQueries, programQueries, enrollmentQueries, locationQueries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	_, identityQueries, eventQueries, programQueries, enrollmentQueries, locationQueries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 

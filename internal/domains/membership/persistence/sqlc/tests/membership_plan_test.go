@@ -17,7 +17,7 @@ import (
 
 func TestCreateMembershipPlan(t *testing.T) {
 
-	_, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	_, _, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -53,7 +53,7 @@ func TestCreateMembershipPlan(t *testing.T) {
 
 func TestCreateExistingMembershipPlan(t *testing.T) {
 
-	_, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	_, _, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -95,7 +95,7 @@ func TestCreateExistingMembershipPlan(t *testing.T) {
 
 func TestUpdateMembershipPlan(t *testing.T) {
 
-	_, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	_, _, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -153,7 +153,7 @@ func TestUpdateMembershipPlan(t *testing.T) {
 
 func TestUpdateMembershipPlanNonExistingMembership(t *testing.T) {
 
-	_, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	_, _, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -208,7 +208,7 @@ func TestUpdateMembershipPlanNonExistingMembership(t *testing.T) {
 
 func TestUpdateNonExistingMembershipPlan(t *testing.T) {
 
-	_, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	_, _, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 
@@ -234,7 +234,7 @@ func TestUpdateNonExistingMembershipPlan(t *testing.T) {
 
 func TestDeleteMembershipPlan(t *testing.T) {
 
-	_, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	_, _, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	defer cleanup()
 

@@ -96,6 +96,7 @@ func setupTestDB(t *testing.T) (*sql.DB, func()) {
 }
 
 func SetupTestDbQueries(t *testing.T, path string) (
+	testDb *sql.DB,
 	identityQueries *identityDb.Queries,
 	eventQueries *eventDb.Queries,
 	programQueries *programDb.Queries,
@@ -108,7 +109,7 @@ func SetupTestDbQueries(t *testing.T, path string) (
 	cleanup func(),
 ) {
 	// Initialize test database
-	testDb, _ := setupTestDB(t)
+	testDb, _ = setupTestDB(t)
 
 	// Run migrations
 	err := goose.Up(testDb, path)

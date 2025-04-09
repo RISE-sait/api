@@ -33,7 +33,7 @@ func TestEnrollCustomerInProgramEvents_ACID_Serializable(t *testing.T) {
 
 			defer cleanup()
 
-			enrollmentRepo := enrollment.NewEnrollmentRepository(dbConn, enrollmentQ)
+			enrollmentRepo := enrollment.NewEnrollmentRepository(dbConn)
 
 			createdProgram, err := programQ.CreateProgram(context.Background(), dbProgram.CreateProgramParams{
 				Name: "Test Program",
@@ -168,7 +168,7 @@ func TestEnrollCustomerInProgramEvents_ACID_No_race_condition(t *testing.T) {
 
 	defer cleanup()
 
-	enrollmentRepo := enrollment.NewEnrollmentRepository(dbConn, enrollmentQ)
+	enrollmentRepo := enrollment.NewEnrollmentRepository(dbConn)
 
 	createdProgram, err := programQ.CreateProgram(context.Background(), dbProgram.CreateProgramParams{
 		Name: "Test Program",

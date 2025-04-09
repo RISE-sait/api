@@ -2,7 +2,7 @@ package enrollment
 
 import (
 	databaseErrors "api/internal/constants"
-	db "api/internal/domains/enrollment/persistence/sqlc/generated"
+	dbEnrollment "api/internal/domains/enrollment/persistence/sqlc/generated"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
@@ -17,19 +17,19 @@ import (
 )
 
 type CustomerEnrollmentRepository struct {
-	Queries *db.Queries
+	Queries *dbEnrollment.Queries
 	Db      *sql.DB
 }
 
-func NewEnrollmentRepository(db *sql.DB, dbQueries *db.Queries) *CustomerEnrollmentRepository {
+func NewEnrollmentRepository(db *sql.DB) *CustomerEnrollmentRepository {
 	return &CustomerEnrollmentRepository{
 		Db:      db,
-		Queries: dbQueries,
+		Queries: dbEnrollment.New(db),
 	}
 }
 
 func (r *CustomerEnrollmentRepository) UnEnrollCustomer(c context.Context, eventID, customerID uuid.UUID) *errLib.CommonError {
-	row, err := r.Queries.UnEnrollCustomer(c, db.UnEnrollCustomerParams{
+	row, err := r.Queries.UnEnrollCustomer(c, dbEnrollment.UnEnrollCustomerParams{
 		CustomerID: customerID,
 		EventID:    eventID,
 	})
@@ -61,7 +61,7 @@ func (r *CustomerEnrollmentRepository) EnrollCustomerInProgramEvents(ctx context
 		}
 	}()
 
-	qtx := db.New(tx)
+	qtx := dbEnrollment.New(tx)
 
 	isFull, err := qtx.GetProgramIsFull(ctx, programID)
 
@@ -85,7 +85,7 @@ func (r *CustomerEnrollmentRepository) EnrollCustomerInProgramEvents(ctx context
 		return errLib.New("Program is full", http.StatusConflict)
 	}
 
-	if err = qtx.EnrollCustomerInProgramEvents(ctx, db.EnrollCustomerInProgramEventsParams{
+	if err = qtx.EnrollCustomerInProgramEvents(ctx, dbEnrollment.EnrollCustomerInProgramEventsParams{
 		CustomerID: customerID,
 		ProgramID:  programID,
 	}); err != nil {
@@ -135,10 +135,10 @@ func isSerializationError(err error) bool {
 
 func (r *CustomerEnrollmentRepository) EnrollCustomerInMembershipPlan(ctx context.Context, customerID, planID uuid.UUID, cancelAtDateTime time.Time) *errLib.CommonError {
 
-	if err := r.Queries.EnrollCustomerInMembershipPlan(ctx, db.EnrollCustomerInMembershipPlanParams{
+	if err := r.Queries.EnrollCustomerInMembershipPlan(ctx, dbEnrollment.EnrollCustomerInMembershipPlanParams{
 		CustomerID:       customerID,
 		MembershipPlanID: planID,
-		Status:           db.MembershipMembershipStatusActive,
+		Status:           dbEnrollment.MembershipMembershipStatusActive,
 		StartDate:        time.Now(),
 		RenewalDate: sql.NullTime{
 			Time:  cancelAtDateTime,
@@ -153,7 +153,7 @@ func (r *CustomerEnrollmentRepository) EnrollCustomerInMembershipPlan(ctx contex
 //
 //func (r *CustomerEnrollmentRepository) EnrollCustomer(c context.Context, eventID, customerID uuid.UUID) *errLib.CommonError {
 //
-//	params := db.EnrollCustomerParams{
+//	params := dbEnrollment.EnrollCustomerParams{
 //		CustomerID: customerID,
 //		EventID:    eventID,
 //		CheckedInAt: sql.NullTime{

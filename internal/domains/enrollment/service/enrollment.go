@@ -31,7 +31,7 @@ type CustomerEnrollmentService struct {
 }
 
 func NewCustomerEnrollmentService(container *di.Container) *CustomerEnrollmentService {
-	_repo := repo.NewEnrollmentRepository(container.Queries.EnrollmentDb)
+	_repo := repo.NewEnrollmentRepository(container.DB)
 	return &CustomerEnrollmentService{
 		EnrollmentRepository: _repo,
 	}

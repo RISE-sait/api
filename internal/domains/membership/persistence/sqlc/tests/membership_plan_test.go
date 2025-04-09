@@ -4,7 +4,7 @@ import (
 	dbTestUtils "api/utils/test_utils"
 	"github.com/lib/pq"
 
-	membershipDb "api/internal/domains/membership/persistence/sqlc/generated"
+	db "api/internal/domains/membership/persistence/sqlc/generated"
 
 	"database/sql"
 
@@ -17,12 +17,14 @@ import (
 
 func TestCreateMembershipPlan(t *testing.T) {
 
-	_, _, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	queries := db.New(dbConn)
 
 	defer cleanup()
 
 	// Create a user to be the creator of the event
-	params := membershipDb.CreateMembershipParams{
+	params := db.CreateMembershipParams{
 		Name:        "Go Basics Practice",
 		Description: "Learn Go programming",
 		Benefits:    "Free access to all events",
@@ -32,7 +34,7 @@ func TestCreateMembershipPlan(t *testing.T) {
 
 	require.NoError(t, err)
 
-	createPlanParams := membershipDb.CreateMembershipPlanParams{
+	createPlanParams := db.CreateMembershipPlanParams{
 		MembershipID: createdMembership.ID,
 		Name:         "Go Basics Practice Plan",
 		StripeJoiningFeeID: sql.NullString{
@@ -53,12 +55,14 @@ func TestCreateMembershipPlan(t *testing.T) {
 
 func TestCreateExistingMembershipPlan(t *testing.T) {
 
-	_, _, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	queries := db.New(dbConn)
 
 	defer cleanup()
 
 	// Create a user to be the creator of the event
-	params := membershipDb.CreateMembershipParams{
+	params := db.CreateMembershipParams{
 		Name:        "Go Basics Practice",
 		Description: "Learn Go programming",
 		Benefits:    "Free access to all events",
@@ -68,7 +72,7 @@ func TestCreateExistingMembershipPlan(t *testing.T) {
 
 	require.NoError(t, err)
 
-	createPlanParams := membershipDb.CreateMembershipPlanParams{
+	createPlanParams := db.CreateMembershipPlanParams{
 		MembershipID: createdMembership.ID,
 		Name:         "Go Basics Practice Plan",
 		StripeJoiningFeeID: sql.NullString{
@@ -95,11 +99,13 @@ func TestCreateExistingMembershipPlan(t *testing.T) {
 
 func TestUpdateMembershipPlan(t *testing.T) {
 
-	_, _, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	queries := db.New(dbConn)
 
 	defer cleanup()
 
-	params := membershipDb.CreateMembershipParams{
+	params := db.CreateMembershipParams{
 		Name:        "Go Basics Practice",
 		Description: "Learn Go programming",
 		Benefits:    "Free access to all events",
@@ -109,7 +115,7 @@ func TestUpdateMembershipPlan(t *testing.T) {
 
 	require.NoError(t, err)
 
-	createPlanParams := membershipDb.CreateMembershipPlanParams{
+	createPlanParams := db.CreateMembershipPlanParams{
 		MembershipID: createdMembership.ID,
 		Name:         "Go Basics Practice Plan",
 		StripeJoiningFeeID: sql.NullString{
@@ -123,7 +129,7 @@ func TestUpdateMembershipPlan(t *testing.T) {
 
 	require.NoError(t, err)
 
-	updateMembershipPlanParams := membershipDb.UpdateMembershipPlanParams{
+	updateMembershipPlanParams := db.UpdateMembershipPlanParams{
 		Name:          "Updated Membership Name",
 		StripePriceID: "price_789",
 		StripeJoiningFeeID: sql.NullString{
@@ -153,11 +159,13 @@ func TestUpdateMembershipPlan(t *testing.T) {
 
 func TestUpdateMembershipPlanNonExistingMembership(t *testing.T) {
 
-	_, _, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	queries := db.New(dbConn)
 
 	defer cleanup()
 
-	params := membershipDb.CreateMembershipParams{
+	params := db.CreateMembershipParams{
 		Name:        "Go Basics Practice",
 		Description: "Learn Go programming",
 		Benefits:    "Free access to all events",
@@ -167,7 +175,7 @@ func TestUpdateMembershipPlanNonExistingMembership(t *testing.T) {
 
 	require.NoError(t, err)
 
-	createPlanParams := membershipDb.CreateMembershipPlanParams{
+	createPlanParams := db.CreateMembershipPlanParams{
 		MembershipID: createdMembership.ID,
 		Name:         "Go Basics Practice Plan",
 		StripeJoiningFeeID: sql.NullString{
@@ -181,7 +189,7 @@ func TestUpdateMembershipPlanNonExistingMembership(t *testing.T) {
 
 	require.NoError(t, err)
 
-	updateMembershipPlanParams := membershipDb.UpdateMembershipPlanParams{
+	updateMembershipPlanParams := db.UpdateMembershipPlanParams{
 		Name:          "Updated Membership Name",
 		StripePriceID: "price_789",
 		StripeJoiningFeeID: sql.NullString{
@@ -208,11 +216,13 @@ func TestUpdateMembershipPlanNonExistingMembership(t *testing.T) {
 
 func TestUpdateNonExistingMembershipPlan(t *testing.T) {
 
-	_, _, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	queries := db.New(dbConn)
 
 	defer cleanup()
 
-	params := membershipDb.UpdateMembershipPlanParams{
+	params := db.UpdateMembershipPlanParams{
 		ID:            uuid.New(),
 		Name:          "Updated Membership Name",
 		StripePriceID: "price_789",
@@ -234,11 +244,13 @@ func TestUpdateNonExistingMembershipPlan(t *testing.T) {
 
 func TestDeleteMembershipPlan(t *testing.T) {
 
-	_, _, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	queries := db.New(dbConn)
 
 	defer cleanup()
 
-	params := membershipDb.CreateMembershipParams{
+	params := db.CreateMembershipParams{
 		Name:        "Go Basics Practice",
 		Description: "Learn Go programming",
 		Benefits:    "Free access to all events",
@@ -248,7 +260,7 @@ func TestDeleteMembershipPlan(t *testing.T) {
 
 	require.NoError(t, err)
 
-	createPlanParams := membershipDb.CreateMembershipPlanParams{
+	createPlanParams := db.CreateMembershipPlanParams{
 		MembershipID: createdMembership.ID,
 		Name:         "Go Basics Practice Plan",
 		StripeJoiningFeeID: sql.NullString{

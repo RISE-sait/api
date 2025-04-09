@@ -20,7 +20,7 @@ import (
 
 func TestCreateProgram(t *testing.T) {
 
-	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	queries := db.New(dbConn)
 
@@ -46,7 +46,7 @@ func TestCreateProgram(t *testing.T) {
 
 func TestUpdateProgramValid(t *testing.T) {
 
-	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	queries := db.New(dbConn)
 
@@ -87,7 +87,7 @@ func TestUpdateProgramValid(t *testing.T) {
 
 func TestUpdatePracticeInvalidLevel(t *testing.T) {
 
-	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	queries := db.New(dbConn)
 
@@ -124,7 +124,7 @@ func TestUpdatePracticeInvalidLevel(t *testing.T) {
 
 func TestCreateProgramUniqueNameConstraint(t *testing.T) {
 
-	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	queries := db.New(dbConn)
 
@@ -154,7 +154,7 @@ func TestCreateProgramUniqueNameConstraint(t *testing.T) {
 
 func TestGetAllPrograms(t *testing.T) {
 
-	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	queries := db.New(dbConn)
 
@@ -188,7 +188,7 @@ func TestGetAllPrograms(t *testing.T) {
 
 func TestUpdateNonExistentProgram(t *testing.T) {
 
-	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	queries := db.New(dbConn)
 
@@ -212,7 +212,7 @@ func TestUpdateNonExistentProgram(t *testing.T) {
 
 func TestCreateCourseWithWrongLevel(t *testing.T) {
 
-	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	queries := db.New(dbConn)
 
@@ -237,7 +237,7 @@ func TestCreateCourseWithWrongLevel(t *testing.T) {
 
 func TestDeleteProgram(t *testing.T) {
 
-	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	queries := db.New(dbConn)
 

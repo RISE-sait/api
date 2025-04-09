@@ -20,7 +20,7 @@ import (
 
 func TestCreateLocation(t *testing.T) {
 
-	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	queries := dbLocation.New(dbConn)
 
@@ -42,7 +42,7 @@ func TestCreateLocation(t *testing.T) {
 
 func TestUpdateLocationValid(t *testing.T) {
 
-	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	queries := dbLocation.New(dbConn)
 
@@ -78,7 +78,7 @@ func TestUpdateLocationValid(t *testing.T) {
 
 func TestCreateLocationUniqueNameConstraint(t *testing.T) {
 
-	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	queries := dbLocation.New(dbConn)
 
@@ -106,7 +106,7 @@ func TestCreateLocationUniqueNameConstraint(t *testing.T) {
 
 func TestGetAllLocations(t *testing.T) {
 
-	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	queries := dbLocation.New(dbConn)
 
@@ -132,7 +132,7 @@ func TestGetAllLocations(t *testing.T) {
 
 func TestUpdateNonExistentLocation(t *testing.T) {
 
-	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	queries := dbLocation.New(dbConn)
 
@@ -153,7 +153,7 @@ func TestUpdateNonExistentLocation(t *testing.T) {
 
 func TestDeleteLocation(t *testing.T) {
 
-	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	queries := dbLocation.New(dbConn)
 

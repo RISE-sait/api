@@ -13,6 +13,73 @@ import (
 	"github.com/google/uuid"
 )
 
+const checkEventIsFull = `-- name: CheckEventIsFull :one
+SELECT COUNT(ce.id) FILTER (
+    WHERE ce.payment_status = 'paid'
+        OR (ce.payment_status = 'pending' AND ce.payment_expired_at > NOW())
+    ) >= COALESCE(e.capacity, p.capacity, t.capacity) AS is_full
+FROM events.events e
+         LEFT JOIN program.programs p ON e.program_id = p.id
+         LEFT JOIN athletic.teams t ON e.team_id = t.id
+         LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
+WHERE e.id = $1
+GROUP BY e.capacity, p.capacity, t.capacity
+`
+
+func (q *Queries) CheckEventIsFull(ctx context.Context, id uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkEventIsFull, id)
+	var is_full bool
+	err := row.Scan(&is_full)
+	return is_full, err
+}
+
+const checkProgramCapacityExists = `-- name: CheckProgramCapacityExists :one
+SELECT (capacity IS NOT NULL)::boolean
+    FROM program.programs p
+    WHERE p.id = $1
+`
+
+func (q *Queries) CheckProgramCapacityExists(ctx context.Context, id uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkProgramCapacityExists, id)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const checkProgramExists = `-- name: CheckProgramExists :one
+SELECT EXISTS (
+    SELECT 1
+    FROM program.programs p
+    WHERE p.id = $1
+)
+`
+
+func (q *Queries) CheckProgramExists(ctx context.Context, id uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkProgramExists, id)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const checkProgramIsFull = `-- name: CheckProgramIsFull :one
+SELECT
+    COUNT(ce.id) FILTER (
+              WHERE ce.payment_status = 'paid'
+                  OR (ce.payment_status = 'pending' AND ce.payment_expired_at > CURRENT_TIMESTAMP))
+     >= p.capacity
+FROM program.programs p
+LEFT JOIN program.customer_enrollment ce ON p.id = ce.program_id
+WHERE p.id = $1
+GROUP BY p.capacity
+`
+
+func (q *Queries) CheckProgramIsFull(ctx context.Context, id uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkProgramIsFull, id)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const enrollCustomerInEvent = `-- name: EnrollCustomerInEvent :exec
 INSERT INTO events.customer_enrollment (customer_id, event_id)
 VALUES ($1, $2)
@@ -52,79 +119,118 @@ func (q *Queries) EnrollCustomerInMembershipPlan(ctx context.Context, arg Enroll
 	return err
 }
 
-const enrollCustomerInProgramEvents = `-- name: EnrollCustomerInProgramEvents :exec
-WITH eligible_events AS (SELECT e.id
+const enrollCustomerInProgram = `-- name: EnrollCustomerInProgram :exec
+WITH events AS (SELECT e.id
                          FROM events.events e
                          WHERE e.program_id = $1
-                           AND e.start_at >= current_timestamp
-                           AND NOT EXISTS (SELECT 1
-                                           FROM events.customer_enrollment ce
-                                           WHERE ce.customer_id = $2
-                                             AND ce.event_id = e.id)),
+                           AND e.start_at >= current_timestamp),
      event_inserts as (
          INSERT INTO events.customer_enrollment (customer_id, event_id)
-             SELECT $2, id FROM eligible_events)
+             SELECT $2, id FROM events)
 INSERT
 INTO program.customer_enrollment(customer_id, program_id, is_cancelled)
 VALUES ($2, $1, false)
 `
 
-type EnrollCustomerInProgramEventsParams struct {
+type EnrollCustomerInProgramParams struct {
 	ProgramID  uuid.UUID `json:"program_id"`
 	CustomerID uuid.UUID `json:"customer_id"`
 }
 
-func (q *Queries) EnrollCustomerInProgramEvents(ctx context.Context, arg EnrollCustomerInProgramEventsParams) error {
-	_, err := q.db.ExecContext(ctx, enrollCustomerInProgramEvents, arg.ProgramID, arg.CustomerID)
+func (q *Queries) EnrollCustomerInProgram(ctx context.Context, arg EnrollCustomerInProgramParams) error {
+	_, err := q.db.ExecContext(ctx, enrollCustomerInProgram, arg.ProgramID, arg.CustomerID)
 	return err
 }
 
-const getEventIsFull = `-- name: GetEventIsFull :one
-SELECT COUNT(ce.customer_id) >= COALESCE(e.capacity, p.capacity, t.capacity)::boolean AS is_full
+const getTeamOfEvent = `-- name: GetTeamOfEvent :one
+SELECT t.id
 FROM events.events e
-         LEFT JOIN program.programs p ON e.program_id = p.id
          LEFT JOIN athletic.teams t ON e.team_id = t.id
-         LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
 WHERE e.id = $1
-GROUP BY e.id, e.capacity, p.capacity, t.capacity
 `
 
-func (q *Queries) GetEventIsFull(ctx context.Context, eventID uuid.UUID) (bool, error) {
-	row := q.db.QueryRowContext(ctx, getEventIsFull, eventID)
-	var is_full bool
-	err := row.Scan(&is_full)
-	return is_full, err
+func (q *Queries) GetTeamOfEvent(ctx context.Context, eventID uuid.UUID) (uuid.NullUUID, error) {
+	row := q.db.QueryRowContext(ctx, getTeamOfEvent, eventID)
+	var id uuid.NullUUID
+	err := row.Scan(&id)
+	return id, err
 }
 
-const getProgramIsFull = `-- name: GetProgramIsFull :one
-SELECT COUNT(ce.customer_id) >= p.capacity AS is_full
-FROM program.programs p
-         LEFT JOIN program.customer_enrollment ce ON p.id = ce.program_id
-WHERE p.id = $1
-group by p.capacity
+const reserveSeatInEvent = `-- name: ReserveSeatInEvent :execrows
+UPDATE events.customer_enrollment
+SET payment_expired_at = CURRENT_TIMESTAMP + interval '10 minute',
+    payment_status = 'pending'
+WHERE customer_id = $1
+  AND event_id = $2
 `
 
-func (q *Queries) GetProgramIsFull(ctx context.Context, programID uuid.UUID) (bool, error) {
-	row := q.db.QueryRowContext(ctx, getProgramIsFull, programID)
-	var is_full bool
-	err := row.Scan(&is_full)
-	return is_full, err
+type ReserveSeatInEventParams struct {
+	CustomerID uuid.UUID `json:"customer_id"`
+	EventID    uuid.UUID `json:"event_id"`
 }
 
-const unEnrollCustomer = `-- name: UnEnrollCustomer :execrows
+func (q *Queries) ReserveSeatInEvent(ctx context.Context, arg ReserveSeatInEventParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, reserveSeatInEvent, arg.CustomerID, arg.EventID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const reserveSeatInProgram = `-- name: ReserveSeatInProgram :execrows
+INSERT INTO program.customer_enrollment
+(customer_id, program_id, payment_expired_at, payment_status)
+VALUES ($1, $2, CURRENT_TIMESTAMP + interval '10 minute', 'pending')
+`
+
+type ReserveSeatInProgramParams struct {
+	CustomerID uuid.UUID `json:"customer_id"`
+	ProgramID  uuid.UUID `json:"program_id"`
+}
+
+func (q *Queries) ReserveSeatInProgram(ctx context.Context, arg ReserveSeatInProgramParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, reserveSeatInProgram, arg.CustomerID, arg.ProgramID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const unEnrollCustomerFromEvent = `-- name: UnEnrollCustomerFromEvent :execrows
 UPDATE events.customer_enrollment
 SET is_cancelled = true
 WHERE customer_id = $1
   AND event_id = $2
 `
 
-type UnEnrollCustomerParams struct {
+type UnEnrollCustomerFromEventParams struct {
 	CustomerID uuid.UUID `json:"customer_id"`
 	EventID    uuid.UUID `json:"event_id"`
 }
 
-func (q *Queries) UnEnrollCustomer(ctx context.Context, arg UnEnrollCustomerParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, unEnrollCustomer, arg.CustomerID, arg.EventID)
+func (q *Queries) UnEnrollCustomerFromEvent(ctx context.Context, arg UnEnrollCustomerFromEventParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, unEnrollCustomerFromEvent, arg.CustomerID, arg.EventID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateSeatReservationStatusInProgram = `-- name: UpdateSeatReservationStatusInProgram :execrows
+UPDATE program.customer_enrollment
+SET payment_status = $1
+WHERE customer_id = $2
+  AND program_id = $3
+`
+
+type UpdateSeatReservationStatusInProgramParams struct {
+	PaymentStatus PaymentStatus `json:"payment_status"`
+	CustomerID    uuid.UUID     `json:"customer_id"`
+	ProgramID     uuid.UUID     `json:"program_id"`
+}
+
+func (q *Queries) UpdateSeatReservationStatusInProgram(ctx context.Context, arg UpdateSeatReservationStatusInProgramParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateSeatReservationStatusInProgram, arg.PaymentStatus, arg.CustomerID, arg.ProgramID)
 	if err != nil {
 		return 0, err
 	}

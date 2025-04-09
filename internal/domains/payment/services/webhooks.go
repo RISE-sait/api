@@ -2,6 +2,7 @@ package payment
 
 import (
 	"api/internal/di"
+	dbEnrollment "api/internal/domains/enrollment/persistence/sqlc/generated"
 	enrollment "api/internal/domains/enrollment/service"
 	repository "api/internal/domains/payment/persistence/repositories"
 	errLib "api/internal/libs/errors"
@@ -79,8 +80,13 @@ func (s *WebhookService) handleProgramCheckoutComplete(checkoutSession stripe.Ch
 		return errLib.New("Invalid user ID format", http.StatusBadRequest)
 	}
 
-	if repoErr := s.EnrollmentService.EnrollCustomerInProgramEvents(context.Background(), customerID, programID); repoErr != nil {
+	if repoErr := s.EnrollmentService.EnrollCustomerInProgram(context.Background(), customerID, programID); repoErr != nil {
 		return repoErr
+	}
+
+	if err = s.EnrollmentService.UpdateReservationStatusInProgram(context.Background(), programID, customerID, dbEnrollment.PaymentStatusPaid); err != nil {
+		log.Printf("Failed to update reserve status: %v", err)
+		return errLib.New("Failed to update reserve status", http.StatusInternalServerError)
 	}
 
 	return nil

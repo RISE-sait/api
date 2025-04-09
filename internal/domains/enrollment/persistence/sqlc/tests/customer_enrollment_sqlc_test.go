@@ -199,12 +199,12 @@ func TestEnrollCustomerInProgramEvents(t *testing.T) {
 
 	require.NoError(t, err)
 
-	enrollParams := enrollmentDb.EnrollCustomerInProgramEventsParams{
+	enrollParams := enrollmentDb.EnrollCustomerInProgramParams{
 		CustomerID: createdUser.ID,
 		ProgramID:  createdProgram.ID,
 	}
 
-	err = enrollmentQueries.EnrollCustomerInProgramEvents(context.Background(), enrollParams)
+	err = enrollmentQueries.EnrollCustomerInProgram(context.Background(), enrollParams)
 	require.NoError(t, err)
 
 	events, err := eventQueries.GetEvents(context.Background(), eventDb.GetEventsParams{

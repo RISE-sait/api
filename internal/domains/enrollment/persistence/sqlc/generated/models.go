@@ -138,6 +138,67 @@ func AllMembershipMembershipStatusValues() []MembershipMembershipStatus {
 	}
 }
 
+type PaymentStatus string
+
+const (
+	PaymentStatusPending PaymentStatus = "pending"
+	PaymentStatusPaid    PaymentStatus = "paid"
+	PaymentStatusFailed  PaymentStatus = "failed"
+)
+
+func (e *PaymentStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PaymentStatus(s)
+	case string:
+		*e = PaymentStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PaymentStatus: %T", src)
+	}
+	return nil
+}
+
+type NullPaymentStatus struct {
+	PaymentStatus PaymentStatus `json:"payment_status"`
+	Valid         bool          `json:"valid"` // Valid is true if PaymentStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPaymentStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.PaymentStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PaymentStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPaymentStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PaymentStatus), nil
+}
+
+func (e PaymentStatus) Valid() bool {
+	switch e {
+	case PaymentStatusPending,
+		PaymentStatusPaid,
+		PaymentStatusFailed:
+		return true
+	}
+	return false
+}
+
+func AllPaymentStatusValues() []PaymentStatus {
+	return []PaymentStatus{
+		PaymentStatusPending,
+		PaymentStatusPaid,
+		PaymentStatusFailed,
+	}
+}
+
 type ProgramProgramLevel string
 
 const (
@@ -312,13 +373,15 @@ type EventsAttendance struct {
 }
 
 type EventsCustomerEnrollment struct {
-	ID          uuid.UUID    `json:"id"`
-	CustomerID  uuid.UUID    `json:"customer_id"`
-	EventID     uuid.UUID    `json:"event_id"`
-	CreatedAt   time.Time    `json:"created_at"`
-	UpdatedAt   time.Time    `json:"updated_at"`
-	CheckedInAt sql.NullTime `json:"checked_in_at"`
-	IsCancelled bool         `json:"is_cancelled"`
+	ID               uuid.UUID     `json:"id"`
+	CustomerID       uuid.UUID     `json:"customer_id"`
+	EventID          uuid.UUID     `json:"event_id"`
+	CreatedAt        time.Time     `json:"created_at"`
+	UpdatedAt        time.Time     `json:"updated_at"`
+	CheckedInAt      sql.NullTime  `json:"checked_in_at"`
+	IsCancelled      bool          `json:"is_cancelled"`
+	PaymentStatus    PaymentStatus `json:"payment_status"`
+	PaymentExpiredAt sql.NullTime  `json:"payment_expired_at"`
 }
 
 type EventsEvent struct {
@@ -400,12 +463,14 @@ type MembershipMembershipPlan struct {
 }
 
 type ProgramCustomerEnrollment struct {
-	ID          uuid.UUID `json:"id"`
-	CustomerID  uuid.UUID `json:"customer_id"`
-	ProgramID   uuid.UUID `json:"program_id"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
-	IsCancelled bool      `json:"is_cancelled"`
+	ID               uuid.UUID     `json:"id"`
+	CustomerID       uuid.UUID     `json:"customer_id"`
+	ProgramID        uuid.UUID     `json:"program_id"`
+	CreatedAt        time.Time     `json:"created_at"`
+	UpdatedAt        time.Time     `json:"updated_at"`
+	IsCancelled      bool          `json:"is_cancelled"`
+	PaymentStatus    PaymentStatus `json:"payment_status"`
+	PaymentExpiredAt sql.NullTime  `json:"payment_expired_at"`
 }
 
 type ProgramGame struct {

@@ -24,7 +24,12 @@ import (
 func TestEnrollCustomerInProgramEvents_ACID_Serializable(t *testing.T) {
 	for run := 1; run <= 20; run++ {
 		t.Run(fmt.Sprintf("Run %d", run), func(t *testing.T) {
-			dbConn, identityQ, _, programQ, enrollmentQ, _, membershipQ, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+			dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+			enrollmentQ := dbEnrollment.New(dbConn)
+			identityQ := dbidentity.New(dbConn)
+			programQ := dbProgram.New(dbConn)
+			membershipQ := dbMembership.New(dbConn)
 
 			defer cleanup()
 
@@ -153,7 +158,13 @@ SELECT COUNT(*)
 }
 
 func TestEnrollCustomerInProgramEvents_ACID_No_race_condition(t *testing.T) {
-	dbConn, identityQ, _, programQ, enrollmentQ, _, membershipQ, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	enrollmentQ := dbEnrollment.New(dbConn)
+	identityQ := dbidentity.New(dbConn)
+	programQ := dbProgram.New(dbConn)
+	membershipQ := dbMembership.New(dbConn)
 
 	defer cleanup()
 

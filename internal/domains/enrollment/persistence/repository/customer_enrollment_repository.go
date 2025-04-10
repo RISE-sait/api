@@ -153,8 +153,14 @@ func (r *CustomerEnrollmentRepository) ReserveSeatInProgram(ctx context.Context,
 	if err != nil {
 
 		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
-			return errLib.New("Customer is already enrolled in the program", http.StatusConflict)
+		if errors.As(err, &pqErr) {
+
+			switch pqErr.Code {
+			case databaseErrors.UniqueViolation:
+				return errLib.New("Customer is already enrolled in the program", http.StatusConflict)
+			case databaseErrors.TxSerializationError:
+				return errLib.New("Too many people enrolled at the same time. Please try again.", http.StatusConflict)
+			}
 		}
 
 		log.Println("error reserving seat in program: ", err)
@@ -162,7 +168,7 @@ func (r *CustomerEnrollmentRepository) ReserveSeatInProgram(ctx context.Context,
 	}
 
 	if affectedRows == 0 {
-		return errLib.New("Event is full, or someone is booking at the same time, please try again.", http.StatusConflict)
+		return errLib.New("Failed to book program for unknown reason. Please try again or contact support.", http.StatusInternalServerError)
 	}
 
 	return nil

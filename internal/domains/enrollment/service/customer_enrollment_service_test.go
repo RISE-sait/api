@@ -1,13 +1,13 @@
-package enrollment_test
+package enrollment
 
 import (
+	"api/internal/di"
 	enrollment "api/internal/domains/enrollment/persistence/repository"
 	errLib "api/internal/libs/errors"
 	dbTestUtils "api/utils/test_utils"
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"log"
@@ -21,21 +21,28 @@ import (
 	dbProgram "api/internal/domains/program/persistence/sqlc/generated"
 )
 
-func TestEnrollCustomerInProgramEvents_ACID_Serializable(t *testing.T) {
-	for run := 1; run <= 20; run++ {
-		t.Run(fmt.Sprintf("Run %d", run), func(t *testing.T) {
-			dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+func TestCustomerReserveProgram_ACID_Serializable(t *testing.T) {
 
-			enrollmentQ := dbEnrollment.New(dbConn)
-			identityQ := dbidentity.New(dbConn)
-			programQ := dbProgram.New(dbConn)
-			membershipQ := dbMembership.New(dbConn)
+	for run := 1; run < 21; run++ {
+		t.Run(fmt.Sprintf("Run %d", run), func(t *testing.T) {
+
+			testDb, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../db/migrations")
 
 			defer cleanup()
 
-			enrollmentRepo := enrollment.NewEnrollmentRepository(dbConn)
+			container := di.Container{
+				DB: testDb,
+				Queries: &di.QueriesType{
+					EnrollmentDb: dbEnrollment.New(testDb),
+					IdentityDb:   dbidentity.New(testDb),
+					MembershipDb: dbMembership.New(testDb),
+					ProgramDb:    dbProgram.New(testDb),
+				},
+			}
 
-			createdProgram, err := programQ.CreateProgram(context.Background(), dbProgram.CreateProgramParams{
+			enrollmentService := NewCustomerEnrollmentService(&container)
+
+			createdProgram, err := container.Queries.ProgramDb.CreateProgram(context.Background(), dbProgram.CreateProgramParams{
 				Name: "Test Program",
 				Capacity: sql.NullInt32{
 					Int32: 2,
@@ -47,7 +54,7 @@ func TestEnrollCustomerInProgramEvents_ACID_Serializable(t *testing.T) {
 
 			require.NoError(t, err)
 
-			membership, err := membershipQ.CreateMembership(context.Background(), dbMembership.CreateMembershipParams{
+			membership, err := container.Queries.MembershipDb.CreateMembership(context.Background(), dbMembership.CreateMembershipParams{
 				Name:        "Test Membership",
 				Description: "Test Description",
 				Benefits:    "Test Benefits",
@@ -55,7 +62,7 @@ func TestEnrollCustomerInProgramEvents_ACID_Serializable(t *testing.T) {
 
 			require.NoError(t, err)
 
-			membershipPlan, err := membershipQ.CreateMembershipPlan(context.Background(), dbMembership.CreateMembershipPlanParams{
+			membershipPlan, err := container.Queries.MembershipDb.CreateMembershipPlan(context.Background(), dbMembership.CreateMembershipPlanParams{
 				MembershipID: membership.ID,
 				Name:         "Test Membership Plan",
 				StripeJoiningFeeID: sql.NullString{
@@ -68,7 +75,7 @@ func TestEnrollCustomerInProgramEvents_ACID_Serializable(t *testing.T) {
 			require.NoError(t, err)
 
 			// use raw sql to make membership eligible for program
-			_, err = dbConn.Exec(`
+			_, err = container.DB.Exec(`
 INSERT INTO program.program_membership (program_id, membership_id, stripe_program_price_id)
 VALUES ($1, $2, $3)
 `, createdProgram.ID, membership.ID, membershipPlan.StripePriceID)
@@ -77,7 +84,8 @@ VALUES ($1, $2, $3)
 
 			// check if membership is eligible for program using raw SQL
 			var count int
-			err = dbConn.QueryRow(`
+
+			err = container.DB.QueryRow(`
 SELECT COUNT(*) 
     FROM program.program_membership
         WHERE program_id = $1
@@ -89,7 +97,7 @@ SELECT COUNT(*)
 			customers := make([]dbidentity.UsersUser, 3)
 
 			for i := 0; i < 3; i++ {
-				customer, userErr := identityQ.CreateUser(context.Background(), dbidentity.CreateUserParams{
+				customer, userErr := container.Queries.IdentityDb.CreateUser(context.Background(), dbidentity.CreateUserParams{
 					CountryAlpha2Code:        "CA",
 					Age:                      20,
 					HasMarketingEmailConsent: false,
@@ -100,15 +108,6 @@ SELECT COUNT(*)
 
 				require.NoError(t, userErr)
 
-				enrollmentErr := enrollmentQ.EnrollCustomerInMembershipPlan(context.Background(), dbEnrollment.EnrollCustomerInMembershipPlanParams{
-					CustomerID:       customer.ID,
-					MembershipPlanID: membershipPlan.ID,
-					Status:           dbEnrollment.MembershipMembershipStatusActive,
-					StartDate:        time.Now(),
-				})
-
-				require.NoError(t, enrollmentErr)
-
 				customers[i] = customer
 			}
 
@@ -116,42 +115,41 @@ SELECT COUNT(*)
 
 			// enroll all ( 3 ) customers from customers list into program events with capacity of 2 concurrently to test write skew
 			// this should fail due to predicate locks
-			enrolllmentErrs := make(chan *errLib.CommonError, 3)
+			enrollmentErrs := make(chan *errLib.CommonError, 3)
 			for i := 0; i < 3; i++ {
-				go func(customerID uuid.UUID) {
-					enrolllmentErrs <- enrollmentRepo.EnrollCustomerInProgram(context.Background(), customerID, createdProgram.ID)
-				}(customers[i].ID)
+				go func() {
+					enrollmentErrs <- enrollmentService.ReserveSeatInProgram(context.Background(), createdProgram.ID, customers[i].ID)
+				}()
 			}
 
 			// Collect errors
 			var failedEnrollments int
 			for i := 0; i < 3; i++ {
-				enrollErr := <-enrolllmentErrs
+				enrollErr := <-enrollmentErrs
 				if enrollErr != nil {
-					if enrollErr.HTTPCode == http.StatusConflict {
-						assert.Contains(t, enrollErr.Message, "Program is full")
-					}
+					assert.Equal(t, http.StatusConflict, enrollErr.HTTPCode)
+					assert.Contains(t, enrollErr.Message, "Too many people enrolled at the same time. Please try again.")
 					failedEnrollments++
 				}
 			}
 
-			log.Println("Failed enrollments for run", run, ":", failedEnrollments)
-			assert.GreaterOrEqual(t, failedEnrollments, 1)
-
 			// Verify the number of enrolled customers in the program
 
 			var enrolledCount int
-			err = dbConn.QueryRow(`
+			err = container.DB.QueryRow(`
 SELECT COUNT(*) 
     FROM program.customer_enrollment
         WHERE program_id = $1
         `, createdProgram.ID).Scan(&enrolledCount)
 			require.NoError(t, err)
 
-			log.Println("Enrolled for run", run, ":", enrolledCount)
+			assert.LessOrEqual(t, failedEnrollments, 2)
+			assert.GreaterOrEqual(t, enrolledCount, 1)
 
-			assert.LessOrEqual(t, enrolledCount, 2)
 			assert.Equal(t, 3-failedEnrollments, enrolledCount)
+
+			log.Printf("Enrolled Count: %d", enrolledCount)
+			log.Printf("Failed Enrollments: %d", failedEnrollments)
 
 		})
 	}

@@ -33,7 +33,7 @@ func getFirebaseAuthClient() (*auth.Client, *errLib.CommonError) {
 
 	var opt option.ClientOption
 
-	if gcpServiceAccountCredentials := config.Env.GcpServiceAccountCredentials; gcpServiceAccountCredentials != "" {
+	if gcpServiceAccountCredentials := config.Env.GcpServiceAccountCredentialsJSON; gcpServiceAccountCredentials != "" {
 		opt = option.WithCredentialsJSON([]byte(gcpServiceAccountCredentials))
 	} else if _, err := os.Stat("/app/config/gcp-service-account.json"); err == nil {
 		opt = option.WithCredentialsFile("/app/config/gcp-service-account.json")

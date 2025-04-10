@@ -17,9 +17,19 @@ import (
 
 const bucketName = "rise-sports"
 
+// getGCPClient creates and returns a Google Cloud Storage client using credentials from either
+// the environment variable or a service account file. If neither is found, an error is returned.
+//
+// Returns:
+//   - *storage.Client: A pointer to the Google Cloud Storage client.
+//   - *errLib.CommonError: An error if GCP credentials are not found or if the client creation fails.
+//
+// Example usage:
+//
+//	client, err := getGCPClient()  // Creates a GCP storage client using available credentials.
 func getGCPClient() (*storage.Client, *errLib.CommonError) {
 	var opt option.ClientOption
-	if gcpServiceAccountCredentials := config.Env.GcpServiceAccountCredentials; gcpServiceAccountCredentials != "" {
+	if gcpServiceAccountCredentials := config.Env.GcpServiceAccountCredentialsJSON; gcpServiceAccountCredentials != "" {
 		opt = option.WithCredentialsJSON([]byte(gcpServiceAccountCredentials))
 	} else if _, err := os.Stat("/app/config/gcp-service-account.json"); err == nil {
 		opt = option.WithCredentialsFile("/app/config/gcp-service-account.json")
@@ -37,6 +47,19 @@ func getGCPClient() (*storage.Client, *errLib.CommonError) {
 	return client, nil
 }
 
+// GetFilesInBucket retrieves a list of file URLs from a specified folder in a Google Cloud Storage bucket.
+// It connects to Google Cloud Storage, queries the specified folder, and returns the list of file URLs.
+//
+// Parameters:
+//   - folderName: The name of the folder in the Google Cloud Storage bucket to query.
+//
+// Returns:
+//   - []string: A list of file URLs in the specified folder.
+//   - *errLib.CommonError: An error if the client cannot be created or if any issues occur during the file retrieval.
+//
+// Example usage:
+//
+//	files, err := GetFilesInBucket("folderName")  // Retrieves file URLs from the specified folder in the bucket.
 func GetFilesInBucket(folderName string) ([]string, *errLib.CommonError) {
 
 	client, err := getGCPClient()

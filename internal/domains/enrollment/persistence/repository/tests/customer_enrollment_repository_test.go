@@ -119,7 +119,7 @@ SELECT COUNT(*)
 			enrolllmentErrs := make(chan *errLib.CommonError, 3)
 			for i := 0; i < 3; i++ {
 				go func(customerID uuid.UUID) {
-					enrolllmentErrs <- enrollmentRepo.EnrollCustomerInProgramEvents(context.Background(), customerID, createdProgram.ID)
+					enrolllmentErrs <- enrollmentRepo.EnrollCustomerInProgram(context.Background(), customerID, createdProgram.ID)
 				}(customers[i].ID)
 			}
 
@@ -252,7 +252,7 @@ SELECT COUNT(*)
 	// Enroll 3 customers with staggered timing to avoid simultaneous commits
 	var errs []*errLib.CommonError
 	for i := 0; i < 3; i++ {
-		enrollErr := enrollmentRepo.EnrollCustomerInProgramEvents(context.Background(), customers[i].ID, createdProgram.ID)
+		enrollErr := enrollmentRepo.EnrollCustomerInProgram(context.Background(), customers[i].ID, createdProgram.ID)
 		if enrollErr != nil {
 			errs = append(errs, enrollErr)
 		}

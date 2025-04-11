@@ -8,6 +8,7 @@ import (
 	errLib "api/internal/libs/errors"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v81/checkout/session"
 	"log"
@@ -68,6 +69,8 @@ func (s *WebhookService) handleProgramCheckoutComplete(checkoutSession stripe.Ch
 		return errLib.New("Invalid program ID format", http.StatusBadRequest)
 	}
 
+	log.Println(programID)
+
 	userIDStr := fullSession.Metadata["userID"]
 
 	if userIDStr == "" {
@@ -80,13 +83,9 @@ func (s *WebhookService) handleProgramCheckoutComplete(checkoutSession stripe.Ch
 		return errLib.New("Invalid user ID format", http.StatusBadRequest)
 	}
 
-	if repoErr := s.EnrollmentService.EnrollCustomerInProgram(context.Background(), customerID, programID); repoErr != nil {
-		return repoErr
-	}
-
 	if err = s.EnrollmentService.UpdateReservationStatusInProgram(context.Background(), programID, customerID, dbEnrollment.PaymentStatusPaid); err != nil {
-		log.Printf("Failed to update reserve status: %v", err)
-		return errLib.New("Failed to update reserve status", http.StatusInternalServerError)
+		log.Printf("Failed to update reservation status: %v", err)
+		return errLib.New(fmt.Sprintf("Failed to update reserve status: %v", err), http.StatusInternalServerError)
 	}
 
 	return nil

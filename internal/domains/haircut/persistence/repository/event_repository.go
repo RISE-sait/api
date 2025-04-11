@@ -135,7 +135,7 @@ func (r *Repository) GetEvents(ctx context.Context, barberID, customerID uuid.UU
 //		ID:            event.ID,
 //	}
 //
-//	dbEvent, err := r.Queries.UpdateEvent(c, dbEventParams)
+//	dbEvent, err := r.paymentQueries.UpdateEvent(c, dbEventParams)
 //
 //	if err != nil {
 //		log.Printf("Failed to update event: %+v. Error: %v", event, err.Error())

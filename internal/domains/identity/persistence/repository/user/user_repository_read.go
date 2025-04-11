@@ -70,8 +70,8 @@ func (r *UsersRepository) getUserFromDB(ctx context.Context, email string, id uu
 		if errors.Is(err, sql.ErrNoRows) {
 			return dbIdentity.GetUserByIdOrEmailRow{}, errLib.New("user not found", http.StatusNotFound)
 		}
-		log.Printf("database error: %v", err)
-		return dbIdentity.GetUserByIdOrEmailRow{}, errLib.New("internal server error", http.StatusInternalServerError)
+		log.Printf("database error when getting user: %v", err)
+		return dbIdentity.GetUserByIdOrEmailRow{}, errLib.New("internal server error when getting user", http.StatusInternalServerError)
 	}
 	return user, nil
 }

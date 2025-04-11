@@ -6,6 +6,7 @@ type Practice struct {
 	Schedules              []Schedule
 	Capacity               int
 	MembershipsEligibility []MembershipsEligibility
+	IsPayPerEvent          bool
 }
 
 type MembershipsEligibility struct {
@@ -69,9 +70,10 @@ var Practices = []Practice{
 		},
 	},
 	{
-		Name:        "OPEN GYM/DROP IN-Select Courts",
-		Description: "Enjoy full access to one of our open courts for basketball during designated times. Be sure to check availability and schedule. See front desk for available court. Courts may be subject to change.",
-		Capacity:    1000,
+		Name:          "OPEN GYM/DROP IN-Select Courts",
+		Description:   "Enjoy full access to one of our open courts for basketball during designated times. Be sure to check availability and schedule. See front desk for available court. Courts may be subject to change.",
+		Capacity:      1000,
+		IsPayPerEvent: true,
 		MembershipsEligibility: []MembershipsEligibility{
 			{Name: "PAYG"},
 			{Name: "1. Rise Basketball Full Year Membership"},
@@ -133,9 +135,10 @@ var Practices = []Practice{
 		},
 	},
 	{
-		Name:        "APRIL Spring Break Camp",
-		Description: "Join us for skills, drills and fun on the Court! DATES: April 22, 23, 24, 25TIMES: 10AM-3:30PMPlease bring indoor shoes, a ball, water bottles, Lunch and Snacks",
-		Capacity:    300,
+		Name:          "APRIL Spring Break Camp",
+		Description:   "Join us for skills, drills and fun on the Court! DATES: April 22, 23, 24, 25TIMES: 10AM-3:30PMPlease bring indoor shoes, a ball, water bottles, Lunch and Snacks",
+		Capacity:      300,
+		IsPayPerEvent: false,
 		MembershipsEligibility: []MembershipsEligibility{
 			{Name: "PAYG", StripePriceID: strToPtr("price_1R9snzAB1pU7Ebknp5imRy62")},
 			{Name: "Rise Basketball Full Year Membership", StripePriceID: strToPtr("price_1R9sq7AB1pU7EbknKtPXbwAt")},

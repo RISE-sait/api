@@ -220,7 +220,7 @@ func seedPractices(ctx context.Context, db *sql.DB) {
 	}
 }
 
-func seedProgramsMembershipsEligibility(ctx context.Context, db *sql.DB) {
+func seedProgramsFees(ctx context.Context, db *sql.DB) {
 
 	seedQueries := dbSeed.New(db)
 
@@ -230,12 +230,14 @@ func seedProgramsMembershipsEligibility(ctx context.Context, db *sql.DB) {
 		programNameArray    []string
 		membershipNameArray []string
 		stripePriceIDArray  []string
+		isPayPerEvent       []bool
 	)
 
 	for _, practice := range practices {
 		for _, eligibility := range practice.MembershipsEligibility {
 			programNameArray = append(programNameArray, practice.Name)
 			membershipNameArray = append(membershipNameArray, eligibility.Name)
+			isPayPerEvent = append(isPayPerEvent, practice.IsPayPerEvent)
 
 			if eligibility.StripePriceID == nil {
 				stripePriceIDArray = append(stripePriceIDArray, "")
@@ -245,14 +247,15 @@ func seedProgramsMembershipsEligibility(ctx context.Context, db *sql.DB) {
 		}
 	}
 
-	err := seedQueries.InsertProgramMembership(ctx, dbSeed.InsertProgramMembershipParams{
+	err := seedQueries.InsertProgramFees(ctx, dbSeed.InsertProgramFeesParams{
 		ProgramNameArray:          programNameArray,
 		MembershipNameArray:       membershipNameArray,
 		StripeProgramPriceIDArray: stripePriceIDArray,
+		IsPayPerEventArray:        isPayPerEvent,
 	})
 
 	if err != nil {
-		log.Fatalf("Failed to insert practices: %v", err)
+		log.Fatalf("Failed to insert program fees: %v", err)
 	}
 }
 
@@ -520,7 +523,7 @@ func main() {
 
 	seedMembershipPlans(ctx, db)
 
-	seedProgramsMembershipsEligibility(ctx, db)
+	seedProgramsFees(ctx, db)
 
 	updateFakeParents(ctx, db)
 

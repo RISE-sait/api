@@ -38,18 +38,20 @@ VALUES (unnest(ARRAY(SELECT id FROM game_ids)), unnest(@win_team_array::uuid[]),
         unnest(@win_score_array::int[]), unnest(@lose_score_array::int[]));
 
 
--- name: InsertProgramMembership :exec
+-- name: InsertProgramFees :exec
 WITH prepared_data AS (SELECT unnest(@program_name_array::varchar[])            AS program_name,
                               unnest(@membership_name_array::varchar[])         AS membership_name,
-                              unnest(@stripe_program_price_id_array::varchar[]) AS stripe_program_price_id)
+                              unnest(@stripe_program_price_id_array::varchar[]) AS stripe_program_price_id,
+                              unnest(@is_pay_per_event_array::boolean[])        AS pay_per_event)
 INSERT
-INTO program.program_membership (program_id, membership_id, stripe_program_price_id)
+INTO program.fees (program_id, membership_id, stripe_price_id, pay_per_event)
 SELECT p.id,
        CASE
            WHEN m.id IS NULL THEN NULL::uuid
            ELSE m.id
            END,
-       stripe_program_price_id
+       stripe_program_price_id,
+       pay_per_event
 FROM prepared_data
          JOIN program.programs p ON p.name = program_name
          LEFT JOIN membership.memberships m ON m.name = membership_name

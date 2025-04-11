@@ -9,7 +9,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"log"
@@ -92,19 +91,11 @@ func (s *CustomerEnrollmentService) executeInTx(ctx context.Context, fn func(rep
 
 func (s *CustomerEnrollmentService) EnrollCustomerInProgram(ctx context.Context, customerID, programID uuid.UUID) *errLib.CommonError {
 
-	if err := s.repo.EnrollCustomerInProgram(ctx, programID, customerID); err != nil {
-		return handleDatabaseError(err)
-	}
-
-	return nil
+	return s.repo.EnrollCustomerInProgram(ctx, programID, customerID)
 }
 
 func (s *CustomerEnrollmentService) EnrollCustomerInEvent(ctx context.Context, customerID, eventID uuid.UUID) *errLib.CommonError {
-
-	if err := s.repo.EnrollCustomerInEvent(ctx, customerID, eventID); err != nil {
-		return handleDatabaseError(err)
-	}
-	return nil
+	return s.repo.EnrollCustomerInEvent(ctx, customerID, eventID)
 }
 
 func (s *CustomerEnrollmentService) EnrollCustomerInMembershipPlan(ctx context.Context, customerID, planID uuid.UUID, cancelAtDateTime time.Time) *errLib.CommonError {
@@ -132,10 +123,7 @@ func (s *CustomerEnrollmentService) ReserveSeatInEvent(ctx context.Context, even
 		if isFull {
 			return errLib.New("Event is full", http.StatusConflict)
 		}
-		if err = r.ReserveSeatInEvent(ctx, customerID, eventID); err != nil {
-			return handleDatabaseError(err)
-		}
-		return nil
+		return r.ReserveSeatInEvent(ctx, customerID, eventID)
 	})
 }
 
@@ -154,15 +142,5 @@ func (s *CustomerEnrollmentService) ReserveSeatInProgram(ctx context.Context, pr
 }
 
 func (s *CustomerEnrollmentService) UpdateReservationStatusInProgram(ctx context.Context, programID, customerID uuid.UUID, status dbEnrollment.PaymentStatus) *errLib.CommonError {
-	if err := s.repo.UpdateReservationStatusInProgram(ctx, customerID, programID, status); err != nil {
-		return handleDatabaseError(err)
-	}
-	return nil
-}
-
-func handleDatabaseError(err error) *errLib.CommonError {
-	if errors.Is(err, sql.ErrNoRows) {
-		return errLib.New("Resource not found", http.StatusNotFound)
-	}
-	return errLib.New(fmt.Sprintf("Database error: %v", err), http.StatusInternalServerError)
+	return s.repo.UpdateReservationStatusInProgram(ctx, programID, customerID, status)
 }

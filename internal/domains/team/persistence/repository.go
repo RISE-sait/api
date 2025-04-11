@@ -45,8 +45,8 @@ func (r *Repository) Update(ctx context.Context, team values.UpdateTeamValues) *
 			if pqErr.Code == databaseErrors.UniqueViolation {
 				return errLib.New("Team name already exists", http.StatusConflict)
 			}
-			log.Println(fmt.Sprintf("Database error %v", err.Error()))
-			return errLib.New("Database error", http.StatusInternalServerError)
+			log.Println(fmt.Sprintf("Database error when updating team: %v", err.Error()))
+			return errLib.New("Database error when updating team:", http.StatusInternalServerError)
 		}
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}

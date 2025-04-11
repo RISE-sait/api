@@ -47,7 +47,11 @@ GROUP BY p.capacity;
 -- name: ReserveSeatInProgram :execrows
 INSERT INTO program.customer_enrollment
     (customer_id, program_id, payment_expired_at, payment_status)
-VALUES ($1, $2, CURRENT_TIMESTAMP + interval '10 minute', 'pending');
+VALUES ($1, $2, CURRENT_TIMESTAMP + interval '10 minute', 'pending')
+ON CONFLICT (customer_id, program_id)
+    DO UPDATE SET payment_expired_at = EXCLUDED.payment_expired_at,
+                  payment_status     = EXCLUDED.payment_status
+WHERE program.customer_enrollment.payment_status != 'paid';
 
 -- name: UpdateSeatReservationStatusInProgram :execrows
 UPDATE program.customer_enrollment

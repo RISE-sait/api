@@ -69,8 +69,8 @@ func (r *Repository) Update(ctx context.Context, program values.UpdateProgramVal
 			if pqErr.Code == databaseErrors.UniqueViolation {
 				return errLib.New("Program name already exists", http.StatusConflict)
 			}
-			log.Println(fmt.Sprintf("Database error %v", err.Error()))
-			return errLib.New("Database error", http.StatusInternalServerError)
+			log.Println(fmt.Sprintf("Database error when updating program: %v", err.Error()))
+			return errLib.New("Database error when updating program", http.StatusInternalServerError)
 		}
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}

@@ -61,7 +61,6 @@ func (s *Service) CheckoutProgram(ctx context.Context, programID uuid.UUID) (str
 	if err != nil {
 		if unreserveErr := s.EnrollmentService.UpdateReservationStatusInProgram(ctx, programID, customerID, dbEnrollment.PaymentStatusFailed); unreserveErr != nil {
 			log.Printf("Failed to unreserve seat in program: %v", unreserveErr)
-			return "", unreserveErr
 		}
 		return "", err
 	}
@@ -69,26 +68,24 @@ func (s *Service) CheckoutProgram(ctx context.Context, programID uuid.UUID) (str
 	return stripe.CreateOneTimePayment(ctx, priceID, 1)
 }
 
-//
-//func (s *Service) CheckoutEvent(ctx context.Context, eventID uuid.UUID) (string, *errLib.CommonError) {
-//
-//	customerID, ctxErr := contextUtils.GetUserID(ctx)
-//	if ctxErr != nil {
-//		return "", ctxErr
-//	}
-//
-//	err := s.EnrollmentService.ReserveSeatInEvent(ctx, eventID, customerID)
-//
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	priceID, err := s.CheckoutRepo.Ge(ctx, programID)
-//
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	return stripe.CreateOneTimePayment(ctx, priceID, 1)
-//}
-//
+func (s *Service) CheckoutEvent(ctx context.Context, eventID uuid.UUID) (string, *errLib.CommonError) {
+
+	customerID, ctxErr := contextUtils.GetUserID(ctx)
+	if ctxErr != nil {
+		return "", ctxErr
+	}
+
+	err := s.EnrollmentService.ReserveSeatInEvent(ctx, eventID, customerID)
+
+	if err != nil {
+		return "", err
+	}
+
+	priceID, err := s.CheckoutRepo.GetEventRegistrationPriceIdForCustomer(ctx, eventID)
+
+	if err != nil {
+		return "", err
+	}
+
+	return stripe.CreateOneTimePayment(ctx, priceID, 1)
+}

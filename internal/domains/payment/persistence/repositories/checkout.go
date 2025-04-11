@@ -16,18 +16,18 @@ import (
 )
 
 type CheckoutRepository struct {
-	Queries *db.Queries
+	paymentQueries *db.Queries
 }
 
 func NewCheckoutRepository(container *di.Container) *CheckoutRepository {
 	return &CheckoutRepository{
-		Queries: container.Queries.PurchasesDb,
+		paymentQueries: container.Queries.PurchasesDb,
 	}
 }
 
 func (r *CheckoutRepository) GetMembershipPlanJoiningRequirement(ctx context.Context, planID uuid.UUID) (values.MembershipPlanJoiningRequirement, *errLib.CommonError) {
 
-	if requirements, err := r.Queries.GetMembershipPlanJoiningRequirements(ctx, planID); err != nil {
+	if requirements, err := r.paymentQueries.GetMembershipPlanJoiningRequirements(ctx, planID); err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return values.MembershipPlanJoiningRequirement{}, errLib.New(fmt.Sprintf("error getting joining requirement for membership plan: %v", planID), http.StatusBadRequest)
 		} else {
@@ -62,7 +62,7 @@ func (r *CheckoutRepository) GetProgramRegistrationPriceIdForCustomer(ctx contex
 		return "", ctxErr
 	}
 
-	program, err := r.Queries.GetProgram(ctx, programID)
+	program, err := r.paymentQueries.GetProgram(ctx, programID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", errLib.New(fmt.Sprintf("program not found: %v", programID), http.StatusNotFound)
@@ -71,28 +71,14 @@ func (r *CheckoutRepository) GetProgramRegistrationPriceIdForCustomer(ctx contex
 		return "", errLib.New("failed to get program", http.StatusInternalServerError)
 	}
 
-	if status, err := r.Queries.GetProgramCapacityStatus(ctx, programID); err != nil {
-		log.Printf("Error getting program capacity status: %v", err)
-		return "", errLib.New("failed to get program stauts", http.StatusInternalServerError)
-	} else {
-
-		if !status.Capacity.Valid {
-			return "", errLib.New(fmt.Sprintf("program has no capacity: %v", program.Name), http.StatusBadRequest)
-		}
-
-		if status.EnrolledCount >= int64(status.Capacity.Int32) {
-			return "", errLib.New(fmt.Sprintf("program is full: %v", program.Name), http.StatusBadRequest)
-		}
-	}
-
-	if isCustomerExist, err := r.Queries.IsCustomerExist(ctx, customerID); err != nil {
+	if isCustomerExist, err := r.paymentQueries.IsCustomerExist(ctx, customerID); err != nil {
 		log.Printf("Error getting customer: %v", err)
 		return "", errLib.New("failed to get customer", http.StatusInternalServerError)
 	} else if !isCustomerExist {
 		return "", errLib.New(fmt.Sprintf("customer not found: %v", customerID), http.StatusNotFound)
 	}
 
-	priceID, err := r.Queries.GetProgramRegistrationPriceIdForCustomer(ctx, db.GetProgramRegistrationPriceIdForCustomerParams{
+	priceID, err := r.paymentQueries.GetProgramRegistrationPriceIdForCustomer(ctx, db.GetProgramRegistrationPriceIdForCustomerParams{
 		CustomerID: customerID,
 		ProgramID:  programID,
 	})
@@ -101,6 +87,46 @@ func (r *CheckoutRepository) GetProgramRegistrationPriceIdForCustomer(ctx contex
 			return "", errLib.New(fmt.Sprintf("customer is not eligible for program registration: %v", program.Name), http.StatusBadRequest)
 		}
 		log.Printf("Error getting GetProgramRegisterPricesForCustomer: %v", err)
+		return "", errLib.New("failed to check get registration prices for customer", http.StatusInternalServerError)
+	}
+
+	return priceID, nil
+}
+
+func (r *CheckoutRepository) GetEventRegistrationPriceIdForCustomer(ctx context.Context, eventID uuid.UUID) (string, *errLib.CommonError) {
+
+	customerID, ctxErr := contextUtils.GetUserID(ctx)
+	if ctxErr != nil {
+		return "", ctxErr
+	}
+
+	isExist, err := r.paymentQueries.GetEventIsExist(ctx, eventID)
+
+	if err != nil {
+		log.Printf("Error getting event: %v", err)
+		return "", errLib.New("failed to get event", http.StatusInternalServerError)
+	}
+
+	if !isExist {
+		return "", errLib.New(fmt.Sprintf("event not found: %v", eventID), http.StatusNotFound)
+	}
+
+	if isCustomerExist, err := r.paymentQueries.IsCustomerExist(ctx, customerID); err != nil {
+		log.Printf("Error getting customer: %v", err)
+		return "", errLib.New("failed to get customer", http.StatusInternalServerError)
+	} else if !isCustomerExist {
+		return "", errLib.New(fmt.Sprintf("customer not found: %v", customerID), http.StatusNotFound)
+	}
+
+	priceID, err := r.paymentQueries.GetEventRegistrationPriceIdForCustomer(ctx, db.GetEventRegistrationPriceIdForCustomerParams{
+		CustomerID: customerID,
+		EventID:    eventID,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", errLib.New("customer is not eligible for the event", http.StatusBadRequest)
+		}
+		log.Printf("Error getting GetEventRegistrationPriceIdForCustomer: %v", err)
 		return "", errLib.New("failed to check get registration prices for customer", http.StatusInternalServerError)
 	}
 

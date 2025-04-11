@@ -35,8 +35,8 @@ func (q *Queries) CheckEventIsFull(ctx context.Context, id uuid.UUID) (bool, err
 
 const checkProgramCapacityExists = `-- name: CheckProgramCapacityExists :one
 SELECT (capacity IS NOT NULL)::boolean
-    FROM program.programs p
-    WHERE p.id = $1
+FROM program.programs p
+WHERE p.id = $1
 `
 
 func (q *Queries) CheckProgramCapacityExists(ctx context.Context, id uuid.UUID) (bool, error) {
@@ -47,11 +47,9 @@ func (q *Queries) CheckProgramCapacityExists(ctx context.Context, id uuid.UUID) 
 }
 
 const checkProgramExists = `-- name: CheckProgramExists :one
-SELECT EXISTS (
-    SELECT 1
-    FROM program.programs p
-    WHERE p.id = $1
-)
+SELECT EXISTS (SELECT 1
+               FROM program.programs p
+               WHERE p.id = $1)
 `
 
 func (q *Queries) CheckProgramExists(ctx context.Context, id uuid.UUID) (bool, error) {
@@ -62,13 +60,12 @@ func (q *Queries) CheckProgramExists(ctx context.Context, id uuid.UUID) (bool, e
 }
 
 const checkProgramIsFull = `-- name: CheckProgramIsFull :one
-SELECT
-    COUNT(ce.id) FILTER (
-              WHERE ce.payment_status = 'paid'
-                  OR (ce.payment_status = 'pending' AND ce.payment_expired_at > CURRENT_TIMESTAMP))
-     >= p.capacity
+SELECT COUNT(ce.id) FILTER (
+    WHERE ce.payment_status = 'paid'
+        OR (ce.payment_status = 'pending' AND ce.payment_expired_at > CURRENT_TIMESTAMP))
+           >= p.capacity
 FROM program.programs p
-LEFT JOIN program.customer_enrollment ce ON p.id = ce.program_id
+         LEFT JOIN program.customer_enrollment ce ON p.id = ce.program_id
 WHERE p.id = $1
 GROUP BY p.capacity
 `
@@ -159,7 +156,7 @@ func (q *Queries) GetTeamOfEvent(ctx context.Context, eventID uuid.UUID) (uuid.N
 const reserveSeatInEvent = `-- name: ReserveSeatInEvent :execrows
 UPDATE events.customer_enrollment
 SET payment_expired_at = CURRENT_TIMESTAMP + interval '10 minute',
-    payment_status = 'pending'
+    payment_status     = 'pending'
 WHERE customer_id = $1
   AND event_id = $2
 `
@@ -181,6 +178,11 @@ const reserveSeatInProgram = `-- name: ReserveSeatInProgram :execrows
 INSERT INTO program.customer_enrollment
 (customer_id, program_id, payment_expired_at, payment_status)
 VALUES ($1, $2, CURRENT_TIMESTAMP + interval '10 minute', 'pending')
+ON CONFLICT (customer_id, program_id)
+    DO UPDATE SET
+                  payment_expired_at = EXCLUDED.payment_expired_at,
+                  payment_status = EXCLUDED.payment_status
+WHERE program.customer_enrollment.payment_status != 'paid'
 `
 
 type ReserveSeatInProgramParams struct {

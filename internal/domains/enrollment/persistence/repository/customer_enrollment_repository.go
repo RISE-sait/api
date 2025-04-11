@@ -151,7 +151,6 @@ func (r *CustomerEnrollmentRepository) ReserveSeatInProgram(ctx context.Context,
 	})
 
 	if err != nil {
-
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 
@@ -182,12 +181,6 @@ func (r *CustomerEnrollmentRepository) UpdateReservationStatusInProgram(ctx cont
 		return errLib.New("Program not found", http.StatusNotFound)
 	}
 
-	if isExist, err := r.checkIfProgramCapacityExist(ctx, programID); err != nil {
-		return err
-	} else if !isExist {
-		return errLib.New("Program not found", http.StatusNotFound)
-	}
-
 	affectedRows, err := r.Queries.UpdateSeatReservationStatusInProgram(ctx, dbEnrollment.UpdateSeatReservationStatusInProgramParams{
 		ProgramID:     programID,
 		CustomerID:    customerID,
@@ -196,16 +189,13 @@ func (r *CustomerEnrollmentRepository) UpdateReservationStatusInProgram(ctx cont
 
 	if err != nil {
 
-		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
-			return errLib.New("Customer is already enrolled in the program", http.StatusConflict)
-		}
+		log.Println("error updating reservation status for program: ", err)
 
 		return errLib.New(fmt.Sprintf("error updating reservation status for program: %v", err), http.StatusInternalServerError)
 	}
 
 	if affectedRows == 0 {
-		return errLib.New("Event is full, or someone is booking at the same time, please try again.", http.StatusConflict)
+		return errLib.New("Error confirming customer's reservation status for unknown reason, please try again.", http.StatusInternalServerError)
 	}
 
 	return nil

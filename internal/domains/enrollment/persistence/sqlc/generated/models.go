@@ -473,6 +473,15 @@ type ProgramCustomerEnrollment struct {
 	PaymentExpiredAt sql.NullTime  `json:"payment_expired_at"`
 }
 
+type ProgramFee struct {
+	ProgramID     uuid.UUID     `json:"program_id"`
+	MembershipID  uuid.NullUUID `json:"membership_id"`
+	StripePriceID string        `json:"stripe_price_id"`
+	CreatedAt     time.Time     `json:"created_at"`
+	UpdatedAt     time.Time     `json:"updated_at"`
+	PayPerEvent   bool          `json:"pay_per_event"`
+}
+
 type ProgramGame struct {
 	ID        uuid.UUID `json:"id"`
 	WinTeam   uuid.UUID `json:"win_team"`
@@ -490,14 +499,6 @@ type ProgramProgram struct {
 	Capacity    sql.NullInt32       `json:"capacity"`
 	CreatedAt   time.Time           `json:"created_at"`
 	UpdatedAt   time.Time           `json:"updated_at"`
-}
-
-type ProgramProgramMembership struct {
-	ProgramID            uuid.UUID     `json:"program_id"`
-	MembershipID         uuid.NullUUID `json:"membership_id"`
-	StripeProgramPriceID string        `json:"stripe_program_price_id"`
-	CreatedAt            time.Time     `json:"created_at"`
-	UpdatedAt            time.Time     `json:"updated_at"`
 }
 
 type StaffPendingStaff struct {

@@ -63,7 +63,7 @@ func (h *CheckoutHandlers) CheckoutMembership(w http.ResponseWriter, r *http.Req
 // @Tags payments
 // @Accept json
 // @Produce json
-// @Param id path string true "Program ID"
+// @Param id path string true "Program ID" format(uuid)
 // @Success 200 {object} dto.CheckoutResponseDto "Payment link generated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error: Failed to process checkout"
@@ -95,3 +95,42 @@ func (h *CheckoutHandlers) CheckoutProgram(w http.ResponseWriter, r *http.Reques
 		responseHandlers.RespondWithSuccess(w, responseDto, http.StatusOK)
 	}
 }
+
+//// CheckoutEvent allows a customer to check out an event.
+//// @Tags payments
+//// @Accept json
+//// @Produce json
+//// @Param id path string true "Event ID" format(uuid)
+//// @Success 200 {object} dto.CheckoutResponseDto "Payment link generated successfully"
+//// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input or missing event ID"
+//// @Failure 404 {object} map[string]interface{} "Not Found: Event not found"
+//// @Failure 409 {object} map[string]interface{} "Conflict: Event is full or already booked"
+//// @Failure 500 {object} map[string]interface{} "Internal Server Error: Failed to process checkout"
+//// @Security Bearer
+//// @Router /checkout/events/{id} [post]
+//func (h *CheckoutHandlers) CheckoutEvent(w http.ResponseWriter, r *http.Request) {
+//
+//	var eventID uuid.UUID
+//
+//	if idStr := chi.URLParam(r, "id"); idStr != "" {
+//		if id, err := validators.ParseUUID(idStr); err != nil {
+//			responseHandlers.RespondWithError(w, err)
+//			return
+//		} else {
+//			eventID = id
+//		}
+//	} else {
+//		responseHandlers.RespondWithError(w, errLib.New("event id must be provided", http.StatusBadRequest))
+//		return
+//	}
+//
+//	var responseDto dto.CheckoutResponseDto
+//
+//	if paymentLink, err := h.Service.CheckoutEvent(r.Context(), eventID); err != nil {
+//		responseHandlers.RespondWithError(w, err)
+//		return
+//	} else {
+//		responseDto.PaymentURL = paymentLink
+//		responseHandlers.RespondWithSuccess(w, responseDto, http.StatusOK)
+//	}
+//}

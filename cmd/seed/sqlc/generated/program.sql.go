@@ -13,10 +13,11 @@ import (
 )
 
 const insertCourses = `-- name: InsertCourses :exec
-WITH prepared_data as (SELECT unnest($1::text[]) as name,
-                              unnest($2::text[]) as description,
+WITH prepared_data as (SELECT unnest($1::text[])                   as name,
+                              unnest($2::text[])            as description,
                               unnest($3::program.program_level[]) as level)
-INSERT INTO program.programs (name, description, type, level)
+INSERT
+INTO program.programs (name, description, type, level)
 SELECT name,
        description,
        'course',
@@ -36,19 +37,18 @@ func (q *Queries) InsertCourses(ctx context.Context, arg InsertCoursesParams) er
 }
 
 const insertGames = `-- name: InsertGames :exec
-WITH prepared_data as (
-    SELECT unnest($5::text[]) as name,
-           unnest($6::text[]) as description,
-           unnest($7::program.program_level[]) as level),
+WITH prepared_data as (SELECT unnest($5::text[])                   as name,
+                              unnest($6::text[])            as description,
+                              unnest($7::program.program_level[]) as level),
      game_ids AS (
          INSERT INTO program.programs (name, description, type, level)
              SELECT name, description, 'game', level
              FROM prepared_data
-             RETURNING id
-     )
+             RETURNING id)
 INSERT
 INTO program.games (id, win_team, lose_team, win_score, lose_score)
-VALUES (unnest(ARRAY(SELECT id FROM game_ids)), unnest($1::uuid[]), unnest($2::uuid[]), unnest($3::int[]), unnest($4::int[]))
+VALUES (unnest(ARRAY(SELECT id FROM game_ids)), unnest($1::uuid[]), unnest($2::uuid[]),
+        unnest($3::int[]), unnest($4::int[]))
 `
 
 type InsertGamesParams struct {
@@ -75,11 +75,11 @@ func (q *Queries) InsertGames(ctx context.Context, arg InsertGamesParams) error 
 }
 
 const insertPractices = `-- name: InsertPractices :many
-WITH prepared_data as (
-    SELECT unnest($1::text[]) as name,
-           unnest($2::text[]) as description,
-           unnest($3::program.program_level[]) as level)
-INSERT INTO program.programs (name, description, type, level)
+WITH prepared_data as (SELECT unnest($1::text[])                   as name,
+                              unnest($2::text[])            as description,
+                              unnest($3::program.program_level[]) as level)
+INSERT
+INTO program.programs (name, description, type, level)
 SELECT name,
        description,
        'practice',
@@ -117,31 +117,38 @@ func (q *Queries) InsertPractices(ctx context.Context, arg InsertPracticesParams
 	return items, nil
 }
 
-const insertProgramMembership = `-- name: InsertProgramMembership :exec
-WITH prepared_data AS (SELECT unnest($1::varchar[])       AS program_name,
-                              unnest($2::varchar[])    AS membership_name,
-                              unnest($3::varchar[]) AS stripe_program_price_id)
-INSERT
-INTO program.program_membership (program_id, membership_id, stripe_program_price_id)
+const insertProgramFees = `-- name: InsertProgramFees :exec
+WITH prepared_data AS (SELECT unnest($1::varchar[])            AS program_name,
+                              unnest($2::varchar[])         AS membership_name,
+                              unnest($3::varchar[]) AS stripe_program_price_id,
+                                unnest($4::boolean[])          AS pay_per_event)
+INSERT INTO program.fees (program_id, membership_id, stripe_price_id, pay_per_event)
 SELECT p.id,
        CASE
            WHEN m.id IS NULL THEN NULL::uuid
            ELSE m.id
-       END,
-       stripe_program_price_id
+           END,
+       stripe_program_price_id,
+         pay_per_event
 FROM prepared_data
          JOIN program.programs p ON p.name = program_name
          LEFT JOIN membership.memberships m ON m.name = membership_name
 WHERE stripe_program_price_id <> ''
 `
 
-type InsertProgramMembershipParams struct {
+type InsertProgramFeesParams struct {
 	ProgramNameArray          []string `json:"program_name_array"`
 	MembershipNameArray       []string `json:"membership_name_array"`
 	StripeProgramPriceIDArray []string `json:"stripe_program_price_id_array"`
+	IsPayPerEventArray        []bool   `json:"is_pay_per_event_array"`
 }
 
-func (q *Queries) InsertProgramMembership(ctx context.Context, arg InsertProgramMembershipParams) error {
-	_, err := q.db.ExecContext(ctx, insertProgramMembership, pq.Array(arg.ProgramNameArray), pq.Array(arg.MembershipNameArray), pq.Array(arg.StripeProgramPriceIDArray))
+func (q *Queries) InsertProgramFees(ctx context.Context, arg InsertProgramFeesParams) error {
+	_, err := q.db.ExecContext(ctx, insertProgramFees,
+		pq.Array(arg.ProgramNameArray),
+		pq.Array(arg.MembershipNameArray),
+		pq.Array(arg.StripeProgramPriceIDArray),
+		pq.Array(arg.IsPayPerEventArray),
+	)
 	return err
 }

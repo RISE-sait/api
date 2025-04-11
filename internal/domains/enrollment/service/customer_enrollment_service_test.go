@@ -267,12 +267,12 @@ SELECT COUNT(*)
 	var enrolledCount int
 	err = dbConn.QueryRow(`
 SELECT COUNT(*) 
-    FROM program.fees
+    FROM program.customer_enrollment
         WHERE program_id = $1
         `, createdProgram.ID).Scan(&enrolledCount)
 	require.NoError(t, err)
 
-	assert.Equal(t, enrolledCount, 2)
+	assert.Equal(t, 2, enrolledCount)
 
 	assert.Equal(t, 1, len(errs))
 

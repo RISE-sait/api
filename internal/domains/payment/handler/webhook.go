@@ -1,6 +1,7 @@
 package payment
 
 import (
+	"api/config"
 	"api/internal/di"
 	service "api/internal/domains/payment/services"
 	errLib "api/internal/libs/errors"
@@ -42,8 +43,7 @@ func (h *WebhookHandlers) HandleStripeWebhook(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	//stripeWebhookSecret := config.Env.StripeWebhookSecret
-	stripeWebhookSecret := "whsec_68a8a36d1730091183170adb4d92760d482714b73b4da2d7b4fd7489b294195f"
+	stripeWebhookSecret := config.Env.StripeWebhookSecret
 
 	if stripeWebhookSecret == "" {
 		responseHandlers.RespondWithError(w, errLib.New("Stripe webhook secret not configured", http.StatusInternalServerError))

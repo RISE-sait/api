@@ -211,8 +211,8 @@ func TestEnrollCustomerInProgramEvents_ACID_No_race_condition(t *testing.T) {
 
 	// use raw sql to make membership eligible for program
 	_, err = dbConn.Exec(`
-INSERT INTO program.program_membership (program_id, membership_id, stripe_program_price_id)
-VALUES ($1, $2, $3)
+INSERT INTO program.fees (program_id, membership_id, stripe_price_id, pay_per_event)
+VALUES ($1, $2, $3, false)
 `, createdProgram.ID, membership.ID, membershipPlan.StripePriceID)
 
 	require.NoError(t, err)
@@ -221,7 +221,7 @@ VALUES ($1, $2, $3)
 	var count int
 	err = dbConn.QueryRow(`
 SELECT COUNT(*) 
-    FROM program.program_membership
+    FROM program.fees
         WHERE program_id = $1
         `, createdProgram.ID).Scan(&count)
 	require.NoError(t, err)
@@ -267,7 +267,7 @@ SELECT COUNT(*)
 	var enrolledCount int
 	err = dbConn.QueryRow(`
 SELECT COUNT(*) 
-    FROM program.customer_enrollment
+    FROM program.fees
         WHERE program_id = $1
         `, createdProgram.ID).Scan(&enrolledCount)
 	require.NoError(t, err)

@@ -89,6 +89,7 @@ func (h *CheckoutHandlers) CheckoutProgram(w http.ResponseWriter, r *http.Reques
 
 	if paymentLink, err := h.Service.CheckoutProgram(r.Context(), programID); err != nil {
 		responseHandlers.RespondWithError(w, err)
+		return
 	} else {
 		responseDto.PaymentURL = paymentLink
 		responseHandlers.RespondWithSuccess(w, responseDto, http.StatusOK)

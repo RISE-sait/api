@@ -2,6 +2,7 @@ package payments_test
 
 import (
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
+	paymentDb "api/internal/domains/payment/persistence/sqlc/generated"
 	teamDb "api/internal/domains/team/persistence/sqlc/generated"
 	userDb "api/internal/domains/user/persistence/sqlc/generated"
 	dbTestUtils "api/utils/test_utils"
@@ -17,7 +18,12 @@ import (
 
 func TestGetCustomerTeam(t *testing.T) {
 
-	identityQ, _, _, _, _, _, paymentQ, teamQ, userQ, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	db, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	identityQ := identityDb.New(db)
+	userQ := userDb.New(db)
+	teamQ := teamDb.New(db)
+	paymentQ := paymentDb.New(db)
 
 	defer cleanup()
 
@@ -98,7 +104,10 @@ func TestGetCustomerTeam(t *testing.T) {
 
 func TestGetCustomerNonExistingTeam(t *testing.T) {
 
-	identityQ, _, _, _, _, _, paymentQ, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	db, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	identityQ := identityDb.New(db)
+	paymentQ := paymentDb.New(db)
 
 	defer cleanup()
 
@@ -129,7 +138,10 @@ func TestGetCustomerNonExistingTeam(t *testing.T) {
 
 func TestIsCustomerExist(t *testing.T) {
 
-	identityQ, _, _, _, _, _, paymentQ, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	db, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	identityQ := identityDb.New(db)
+	paymentQ := paymentDb.New(db)
 
 	defer cleanup()
 
@@ -156,7 +168,9 @@ func TestIsCustomerExist(t *testing.T) {
 
 func TestIsCustomerExistFalse(t *testing.T) {
 
-	_, _, _, _, _, _, paymentQ, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	db, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	paymentQ := paymentDb.New(db)
 
 	defer cleanup()
 

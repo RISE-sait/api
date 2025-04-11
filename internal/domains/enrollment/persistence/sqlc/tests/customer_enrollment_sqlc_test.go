@@ -3,6 +3,10 @@ package events_test
 import (
 	locationDb "api/internal/domains/location/persistence/sqlc/generated"
 
+	eventDb "api/internal/domains/event/persistence/sqlc/generated"
+	programDb "api/internal/domains/program/persistence/sqlc/generated"
+
+	enrollmentDb "api/internal/domains/enrollment/persistence/sqlc/generated"
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
 
 	"database/sql"
@@ -14,16 +18,18 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	eventDb "api/internal/domains/event/persistence/sqlc/generated"
-	programDb "api/internal/domains/program/persistence/sqlc/generated"
-
-	enrollmentDb "api/internal/domains/enrollment/persistence/sqlc/generated"
 	dbTestUtils "api/utils/test_utils"
 )
 
 func TestEnrollCustomerInEvent(t *testing.T) {
 
-	identityQueries, eventQueries, programQueries, enrollmentQueries, locationQueries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	db, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	identityQueries := identityDb.New(db)
+	programQueries := programDb.New(db)
+	enrollmentQueries := enrollmentDb.New(db)
+	eventQueries := eventDb.New(db)
+	locationQueries := locationDb.New(db)
 
 	defer cleanup()
 
@@ -108,7 +114,13 @@ func TestEnrollCustomerInEvent(t *testing.T) {
 
 func TestEnrollCustomerInProgramEvents(t *testing.T) {
 
-	identityQueries, eventQueries, programQueries, enrollmentQueries, locationQueries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	db, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	identityQueries := identityDb.New(db)
+	programQueries := programDb.New(db)
+	enrollmentQueries := enrollmentDb.New(db)
+	eventQueries := eventDb.New(db)
+	locationQueries := locationDb.New(db)
 
 	defer cleanup()
 
@@ -187,12 +199,12 @@ func TestEnrollCustomerInProgramEvents(t *testing.T) {
 
 	require.NoError(t, err)
 
-	enrollParams := enrollmentDb.EnrollCustomerInProgramEventsParams{
+	enrollParams := enrollmentDb.EnrollCustomerInProgramParams{
 		CustomerID: createdUser.ID,
 		ProgramID:  createdProgram.ID,
 	}
 
-	err = enrollmentQueries.EnrollCustomerInProgramEvents(context.Background(), enrollParams)
+	err = enrollmentQueries.EnrollCustomerInProgram(context.Background(), enrollParams)
 	require.NoError(t, err)
 
 	events, err := eventQueries.GetEvents(context.Background(), eventDb.GetEventsParams{

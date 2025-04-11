@@ -2,6 +2,7 @@ package identity_tests
 
 import (
 	databaseErrors "api/internal/constants"
+	dbIdentity "api/internal/domains/identity/persistence/sqlc/generated"
 	dbTestUtils "api/utils/test_utils"
 
 	"context"
@@ -18,7 +19,9 @@ import (
 
 func TestCreateValidUser(t *testing.T) {
 
-	queries, _, _, _, _, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	queries := dbIdentity.New(dbConn)
 
 	defer cleanup()
 
@@ -57,7 +60,9 @@ func TestCreateValidUser(t *testing.T) {
 
 func TestCreateUserViolateUniqueEmailConstraint(t *testing.T) {
 
-	queries, _, _, _, _, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	queries := dbIdentity.New(dbConn)
 
 	defer cleanup()
 
@@ -96,7 +101,9 @@ func TestCreateUserViolateUniqueEmailConstraint(t *testing.T) {
 
 func TestUpdateUser(t *testing.T) {
 
-	queries, _, _, _, _, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	queries := dbIdentity.New(dbConn)
 
 	defer cleanup()
 
@@ -165,7 +172,9 @@ func TestUpdateUser(t *testing.T) {
 
 func TestGetNonExistingUser(t *testing.T) {
 
-	queries, _, _, _, _, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	queries := dbIdentity.New(dbConn)
 
 	defer cleanup()
 
@@ -182,7 +191,9 @@ func TestGetNonExistingUser(t *testing.T) {
 
 func TestUpdateNonExistentUser(t *testing.T) {
 
-	queries, _, _, _, _, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	queries := dbIdentity.New(dbConn)
 
 	defer cleanup()
 

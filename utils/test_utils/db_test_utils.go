@@ -1,16 +1,6 @@
 package test_utils
 
 import (
-	enrollmentDb "api/internal/domains/enrollment/persistence/sqlc/generated"
-	eventDb "api/internal/domains/event/persistence/sqlc/generated"
-	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
-	locationDb "api/internal/domains/location/persistence/sqlc/generated"
-	membershipDb "api/internal/domains/membership/persistence/sqlc/generated"
-	paymentDb "api/internal/domains/payment/persistence/sqlc/generated"
-	programDb "api/internal/domains/program/persistence/sqlc/generated"
-	teamDb "api/internal/domains/team/persistence/sqlc/generated"
-	userDb "api/internal/domains/user/persistence/sqlc/generated"
-
 	"context"
 	"database/sql"
 	"fmt"
@@ -96,34 +86,15 @@ func setupTestDB(t *testing.T) (*sql.DB, func()) {
 }
 
 func SetupTestDbQueries(t *testing.T, path string) (
-	identityQueries *identityDb.Queries,
-	eventQueries *eventDb.Queries,
-	programQueries *programDb.Queries,
-	enrollmentQueries *enrollmentDb.Queries,
-	locationQueries *locationDb.Queries,
-	membershipQueries *membershipDb.Queries,
-	paymentQueries *paymentDb.Queries,
-	teamQueries *teamDb.Queries,
-	userQueries *userDb.Queries,
+	testDb *sql.DB,
 	cleanup func(),
 ) {
 	// Initialize test database
-	testDb, _ := setupTestDB(t)
+	testDb, _ = setupTestDB(t)
 
 	// Run migrations
 	err := goose.Up(testDb, path)
 	require.NoError(t, err)
-
-	// Initialize all query interfaces
-	identityQueries = identityDb.New(testDb)
-	eventQueries = eventDb.New(testDb)
-	programQueries = programDb.New(testDb)
-	enrollmentQueries = enrollmentDb.New(testDb)
-	locationQueries = locationDb.New(testDb)
-	membershipQueries = membershipDb.New(testDb)
-	paymentQueries = paymentDb.New(testDb)
-	teamQueries = teamDb.New(testDb)
-	userQueries = userDb.New(testDb)
 
 	// Setup cleanup function
 	cleanup = func() {

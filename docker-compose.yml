@@ -21,6 +21,7 @@ services:
       - ./internal:/app/internal
       - ./utils:/app/utils
       - ./docs:/app/docs
+      - ./config:/app/config
     env_file:
       - ./config/.env
       - ./config/.env.local

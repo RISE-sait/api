@@ -4,7 +4,7 @@ import (
 	dbTestUtils "api/utils/test_utils"
 	"github.com/lib/pq"
 
-	membershipDb "api/internal/domains/membership/persistence/sqlc/generated"
+	db "api/internal/domains/membership/persistence/sqlc/generated"
 
 	"database/sql"
 
@@ -17,12 +17,14 @@ import (
 
 func TestCreateMembership(t *testing.T) {
 
-	_, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	queries := db.New(dbConn)
 
 	defer cleanup()
 
 	// Create a user to be the creator of the event
-	params := membershipDb.CreateMembershipParams{
+	params := db.CreateMembershipParams{
 		Name:        "Go Basics Practice",
 		Description: "Learn Go programming",
 		Benefits:    "Free access to all events",
@@ -40,12 +42,14 @@ func TestCreateMembership(t *testing.T) {
 
 func TestCreateExistingMembership(t *testing.T) {
 
-	_, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	queries := db.New(dbConn)
 
 	defer cleanup()
 
 	// Create a user to be the creator of the event
-	params := membershipDb.CreateMembershipParams{
+	params := db.CreateMembershipParams{
 		Name:        "Go Basics Practice",
 		Description: "Learn Go programming",
 		Benefits:    "Free access to all events",
@@ -73,11 +77,13 @@ func TestCreateExistingMembership(t *testing.T) {
 
 func TestUpdateMembership(t *testing.T) {
 
-	_, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	queries := db.New(dbConn)
 
 	defer cleanup()
 
-	params := membershipDb.CreateMembershipParams{
+	params := db.CreateMembershipParams{
 		Name:        "Go Basics Practice",
 		Description: "Learn Go programming",
 		Benefits:    "Free access to all events",
@@ -87,7 +93,7 @@ func TestUpdateMembership(t *testing.T) {
 
 	require.NoError(t, err)
 
-	updateMembershipParams := membershipDb.UpdateMembershipParams{
+	updateMembershipParams := db.UpdateMembershipParams{
 		ID:          createdMembership.ID,
 		Name:        "Updated Membership Name",
 		Description: "Updated description",
@@ -105,11 +111,13 @@ func TestUpdateMembership(t *testing.T) {
 
 func TestUpdateNonExistingMembership(t *testing.T) {
 
-	_, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	queries := db.New(dbConn)
 
 	defer cleanup()
 
-	updateMembershipParams := membershipDb.UpdateMembershipParams{
+	updateMembershipParams := db.UpdateMembershipParams{
 		ID:          uuid.New(),
 		Name:        "Updated Membership Name",
 		Description: "Updated description",
@@ -123,11 +131,13 @@ func TestUpdateNonExistingMembership(t *testing.T) {
 
 func TestDeleteMembership(t *testing.T) {
 
-	_, _, _, _, _, queries, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+
+	queries := db.New(dbConn)
 
 	defer cleanup()
 
-	params := membershipDb.CreateMembershipParams{
+	params := db.CreateMembershipParams{
 		Name:        "Go Basics Practice",
 		Description: "Learn Go programming",
 		Benefits:    "Free access to all events",

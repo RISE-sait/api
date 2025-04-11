@@ -27,6 +27,16 @@ const (
 	RoleBarber     CtxRole = "BARBER"
 )
 
+// GetUserID retrieves the user ID from the context. Returns an error if the context is nil
+// or the user ID is not found or invalid.
+//
+// Returns:
+//   - uuid.UUID: The user ID if found.
+//   - *errLib.CommonError: Error if context is nil or user ID is not found.
+//
+// Example usage:
+//
+//	userID, err := GetUserID(ctx)  // Retrieves user ID from the context.
 func GetUserID(ctx context.Context) (uuid.UUID, *errLib.CommonError) {
 
 	if ctx == nil {
@@ -42,6 +52,16 @@ func GetUserID(ctx context.Context) (uuid.UUID, *errLib.CommonError) {
 	return userID, nil
 }
 
+// GetUserRole retrieves the user role from the context. Returns an error if the context is nil
+// or the user role is not found or invalid.
+//
+// Returns:
+//   - CtxRole: The user role if found.
+//   - *errLib.CommonError: Error if context is nil or user role is not found.
+//
+// Example usage:
+//
+//	userRole, err := GetUserRole(ctx)  // Retrieves user role from the context.
 func GetUserRole(ctx context.Context) (CtxRole, *errLib.CommonError) {
 
 	if ctx == nil {

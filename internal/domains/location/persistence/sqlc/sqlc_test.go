@@ -2,6 +2,7 @@ package location_test
 
 import (
 	databaseErrors "api/internal/constants"
+	dbLocation "api/internal/domains/location/persistence/sqlc/generated"
 	dbTestUtils "api/utils/test_utils"
 	"context"
 	"database/sql"
@@ -19,7 +20,10 @@ import (
 
 func TestCreateLocation(t *testing.T) {
 
-	_, _, _, _, queries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+
+	queries := dbLocation.New(dbConn)
+
 	defer cleanup()
 
 	params := db.CreateLocationParams{
@@ -38,7 +42,10 @@ func TestCreateLocation(t *testing.T) {
 
 func TestUpdateLocationValid(t *testing.T) {
 
-	_, _, _, _, queries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+
+	queries := dbLocation.New(dbConn)
+
 	defer cleanup()
 
 	params := db.CreateLocationParams{
@@ -71,7 +78,10 @@ func TestUpdateLocationValid(t *testing.T) {
 
 func TestCreateLocationUniqueNameConstraint(t *testing.T) {
 
-	_, _, _, _, queries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+
+	queries := dbLocation.New(dbConn)
+
 	defer cleanup()
 
 	params := db.CreateLocationParams{
@@ -96,7 +106,10 @@ func TestCreateLocationUniqueNameConstraint(t *testing.T) {
 
 func TestGetAllLocations(t *testing.T) {
 
-	_, _, _, _, queries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+
+	queries := dbLocation.New(dbConn)
+
 	defer cleanup()
 
 	// Create some locations
@@ -119,7 +132,9 @@ func TestGetAllLocations(t *testing.T) {
 
 func TestUpdateNonExistentLocation(t *testing.T) {
 
-	_, _, _, _, queries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+
+	queries := dbLocation.New(dbConn)
 
 	defer cleanup()
 
@@ -138,7 +153,9 @@ func TestUpdateNonExistentLocation(t *testing.T) {
 
 func TestDeleteLocation(t *testing.T) {
 
-	_, _, _, _, queries, _, _, _, _, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+
+	queries := dbLocation.New(dbConn)
 
 	defer cleanup()
 

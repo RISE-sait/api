@@ -50,6 +50,15 @@ type QueriesType struct {
 	OutboxDb     *outboxDb.Queries
 }
 
+// NewContainer initializes and returns a Container with database, queries, HubSpot, Firebase, and Square services.
+// Panics if any initialization fails.
+//
+// Returns:
+//   - *Container: The initialized Container.
+//
+// Example usage:
+//
+//	container := NewContainer()  // Initializes the container.
 func NewContainer() *Container {
 	db := config.GetDBConnection()
 	queries := initializeQueries(db)
@@ -75,6 +84,14 @@ func NewContainer() *Container {
 	}
 }
 
+// initializeQueries initializes and returns a QueriesType struct with database connections for various services.
+//
+// Returns:
+//   - *QueriesType: The initialized QueriesType containing all database connections.
+//
+// Example usage:
+//
+//	queries := initializeQueries(db)  // Initializes the queries for all services.
 func initializeQueries(db *sql.DB) *QueriesType {
 	return &QueriesType{
 		IdentityDb:   identityDb.New(db),
@@ -92,6 +109,14 @@ func initializeQueries(db *sql.DB) *QueriesType {
 	}
 }
 
+// Cleanup closes the database connection in the Container if it exists.
+//
+// Returns:
+//   - error: Any error that occurs while closing the database connection, or nil if successful.
+//
+// Example usage:
+//
+//	err := container.Cleanup()  // Closes the database connections
 func (c *Container) Cleanup() error {
 	if c.DB != nil {
 		return c.DB.Close()

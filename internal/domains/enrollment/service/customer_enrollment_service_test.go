@@ -2,7 +2,6 @@ package enrollment
 
 import (
 	"api/internal/di"
-	enrollment "api/internal/domains/enrollment/persistence/repository"
 	errLib "api/internal/libs/errors"
 	dbTestUtils "api/utils/test_utils"
 	"context"
@@ -157,7 +156,7 @@ SELECT COUNT(*)
 
 func TestEnrollCustomerInProgramEvents_ACID_No_race_condition(t *testing.T) {
 
-	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../db/migrations")
 
 	enrollmentQ := dbEnrollment.New(dbConn)
 	identityQ := dbidentity.New(dbConn)
@@ -166,7 +165,17 @@ func TestEnrollCustomerInProgramEvents_ACID_No_race_condition(t *testing.T) {
 
 	defer cleanup()
 
-	enrollmentRepo := enrollment.NewEnrollmentRepository(dbConn)
+	container := di.Container{
+		DB: dbConn,
+		Queries: &di.QueriesType{
+			EnrollmentDb: dbEnrollment.New(dbConn),
+			IdentityDb:   dbidentity.New(dbConn),
+			MembershipDb: dbMembership.New(dbConn),
+			ProgramDb:    dbProgram.New(dbConn),
+		},
+	}
+
+	enrollmentService := NewCustomerEnrollmentService(&container)
 
 	createdProgram, err := programQ.CreateProgram(context.Background(), dbProgram.CreateProgramParams{
 		Name: "Test Program",
@@ -247,27 +256,13 @@ SELECT COUNT(*)
 
 	assert.Equal(t, 3, len(customers))
 
-	// Enroll 3 customers with staggered timing to avoid simultaneous commits
 	var errs []*errLib.CommonError
 	for i := 0; i < 3; i++ {
-		enrollErr := enrollmentRepo.EnrollCustomerInProgram(context.Background(), customers[i].ID, createdProgram.ID)
+		enrollErr := enrollmentService.ReserveSeatInProgram(context.Background(), createdProgram.ID, customers[i].ID)
 		if enrollErr != nil {
 			errs = append(errs, enrollErr)
 		}
 	}
-
-	// Verify that at least one error occurred
-
-	assert.GreaterOrEqual(t, len(errs), 1)
-
-	// check the message of the first error
-	firstErrPtr := errs[0]
-	firstErr := *firstErrPtr
-
-	assert.Contains(t, firstErr.Message, "Program is full")
-	assert.Equal(t, firstErr.HTTPCode, http.StatusConflict)
-
-	// Verify the number of enrolled customers in the program
 
 	var enrolledCount int
 	err = dbConn.QueryRow(`
@@ -277,6 +272,14 @@ SELECT COUNT(*)
         `, createdProgram.ID).Scan(&enrolledCount)
 	require.NoError(t, err)
 
-	assert.LessOrEqual(t, enrolledCount, 2)
+	assert.Equal(t, enrolledCount, 2)
 
+	assert.Equal(t, 1, len(errs))
+
+	// check the message of the first error
+	firstErrPtr := errs[0]
+	firstErr := *firstErrPtr
+
+	assert.Contains(t, firstErr.Message, "Program is full")
+	assert.Equal(t, firstErr.HTTPCode, http.StatusConflict)
 }

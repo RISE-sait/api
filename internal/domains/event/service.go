@@ -30,8 +30,8 @@ func (s *Service) GetEvents(ctx context.Context, programTypeStr string, programI
 	return s.repo.GetEvents(ctx, programTypeStr, programID, locationID, userID, teamID, createdBy, updatedBy, before, after)
 }
 
-func (s *Service) CreateEvent(ctx context.Context, details values.CreateEventValues) *errLib.CommonError {
-	return s.repo.CreateEvent(ctx, details)
+func (s *Service) CreateEvents(ctx context.Context, details values.CreateEventsValues) *errLib.CommonError {
+	return s.repo.CreateEvents(ctx, details)
 }
 
 func (s *Service) UpdateEvent(ctx context.Context, details values.UpdateEventValues) *errLib.CommonError {

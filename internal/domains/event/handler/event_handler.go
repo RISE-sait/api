@@ -205,7 +205,7 @@ func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {
-		if err = h.EventsService.CreateEvent(r.Context(), eventCreate); err != nil {
+		if err = h.EventsService.CreateEvents(r.Context(), eventCreate); err != nil {
 			responseHandlers.RespondWithError(w, err)
 			return
 		}

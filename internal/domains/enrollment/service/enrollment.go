@@ -38,6 +38,8 @@ type ICustomerEnrollmentService interface {
 
 	UpdateReservationStatusInProgram(ctx context.Context, programID, customerID uuid.UUID, status dbEnrollment.PaymentStatus) *errLib.CommonError
 
+	UpdateReservationStatusInEvent(ctx context.Context, eventID, customerID uuid.UUID, status dbEnrollment.PaymentStatus) *errLib.CommonError
+
 	ReserveSeatInEvent(ctx context.Context, eventID, customerID uuid.UUID) *errLib.CommonError
 
 	UnEnrollCustomerFromEvent(ctx context.Context, eventID, customerID uuid.UUID) *errLib.CommonError
@@ -116,14 +118,12 @@ func (s *CustomerEnrollmentService) GetEventIsFull(ctx context.Context, eventID 
 
 func (s *CustomerEnrollmentService) ReserveSeatInEvent(ctx context.Context, eventID, customerID uuid.UUID) *errLib.CommonError {
 	return s.executeInTx(ctx, func(r *repo.CustomerEnrollmentRepository) *errLib.CommonError {
-		isFull, err := r.GetEventIsFull(ctx, eventID)
-		if err != nil {
+		if isFull, err := r.GetEventIsFull(ctx, eventID); err != nil {
 			return err
-		}
-		if isFull {
+		} else if isFull {
 			return errLib.New("Event is full", http.StatusConflict)
 		}
-		return r.ReserveSeatInEvent(ctx, customerID, eventID)
+		return r.ReserveSeatInEvent(ctx, eventID, customerID)
 	})
 }
 
@@ -143,4 +143,8 @@ func (s *CustomerEnrollmentService) ReserveSeatInProgram(ctx context.Context, pr
 
 func (s *CustomerEnrollmentService) UpdateReservationStatusInProgram(ctx context.Context, programID, customerID uuid.UUID, status dbEnrollment.PaymentStatus) *errLib.CommonError {
 	return s.repo.UpdateReservationStatusInProgram(ctx, programID, customerID, status)
+}
+
+func (s *CustomerEnrollmentService) UpdateReservationStatusInEvent(ctx context.Context, eventID, customerID uuid.UUID, status dbEnrollment.PaymentStatus) *errLib.CommonError {
+	return s.repo.UpdateReservationStatusInEvent(ctx, eventID, customerID, status)
 }

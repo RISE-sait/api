@@ -40,7 +40,7 @@ func (s *WebhookService) HandleCheckoutSessionCompleted(event stripe.Event) *err
 
 	switch checkSession.Mode {
 	case stripe.CheckoutSessionModePayment:
-		return s.handleProgramCheckoutComplete(checkSession)
+		return s.handleItemCheckoutComplete(checkSession)
 	case stripe.CheckoutSessionModeSubscription:
 		return s.handleSubscriptionCheckoutComplete(checkSession)
 	}
@@ -48,28 +48,12 @@ func (s *WebhookService) HandleCheckoutSessionCompleted(event stripe.Event) *err
 	return nil
 }
 
-func (s *WebhookService) handleProgramCheckoutComplete(checkoutSession stripe.CheckoutSession) *errLib.CommonError {
+func (s *WebhookService) handleItemCheckoutComplete(checkoutSession stripe.CheckoutSession) *errLib.CommonError {
 
 	fullSession, err := s.getExpandedSession(checkoutSession.ID)
 	if err != nil {
 		return err
 	}
-
-	// 2. Validate line items and get price ID
-	priceIDs, err := s.validateLineItems(fullSession.LineItems)
-	if err != nil {
-		return err
-	}
-
-	priceId := priceIDs[0]
-
-	programID, err := s.PostCheckoutRepository.GetProgramIdByStripePriceId(context.Background(), priceId)
-
-	if err != nil {
-		return errLib.New("Invalid program ID format", http.StatusBadRequest)
-	}
-
-	log.Println(programID)
 
 	userIDStr := fullSession.Metadata["userID"]
 
@@ -83,9 +67,45 @@ func (s *WebhookService) handleProgramCheckoutComplete(checkoutSession stripe.Ch
 		return errLib.New("Invalid user ID format", http.StatusBadRequest)
 	}
 
-	if err = s.EnrollmentService.UpdateReservationStatusInProgram(context.Background(), programID, customerID, dbEnrollment.PaymentStatusPaid); err != nil {
-		log.Printf("Failed to update reservation status: %v", err)
-		return errLib.New(fmt.Sprintf("Failed to update reserve status: %v", err), http.StatusInternalServerError)
+	// 2. Validate line items and get price ID
+	priceIDs, err := s.validateLineItems(fullSession.LineItems)
+	if err != nil {
+		return err
+	}
+
+	if len(priceIDs) == 0 {
+		return errLib.New("No price IDs found in line items", http.StatusBadRequest)
+	}
+
+	priceID := priceIDs[0]
+
+	programID, err := s.PostCheckoutRepository.GetProgramIdByStripePriceId(context.Background(), priceID)
+	if err != nil {
+		return err
+	}
+
+	eventID, err := s.PostCheckoutRepository.GetEventIdByStripePriceId(context.Background(), priceID)
+	if err != nil {
+		return err
+	}
+
+	switch {
+	case programID != uuid.Nil && eventID != uuid.Nil:
+		return errLib.New("price ID maps to both program and event", http.StatusConflict)
+	case programID == uuid.Nil && eventID == uuid.Nil:
+		return errLib.New("price ID doesn't map to any program or event", http.StatusNotFound)
+	case programID != uuid.Nil:
+		// Handle program enrollment
+		if err = s.EnrollmentService.UpdateReservationStatusInProgram(context.Background(), programID, customerID, dbEnrollment.PaymentStatusPaid); err != nil {
+			log.Printf("Failed to update program reservation (customer: %s, program: %s): %v", customerID, programID, err)
+			return errLib.New(fmt.Sprintf("failed to update program reservation (customer: %s, program: %s): %v", customerID, programID, err), http.StatusInternalServerError)
+		}
+	case eventID != uuid.Nil:
+		// Handle event enrollment
+		if err = s.EnrollmentService.UpdateReservationStatusInEvent(context.Background(), eventID, customerID, dbEnrollment.PaymentStatusPaid); err != nil {
+			log.Printf("Failed to update event reservation (customer: %s, event: %s): %v", customerID, eventID, err)
+			return errLib.New(fmt.Sprintf("failed to update event reservation (customer: %s, event: %s): %v", customerID, eventID, err), http.StatusInternalServerError)
+		}
 	}
 
 	return nil

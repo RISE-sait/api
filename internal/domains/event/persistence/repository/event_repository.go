@@ -228,8 +228,6 @@ func (r *EventsRepository) GetEvents(ctx context.Context, programTypeStr string,
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	log.Println(len(dbRows))
-
 	// Group the rows by event ID
 	var events []values.ReadEventValues
 

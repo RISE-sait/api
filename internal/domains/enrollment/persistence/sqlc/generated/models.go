@@ -479,7 +479,6 @@ type ProgramFee struct {
 	StripePriceID string        `json:"stripe_price_id"`
 	CreatedAt     time.Time     `json:"created_at"`
 	UpdatedAt     time.Time     `json:"updated_at"`
-	PayPerEvent   bool          `json:"pay_per_event"`
 }
 
 type ProgramGame struct {
@@ -499,6 +498,7 @@ type ProgramProgram struct {
 	Capacity    sql.NullInt32       `json:"capacity"`
 	CreatedAt   time.Time           `json:"created_at"`
 	UpdatedAt   time.Time           `json:"updated_at"`
+	PayPerEvent bool                `json:"pay_per_event"`
 }
 
 type StaffPendingStaff struct {

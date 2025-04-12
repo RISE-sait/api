@@ -2,7 +2,6 @@ package payment
 
 import (
 	"api/internal/di"
-	dbEnrollment "api/internal/domains/enrollment/persistence/sqlc/generated"
 	enrollment "api/internal/domains/enrollment/service"
 	membership "api/internal/domains/membership/persistence/repositories"
 	repository "api/internal/domains/payment/persistence/repositories"
@@ -13,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	squareClient "github.com/square/square-go-sdk/client"
 	"log"
+	"net/http"
 )
 
 type Service struct {
@@ -49,19 +49,20 @@ func (s *Service) CheckoutProgram(ctx context.Context, programID uuid.UUID) (str
 		return "", ctxErr
 	}
 
-	err := s.EnrollmentService.ReserveSeatInProgram(ctx, programID, customerID)
+	isPayPerEvent, priceID, err := s.CheckoutRepo.GetRegistrationPriceIdForCustomerByProgramID(ctx, programID)
 
 	if err != nil {
-		log.Println("Failed to reserve seat in program:", err)
 		return "", err
 	}
 
-	priceID, err := s.CheckoutRepo.GetProgramRegistrationPriceIdForCustomer(ctx, programID)
+	if isPayPerEvent {
+		return "", errLib.New("program is not pay-per-event", http.StatusBadRequest)
+	}
+
+	err = s.EnrollmentService.ReserveSeatInProgram(ctx, programID, customerID)
 
 	if err != nil {
-		if unreserveErr := s.EnrollmentService.UpdateReservationStatusInProgram(ctx, programID, customerID, dbEnrollment.PaymentStatusFailed); unreserveErr != nil {
-			log.Printf("Failed to unreserve seat in program: %v", unreserveErr)
-		}
+		log.Println("Failed to reserve seat in program:", err)
 		return "", err
 	}
 
@@ -75,15 +76,23 @@ func (s *Service) CheckoutEvent(ctx context.Context, eventID uuid.UUID) (string,
 		return "", ctxErr
 	}
 
-	err := s.EnrollmentService.ReserveSeatInEvent(ctx, eventID, customerID)
+	programID, err := s.CheckoutRepo.GetProgramIDOfEvent(ctx, eventID)
 
 	if err != nil {
 		return "", err
 	}
 
-	priceID, err := s.CheckoutRepo.GetEventRegistrationPriceIdForCustomer(ctx, eventID)
+	isPayPerEvent, priceID, err := s.CheckoutRepo.GetRegistrationPriceIdForCustomerByProgramID(ctx, programID)
 
 	if err != nil {
+		return "", err
+	}
+
+	if !isPayPerEvent {
+		return "", errLib.New("event is pay-per-program", http.StatusBadRequest)
+	}
+
+	if err = s.EnrollmentService.ReserveSeatInEvent(ctx, eventID, customerID); err != nil {
 		return "", err
 	}
 

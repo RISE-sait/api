@@ -9,16 +9,18 @@ import (
 
 func GetGames(numGames int, teamIds []uuid.UUID) dbSeed.InsertGamesParams {
 	params := dbSeed.InsertGamesParams{
-		NameArray:        make([]string, numGames),
-		DescriptionArray: make([]string, numGames),
-		LevelArray:       make([]dbSeed.ProgramProgramLevel, numGames),
-		WinTeamArray:     make([]uuid.UUID, numGames),
-		LoseTeamArray:    make([]uuid.UUID, numGames),
-		WinScoreArray:    make([]int32, numGames),
-		LoseScoreArray:   make([]int32, numGames),
+		NameArray:          make([]string, numGames),
+		DescriptionArray:   make([]string, numGames),
+		LevelArray:         make([]dbSeed.ProgramProgramLevel, numGames),
+		WinTeamArray:       make([]uuid.UUID, numGames),
+		LoseTeamArray:      make([]uuid.UUID, numGames),
+		WinScoreArray:      make([]int32, numGames),
+		LoseScoreArray:     make([]int32, numGames),
+		IsPayPerEventArray: make([]bool, numGames),
 	}
 
 	for i := 0; i < numGames; i++ {
+		params.IsPayPerEventArray[i] = true
 		params.NameArray[i] = generateGameName(i)
 		params.DescriptionArray[i] = generateGameDescription(i)
 		params.LevelArray[i] = dbSeed.ProgramProgramLevelAll

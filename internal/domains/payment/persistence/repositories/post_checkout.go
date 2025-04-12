@@ -24,11 +24,27 @@ func NewPostCheckoutRepository(container *di.Container) *PostCheckoutRepository 
 
 func (r *PostCheckoutRepository) GetProgramIdByStripePriceId(ctx context.Context, priceID string) (uuid.UUID, *errLib.CommonError) {
 
-	if programID, err := r.Queries.GetProgramIdByStripePriceId(ctx, priceID); err != nil {
-		return uuid.Nil, errLib.New(fmt.Sprintf("error enrolling customer in program events: %v", err), http.StatusBadRequest)
-	} else {
-		return programID, nil
+	programID, err := r.Queries.GetProgramIdByStripePriceId(ctx, priceID)
+
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return uuid.Nil, errLib.New(fmt.Sprintf("error getting program id of price id: %v", err), http.StatusBadRequest)
+		}
 	}
+	return programID, nil
+}
+
+func (r *PostCheckoutRepository) GetEventIdByStripePriceId(ctx context.Context, priceID string) (uuid.UUID, *errLib.CommonError) {
+
+	eventID, err := r.Queries.GetEventIdByStripePriceId(ctx, priceID)
+
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+
+			return uuid.Nil, errLib.New(fmt.Sprintf("error getting event id of price id: %v", err), http.StatusBadRequest)
+		}
+	}
+	return eventID, nil
 }
 
 func (r *PostCheckoutRepository) GetMembershipPlanByStripePriceID(ctx context.Context, id string) (planID uuid.UUID, amtPeriods *int32, error *errLib.CommonError) {

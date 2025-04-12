@@ -201,18 +201,21 @@ func seedPractices(ctx context.Context, db *sql.DB) {
 		nameArray        []string
 		descriptionArray []string
 		levelArray       []dbSeed.ProgramProgramLevel
+		isPayPerEvent    []bool
 	)
-	for i := 0; i < len(practices); i++ {
+	for _, practice := range practices {
 
-		nameArray = append(nameArray, practices[i].Name)
-		descriptionArray = append(descriptionArray, practices[i].Description)
+		nameArray = append(nameArray, practice.Name)
+		descriptionArray = append(descriptionArray, practice.Description)
 		levelArray = append(levelArray, dbSeed.ProgramProgramLevelAll)
+		isPayPerEvent = append(isPayPerEvent, practice.IsPayPerEvent)
 	}
 
 	_, err := seedQueries.InsertPractices(ctx, dbSeed.InsertPracticesParams{
-		NameArray:        nameArray,
-		DescriptionArray: descriptionArray,
-		LevelArray:       levelArray,
+		NameArray:          nameArray,
+		DescriptionArray:   descriptionArray,
+		LevelArray:         levelArray,
+		IsPayPerEventArray: isPayPerEvent,
 	})
 
 	if err != nil {
@@ -230,14 +233,12 @@ func seedProgramsFees(ctx context.Context, db *sql.DB) {
 		programNameArray    []string
 		membershipNameArray []string
 		stripePriceIDArray  []string
-		isPayPerEvent       []bool
 	)
 
 	for _, practice := range practices {
 		for _, eligibility := range practice.MembershipsEligibility {
 			programNameArray = append(programNameArray, practice.Name)
 			membershipNameArray = append(membershipNameArray, eligibility.Name)
-			isPayPerEvent = append(isPayPerEvent, practice.IsPayPerEvent)
 
 			if eligibility.StripePriceID == nil {
 				stripePriceIDArray = append(stripePriceIDArray, "")
@@ -251,7 +252,6 @@ func seedProgramsFees(ctx context.Context, db *sql.DB) {
 		ProgramNameArray:          programNameArray,
 		MembershipNameArray:       membershipNameArray,
 		StripeProgramPriceIDArray: stripePriceIDArray,
-		IsPayPerEventArray:        isPayPerEvent,
 	})
 
 	if err != nil {

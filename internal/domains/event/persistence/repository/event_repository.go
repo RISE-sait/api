@@ -1,6 +1,7 @@
 package event
 
 import (
+	"api/internal/di"
 	db "api/internal/domains/event/persistence/sqlc/generated"
 	values "api/internal/domains/event/values"
 	errLib "api/internal/libs/errors"
@@ -21,9 +22,9 @@ type EventsRepository struct {
 	Queries *db.Queries
 }
 
-func NewEventsRepository(dbQueries *db.Queries) *EventsRepository {
+func NewEventsRepository(container *di.Container) *EventsRepository {
 	return &EventsRepository{
-		Queries: dbQueries,
+		Queries: container.Queries.EventDb,
 	}
 }
 

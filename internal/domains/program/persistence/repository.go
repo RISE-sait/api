@@ -2,6 +2,7 @@ package program
 
 import (
 	databaseErrors "api/internal/constants"
+	"api/internal/di"
 	db "api/internal/domains/program/persistence/sqlc/generated"
 	"api/internal/domains/program/values"
 	errLib "api/internal/libs/errors"
@@ -20,9 +21,9 @@ type Repository struct {
 	Queries *db.Queries
 }
 
-func NewProgramRepository(dbQueries *db.Queries) *Repository {
+func NewProgramRepository(container *di.Container) *Repository {
 	return &Repository{
-		Queries: dbQueries,
+		Queries: container.Queries.ProgramDb,
 	}
 }
 

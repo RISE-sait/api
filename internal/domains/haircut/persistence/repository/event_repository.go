@@ -126,7 +126,7 @@ func (r *Repository) GetEvents(ctx context.Context, barberID, customerID uuid.UU
 	return events, nil
 }
 
-//func (r *Repo) UpdateEvent(c context.Context, event values.UpdateEventValues) (values.EventReadValues, *errLib.CommonError) {
+//func (r *Service) UpdateEvent(c context.Context, event values.UpdateEventValues) (values.EventReadValues, *errLib.CommonError) {
 //	dbEventParams := db.UpdateEventParams{
 //		BeginDateTime: event.BeginDateTime,
 //		EndDateTime:   event.EndDateTime,

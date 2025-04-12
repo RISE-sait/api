@@ -15,7 +15,8 @@ import (
 	"time"
 
 	dbEnrollment "api/internal/domains/enrollment/persistence/sqlc/generated"
-	dbidentity "api/internal/domains/identity/persistence/sqlc/generated"
+	dbEvent "api/internal/domains/event/persistence/sqlc/generated"
+	dbIdentity "api/internal/domains/identity/persistence/sqlc/generated"
 	dbMembership "api/internal/domains/membership/persistence/sqlc/generated"
 	dbProgram "api/internal/domains/program/persistence/sqlc/generated"
 )
@@ -33,7 +34,8 @@ func TestCustomerReserveProgram_ACID_Serializable(t *testing.T) {
 				DB: testDb,
 				Queries: &di.QueriesType{
 					EnrollmentDb: dbEnrollment.New(testDb),
-					IdentityDb:   dbidentity.New(testDb),
+					EventDb:      dbEvent.New(testDb),
+					IdentityDb:   dbIdentity.New(testDb),
 					MembershipDb: dbMembership.New(testDb),
 					ProgramDb:    dbProgram.New(testDb),
 				},
@@ -93,10 +95,10 @@ SELECT COUNT(*)
 
 			assert.Equal(t, 1, count)
 
-			customers := make([]dbidentity.UsersUser, 3)
+			customers := make([]dbIdentity.UsersUser, 3)
 
 			for i := 0; i < 3; i++ {
-				customer, userErr := container.Queries.IdentityDb.CreateUser(context.Background(), dbidentity.CreateUserParams{
+				customer, userErr := container.Queries.IdentityDb.CreateUser(context.Background(), dbIdentity.CreateUserParams{
 					CountryAlpha2Code:        "CA",
 					Age:                      20,
 					HasMarketingEmailConsent: false,
@@ -111,7 +113,6 @@ SELECT COUNT(*)
 			}
 
 			assert.Equal(t, 3, len(customers))
-
 			// enroll all ( 3 ) customers from customers list into program events with capacity of 2 concurrently to test write skew
 			// this should fail due to predicate locks
 			enrollmentErrs := make(chan *errLib.CommonError, 3)
@@ -159,7 +160,7 @@ func TestEnrollCustomerInProgramEvents_ACID_No_race_condition(t *testing.T) {
 	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../db/migrations")
 
 	enrollmentQ := dbEnrollment.New(dbConn)
-	identityQ := dbidentity.New(dbConn)
+	identityQ := dbIdentity.New(dbConn)
 	programQ := dbProgram.New(dbConn)
 	membershipQ := dbMembership.New(dbConn)
 
@@ -169,7 +170,8 @@ func TestEnrollCustomerInProgramEvents_ACID_No_race_condition(t *testing.T) {
 		DB: dbConn,
 		Queries: &di.QueriesType{
 			EnrollmentDb: dbEnrollment.New(dbConn),
-			IdentityDb:   dbidentity.New(dbConn),
+			EventDb:      dbEvent.New(dbConn),
+			IdentityDb:   dbIdentity.New(dbConn),
 			MembershipDb: dbMembership.New(dbConn),
 			ProgramDb:    dbProgram.New(dbConn),
 		},
@@ -228,10 +230,10 @@ SELECT COUNT(*)
 
 	assert.Equal(t, 1, count)
 
-	customers := make([]dbidentity.UsersUser, 3)
+	customers := make([]dbIdentity.UsersUser, 3)
 
 	for i := 0; i < 3; i++ {
-		customer, userErr := identityQ.CreateUser(context.Background(), dbidentity.CreateUserParams{
+		customer, userErr := identityQ.CreateUser(context.Background(), dbIdentity.CreateUserParams{
 			CountryAlpha2Code:        "CA",
 			Age:                      20,
 			HasMarketingEmailConsent: false,

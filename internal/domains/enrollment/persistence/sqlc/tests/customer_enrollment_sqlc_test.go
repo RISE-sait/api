@@ -9,8 +9,6 @@ import (
 	enrollmentDb "api/internal/domains/enrollment/persistence/sqlc/generated"
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
 
-	"database/sql"
-
 	"context"
 	"github.com/google/uuid"
 	"testing"
@@ -39,7 +37,7 @@ func TestEnrollCustomerInEvent(t *testing.T) {
 		LastName:  "Doe",
 	}
 
-	createdUser, err := identityQueries.CreateUser(context.Background(), createUserParams)
+	eventCreator, err := identityQueries.CreateUser(context.Background(), createUserParams)
 	require.NoError(t, err)
 
 	createProgramParams := programDb.CreateProgramParams{
@@ -62,19 +60,17 @@ func TestEnrollCustomerInEvent(t *testing.T) {
 	now := time.Now().Truncate(time.Second)
 	capacity := 20
 
-	createEventParams := eventDb.CreateEventParams{
-		StartAt:    now,
-		EndAt:      now.Add(time.Hour * 24),
-		LocationID: createdLocation.ID,
-		ProgramID:  uuid.NullUUID{UUID: createdProgram.ID, Valid: true},
-		Capacity: sql.NullInt32{
-			Int32: int32(capacity),
-			Valid: true,
-		},
-		CreatedBy: createdUser.ID,
+	createEventsParams := eventDb.CreateEventsParams{
+		StartAtArray:     []time.Time{now},
+		EndAtArray:       []time.Time{now.Add(time.Hour * 24)},
+		LocationIds:      []uuid.UUID{createdLocation.ID},
+		ProgramIds:       []uuid.UUID{createdProgram.ID},
+		Capacities:       []int32{int32(capacity)},
+		CreatedByIds:     []uuid.UUID{eventCreator.ID},
+		IsCancelledArray: []bool{false},
 	}
 
-	createdEvent, err := eventQueries.CreateEvent(context.Background(), createEventParams)
+	err = eventQueries.CreateEvents(context.Background(), createEventsParams)
 
 	require.NoError(t, err)
 
@@ -86,6 +82,17 @@ func TestEnrollCustomerInEvent(t *testing.T) {
 
 	createdCustomer, err := identityQueries.CreateUser(context.Background(), createCustomerParams)
 	require.NoError(t, err)
+
+	events, err := eventQueries.GetEvents(context.Background(), eventDb.GetEventsParams{
+		CreatedBy: uuid.NullUUID{
+			UUID:  eventCreator.ID,
+			Valid: true,
+		},
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, 1, len(events))
+	createdEvent := events[0]
 
 	// Enroll the customer in the event
 	enrollParams := enrollmentDb.EnrollCustomerInEventParams{
@@ -187,7 +194,6 @@ func TestEnrollCustomerInProgramEvents(t *testing.T) {
 		LocationIds:         locationIDs,
 		ProgramIds:          programIDs,
 		CreatedByIds:        createdByIDs,
-		UpdatedByIds:        updatedByIDs,
 		StartAtArray:        startTimes,
 		EndAtArray:          endTimes,
 		Capacities:          capacities,

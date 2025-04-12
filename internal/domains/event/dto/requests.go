@@ -19,7 +19,7 @@ type RequestDto struct {
 }
 
 type CreateRequestDto struct {
-	RequestDto
+	Events []RequestDto `json:"events" validate:"required"`
 }
 
 type UpdateRequestDto struct {
@@ -59,26 +59,34 @@ func (dto RequestDto) validate() (time.Time, time.Time, *errLib.CommonError) {
 
 }
 
-func (dto CreateRequestDto) ToCreateEventValues(creator uuid.UUID) (values.CreateEventValues, *errLib.CommonError) {
-	startAt, endAt, err := dto.validate()
-	if err != nil {
-		return values.CreateEventValues{}, err
+func (dto CreateRequestDto) ToCreateEventsValues(creator uuid.UUID) (values.CreateEventsValues, *errLib.CommonError) {
+
+	var events []values.Details
+
+	for _, event := range dto.Events {
+		start, end, err := event.validate()
+
+		if err != nil {
+			return values.CreateEventsValues{}, err
+		}
+
+		if event.Capacity <= 0 {
+			return values.CreateEventsValues{}, errLib.New("Capacity must be provided, and greater than 0", http.StatusBadRequest)
+		}
+
+		events = append(events, values.Details{
+			Capacity:   event.Capacity,
+			StartAt:    start,
+			EndAt:      end,
+			ProgramID:  event.ProgramID,
+			LocationID: event.LocationID,
+			TeamID:     event.TeamID,
+		})
 	}
 
-	if dto.Capacity <= 0 {
-		return values.CreateEventValues{}, errLib.New("Capacity must be provided, and greater than 0", http.StatusBadRequest)
-	}
-
-	return values.CreateEventValues{
+	return values.CreateEventsValues{
 		CreatedBy: creator,
-		Details: values.Details{
-			Capacity:   dto.Capacity,
-			StartAt:    startAt,
-			EndAt:      endAt,
-			ProgramID:  dto.ProgramID,
-			LocationID: dto.LocationID,
-			TeamID:     dto.TeamID,
-		},
+		Events:    events,
 	}, nil
 }
 

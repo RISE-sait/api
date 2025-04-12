@@ -1,23 +1,35 @@
--- name: CreateEvent :one
-INSERT INTO events.events (location_id, program_id, team_id, start_at, end_at, created_by, updated_by, capacity)
-VALUES ($1, $2, $3, $4, $5,
-        sqlc.arg('created_by')::uuid, sqlc.arg('created_by')::uuid, $6)
-RETURNING *;
-
 -- name: CreateEvents :exec
-INSERT INTO events.events
-(location_id, program_id, team_id, start_at, end_at, created_by, updated_by, capacity, is_cancelled,
- cancellation_reason)
-SELECT unnest(sqlc.arg('location_ids')::uuid[]),
-       unnest(sqlc.arg('program_ids')::uuid[]),
-       unnest(sqlc.arg('team_ids')::uuid[]),
-       unnest(sqlc.arg('start_at_array')::timestamptz[]),
-       unnest(sqlc.arg('end_at_array')::timestamptz[]),
-       unnest(sqlc.arg('created_by_ids')::uuid[]),
-       unnest(sqlc.arg('updated_by_ids')::uuid[]),
-       unnest(sqlc.arg('capacities')::int[]),
-       unnest(sqlc.arg('is_cancelled_array')::bool[]),
-       unnest(sqlc.arg('cancellation_reasons')::text[]);
+WITH unnested_data AS (SELECT unnest(sqlc.arg('location_ids')::uuid[])          AS location_id,
+                              unnest(sqlc.arg('program_ids')::uuid[])           AS program_id,
+                              unnest(sqlc.arg('team_ids')::uuid[])              AS team_id,
+                              unnest(sqlc.arg('start_at_array')::timestamptz[]) AS start_at,
+                              unnest(sqlc.arg('end_at_array')::timestamptz[])   AS end_at,
+                              unnest(sqlc.arg('created_by_ids')::uuid[])        AS created_by,
+                              unnest(sqlc.arg('capacities')::int[])             AS capacity,
+                              unnest(sqlc.arg('is_cancelled_array')::bool[])    AS is_cancelled,
+                              unnest(sqlc.arg('cancellation_reasons')::text[])  AS cancellation_reason)
+INSERT
+INTO events.events (location_id,
+                    program_id,
+                    team_id,
+                    start_at,
+                    end_at,
+                    created_by,
+                    updated_by,
+                    capacity,
+                    is_cancelled,
+                    cancellation_reason)
+SELECT location_id,
+       NULLIF(program_id, '00000000-0000-0000-0000-000000000000'::uuid),
+       NULLIF(team_id, '00000000-0000-0000-0000-000000000000'::uuid),
+       start_at,
+       end_at,
+       created_by,
+       created_by,
+       NULLIF(capacity, 0),
+       is_cancelled,
+       NULLIF(cancellation_reason, '')
+FROM unnested_data;
 
 -- name: GetEvents :many
 SELECT DISTINCT e.*,

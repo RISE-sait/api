@@ -15,19 +15,42 @@ import (
 )
 
 const createEvents = `-- name: CreateEvents :exec
-INSERT INTO events.events
-(location_id, program_id, team_id, start_at, end_at, created_by, updated_by, capacity, is_cancelled,
- cancellation_reason)
-SELECT unnest($1::uuid[]),
-       unnest($2::uuid[]),
-       unnest($3::uuid[]),
-       unnest($4::timestamptz[]),
-       unnest($5::timestamptz[]),
-       unnest($6::uuid[]),
-       unnest($6::uuid[]),
-       unnest($7::int[]),
-       unnest($8::bool[]),
-       unnest($9::text[])
+WITH unnested_data AS (
+    SELECT
+        unnest($1::uuid[]) AS location_id,
+        unnest($2::uuid[]) AS program_id,
+        unnest($3::uuid[]) AS team_id,
+        unnest($4::timestamptz[]) AS start_at,
+        unnest($5::timestamptz[]) AS end_at,
+        unnest($6::uuid[]) AS created_by,
+        unnest($7::int[]) AS capacity,
+        unnest($8::bool[]) AS is_cancelled,
+        unnest($9::text[]) AS cancellation_reason
+)
+INSERT INTO events.events (
+    location_id,
+    program_id,
+    team_id,
+    start_at,
+    end_at,
+    created_by,
+    updated_by,
+    capacity,
+    is_cancelled,
+    cancellation_reason
+)
+SELECT
+    location_id,
+    NULLIF(program_id, '00000000-0000-0000-0000-000000000000'::uuid),
+    NULLIF(team_id, '00000000-0000-0000-0000-000000000000'::uuid),
+    start_at,
+    end_at,
+    created_by,
+    created_by,
+    capacity,
+    is_cancelled,
+    NULLIF(cancellation_reason, '')
+FROM unnested_data
 `
 
 type CreateEventsParams struct {

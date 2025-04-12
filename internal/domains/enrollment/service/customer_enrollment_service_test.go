@@ -75,8 +75,8 @@ func TestCustomerReserveProgram_ACID_Serializable(t *testing.T) {
 
 			// use raw sql to make membership eligible for program
 			_, err = container.DB.Exec(`
-INSERT INTO program.fees (program_id, membership_id, stripe_price_id, pay_per_event)
-VALUES ($1, $2, $3, false)
+INSERT INTO program.fees (program_id, membership_id, stripe_price_id)
+VALUES ($1, $2, $3)
 `, createdProgram.ID, membership.ID, membershipPlan.StripePriceID)
 
 			require.NoError(t, err)
@@ -211,8 +211,8 @@ func TestEnrollCustomerInProgramEvents_ACID_No_race_condition(t *testing.T) {
 
 	// use raw sql to make membership eligible for program
 	_, err = dbConn.Exec(`
-INSERT INTO program.fees (program_id, membership_id, stripe_price_id, pay_per_event)
-VALUES ($1, $2, $3, false)
+INSERT INTO program.fees (program_id, membership_id, stripe_price_id)
+VALUES ($1, $2, $3)
 `, createdProgram.ID, membership.ID, membershipPlan.StripePriceID)
 
 	require.NoError(t, err)

@@ -193,19 +193,6 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 
 func (r *EventsRepository) GetEvents(ctx context.Context, programTypeStr string, programID, locationID, userID, teamID, createdBy, updatedBy uuid.UUID, before, after time.Time) ([]values.ReadEventValues, *errLib.CommonError) {
 
-	var programType db.NullProgramProgramType
-
-	if programTypeStr == "" {
-		programType.Valid = false
-	} else {
-		if !db.ProgramProgramType(programTypeStr).Valid() {
-
-			validTypes := db.AllProgramProgramTypeValues()
-
-			return nil, errLib.New(fmt.Sprintf("Invalid program type. Valid types are: %v", validTypes), http.StatusBadRequest)
-		}
-	}
-
 	// Execute the query using SQLC generated function
 	param := db.GetEventsParams{
 		ProgramID:  uuid.NullUUID{UUID: programID, Valid: programID != uuid.Nil},
@@ -216,7 +203,22 @@ func (r *EventsRepository) GetEvents(ctx context.Context, programTypeStr string,
 		TeamID:     uuid.NullUUID{UUID: teamID, Valid: teamID != uuid.Nil},
 		CreatedBy:  uuid.NullUUID{UUID: createdBy, Valid: createdBy != uuid.Nil},
 		UpdatedBy:  uuid.NullUUID{UUID: updatedBy, Valid: updatedBy != uuid.Nil},
-		Type:       programType,
+	}
+
+	programType := db.ProgramProgramType(programTypeStr)
+
+	if programTypeStr != "" {
+		if programType.Valid() {
+			param.Type = db.NullProgramProgramType{
+				ProgramProgramType: programType,
+				Valid:              true,
+			}
+		} else {
+			validTypes := db.AllProgramProgramTypeValues()
+
+			return nil, errLib.New(fmt.Sprintf("Invalid program type. Valid types are: %v", validTypes), http.StatusBadRequest)
+		}
+
 	}
 
 	dbRows, err := r.Queries.GetEvents(ctx, param)
@@ -225,6 +227,8 @@ func (r *EventsRepository) GetEvents(ctx context.Context, programTypeStr string,
 		log.Println("Failed to get events from db: ", err.Error())
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
+
+	log.Println(len(dbRows))
 
 	// Group the rows by event ID
 	var events []values.ReadEventValues

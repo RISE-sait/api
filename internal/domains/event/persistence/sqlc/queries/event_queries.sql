@@ -26,7 +26,7 @@ SELECT location_id,
        end_at,
        created_by,
        created_by,
-       capacity,
+       NULLIF(capacity, 0),
        is_cancelled,
        NULLIF(cancellation_reason, '')
 FROM unnested_data;

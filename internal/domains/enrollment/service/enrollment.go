@@ -16,37 +16,6 @@ import (
 	"time"
 )
 
-type ICustomerEnrollmentService interface {
-	EnrollCustomerInProgram(
-		ctx context.Context,
-		customerID uuid.UUID,
-		programID uuid.UUID,
-	) *errLib.CommonError
-
-	EnrollCustomerInMembershipPlan(
-		ctx context.Context,
-		customerID uuid.UUID,
-		planID uuid.UUID,
-		cancelAtDateTime time.Time,
-	) *errLib.CommonError
-
-	GetProgramIsFull(ctx context.Context, programID uuid.UUID) (bool, *errLib.CommonError)
-
-	GetEventIsFull(ctx context.Context, eventID uuid.UUID) (bool, *errLib.CommonError)
-
-	ReserveSeatInProgram(ctx context.Context, programID, customerID uuid.UUID) *errLib.CommonError
-
-	UpdateReservationStatusInProgram(ctx context.Context, programID, customerID uuid.UUID, status dbEnrollment.PaymentStatus) *errLib.CommonError
-
-	UpdateReservationStatusInEvent(ctx context.Context, eventID, customerID uuid.UUID, status dbEnrollment.PaymentStatus) *errLib.CommonError
-
-	ReserveSeatInEvent(ctx context.Context, eventID, customerID uuid.UUID) *errLib.CommonError
-
-	UnEnrollCustomerFromEvent(ctx context.Context, eventID, customerID uuid.UUID) *errLib.CommonError
-}
-
-var _ ICustomerEnrollmentService = (*CustomerEnrollmentService)(nil)
-
 type CustomerEnrollmentService struct {
 	repo *repo.CustomerEnrollmentRepository
 	db   *sql.DB
@@ -54,7 +23,7 @@ type CustomerEnrollmentService struct {
 
 func NewCustomerEnrollmentService(container *di.Container) *CustomerEnrollmentService {
 	return &CustomerEnrollmentService{
-		repo: repo.NewEnrollmentRepository(container.DB),
+		repo: repo.NewEnrollmentRepository(container),
 		db:   container.DB,
 	}
 }

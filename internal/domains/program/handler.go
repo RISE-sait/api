@@ -1,8 +1,8 @@
-package practice
+package program
 
 import (
+	"api/internal/di"
 	dto "api/internal/domains/program/dto"
-	repository "api/internal/domains/program/persistence"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -11,11 +11,11 @@ import (
 )
 
 type Handler struct {
-	Repo *repository.Repository
+	Service *Service
 }
 
-func NewHandler(repo *repository.Repository) *Handler {
-	return &Handler{Repo: repo}
+func NewHandler(container *di.Container) *Handler {
+	return &Handler{Service: NewProgramService(container)}
 }
 
 // CreateProgram creates a new program.
@@ -45,7 +45,7 @@ func (h *Handler) CreateProgram(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Repo.Create(r.Context(), programCreate); err != nil {
+	if err = h.Service.CreateProgram(r.Context(), programCreate); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -65,7 +65,7 @@ func (h *Handler) CreateProgram(w http.ResponseWriter, r *http.Request) {
 // @Router /programs [get]
 func (h *Handler) GetPrograms(w http.ResponseWriter, r *http.Request) {
 
-	programs, err := h.Repo.List(r.Context(), r.URL.Query().Get("type"))
+	programs, err := h.Service.GetPrograms(r.Context(), r.URL.Query().Get("type"))
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -115,7 +115,7 @@ func (h *Handler) GetProgram(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	program, err := h.Repo.GetProgramByID(r.Context(), id)
+	program, err := h.Service.GetProgram(r.Context(), id)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -148,7 +148,7 @@ func (h *Handler) GetProgram(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /programs/levels [get]
 func (h *Handler) GetProgramLevels(w http.ResponseWriter, _ *http.Request) {
-	levels := h.Repo.GetProgramLevels()
+	levels := h.Service.GetProgramLevels()
 
 	response := dto.LevelsResponse{Name: levels}
 
@@ -185,7 +185,7 @@ func (h *Handler) UpdateProgram(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Repo.Update(r.Context(), programUpdate); err != nil {
+	if err = h.Service.UpdateProgram(r.Context(), programUpdate); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -213,7 +213,7 @@ func (h *Handler) DeleteProgram(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Repo.Delete(r.Context(), id); err != nil {
+	if err = h.Service.DeleteProgram(r.Context(), id); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

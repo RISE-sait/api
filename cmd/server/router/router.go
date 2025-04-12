@@ -11,7 +11,6 @@ import (
 	haircutRepo "api/internal/domains/haircut/persistence/repository"
 	locationRepo "api/internal/domains/location/persistence"
 	programHandler "api/internal/domains/program"
-	programRepo "api/internal/domains/program/persistence"
 	contextUtils "api/utils/context"
 
 	teamsHandler "api/internal/domains/team"
@@ -20,7 +19,6 @@ import (
 	userHandler "api/internal/domains/user/handler"
 
 	eventHandler "api/internal/domains/event/handler"
-	eventRepo "api/internal/domains/event/persistence/repository"
 
 	barberServicesHandler "api/internal/domains/haircut/handler/barber_services"
 	haircutEvents "api/internal/domains/haircut/handler/events"
@@ -201,8 +199,7 @@ func RegisterLocationsRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterProgramRoutes(container *di.Container) func(chi.Router) {
 
-	repo := programRepo.NewProgramRepository(container.Queries.ProgramDb)
-	h := programHandler.NewHandler(repo)
+	h := programHandler.NewHandler(container)
 
 	return func(r chi.Router) {
 		r.Get("/", h.GetPrograms)
@@ -226,8 +223,7 @@ func RegisterStaffRoutes(container *di.Container) func(chi.Router) {
 }
 
 func RegisterScheduleRoutes(container *di.Container) func(chi.Router) {
-	repo := eventRepo.NewSchedulesRepository(container.Queries.EventDb)
-	handler := eventHandler.NewSchedulesHandler(repo)
+	handler := eventHandler.NewSchedulesHandler(container)
 
 	return func(r chi.Router) {
 		r.Get("/", handler.GetSchedules)
@@ -235,13 +231,12 @@ func RegisterScheduleRoutes(container *di.Container) func(chi.Router) {
 }
 
 func RegisterEventRoutes(container *di.Container) func(chi.Router) {
-	repo := eventRepo.NewEventsRepository(container.Queries.EventDb)
-	handler := eventHandler.NewEventsHandler(repo)
+	handler := eventHandler.NewEventsHandler(container)
 
 	return func(r chi.Router) {
 		r.Get("/", handler.GetEvents)
 		r.Get("/{id}", handler.GetEvent)
-		r.With(middlewares.JWTAuthMiddleware(true)).Post("/", handler.CreateEvents)
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/", handler.CreateEvent)
 		r.With(middlewares.JWTAuthMiddleware(true)).Put("/{id}", handler.UpdateEvent)
 		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/{id}", handler.DeleteEvent)
 

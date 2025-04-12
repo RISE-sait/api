@@ -2,7 +2,10 @@ package enrollment
 
 import (
 	databaseErrors "api/internal/constants"
+	"api/internal/di"
 	dbEnrollment "api/internal/domains/enrollment/persistence/sqlc/generated"
+	"api/internal/domains/event"
+	"api/internal/domains/program"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
@@ -17,14 +20,18 @@ import (
 )
 
 type CustomerEnrollmentRepository struct {
-	Queries *dbEnrollment.Queries
-	Db      *sql.DB
+	Queries        *dbEnrollment.Queries
+	ProgramService *program.Service
+	EventService   *event.Service
+	Db             *sql.DB
 }
 
-func NewEnrollmentRepository(db *sql.DB) *CustomerEnrollmentRepository {
+func NewEnrollmentRepository(container *di.Container) *CustomerEnrollmentRepository {
 	return &CustomerEnrollmentRepository{
-		Db:      db,
-		Queries: dbEnrollment.New(db),
+		Db:             container.DB,
+		Queries:        dbEnrollment.New(container.DB),
+		ProgramService: program.NewProgramService(container),
+		EventService:   event.NewEventService(container),
 	}
 }
 
@@ -71,14 +78,17 @@ func (r *CustomerEnrollmentRepository) EnrollCustomerInMembershipPlan(ctx contex
 
 func (r *CustomerEnrollmentRepository) checkIfProgramExists(ctx context.Context, programID uuid.UUID) (bool, *errLib.CommonError) {
 
-	isExist, err := r.Queries.CheckProgramExists(ctx, programID)
+	_, err := r.ProgramService.GetProgram(ctx, programID)
 
 	if err != nil {
+		if err.HTTPCode == http.StatusNotFound {
+			return false, err
+		}
 		log.Println("error checking program existence: ", err)
 		return false, errLib.New("Internal server error while finding program", http.StatusInternalServerError)
 	}
 
-	return isExist, nil
+	return true, nil
 }
 
 func (r *CustomerEnrollmentRepository) checkIfProgramCapacityExist(ctx context.Context, programID uuid.UUID) (bool, *errLib.CommonError) {
@@ -95,14 +105,17 @@ func (r *CustomerEnrollmentRepository) checkIfProgramCapacityExist(ctx context.C
 
 func (r *CustomerEnrollmentRepository) checkIfEventExists(ctx context.Context, eventID uuid.UUID) (bool, *errLib.CommonError) {
 
-	isExist, err := r.Queries.CheckEventExists(ctx, eventID)
+	_, err := r.EventService.GetEvent(ctx, eventID)
 
 	if err != nil {
+		if err.HTTPCode == http.StatusNotFound {
+			return false, err
+		}
 		log.Println("error checking event existence: ", err)
 		return false, errLib.New("Internal server error while finding event", http.StatusInternalServerError)
 	}
 
-	return isExist, nil
+	return true, nil
 }
 
 func (r *CustomerEnrollmentRepository) checkIfEventCapacityExist(ctx context.Context, eventID uuid.UUID) (bool, *errLib.CommonError) {

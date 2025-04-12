@@ -1,8 +1,9 @@
 package event
 
 import (
+	"api/internal/di"
+	"api/internal/domains/event"
 	dto "api/internal/domains/event/dto"
-	repository "api/internal/domains/event/persistence/repository"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
@@ -16,11 +17,11 @@ import (
 
 // EventsHandler provides HTTP handlers for managing events.
 type EventsHandler struct {
-	EventsRepository *repository.EventsRepository
+	EventsService *event.Service
 }
 
-func NewEventsHandler(eventsRepo *repository.EventsRepository) *EventsHandler {
-	return &EventsHandler{EventsRepository: eventsRepo}
+func NewEventsHandler(container *di.Container) *EventsHandler {
+	return &EventsHandler{EventsService: event.NewEventService(container)}
 }
 
 // GetEvents retrieves all events based on filter criteria.
@@ -117,7 +118,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	events, err := h.EventsRepository.GetEvents(r.Context(), programType, programID, locationID, userID, teamID, createdBy, updatedBy, before, after)
+	events, err := h.EventsService.GetEvents(r.Context(), programType, programID, locationID, userID, teamID, createdBy, updatedBy, before, after)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -138,9 +139,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// GetEvent retrieves detailed information about a specific event.
-// @Summary Get event details
-// @Description Retrieves details of a specific event based on its ID.
+// GetEvent retrieves detailed information about a specific event based on its ID.
 // @Tags events
 // @Accept json
 // @Produce json
@@ -165,7 +164,7 @@ func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if event, err := h.EventsRepository.GetEvent(r.Context(), eventId); err != nil {
+	if event, err := h.EventsService.GetEvent(r.Context(), eventId); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {
@@ -176,17 +175,17 @@ func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// CreateEvents creates new events.
+// CreateEvent creates a new event.
 // @Tags events
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param event body dto.CreateRequestDto true "Events details"
-// @Success 201 {object} map[string]interface{} "Events created successfully"
+// @Param event body dto.CreateRequestDto true "Event details"
+// @Success 201 {object} map[string]interface{} "Event created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /events [post]
-func (h *EventsHandler) CreateEvents(w http.ResponseWriter, r *http.Request) {
+func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 
 	userID, ctxErr := contextUtils.GetUserID(r.Context())
 
@@ -202,11 +201,11 @@ func (h *EventsHandler) CreateEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if eventsCreate, err := targetBody.ToCreateEventsValues(userID); err != nil {
+	if eventCreate, err := targetBody.ToCreateEventsValues(userID); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {
-		if err = h.EventsRepository.CreateEvents(r.Context(), eventsCreate); err != nil {
+		if err = h.EventsService.CreateEvent(r.Context(), eventCreate); err != nil {
 			responseHandlers.RespondWithError(w, err)
 			return
 		}
@@ -270,7 +269,7 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 
 	// Authorization check
 
-	event, err := h.EventsRepository.GetEvent(r.Context(), params.ID)
+	event, err := h.EventsService.GetEvent(r.Context(), params.ID)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -286,7 +285,7 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.EventsRepository.UpdateEvent(r.Context(), params); err != nil {
+	if err = h.EventsService.UpdateEvent(r.Context(), params); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -330,7 +329,7 @@ func (h *EventsHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 
 	// Authorization check
 
-	event, err := h.EventsRepository.GetEvent(r.Context(), id)
+	event, err := h.EventsService.GetEvent(r.Context(), id)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -346,7 +345,7 @@ func (h *EventsHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.EventsRepository.DeleteEvent(r.Context(), id); err != nil {
+	if err = h.EventsService.DeleteEvent(r.Context(), id); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

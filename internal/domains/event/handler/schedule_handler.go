@@ -1,6 +1,7 @@
 package event
 
 import (
+	"api/internal/di"
 	dto "api/internal/domains/event/dto"
 	repository "api/internal/domains/event/persistence/repository"
 	errLib "api/internal/libs/errors"
@@ -17,8 +18,8 @@ type SchedulesHandler struct {
 	Repo *repository.SchedulesRepository
 }
 
-func NewSchedulesHandler(schedulesRepo *repository.SchedulesRepository) *SchedulesHandler {
-	return &SchedulesHandler{Repo: schedulesRepo}
+func NewSchedulesHandler(container *di.Container) *SchedulesHandler {
+	return &SchedulesHandler{Repo: repository.NewSchedulesRepository(container.Queries.EventDb)}
 }
 
 // GetSchedules retrieves all events schedules based on filter criteria.

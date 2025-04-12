@@ -186,6 +186,20 @@ func TestGetAllPrograms(t *testing.T) {
 	require.EqualValues(t, 5, len(courses))
 }
 
+func TestGetNotExistingProgram(t *testing.T) {
+
+	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+
+	queries := db.New(dbConn)
+
+	defer cleanup()
+
+	// Fetch all courses
+	_, err := queries.GetProgram(context.Background(), uuid.New())
+	require.Error(t, err)
+	require.Equal(t, sql.ErrNoRows, err)
+}
+
 func TestUpdateNonExistentProgram(t *testing.T) {
 
 	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")

@@ -14,7 +14,7 @@ package child
 //type ApprovalService struct {
 //	ApproveChildRepo *identity_repository.ChildApprovalRepo
 //	DB               *sql.DB
-//	HubspotService   *hubspot.Repo
+//	HubspotService   *hubspot.Service
 //}
 //
 //func NewChildApprovalService(

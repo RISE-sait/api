@@ -15,9 +15,9 @@ type Details struct {
 	Capacity   int32
 }
 
-type CreateEventValues struct {
+type CreateEventsValues struct {
 	CreatedBy uuid.UUID
-	Details
+	Events    []Details
 }
 
 type UpdateEventValues struct {

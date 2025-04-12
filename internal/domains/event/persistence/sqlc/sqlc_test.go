@@ -1,10 +1,9 @@
 package sqlc_test
 
 import (
+	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
 	locationDb "api/internal/domains/location/persistence/sqlc/generated"
 	dbTestUtils "api/utils/test_utils"
-
-	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
 
 	"database/sql"
 
@@ -19,7 +18,7 @@ import (
 	programDb "api/internal/domains/program/persistence/sqlc/generated"
 )
 
-func TestCreateEvent(t *testing.T) {
+func TestCreateEvents(t *testing.T) {
 
 	db, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
@@ -30,57 +29,88 @@ func TestCreateEvent(t *testing.T) {
 
 	defer cleanup()
 
-	// Create a user to be the creator of the event
-	createUserParams := identityDb.CreateUserParams{
+	creator, err := identityQueries.CreateUser(context.Background(), identityDb.CreateUserParams{
 		FirstName: "John",
 		LastName:  "Doe",
-	}
+	})
 
-	createdUser, err := identityQueries.CreateUser(context.Background(), createUserParams)
 	require.NoError(t, err)
 
-	createProgramParams := programDb.CreateProgramParams{
+	createdProgram, err := programQueries.CreateProgram(context.Background(), programDb.CreateProgramParams{
 		Name:  "Go Basics Practice",
 		Level: "beginner",
 		Type:  programDb.ProgramProgramTypeCourse,
-	}
+	})
 
-	createdProgram, err := programQueries.CreateProgram(context.Background(), createProgramParams)
 	require.NoError(t, err)
 
-	createLocationParams := locationDb.CreateLocationParams{
+	createdLocation, err := locationQueries.CreateLocation(context.Background(), locationDb.CreateLocationParams{
 		Name:    "Main Conference Room",
 		Address: "123 Main St",
-	}
+	})
 
-	createdLocation, err := locationQueries.CreateLocation(context.Background(), createLocationParams)
 	require.NoError(t, err)
 
 	now := time.Now().Truncate(time.Second)
-	capacity := 20
-
-	createEventParams := eventDb.CreateEventParams{
-		StartAt:    now,
-		EndAt:      now.Add(time.Hour * 24),
-		LocationID: createdLocation.ID,
-		ProgramID:  uuid.NullUUID{UUID: createdProgram.ID, Valid: true},
-		Capacity: sql.NullInt32{
-			Int32: int32(capacity),
-			Valid: true,
-		},
-		CreatedBy: createdUser.ID,
+	testTimes := []struct {
+		startAt  time.Time
+		endAt    time.Time
+		capacity int32
+	}{
+		{now, now.Add(time.Hour), 20},
+		{now.Add(2 * time.Hour), now.Add(3 * time.Hour), 15},
+		{now.AddDate(0, 0, 1), now.AddDate(0, 0, 1).Add(2 * time.Hour), 30},
 	}
 
-	createdEvent, err := eventQueries.CreateEvent(context.Background(), createEventParams)
+	createEventsParams := eventDb.CreateEventsParams{
+		StartAtArray:     make([]time.Time, len(testTimes)),
+		EndAtArray:       make([]time.Time, len(testTimes)),
+		LocationIds:      make([]uuid.UUID, len(testTimes)),
+		ProgramIds:       make([]uuid.UUID, len(testTimes)),
+		CreatedByIds:     make([]uuid.UUID, len(testTimes)),
+		Capacities:       make([]int32, len(testTimes)),
+		IsCancelledArray: make([]bool, len(testTimes)),
+	}
+
+	for i, tm := range testTimes {
+		createEventsParams.StartAtArray[i] = tm.startAt
+		createEventsParams.EndAtArray[i] = tm.endAt
+		createEventsParams.LocationIds[i] = createdLocation.ID
+		createEventsParams.ProgramIds[i] = createdProgram.ID
+		createEventsParams.CreatedByIds[i] = creator.ID
+		createEventsParams.Capacities[i] = tm.capacity
+		createEventsParams.IsCancelledArray[i] = false
+	}
+
+	err = eventQueries.CreateEvents(context.Background(), createEventsParams)
 
 	require.NoError(t, err)
 
-	require.Equal(t, createEventParams.StartAt.UTC(), createdEvent.StartAt.UTC())
-	require.Equal(t, createEventParams.EndAt.UTC(), createdEvent.EndAt.UTC())
+	events, err := eventQueries.GetEvents(context.Background(), eventDb.GetEventsParams{
+		CreatedBy: uuid.NullUUID{
+			UUID:  creator.ID,
+			Valid: true,
+		},
+	})
 
-	require.Equal(t, createEventParams.LocationID, createdEvent.LocationID)
-	require.Equal(t, createEventParams.ProgramID, createdEvent.ProgramID)
-	require.Equal(t, createEventParams.Capacity, createdEvent.Capacity)
+	require.NoError(t, err)
+	require.Len(t, events, 3)
+
+	for _, testTime := range testTimes {
+		found := false
+		for _, event := range events {
+			if event.StartAt.Equal(testTime.startAt) {
+				require.Equal(t, testTime.startAt.UTC(), event.StartAt.UTC())
+				require.Equal(t, testTime.endAt.UTC(), event.EndAt.UTC())
+				require.Equal(t, createdLocation.ID, event.LocationID)
+				require.Equal(t, createdProgram.ID, event.ProgramID.UUID)
+				require.Equal(t, testTime.capacity, event.Capacity.Int32)
+				found = true
+				break
+			}
+		}
+		require.True(t, found, "expected event not found: %v", testTime)
+	}
 }
 
 func TestUpdateEvent(t *testing.T) {
@@ -94,74 +124,82 @@ func TestUpdateEvent(t *testing.T) {
 
 	defer cleanup()
 
-	// Create a user to be the creator of the event
-	createUserParams := identityDb.CreateUserParams{
+	creator, err := identityQueries.CreateUser(context.Background(), identityDb.CreateUserParams{
 		FirstName: "John",
 		LastName:  "Doe",
-	}
+	})
 
-	createdUser, err := identityQueries.CreateUser(context.Background(), createUserParams)
 	require.NoError(t, err)
 
-	createProgramParams := programDb.CreateProgramParams{
+	createdProgram, err := programQueries.CreateProgram(context.Background(), programDb.CreateProgramParams{
 		Name:  "Go Basics Practice",
 		Level: "beginner",
 		Type:  programDb.ProgramProgramTypeCourse,
-	}
+	})
 
-	createdProgram, err := programQueries.CreateProgram(context.Background(), createProgramParams)
 	require.NoError(t, err)
 
-	createLocationParams := locationDb.CreateLocationParams{
+	createdLocation, err := locationQueries.CreateLocation(context.Background(), locationDb.CreateLocationParams{
 		Name:    "Main Conference Room",
 		Address: "123 Main St",
-	}
+	})
 
-	createdLocation, err := locationQueries.CreateLocation(context.Background(), createLocationParams)
 	require.NoError(t, err)
 
 	now := time.Now().Truncate(time.Second)
-	capacity := 20
 
-	createEventParams := eventDb.CreateEventParams{
-		StartAt:    now,
-		EndAt:      now.Add(time.Hour * 24),
-		LocationID: createdLocation.ID,
-		ProgramID:  uuid.NullUUID{UUID: createdProgram.ID, Valid: true},
-		Capacity: sql.NullInt32{
-			Int32: int32(capacity),
-			Valid: true,
-		},
-		CreatedBy: createdUser.ID,
+	createEventsParams := eventDb.CreateEventsParams{
+		StartAtArray:     []time.Time{now},
+		EndAtArray:       []time.Time{now.Add(24 * time.Hour)},
+		LocationIds:      []uuid.UUID{createdLocation.ID},
+		ProgramIds:       []uuid.UUID{createdProgram.ID},
+		CreatedByIds:     []uuid.UUID{creator.ID},
+		Capacities:       []int32{20},
+		IsCancelledArray: []bool{false},
 	}
 
-	createdEvent, err := eventQueries.CreateEvent(context.Background(), createEventParams)
+	err = eventQueries.CreateEvents(context.Background(), createEventsParams)
+	require.NoError(t, err)
+
+	createdEvents, err := eventQueries.GetEvents(context.Background(), eventDb.GetEventsParams{
+		CreatedBy: uuid.NullUUID{
+			UUID:  creator.ID,
+			Valid: true,
+		},
+	})
+
+	require.Len(t, createdEvents, 1)
+	originalEvent := createdEvents[0]
 
 	require.NoError(t, err)
 
 	// Now, update the createdEvent
-	newBeginTime := now.Add(3 * time.Hour).UTC()
-	newEndTime := now.Add(4 * time.Hour).UTC()
+	newStart := now.Add(3 * time.Hour).UTC()
+	newEnd := now.Add(4 * time.Hour).UTC()
+	newCapacity := int32(15)
 
 	updateEventParams := eventDb.UpdateEventParams{
-		ID:         createdEvent.ID,
-		StartAt:    newBeginTime,
-		EndAt:      newEndTime,
-		LocationID: createdEvent.LocationID,
-		ProgramID:  createdEvent.ProgramID,
-		Capacity:   createdEvent.Capacity,
-		UpdatedBy:  createdEvent.CreatedBy,
+		ID:         originalEvent.ID,
+		StartAt:    newStart,
+		EndAt:      newEnd,
+		LocationID: originalEvent.LocationID,
+		ProgramID:  originalEvent.ProgramID,
+		Capacity: sql.NullInt32{
+			Int32: newCapacity,
+			Valid: true,
+		},
+		UpdatedBy: originalEvent.CreatedBy,
 	}
 
 	updatedEvent, err := eventQueries.UpdateEvent(context.Background(), updateEventParams)
 	require.NoError(t, err)
 
 	// Assert updated createdEvent data (only comparing time)
-	require.Equal(t, newBeginTime, updatedEvent.StartAt.UTC())
-	require.Equal(t, newEndTime, updatedEvent.EndAt.UTC())
-	require.Equal(t, createdEvent.LocationID, updatedEvent.LocationID)
-	require.Equal(t, createdEvent.ProgramID, updatedEvent.ProgramID)
-	require.Equal(t, createdEvent.Capacity, updatedEvent.Capacity)
+	require.Equal(t, newStart, updatedEvent.StartAt.UTC())
+	require.Equal(t, newEnd, updatedEvent.EndAt.UTC())
+	require.Equal(t, originalEvent.LocationID, updatedEvent.LocationID)
+	require.Equal(t, originalEvent.ProgramID, updatedEvent.ProgramID)
+	require.Equal(t, newCapacity, updatedEvent.Capacity.Int32)
 }
 
 func TestDeleteEvent(t *testing.T) {
@@ -181,7 +219,7 @@ func TestDeleteEvent(t *testing.T) {
 		LastName:  "Doe",
 	}
 
-	createdUser, err := identityQueries.CreateUser(context.Background(), createUserParams)
+	creator, err := identityQueries.CreateUser(context.Background(), createUserParams)
 	require.NoError(t, err)
 
 	createProgramParams := programDb.CreateProgramParams{
@@ -202,23 +240,30 @@ func TestDeleteEvent(t *testing.T) {
 	require.NoError(t, err)
 
 	now := time.Now().Truncate(time.Second)
-	capacity := 20
 
-	createEventParams := eventDb.CreateEventParams{
-		StartAt:    now,
-		EndAt:      now.Add(time.Hour * 24),
-		LocationID: createdLocation.ID,
-		ProgramID:  uuid.NullUUID{UUID: createdProgram.ID, Valid: true},
-		Capacity: sql.NullInt32{
-			Int32: int32(capacity),
-			Valid: true,
-		},
-		CreatedBy: createdUser.ID,
+	createEventsParams := eventDb.CreateEventsParams{
+		StartAtArray:     []time.Time{now},
+		EndAtArray:       []time.Time{now.Add(24 * time.Hour)},
+		LocationIds:      []uuid.UUID{createdLocation.ID},
+		ProgramIds:       []uuid.UUID{createdProgram.ID},
+		CreatedByIds:     []uuid.UUID{creator.ID},
+		Capacities:       []int32{20},
+		IsCancelledArray: []bool{false},
 	}
 
-	createdEvent, err := eventQueries.CreateEvent(context.Background(), createEventParams)
+	err = eventQueries.CreateEvents(context.Background(), createEventsParams)
 
 	require.NoError(t, err)
+
+	createdEvents, err := eventQueries.GetEvents(context.Background(), eventDb.GetEventsParams{
+		CreatedBy: uuid.NullUUID{
+			UUID:  creator.ID,
+			Valid: true,
+		},
+	})
+
+	require.Len(t, createdEvents, 1)
+	createdEvent := createdEvents[0]
 
 	// Now, delete the createdEvent
 	err = eventQueries.DeleteEvent(context.Background(), createdEvent.ID)

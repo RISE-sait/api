@@ -27,28 +27,39 @@ func NewEventsRepository(dbQueries *db.Queries) *EventsRepository {
 	}
 }
 
-func (r *EventsRepository) CreateEvent(ctx context.Context, eventDetails values.CreateEventValues) *errLib.CommonError {
+func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails values.CreateEventsValues) *errLib.CommonError {
 
-	dbParams := db.CreateEventParams{
-		StartAt:   eventDetails.StartAt,
-		EndAt:     eventDetails.EndAt,
-		CreatedBy: eventDetails.CreatedBy,
-		Capacity: sql.NullInt32{
-			Int32: eventDetails.Capacity,
-			Valid: true,
-		},
-		LocationID: eventDetails.LocationID,
-		TeamID: uuid.NullUUID{
-			UUID:  eventDetails.TeamID,
-			Valid: eventDetails.TeamID != uuid.Nil,
-		},
-		ProgramID: uuid.NullUUID{
-			UUID:  eventDetails.ProgramID,
-			Valid: eventDetails.ProgramID != uuid.Nil,
-		},
+	var (
+		locationIDs, programIDs, teamIDs, createdByIds []uuid.UUID
+		startAtArray, endAtArray                       []time.Time
+		capacities                                     []int32
+		isCancelledArray                               []bool
+	)
+
+	for _, event := range eventDetails.Events {
+		locationIDs = append(locationIDs, event.LocationID)
+		programIDs = append(programIDs, event.ProgramID)
+		teamIDs = append(teamIDs, event.TeamID)
+		startAtArray = append(startAtArray, event.StartAt)
+		endAtArray = append(endAtArray, event.EndAt)
+		createdByIds = append(createdByIds, eventDetails.CreatedBy)
+		capacities = append(capacities, event.Capacity)
+		isCancelledArray = append(isCancelledArray, false)
 	}
 
-	_, dbErr := r.Queries.CreateEvent(ctx, dbParams)
+	dbParams := db.CreateEventsParams{
+		LocationIds:         locationIDs,
+		ProgramIds:          programIDs,
+		TeamIds:             teamIDs,
+		StartAtArray:        startAtArray,
+		EndAtArray:          endAtArray,
+		CreatedByIds:        createdByIds,
+		Capacities:          capacities,
+		IsCancelledArray:    isCancelledArray,
+		CancellationReasons: nil,
+	}
+
+	dbErr := r.Queries.CreateEvents(ctx, dbParams)
 
 	if dbErr != nil {
 

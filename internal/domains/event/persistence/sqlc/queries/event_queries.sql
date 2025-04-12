@@ -1,9 +1,3 @@
--- name: CreateEvent :one
-INSERT INTO events.events (location_id, program_id, team_id, start_at, end_at, created_by, updated_by, capacity)
-VALUES ($1, $2, $3, $4, $5,
-        sqlc.arg('created_by')::uuid, sqlc.arg('created_by')::uuid, $6)
-RETURNING *;
-
 -- name: CreateEvents :exec
 INSERT INTO events.events
 (location_id, program_id, team_id, start_at, end_at, created_by, updated_by, capacity, is_cancelled,
@@ -14,7 +8,7 @@ SELECT unnest(sqlc.arg('location_ids')::uuid[]),
        unnest(sqlc.arg('start_at_array')::timestamptz[]),
        unnest(sqlc.arg('end_at_array')::timestamptz[]),
        unnest(sqlc.arg('created_by_ids')::uuid[]),
-       unnest(sqlc.arg('updated_by_ids')::uuid[]),
+       unnest(sqlc.arg('created_by_ids')::uuid[]),
        unnest(sqlc.arg('capacities')::int[]),
        unnest(sqlc.arg('is_cancelled_array')::bool[]),
        unnest(sqlc.arg('cancellation_reasons')::text[]);

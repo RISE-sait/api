@@ -176,19 +176,17 @@ func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// CreateEvent creates a new event.
-// @Summary Create a new event
-// @Description Registers a new event with the provided details.
+// CreateEvents creates new events.
 // @Tags events
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param event body dto.CreateRequestDto true "Event details"
-// @Success 201 {object} map[string]interface{} "Event created successfully"
+// @Param event body dto.CreateRequestDto true "Events details"
+// @Success 201 {object} map[string]interface{} "Events created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /events [post]
-func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
+func (h *EventsHandler) CreateEvents(w http.ResponseWriter, r *http.Request) {
 
 	userID, ctxErr := contextUtils.GetUserID(r.Context())
 
@@ -204,11 +202,11 @@ func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if eventCreate, err := targetBody.ToCreateEventValues(userID); err != nil {
+	if eventsCreate, err := targetBody.ToCreateEventsValues(userID); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {
-		if err = h.EventsRepository.CreateEvent(r.Context(), eventCreate); err != nil {
+		if err = h.EventsRepository.CreateEvents(r.Context(), eventsCreate); err != nil {
 			responseHandlers.RespondWithError(w, err)
 			return
 		}

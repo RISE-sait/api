@@ -93,6 +93,30 @@ func (r *CustomerEnrollmentRepository) checkIfProgramCapacityExist(ctx context.C
 	return isExist, nil
 }
 
+func (r *CustomerEnrollmentRepository) checkIfEventExists(ctx context.Context, eventID uuid.UUID) (bool, *errLib.CommonError) {
+
+	isExist, err := r.Queries.CheckEventExists(ctx, eventID)
+
+	if err != nil {
+		log.Println("error checking event existence: ", err)
+		return false, errLib.New("Internal server error while finding event", http.StatusInternalServerError)
+	}
+
+	return isExist, nil
+}
+
+func (r *CustomerEnrollmentRepository) checkIfEventCapacityExist(ctx context.Context, eventID uuid.UUID) (bool, *errLib.CommonError) {
+
+	isExist, err := r.Queries.CheckEventCapacityExists(ctx, eventID)
+
+	if err != nil {
+		log.Println("error checking event capacity: ", err)
+		return false, errLib.New("Internal server error while finding event capacity", http.StatusInternalServerError)
+	}
+
+	return isExist, nil
+}
+
 func (r *CustomerEnrollmentRepository) GetProgramIsFull(ctx context.Context, programID uuid.UUID) (bool, *errLib.CommonError) {
 
 	if isExist, err := r.checkIfProgramExists(ctx, programID); err != nil {
@@ -117,6 +141,18 @@ func (r *CustomerEnrollmentRepository) GetProgramIsFull(ctx context.Context, pro
 }
 
 func (r *CustomerEnrollmentRepository) GetEventIsFull(ctx context.Context, eventID uuid.UUID) (bool, *errLib.CommonError) {
+
+	if isExist, err := r.checkIfEventExists(ctx, eventID); err != nil {
+		return false, err
+	} else if !isExist {
+		return false, errLib.New("Event not found", http.StatusNotFound)
+	}
+
+	if isExist, err := r.checkIfEventCapacityExist(ctx, eventID); err != nil {
+		return false, err
+	} else if !isExist {
+		return false, errLib.New("Capacity for event not found", http.StatusNotFound)
+	}
 
 	isFull, err := r.Queries.CheckEventIsFull(ctx, eventID)
 
@@ -145,6 +181,16 @@ func (r *CustomerEnrollmentRepository) ReserveSeatInProgram(ctx context.Context,
 		return errLib.New("Capacity for program not found", http.StatusNotFound)
 	}
 
+	if isEnrolled, err := r.Queries.GetCustomerIsEnrolledInProgram(ctx, dbEnrollment.GetCustomerIsEnrolledInProgramParams{
+		CustomerID: customerID,
+		ProgramID:  programID,
+	}); err != nil {
+		log.Println("error checking if customer is enrolled in program: ", err)
+		return errLib.New("error checking if customer is enrolled in program", http.StatusInternalServerError)
+	} else if isEnrolled {
+		return errLib.New("Customer is already enrolled in the program", http.StatusConflict)
+	}
+
 	affectedRows, err := r.Queries.ReserveSeatInProgram(ctx, dbEnrollment.ReserveSeatInProgramParams{
 		ProgramID:  programID,
 		CustomerID: customerID,
@@ -152,14 +198,8 @@ func (r *CustomerEnrollmentRepository) ReserveSeatInProgram(ctx context.Context,
 
 	if err != nil {
 		var pqErr *pq.Error
-		if errors.As(err, &pqErr) {
-
-			switch pqErr.Code {
-			case databaseErrors.UniqueViolation:
-				return errLib.New("Customer is already enrolled in the program", http.StatusConflict)
-			case databaseErrors.TxSerializationError:
-				return errLib.New("Too many people enrolled at the same time. Please try again.", http.StatusConflict)
-			}
+		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.TxSerializationError {
+			return errLib.New("Too many people enrolled at the same time. Please try again.", http.StatusConflict)
 		}
 
 		log.Println("error reserving seat in program: ", err)
@@ -201,6 +241,34 @@ func (r *CustomerEnrollmentRepository) UpdateReservationStatusInProgram(ctx cont
 	return nil
 }
 
+func (r *CustomerEnrollmentRepository) UpdateReservationStatusInEvent(ctx context.Context, eventID, customerID uuid.UUID, status dbEnrollment.PaymentStatus) *errLib.CommonError {
+
+	if isExist, err := r.checkIfEventExists(ctx, eventID); err != nil {
+		return err
+	} else if !isExist {
+		return errLib.New("Event not found", http.StatusNotFound)
+	}
+
+	affectedRows, err := r.Queries.UpdateSeatReservationStatusInEvent(ctx, dbEnrollment.UpdateSeatReservationStatusInEventParams{
+		EventID:       eventID,
+		CustomerID:    customerID,
+		PaymentStatus: status,
+	})
+
+	if err != nil {
+
+		log.Println("error updating reservation status for event: ", err)
+
+		return errLib.New(fmt.Sprintf("error updating reservation status for event: %v", err), http.StatusInternalServerError)
+	}
+
+	if affectedRows == 0 {
+		return errLib.New("Error confirming customer's reservation status for unknown reason, please try again.", http.StatusInternalServerError)
+	}
+
+	return nil
+}
+
 func (r *CustomerEnrollmentRepository) ReserveSeatInEvent(ctx context.Context, eventID, customerID uuid.UUID) *errLib.CommonError {
 
 	affectedRows, err := r.Queries.ReserveSeatInEvent(ctx, dbEnrollment.ReserveSeatInEventParams{
@@ -214,15 +282,20 @@ func (r *CustomerEnrollmentRepository) ReserveSeatInEvent(ctx context.Context, e
 		}
 
 		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
-			return errLib.New("Customer is already enrolled in the event", http.StatusConflict)
+		if errors.As(err, &pqErr) {
+			switch pqErr.Code {
+			case databaseErrors.UniqueViolation:
+				return errLib.New("Customer is already enrolled in the event", http.StatusConflict)
+			case databaseErrors.TxSerializationError:
+				return errLib.New("Too many people enrolled at the same time. Please try again.", http.StatusConflict)
+			}
 		}
 
 		return errLib.New(fmt.Sprintf("error checking event availability: %v", err), http.StatusInternalServerError)
 	}
 
 	if affectedRows == 0 {
-		return errLib.New("Event is full, or someone is booking at the same time, please try again.", http.StatusConflict)
+		return errLib.New("Failed to book event for unknown reason. Please try again or contact support.", http.StatusInternalServerError)
 	}
 
 	return nil

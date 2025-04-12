@@ -11,6 +11,22 @@ import (
 	"github.com/google/uuid"
 )
 
+const getEventIdByStripePriceId = `-- name: GetEventIdByStripePriceId :one
+SELECT e.id
+FROM
+    events.events e
+LEFT JOIN program.programs p ON e.program_id = p.id
+LEFT JOIN program.fees f ON p.id = f.program_id
+WHERE f.stripe_price_id = $1
+`
+
+func (q *Queries) GetEventIdByStripePriceId(ctx context.Context, stripePriceID string) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, getEventIdByStripePriceId, stripePriceID)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getEventIsExist = `-- name: GetEventIsExist :one
 SELECT EXISTS(SELECT 1 FROM events.events WHERE id = $1)
 `
@@ -20,36 +36,6 @@ func (q *Queries) GetEventIsExist(ctx context.Context, id uuid.UUID) (bool, erro
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
-}
-
-const getEventRegistrationPriceIdForCustomer = `-- name: GetEventRegistrationPriceIdForCustomer :one
-SELECT f.stripe_price_id
-FROM program.fees f
-WHERE f.membership_id = (SELECT mp.membership_id
-                         FROM users.customer_membership_plans cmp
-                                  LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
-                                  LEFT JOIN membership.memberships m ON m.id = mp.membership_id
-                         WHERE customer_id = $1
-                           AND status = 'active'
-                         ORDER BY cmp.start_date DESC
-                         LIMIT 1)
-  AND pay_per_event = true
-  AND f.program_id = (SELECT p.id
-                      FROM events.events e LEFT JOIN program.programs p ON p.id = e.program_id
-                      WHERE e.id = $2
-                        AND e.start_at > current_timestamp)
-`
-
-type GetEventRegistrationPriceIdForCustomerParams struct {
-	CustomerID uuid.UUID `json:"customer_id"`
-	EventID    uuid.UUID `json:"event_id"`
-}
-
-func (q *Queries) GetEventRegistrationPriceIdForCustomer(ctx context.Context, arg GetEventRegistrationPriceIdForCustomerParams) (string, error) {
-	row := q.db.QueryRowContext(ctx, getEventRegistrationPriceIdForCustomer, arg.CustomerID, arg.EventID)
-	var stripe_price_id string
-	err := row.Scan(&stripe_price_id)
-	return stripe_price_id, err
 }
 
 const getProgram = `-- name: GetProgram :one
@@ -83,9 +69,23 @@ func (q *Queries) GetProgramIdByStripePriceId(ctx context.Context, stripePriceID
 	return program_id, err
 }
 
-const getProgramRegistrationPriceIdForCustomer = `-- name: GetProgramRegistrationPriceIdForCustomer :one
-SELECT f.stripe_price_id
+const getProgramOfEvent = `-- name: GetProgramOfEvent :one
+SELECT p.id
+FROM program.programs p
+JOIN events.events e ON e.program_id = p.id
+WHERE e.id = $1
+`
+
+func (q *Queries) GetProgramOfEvent(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, getProgramOfEvent, id)
+	err := row.Scan(&id)
+	return id, err
+}
+
+const getRegistrationPriceIdForCustomer = `-- name: GetRegistrationPriceIdForCustomer :one
+SELECT f.stripe_price_id, p.pay_per_event
 FROM program.fees f
+JOIN program.programs p ON p.id = f.program_id
 WHERE f.membership_id = (SELECT mp.membership_id
                          FROM users.customer_membership_plans cmp
                                   LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
@@ -94,18 +94,22 @@ WHERE f.membership_id = (SELECT mp.membership_id
                            AND status = 'active'
                          ORDER BY cmp.start_date DESC
                          LIMIT 1)
-  AND pay_per_event = false
   AND f.program_id = $2
 `
 
-type GetProgramRegistrationPriceIdForCustomerParams struct {
+type GetRegistrationPriceIdForCustomerParams struct {
 	CustomerID uuid.UUID `json:"customer_id"`
 	ProgramID  uuid.UUID `json:"program_id"`
 }
 
-func (q *Queries) GetProgramRegistrationPriceIdForCustomer(ctx context.Context, arg GetProgramRegistrationPriceIdForCustomerParams) (string, error) {
-	row := q.db.QueryRowContext(ctx, getProgramRegistrationPriceIdForCustomer, arg.CustomerID, arg.ProgramID)
-	var stripe_price_id string
-	err := row.Scan(&stripe_price_id)
-	return stripe_price_id, err
+type GetRegistrationPriceIdForCustomerRow struct {
+	StripePriceID string `json:"stripe_price_id"`
+	PayPerEvent   bool   `json:"pay_per_event"`
+}
+
+func (q *Queries) GetRegistrationPriceIdForCustomer(ctx context.Context, arg GetRegistrationPriceIdForCustomerParams) (GetRegistrationPriceIdForCustomerRow, error) {
+	row := q.db.QueryRowContext(ctx, getRegistrationPriceIdForCustomer, arg.CustomerID, arg.ProgramID)
+	var i GetRegistrationPriceIdForCustomerRow
+	err := row.Scan(&i.StripePriceID, &i.PayPerEvent)
+	return i, err
 }

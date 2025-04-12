@@ -13,6 +13,34 @@ import (
 	"github.com/google/uuid"
 )
 
+const checkEventCapacityExists = `-- name: CheckEventCapacityExists :one
+SELECT (coalesce(e.capacity, t.capacity, p.capacity) IS NOT NULL)::boolean
+FROM events.events e
+LEFT JOIN athletic.teams t ON e.team_id = t.id
+LEFT JOIN program.programs p ON e.program_id = p.id
+WHERE e.id = $1
+`
+
+func (q *Queries) CheckEventCapacityExists(ctx context.Context, id uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkEventCapacityExists, id)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const checkEventExists = `-- name: CheckEventExists :one
+SELECT EXISTS (SELECT 1
+               FROM events.events
+               WHERE id = $1)
+`
+
+func (q *Queries) CheckEventExists(ctx context.Context, id uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkEventExists, id)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const checkEventIsFull = `-- name: CheckEventIsFull :one
 SELECT COUNT(ce.id) FILTER (
     WHERE ce.payment_status = 'paid'
@@ -139,6 +167,27 @@ func (q *Queries) EnrollCustomerInProgram(ctx context.Context, arg EnrollCustome
 	return err
 }
 
+const getCustomerIsEnrolledInProgram = `-- name: GetCustomerIsEnrolledInProgram :one
+SELECT
+    (EXISTS (SELECT 1
+               FROM program.customer_enrollment
+               WHERE customer_id = $1
+                 AND program_id = $2
+               AND payment_status = 'paid'))
+`
+
+type GetCustomerIsEnrolledInProgramParams struct {
+	CustomerID uuid.UUID `json:"customer_id"`
+	ProgramID  uuid.UUID `json:"program_id"`
+}
+
+func (q *Queries) GetCustomerIsEnrolledInProgram(ctx context.Context, arg GetCustomerIsEnrolledInProgramParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, getCustomerIsEnrolledInProgram, arg.CustomerID, arg.ProgramID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const getTeamOfEvent = `-- name: GetTeamOfEvent :one
 SELECT t.id
 FROM events.events e
@@ -154,11 +203,13 @@ func (q *Queries) GetTeamOfEvent(ctx context.Context, eventID uuid.UUID) (uuid.N
 }
 
 const reserveSeatInEvent = `-- name: ReserveSeatInEvent :execrows
-UPDATE events.customer_enrollment
-SET payment_expired_at = CURRENT_TIMESTAMP + interval '10 minute',
-    payment_status     = 'pending'
-WHERE customer_id = $1
-  AND event_id = $2
+INSERT INTO events.customer_enrollment
+    (customer_id, event_id, payment_expired_at, payment_status)
+VALUES ($1, $2, CURRENT_TIMESTAMP + interval '10 minute', 'pending')
+ON CONFLICT (customer_id, event_id)
+    DO UPDATE SET payment_expired_at = EXCLUDED.payment_expired_at,
+                  payment_status     = EXCLUDED.payment_status
+WHERE events.customer_enrollment.payment_status != 'paid'
 `
 
 type ReserveSeatInEventParams struct {
@@ -176,12 +227,11 @@ func (q *Queries) ReserveSeatInEvent(ctx context.Context, arg ReserveSeatInEvent
 
 const reserveSeatInProgram = `-- name: ReserveSeatInProgram :execrows
 INSERT INTO program.customer_enrollment
-(customer_id, program_id, payment_expired_at, payment_status)
+    (customer_id, program_id, payment_expired_at, payment_status)
 VALUES ($1, $2, CURRENT_TIMESTAMP + interval '10 minute', 'pending')
 ON CONFLICT (customer_id, program_id)
-    DO UPDATE SET
-                  payment_expired_at = EXCLUDED.payment_expired_at,
-                  payment_status = EXCLUDED.payment_status
+    DO UPDATE SET payment_expired_at = EXCLUDED.payment_expired_at,
+                  payment_status     = EXCLUDED.payment_status
 WHERE program.customer_enrollment.payment_status != 'paid'
 `
 
@@ -212,6 +262,27 @@ type UnEnrollCustomerFromEventParams struct {
 
 func (q *Queries) UnEnrollCustomerFromEvent(ctx context.Context, arg UnEnrollCustomerFromEventParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, unEnrollCustomerFromEvent, arg.CustomerID, arg.EventID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateSeatReservationStatusInEvent = `-- name: UpdateSeatReservationStatusInEvent :execrows
+UPDATE events.customer_enrollment
+SET payment_status = $1
+WHERE customer_id = $2
+  AND event_id = $3
+`
+
+type UpdateSeatReservationStatusInEventParams struct {
+	PaymentStatus PaymentStatus `json:"payment_status"`
+	CustomerID    uuid.UUID     `json:"customer_id"`
+	EventID       uuid.UUID     `json:"event_id"`
+}
+
+func (q *Queries) UpdateSeatReservationStatusInEvent(ctx context.Context, arg UpdateSeatReservationStatusInEventParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateSeatReservationStatusInEvent, arg.PaymentStatus, arg.CustomerID, arg.EventID)
 	if err != nil {
 		return 0, err
 	}

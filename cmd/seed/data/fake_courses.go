@@ -30,6 +30,7 @@ func GetCourses() dbSeed.InsertCoursesParams {
 		nameArray        []string
 		descriptionArray []string
 		levelArray       []dbSeed.ProgramProgramLevel
+		isPayPerEvent    []bool
 	)
 
 	for i := 0; i < 20; i++ {
@@ -39,11 +40,13 @@ func GetCourses() dbSeed.InsertCoursesParams {
 		nameArray = append(nameArray, name)
 		descriptionArray = append(descriptionArray, description)
 		levelArray = append(levelArray, dbSeed.ProgramProgramLevelIntermediate)
+		isPayPerEvent = append(isPayPerEvent, true)
 	}
 
 	return dbSeed.InsertCoursesParams{
-		NameArray:        nameArray,
-		DescriptionArray: descriptionArray,
-		LevelArray:       levelArray,
+		NameArray:          nameArray,
+		DescriptionArray:   descriptionArray,
+		LevelArray:         levelArray,
+		IsPayPerEventArray: isPayPerEvent,
 	}
 }

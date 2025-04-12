@@ -34,7 +34,7 @@ type Service struct {
 
 func NewProgramService(container *di.Container) *Service {
 	return &Service{
-		repo: repo.NewProgramRepository(container.Queries.ProgramDb),
+		repo: repo.NewProgramRepository(container),
 		db:   container.DB,
 	}
 }

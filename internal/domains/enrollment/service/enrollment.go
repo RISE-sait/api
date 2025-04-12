@@ -98,6 +98,7 @@ func (s *CustomerEnrollmentService) ReserveSeatInEvent(ctx context.Context, even
 
 func (s *CustomerEnrollmentService) ReserveSeatInProgram(ctx context.Context, programID, customerID uuid.UUID) *errLib.CommonError {
 	return s.executeInTx(ctx, func(r *repo.CustomerEnrollmentRepository) *errLib.CommonError {
+
 		isFull, err := r.GetProgramIsFull(ctx, programID)
 		if err != nil {
 			return err

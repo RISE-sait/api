@@ -37,8 +37,10 @@ func NewEnrollmentRepository(container *di.Container) *CustomerEnrollmentReposit
 
 func (r *CustomerEnrollmentRepository) WithTx(tx *sql.Tx) *CustomerEnrollmentRepository {
 	return &CustomerEnrollmentRepository{
-		Queries: r.Queries.WithTx(tx),
-		Db:      r.Db,
+		Queries:        r.Queries.WithTx(tx),
+		Db:             r.Db,
+		ProgramService: r.ProgramService,
+		EventService:   r.EventService,
 	}
 }
 

@@ -28,7 +28,6 @@ import (
 
 type Container struct {
 	DB              *sql.DB
-	DbConnString    string
 	Queries         *QueriesType
 	HubspotService  *hubspot.Service
 	FirebaseService *gcp.Service

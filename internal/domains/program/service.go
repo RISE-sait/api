@@ -6,36 +6,19 @@ import (
 	"api/internal/domains/program/values"
 	errLib "api/internal/libs/errors"
 	"context"
-	"database/sql"
 	"github.com/google/uuid"
+	"log"
 )
-
-type IProgramService interface {
-	GetProgram(
-		ctx context.Context,
-		programID uuid.UUID,
-	) (values.GetProgramValues, *errLib.CommonError)
-
-	GetProgramLevels() []string
-
-	CreateProgram(ctx context.Context, details values.CreateProgramValues) *errLib.CommonError
-
-	UpdateProgram(ctx context.Context, details values.UpdateProgramValues) *errLib.CommonError
-
-	DeleteProgram(ctx context.Context, id uuid.UUID) *errLib.CommonError
-}
-
-var _ IProgramService = (*Service)(nil)
 
 type Service struct {
 	repo *repo.Repository
-	db   *sql.DB
 }
 
 func NewProgramService(container *di.Container) *Service {
+
+	log.Println("Creating new program service")
 	return &Service{
 		repo: repo.NewProgramRepository(container),
-		db:   container.DB,
 	}
 }
 

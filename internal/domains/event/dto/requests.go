@@ -61,7 +61,6 @@ func (dto RequestDto) validate() (time.Time, time.Time, *errLib.CommonError) {
 
 func (dto CreateRequestDto) ToCreateEventsValues(creator uuid.UUID) (values.CreateEventsValues, *errLib.CommonError) {
 
-	var startAt, endAt time.Time
 	var events []values.Details
 
 	for _, event := range dto.Events {
@@ -75,15 +74,10 @@ func (dto CreateRequestDto) ToCreateEventsValues(creator uuid.UUID) (values.Crea
 			return values.CreateEventsValues{}, errLib.New("Capacity must be provided, and greater than 0", http.StatusBadRequest)
 		}
 
-		if startAt.IsZero() || endAt.IsZero() {
-			startAt = start
-			endAt = end
-		}
-
 		events = append(events, values.Details{
 			Capacity:   event.Capacity,
-			StartAt:    startAt,
-			EndAt:      endAt,
+			StartAt:    start,
+			EndAt:      end,
 			ProgramID:  event.ProgramID,
 			LocationID: event.LocationID,
 			TeamID:     event.TeamID,

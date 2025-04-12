@@ -15,6 +15,7 @@ import (
 	"time"
 
 	dbEnrollment "api/internal/domains/enrollment/persistence/sqlc/generated"
+	dbEvent "api/internal/domains/event/persistence/sqlc/generated"
 	dbidentity "api/internal/domains/identity/persistence/sqlc/generated"
 	dbMembership "api/internal/domains/membership/persistence/sqlc/generated"
 	dbProgram "api/internal/domains/program/persistence/sqlc/generated"
@@ -33,6 +34,7 @@ func TestCustomerReserveProgram_ACID_Serializable(t *testing.T) {
 				DB: testDb,
 				Queries: &di.QueriesType{
 					EnrollmentDb: dbEnrollment.New(testDb),
+					EventDb:      dbEvent.New(testDb),
 					IdentityDb:   dbidentity.New(testDb),
 					MembershipDb: dbMembership.New(testDb),
 					ProgramDb:    dbProgram.New(testDb),
@@ -169,6 +171,7 @@ func TestEnrollCustomerInProgramEvents_ACID_No_race_condition(t *testing.T) {
 		DB: dbConn,
 		Queries: &di.QueriesType{
 			EnrollmentDb: dbEnrollment.New(dbConn),
+			EventDb:      dbEvent.New(dbConn),
 			IdentityDb:   dbidentity.New(dbConn),
 			MembershipDb: dbMembership.New(dbConn),
 			ProgramDb:    dbProgram.New(dbConn),

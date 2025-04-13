@@ -16,7 +16,9 @@ import (
 const createHaircutEvent = `-- name: CreateHaircutEvent :one
 INSERT INTO haircut.events (begin_date_time, end_date_time, barber_id, customer_id, service_type_id)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, begin_date_time, end_date_time, customer_id, barber_id, service_type_id, created_at, updated_at
+RETURNING id, begin_date_time, end_date_time, customer_id, barber_id, service_type_id, created_at, updated_at,
+    ( SELECT first_name || ' ' || last_name FROM users.users WHERE id = customer_id)::varchar as customer_name,
+              (SELECT first_name || ' ' || last_name FROM users.users WHERE id = barber_id)::varchar as barber_name
 `
 
 type CreateHaircutEventParams struct {
@@ -27,7 +29,20 @@ type CreateHaircutEventParams struct {
 	ServiceTypeID uuid.UUID `json:"service_type_id"`
 }
 
-func (q *Queries) CreateHaircutEvent(ctx context.Context, arg CreateHaircutEventParams) (HaircutEvent, error) {
+type CreateHaircutEventRow struct {
+	ID            uuid.UUID `json:"id"`
+	BeginDateTime time.Time `json:"begin_date_time"`
+	EndDateTime   time.Time `json:"end_date_time"`
+	CustomerID    uuid.UUID `json:"customer_id"`
+	BarberID      uuid.UUID `json:"barber_id"`
+	ServiceTypeID uuid.UUID `json:"service_type_id"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+	CustomerName  string    `json:"customer_name"`
+	BarberName    string    `json:"barber_name"`
+}
+
+func (q *Queries) CreateHaircutEvent(ctx context.Context, arg CreateHaircutEventParams) (CreateHaircutEventRow, error) {
 	row := q.db.QueryRowContext(ctx, createHaircutEvent,
 		arg.BeginDateTime,
 		arg.EndDateTime,
@@ -35,7 +50,7 @@ func (q *Queries) CreateHaircutEvent(ctx context.Context, arg CreateHaircutEvent
 		arg.CustomerID,
 		arg.ServiceTypeID,
 	)
-	var i HaircutEvent
+	var i CreateHaircutEventRow
 	err := row.Scan(
 		&i.ID,
 		&i.BeginDateTime,
@@ -45,6 +60,8 @@ func (q *Queries) CreateHaircutEvent(ctx context.Context, arg CreateHaircutEvent
 		&i.ServiceTypeID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CustomerName,
+		&i.BarberName,
 	)
 	return i, err
 }

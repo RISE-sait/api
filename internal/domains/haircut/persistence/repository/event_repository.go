@@ -77,14 +77,6 @@ func (r *Repository) CreateEvent(ctx context.Context, eventDetails values.Create
 		var pqErr *pq.Error
 		if errors.As(dbErr, &pqErr) {
 
-<<<<<<< HEAD
-			constraintErrors := map[string]string{
-				"fk_barber":              "Barber with the associated ID doesn't exist",
-				"fk_customer":            "Customer with the associated ID doesn't exist",
-				"fk_service_type":        "Service with the associated ID doesn't exist",
-				"check_end_time":         "end_time must be after start_time",
-				"unique_barber_schedule": "An event at this schedule overlaps with an existing event. Please choose a different schedule.",
-=======
 			constraintErrors := map[string]struct {
 				Message string
 				Status  int
@@ -109,7 +101,6 @@ func (r *Repository) CreateEvent(ctx context.Context, eventDetails values.Create
 					Message: "An event at this schedule overlaps with an existing event",
 					Status:  http.StatusConflict,
 				},
->>>>>>> origin/main
 			}
 
 			if errInfo, found := constraintErrors[pqErr.Constraint]; found {

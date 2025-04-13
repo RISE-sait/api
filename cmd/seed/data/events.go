@@ -109,7 +109,7 @@ func GetEvents() dbSeed.InsertEventsParams {
 	}
 }
 
-func GetFakeEvents(programs, locations []string) dbSeed.InsertEventsParams {
+func GetFakeEvents(programs, locations []string, isRecurring bool) dbSeed.InsertEventsParams {
 
 	var (
 		startAtArray        []time.Time
@@ -135,23 +135,50 @@ func GetFakeEvents(programs, locations []string) dbSeed.InsertEventsParams {
 
 		randomDay := time.Weekday(rand.Intn(7)) // Random value between 0 (Sunday) and 6 (Saturday)
 
-		// Generate events for each matching day in range
-		for d := programStartAt; !d.After(programEndAt); d = d.AddDate(0, 0, 1) {
-			if d.Weekday() != randomDay {
-				continue
-			}
+		if isRecurring {
+			// Generate events for each matching day in range
+			for d := programStartAt; !d.After(programEndAt); d = d.AddDate(0, 0, 1) {
+				if d.Weekday() != randomDay {
+					continue
+				}
 
+				randomLocation := locations[rand.Intn(len(locations))]
+
+				// Combine date with time
+				startAt := time.Date(
+					d.Year(), d.Month(), d.Day(),
+					eventStart.Hour(), eventStart.Minute(), 0, 0,
+					time.UTC,
+				)
+
+				endAt := time.Date(
+					d.Year(), d.Month(), d.Day(),
+					eventEnd.Hour(), eventEnd.Minute(), 0, 0,
+					time.UTC,
+				)
+
+				// Append event data
+				startAtArray = append(startAtArray, startAt)
+				endAtArray = append(endAtArray, endAt)
+				locationNameArray = append(locationNameArray, randomLocation)
+				createdByEmailArray = append(createdByEmailArray, "klintlee1@gmail.com")
+				updatedByEmailArray = append(updatedByEmailArray, "klintlee1@gmail.com")
+				capacityArray = append(capacityArray, int32(40))
+				programNameArray = append(programNameArray, game)
+			}
+		} else {
+			// Generate a single event
 			randomLocation := locations[rand.Intn(len(locations))]
 
 			// Combine date with time
 			startAt := time.Date(
-				d.Year(), d.Month(), d.Day(),
+				programStartAt.Year(), programStartAt.Month(), programStartAt.Day(),
 				eventStart.Hour(), eventStart.Minute(), 0, 0,
 				time.UTC,
 			)
 
 			endAt := time.Date(
-				d.Year(), d.Month(), d.Day(),
+				programStartAt.Year(), programStartAt.Month(), programStartAt.Day(),
 				eventEnd.Hour(), eventEnd.Minute(), 0, 0,
 				time.UTC,
 			)

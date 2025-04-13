@@ -442,10 +442,10 @@ func seedEvents(ctx context.Context, db *sql.DB) []uuid.UUID {
 	return ids
 }
 
-func seedFakeEvents(ctx context.Context, db *sql.DB, programs, locations []string) []uuid.UUID {
+func seedFakeEvents(ctx context.Context, db *sql.DB, programs, locations []string, isRecurring bool) []uuid.UUID {
 	seedQueries := dbSeed.New(db)
 
-	arg := data.GetFakeEvents(programs, locations)
+	arg := data.GetFakeEvents(programs, locations, isRecurring)
 
 	// Insert events and sessions into the database
 	ids, err := seedQueries.InsertEvents(ctx, arg)
@@ -542,8 +542,8 @@ func main() {
 
 	eventIds := seedEvents(ctx, db)
 
-	_ = seedFakeEvents(ctx, db, games, locations)
-	_ = seedFakeEvents(ctx, db, courses, locations)
+	_ = seedFakeEvents(ctx, db, games, locations, false)
+	_ = seedFakeEvents(ctx, db, courses, locations, true)
 
 	seedMemberships(ctx, db)
 

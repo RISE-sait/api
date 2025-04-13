@@ -35,6 +35,7 @@ func (r *StaffsRepository) AssignStaffToEvent(c context.Context, eventId, staffI
 
 	return nil
 }
+
 func (r *StaffsRepository) UnassignedStaffFromEvent(c context.Context, eventId, staffId uuid.UUID) *errLib.CommonError {
 
 	dbParams := db.UnassignStaffFromEventParams{

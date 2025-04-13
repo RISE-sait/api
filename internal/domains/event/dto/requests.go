@@ -23,8 +23,11 @@ type CreateRequestDto struct {
 }
 
 type UpdateRequestDto struct {
-	ID uuid.UUID `json:"id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
 	RequestDto
+}
+
+type DeleteRequestDto struct {
+	IDs []uuid.UUID `json:"ids" validate:"required,min=1,dive,uuid4"`
 }
 
 // validate validates the request DTO and returns parsed values.

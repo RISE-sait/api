@@ -7,7 +7,6 @@ import (
 	errLib "api/internal/libs/errors"
 	"context"
 	"github.com/google/uuid"
-	"time"
 )
 
 type Service struct {
@@ -24,8 +23,8 @@ func (s *Service) GetEvent(ctx context.Context, eventID uuid.UUID) (values.ReadE
 	return s.repo.GetEvent(ctx, eventID)
 }
 
-func (s *Service) GetEvents(ctx context.Context, programTypeStr string, programID, locationID, userID, teamID, createdBy, updatedBy uuid.UUID, before, after time.Time) ([]values.ReadEventValues, *errLib.CommonError) {
-	return s.repo.GetEvents(ctx, programTypeStr, programID, locationID, userID, teamID, createdBy, updatedBy, before, after)
+func (s *Service) GetEvents(ctx context.Context, filter values.GetEventsFilter) ([]values.ReadEventValues, *errLib.CommonError) {
+	return s.repo.GetEvents(ctx, filter)
 }
 
 func (s *Service) CheckIfEventExist(ctx context.Context, eventID uuid.UUID) (bool, *errLib.CommonError) {
@@ -40,6 +39,6 @@ func (s *Service) UpdateEvent(ctx context.Context, details values.UpdateEventVal
 	return s.repo.UpdateEvent(ctx, details)
 }
 
-func (s *Service) DeleteEvent(ctx context.Context, id uuid.UUID) *errLib.CommonError {
-	return s.repo.DeleteEvent(ctx, id)
+func (s *Service) DeleteEvents(ctx context.Context, ids []uuid.UUID) *errLib.CommonError {
+	return s.repo.DeleteEvent(ctx, ids)
 }

@@ -4,6 +4,7 @@ import (
 	"api/internal/di"
 	"api/internal/domains/event"
 	dto "api/internal/domains/event/dto"
+	values "api/internal/domains/event/values"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
@@ -31,7 +32,7 @@ func NewEventsHandler(container *di.Container) *EventsHandler {
 // @Param after query string false "Start date of the events range (YYYY-MM-DD)" example("2025-03-01")
 // @Param before query string false "End date of the events range (YYYY-MM-DD)" example("2025-03-31")
 // @Param program_id query string false "Filter by program ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
-// @Param user_id query string false "Filter by user ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
+// @Param participant_id query string false "Filter by participant ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
 // @Param team_id query string false "Filter by team ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
 // @Param location_id query string false "Filter by location ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
 // @Param program_type query string false "Program Type (game, practice, course, others)"
@@ -49,9 +50,9 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 
 	var (
-		after, before                                               time.Time
-		locationID, programID, userID, teamID, createdBy, updatedBy uuid.UUID
-		programType                                                 string
+		after, before                                                      time.Time
+		locationID, programID, participantID, teamID, createdBy, updatedBy uuid.UUID
+		programType                                                        string
 	)
 
 	if afterStr := query.Get("after"); afterStr != "" {
@@ -72,12 +73,12 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if userIDStr := query.Get("user_id"); userIDStr != "" {
-		if id, err := validators.ParseUUID(userIDStr); err != nil {
-			responseHandlers.RespondWithError(w, errLib.New("invalid 'user_id' format, expected uuid format", http.StatusBadRequest))
+	if participantIDStr := query.Get("participant_id"); participantIDStr != "" {
+		if id, err := validators.ParseUUID(participantIDStr); err != nil {
+			responseHandlers.RespondWithError(w, errLib.New("invalid 'participant_id' format, expected uuid format", http.StatusBadRequest))
 			return
 		} else {
-			userID = id
+			participantID = id
 		}
 	}
 
@@ -110,15 +111,45 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if createdByStr := query.Get("created_by"); createdByStr != "" {
+		if id, err := validators.ParseUUID(createdByStr); err != nil {
+			responseHandlers.RespondWithError(w, errLib.New("invalid 'created_by' format, expected uuid format", http.StatusBadRequest))
+			return
+		} else {
+			createdBy = id
+		}
+	}
+
+	if updatedByStr := query.Get("updated_by"); updatedByStr != "" {
+		if id, err := validators.ParseUUID(updatedByStr); err != nil {
+			responseHandlers.RespondWithError(w, errLib.New("invalid 'updated_by' format, expected uuid format", http.StatusBadRequest))
+			return
+		} else {
+			updatedBy = id
+		}
+	}
+
 	if (after.IsZero() || before.IsZero()) &&
-		(programID == uuid.Nil && userID == uuid.Nil && locationID == uuid.Nil && teamID == uuid.Nil && programType == "") {
+		(programID == uuid.Nil && participantID == uuid.Nil && locationID == uuid.Nil && teamID == uuid.Nil && programType == "") {
 		responseHandlers.RespondWithError(w,
 			errLib.New(`at least one of (before and after) or 
-(program_id, user_id, location_id, team_id, program_type, created_by, updated_by), must be provided`, http.StatusBadRequest))
+(program_id, participant_id, location_id, team_id, program_type, created_by, updated_by), must be provided`, http.StatusBadRequest))
 		return
 	}
 
-	events, err := h.EventsService.GetEvents(r.Context(), programType, programID, locationID, userID, teamID, createdBy, updatedBy, before, after)
+	filter := values.GetEventsFilter{
+		ProgramType:   programType,
+		ProgramID:     programID,
+		LocationID:    locationID,
+		ParticipantID: participantID,
+		TeamID:        teamID,
+		CreatedBy:     createdBy,
+		UpdatedBy:     updatedBy,
+		Before:        before,
+		After:         after,
+	}
+
+	events, err := h.EventsService.GetEvents(r.Context(), filter)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -128,9 +159,9 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	// empty list instead of var responseDto []dto.EventResponseDto, so that it would return empty list instead of nil if no events found
 	responseDto := []dto.EventResponseDto{}
 
-	for _, event := range events {
+	for _, retrievedEvent := range events {
 
-		eventDto := dto.NewEventResponseDto(event, false)
+		eventDto := dto.NewEventResponseDto(retrievedEvent, false)
 
 		responseDto = append(responseDto, eventDto)
 	}
@@ -164,18 +195,18 @@ func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if event, err := h.EventsService.GetEvent(r.Context(), eventId); err != nil {
+	if retrievedEvent, err := h.EventsService.GetEvent(r.Context(), eventId); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {
 
-		responseDto := dto.NewEventResponseDto(event, true)
+		responseDto := dto.NewEventResponseDto(retrievedEvent, true)
 
 		responseHandlers.RespondWithSuccess(w, responseDto, http.StatusOK)
 	}
 }
 
-// CreateEvent creates a new event.
+// CreateEvents creates a new event.
 // @Tags events
 // @Accept json
 // @Produce json
@@ -185,7 +216,7 @@ func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /events [post]
-func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
+func (h *EventsHandler) CreateEvents(w http.ResponseWriter, r *http.Request) {
 
 	userID, ctxErr := contextUtils.GetUserID(r.Context())
 
@@ -214,8 +245,6 @@ func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateEvent updates an existing event by ID.
-// @Summary Update an event
-// @Description Updates the details of an existing event.
 // @Tags events
 // @Accept json
 // @Produce json
@@ -269,7 +298,7 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 
 	// Authorization check
 
-	event, err := h.EventsService.GetEvent(r.Context(), params.ID)
+	retrievedEvent, err := h.EventsService.GetEvent(r.Context(), params.ID)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -277,9 +306,9 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	isAdmin := userRole == contextUtils.RoleAdmin || userRole == contextUtils.RoleSuperAdmin
-	isCreator := event.CreatedBy.ID == loggedInUserID
+	isCreator := retrievedEvent.CreatedBy.ID == loggedInUserID
 
-	// Check if the user is an admin or the creator of the event, if not, return forbidden
+	// Check if the user is an admin or the creator of the retrievedEvent, if not, return forbidden
 	if !isAdmin && !isCreator {
 		responseHandlers.RespondWithError(w, errLib.New("You do not have permission to access this resource", http.StatusForbidden))
 		return
@@ -293,43 +322,44 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-// DeleteEvent deletes an event by ID.
-// @Summary Delete an event
-// @Description Deletes an event by its ID.
+// DeleteEvents deletes multiple events by IDs.
 // @Tags events
 // @Accept json
 // @Produce json
-// @Param id path string true "Event ID"
-// @Success 204 {object} map[string]interface{} "No Content: Event deleted successfully"
-// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
-// @Failure 404 {object} map[string]interface{} "Not Found: Event not found"
+// @Security Bearer
+// @Param ids body dto.DeleteRequestDto true "Array of Event IDs to delete"
+// @Success 204 {object} map[string]interface{} "No Content: Events deleted successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 404 {object} map[string]interface{} "Not Found: One or more events not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /events/{id} [delete]
-func (h *EventsHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
-
-	idStr := chi.URLParam(r, "id")
-
-	id, err := validators.ParseUUID(idStr)
-
-	if err != nil {
-		responseHandlers.RespondWithError(w, err)
-		return
-	}
+// @Router /events/bulk [delete]
+func (h *EventsHandler) DeleteEvents(w http.ResponseWriter, r *http.Request) {
 
 	// Get auth context
-
 	userRole := r.Context().Value(contextUtils.RoleKey).(contextUtils.CtxRole)
-
 	loggedInUserID, err := contextUtils.GetUserID(r.Context())
-
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	// Authorization check
+	var targetBody dto.DeleteRequestDto
 
-	event, err := h.EventsService.GetEvent(r.Context(), id)
+	if err = validators.ParseJSON(r.Body, &targetBody); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	if err = validators.ValidateDto(&targetBody); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	filter := values.GetEventsFilter{
+		Ids: targetBody.IDs,
+	}
+
+	retrievedEvents, err := h.EventsService.GetEvents(r.Context(), filter)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -337,15 +367,16 @@ func (h *EventsHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	isAdmin := userRole == contextUtils.RoleAdmin || userRole == contextUtils.RoleSuperAdmin
-	isCreator := event.CreatedBy.ID == loggedInUserID
 
-	// Check if the user is an admin or the creator of the event, if not, return forbidden
-	if !isAdmin && !isCreator {
-		responseHandlers.RespondWithError(w, errLib.New("You do not have permission to access this resource", http.StatusForbidden))
-		return
+	for _, retrievedEvent := range retrievedEvents {
+		if !isAdmin && retrievedEvent.CreatedBy.ID != loggedInUserID {
+			responseHandlers.RespondWithError(w,
+				errLib.New("You don't have permission to delete one or more events", http.StatusForbidden))
+			return
+		}
 	}
 
-	if err = h.EventsService.DeleteEvent(r.Context(), id); err != nil {
+	if err = h.EventsService.DeleteEvents(r.Context(), targetBody.IDs); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

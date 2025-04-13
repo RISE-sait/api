@@ -213,23 +213,23 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 	return eventValue, nil
 }
 
-func (r *EventsRepository) GetEvents(ctx context.Context, programTypeStr string, programID, locationID, userID, teamID, createdBy, updatedBy uuid.UUID, before, after time.Time) ([]values.ReadEventValues, *errLib.CommonError) {
+func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEventsFilter) ([]values.ReadEventValues, *errLib.CommonError) {
 
-	// Execute the query using SQLC generated function
+	// Execute the query using SqlC generated function
 	param := db.GetEventsParams{
-		ProgramID:  uuid.NullUUID{UUID: programID, Valid: programID != uuid.Nil},
-		LocationID: uuid.NullUUID{UUID: locationID, Valid: locationID != uuid.Nil},
-		Before:     sql.NullTime{Time: before, Valid: !before.IsZero()},
-		After:      sql.NullTime{Time: after, Valid: !after.IsZero()},
-		UserID:     uuid.NullUUID{UUID: userID, Valid: userID != uuid.Nil},
-		TeamID:     uuid.NullUUID{UUID: teamID, Valid: teamID != uuid.Nil},
-		CreatedBy:  uuid.NullUUID{UUID: createdBy, Valid: createdBy != uuid.Nil},
-		UpdatedBy:  uuid.NullUUID{UUID: updatedBy, Valid: updatedBy != uuid.Nil},
+		ProgramID:     uuid.NullUUID{UUID: filter.ProgramID, Valid: filter.ProgramID != uuid.Nil},
+		LocationID:    uuid.NullUUID{UUID: filter.LocationID, Valid: filter.LocationID != uuid.Nil},
+		Before:        sql.NullTime{Time: filter.Before, Valid: !filter.Before.IsZero()},
+		After:         sql.NullTime{Time: filter.After, Valid: !filter.After.IsZero()},
+		ParticipantID: uuid.NullUUID{UUID: filter.ParticipantID, Valid: filter.ParticipantID != uuid.Nil},
+		TeamID:        uuid.NullUUID{UUID: filter.TeamID, Valid: filter.TeamID != uuid.Nil},
+		CreatedBy:     uuid.NullUUID{UUID: filter.CreatedBy, Valid: filter.CreatedBy != uuid.Nil},
+		UpdatedBy:     uuid.NullUUID{UUID: filter.UpdatedBy, Valid: filter.UpdatedBy != uuid.Nil},
 	}
 
-	programType := db.ProgramProgramType(programTypeStr)
+	programType := db.ProgramProgramType(filter.ProgramType)
 
-	if programTypeStr != "" {
+	if filter.ProgramType != "" {
 		if programType.Valid() {
 			param.Type = db.NullProgramProgramType{
 				ProgramProgramType: programType,
@@ -406,11 +406,11 @@ func (r *EventsRepository) UpdateEvent(ctx context.Context, event values.UpdateE
 
 }
 
-func (r *EventsRepository) DeleteEvent(c context.Context, id uuid.UUID) *errLib.CommonError {
-	err := r.Queries.DeleteEvent(c, id)
+func (r *EventsRepository) DeleteEvent(c context.Context, ids []uuid.UUID) *errLib.CommonError {
+	err := r.Queries.DeleteEvent(c, ids)
 
 	if err != nil {
-		log.Printf("Failed to delete event with HubSpotId: %s. Error: %s", id, err.Error())
+		log.Printf("Failed to delete event with Ids: %s. Error: %s", ids, err.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 

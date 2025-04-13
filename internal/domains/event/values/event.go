@@ -84,3 +84,16 @@ type Staff struct {
 	Gender   *string
 	RoleName string
 }
+
+type GetEventsFilter struct {
+	Ids           []uuid.UUID
+	ProgramType   string
+	ProgramID     uuid.UUID
+	LocationID    uuid.UUID
+	ParticipantID uuid.UUID
+	TeamID        uuid.UUID
+	CreatedBy     uuid.UUID
+	UpdatedBy     uuid.UUID
+	Before        time.Time
+	After         time.Time
+}

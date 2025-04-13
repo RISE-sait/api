@@ -60,8 +60,8 @@ WHERE (
               AND (sqlc.narg('after')::timestamp <= e.start_at OR sqlc.narg('after') IS NULL)
               AND (sqlc.narg('before')::timestamp >= e.end_at OR sqlc.narg('before') IS NULL)
               AND (sqlc.narg('type') = p.type OR sqlc.narg('type') IS NULL)
-              AND (sqlc.narg('user_id')::uuid IS NULL OR ce.customer_id = sqlc.narg('user_id')::uuid OR
-                   es.staff_id = sqlc.narg('user_id')::uuid)
+              AND (sqlc.narg('participant_id')::uuid IS NULL OR ce.customer_id = sqlc.narg('participant_id')::uuid OR
+                   es.staff_id = sqlc.narg('participant_id')::uuid)
               AND (sqlc.narg('team_id')::uuid IS NULL OR e.team_id = sqlc.narg('team_id'))
               AND (sqlc.narg('created_by')::uuid IS NULL OR e.created_by = sqlc.narg('created_by'))
               AND (sqlc.narg('updated_by')::uuid IS NULL OR e.updated_by = sqlc.narg('updated_by'))
@@ -145,4 +145,4 @@ RETURNING *;
 -- name: DeleteEvent :exec
 DELETE
 FROM events.events
-WHERE id = $1;
+WHERE id = ANY (sqlc.arg('ids')::uuid[]);

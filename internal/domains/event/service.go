@@ -27,10 +27,6 @@ func (s *Service) GetEvents(ctx context.Context, filter values.GetEventsFilter) 
 	return s.repo.GetEvents(ctx, filter)
 }
 
-func (s *Service) CheckIfEventExist(ctx context.Context, eventID uuid.UUID) (bool, *errLib.CommonError) {
-	return s.repo.CheckEventIsExist(ctx, eventID)
-}
-
 func (s *Service) CreateEvents(ctx context.Context, details values.CreateEventsValues) *errLib.CommonError {
 	return s.repo.CreateEvents(ctx, details)
 }

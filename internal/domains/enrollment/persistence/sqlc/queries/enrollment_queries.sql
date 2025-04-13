@@ -24,16 +24,6 @@ SET is_cancelled = true
 WHERE customer_id = $1
   AND event_id = $2;
 
--- name: CheckProgramExists :one
-SELECT EXISTS (SELECT 1
-               FROM program.programs p
-               WHERE p.id = $1);
-
--- name: CheckEventExists :one
-SELECT EXISTS (SELECT 1
-               FROM events.events
-               WHERE id = $1);
-
 -- name: CheckProgramCapacityExists :one
 SELECT (capacity IS NOT NULL)::boolean
 FROM program.programs p

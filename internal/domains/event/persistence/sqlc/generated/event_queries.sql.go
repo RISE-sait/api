@@ -14,19 +14,6 @@ import (
 	"github.com/lib/pq"
 )
 
-const checkIfEventExist = `-- name: CheckIfEventExist :one
-SELECT EXISTS(SELECT 1
-              FROM events.events
-              WHERE id = $1)
-`
-
-func (q *Queries) CheckIfEventExist(ctx context.Context, id uuid.UUID) (bool, error) {
-	row := q.db.QueryRowContext(ctx, checkIfEventExist, id)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}
-
 const createEvents = `-- name: CreateEvents :exec
 WITH unnested_data AS (SELECT unnest($1::uuid[])          AS location_id,
                               unnest($2::uuid[])           AS program_id,
@@ -321,7 +308,7 @@ FROM events.events e
          JOIN users.users creator ON creator.id = e.created_by
          JOIN users.users updater ON updater.id = e.updated_by
 WHERE (
-              ($1::uuid = e.program_id OR $1 IS NULL)
+          ($1::uuid = e.program_id OR $1 IS NULL)
               AND ($2::uuid = e.location_id OR $2 IS NULL)
               AND ($3::timestamp <= e.start_at OR $3 IS NULL)
               AND ($4::timestamp >= e.end_at OR $4 IS NULL)

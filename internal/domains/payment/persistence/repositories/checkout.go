@@ -2,8 +2,10 @@ package payment
 
 import (
 	"api/internal/di"
+	"api/internal/domains/event"
 	db "api/internal/domains/payment/persistence/sqlc/generated"
 	values "api/internal/domains/payment/values"
+	"api/internal/domains/program"
 	errLib "api/internal/libs/errors"
 	contextUtils "api/utils/context"
 	"context"
@@ -17,11 +19,15 @@ import (
 
 type CheckoutRepository struct {
 	paymentQueries *db.Queries
+	programService *program.Service
+	eventService   *event.Service
 }
 
 func NewCheckoutRepository(container *di.Container) *CheckoutRepository {
 	return &CheckoutRepository{
 		paymentQueries: container.Queries.PurchasesDb,
+		programService: program.NewProgramService(container),
+		eventService:   event.NewEventService(container),
 	}
 }
 
@@ -62,13 +68,9 @@ func (r *CheckoutRepository) GetRegistrationPriceIdForCustomerByProgramID(ctx co
 		return false, "", ctxErr
 	}
 
-	program, err := r.paymentQueries.GetProgram(ctx, programID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return false, "", errLib.New(fmt.Sprintf("program not found: %v", programID), http.StatusNotFound)
-		}
-		log.Printf("Error getting program: %v", err)
-		return false, "", errLib.New("failed to get program", http.StatusInternalServerError)
+	retrievedProgram, getProgramErr := r.programService.GetProgram(ctx, programID)
+	if getProgramErr != nil {
+		return false, "", getProgramErr
 	}
 
 	if isCustomerExist, err := r.paymentQueries.IsCustomerExist(ctx, customerID); err != nil {
@@ -84,7 +86,7 @@ func (r *CheckoutRepository) GetRegistrationPriceIdForCustomerByProgramID(ctx co
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, "", errLib.New(fmt.Sprintf("customer is not eligible for program registration: %v", program.Name), http.StatusForbidden)
+			return false, "", errLib.New(fmt.Sprintf("customer is not eligible for retrievedProgram registration: %v", retrievedProgram.Name), http.StatusForbidden)
 		}
 		log.Printf("Error getting GetProgramRegisterPricesForCustomer: %v", err)
 		return false, "", errLib.New("failed to check get registration prices for customer", http.StatusInternalServerError)
@@ -95,15 +97,21 @@ func (r *CheckoutRepository) GetRegistrationPriceIdForCustomerByProgramID(ctx co
 
 func (r *CheckoutRepository) GetProgramIDOfEvent(ctx context.Context, eventID uuid.UUID) (uuid.UUID, *errLib.CommonError) {
 
-	programID, err := r.paymentQueries.GetProgramOfEvent(ctx, eventID)
+	retrievedEvent, err := r.eventService.GetEvent(ctx, eventID)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return uuid.Nil, errLib.New(fmt.Sprintf("program not found: %v", eventID), http.StatusNotFound)
+			return uuid.Nil, errLib.New(fmt.Sprintf("retrievedEvent not found: %v", eventID), http.StatusNotFound)
 		}
-		log.Printf("Error getting program of the event: %v", err)
-		return uuid.Nil, errLib.New("failed to get program of the event", http.StatusInternalServerError)
+		log.Printf("Error getting program of the retrievedEvent: %v", err)
+		return uuid.Nil, errLib.New("failed to get program of the retrievedEvent", http.StatusInternalServerError)
 	}
 
-	return programID, nil
+	if retrievedEvent.Program != nil {
+		if retrievedEvent.Program.ID == uuid.Nil {
+			return uuid.Nil, errLib.New(fmt.Sprintf("program not found for retrievedEvent: %v", eventID), http.StatusNotFound)
+		}
+	}
+
+	return retrievedEvent.Program.ID, nil
 }

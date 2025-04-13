@@ -16,8 +16,8 @@ import (
 const checkEventCapacityExists = `-- name: CheckEventCapacityExists :one
 SELECT (coalesce(e.capacity, t.capacity, p.capacity) IS NOT NULL)::boolean
 FROM events.events e
-LEFT JOIN athletic.teams t ON e.team_id = t.id
-LEFT JOIN program.programs p ON e.program_id = p.id
+         LEFT JOIN athletic.teams t ON e.team_id = t.id
+         LEFT JOIN program.programs p ON e.program_id = p.id
 WHERE e.id = $1
 `
 
@@ -26,19 +26,6 @@ func (q *Queries) CheckEventCapacityExists(ctx context.Context, id uuid.UUID) (b
 	var column_1 bool
 	err := row.Scan(&column_1)
 	return column_1, err
-}
-
-const checkEventExists = `-- name: CheckEventExists :one
-SELECT EXISTS (SELECT 1
-               FROM events.events
-               WHERE id = $1)
-`
-
-func (q *Queries) CheckEventExists(ctx context.Context, id uuid.UUID) (bool, error) {
-	row := q.db.QueryRowContext(ctx, checkEventExists, id)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
 }
 
 const checkEventIsFull = `-- name: CheckEventIsFull :one
@@ -72,19 +59,6 @@ func (q *Queries) CheckProgramCapacityExists(ctx context.Context, id uuid.UUID) 
 	var column_1 bool
 	err := row.Scan(&column_1)
 	return column_1, err
-}
-
-const checkProgramExists = `-- name: CheckProgramExists :one
-SELECT EXISTS (SELECT 1
-               FROM program.programs p
-               WHERE p.id = $1)
-`
-
-func (q *Queries) CheckProgramExists(ctx context.Context, id uuid.UUID) (bool, error) {
-	row := q.db.QueryRowContext(ctx, checkProgramExists, id)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
 }
 
 const checkProgramIsFull = `-- name: CheckProgramIsFull :one
@@ -168,12 +142,11 @@ func (q *Queries) EnrollCustomerInProgram(ctx context.Context, arg EnrollCustome
 }
 
 const getCustomerIsEnrolledInProgram = `-- name: GetCustomerIsEnrolledInProgram :one
-SELECT
-    (EXISTS (SELECT 1
-               FROM program.customer_enrollment
-               WHERE customer_id = $1
-                 AND program_id = $2
-               AND payment_status = 'paid'))
+SELECT (EXISTS (SELECT 1
+                FROM program.customer_enrollment
+                WHERE customer_id = $1
+                  AND program_id = $2
+                  AND payment_status = 'paid'))
 `
 
 type GetCustomerIsEnrolledInProgramParams struct {

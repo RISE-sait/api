@@ -10,6 +10,7 @@ type EventValuesBase struct {
 	EndDateTime   time.Time
 	BarberID      uuid.UUID
 	CustomerID    uuid.UUID
+	ServiceName   string
 }
 
 type CreateEventValues struct {

@@ -1,6 +1,6 @@
 -- name: CreateHaircutEvent :one
-INSERT INTO haircut.events (begin_date_time, end_date_time, barber_id, customer_id)
-VALUES ($1, $2, $3, $4)
+INSERT INTO haircut.events (begin_date_time, end_date_time, barber_id, customer_id, service_type_id)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: GetHaircutEvents :many

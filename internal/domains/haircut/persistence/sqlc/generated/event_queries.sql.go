@@ -14,9 +14,9 @@ import (
 )
 
 const createHaircutEvent = `-- name: CreateHaircutEvent :one
-INSERT INTO haircut.events (begin_date_time, end_date_time, barber_id, customer_id)
-VALUES ($1, $2, $3, $4)
-RETURNING id, begin_date_time, end_date_time, customer_id, barber_id, created_at, updated_at, service_type_id
+INSERT INTO haircut.events (begin_date_time, end_date_time, barber_id, customer_id, service_type_id)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, begin_date_time, end_date_time, customer_id, barber_id, service_type_id, created_at, updated_at
 `
 
 type CreateHaircutEventParams struct {
@@ -24,6 +24,7 @@ type CreateHaircutEventParams struct {
 	EndDateTime   time.Time `json:"end_date_time"`
 	BarberID      uuid.UUID `json:"barber_id"`
 	CustomerID    uuid.UUID `json:"customer_id"`
+	ServiceTypeID uuid.UUID `json:"service_type_id"`
 }
 
 func (q *Queries) CreateHaircutEvent(ctx context.Context, arg CreateHaircutEventParams) (HaircutEvent, error) {
@@ -32,6 +33,7 @@ func (q *Queries) CreateHaircutEvent(ctx context.Context, arg CreateHaircutEvent
 		arg.EndDateTime,
 		arg.BarberID,
 		arg.CustomerID,
+		arg.ServiceTypeID,
 	)
 	var i HaircutEvent
 	err := row.Scan(
@@ -40,15 +42,16 @@ func (q *Queries) CreateHaircutEvent(ctx context.Context, arg CreateHaircutEvent
 		&i.EndDateTime,
 		&i.CustomerID,
 		&i.BarberID,
+		&i.ServiceTypeID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.ServiceTypeID,
 	)
 	return i, err
 }
 
-const deleteEvent = `-- name: DeleteSchedule :execrows
-DELETE FROM haircut.events
+const deleteEvent = `-- name: DeleteEvent :execrows
+DELETE
+FROM haircut.events
 WHERE id = $1
 `
 
@@ -61,7 +64,7 @@ func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) (int64, error) 
 }
 
 const getEventById = `-- name: GetEventById :one
-SELECT e.id, begin_date_time, end_date_time, customer_id, barber_id, e.created_at, e.updated_at, service_type_id, barbers.id, barbers.hubspot_id, barbers.country_alpha2_code, barbers.gender, barbers.first_name, barbers.last_name, barbers.age, barbers.parent_id, barbers.phone, barbers.email, barbers.has_marketing_email_consent, barbers.has_sms_consent, barbers.created_at, barbers.updated_at, customers.id, customers.hubspot_id, customers.country_alpha2_code, customers.gender, customers.first_name, customers.last_name, customers.age, customers.parent_id, customers.phone, customers.email, customers.has_marketing_email_consent, customers.has_sms_consent, customers.created_at, customers.updated_at,
+SELECT e.id, begin_date_time, end_date_time, customer_id, barber_id, service_type_id, e.created_at, e.updated_at, barbers.id, barbers.hubspot_id, barbers.country_alpha2_code, barbers.gender, barbers.first_name, barbers.last_name, barbers.age, barbers.parent_id, barbers.phone, barbers.email, barbers.has_marketing_email_consent, barbers.has_sms_consent, barbers.created_at, barbers.updated_at, customers.id, customers.hubspot_id, customers.country_alpha2_code, customers.gender, customers.first_name, customers.last_name, customers.age, customers.parent_id, customers.phone, customers.email, customers.has_marketing_email_consent, customers.has_sms_consent, customers.created_at, customers.updated_at,
        (barbers.first_name || ' ' || barbers.last_name)::text     as barber_name,
        (customers.first_name || ' ' || customers.last_name)::text as customer_name
 FROM haircut.events e
@@ -79,9 +82,9 @@ type GetEventByIdRow struct {
 	EndDateTime                time.Time      `json:"end_date_time"`
 	CustomerID                 uuid.UUID      `json:"customer_id"`
 	BarberID                   uuid.UUID      `json:"barber_id"`
+	ServiceTypeID              uuid.UUID      `json:"service_type_id"`
 	CreatedAt                  time.Time      `json:"created_at"`
 	UpdatedAt                  time.Time      `json:"updated_at"`
-	ServiceTypeID              uuid.UUID      `json:"service_type_id"`
 	ID_2                       uuid.UUID      `json:"id_2"`
 	HubspotID                  sql.NullString `json:"hubspot_id"`
 	CountryAlpha2Code          string         `json:"country_alpha2_code"`
@@ -123,9 +126,9 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdR
 		&i.EndDateTime,
 		&i.CustomerID,
 		&i.BarberID,
+		&i.ServiceTypeID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.ServiceTypeID,
 		&i.ID_2,
 		&i.HubspotID,
 		&i.CountryAlpha2Code,
@@ -161,7 +164,7 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdR
 }
 
 const getHaircutEvents = `-- name: GetHaircutEvents :many
-SELECT e.id, e.begin_date_time, e.end_date_time, e.customer_id, e.barber_id, e.created_at, e.updated_at, e.service_type_id,
+SELECT e.id, e.begin_date_time, e.end_date_time, e.customer_id, e.barber_id, e.service_type_id, e.created_at, e.updated_at,
        (barbers.first_name || ' ' || barbers.last_name)::text     as barber_name,
        (customers.first_name || ' ' || customers.last_name)::text as customer_name
 FROM haircut.events e
@@ -189,9 +192,9 @@ type GetHaircutEventsRow struct {
 	EndDateTime   time.Time `json:"end_date_time"`
 	CustomerID    uuid.UUID `json:"customer_id"`
 	BarberID      uuid.UUID `json:"barber_id"`
+	ServiceTypeID uuid.UUID `json:"service_type_id"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
-	ServiceTypeID uuid.UUID `json:"service_type_id"`
 	BarberName    string    `json:"barber_name"`
 	CustomerName  string    `json:"customer_name"`
 }
@@ -216,9 +219,9 @@ func (q *Queries) GetHaircutEvents(ctx context.Context, arg GetHaircutEventsPara
 			&i.EndDateTime,
 			&i.CustomerID,
 			&i.BarberID,
+			&i.ServiceTypeID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.ServiceTypeID,
 			&i.BarberName,
 			&i.CustomerName,
 		); err != nil {
@@ -242,9 +245,9 @@ SET
     end_date_time = $2,
     barber_id = $3,
     customer_id = $4,
-    updated_at = current_timestamp
+    updated_at  = current_timestamp
 WHERE id = $5
-RETURNING id, begin_date_time, end_date_time, customer_id, barber_id, created_at, updated_at, service_type_id
+RETURNING id, begin_date_time, end_date_time, customer_id, barber_id, service_type_id, created_at, updated_at
 `
 
 type UpdateEventParams struct {
@@ -270,9 +273,9 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Hairc
 		&i.EndDateTime,
 		&i.CustomerID,
 		&i.BarberID,
+		&i.ServiceTypeID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.ServiceTypeID,
 	)
 	return i, err
 }

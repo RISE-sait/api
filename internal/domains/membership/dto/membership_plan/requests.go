@@ -19,7 +19,7 @@ func (dto PlanRequestDto) ToCreateValueObjects() (values.PlanCreateValues, *errL
 
 	var vo values.PlanCreateValues
 
-	err := validators.ValidateDto(dto)
+	err := validators.ValidateDto(&dto)
 	if err != nil {
 		return vo, err
 	}
@@ -47,7 +47,7 @@ func (dto PlanRequestDto) ToUpdateValueObjects(planIdStr string) (values.PlanUpd
 		return vo, err
 	}
 
-	err = validators.ValidateDto(dto)
+	err = validators.ValidateDto(&dto)
 	if err != nil {
 		return vo, err
 	}

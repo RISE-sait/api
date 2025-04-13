@@ -7,6 +7,7 @@ import (
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -63,7 +64,55 @@ func (r *StaffRepository) List(ctx context.Context, role string) ([]values.ReadV
 	return staffs, nil
 }
 
-func (r *StaffRepository) Update(c context.Context, staffFields values.UpdateValues) *errLib.CommonError {
+func (r *StaffRepository) GetAvailableStaffRoles(ctx context.Context) ([]values.StaffRoleReadValue, *errLib.CommonError) {
+
+	dbRoles, err := r.Queries.GetAvailableStaffRoles(ctx)
+
+	if err != nil {
+		log.Println("Failed to get staff roles: ", err.Error())
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	roles := make([]values.StaffRoleReadValue, len(dbRoles))
+	for i, dbRole := range dbRoles {
+		response := values.StaffRoleReadValue{
+			ID:        dbRole.ID,
+			CreatedAt: dbRole.CreatedAt,
+			UpdatedAt: dbRole.UpdatedAt,
+			RoleName:  dbRole.RoleName,
+		}
+
+		roles[i] = response
+	}
+
+	return roles, nil
+}
+
+func (r *StaffRepository) Update(ctx context.Context, staffFields values.UpdateValues) *errLib.CommonError {
+
+	var availableRoles []string
+
+	if roles, err := r.GetAvailableStaffRoles(ctx); err != nil {
+		return err
+	} else {
+		for _, role := range roles {
+			availableRoles = append(availableRoles, role.RoleName)
+		}
+	}
+
+	// Check if the role exists
+	roleExists := false
+
+	for _, role := range availableRoles {
+		if role == staffFields.RoleName {
+			roleExists = true
+			break
+		}
+	}
+
+	if !roleExists {
+		return errLib.New(fmt.Sprintf("Role not found. Available roles: %v", availableRoles), http.StatusNotFound)
+	}
 
 	dbStaffParams := db.UpdateStaffParams{
 		ID:       staffFields.ID,
@@ -71,7 +120,8 @@ func (r *StaffRepository) Update(c context.Context, staffFields values.UpdateVal
 		IsActive: staffFields.IsActive,
 	}
 
-	if affectedRows, err := r.Queries.UpdateStaff(c, dbStaffParams); err != nil {
+	if affectedRows, err := r.Queries.UpdateStaff(ctx, dbStaffParams); err != nil {
+		log.Printf("Failed to update staff %+v. Error: %v", staffFields.ID, err.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	} else if affectedRows == 0 {
 		return errLib.New("Staff not found", http.StatusNotFound)

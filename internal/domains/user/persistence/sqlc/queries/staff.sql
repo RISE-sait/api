@@ -29,3 +29,7 @@ WHERE id = $1;
 INSERT INTO staff.staff_roles (role_name)
 VALUES ($1)
 RETURNING *;
+
+-- name: GetAvailableStaffRoles :many
+SELECT *
+FROM staff.staff_roles;

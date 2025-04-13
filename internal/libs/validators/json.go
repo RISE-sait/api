@@ -48,7 +48,8 @@ func ParseJSON(body io.Reader, target interface{}) *errLib.CommonError {
 func validatePointerToStruct(v interface{}) *errLib.CommonError {
 	t := reflect.TypeOf(v)
 	if t.Kind() != reflect.Ptr || t.Elem().Kind() != reflect.Struct {
-		return errLib.New("Internal error: invalid target type", http.StatusInternalServerError)
+		log.Printf("Expected a pointer to a struct, got %T", v)
+		return errLib.New("Internal error: invalid target type while parsing request body", http.StatusInternalServerError)
 	}
 	return nil
 }

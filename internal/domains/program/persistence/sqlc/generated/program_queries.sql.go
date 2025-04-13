@@ -15,7 +15,7 @@ import (
 const createProgram = `-- name: CreateProgram :one
 INSERT INTO program.programs (name, description, level, type, capacity)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, name, description, level, type, capacity, created_at, updated_at
+RETURNING id, name, description, level, type, capacity, created_at, updated_at, pay_per_event
 `
 
 type CreateProgramParams struct {
@@ -45,6 +45,7 @@ func (q *Queries) CreateProgram(ctx context.Context, arg CreateProgramParams) (P
 		&i.Capacity,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PayPerEvent,
 	)
 	return i, err
 }
@@ -61,30 +62,8 @@ func (q *Queries) DeleteProgram(ctx context.Context, id uuid.UUID) (int64, error
 	return result.RowsAffected()
 }
 
-const getProgram = `-- name: GetProgram :one
-SELECT id, name, description, level, type, capacity, created_at, updated_at
-FROM program.programs
-WHERE id = $1
-`
-
-func (q *Queries) GetProgram(ctx context.Context, id uuid.UUID) (ProgramProgram, error) {
-	row := q.db.QueryRowContext(ctx, getProgram, id)
-	var i ProgramProgram
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.Level,
-		&i.Type,
-		&i.Capacity,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const getProgramById = `-- name: GetProgramById :one
-SELECT id, name, description, level, type, capacity, created_at, updated_at FROM program.programs WHERE id = $1
+SELECT id, name, description, level, type, capacity, created_at, updated_at, pay_per_event FROM program.programs WHERE id = $1
 `
 
 func (q *Queries) GetProgramById(ctx context.Context, id uuid.UUID) (ProgramProgram, error) {
@@ -99,12 +78,13 @@ func (q *Queries) GetProgramById(ctx context.Context, id uuid.UUID) (ProgramProg
 		&i.Capacity,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PayPerEvent,
 	)
 	return i, err
 }
 
 const getPrograms = `-- name: GetPrograms :many
-SELECT id, name, description, level, type, capacity, created_at, updated_at
+SELECT id, name, description, level, type, capacity, created_at, updated_at, pay_per_event
 FROM program.programs
 WHERE type = $1
    OR $1 IS NULL
@@ -128,6 +108,7 @@ func (q *Queries) GetPrograms(ctx context.Context, type_ NullProgramProgramType)
 			&i.Capacity,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.PayPerEvent,
 		); err != nil {
 			return nil, err
 		}
@@ -152,7 +133,7 @@ SET
     capacity = $5,
     updated_at = CURRENT_TIMESTAMP
 WHERE id = $6
-RETURNING id, name, description, level, type, capacity, created_at, updated_at
+RETURNING id, name, description, level, type, capacity, created_at, updated_at, pay_per_event
 `
 
 type UpdateProgramParams struct {
@@ -183,6 +164,7 @@ func (q *Queries) UpdateProgram(ctx context.Context, arg UpdateProgramParams) (P
 		&i.Capacity,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PayPerEvent,
 	)
 	return i, err
 }

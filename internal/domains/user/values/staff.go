@@ -21,6 +21,13 @@ type ReadValues struct {
 	*CoachStatsReadValues
 }
 
+type StaffRoleReadValue struct {
+	ID        uuid.UUID
+	RoleName  string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
 type CoachStatsReadValues struct {
 	Wins   int32
 	Losses int32

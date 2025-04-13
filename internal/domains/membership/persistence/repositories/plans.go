@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"log"
 	"net/http"
 )
@@ -45,6 +46,13 @@ func (r *PlansRepository) CreateMembershipPlan(c context.Context, membershipPlan
 	_, err := r.Queries.CreateMembershipPlan(c, dbParams)
 
 	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			switch pqErr.Constraint {
+			case "fk_membership":
+				return errLib.New("Membership not found", http.StatusNotFound)
+			}
+		}
 		log.Printf("Failed to create plan: %+v. Error: %v", membershipPlan, err.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}

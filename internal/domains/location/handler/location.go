@@ -1,6 +1,7 @@
 package location
 
 import (
+	"api/internal/di"
 	dto "api/internal/domains/location/dto"
 	repository "api/internal/domains/location/persistence"
 	responseHandlers "api/internal/libs/responses"
@@ -14,8 +15,8 @@ type Handler struct {
 	Repository *repository.Repository
 }
 
-func NewLocationsHandler(repo *repository.Repository) *Handler {
-	return &Handler{Repository: repo}
+func NewLocationsHandler(container *di.Container) *Handler {
+	return &Handler{Repository: repository.NewLocationRepository(container.Queries.LocationDb)}
 }
 
 // CreateLocation creates a new Location.

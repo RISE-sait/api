@@ -105,21 +105,6 @@ func (r *CustomerEnrollmentRepository) checkIfProgramCapacityExist(ctx context.C
 	return isExist, nil
 }
 
-func (r *CustomerEnrollmentRepository) checkIfEventExists(ctx context.Context, eventID uuid.UUID) (bool, *errLib.CommonError) {
-
-	_, err := r.EventService.GetEvent(ctx, eventID)
-
-	if err != nil {
-		if err.HTTPCode == http.StatusNotFound {
-			return false, err
-		}
-		log.Println("error checking event existence: ", err)
-		return false, errLib.New("Internal server error while finding event", http.StatusInternalServerError)
-	}
-
-	return true, nil
-}
-
 func (r *CustomerEnrollmentRepository) checkIfEventCapacityExist(ctx context.Context, eventID uuid.UUID) (bool, *errLib.CommonError) {
 
 	isExist, err := r.Queries.CheckEventCapacityExists(ctx, eventID)
@@ -157,7 +142,7 @@ func (r *CustomerEnrollmentRepository) GetProgramIsFull(ctx context.Context, pro
 
 func (r *CustomerEnrollmentRepository) GetEventIsFull(ctx context.Context, eventID uuid.UUID) (bool, *errLib.CommonError) {
 
-	if isExist, err := r.checkIfEventExists(ctx, eventID); err != nil {
+	if isExist, err := r.EventService.CheckIfEventExist(ctx, eventID); err != nil {
 		return false, err
 	} else if !isExist {
 		return false, errLib.New("Event not found", http.StatusNotFound)
@@ -258,7 +243,7 @@ func (r *CustomerEnrollmentRepository) UpdateReservationStatusInProgram(ctx cont
 
 func (r *CustomerEnrollmentRepository) UpdateReservationStatusInEvent(ctx context.Context, eventID, customerID uuid.UUID, status dbEnrollment.PaymentStatus) *errLib.CommonError {
 
-	if isExist, err := r.checkIfEventExists(ctx, eventID); err != nil {
+	if isExist, err := r.EventService.CheckIfEventExist(ctx, eventID); err != nil {
 		return err
 	} else if !isExist {
 		return errLib.New("Event not found", http.StatusNotFound)

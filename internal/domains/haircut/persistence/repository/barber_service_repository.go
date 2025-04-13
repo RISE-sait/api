@@ -2,6 +2,7 @@ package haircut
 
 import (
 	databaseErrors "api/internal/constants"
+	"api/internal/di"
 	db "api/internal/domains/haircut/persistence/sqlc/generated"
 	values "api/internal/domains/haircut/values"
 	errLib "api/internal/libs/errors"
@@ -18,9 +19,9 @@ type BarberServiceRepository struct {
 	Queries *db.Queries
 }
 
-func NewBarberServiceRepository(dbQueries *db.Queries) *BarberServiceRepository {
+func NewBarberServiceRepository(container *di.Container) *BarberServiceRepository {
 	return &BarberServiceRepository{
-		Queries: dbQueries,
+		Queries: container.Queries.HaircutDb,
 	}
 }
 

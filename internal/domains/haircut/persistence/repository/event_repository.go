@@ -1,6 +1,7 @@
 package haircut
 
 import (
+	"api/internal/di"
 	db "api/internal/domains/haircut/persistence/sqlc/generated"
 	values "api/internal/domains/haircut/values"
 	errLib "api/internal/libs/errors"
@@ -19,9 +20,9 @@ type Repository struct {
 	Queries *db.Queries
 }
 
-func NewEventsRepository(dbQueries *db.Queries) *Repository {
+func NewEventsRepository(container *di.Container) *Repository {
 	return &Repository{
-		Queries: dbQueries,
+		Queries: container.Queries.HaircutDb,
 	}
 }
 

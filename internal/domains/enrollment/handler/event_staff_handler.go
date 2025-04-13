@@ -1,6 +1,7 @@
 package enrollment
 
 import (
+	"api/internal/di"
 	repository "api/internal/domains/enrollment/persistence/repository"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
@@ -14,8 +15,8 @@ type StaffsHandler struct {
 	Repo *repository.StaffsRepository
 }
 
-func NewEventStaffsHandler(repo *repository.StaffsRepository) *StaffsHandler {
-	return &StaffsHandler{Repo: repo}
+func NewEventStaffsHandler(container *di.Container) *StaffsHandler {
+	return &StaffsHandler{Repo: repository.NewEventStaffsRepository(container)}
 }
 
 // AssignStaffToEvent assigns a staff member to an event.

@@ -1,6 +1,7 @@
 package haircut
 
 import (
+	"api/internal/di"
 	dto "api/internal/domains/haircut/dto/events"
 	repository "api/internal/domains/haircut/persistence/repository"
 	errLib "api/internal/libs/errors"
@@ -19,8 +20,8 @@ type EventsHandler struct {
 	Repo *repository.Repository
 }
 
-func NewEventsHandler(repo *repository.Repository) *EventsHandler {
-	return &EventsHandler{Repo: repo}
+func NewEventsHandler(container *di.Container) *EventsHandler {
+	return &EventsHandler{Repo: repository.NewEventsRepository(container)}
 }
 
 // GetEvents retrieves all haircut events based on filter criteria.

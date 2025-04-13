@@ -14,42 +14,50 @@ import (
 	"github.com/lib/pq"
 )
 
+const checkIfEventExist = `-- name: CheckIfEventExist :one
+SELECT EXISTS(SELECT 1
+                   FROM events.events
+                   WHERE id = $1)
+`
+
+func (q *Queries) CheckIfEventExist(ctx context.Context, id uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkIfEventExist, id)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const createEvents = `-- name: CreateEvents :exec
-WITH unnested_data AS (
-    SELECT
-        unnest($1::uuid[]) AS location_id,
-        unnest($2::uuid[]) AS program_id,
-        unnest($3::uuid[]) AS team_id,
-        unnest($4::timestamptz[]) AS start_at,
-        unnest($5::timestamptz[]) AS end_at,
-        unnest($6::uuid[]) AS created_by,
-        unnest($7::int[]) AS capacity,
-        unnest($8::bool[]) AS is_cancelled,
-        unnest($9::text[]) AS cancellation_reason
-)
-INSERT INTO events.events (
-    location_id,
-    program_id,
-    team_id,
-    start_at,
-    end_at,
-    created_by,
-    updated_by,
-    capacity,
-    is_cancelled,
-    cancellation_reason
-)
-SELECT
-    location_id,
-    NULLIF(program_id, '00000000-0000-0000-0000-000000000000'::uuid),
-    NULLIF(team_id, '00000000-0000-0000-0000-000000000000'::uuid),
-    start_at,
-    end_at,
-    created_by,
-    created_by,
-    capacity,
-    is_cancelled,
-    NULLIF(cancellation_reason, '')
+WITH unnested_data AS (SELECT unnest($1::uuid[])          AS location_id,
+                              unnest($2::uuid[])           AS program_id,
+                              unnest($3::uuid[])              AS team_id,
+                              unnest($4::timestamptz[]) AS start_at,
+                              unnest($5::timestamptz[])   AS end_at,
+                              unnest($6::uuid[])        AS created_by,
+                              unnest($7::int[])             AS capacity,
+                              unnest($8::bool[])    AS is_cancelled,
+                              unnest($9::text[])  AS cancellation_reason)
+INSERT
+INTO events.events (location_id,
+                    program_id,
+                    team_id,
+                    start_at,
+                    end_at,
+                    created_by,
+                    updated_by,
+                    capacity,
+                    is_cancelled,
+                    cancellation_reason)
+SELECT location_id,
+       NULLIF(program_id, '00000000-0000-0000-0000-000000000000'::uuid),
+       NULLIF(team_id, '00000000-0000-0000-0000-000000000000'::uuid),
+       start_at,
+       end_at,
+       created_by,
+       created_by,
+       NULLIF(capacity, 0),
+       is_cancelled,
+       NULLIF(cancellation_reason, '')
 FROM unnested_data
 `
 

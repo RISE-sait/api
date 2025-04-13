@@ -4,17 +4,12 @@ import (
 	"api/internal/di"
 
 	enrollmentHandler "api/internal/domains/enrollment/handler"
-	enrollmentRepo "api/internal/domains/enrollment/persistence/repository"
 
 	"api/internal/domains/game"
-	gameRepo "api/internal/domains/game/persistence"
-	haircutRepo "api/internal/domains/haircut/persistence/repository"
-	locationRepo "api/internal/domains/location/persistence"
 	programHandler "api/internal/domains/program"
 	contextUtils "api/utils/context"
 
 	teamsHandler "api/internal/domains/team"
-	teamsRepo "api/internal/domains/team/persistence"
 
 	userHandler "api/internal/domains/user/handler"
 
@@ -101,8 +96,7 @@ func RegisterHaircutRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterBarberServicesRoutes(container *di.Container) func(chi.Router) {
 
-	repo := haircutRepo.NewBarberServiceRepository(container.Queries.BarberDb)
-	h := barberServicesHandler.NewBarberServicesHandler(repo)
+	h := barberServicesHandler.NewBarberServicesHandler(container)
 
 	return func(r chi.Router) {
 
@@ -114,8 +108,7 @@ func RegisterBarberServicesRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterHaircutEventsRoutes(container *di.Container) func(chi.Router) {
 
-	repo := haircutRepo.NewEventsRepository(container.Queries.BarberDb)
-	h := haircutEvents.NewEventsHandler(repo)
+	h := haircutEvents.NewEventsHandler(container)
 
 	return func(r chi.Router) {
 
@@ -156,8 +149,7 @@ func RegisterMembershipPlansRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterGamesRoutes(container *di.Container) func(chi.Router) {
 
-	repo := gameRepo.NewGameRepository(container.Queries.GameDb)
-	h := game.NewHandler(repo)
+	h := game.NewHandler(container)
 
 	return func(r chi.Router) {
 		r.Get("/", h.GetGames)
@@ -171,8 +163,7 @@ func RegisterGamesRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterTeamsRoutes(container *di.Container) func(chi.Router) {
 
-	repo := teamsRepo.NewTeamRepository(container.Queries.TeamDb)
-	h := teamsHandler.NewHandler(repo)
+	h := teamsHandler.NewHandler(container)
 
 	return func(r chi.Router) {
 		r.Get("/", h.GetTeams)
@@ -185,8 +176,7 @@ func RegisterTeamsRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterLocationsRoutes(container *di.Container) func(chi.Router) {
 
-	repo := locationRepo.NewLocationRepository(container.Queries.LocationDb)
-	h := locationsHandler.NewLocationsHandler(repo)
+	h := locationsHandler.NewLocationsHandler(container)
 
 	return func(r chi.Router) {
 		r.Get("/", h.GetLocations)
@@ -246,8 +236,7 @@ func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterEventStaffRoutes(container *di.Container) func(chi.Router) {
 
-	repo := enrollmentRepo.NewEventStaffsRepository(container.Queries.EnrollmentDb)
-	h := enrollmentHandler.NewEventStaffsHandler(repo)
+	h := enrollmentHandler.NewEventStaffsHandler(container)
 
 	return func(r chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/{staff_id}", h.AssignStaffToEvent)

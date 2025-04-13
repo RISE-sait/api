@@ -1,6 +1,7 @@
 package game
 
 import (
+	"api/internal/di"
 	dto "api/internal/domains/game/dto"
 	repository "api/internal/domains/game/persistence"
 	responseHandlers "api/internal/libs/responses"
@@ -14,8 +15,8 @@ type Handler struct {
 	Repo *repository.Repository
 }
 
-func NewHandler(repo *repository.Repository) *Handler {
-	return &Handler{Repo: repo}
+func NewHandler(container *di.Container) *Handler {
+	return &Handler{Repo: repository.NewGameRepository(container.Queries.GameDb)}
 }
 
 // CreateGame creates a new game.

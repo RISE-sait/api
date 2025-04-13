@@ -131,30 +131,34 @@ func TestEnrollCustomerInProgramEvents(t *testing.T) {
 
 	defer cleanup()
 
-	// Create a user to be the creator of the event
-	createUserParams := identityDb.CreateUserParams{
+	creator, err := identityQueries.CreateUser(context.Background(), identityDb.CreateUserParams{
 		FirstName: "John",
 		LastName:  "Doe",
-	}
-
-	createdUser, err := identityQueries.CreateUser(context.Background(), createUserParams)
+	})
 	require.NoError(t, err)
 
-	createProgramParams := programDb.CreateProgramParams{
+	customer, err := identityQueries.CreateUser(context.Background(), identityDb.CreateUserParams{
+		FirstName: "Klint",
+		LastName:  "Doe",
+	})
+
+	require.NoError(t, err)
+
+	err = identityQueries.CreateAthlete(context.Background(), customer.ID)
+
+	require.NoError(t, err)
+
+	createdProgram, err := programQueries.CreateProgram(context.Background(), programDb.CreateProgramParams{
 		Name:  "Go Basics Practice",
 		Level: "beginner",
 		Type:  programDb.ProgramProgramTypeCourse,
-	}
-
-	createdProgram, err := programQueries.CreateProgram(context.Background(), createProgramParams)
+	})
 	require.NoError(t, err)
 
-	createLocationParams := locationDb.CreateLocationParams{
+	createdLocation, err := locationQueries.CreateLocation(context.Background(), locationDb.CreateLocationParams{
 		Name:    "Main Conference Room",
 		Address: "123 Main St",
-	}
-
-	createdLocation, err := locationQueries.CreateLocation(context.Background(), createLocationParams)
+	})
 	require.NoError(t, err)
 
 	numEvents := 20
@@ -178,8 +182,8 @@ func TestEnrollCustomerInProgramEvents(t *testing.T) {
 	for i := 0; i < numEvents; i++ {
 		locationIDs[i] = createdLocation.ID
 		programIDs[i] = createdProgram.ID
-		createdByIDs[i] = createdUser.ID
-		updatedByIDs[i] = createdUser.ID
+		createdByIDs[i] = creator.ID
+		updatedByIDs[i] = creator.ID
 		startTimes[i] = currentTime
 		endTimes[i] = currentTime.Add(duration)
 		capacities[i] = capacity
@@ -206,7 +210,7 @@ func TestEnrollCustomerInProgramEvents(t *testing.T) {
 	require.NoError(t, err)
 
 	enrollParams := enrollmentDb.EnrollCustomerInProgramParams{
-		CustomerID: createdUser.ID,
+		CustomerID: customer.ID,
 		ProgramID:  createdProgram.ID,
 	}
 
@@ -214,8 +218,8 @@ func TestEnrollCustomerInProgramEvents(t *testing.T) {
 	require.NoError(t, err)
 
 	events, err := eventQueries.GetEvents(context.Background(), eventDb.GetEventsParams{
-		UserID: uuid.NullUUID{
-			UUID:  createdUser.ID,
+		ParticipantID: uuid.NullUUID{
+			UUID:  customer.ID,
 			Valid: true,
 		},
 	})

@@ -242,13 +242,13 @@ func TestDeleteEvent(t *testing.T) {
 	now := time.Now().Truncate(time.Second)
 
 	createEventsParams := eventDb.CreateEventsParams{
-		StartAtArray:     []time.Time{now},
-		EndAtArray:       []time.Time{now.Add(24 * time.Hour)},
-		LocationIds:      []uuid.UUID{createdLocation.ID},
-		ProgramIds:       []uuid.UUID{createdProgram.ID},
-		CreatedByIds:     []uuid.UUID{creator.ID},
-		Capacities:       []int32{20},
-		IsCancelledArray: []bool{false},
+		StartAtArray:     []time.Time{now, now.Add(48 * time.Hour)},
+		EndAtArray:       []time.Time{now.Add(24 * time.Hour), now.Add(72 * time.Hour)},
+		LocationIds:      []uuid.UUID{createdLocation.ID, createdLocation.ID},
+		ProgramIds:       []uuid.UUID{createdProgram.ID, createdProgram.ID},
+		CreatedByIds:     []uuid.UUID{creator.ID, creator.ID},
+		Capacities:       []int32{20, 30},
+		IsCancelledArray: []bool{false, false},
 	}
 
 	err = eventQueries.CreateEvents(context.Background(), createEventsParams)
@@ -262,18 +262,24 @@ func TestDeleteEvent(t *testing.T) {
 		},
 	})
 
-	require.Len(t, createdEvents, 1)
-	createdEvent := createdEvents[0]
+	require.Len(t, createdEvents, 2)
+	createdEvent1 := createdEvents[0]
+	createdEvent2 := createdEvents[1]
 
 	// Now, delete the createdEvent
-	err = eventQueries.DeleteEvent(context.Background(), createdEvent.ID)
+	err = eventQueries.DeleteEvent(context.Background(), []uuid.UUID{
+		createdEvent1.ID,
+		createdEvent2.ID,
+	})
 
 	require.NoError(t, err)
 
 	// Try to fetch the deleted event
 
-	_, err = eventQueries.GetEventById(context.Background(), createdEvent.ID)
+	var filter eventDb.GetEventsParams
 
-	require.Error(t, err)
-	require.Equal(t, sql.ErrNoRows, err)
+	retrievedEvents, err := eventQueries.GetEvents(context.Background(), filter)
+
+	require.Nil(t, err)
+	require.Equal(t, 0, len(retrievedEvents))
 }

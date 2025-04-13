@@ -1,6 +1,7 @@
 package team
 
 import (
+	"api/internal/di"
 	dto "api/internal/domains/team/dto"
 	repository "api/internal/domains/team/persistence"
 	responseHandlers "api/internal/libs/responses"
@@ -14,8 +15,8 @@ type Handler struct {
 	Repo *repository.Repository
 }
 
-func NewHandler(repo *repository.Repository) *Handler {
-	return &Handler{Repo: repo}
+func NewHandler(container *di.Container) *Handler {
+	return &Handler{Repo: repository.NewTeamRepository(container.Queries.TeamDb)}
 }
 
 // CreateTeam creates a new team.

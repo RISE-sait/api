@@ -5,7 +5,7 @@ import (
 	enrollmentDb "api/internal/domains/enrollment/persistence/sqlc/generated"
 	eventDb "api/internal/domains/event/persistence/sqlc/generated"
 	gameDb "api/internal/domains/game/persistence/sqlc/generated"
-	barberDb "api/internal/domains/haircut/persistence/sqlc/generated"
+	haircutDb "api/internal/domains/haircut/persistence/sqlc/generated"
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
 	locationDb "api/internal/domains/location/persistence/sqlc/generated"
 	membershipDb "api/internal/domains/membership/persistence/sqlc/generated"
@@ -42,7 +42,7 @@ type QueriesType struct {
 	LocationDb   *locationDb.Queries
 	EventDb      *eventDb.Queries
 	EnrollmentDb *enrollmentDb.Queries
-	BarberDb     *barberDb.Queries
+	HaircutDb    *haircutDb.Queries
 	GameDb       *gameDb.Queries
 	TeamDb       *teamDb.Queries
 	UserDb       *userDb.Queries
@@ -101,7 +101,7 @@ func initializeQueries(db *sql.DB) *QueriesType {
 		LocationDb:   locationDb.New(db),
 		EventDb:      eventDb.New(db),
 		EnrollmentDb: enrollmentDb.New(db),
-		BarberDb:     barberDb.New(db),
+		HaircutDb:    haircutDb.New(db),
 		GameDb:       gameDb.New(db),
 		TeamDb:       teamDb.New(db),
 		OutboxDb:     outboxDb.New(db),

@@ -1,6 +1,7 @@
 package haircut
 
 import (
+	"api/internal/di"
 	dto "api/internal/domains/haircut/dto/barber_services"
 	repository "api/internal/domains/haircut/persistence/repository"
 	responseHandlers "api/internal/libs/responses"
@@ -14,8 +15,8 @@ type BarberServicesHandler struct {
 	Repo *repository.BarberServiceRepository
 }
 
-func NewBarberServicesHandler(repo *repository.BarberServiceRepository) *BarberServicesHandler {
-	return &BarberServicesHandler{Repo: repo}
+func NewBarberServicesHandler(container *di.Container) *BarberServicesHandler {
+	return &BarberServicesHandler{Repo: repository.NewBarberServiceRepository(container)}
 }
 
 // GetBarberServices godoc

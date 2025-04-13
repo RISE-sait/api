@@ -7,7 +7,6 @@ import (
 	errLib "api/internal/libs/errors"
 	"context"
 	"github.com/google/uuid"
-	"log"
 )
 
 type Service struct {
@@ -16,7 +15,6 @@ type Service struct {
 
 func NewProgramService(container *di.Container) *Service {
 
-	log.Println("Creating new program service")
 	return &Service{
 		repo: repo.NewProgramRepository(container),
 	}

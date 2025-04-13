@@ -1,7 +1,6 @@
 package membership
 
 import (
-	databaseErrors "api/internal/constants"
 	"api/internal/di"
 	db "api/internal/domains/membership/persistence/sqlc/generated"
 	values "api/internal/domains/membership/values"
@@ -49,12 +48,13 @@ func (r *PlansRepository) CreateMembershipPlan(c context.Context, membershipPlan
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
-			if pqErr.Code == databaseErrors.UniqueViolation {
-				return errLib.New("Membership plan already exists", http.StatusConflict)
-			}
 			switch pqErr.Constraint {
 			case "fk_membership":
 				return errLib.New("Membership not found", http.StatusNotFound)
+			case "unique_membership_name":
+				return errLib.New("Membership plan with this name already exists", http.StatusConflict)
+			case "unique_stripe_price_id":
+				return errLib.New("Membership plan with this stripe price ID already exists", http.StatusConflict)
 			}
 		}
 		log.Printf("Failed to create plan: %+v. Error: %v", membershipPlan, err.Error())

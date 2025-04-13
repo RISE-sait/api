@@ -77,16 +77,43 @@ func (r *Repository) CreateEvent(ctx context.Context, eventDetails values.Create
 		var pqErr *pq.Error
 		if errors.As(dbErr, &pqErr) {
 
+<<<<<<< HEAD
 			constraintErrors := map[string]string{
 				"fk_barber":              "Barber with the associated ID doesn't exist",
 				"fk_customer":            "Customer with the associated ID doesn't exist",
 				"fk_service_type":        "Service with the associated ID doesn't exist",
 				"check_end_time":         "end_time must be after start_time",
 				"unique_barber_schedule": "An event at this schedule overlaps with an existing event. Please choose a different schedule.",
+=======
+			constraintErrors := map[string]struct {
+				Message string
+				Status  int
+			}{
+				"fk_barber": {
+					Message: "Barber with the associated ID doesn't exist",
+					Status:  http.StatusNotFound,
+				},
+				"fk_customer": {
+					Message: "Customer with the associated ID doesn't exist",
+					Status:  http.StatusNotFound,
+				},
+				"fk_service_type": {
+					Message: "Service with the associated ID doesn't exist",
+					Status:  http.StatusNotFound,
+				},
+				"check_end_time": {
+					Message: "end_time must be after start_time",
+					Status:  http.StatusBadRequest,
+				},
+				"unique_schedule": {
+					Message: "An event at this schedule overlaps with an existing event",
+					Status:  http.StatusConflict,
+				},
+>>>>>>> origin/main
 			}
 
-			if msg, found := constraintErrors[pqErr.Constraint]; found {
-				return response, errLib.New(msg, http.StatusBadRequest)
+			if errInfo, found := constraintErrors[pqErr.Constraint]; found {
+				return response, errLib.New(errInfo.Message, errInfo.Status)
 			}
 		}
 
@@ -102,8 +129,10 @@ func (r *Repository) CreateEvent(ctx context.Context, eventDetails values.Create
 			BeginDateTime: eventDb.BeginDateTime,
 			EndDateTime:   eventDb.EndDateTime,
 		},
-		CreatedAt: eventDb.CreatedAt,
-		UpdatedAt: eventDb.UpdatedAt,
+		BarberName:   eventDb.BarberName,
+		CustomerName: eventDb.CustomerName,
+		CreatedAt:    eventDb.CreatedAt,
+		UpdatedAt:    eventDb.UpdatedAt,
 	}
 
 	return event, nil

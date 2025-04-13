@@ -16,14 +16,14 @@ const insertCourses = `-- name: InsertCourses :exec
 WITH prepared_data as (SELECT unnest($1::text[])                   as name,
                               unnest($2::text[])            as description,
                               unnest($3::program.program_level[]) as level,
-                              unnest($4::boolean[])        AS pay_per_event)
+                              unnest($4::boolean[])    AS pay_per_event)
 INSERT
 INTO program.programs (name, description, type, level, pay_per_event)
 SELECT name,
        description,
        'course',
        level,
-         pay_per_event
+       pay_per_event
 FROM prepared_data
 `
 
@@ -48,8 +48,7 @@ const insertGames = `-- name: InsertGames :exec
 WITH prepared_data as (SELECT unnest($5::text[])                   as name,
                               unnest($6::text[])            as description,
                               unnest($7::program.program_level[]) as level,
-                              unnest($8::boolean[])        AS pay_per_event
-                              ),
+                              unnest($8::boolean[])    AS pay_per_event),
      game_ids AS (
          INSERT INTO program.programs (name, description, type, level, pay_per_event)
              SELECT name, description, 'game', level, pay_per_event
@@ -90,7 +89,7 @@ const insertPractices = `-- name: InsertPractices :many
 WITH prepared_data as (SELECT unnest($1::text[])                   as name,
                               unnest($2::text[])            as description,
                               unnest($3::program.program_level[]) as level,
-                       unnest($4::boolean[])        AS pay_per_event)
+                              unnest($4::boolean[])    AS pay_per_event)
 INSERT
 INTO program.programs (name, description, type, level, pay_per_event)
 SELECT name,

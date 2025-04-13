@@ -20,6 +20,7 @@ FROM events_data e
          JOIN users.users creator ON creator.email = e.created_by_email
          JOIN users.users updater ON updater.email = e.updated_by_email
          JOIN location.locations l ON l.name = e.location_name
+ON CONFLICT DO NOTHING
 RETURNING id;
 
 

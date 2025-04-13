@@ -30,7 +30,6 @@ func (q *Queries) InsertCoachStats(ctx context.Context) error {
 const insertLocations = `-- name: InsertLocations :exec
 INSERT INTO location.locations (name, address)
 VALUES (unnest($1::text[]), unnest($2::text[]))
-RETURNING id
 `
 
 type InsertLocationsParams struct {

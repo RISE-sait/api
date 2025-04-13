@@ -297,16 +297,18 @@ func seedFakeCoachStats(ctx context.Context, db *sql.DB) {
 	}
 }
 
-func seedFakeCourses(ctx context.Context, db *sql.DB) {
+func seedFakeCourses(ctx context.Context, db *sql.DB) []string {
 
 	seedQueries := dbSeed.New(db)
 
-	if err := seedQueries.InsertCourses(ctx, data.GetCourses()); err != nil {
-		log.Fatalf("Failed to insert courses: %v", err)
-		return
-	}
+	courses := data.GetCourses()
 
-	return
+	if err := seedQueries.InsertCourses(ctx, courses); err != nil {
+		log.Fatalf("Failed to insert courses: %v", err)
+		return nil
+	} else {
+		return courses.NameArray
+	}
 }
 
 func seedFakeTeams(ctx context.Context, db *sql.DB) []uuid.UUID {
@@ -332,17 +334,20 @@ func seedFakeTeams(ctx context.Context, db *sql.DB) []uuid.UUID {
 	return teamIds
 }
 
-func seedFakeGames(ctx context.Context, db *sql.DB, teamIds []uuid.UUID) {
+func seedFakeGames(ctx context.Context, db *sql.DB, teamIds []uuid.UUID) []string {
 	seedQueries := dbSeed.New(db)
 
 	gamesData := data.GetGames(10, teamIds) // Generate 20 games
 
 	if err := seedQueries.InsertGames(ctx, gamesData); err != nil {
 		log.Fatalf("Failed to insert games: %v", err)
+		return nil
+	} else {
+		return gamesData.NameArray
 	}
 }
 
-func seedLocations(ctx context.Context, db *sql.DB) {
+func seedLocations(ctx context.Context, db *sql.DB) []string {
 
 	seedQueries := dbSeed.New(db)
 
@@ -362,6 +367,8 @@ func seedLocations(ctx context.Context, db *sql.DB) {
 	}); err != nil {
 		log.Fatalf("Failed to insert locations batch: %v", err)
 	}
+
+	return nameArray
 }
 
 func seedMembershipPlans(ctx context.Context, db *sql.DB) {
@@ -423,6 +430,22 @@ func seedEvents(ctx context.Context, db *sql.DB) []uuid.UUID {
 	seedQueries := dbSeed.New(db)
 
 	arg := data.GetEvents()
+
+	// Insert events and sessions into the database
+	ids, err := seedQueries.InsertEvents(ctx, arg)
+
+	if err != nil {
+		log.Fatalf("Failed to insert events: %v", err)
+		return nil
+	}
+
+	return ids
+}
+
+func seedFakeEvents(ctx context.Context, db *sql.DB, programs, locations []string) []uuid.UUID {
+	seedQueries := dbSeed.New(db)
+
+	arg := data.GetFakeEvents(programs, locations)
 
 	// Insert events and sessions into the database
 	ids, err := seedQueries.InsertEvents(ctx, arg)
@@ -511,13 +534,16 @@ func main() {
 
 	seedPractices(ctx, db)
 
-	seedFakeCourses(ctx, db)
+	courses := seedFakeCourses(ctx, db)
 
-	seedFakeGames(ctx, db, teamIds)
+	games := seedFakeGames(ctx, db, teamIds)
 
-	seedLocations(ctx, db)
+	locations := seedLocations(ctx, db)
 
 	eventIds := seedEvents(ctx, db)
+
+	_ = seedFakeEvents(ctx, db, games, locations)
+	_ = seedFakeEvents(ctx, db, courses, locations)
 
 	seedMemberships(ctx, db)
 

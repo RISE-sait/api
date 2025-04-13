@@ -1,7 +1,6 @@
 -- name: InsertLocations :exec
 INSERT INTO location.locations (name, address)
-VALUES (unnest(@name_array::text[]), unnest(@address_array::text[]))
-RETURNING id;
+VALUES (unnest(@name_array::text[]), unnest(@address_array::text[]));
 
 -- name: InsertTeams :many
 WITH prepared_data AS (SELECT unnest(@coach_email_array::text[])          AS coach,

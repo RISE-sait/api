@@ -12,6 +12,7 @@ type RequestDto struct {
 	BeginDateTime string    `json:"begin_time" validate:"required" example:"2023-10-05T07:00:00Z"`
 	EndDateTime   string    `json:"end_time" validate:"required" example:"2023-10-05T07:00:00Z"`
 	BarberID      uuid.UUID `json:"barber_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
+	ServiceName   string    `json:"service_name" validate:"required" example:"Haircut"`
 }
 
 func (dto RequestDto) validate() (time.Time, time.Time, *errLib.CommonError) {
@@ -45,6 +46,7 @@ func (dto RequestDto) ToCreateEventValue(customerId uuid.UUID) (values.CreateEve
 
 	return values.CreateEventValues{
 		EventValuesBase: values.EventValuesBase{
+			ServiceName:   dto.ServiceName,
 			BeginDateTime: beginTime,
 			EndDateTime:   endTime,
 			BarberID:      dto.BarberID,

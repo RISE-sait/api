@@ -1,7 +1,9 @@
 -- name: CreateHaircutEvent :one
-INSERT INTO haircut.events (begin_date_time, end_date_time, barber_id, customer_id)
-VALUES ($1, $2, $3, $4)
-RETURNING *;
+INSERT INTO haircut.events (begin_date_time, end_date_time, barber_id, customer_id, service_type_id)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING *,
+    (SELECT first_name || ' ' || last_name FROM users.users WHERE id = customer_id)::varchar as customer_name,
+    (SELECT first_name || ' ' || last_name FROM users.users WHERE id = barber_id)::varchar as barber_name;
 
 -- name: GetHaircutEvents :many
 SELECT e.*,

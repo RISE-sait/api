@@ -39,7 +39,8 @@ func (q *Queries) CreateHaircutService(ctx context.Context, arg CreateHaircutSer
 }
 
 const deleteHaircutService = `-- name: DeleteHaircutService :execrows
-DELETE FROM haircut.haircut_services
+DELETE
+FROM haircut.haircut_services
 WHERE id = $1
 `
 
@@ -52,7 +53,8 @@ func (q *Queries) DeleteHaircutService(ctx context.Context, id uuid.UUID) (int64
 }
 
 const getHaircutServices = `-- name: GetHaircutServices :many
-SELECT id, name, description, price, duration_in_min, created_at, updated_at FROM haircut.haircut_services
+SELECT id, name, description, price, duration_in_min, created_at, updated_at
+FROM haircut.haircut_services
 `
 
 func (q *Queries) GetHaircutServices(ctx context.Context) ([]HaircutHaircutService, error) {
@@ -88,12 +90,11 @@ func (q *Queries) GetHaircutServices(ctx context.Context) ([]HaircutHaircutServi
 
 const updateHaircutService = `-- name: UpdateHaircutService :execrows
 UPDATE haircut.haircut_services
-SET
-    name = $1,
-    description = $2,
+SET name            = $1,
+    description     = $2,
     duration_in_min = $3,
-    price = $4,
-    updated_at = current_timestamp
+    price           = $4,
+    updated_at      = current_timestamp
 WHERE id = $5
 `
 

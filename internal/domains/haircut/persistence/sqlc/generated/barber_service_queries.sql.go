@@ -31,7 +31,8 @@ func (q *Queries) CreateBarberService(ctx context.Context, arg CreateBarberServi
 }
 
 const deleteBarberService = `-- name: DeleteBarberService :execrows
-DELETE FROM haircut.barber_services
+DELETE
+FROM haircut.barber_services
 WHERE id = $1
 `
 
@@ -45,9 +46,9 @@ func (q *Queries) DeleteBarberService(ctx context.Context, id uuid.UUID) (int64,
 
 const getBarberServices = `-- name: GetBarberServices :many
 SELECT bs.id, bs.barber_id, bs.service_id, bs.created_at, bs.updated_at, (u.first_name || ' ' || u.last_name)::text as barber_name, hs.name as haircut_name
-       FROM haircut.barber_services bs
-    JOIN users.users u ON u.id = bs.barber_id
-JOIN haircut.haircut_services hs ON hs.id = bs.service_id
+FROM haircut.barber_services bs
+         JOIN users.users u ON u.id = bs.barber_id
+         JOIN haircut.haircut_services hs ON hs.id = bs.service_id
 `
 
 type GetBarberServicesRow struct {

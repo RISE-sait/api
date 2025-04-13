@@ -8,27 +8,39 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/lib/pq"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 type Repository struct {
-	Queries *db.Queries
+	Queries     *db.Queries
+	ServiceRepo *BarberServiceRepository
 }
 
 func NewEventsRepository(container *di.Container) *Repository {
 	return &Repository{
-		Queries: container.Queries.HaircutDb,
+		Queries:     container.Queries.HaircutDb,
+		ServiceRepo: NewBarberServiceRepository(container),
 	}
 }
 
-func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEventValues) (values.EventReadValues, *errLib.CommonError) {
+func (r *Repository) CreateEvent(ctx context.Context, eventDetails values.CreateEventValues) (values.EventReadValues, *errLib.CommonError) {
 
 	var response values.EventReadValues
+
+	availableServices, err := r.ServiceRepo.GetBarberServices(ctx)
+
+	if err != nil {
+		return response, err
+	}
+
+	serviceNames := make([]string, len(availableServices))
 
 	dbParams := db.CreateHaircutEventParams{
 		BeginDateTime: eventDetails.BeginDateTime,
@@ -37,26 +49,66 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 		CustomerID:    eventDetails.CustomerID,
 	}
 
-	eventDb, err := r.Queries.CreateHaircutEvent(c, dbParams)
+	for _, service := range availableServices {
+		if service.HaircutName == eventDetails.ServiceName {
+			dbParams.ServiceTypeID = service.ServiceTypeID
+			break
+		}
+	}
 
-	if err != nil {
+	if dbParams.ServiceTypeID == uuid.Nil {
+
+		for i, service := range availableServices {
+			serviceNames[i] = service.HaircutName
+		}
+
+		// join the slice into a string not using values.JoinString
+		return response, errLib.New(
+			fmt.Sprintf("Service '%s' not found. Available services: %s",
+				eventDetails.ServiceName,
+				strings.Join(serviceNames, ", ")),
+			http.StatusBadRequest)
+	}
+
+	eventDb, dbErr := r.Queries.CreateHaircutEvent(ctx, dbParams)
+
+	if dbErr != nil {
 
 		var pqErr *pq.Error
-		if errors.As(err, &pqErr) {
+		if errors.As(dbErr, &pqErr) {
 
-			constraintErrors := map[string]string{
-				"fk_barber":              "Barber with the associated ID doesn't exist",
-				"fk_customer":            "Customer with the associated ID doesn't exist",
-				"check_end_time":         "end_time must be after start_time",
-				"unique_barber_schedule": "An event at this schedule overlaps with an existing event. Please choose a different schedule.",
+			constraintErrors := map[string]struct {
+				Message string
+				Status  int
+			}{
+				"fk_barber": {
+					Message: "Barber with the associated ID doesn't exist",
+					Status:  http.StatusNotFound,
+				},
+				"fk_customer": {
+					Message: "Customer with the associated ID doesn't exist",
+					Status:  http.StatusNotFound,
+				},
+				"fk_service_type": {
+					Message: "Service with the associated ID doesn't exist",
+					Status:  http.StatusNotFound,
+				},
+				"check_end_time": {
+					Message: "end_time must be after start_time",
+					Status:  http.StatusBadRequest,
+				},
+				"unique_schedule": {
+					Message: "An event at this schedule overlaps with an existing event",
+					Status:  http.StatusConflict,
+				},
 			}
 
-			if msg, found := constraintErrors[pqErr.Constraint]; found {
-				return response, errLib.New(msg, http.StatusBadRequest)
+			if errInfo, found := constraintErrors[pqErr.Constraint]; found {
+				return response, errLib.New(errInfo.Message, errInfo.Status)
 			}
 		}
 
-		log.Printf("Failed to create eventDetails: %+v. Error: %v", eventDetails, err.Error())
+		log.Printf("Failed to create eventDetails: %+v. Error: %v", eventDetails, dbErr.Error())
 		return values.EventReadValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
@@ -68,8 +120,10 @@ func (r *Repository) CreateEvent(c context.Context, eventDetails values.CreateEv
 			BeginDateTime: eventDb.BeginDateTime,
 			EndDateTime:   eventDb.EndDateTime,
 		},
-		CreatedAt: eventDb.CreatedAt,
-		UpdatedAt: eventDb.UpdatedAt,
+		BarberName:   eventDb.BarberName,
+		CustomerName: eventDb.CustomerName,
+		CreatedAt:    eventDb.CreatedAt,
+		UpdatedAt:    eventDb.UpdatedAt,
 	}
 
 	return event, nil

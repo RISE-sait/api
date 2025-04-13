@@ -13,10 +13,9 @@ import (
 
 const getEventIdByStripePriceId = `-- name: GetEventIdByStripePriceId :one
 SELECT e.id
-FROM
-    events.events e
-LEFT JOIN program.programs p ON e.program_id = p.id
-LEFT JOIN program.fees f ON p.id = f.program_id
+FROM events.events e
+         LEFT JOIN program.programs p ON e.program_id = p.id
+         LEFT JOIN program.fees f ON p.id = f.program_id
 WHERE f.stripe_price_id = $1
 `
 
@@ -25,35 +24,6 @@ func (q *Queries) GetEventIdByStripePriceId(ctx context.Context, stripePriceID s
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
-}
-
-const getEventIsExist = `-- name: GetEventIsExist :one
-SELECT EXISTS(SELECT 1 FROM events.events WHERE id = $1)
-`
-
-func (q *Queries) GetEventIsExist(ctx context.Context, id uuid.UUID) (bool, error) {
-	row := q.db.QueryRowContext(ctx, getEventIsExist, id)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}
-
-const getProgram = `-- name: GetProgram :one
-SELECT id, name
-FROM program.programs
-WHERE id = $1
-`
-
-type GetProgramRow struct {
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
-}
-
-func (q *Queries) GetProgram(ctx context.Context, id uuid.UUID) (GetProgramRow, error) {
-	row := q.db.QueryRowContext(ctx, getProgram, id)
-	var i GetProgramRow
-	err := row.Scan(&i.ID, &i.Name)
-	return i, err
 }
 
 const getProgramIdByStripePriceId = `-- name: GetProgramIdByStripePriceId :one
@@ -69,23 +39,10 @@ func (q *Queries) GetProgramIdByStripePriceId(ctx context.Context, stripePriceID
 	return program_id, err
 }
 
-const getProgramOfEvent = `-- name: GetProgramOfEvent :one
-SELECT p.id
-FROM program.programs p
-JOIN events.events e ON e.program_id = p.id
-WHERE e.id = $1
-`
-
-func (q *Queries) GetProgramOfEvent(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
-	row := q.db.QueryRowContext(ctx, getProgramOfEvent, id)
-	err := row.Scan(&id)
-	return id, err
-}
-
 const getRegistrationPriceIdForCustomer = `-- name: GetRegistrationPriceIdForCustomer :one
 SELECT f.stripe_price_id, p.pay_per_event
 FROM program.fees f
-JOIN program.programs p ON p.id = f.program_id
+         JOIN program.programs p ON p.id = f.program_id
 WHERE f.membership_id = (SELECT mp.membership_id
                          FROM users.customer_membership_plans cmp
                                   LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id

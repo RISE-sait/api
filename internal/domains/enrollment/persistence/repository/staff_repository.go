@@ -27,10 +27,8 @@ func NewEventStaffsRepository(container *di.Container) *StaffsRepository {
 
 func (r *StaffsRepository) AssignStaffToEvent(ctx context.Context, eventId, staffId uuid.UUID) *errLib.CommonError {
 
-	if isExist, err := r.EventService.CheckIfEventExist(ctx, eventId); err != nil {
+	if _, err := r.EventService.GetEvent(ctx, eventId); err != nil {
 		return err
-	} else if !isExist {
-		return errLib.New("Event not found", http.StatusNotFound)
 	}
 
 	dbParams := db.AssignStaffToEventParams{
@@ -48,10 +46,8 @@ func (r *StaffsRepository) AssignStaffToEvent(ctx context.Context, eventId, staf
 
 func (r *StaffsRepository) UnassignedStaffFromEvent(ctx context.Context, eventId, staffId uuid.UUID) *errLib.CommonError {
 
-	if isExist, err := r.EventService.CheckIfEventExist(ctx, eventId); err != nil {
+	if _, err := r.EventService.GetEvent(ctx, eventId); err != nil {
 		return err
-	} else if !isExist {
-		return errLib.New("Event not found", http.StatusNotFound)
 	}
 
 	dbParams := db.UnassignStaffFromEventParams{

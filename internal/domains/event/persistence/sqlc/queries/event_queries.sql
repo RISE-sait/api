@@ -122,11 +122,6 @@ FROM events.events e
          LEFT JOIN athletic.teams t ON t.id = e.team_id
 WHERE e.id = $1;
 
--- name: CheckIfEventExist :one
-SELECT EXISTS(SELECT 1
-              FROM events.events
-              WHERE id = $1);
-
 -- name: UpdateEvent :one
 UPDATE events.events
 SET start_at            = $1,

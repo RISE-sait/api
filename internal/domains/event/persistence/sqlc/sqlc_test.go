@@ -18,6 +18,20 @@ import (
 	programDb "api/internal/domains/program/persistence/sqlc/generated"
 )
 
+func TestGetNonExistingEvent(t *testing.T) {
+
+	db, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+
+	eventQueries := eventDb.New(db)
+
+	defer cleanup()
+
+	_, err := eventQueries.GetEventById(context.Background(), uuid.New())
+
+	require.Error(t, err)
+	require.Equal(t, sql.ErrNoRows, err)
+}
+
 func TestCreateEvents(t *testing.T) {
 
 	db, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")

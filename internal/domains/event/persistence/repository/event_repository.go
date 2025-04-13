@@ -113,16 +113,6 @@ func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails values
 	return nil
 }
 
-func (r *EventsRepository) CheckEventIsExist(ctx context.Context, id uuid.UUID) (bool, *errLib.CommonError) {
-	isExist, err := r.Queries.CheckIfEventExist(ctx, id)
-	if err != nil {
-		log.Println("Failed to check event existence: ", err.Error())
-		return false, errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-
-	return isExist, nil
-}
-
 func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.ReadEventValues, *errLib.CommonError) {
 	dbEvent, err := r.Queries.GetEventById(ctx, id)
 	if err != nil {

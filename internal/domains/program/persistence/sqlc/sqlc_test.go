@@ -195,7 +195,7 @@ func TestGetNotExistingProgram(t *testing.T) {
 	defer cleanup()
 
 	// Fetch all courses
-	_, err := queries.GetProgram(context.Background(), uuid.New())
+	_, err := queries.GetProgramById(context.Background(), uuid.New())
 	require.Error(t, err)
 	require.Equal(t, sql.ErrNoRows, err)
 }

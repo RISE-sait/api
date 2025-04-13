@@ -45,6 +45,39 @@ func (q *Queries) DeleteStaff(ctx context.Context, id uuid.UUID) (int64, error) 
 	return result.RowsAffected()
 }
 
+const getAvailableStaffRoles = `-- name: GetAvailableStaffRoles :many
+SELECT id, role_name, created_at, updated_at
+FROM staff.staff_roles
+`
+
+func (q *Queries) GetAvailableStaffRoles(ctx context.Context) ([]StaffStaffRole, error) {
+	rows, err := q.db.QueryContext(ctx, getAvailableStaffRoles)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []StaffStaffRole
+	for rows.Next() {
+		var i StaffStaffRole
+		if err := rows.Scan(
+			&i.ID,
+			&i.RoleName,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getStaffs = `-- name: GetStaffs :many
 SELECT s.is_active, u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.age, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, sr.role_name, cs.wins, cs.losses
 FROM staff.staff s

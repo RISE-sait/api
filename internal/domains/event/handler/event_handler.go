@@ -332,7 +332,7 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 404 {object} map[string]interface{} "Not Found: One or more events not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /events/bulk [delete]
+// @Router /events [delete]
 func (h *EventsHandler) DeleteEvents(w http.ResponseWriter, r *http.Request) {
 
 	// Get auth context

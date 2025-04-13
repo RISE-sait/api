@@ -114,7 +114,7 @@ func RegisterHaircutEventsRoutes(container *di.Container) func(chi.Router) {
 
 		r.Get("/", h.GetEvents)
 		r.Get("/{id}", h.GetEvent)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleInstructor, contextUtils.RoleCoach, contextUtils.RoleAdmin)).Post("/", h.CreateEvent)
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/", h.CreateEvent)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", h.DeleteEvent)
 	}
 }

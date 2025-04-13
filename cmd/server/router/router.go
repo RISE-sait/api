@@ -226,9 +226,9 @@ func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Get("/", handler.GetEvents)
 		r.Get("/{id}", handler.GetEvent)
-		r.With(middlewares.JWTAuthMiddleware(true)).Post("/", handler.CreateEvent)
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/", handler.CreateEvents)
 		r.With(middlewares.JWTAuthMiddleware(true)).Put("/{id}", handler.UpdateEvent)
-		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/{id}", handler.DeleteEvent)
+		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/", handler.DeleteEvents)
 
 		r.Route("/{event_id}/staffs", RegisterEventStaffRoutes(container))
 	}

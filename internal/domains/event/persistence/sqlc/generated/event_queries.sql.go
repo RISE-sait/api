@@ -16,8 +16,8 @@ import (
 
 const checkIfEventExist = `-- name: CheckIfEventExist :one
 SELECT EXISTS(SELECT 1
-                   FROM events.events
-                   WHERE id = $1)
+              FROM events.events
+              WHERE id = $1)
 `
 
 func (q *Queries) CheckIfEventExist(ctx context.Context, id uuid.UUID) (bool, error) {
@@ -91,11 +91,11 @@ func (q *Queries) CreateEvents(ctx context.Context, arg CreateEventsParams) erro
 const deleteEvent = `-- name: DeleteEvent :exec
 DELETE
 FROM events.events
-WHERE id = $1
+WHERE id = ANY ($1::uuid[])
 `
 
-func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteEvent, id)
+func (q *Queries) DeleteEvent(ctx context.Context, ids []uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteEvent, pq.Array(ids))
 	return err
 }
 
@@ -321,7 +321,7 @@ FROM events.events e
          JOIN users.users creator ON creator.id = e.created_by
          JOIN users.users updater ON updater.id = e.updated_by
 WHERE (
-          ($1::uuid = e.program_id OR $1 IS NULL)
+              ($1::uuid = e.program_id OR $1 IS NULL)
               AND ($2::uuid = e.location_id OR $2 IS NULL)
               AND ($3::timestamp <= e.start_at OR $3 IS NULL)
               AND ($4::timestamp >= e.end_at OR $4 IS NULL)
@@ -341,7 +341,7 @@ type GetEventsParams struct {
 	After            sql.NullTime           `json:"after"`
 	Before           sql.NullTime           `json:"before"`
 	Type             NullProgramProgramType `json:"type"`
-	UserID           uuid.NullUUID          `json:"user_id"`
+	ParticipantID    uuid.NullUUID          `json:"participant_id"`
 	TeamID           uuid.NullUUID          `json:"team_id"`
 	CreatedBy        uuid.NullUUID          `json:"created_by"`
 	UpdatedBy        uuid.NullUUID          `json:"updated_by"`
@@ -381,7 +381,7 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 		arg.After,
 		arg.Before,
 		arg.Type,
-		arg.UserID,
+		arg.ParticipantID,
 		arg.TeamID,
 		arg.CreatedBy,
 		arg.UpdatedBy,

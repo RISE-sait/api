@@ -58,7 +58,7 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 		events, err := generateEventsFromRecurrence(recurrence)
 
 		assert.Nil(t, events)
-		assert.Nil(t, err)
+		assert.NotNil(t, err)
 		assert.Equal(t, http.StatusBadRequest, err.HTTPCode)
 		assert.Contains(t, err.Message, "Invalid start time format")
 	})
@@ -80,7 +80,7 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 		events, err := generateEventsFromRecurrence(recurrence)
 
 		assert.Nil(t, events)
-		assert.Nil(t, err)
+		assert.NotNil(t, err)
 		assert.Equal(t, http.StatusBadRequest, err.HTTPCode)
 		assert.Contains(t, err.Message, "Invalid end time format")
 	})

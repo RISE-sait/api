@@ -611,8 +611,8 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-                        "description": "Filter by user ID (UUID format)",
-                        "name": "user_id",
+                        "description": "Filter by participant ID (UUID format)",
+                        "name": "participant_id",
                         "in": "query"
                     },
                     {
@@ -682,7 +682,6 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Registers a new event with the provided details.",
                 "consumes": [
                     "application/json"
                 ],
@@ -692,7 +691,6 @@ const docTemplate = `{
                 "tags": [
                     "events"
                 ],
-                "summary": "Create a new event",
                 "parameters": [
                     {
                         "description": "Event details",
@@ -714,6 +712,63 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "parameters": [
+                    {
+                        "description": "Array of Event IDs to delete",
+                        "name": "ids",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/event.DeleteRequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Events deleted successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: One or more events not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -837,7 +892,6 @@ const docTemplate = `{
         },
         "/events/{id}": {
             "get": {
-                "description": "Retrieves details of a specific event based on its ID.",
                 "consumes": [
                     "application/json"
                 ],
@@ -847,7 +901,6 @@ const docTemplate = `{
                 "tags": [
                     "events"
                 ],
-                "summary": "Get event details",
                 "parameters": [
                     {
                         "type": "string",
@@ -899,7 +952,6 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Updates the details of an existing event.",
                 "consumes": [
                     "application/json"
                 ],
@@ -909,7 +961,6 @@ const docTemplate = `{
                 "tags": [
                     "events"
                 ],
-                "summary": "Update an event",
                 "parameters": [
                     {
                         "type": "string",
@@ -938,58 +989,6 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request: Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Event not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "description": "Deletes an event by its ID.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "events"
-                ],
-                "summary": "Delete an event",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Event ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content: Event deleted successfully",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid ID",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3649,33 +3648,14 @@ const docTemplate = `{
         "event.CreateRequestDto": {
             "type": "object",
             "required": [
-                "end_at",
-                "start_at"
+                "events"
             ],
             "properties": {
-                "capacity": {
-                    "type": "integer",
-                    "example": 100
-                },
-                "end_at": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
-                "location_id": {
-                    "type": "string",
-                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
-                },
-                "program_id": {
-                    "type": "string",
-                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
-                },
-                "start_at": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
-                "team_id": {
-                    "type": "string",
-                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+                "events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/event.RequestDto"
+                    }
                 }
             }
         },
@@ -3702,6 +3682,21 @@ const docTemplate = `{
                 },
                 "phone": {
                     "type": "string"
+                }
+            }
+        },
+        "event.DeleteRequestDto": {
+            "type": "object",
+            "required": [
+                "ids"
+            ],
+            "properties": {
+                "ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -3819,6 +3814,39 @@ const docTemplate = `{
                 }
             }
         },
+        "event.RequestDto": {
+            "type": "object",
+            "required": [
+                "end_at",
+                "start_at"
+            ],
+            "properties": {
+                "capacity": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "end_at": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "location_id": {
+                    "type": "string",
+                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+                },
+                "program_id": {
+                    "type": "string",
+                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+                },
+                "start_at": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "team_id": {
+                    "type": "string",
+                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+                }
+            }
+        },
         "event.ScheduleResponseDto": {
             "type": "object",
             "properties": {
@@ -3910,10 +3938,6 @@ const docTemplate = `{
                 "end_at": {
                     "type": "string",
                     "example": "2023-10-05T07:00:00Z"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
                 },
                 "location_id": {
                     "type": "string",
@@ -4066,7 +4090,8 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "begin_time",
-                "end_time"
+                "end_time",
+                "service_name"
             ],
             "properties": {
                 "barber_id": {
@@ -4080,6 +4105,10 @@ const docTemplate = `{
                 "end_time": {
                     "type": "string",
                     "example": "2023-10-05T07:00:00Z"
+                },
+                "service_name": {
+                    "type": "string",
+                    "example": "Haircut"
                 }
             }
         },

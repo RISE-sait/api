@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"log"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -128,7 +129,8 @@ SELECT COUNT(*)
 				enrollErr := <-enrollmentErrs
 				if enrollErr != nil {
 					assert.Equal(t, http.StatusConflict, enrollErr.HTTPCode)
-					assert.Contains(t, enrollErr.Message, "Too many people enrolled at the same time. Please try again.")
+					assert.True(t, strings.Contains(enrollErr.Message, "Too many people enrolled at the same time. Please try again.") ||
+						strings.Contains(enrollErr.Message, "Too many people enrolled at the same time. Please try again."))
 					failedEnrollments++
 				}
 			}

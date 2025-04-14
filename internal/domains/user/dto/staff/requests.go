@@ -8,7 +8,7 @@ import (
 
 // RequestDto represents the request dto for creating and updating a staff member.
 type RequestDto struct {
-	IsActive bool   `json:"is_active" validate:"required"`
+	IsActive *bool  `json:"is_active" validate:"required"`
 	RoleName string `json:"role_name" validate:"required"`
 }
 
@@ -32,7 +32,7 @@ func (dto RequestDto) ToUpdateRequestValues(idStr string) (values.UpdateValues, 
 
 	return values.UpdateValues{
 		ID:       id,
-		IsActive: dto.IsActive,
+		IsActive: *dto.IsActive,
 		RoleName: dto.RoleName,
 	}, nil
 }

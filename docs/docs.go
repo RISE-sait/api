@@ -3648,7 +3648,6 @@ const docTemplate = `{
         "event.CreateRequestDto": {
             "type": "object",
             "required": [
-                "day",
                 "end_at",
                 "recurrence_end_at",
                 "recurrence_start_at",

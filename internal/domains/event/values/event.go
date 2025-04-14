@@ -17,7 +17,7 @@ type Details struct {
 
 type CreateEventsRecurrenceValues struct {
 	CreatedBy         uuid.UUID
-	Day               time.Weekday
+	Day               *time.Weekday
 	RecurrenceStartAt time.Time
 	RecurrenceEndAt   time.Time
 	EventStartTime    string

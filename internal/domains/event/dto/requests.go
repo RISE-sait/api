@@ -12,7 +12,7 @@ import (
 )
 
 type CreateRequestDto struct {
-	Day               string    `json:"day" validate:"required" example:"THURSDAY"`
+	Day               string    `json:"day" example:"THURSDAY"`
 	RecurrenceStartAt string    `json:"recurrence_start_at" validate:"required" example:"2023-10-05T07:00:00Z"`
 	RecurrenceEndAt   string    `json:"recurrence_end_at" validate:"required" example:"2023-10-05T07:00:00Z"`
 	EventStartTime    string    `json:"start_at" validate:"required" example:"23:00:00+00:00"`
@@ -98,14 +98,14 @@ func (dto CreateRequestDto) ToCreateEventsValues(creator uuid.UUID) (values.Crea
 		return values.CreateEventsRecurrenceValues{}, err
 	}
 
-	if dto.Capacity <= 0 {
-		return values.CreateEventsRecurrenceValues{}, errLib.New("Capacity must be provided, and greater than 0", http.StatusBadRequest)
-	}
+	var day *time.Weekday
 
-	day, err := validateWeekday(dto.Day)
-
-	if err != nil {
-		return values.CreateEventsRecurrenceValues{}, err
+	if dto.Day != "" {
+		weekDay, err := validateWeekday(dto.Day)
+		if err == nil {
+			return values.CreateEventsRecurrenceValues{}, err
+		}
+		day = &weekDay
 	}
 
 	return values.CreateEventsRecurrenceValues{

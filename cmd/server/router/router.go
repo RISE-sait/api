@@ -207,8 +207,8 @@ func RegisterStaffRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Get("/", h.GetStaffs)
 
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}", h.UpdateStaff)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", h.DeleteStaff)
+		r.With(middlewares.JWTAuthMiddleware(false)).Put("/{id}", h.UpdateStaff)
+		r.With(middlewares.JWTAuthMiddleware(false)).Delete("/{id}", h.DeleteStaff)
 	}
 }
 

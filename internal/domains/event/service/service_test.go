@@ -12,9 +12,12 @@ import (
 
 func TestGenerateEventsFromRecurrence(t *testing.T) {
 	t.Run("Valid input generates events", func(t *testing.T) {
+
+		day := time.Monday
+
 		recurrence := values.CreateEventsRecurrenceValues{
 			CreatedBy:         uuid.New(),
-			Day:               time.Monday,
+			Day:               &day,
 			RecurrenceStartAt: time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC),  // Monday
 			RecurrenceEndAt:   time.Date(2023, 10, 30, 0, 0, 0, 0, time.UTC), // 4 weeks later
 			EventStartTime:    "10:00",
@@ -42,9 +45,12 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 	})
 
 	t.Run("Invalid start time format", func(t *testing.T) {
+
+		day := time.Monday
+
 		recurrence := values.CreateEventsRecurrenceValues{
 			CreatedBy:         uuid.New(),
-			Day:               time.Monday,
+			Day:               &day,
 			RecurrenceStartAt: time.Now(),
 			RecurrenceEndAt:   time.Now().AddDate(0, 0, 7),
 			EventStartTime:    "invalid-time",
@@ -64,9 +70,12 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 	})
 
 	t.Run("Invalid end time format", func(t *testing.T) {
+
+		day := time.Monday
+
 		recurrence := values.CreateEventsRecurrenceValues{
 			CreatedBy:         uuid.New(),
-			Day:               time.Monday,
+			Day:               &day,
 			RecurrenceStartAt: time.Now(),
 			RecurrenceEndAt:   time.Now().AddDate(0, 0, 7),
 			EventStartTime:    "10:00",
@@ -86,9 +95,12 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 	})
 
 	t.Run("End time before start time (crosses midnight)", func(t *testing.T) {
+
+		day := time.Monday
+
 		recurrence := values.CreateEventsRecurrenceValues{
 			CreatedBy:         uuid.New(),
-			Day:               time.Monday,
+			Day:               &day,
 			RecurrenceStartAt: time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC),  // Monday
 			RecurrenceEndAt:   time.Date(2023, 10, 30, 0, 0, 0, 0, time.UTC), // 4 weeks later
 			EventStartTime:    "23:00",
@@ -111,9 +123,12 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 	})
 
 	t.Run("No events generated if recurrence period is invalid", func(t *testing.T) {
+
+		day := time.Monday
+
 		recurrence := values.CreateEventsRecurrenceValues{
 			CreatedBy:         uuid.New(),
-			Day:               time.Monday,
+			Day:               &day,
 			RecurrenceStartAt: time.Date(2023, 10, 30, 0, 0, 0, 0, time.UTC), // Monday
 			RecurrenceEndAt:   time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC),  // Earlier date
 			EventStartTime:    "10:00",
@@ -126,14 +141,16 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 
 		events, err := generateEventsFromRecurrence(recurrence)
 
-		assert.Nil(t, err)
+		assert.NotNil(t, err)
+		assert.Equal(t, http.StatusBadRequest, err.HTTPCode)
+		assert.Contains(t, err.Message, "Recurrence start date must be before the end date")
 		assert.Empty(t, events)
 	})
 
 	t.Run("Single-day recurrence period", func(t *testing.T) {
 		recurrence := values.CreateEventsRecurrenceValues{
 			CreatedBy:         uuid.New(),
-			Day:               time.Monday,
+			Day:               nil,
 			RecurrenceStartAt: time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC), // Monday
 			RecurrenceEndAt:   time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC), // Same day
 			EventStartTime:    "10:00",
@@ -152,9 +169,12 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 	})
 
 	t.Run("No matching weekdays in recurrence period", func(t *testing.T) {
+
+		day := time.Sunday
+
 		recurrence := values.CreateEventsRecurrenceValues{
 			CreatedBy:         uuid.New(),
-			Day:               time.Sunday,                                  // No Sundays in the range
+			Day:               &day,                                         // No Sundays in the range
 			RecurrenceStartAt: time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC), // Monday
 			RecurrenceEndAt:   time.Date(2023, 10, 6, 0, 0, 0, 0, time.UTC), // Friday
 			EventStartTime:    "10:00",

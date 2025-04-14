@@ -51,6 +51,14 @@ func (s *Service) DeleteEvents(ctx context.Context, ids []uuid.UUID) *errLib.Com
 func generateEventsFromRecurrence(recurrence values.CreateEventsRecurrenceValues) ([]values.CreateEventsSpecificValues, *errLib.CommonError) {
 	var specificEvents []values.CreateEventsSpecificValues
 
+	if recurrence.RecurrenceStartAt.After(recurrence.RecurrenceEndAt) {
+		return nil, errLib.New("Recurrence start date must be before the end date", http.StatusBadRequest)
+	}
+
+	if recurrence.Capacity <= 0 {
+		return nil, errLib.New("Capacity must be greater than zero", http.StatusBadRequest)
+	}
+
 	// Parse the time strings into time.Time objects for the current day
 	eventDate := recurrence.RecurrenceStartAt
 	layout := "15:04" // Assuming time format is HH:MM
@@ -72,6 +80,22 @@ func generateEventsFromRecurrence(recurrence values.CreateEventsRecurrenceValues
 	endTime = time.Date(eventDate.Year(), eventDate.Month(), eventDate.Day(),
 		endTime.Hour(), endTime.Minute(), 0, 0, eventDate.Location())
 
+	if recurrence.Day == nil {
+		// non recurring
+		specificEvent := values.CreateEventsSpecificValues{
+			CreatedBy:  recurrence.CreatedBy,
+			StartAt:    startTime,
+			EndAt:      endTime,
+			ProgramID:  recurrence.ProgramID,
+			LocationID: recurrence.LocationID,
+			TeamID:     recurrence.TeamID,
+			Capacity:   recurrence.Capacity,
+		}
+		specificEvents = append(specificEvents, specificEvent)
+
+		return specificEvents, nil
+	}
+
 	// If the end time is before start time (crosses midnight), add a day to end time
 	if endTime.Before(startTime) {
 		endTime = endTime.AddDate(0, 0, 1)
@@ -82,7 +106,7 @@ func generateEventsFromRecurrence(recurrence values.CreateEventsRecurrenceValues
 
 		// Find the next occurrence of the specified weekday
 		eventDate = currentDate
-		for eventDate.Weekday() != recurrence.Day {
+		for eventDate.Weekday() != *recurrence.Day {
 			eventDate = eventDate.AddDate(0, 0, 1)
 
 			// If we've moved past the end date, break

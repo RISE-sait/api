@@ -133,6 +133,7 @@ func (r *PlansRepository) GetMembershipPlans(ctx context.Context, membershipId u
 func (r *PlansRepository) UpdateMembershipPlan(c context.Context, plan values.PlanUpdateValues) *errLib.CommonError {
 
 	dbMembershipParams := db.UpdateMembershipPlanParams{
+		ID:           plan.ID,
 		MembershipID: plan.MembershipID,
 		Name:         plan.Name,
 		StripeJoiningFeeID: sql.NullString{
@@ -152,6 +153,14 @@ func (r *PlansRepository) UpdateMembershipPlan(c context.Context, plan values.Pl
 	_, err := r.Queries.UpdateMembershipPlan(c, dbMembershipParams)
 
 	if err != nil {
+		var pqErr *pq.Error
+
+		if errors.As(err, &pqErr) {
+			switch pqErr.Constraint {
+			case "fk_membership":
+				return errLib.New("Membership not found", http.StatusNotFound)
+			}
+		}
 		log.Printf("Failed to update plan: %+v. Error: %v", plan, err.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}

@@ -7,12 +7,28 @@ import (
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"github.com/lib/pq"
 	"log"
 	"net/http"
 
 	"github.com/google/uuid"
 )
+
+var constraintErrors = map[string]struct {
+	Message string
+	Status  int
+}{
+	"staff_id_fkey": {
+		Message: "The user doesn't exist for the staff",
+		Status:  http.StatusNotFound,
+	},
+	"staff_role_id_fkey": {
+		Message: "The role doesn't exist",
+		Status:  http.StatusNotFound,
+	},
+}
 
 type StaffRepository struct {
 	Queries *db.Queries
@@ -121,6 +137,15 @@ func (r *StaffRepository) Update(ctx context.Context, staffFields values.UpdateV
 	}
 
 	if affectedRows, err := r.Queries.UpdateStaff(ctx, dbStaffParams); err != nil {
+
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+
+			if errInfo, found := constraintErrors[pqErr.Constraint]; found {
+				return errLib.New(errInfo.Message, errInfo.Status)
+			}
+		}
+
 		log.Printf("Failed to update staff %+v. Error: %v", staffFields.ID, err.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	} else if affectedRows == 0 {
@@ -132,13 +157,23 @@ func (r *StaffRepository) Update(ctx context.Context, staffFields values.UpdateV
 }
 
 func (r *StaffRepository) Delete(c context.Context, id uuid.UUID) *errLib.CommonError {
-	row, err := r.Queries.DeleteStaff(c, id)
+	impactedRows, err := r.Queries.DeleteStaff(c, id)
 
 	if err != nil {
+
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+
+			if errInfo, found := constraintErrors[pqErr.Constraint]; found {
+				return errLib.New(errInfo.Message, errInfo.Status)
+			}
+		}
+
+		log.Printf("Failed to delete staff with ID: %s. Error: %v", id, err.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	if row == 0 {
+	if impactedRows == 0 {
 		return errLib.New("Staff not found", http.StatusNotFound)
 	}
 

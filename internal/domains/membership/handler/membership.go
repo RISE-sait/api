@@ -26,7 +26,7 @@ func NewHandlers(container *di.Container) *Handlers {
 // @Tags memberships
 // @Accept json
 // @Produce json
-// @Param membership body dto.RequestDto true "Membership details"
+// @Param membership body dto.UpdateRequestDto true "Membership details"
 // @Security Bearer
 // @Success 201 "Membership created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
@@ -119,7 +119,7 @@ func (h *Handlers) GetMemberships(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Security Bearer
 // @Param id path string true "Membership ID" example("f47ac10b-58cc-4372-a567-0e02b2c3d479")
-// @Param membership body dto.RequestDto true "Membership details"
+// @Param membership body dto.UpdateRequestDto true "Membership details"
 // @Success 204 "No Content: Membership updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 404 {object} map[string]interface{} "Not Found: Membership not found"

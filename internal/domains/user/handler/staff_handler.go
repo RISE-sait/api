@@ -69,7 +69,7 @@ func (h *StaffHandler) GetStaffs(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param id path string true "Staff ID" example("f47ac10b-58cc-4372-a567-0e02b2c3d479")
-// @Param staff body dto.RequestDto true "Staff details"
+// @Param staff body dto.UpdateRequestDto true "Staff details"
 // @Success 204 "No Content: Staff updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 404 {object} map[string]interface{} "Not Found: Staff not found"

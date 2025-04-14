@@ -1063,7 +1063,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/game.RequestDto"
+                            "$ref": "#/definitions/game.UpdateRequestDto"
                         }
                     }
                 ],
@@ -1167,7 +1167,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/game.RequestDto"
+                            "$ref": "#/definitions/game.UpdateRequestDto"
                         }
                     }
                 ],
@@ -1446,7 +1446,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/haircut.RequestDto"
+                            "$ref": "#/definitions/haircut.UpdateRequestDto"
                         }
                     }
                 ],
@@ -1624,7 +1624,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/location.RequestDto"
+                            "$ref": "#/definitions/location.UpdateRequestDto"
                         }
                     }
                 ],
@@ -1730,7 +1730,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/location.RequestDto"
+                            "$ref": "#/definitions/location.UpdateRequestDto"
                         }
                     }
                 ],
@@ -1866,7 +1866,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/membership.RequestDto"
+                            "$ref": "#/definitions/membership.UpdateRequestDto"
                         }
                     }
                 ],
@@ -2143,7 +2143,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/membership.RequestDto"
+                            "$ref": "#/definitions/membership.UpdateRequestDto"
                         }
                     }
                 ],
@@ -2350,7 +2350,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/program.RequestDto"
+                            "$ref": "#/definitions/program.UpdateRequestDto"
                         }
                     }
                 ],
@@ -2490,7 +2490,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/program.RequestDto"
+                            "$ref": "#/definitions/program.UpdateRequestDto"
                         }
                     }
                 ],
@@ -3074,7 +3074,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/staff.RequestDto"
+                            "$ref": "#/definitions/staff.UpdateRequestDto"
                         }
                     }
                 ],
@@ -3212,7 +3212,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/team.RequestDto"
+                            "$ref": "#/definitions/team.UpdateRequestDto"
                         }
                     }
                 ],
@@ -3271,7 +3271,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/team.RequestDto"
+                            "$ref": "#/definitions/team.UpdateRequestDto"
                         }
                     }
                 ],
@@ -3654,7 +3654,7 @@ const docTemplate = `{
                 "events": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/event.RequestDto"
+                        "$ref": "#/definitions/event.UpdateRequestDto"
                     }
                 }
             }
@@ -3814,7 +3814,7 @@ const docTemplate = `{
                 }
             }
         },
-        "event.RequestDto": {
+        "event.UpdateRequestDto": {
             "type": "object",
             "required": [
                 "end_at",
@@ -3957,7 +3957,7 @@ const docTemplate = `{
                 }
             }
         },
-        "game.RequestDto": {
+        "game.UpdateRequestDto": {
             "type": "object",
             "required": [
                 "name"
@@ -4086,7 +4086,7 @@ const docTemplate = `{
                 }
             }
         },
-        "haircut.RequestDto": {
+        "haircut.UpdateRequestDto": {
             "type": "object",
             "required": [
                 "begin_time",
@@ -4199,7 +4199,7 @@ const docTemplate = `{
                 }
             }
         },
-        "location.RequestDto": {
+        "location.UpdateRequestDto": {
             "type": "object",
             "required": [
                 "address",
@@ -4228,7 +4228,7 @@ const docTemplate = `{
                 }
             }
         },
-        "membership.RequestDto": {
+        "membership.UpdateRequestDto": {
             "type": "object",
             "required": [
                 "name"
@@ -4339,7 +4339,7 @@ const docTemplate = `{
                 }
             }
         },
-        "program.RequestDto": {
+        "program.UpdateRequestDto": {
             "type": "object",
             "required": [
                 "level",
@@ -4444,7 +4444,7 @@ const docTemplate = `{
                 }
             }
         },
-        "staff.RequestDto": {
+        "staff.UpdateRequestDto": {
             "type": "object",
             "required": [
                 "is_active",
@@ -4500,7 +4500,7 @@ const docTemplate = `{
                 }
             }
         },
-        "team.RequestDto": {
+        "team.UpdateRequestDto": {
             "type": "object",
             "required": [
                 "capacity",

@@ -206,7 +206,7 @@ func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// CreateEvents creates a new event.
+// CreateEvents creates new events given its recurrence information.
 // @Tags events
 // @Accept json
 // @Produce json

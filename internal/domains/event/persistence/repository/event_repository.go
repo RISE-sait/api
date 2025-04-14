@@ -28,7 +28,7 @@ func NewEventsRepository(container *di.Container) *EventsRepository {
 	}
 }
 
-func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails values.CreateEventsValues) *errLib.CommonError {
+func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []values.CreateEventsSpecificValues) *errLib.CommonError {
 
 	var (
 		locationIDs, programIDs, teamIDs, createdByIds []uuid.UUID
@@ -37,13 +37,13 @@ func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails values
 		isCancelledArray                               []bool
 	)
 
-	for _, event := range eventDetails.Events {
+	for _, event := range eventDetails {
 		locationIDs = append(locationIDs, event.LocationID)
 		programIDs = append(programIDs, event.ProgramID)
 		teamIDs = append(teamIDs, event.TeamID)
 		startAtArray = append(startAtArray, event.StartAt)
 		endAtArray = append(endAtArray, event.EndAt)
-		createdByIds = append(createdByIds, eventDetails.CreatedBy)
+		createdByIds = append(createdByIds, event.CreatedBy)
 		capacities = append(capacities, event.Capacity)
 		isCancelledArray = append(isCancelledArray, false)
 	}

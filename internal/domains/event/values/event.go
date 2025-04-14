@@ -15,9 +15,27 @@ type Details struct {
 	Capacity   int32
 }
 
-type CreateEventsValues struct {
-	CreatedBy uuid.UUID
-	Events    []Details
+type CreateEventsRecurrenceValues struct {
+	CreatedBy         uuid.UUID
+	Day               time.Weekday
+	RecurrenceStartAt time.Time
+	RecurrenceEndAt   time.Time
+	EventStartTime    string
+	EventEndTime      string
+	ProgramID         uuid.UUID
+	LocationID        uuid.UUID
+	TeamID            uuid.UUID
+	Capacity          int32
+}
+
+type CreateEventsSpecificValues struct {
+	CreatedBy  uuid.UUID
+	StartAt    time.Time
+	EndAt      time.Time
+	ProgramID  uuid.UUID
+	LocationID uuid.UUID
+	TeamID     uuid.UUID
+	Capacity   int32
 }
 
 type UpdateEventValues struct {

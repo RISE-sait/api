@@ -4,26 +4,32 @@ import (
 	values "api/internal/domains/event/values"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
+	"fmt"
 	"github.com/google/uuid"
 	"net/http"
+	"strings"
 	"time"
 )
 
-type RequestDto struct {
+type CreateRequestDto struct {
+	Day               string    `json:"day" validate:"required" example:"THURSDAY"`
+	RecurrenceStartAt string    `json:"recurrence_start_at" validate:"required" example:"2023-10-05T07:00:00Z"`
+	RecurrenceEndAt   string    `json:"recurrence_end_at" validate:"required" example:"2023-10-05T07:00:00Z"`
+	EventStartTime    string    `json:"start_at" validate:"required" example:"23:00:00+00:00"`
+	EventEndTime      string    `json:"end_at" validate:"required" example:"23:00:00+00:00"`
+	ProgramID         uuid.UUID `json:"program_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
+	LocationID        uuid.UUID `json:"location_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
+	TeamID            uuid.UUID `json:"team_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
+	Capacity          int32     `json:"capacity" example:"100"`
+}
+
+type UpdateRequestDto struct {
 	StartAt    string    `json:"start_at" validate:"required" example:"2023-10-05T07:00:00Z"`
 	EndAt      string    `json:"end_at" validate:"required" example:"2023-10-05T07:00:00Z"`
 	ProgramID  uuid.UUID `json:"program_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
 	LocationID uuid.UUID `json:"location_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
 	TeamID     uuid.UUID `json:"team_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
 	Capacity   int32     `json:"capacity" example:"100"`
-}
-
-type CreateRequestDto struct {
-	Events []RequestDto `json:"events" validate:"required"`
-}
-
-type UpdateRequestDto struct {
-	RequestDto
 }
 
 type DeleteRequestDto struct {
@@ -40,7 +46,7 @@ type DeleteRequestDto struct {
 //   - startAt (time.Time): The parsed start date-time
 //   - endAt (time.Time): The parsed end date-time
 //   - error (*errLib.CommonError): Error information if validation fails, nil otherwise
-func (dto RequestDto) validate() (time.Time, time.Time, *errLib.CommonError) {
+func (dto UpdateRequestDto) validate() (time.Time, time.Time, *errLib.CommonError) {
 
 	if err := validators.ValidateDto(&dto); err != nil {
 		return time.Time{}, time.Time{}, err
@@ -62,35 +68,81 @@ func (dto RequestDto) validate() (time.Time, time.Time, *errLib.CommonError) {
 
 }
 
-func (dto CreateRequestDto) ToCreateEventsValues(creator uuid.UUID) (values.CreateEventsValues, *errLib.CommonError) {
+func (dto CreateRequestDto) ToCreateEventsValues(creator uuid.UUID) (values.CreateEventsRecurrenceValues, *errLib.CommonError) {
 
-	var events []values.Details
-
-	for _, event := range dto.Events {
-		start, end, err := event.validate()
-
-		if err != nil {
-			return values.CreateEventsValues{}, err
-		}
-
-		if event.Capacity <= 0 {
-			return values.CreateEventsValues{}, errLib.New("Capacity must be provided, and greater than 0", http.StatusBadRequest)
-		}
-
-		events = append(events, values.Details{
-			Capacity:   event.Capacity,
-			StartAt:    start,
-			EndAt:      end,
-			ProgramID:  event.ProgramID,
-			LocationID: event.LocationID,
-			TeamID:     event.TeamID,
-		})
+	if err := validators.ValidateDto(&dto); err != nil {
+		return values.CreateEventsRecurrenceValues{}, err
 	}
 
-	return values.CreateEventsValues{
-		CreatedBy: creator,
-		Events:    events,
+	recurrenceStartAt, err := validators.ParseDateTime(dto.RecurrenceStartAt)
+
+	if err != nil {
+		return values.CreateEventsRecurrenceValues{}, err
+	}
+
+	recurrenceEndAt, err := validators.ParseDateTime(dto.RecurrenceEndAt)
+
+	if err != nil {
+		return values.CreateEventsRecurrenceValues{}, err
+	}
+
+	eventStartTime, err := validators.ParseTime(dto.EventStartTime)
+
+	if err != nil {
+		return values.CreateEventsRecurrenceValues{}, err
+	}
+
+	eventEndTime, err := validators.ParseTime(dto.EventEndTime)
+
+	if err != nil {
+		return values.CreateEventsRecurrenceValues{}, err
+	}
+
+	if dto.Capacity <= 0 {
+		return values.CreateEventsRecurrenceValues{}, errLib.New("Capacity must be provided, and greater than 0", http.StatusBadRequest)
+	}
+
+	day, err := validateWeekday(dto.Day)
+
+	if err != nil {
+		return values.CreateEventsRecurrenceValues{}, err
+	}
+
+	return values.CreateEventsRecurrenceValues{
+		CreatedBy:         creator,
+		Day:               day,
+		RecurrenceStartAt: recurrenceStartAt,
+		RecurrenceEndAt:   recurrenceEndAt,
+		EventStartTime:    eventStartTime,
+		EventEndTime:      eventEndTime,
+		ProgramID:         dto.ProgramID,
+		LocationID:        dto.LocationID,
 	}, nil
+}
+
+func validateWeekday(day string) (time.Weekday, *errLib.CommonError) {
+	// Map of valid weekdays
+	weekdays := map[string]time.Weekday{
+		"SUNDAY":    time.Sunday,
+		"MONDAY":    time.Monday,
+		"TUESDAY":   time.Tuesday,
+		"WEDNESDAY": time.Wednesday,
+		"THURSDAY":  time.Thursday,
+		"FRIDAY":    time.Friday,
+		"SATURDAY":  time.Saturday,
+	}
+
+	// Convert input to uppercase for case-insensitive comparison
+	day = strings.ToUpper(day)
+
+	// Check if the input matches a valid weekday
+	if weekday, exists := weekdays[day]; exists {
+		return weekday, nil
+	}
+
+	// Return an error if the input is invalid
+	errMsg := fmt.Sprintf("Invalid weekday: %s. Expected one of: SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY", day)
+	return time.Weekday(0), errLib.New(errMsg, http.StatusBadRequest)
 }
 
 func (dto UpdateRequestDto) ToUpdateEventValues(idStr string, updater uuid.UUID) (values.UpdateEventValues, *errLib.CommonError) {

@@ -4,7 +4,7 @@ import (
 	databaseErrors "api/internal/constants"
 	"api/internal/di"
 	dbEnrollment "api/internal/domains/enrollment/persistence/sqlc/generated"
-	"api/internal/domains/event"
+	"api/internal/domains/event/service"
 	"api/internal/domains/program"
 	errLib "api/internal/libs/errors"
 	"context"
@@ -22,7 +22,7 @@ import (
 type CustomerEnrollmentRepository struct {
 	Queries        *dbEnrollment.Queries
 	ProgramService *program.Service
-	EventService   *event.Service
+	EventService   *service.Service
 	Db             *sql.DB
 }
 
@@ -31,7 +31,7 @@ func NewEnrollmentRepository(container *di.Container) *CustomerEnrollmentReposit
 		Db:             container.DB,
 		Queries:        dbEnrollment.New(container.DB),
 		ProgramService: program.NewProgramService(container),
-		EventService:   event.NewEventService(container),
+		EventService:   service.NewEventService(container),
 	}
 }
 

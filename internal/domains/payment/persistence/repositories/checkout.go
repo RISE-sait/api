@@ -2,7 +2,7 @@ package payment
 
 import (
 	"api/internal/di"
-	"api/internal/domains/event"
+	"api/internal/domains/event/service"
 	db "api/internal/domains/payment/persistence/sqlc/generated"
 	values "api/internal/domains/payment/values"
 	"api/internal/domains/program"
@@ -20,14 +20,14 @@ import (
 type CheckoutRepository struct {
 	paymentQueries *db.Queries
 	programService *program.Service
-	eventService   *event.Service
+	eventService   *service.Service
 }
 
 func NewCheckoutRepository(container *di.Container) *CheckoutRepository {
 	return &CheckoutRepository{
 		paymentQueries: container.Queries.PurchasesDb,
 		programService: program.NewProgramService(container),
-		eventService:   event.NewEventService(container),
+		eventService:   service.NewEventService(container),
 	}
 }
 

@@ -3639,14 +3639,48 @@
         "event.CreateRequestDto": {
             "type": "object",
             "required": [
-                "events"
+                "day",
+                "end_at",
+                "recurrence_end_at",
+                "recurrence_start_at",
+                "start_at"
             ],
             "properties": {
-                "events": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/event.RequestDto"
-                    }
+                "capacity": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "day": {
+                    "type": "string",
+                    "example": "THURSDAY"
+                },
+                "end_at": {
+                    "type": "string",
+                    "example": "23:00:00+00:00"
+                },
+                "location_id": {
+                    "type": "string",
+                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+                },
+                "program_id": {
+                    "type": "string",
+                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+                },
+                "recurrence_end_at": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "recurrence_start_at": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "start_at": {
+                    "type": "string",
+                    "example": "23:00:00+00:00"
+                },
+                "team_id": {
+                    "type": "string",
+                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
                 }
             }
         },
@@ -3802,39 +3836,6 @@
                 },
                 "type": {
                     "type": "string"
-                }
-            }
-        },
-        "event.RequestDto": {
-            "type": "object",
-            "required": [
-                "end_at",
-                "start_at"
-            ],
-            "properties": {
-                "capacity": {
-                    "type": "integer",
-                    "example": 100
-                },
-                "end_at": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
-                "location_id": {
-                    "type": "string",
-                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
-                },
-                "program_id": {
-                    "type": "string",
-                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
-                },
-                "start_at": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
-                "team_id": {
-                    "type": "string",
-                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
                 }
             }
         },

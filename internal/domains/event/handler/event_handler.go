@@ -2,8 +2,8 @@ package event
 
 import (
 	"api/internal/di"
-	"api/internal/domains/event"
 	dto "api/internal/domains/event/dto"
+	"api/internal/domains/event/service"
 	values "api/internal/domains/event/values"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
@@ -18,11 +18,11 @@ import (
 
 // EventsHandler provides HTTP handlers for managing events.
 type EventsHandler struct {
-	EventsService *event.Service
+	EventsService *service.Service
 }
 
 func NewEventsHandler(container *di.Container) *EventsHandler {
-	return &EventsHandler{EventsService: event.NewEventService(container)}
+	return &EventsHandler{EventsService: service.NewEventService(container)}
 }
 
 // GetEvents retrieves all events based on filter criteria.
@@ -206,7 +206,7 @@ func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// CreateEvents creates a new event.
+// CreateEvents creates new events given its recurrence information.
 // @Tags events
 // @Accept json
 // @Produce json

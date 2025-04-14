@@ -13,7 +13,7 @@ import (
 //		name           string
 //		jsonBody       string
 //		expectError    bool
-//		expectedValues *RequestDto
+//		expectedValues *UpdateRequestDto
 //	}{
 //		{
 //			name: "Valid Input",
@@ -22,7 +22,7 @@ import (
 //				"description": "Learn the basics of Go programming"
 //			}`,
 //			expectError: false,
-//			expectedValues: &RequestDto{
+//			expectedValues: &UpdateRequestDto{
 //				Name:        "Go Programming Basics",
 //				Description: "Learn the basics of Go programming",
 //			},
@@ -46,7 +46,7 @@ import (
 //	for _, tc := range tests {
 //		t.Run(tc.name, func(t *testing.T) {
 //			reqBody := bytes.NewReader([]byte(tc.jsonBody))
-//			var target RequestDto
+//			var target UpdateRequestDto
 //
 //			err := validators.ParseJSON(reqBody, &target)
 //			if tc.expectError {

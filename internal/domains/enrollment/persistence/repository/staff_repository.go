@@ -3,7 +3,7 @@ package enrollment
 import (
 	"api/internal/di"
 	db "api/internal/domains/enrollment/persistence/sqlc/generated"
-	"api/internal/domains/event"
+	"api/internal/domains/event/service"
 	errLib "api/internal/libs/errors"
 
 	"context"
@@ -15,13 +15,13 @@ import (
 
 type StaffsRepository struct {
 	Queries      *db.Queries
-	EventService *event.Service
+	EventService *service.Service
 }
 
 func NewEventStaffsRepository(container *di.Container) *StaffsRepository {
 	return &StaffsRepository{
 		Queries:      container.Queries.EnrollmentDb,
-		EventService: event.NewEventService(container),
+		EventService: service.NewEventService(container),
 	}
 }
 

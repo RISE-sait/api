@@ -18,7 +18,7 @@ type RequestDto struct {
 // @Param dto body RequestDto true "Request body containing updated staff details"
 // @Return values.UpdateValues "Converted domain values for updating a staff member"
 // @Return *errLib.CommonError "Validation or processing error"
-func (dto *RequestDto) ToUpdateRequestValues(idStr string) (values.UpdateValues, *errLib.CommonError) {
+func (dto RequestDto) ToUpdateRequestValues(idStr string) (values.UpdateValues, *errLib.CommonError) {
 
 	id, err := validators.ParseUUID(idStr)
 
@@ -26,7 +26,7 @@ func (dto *RequestDto) ToUpdateRequestValues(idStr string) (values.UpdateValues,
 		return values.UpdateValues{}, err
 	}
 
-	if err = validators.ValidateDto(dto); err != nil {
+	if err = validators.ValidateDto(&dto); err != nil {
 		return values.UpdateValues{}, err
 	}
 

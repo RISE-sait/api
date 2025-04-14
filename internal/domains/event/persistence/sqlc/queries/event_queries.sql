@@ -137,6 +137,30 @@ SET start_at            = $1,
 WHERE id = $9
 RETURNING *;
 
+-- name: UpdateEvents :execrows
+WITH update_data AS (SELECT unnest(sqlc.arg('ids')::uuid[])                   AS id,
+                            unnest(sqlc.arg('start_at_array')::timestamptz[]) AS start_at,
+                            unnest(sqlc.arg('end_at_array')::timestamptz[])   AS end_at,
+                            unnest(sqlc.arg('location_ids')::uuid[])          AS location_id,
+                            unnest(sqlc.arg('program_ids')::uuid[])           AS program_id,
+                            unnest(sqlc.arg('team_ids')::uuid[])              AS team_id,
+                            unnest(sqlc.arg('is_cancelled_array')::bool[])    AS is_cancelled,
+                            unnest(sqlc.arg('cancellation_reasons')::text[])  AS cancellation_reason,
+                            unnest(sqlc.arg('capacities')::int[])             AS capacity)
+UPDATE events.events e
+SET start_at            = ud.start_at,
+    end_at              = ud.end_at,
+    location_id         = ud.location_id,
+    program_id          = NULLIF(ud.program_id, '00000000-0000-0000-0000-000000000000'::uuid),
+    team_id             = NULLIF(ud.team_id, '00000000-0000-0000-0000-000000000000'::uuid),
+    is_cancelled        = ud.is_cancelled,
+    cancellation_reason = NULLIF(ud.cancellation_reason, ''),
+    capacity            = ud.capacity,
+    updated_at          = CURRENT_TIMESTAMP,
+    updated_by          = $1
+FROM update_data ud
+WHERE e.id = ud.id;
+
 -- name: DeleteEvent :exec
 DELETE
 FROM events.events

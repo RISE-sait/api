@@ -662,6 +662,63 @@
                         "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
+                          "additionalProperties": true
+                        }
+                    }
+                }
+            },
+          "put": {
+            "security": [
+              {
+                "Bearer": []
+              }
+            ],
+            "consumes": [
+              "application/json"
+            ],
+            "produces": [
+              "application/json"
+            ],
+            "tags": [
+              "events"
+            ],
+            "parameters": [
+              {
+                "description": "Update events details",
+                "name": "event",
+                "in": "body",
+                "required": true,
+                "schema": {
+                  "$ref": "#/definitions/event.UpdateEventsRequestDto"
+                }
+              }
+            ],
+            "responses": {
+              "204": {
+                "description": "No Content: Events updated successfully",
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              },
+              "400": {
+                "description": "Bad Request: Invalid input",
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              },
+              "404": {
+                "description": "Not Found: Events not found",
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              },
+              "500": {
+                "description": "Internal Server Error",
+                "schema": {
+                  "type": "object",
                             "additionalProperties": true
                         }
                     }
@@ -3915,6 +3972,85 @@
                 }
             }
         },
+      "event.UpdateEventsRequestDto": {
+        "type": "object",
+        "required": [
+          "new_event_end_at",
+          "new_event_start_at",
+          "new_recurrence_end_at",
+          "new_recurrence_start_at",
+          "original_event_end_at",
+          "original_event_start_at",
+          "original_recurrence_end_at",
+          "original_recurrence_start_at"
+        ],
+        "properties": {
+          "new_capacity": {
+            "type": "integer",
+            "example": 100
+          },
+          "new_event_end_at": {
+            "type": "string",
+            "example": "23:00:00+00:00"
+          },
+          "new_event_start_at": {
+            "type": "string",
+            "example": "21:00:00+00:00"
+          },
+          "new_location_id": {
+            "type": "string",
+            "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+          },
+          "new_program_id": {
+            "type": "string",
+            "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+          },
+          "new_recurrence_end_at": {
+            "type": "string",
+            "example": "2023-10-05T07:00:00Z"
+          },
+          "new_recurrence_start_at": {
+            "type": "string",
+            "example": "2023-10-05T07:00:00Z"
+          },
+          "new_team_id": {
+            "type": "string",
+            "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+          },
+          "original_capacity": {
+            "type": "integer",
+            "example": 100
+          },
+          "original_event_end_at": {
+            "type": "string",
+            "example": "13:00:00+00:00"
+          },
+          "original_event_start_at": {
+            "type": "string",
+            "example": "10:00:00+00:00"
+          },
+          "original_location_id": {
+            "type": "string",
+            "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+          },
+          "original_program_id": {
+            "type": "string",
+            "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+          },
+          "original_recurrence_end_at": {
+            "type": "string",
+            "example": "2023-10-05T07:00:00Z"
+          },
+          "original_recurrence_start_at": {
+            "type": "string",
+            "example": "2023-10-05T07:00:00Z"
+          },
+          "original_team_id": {
+            "type": "string",
+            "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+          }
+        }
+      },
         "event.UpdateRequestDto": {
             "type": "object",
             "required": [

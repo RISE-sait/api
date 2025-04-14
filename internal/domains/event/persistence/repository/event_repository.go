@@ -28,6 +28,46 @@ func NewEventsRepository(container *di.Container) *EventsRepository {
 	}
 }
 
+func (r *EventsRepository) WithTx(tx *sql.Tx) *EventsRepository {
+	return &EventsRepository{
+		Queries: r.Queries.WithTx(tx),
+	}
+}
+
+var constraintErrors = map[string]struct {
+	Message string
+	Status  int
+}{
+	"fk_created_by": {
+		Message: "The referenced user doesn't exist",
+		Status:  http.StatusBadRequest,
+	},
+	"fk_updated_by": {
+		Message: "The referenced user doesn't exist",
+		Status:  http.StatusBadRequest,
+	},
+	"fk_program": {
+		Message: "The referenced program doesn't exist",
+		Status:  http.StatusBadRequest,
+	},
+	"fk_team": {
+		Message: "The referenced team doesn't exist",
+		Status:  http.StatusBadRequest,
+	},
+	"events_location_id_fkey": {
+		Message: "The referenced location doesn't exist",
+		Status:  http.StatusBadRequest,
+	},
+	"check_start_end": {
+		Message: "Event end time must be after start time",
+		Status:  http.StatusBadRequest,
+	},
+	"no_overlapping_events": {
+		Message: "An event is already scheduled at this time and location",
+		Status:  http.StatusConflict,
+	},
+}
+
 func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []values.CreateEventsSpecificValues) *errLib.CommonError {
 
 	var (
@@ -66,40 +106,6 @@ func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []valu
 
 		var pqErr *pq.Error
 		if errors.As(dbErr, &pqErr) {
-
-			constraintErrors := map[string]struct {
-				Message string
-				Status  int
-			}{
-				"fk_created_by": {
-					Message: "The referenced user doesn't exist",
-					Status:  http.StatusBadRequest,
-				},
-				"fk_updated_by": {
-					Message: "The referenced user doesn't exist",
-					Status:  http.StatusBadRequest,
-				},
-				"fk_program": {
-					Message: "The referenced program doesn't exist",
-					Status:  http.StatusBadRequest,
-				},
-				"fk_team": {
-					Message: "The referenced team doesn't exist",
-					Status:  http.StatusBadRequest,
-				},
-				"events_location_id_fkey": {
-					Message: "The referenced location doesn't exist",
-					Status:  http.StatusBadRequest,
-				},
-				"check_start_end": {
-					Message: "Event end time must be after start time",
-					Status:  http.StatusBadRequest,
-				},
-				"no_overlapping_events": {
-					Message: "An event is already scheduled at this time and location",
-					Status:  http.StatusConflict,
-				},
-			}
 
 			if errInfo, found := constraintErrors[pqErr.Constraint]; found {
 				return errLib.New(errInfo.Message, errInfo.Status)
@@ -240,7 +246,6 @@ func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEvent
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	// Group the rows by event ID
 	var events []values.ReadEventValues
 
 	for _, row := range dbRows {
@@ -314,6 +319,66 @@ func stringToPtr(s sql.NullString) *string {
 	return nil
 }
 
+func (r *EventsRepository) UpdateEvents(ctx context.Context, updater uuid.UUID, events []values.UpdateEventValues) *errLib.CommonError {
+
+	var (
+		IDs, locationIDs, programIDs, teamIDs []uuid.UUID
+		startAtArray, endAtArray              []time.Time
+		capacities                            []int32
+		isCancelledArray                      []bool
+		cancellationReasons                   []string
+	)
+
+	for _, event := range events {
+		IDs = append(IDs, event.ID)
+		startAtArray = append(startAtArray, event.StartAt)
+		endAtArray = append(endAtArray, event.EndAt)
+		locationIDs = append(locationIDs, event.LocationID)
+		programIDs = append(programIDs, event.ProgramID)
+		teamIDs = append(teamIDs, event.TeamID)
+		capacities = append(capacities, event.Capacity)
+		isCancelledArray = append(isCancelledArray, false)
+		cancellationReasons = append(cancellationReasons, "")
+	}
+
+	dbEventParams := db.UpdateEventsParams{
+		UpdatedBy:           updater,
+		Ids:                 IDs,
+		StartAtArray:        startAtArray,
+		EndAtArray:          endAtArray,
+		LocationIds:         locationIDs,
+		ProgramIds:          programIDs,
+		TeamIds:             teamIDs,
+		IsCancelledArray:    isCancelledArray,
+		CancellationReasons: cancellationReasons,
+		Capacities:          capacities,
+	}
+
+	impactedRows, dbErr := r.Queries.UpdateEvents(ctx, dbEventParams)
+
+	if dbErr != nil {
+
+		var pqErr *pq.Error
+		if errors.As(dbErr, &pqErr) {
+
+			if errInfo, found := constraintErrors[pqErr.Constraint]; found {
+				return errLib.New(errInfo.Message, errInfo.Status)
+			}
+		}
+
+		log.Printf("Failed to update events: %+v. Error: %v", events, dbErr.Error())
+		return errLib.New("Internal server error when updating event", http.StatusInternalServerError)
+	}
+
+	if impactedRows == 0 {
+		log.Printf("No events were updated for unknown reason: %v", IDs)
+		return errLib.New("No events were updated for unknown reason", http.StatusNotFound)
+	}
+
+	return nil
+
+}
+
 func (r *EventsRepository) UpdateEvent(ctx context.Context, event values.UpdateEventValues) *errLib.CommonError {
 
 	userID, err := contextUtils.GetUserID(ctx)
@@ -348,40 +413,6 @@ func (r *EventsRepository) UpdateEvent(ctx context.Context, event values.UpdateE
 
 		var pqErr *pq.Error
 		if errors.As(dbErr, &pqErr) {
-
-			constraintErrors := map[string]struct {
-				Message string
-				Status  int
-			}{
-				"fk_created_by": {
-					Message: "The referenced user doesn't exist",
-					Status:  http.StatusBadRequest,
-				},
-				"fk_updated_by": {
-					Message: "The referenced user doesn't exist",
-					Status:  http.StatusBadRequest,
-				},
-				"fk_program": {
-					Message: "The referenced program doesn't exist",
-					Status:  http.StatusBadRequest,
-				},
-				"fk_team": {
-					Message: "The referenced team doesn't exist",
-					Status:  http.StatusBadRequest,
-				},
-				"events_location_id_fkey": {
-					Message: "The referenced location doesn't exist",
-					Status:  http.StatusBadRequest,
-				},
-				"check_start_end": {
-					Message: "Event end time must be after start time",
-					Status:  http.StatusBadRequest,
-				},
-				"no_overlapping_events": {
-					Message: "An event is already scheduled at this time and location",
-					Status:  http.StatusConflict,
-				},
-			}
 
 			if errInfo, found := constraintErrors[pqErr.Constraint]; found {
 				return errLib.New(errInfo.Message, errInfo.Status)

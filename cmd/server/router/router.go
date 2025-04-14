@@ -228,6 +228,7 @@ func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 		r.Get("/{id}", handler.GetEvent)
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/", handler.CreateEvents)
 		r.With(middlewares.JWTAuthMiddleware(true)).Put("/{id}", handler.UpdateEvent)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/", handler.UpdateEvents)
 		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/", handler.DeleteEvents)
 
 		r.Route("/{event_id}/staffs", RegisterEventStaffRoutes(container))

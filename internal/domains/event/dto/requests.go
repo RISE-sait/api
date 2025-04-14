@@ -32,8 +32,28 @@ type UpdateRequestDto struct {
 	Capacity   int32     `json:"capacity" example:"100"`
 }
 
+type UpdateEventsRequestDto struct {
+	OriginalRecurrenceStartAt string    `json:"original_recurrence_start_at" validate:"required" example:"2023-10-05T07:00:00Z"`
+	OriginalRecurrenceEndAt   string    `json:"original_recurrence_end_at" validate:"required" example:"2023-10-05T07:00:00Z"`
+	OriginalEventStartTime    string    `json:"original_event_start_at" validate:"required" example:"10:00:00+00:00"`
+	OriginalEventEndTime      string    `json:"original_event_end_at" validate:"required" example:"13:00:00+00:00"`
+	OriginalProgramID         uuid.UUID `json:"original_program_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
+	OriginalLocationID        uuid.UUID `json:"original_location_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
+	OriginalTeamID            uuid.UUID `json:"original_team_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
+	OriginalCapacity          int32     `json:"original_capacity" example:"100"`
+
+	NewRecurrenceStartAt string    `json:"new_recurrence_start_at" validate:"required" example:"2023-10-05T07:00:00Z"`
+	NewRecurrenceEndAt   string    `json:"new_recurrence_end_at" validate:"required" example:"2023-10-05T07:00:00Z"`
+	NewEventStartTime    string    `json:"new_event_start_at" validate:"required" example:"21:00:00+00:00"`
+	NewEventEndTime      string    `json:"new_event_end_at" validate:"required" example:"23:00:00+00:00"`
+	NewProgramID         uuid.UUID `json:"new_program_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
+	NewLocationID        uuid.UUID `json:"new_location_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
+	NewTeamID            uuid.UUID `json:"new_team_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
+	NewCapacity          int32     `json:"new_capacity" example:"100"`
+}
+
 type DeleteRequestDto struct {
-	IDs []uuid.UUID `json:"ids" validate:"required,min=1,dive,uuid4"`
+	IDs []uuid.UUID `json:"ids" validate:"required,min=1"`
 }
 
 // validate validates the request DTO and returns parsed values.
@@ -117,6 +137,7 @@ func (dto CreateRequestDto) ToCreateEventsValues(creator uuid.UUID) (values.Crea
 		EventEndTime:      eventEndTime,
 		ProgramID:         dto.ProgramID,
 		LocationID:        dto.LocationID,
+		Capacity:          dto.Capacity,
 	}, nil
 }
 
@@ -167,6 +188,76 @@ func (dto UpdateRequestDto) ToUpdateEventValues(idStr string, updater uuid.UUID)
 			LocationID: dto.LocationID,
 			TeamID:     dto.TeamID,
 		},
+	}
+
+	return v, nil
+}
+
+func (dto UpdateEventsRequestDto) ToUpdateEventsValues(updater uuid.UUID) (values.UpdateEventsValues, *errLib.CommonError) {
+
+	originalRecurrenceStartAt, err := validators.ParseDateTime(dto.OriginalRecurrenceStartAt)
+
+	if err != nil {
+		return values.UpdateEventsValues{}, err
+	}
+
+	newRecurrenceStartAt, err := validators.ParseDateTime(dto.NewRecurrenceStartAt)
+
+	if err != nil {
+		return values.UpdateEventsValues{}, err
+	}
+
+	originalRecurrenceEndAt, err := validators.ParseDateTime(dto.OriginalRecurrenceEndAt)
+
+	if err != nil {
+		return values.UpdateEventsValues{}, err
+	}
+
+	newRecurrenceEndAt, err := validators.ParseDateTime(dto.NewRecurrenceEndAt)
+
+	if err != nil {
+		return values.UpdateEventsValues{}, err
+	}
+
+	originalEventStartTime, err := validators.ParseTime(dto.OriginalEventStartTime)
+
+	if err != nil {
+		return values.UpdateEventsValues{}, err
+	}
+
+	newEventStartTime, err := validators.ParseTime(dto.NewEventStartTime)
+
+	if err != nil {
+		return values.UpdateEventsValues{}, err
+	}
+
+	originalEventEndTime, err := validators.ParseTime(dto.OriginalEventEndTime)
+
+	if err != nil {
+		return values.UpdateEventsValues{}, err
+	}
+
+	newEventEndTime, err := validators.ParseTime(dto.NewEventEndTime)
+
+	if err != nil {
+		return values.UpdateEventsValues{}, err
+	}
+
+	v := values.UpdateEventsValues{
+		UpdatedBy:                 updater,
+		OriginalRecurrenceStartAt: originalRecurrenceStartAt,
+		OriginalRecurrenceEndAt:   originalRecurrenceEndAt,
+		OriginalEventStartTime:    originalEventStartTime,
+		OriginalEventEndTime:      originalEventEndTime,
+		OriginalProgramID:         dto.OriginalProgramID,
+		OriginalLocationID:        dto.OriginalLocationID,
+		OriginalTeamID:            dto.OriginalTeamID,
+		OriginalCapacity:          dto.OriginalCapacity,
+		NewRecurrenceStartAt:      newRecurrenceStartAt,
+		NewRecurrenceEndAt:        newRecurrenceEndAt,
+		NewEventStartTime:         newEventStartTime,
+		NewEventEndTime:           newEventEndTime,
+		NewProgramID:              dto.NewProgramID,
 	}
 
 	return v, nil

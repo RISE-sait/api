@@ -2,6 +2,7 @@ package service
 
 import (
 	values "api/internal/domains/event/values"
+	errLib "api/internal/libs/errors"
 	"github.com/google/uuid"
 	"net/http"
 	"testing"
@@ -190,4 +191,212 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Empty(t, events)
 	})
+}
+
+var testUUID = uuid.New()
+var secondTestUUID = uuid.New() // Add this line
+var updatedBy = uuid.New()
+
+func TestConvertEventsForUpdate(t *testing.T) {
+
+	location := time.UTC
+
+	baseEvent := values.ReadEventValues{
+		ID:        testUUID,
+		StartAt:   time.Date(2023, 6, 15, 10, 0, 0, 0, location), // June 15, 2023 at 10:00
+		EndAt:     time.Date(2023, 6, 15, 12, 0, 0, 0, location), // June 15, 2023 at 12:00
+		CreatedBy: values.ReadPersonValues{ID: uuid.New()},
+	}
+
+	tests := []struct {
+		name           string
+		timeUpdate     EventTimeUpdate
+		idUpdate       EventIDUpdate
+		capacity       int32
+		existingEvents []values.ReadEventValues
+		want           []values.UpdateEventValues
+		wantErr        *errLib.CommonError
+	}{
+		{
+			name: "successful time update",
+			timeUpdate: EventTimeUpdate{
+				NewStartTime: "14:00",
+				NewEndTime:   "16:00",
+			},
+			idUpdate: EventIDUpdate{
+				NewProgramID:  testUUID,
+				NewLocationID: testUUID,
+				NewTeamID:     testUUID,
+			},
+			capacity:       20,
+			existingEvents: []values.ReadEventValues{baseEvent},
+			want: []values.UpdateEventValues{
+				{
+					ID:        testUUID,
+					UpdatedBy: updatedBy,
+					Details: values.Details{
+						StartAt:    time.Date(2023, 6, 15, 14, 0, 0, 0, location),
+						EndAt:      time.Date(2023, 6, 15, 16, 0, 0, 0, location),
+						ProgramID:  testUUID,
+						LocationID: testUUID,
+						TeamID:     testUUID,
+						Capacity:   20,
+					},
+				},
+			},
+		},
+		{
+			name: "midnight crossing",
+			timeUpdate: EventTimeUpdate{
+				NewStartTime: "22:00",
+				NewEndTime:   "02:00",
+			},
+			idUpdate: EventIDUpdate{
+				NewProgramID:  testUUID,
+				NewLocationID: testUUID,
+				NewTeamID:     testUUID,
+			},
+			capacity:       15,
+			existingEvents: []values.ReadEventValues{baseEvent},
+			want: []values.UpdateEventValues{
+				{
+					ID:        testUUID,
+					UpdatedBy: updatedBy,
+					Details: values.Details{
+						StartAt:    time.Date(2023, 6, 15, 22, 0, 0, 0, location),
+						EndAt:      time.Date(2023, 6, 16, 2, 0, 0, 0, location), // Next day
+						ProgramID:  testUUID,
+						LocationID: testUUID,
+						TeamID:     testUUID,
+						Capacity:   15,
+					},
+				},
+			},
+		},
+		{
+			name: "multiple events",
+			timeUpdate: EventTimeUpdate{
+				NewStartTime: "09:00",
+				NewEndTime:   "11:00",
+			},
+			idUpdate: EventIDUpdate{
+				NewProgramID:  testUUID,
+				NewLocationID: testUUID,
+				NewTeamID:     testUUID,
+			},
+			capacity: 10,
+			existingEvents: []values.ReadEventValues{
+				{
+					ID:        testUUID, // First event with testUUID
+					StartAt:   time.Date(2023, 6, 15, 10, 0, 0, 0, location),
+					EndAt:     time.Date(2023, 6, 15, 12, 0, 0, 0, location),
+					CreatedBy: values.ReadPersonValues{ID: uuid.New()},
+				},
+				{
+					ID:        secondTestUUID, // Second event with different ID
+					StartAt:   time.Date(2023, 6, 16, 10, 0, 0, 0, location),
+					EndAt:     time.Date(2023, 6, 16, 12, 0, 0, 0, location),
+					CreatedBy: values.ReadPersonValues{ID: uuid.New()},
+				},
+			},
+			want: []values.UpdateEventValues{
+				{
+					ID:        testUUID, // Should match first event's ID
+					UpdatedBy: updatedBy,
+					Details: values.Details{
+						StartAt:    time.Date(2023, 6, 15, 9, 0, 0, 0, location),
+						EndAt:      time.Date(2023, 6, 15, 11, 0, 0, 0, location),
+						ProgramID:  testUUID,
+						LocationID: testUUID,
+						TeamID:     testUUID,
+						Capacity:   10,
+					},
+				},
+				{
+					ID:        secondTestUUID, // Should match second event's ID
+					UpdatedBy: updatedBy,
+					Details: values.Details{
+						StartAt:    time.Date(2023, 6, 16, 9, 0, 0, 0, location),
+						EndAt:      time.Date(2023, 6, 16, 11, 0, 0, 0, location),
+						ProgramID:  testUUID,
+						LocationID: testUUID,
+						TeamID:     testUUID,
+						Capacity:   10,
+					},
+				},
+			},
+		},
+		{
+			name: "invalid start time format",
+			timeUpdate: EventTimeUpdate{
+				NewStartTime: "25:00", // Invalid hour
+				NewEndTime:   "16:00",
+			},
+			wantErr: errLib.New("invalid start time: parsing time \"25:00\": hour out of range", http.StatusBadRequest),
+		},
+		{
+			name: "invalid end time format",
+			timeUpdate: EventTimeUpdate{
+				NewStartTime: "14:00",
+				NewEndTime:   "16:60", // Invalid minute
+			},
+			wantErr: errLib.New("invalid end time: parsing time \"16:60\": minute out of range", http.StatusBadRequest),
+		},
+		{
+			name: "zero capacity",
+			timeUpdate: EventTimeUpdate{
+				NewStartTime: "14:00",
+				NewEndTime:   "16:00",
+			},
+			capacity: 0,
+			wantErr:  errLib.New("capacity must be positive", http.StatusBadRequest),
+		},
+		{
+			name: "negative capacity",
+			timeUpdate: EventTimeUpdate{
+				NewStartTime: "14:00",
+				NewEndTime:   "16:00",
+			},
+			capacity: -5,
+			wantErr:  errLib.New("capacity must be positive", http.StatusBadRequest),
+		},
+		{
+			name:           "empty events list",
+			timeUpdate:     EventTimeUpdate{NewStartTime: "09:00", NewEndTime: "17:00"},
+			existingEvents: []values.ReadEventValues{},
+			capacity:       5,
+			wantErr:        errLib.New("no events to update", http.StatusBadRequest),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := convertEventsForUpdate(
+				tt.timeUpdate,
+				tt.idUpdate,
+				tt.capacity,
+				updatedBy,
+				tt.existingEvents,
+			)
+
+			if tt.wantErr != nil {
+				assert.Equal(t, tt.wantErr, err)
+				return
+			}
+
+			assert.Nil(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestUpdateTimeKeepingDate(t *testing.T) {
+	loc := time.UTC
+	original := time.Date(2023, 6, 15, 10, 0, 0, 0, loc)
+	newTime, _ := time.Parse("15:04", "14:30")
+
+	got := updateTimeKeepingDate(original, newTime)
+	want := time.Date(2023, 6, 15, 14, 30, 0, 0, loc)
+
+	assert.Equal(t, want, got)
 }

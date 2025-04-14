@@ -44,6 +44,29 @@ type UpdateEventValues struct {
 	Details
 }
 
+type UpdateEventsValues struct {
+	UpdatedBy                 uuid.UUID
+	OriginalRecurrenceStartAt time.Time
+	OriginalRecurrenceEndAt   time.Time
+	OriginalRecurrenceDay     time.Weekday
+	OriginalEventStartTime    string
+	OriginalEventEndTime      string
+	OriginalProgramID         uuid.UUID
+	OriginalLocationID        uuid.UUID
+	OriginalTeamID            uuid.UUID
+	OriginalCapacity          int32
+
+	NewRecurrenceStartAt time.Time
+	NewRecurrenceEndAt   time.Time
+	NewRecurrenceDay     time.Weekday
+	NewEventStartTime    string
+	NewEventEndTime      string
+	NewProgramID         uuid.UUID
+	NewLocationID        uuid.UUID
+	NewTeamID            uuid.UUID
+	NewCapacity          int32
+}
+
 type ReadPersonValues struct {
 	ID        uuid.UUID
 	FirstName string

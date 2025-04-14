@@ -479,3 +479,64 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 	)
 	return i, err
 }
+
+const updateEvents = `-- name: UpdateEvents :execrows
+WITH update_data AS (
+    SELECT
+        unnest($2::uuid[]) AS id,
+        unnest($3::timestamptz[]) AS start_at,
+        unnest($4::timestamptz[]) AS end_at,
+        unnest($5::uuid[]) AS location_id,
+        unnest($6::uuid[]) AS program_id,
+        unnest($7::uuid[]) AS team_id,
+        unnest($8::bool[]) AS is_cancelled,
+        unnest($9::text[]) AS cancellation_reason,
+        unnest($10::int[]) AS capacity
+)
+UPDATE events.events e
+SET
+    start_at = ud.start_at,
+    end_at = ud.end_at,
+    location_id = ud.location_id,
+    program_id = NULLIF(ud.program_id, '00000000-0000-0000-0000-000000000000'::uuid),
+    team_id = NULLIF(ud.team_id, '00000000-0000-0000-0000-000000000000'::uuid),
+    is_cancelled = ud.is_cancelled,
+    cancellation_reason = NULLIF(ud.cancellation_reason, ''),
+    capacity = ud.capacity,
+    updated_at = CURRENT_TIMESTAMP,
+    updated_by = $1
+FROM update_data ud
+WHERE e.id = ud.id
+`
+
+type UpdateEventsParams struct {
+	UpdatedBy           uuid.UUID   `json:"updated_by"`
+	Ids                 []uuid.UUID `json:"ids"`
+	StartAtArray        []time.Time `json:"start_at_array"`
+	EndAtArray          []time.Time `json:"end_at_array"`
+	LocationIds         []uuid.UUID `json:"location_ids"`
+	ProgramIds          []uuid.UUID `json:"program_ids"`
+	TeamIds             []uuid.UUID `json:"team_ids"`
+	IsCancelledArray    []bool      `json:"is_cancelled_array"`
+	CancellationReasons []string    `json:"cancellation_reasons"`
+	Capacities          []int32     `json:"capacities"`
+}
+
+func (q *Queries) UpdateEvents(ctx context.Context, arg UpdateEventsParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateEvents,
+		arg.UpdatedBy,
+		pq.Array(arg.Ids),
+		pq.Array(arg.StartAtArray),
+		pq.Array(arg.EndAtArray),
+		pq.Array(arg.LocationIds),
+		pq.Array(arg.ProgramIds),
+		pq.Array(arg.TeamIds),
+		pq.Array(arg.IsCancelledArray),
+		pq.Array(arg.CancellationReasons),
+		pq.Array(arg.Capacities),
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}

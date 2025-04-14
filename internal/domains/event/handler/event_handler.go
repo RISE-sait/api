@@ -322,6 +322,50 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
+// UpdateEvents updates existing events by filters.
+// @Tags events
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param event body dto.UpdateEventsRequestDto true "Update events details"
+// @Success 204 {object} map[string]interface{} "No Content: Events updated successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 404 {object} map[string]interface{} "Not Found: Events not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /events [put]
+func (h *EventsHandler) UpdateEvents(w http.ResponseWriter, r *http.Request) {
+
+	userID, err := contextUtils.GetUserID(r.Context())
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	var targetBody dto.UpdateEventsRequestDto
+
+	if err = validators.ParseJSON(r.Body, &targetBody); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Convert to domain values
+
+	params, err := targetBody.ToUpdateEventsValues(userID)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	if err = h.EventsService.UpdateEvents(r.Context(), params); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
+}
+
 // DeleteEvents deletes multiple events by IDs.
 // @Tags events
 // @Accept json

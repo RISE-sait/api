@@ -24,7 +24,7 @@ func NewHandler(container *di.Container) *Handler {
 // @Tags programs
 // @Accept json
 // @Produce json
-// @Param program body dto.UpdateRequestDto true "Program details"
+// @Param program body dto.RequestDto true "Program details"
 // @Security Bearer
 // @Success 201 {object} map[string]interface{} "Program created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
@@ -162,7 +162,7 @@ func (h *Handler) GetProgramLevels(w http.ResponseWriter, _ *http.Request) {
 // @Accept json
 // @Produce json
 // @Param id path string true "Program ID"
-// @Param program body dto.UpdateRequestDto true "Program details"
+// @Param program body dto.RequestDto true "Program details"
 // @Success 204 "No Content: Program updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 404 {object} map[string]interface{} "Not Found: Program not found"

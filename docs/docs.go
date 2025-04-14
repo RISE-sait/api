@@ -1063,7 +1063,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/game.UpdateRequestDto"
+                            "$ref": "#/definitions/game.RequestDto"
                         }
                     }
                 ],
@@ -1167,7 +1167,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/game.UpdateRequestDto"
+                            "$ref": "#/definitions/game.RequestDto"
                         }
                     }
                 ],
@@ -1446,7 +1446,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/haircut.UpdateRequestDto"
+                            "$ref": "#/definitions/haircut.RequestDto"
                         }
                     }
                 ],
@@ -1624,7 +1624,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/location.UpdateRequestDto"
+                            "$ref": "#/definitions/location.RequestDto"
                         }
                     }
                 ],
@@ -1730,7 +1730,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/location.UpdateRequestDto"
+                            "$ref": "#/definitions/location.RequestDto"
                         }
                     }
                 ],
@@ -1866,7 +1866,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/membership.UpdateRequestDto"
+                            "$ref": "#/definitions/membership.RequestDto"
                         }
                     }
                 ],
@@ -2143,7 +2143,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/membership.UpdateRequestDto"
+                            "$ref": "#/definitions/membership.RequestDto"
                         }
                     }
                 ],
@@ -2350,7 +2350,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/program.UpdateRequestDto"
+                            "$ref": "#/definitions/program.RequestDto"
                         }
                     }
                 ],
@@ -2490,7 +2490,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/program.UpdateRequestDto"
+                            "$ref": "#/definitions/program.RequestDto"
                         }
                     }
                 ],
@@ -3074,7 +3074,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/staff.UpdateRequestDto"
+                            "$ref": "#/definitions/staff.RequestDto"
                         }
                     }
                 ],
@@ -3212,7 +3212,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/team.UpdateRequestDto"
+                            "$ref": "#/definitions/team.RequestDto"
                         }
                     }
                 ],
@@ -3271,7 +3271,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/team.UpdateRequestDto"
+                            "$ref": "#/definitions/team.RequestDto"
                         }
                     }
                 ],
@@ -3648,14 +3648,48 @@ const docTemplate = `{
         "event.CreateRequestDto": {
             "type": "object",
             "required": [
-                "events"
+                "day",
+                "end_at",
+                "recurrence_end_at",
+                "recurrence_start_at",
+                "start_at"
             ],
             "properties": {
-                "events": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/event.UpdateRequestDto"
-                    }
+                "capacity": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "day": {
+                    "type": "string",
+                    "example": "THURSDAY"
+                },
+                "end_at": {
+                    "type": "string",
+                    "example": "23:00:00+00:00"
+                },
+                "location_id": {
+                    "type": "string",
+                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+                },
+                "program_id": {
+                    "type": "string",
+                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+                },
+                "recurrence_end_at": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "recurrence_start_at": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "start_at": {
+                    "type": "string",
+                    "example": "23:00:00+00:00"
+                },
+                "team_id": {
+                    "type": "string",
+                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
                 }
             }
         },
@@ -3814,39 +3848,6 @@ const docTemplate = `{
                 }
             }
         },
-        "event.UpdateRequestDto": {
-            "type": "object",
-            "required": [
-                "end_at",
-                "start_at"
-            ],
-            "properties": {
-                "capacity": {
-                    "type": "integer",
-                    "example": 100
-                },
-                "end_at": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
-                "location_id": {
-                    "type": "string",
-                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
-                },
-                "program_id": {
-                    "type": "string",
-                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
-                },
-                "start_at": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
-                "team_id": {
-                    "type": "string",
-                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
-                }
-            }
-        },
         "event.ScheduleResponseDto": {
             "type": "object",
             "properties": {
@@ -3957,7 +3958,7 @@ const docTemplate = `{
                 }
             }
         },
-        "game.UpdateRequestDto": {
+        "game.RequestDto": {
             "type": "object",
             "required": [
                 "name"
@@ -4086,7 +4087,7 @@ const docTemplate = `{
                 }
             }
         },
-        "haircut.UpdateRequestDto": {
+        "haircut.RequestDto": {
             "type": "object",
             "required": [
                 "begin_time",
@@ -4199,7 +4200,7 @@ const docTemplate = `{
                 }
             }
         },
-        "location.UpdateRequestDto": {
+        "location.RequestDto": {
             "type": "object",
             "required": [
                 "address",
@@ -4228,7 +4229,7 @@ const docTemplate = `{
                 }
             }
         },
-        "membership.UpdateRequestDto": {
+        "membership.RequestDto": {
             "type": "object",
             "required": [
                 "name"
@@ -4339,7 +4340,7 @@ const docTemplate = `{
                 }
             }
         },
-        "program.UpdateRequestDto": {
+        "program.RequestDto": {
             "type": "object",
             "required": [
                 "level",
@@ -4444,7 +4445,7 @@ const docTemplate = `{
                 }
             }
         },
-        "staff.UpdateRequestDto": {
+        "staff.RequestDto": {
             "type": "object",
             "required": [
                 "is_active",
@@ -4500,7 +4501,7 @@ const docTemplate = `{
                 }
             }
         },
-        "team.UpdateRequestDto": {
+        "team.RequestDto": {
             "type": "object",
             "required": [
                 "capacity",

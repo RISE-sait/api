@@ -111,7 +111,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param event body dto.UpdateRequestDto true "Haircut event details"
+// @Param event body dto.RequestDto true "Haircut event details"
 // @Success 201 {object} haircut.EventResponseDto "Haircut event created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"

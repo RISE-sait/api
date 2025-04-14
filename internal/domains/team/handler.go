@@ -23,7 +23,7 @@ func NewHandler(container *di.Container) *Handler {
 // @Tags teams
 // @Accept json
 // @Produce json
-// @Param team body dto.UpdateRequestDto true "Team details"
+// @Param team body dto.RequestDto true "Team details"
 // @Security Bearer
 // @Success 201 {object} map[string]interface{} "Team created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
@@ -88,7 +88,7 @@ func (h *Handler) GetTeams(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param id path string true "Team ID"
-// @Param team body dto.UpdateRequestDto true "Team details"
+// @Param team body dto.RequestDto true "Team details"
 // @Security Bearer
 // @Success 204 "No Content: Team updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"

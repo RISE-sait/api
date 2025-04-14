@@ -25,7 +25,7 @@ func NewLocationsHandler(container *di.Container) *Handler {
 // @Tags locations
 // @Accept json
 // @Produce json
-// @Param body body dto.UpdateRequestDto true "Location details"
+// @Param body body dto.RequestDto true "Location details"
 // @Success 201 {object} dto.ResponseDto "Location created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
@@ -125,7 +125,7 @@ func (h *Handler) GetLocations(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param id path string true "Location UUID"
-// @Param body body dto.UpdateRequestDto true "Updated Location details"
+// @Param body body dto.RequestDto true "Updated Location details"
 // @Success 204 "No Content: Location updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 404 {object} map[string]interface{} "Not Found: Location not found"

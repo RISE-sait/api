@@ -23,7 +23,7 @@ func NewHandler(container *di.Container) *Handler {
 // @Tags games
 // @Accept json
 // @Produce json
-// @Param game body dto.UpdateRequestDto true "Game details"
+// @Param game body dto.RequestDto true "Game details"
 // @Security Bearer
 // @Success 201 "Game created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
@@ -112,7 +112,7 @@ func (h *Handler) GetGames(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param id path string true "Game ID"
-// @Param game body dto.UpdateRequestDto true "Game details"
+// @Param game body dto.RequestDto true "Game details"
 // @Security Bearer
 // @Success 204 "Game updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"

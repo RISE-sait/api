@@ -21,8 +21,8 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			Day:               &day,
 			RecurrenceStartAt: time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC),  // Monday
 			RecurrenceEndAt:   time.Date(2023, 10, 30, 0, 0, 0, 0, time.UTC), // 4 weeks later
-			EventStartTime:    "10:00",
-			EventEndTime:      "12:00",
+			EventStartTime:    "10:00:00+00:00",
+			EventEndTime:      "12:00:00+00:00",
 			ProgramID:         uuid.New(),
 			LocationID:        uuid.New(),
 			TeamID:            uuid.New(),
@@ -92,7 +92,7 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 		assert.Nil(t, events)
 		assert.NotNil(t, err)
 		assert.Equal(t, http.StatusBadRequest, err.HTTPCode)
-		assert.Contains(t, err.Message, "Invalid end time format")
+		assert.Contains(t, err.Message, "Invalid start time format - must be HH:MM:SS±HH:MM (e.g. 09:00:00+00:00)")
 	})
 
 	t.Run("End time before start time (crosses midnight)", func(t *testing.T) {
@@ -104,8 +104,8 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			Day:               &day,
 			RecurrenceStartAt: time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC),  // Monday
 			RecurrenceEndAt:   time.Date(2023, 10, 30, 0, 0, 0, 0, time.UTC), // 4 weeks later
-			EventStartTime:    "23:00",
-			EventEndTime:      "01:00",
+			EventStartTime:    "23:00:00+00:00",                              // Changed from "23:00"
+			EventEndTime:      "01:00:00+00:00",                              // Changed from "01:00"
 			ProgramID:         uuid.New(),
 			LocationID:        uuid.New(),
 			TeamID:            uuid.New(),
@@ -132,8 +132,8 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			Day:               &day,
 			RecurrenceStartAt: time.Date(2023, 10, 30, 0, 0, 0, 0, time.UTC), // Monday
 			RecurrenceEndAt:   time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC),  // Earlier date
-			EventStartTime:    "10:00",
-			EventEndTime:      "12:00",
+			EventStartTime:    "10:00:00+00:00",                              // Changed from "10:00"
+			EventEndTime:      "12:00:00+00:00",                              // Changed from "12:00"
 			ProgramID:         uuid.New(),
 			LocationID:        uuid.New(),
 			TeamID:            uuid.New(),
@@ -154,8 +154,8 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			Day:               nil,
 			RecurrenceStartAt: time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC), // Monday
 			RecurrenceEndAt:   time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC), // Same day
-			EventStartTime:    "10:00",
-			EventEndTime:      "12:00",
+			EventStartTime:    "10:00:00+00:00",                             // Changed from "10:00"
+			EventEndTime:      "12:00:00+00:00",                             // Changed from "12:00"
 			ProgramID:         uuid.New(),
 			LocationID:        uuid.New(),
 			TeamID:            uuid.New(),
@@ -178,8 +178,8 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			Day:               &day,                                         // No Sundays in the range
 			RecurrenceStartAt: time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC), // Monday
 			RecurrenceEndAt:   time.Date(2023, 10, 6, 0, 0, 0, 0, time.UTC), // Friday
-			EventStartTime:    "10:00",
-			EventEndTime:      "12:00",
+			EventStartTime:    "10:00:00+00:00",                             // Changed from "10:00"
+			EventEndTime:      "12:00:00+00:00",                             // Changed from "12:00"
 			ProgramID:         uuid.New(),
 			LocationID:        uuid.New(),
 			TeamID:            uuid.New(),
@@ -220,8 +220,8 @@ func TestConvertEventsForUpdate(t *testing.T) {
 		{
 			name: "successful time update",
 			timeUpdate: EventTimeUpdate{
-				NewStartTime: "14:00",
-				NewEndTime:   "16:00",
+				NewStartTime: "14:00:00+00:00",
+				NewEndTime:   "16:00:00+00:00",
 			},
 			idUpdate: EventIDUpdate{
 				NewProgramID:  testUUID,
@@ -248,8 +248,8 @@ func TestConvertEventsForUpdate(t *testing.T) {
 		{
 			name: "midnight crossing",
 			timeUpdate: EventTimeUpdate{
-				NewStartTime: "22:00",
-				NewEndTime:   "02:00",
+				NewStartTime: "22:00:00+00:00",
+				NewEndTime:   "02:00:00+00:00",
 			},
 			idUpdate: EventIDUpdate{
 				NewProgramID:  testUUID,
@@ -276,8 +276,8 @@ func TestConvertEventsForUpdate(t *testing.T) {
 		{
 			name: "multiple events",
 			timeUpdate: EventTimeUpdate{
-				NewStartTime: "09:00",
-				NewEndTime:   "11:00",
+				NewStartTime: "09:00:00+00:00",
+				NewEndTime:   "11:00:00+00:00",
 			},
 			idUpdate: EventIDUpdate{
 				NewProgramID:  testUUID,
@@ -329,24 +329,40 @@ func TestConvertEventsForUpdate(t *testing.T) {
 		{
 			name: "invalid start time format",
 			timeUpdate: EventTimeUpdate{
-				NewStartTime: "25:00", // Invalid hour
-				NewEndTime:   "16:00",
+				NewStartTime: "25:00:00+00:00", // Invalid hour
+				NewEndTime:   "16:00:00+00:00",
 			},
-			wantErr: errLib.New("invalid start time: parsing time \"25:00\": hour out of range", http.StatusBadRequest),
+			wantErr: errLib.New("invalid start time: parsing time \"25:00:00+00:00\": hour out of range", http.StatusBadRequest),
 		},
 		{
 			name: "invalid end time format",
 			timeUpdate: EventTimeUpdate{
-				NewStartTime: "14:00",
-				NewEndTime:   "16:60", // Invalid minute
+				NewStartTime: "14:00:00+00:00",
+				NewEndTime:   "16:60:00+00:00", // Invalid minute
 			},
-			wantErr: errLib.New("invalid end time: parsing time \"16:60\": minute out of range", http.StatusBadRequest),
+			wantErr: errLib.New("invalid end time: parsing time \"16:60:00+00:00\": minute out of range", http.StatusBadRequest),
+		},
+		{
+			name: "invalid time format (missing timezone)",
+			timeUpdate: EventTimeUpdate{
+				NewStartTime: "14:00:00", // Missing timezone
+				NewEndTime:   "16:00:00+00:00",
+			},
+			wantErr: errLib.New("invalid start time format - must be HH:MM:SS±HH:MM (e.g. 09:00:00+00:00)", http.StatusBadRequest),
+		},
+		{
+			name: "invalid timezone format",
+			timeUpdate: EventTimeUpdate{
+				NewStartTime: "14:00:00+0000", // Invalid timezone format
+				NewEndTime:   "16:00:00+00:00",
+			},
+			wantErr: errLib.New("invalid start time format - must be HH:MM:SS±HH:MM (e.g. 09:00:00+00:00)", http.StatusBadRequest),
 		},
 		{
 			name: "zero capacity",
 			timeUpdate: EventTimeUpdate{
-				NewStartTime: "14:00",
-				NewEndTime:   "16:00",
+				NewStartTime: "14:00:00+00:00",
+				NewEndTime:   "16:00:00+00:00",
 			},
 			capacity: 0,
 			wantErr:  errLib.New("capacity must be positive", http.StatusBadRequest),
@@ -354,15 +370,15 @@ func TestConvertEventsForUpdate(t *testing.T) {
 		{
 			name: "negative capacity",
 			timeUpdate: EventTimeUpdate{
-				NewStartTime: "14:00",
-				NewEndTime:   "16:00",
+				NewStartTime: "14:00:00+00:00",
+				NewEndTime:   "16:00:00+00:00",
 			},
 			capacity: -5,
 			wantErr:  errLib.New("capacity must be positive", http.StatusBadRequest),
 		},
 		{
 			name:           "empty events list",
-			timeUpdate:     EventTimeUpdate{NewStartTime: "09:00", NewEndTime: "17:00"},
+			timeUpdate:     EventTimeUpdate{NewStartTime: "09:00:00+00:00", NewEndTime: "17:00:00+00:00"},
 			existingEvents: []values.ReadEventValues{},
 			capacity:       5,
 			wantErr:        errLib.New("no events to update", http.StatusBadRequest),

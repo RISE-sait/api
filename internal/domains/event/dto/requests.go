@@ -122,7 +122,7 @@ func (dto CreateRequestDto) ToCreateEventsValues(creator uuid.UUID) (values.Crea
 
 	if dto.Day != "" {
 		weekDay, err := validateWeekday(dto.Day)
-		if err == nil {
+		if err != nil {
 			return values.CreateEventsRecurrenceValues{}, err
 		}
 		day = &weekDay

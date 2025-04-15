@@ -155,6 +155,8 @@ func (s *Service) DeleteEvents(ctx context.Context, ids []uuid.UUID) *errLib.Com
 	return s.repo.DeleteEvent(ctx, ids)
 }
 
+const timeLayout = "15:04:05Z07:00"
+
 func generateEventsFromRecurrence(recurrence values.CreateEventsRecurrenceValues) ([]values.CreateEventsSpecificValues, *errLib.CommonError) {
 	var specificEvents []values.CreateEventsSpecificValues
 
@@ -168,16 +170,15 @@ func generateEventsFromRecurrence(recurrence values.CreateEventsRecurrenceValues
 
 	// Parse the time strings into time.Time objects for the current day
 	eventDate := recurrence.RecurrenceStartAt
-	layout := "15:04" // Assuming time format is HH:MM
 
-	startTime, err := time.Parse(layout, recurrence.EventStartTime)
+	startTime, err := time.Parse(timeLayout, recurrence.EventStartTime)
 	if err != nil {
-		return nil, errLib.New("Invalid start time format", http.StatusBadRequest)
+		return nil, errLib.New(fmt.Sprintf("Invalid start time format - must be HH:MM:SS±HH:MM (e.g. 09:00:00+00:00)"), http.StatusBadRequest)
 	}
 
-	endTime, err := time.Parse(layout, recurrence.EventEndTime)
+	endTime, err := time.Parse(timeLayout, recurrence.EventEndTime)
 	if err != nil {
-		return nil, errLib.New("Invalid end time format", http.StatusBadRequest)
+		return nil, errLib.New(fmt.Sprintf("Invalid end time format - must be HH:MM:SS±HH:MM (e.g. 17:00:00+00:00)"), http.StatusBadRequest)
 	}
 
 	// Adjust the times to be on the event date
@@ -280,14 +281,14 @@ func convertEventsForUpdate(
 ) ([]values.UpdateEventValues, *errLib.CommonError) {
 
 	// Parse times once
-	startTime, err := time.Parse("15:04", timeUpdate.NewStartTime)
+	startTime, err := time.Parse(timeLayout, timeUpdate.NewStartTime)
 	if err != nil {
-		return nil, errLib.New(fmt.Sprintf("invalid start time: %v", err), http.StatusBadRequest)
+		return nil, errLib.New(fmt.Sprintf("Invalid start time format - must be HH:MM:SS±HH:MM (e.g. 09:00:00+00:00)"), http.StatusBadRequest)
 	}
 
-	endTime, err := time.Parse("15:04", timeUpdate.NewEndTime)
+	endTime, err := time.Parse(timeLayout, timeUpdate.NewEndTime)
 	if err != nil {
-		return nil, errLib.New(fmt.Sprintf("invalid end time: %v", err), http.StatusBadRequest)
+		return nil, errLib.New(fmt.Sprintf("Invalid end time format - must be HH:MM:SS±HH:MM (e.g. 17:00:00+00:00)"), http.StatusBadRequest)
 	}
 
 	if newCapacity <= 0 {

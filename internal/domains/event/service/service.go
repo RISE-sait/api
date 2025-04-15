@@ -52,6 +52,24 @@ func (s *Service) executeInTx(ctx context.Context, fn func(repo *repo.EventsRepo
 	return nil
 }
 
+// GetEvent retrieves a single event by its ID from the repository.
+//
+// Parameters:
+//   - ctx: The context for the request, used for cancellation and deadlines
+//   - eventID: The UUID of the event to retrieve
+//
+// Returns:
+//   - values.ReadEventValues: The event data if found
+//   - *errLib.CommonError:
+//   - nil if the operation was successful
+//   - http.StatusNotFound (wrapped in CommonError) if no event was found with the given ID
+//   - other repository errors if the operation fails
+//
+// Example:
+//
+//	event, err := svc.GetEvent(ctx, eventID)
+//	if err.HTTPCode == http.StatusNotFound {
+//		// Handle not found error
 func (s *Service) GetEvent(ctx context.Context, eventID uuid.UUID) (values.ReadEventValues, *errLib.CommonError) {
 	return s.repo.GetEvent(ctx, eventID)
 }

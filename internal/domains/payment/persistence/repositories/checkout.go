@@ -100,17 +100,11 @@ func (r *CheckoutRepository) GetProgramIDOfEvent(ctx context.Context, eventID uu
 	retrievedEvent, err := r.eventService.GetEvent(ctx, eventID)
 
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if err.HTTPCode == http.StatusNotFound {
 			return uuid.Nil, errLib.New(fmt.Sprintf("retrievedEvent not found: %v", eventID), http.StatusNotFound)
 		}
 		log.Printf("Error getting program of the retrievedEvent: %v", err)
 		return uuid.Nil, errLib.New("failed to get program of the retrievedEvent", http.StatusInternalServerError)
-	}
-
-	if retrievedEvent.Program != nil {
-		if retrievedEvent.Program.ID == uuid.Nil {
-			return uuid.Nil, errLib.New(fmt.Sprintf("program not found for retrievedEvent: %v", eventID), http.StatusNotFound)
-		}
 	}
 
 	return retrievedEvent.Program.ID, nil

@@ -117,7 +117,7 @@ func TestCreateEvents(t *testing.T) {
 				require.Equal(t, testTime.startAt.UTC(), event.StartAt.UTC())
 				require.Equal(t, testTime.endAt.UTC(), event.EndAt.UTC())
 				require.Equal(t, createdLocation.ID, event.LocationID)
-				require.Equal(t, createdProgram.ID, event.ProgramID.UUID)
+				require.Equal(t, createdProgram.ID, event.ProgramID)
 				require.Equal(t, testTime.capacity, event.Capacity.Int32)
 				found = true
 				break

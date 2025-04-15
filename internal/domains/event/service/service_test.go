@@ -340,7 +340,7 @@ func TestConvertEventsForUpdate(t *testing.T) {
 				NewStartTime: "14:00:00+00:00",
 				NewEndTime:   "16:60:00+00:00", // Invalid minute
 			},
-			wantErr: errLib.New("Invalid end time format - must be HH:MM:SS±HH:MM (e.g. 09:00:00+00:00)", http.StatusBadRequest),
+			wantErr: errLib.New("Invalid end time format - must be HH:MM:SS±HH:MM (e.g. 17:00:00+00:00)", http.StatusBadRequest),
 		},
 		{
 			name: "invalid time format (missing timezone)",

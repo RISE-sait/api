@@ -20,7 +20,7 @@ INTO events.events (location_id,
                     is_cancelled,
                     cancellation_reason)
 SELECT location_id,
-       NULLIF(program_id, '00000000-0000-0000-0000-000000000000'::uuid),
+       program_id,
        NULLIF(team_id, '00000000-0000-0000-0000-000000000000'::uuid),
        start_at,
        end_at,
@@ -47,7 +47,7 @@ SELECT DISTINCT e.*,
                 l.address          AS location_address,
                 t.name             as team_name
 FROM events.events e
-         LEFT JOIN program.programs p ON e.program_id = p.id
+         JOIN program.programs p ON e.program_id = p.id
          JOIN location.locations l ON e.location_id = l.id
          LEFT JOIN events.staff es ON e.id = es.event_id
          LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
@@ -117,7 +117,7 @@ SELECT e.*,
 FROM events.events e
          JOIN users.users creator ON creator.id = e.created_by
          JOIN users.users updater ON updater.id = e.updated_by
-         LEFT JOIN program.programs p ON e.program_id = p.id
+         JOIN program.programs p ON e.program_id = p.id
          JOIN location.locations l ON e.location_id = l.id
          LEFT JOIN athletic.teams t ON t.id = e.team_id
 WHERE e.id = $1;
@@ -151,7 +151,7 @@ UPDATE events.events e
 SET start_at            = ud.start_at,
     end_at              = ud.end_at,
     location_id         = ud.location_id,
-    program_id          = NULLIF(ud.program_id, '00000000-0000-0000-0000-000000000000'::uuid),
+    program_id = ud.program_id,
     team_id             = NULLIF(ud.team_id, '00000000-0000-0000-0000-000000000000'::uuid),
     is_cancelled        = ud.is_cancelled,
     cancellation_reason = NULLIF(ud.cancellation_reason, ''),

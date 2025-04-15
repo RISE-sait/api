@@ -35,7 +35,7 @@ SELECT trim(to_char(start_at, 'Day')) AS day_of_week, -- More readable
 FROM events.events e
          LEFT JOIN events.staff es ON e.id = es.event_id
          LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
-         LEFT JOIN program.programs p ON e.program_id = p.id
+         JOIN program.programs p ON e.program_id = p.id
          LEFT JOIN athletic.teams t ON e.team_id = t.id
          JOIN location.locations l ON e.location_id = l.id
 WHERE ($1::uuid IS NULL OR program_id = $1::uuid)
@@ -75,21 +75,21 @@ type GetEventsSchedulesParams struct {
 }
 
 type GetEventsSchedulesRow struct {
-	DayOfWeek          string                 `json:"day_of_week"`
-	StartTime          string                 `json:"start_time"`
-	EndTime            string                 `json:"end_time"`
-	ProgramID          uuid.NullUUID          `json:"program_id"`
-	ProgramName        sql.NullString         `json:"program_name"`
-	ProgramDescription sql.NullString         `json:"program_description"`
-	ProgramType        NullProgramProgramType `json:"program_type"`
-	LocationID         uuid.UUID              `json:"location_id"`
-	LocationName       string                 `json:"location_name"`
-	LocationAddress    string                 `json:"location_address"`
-	TeamID             uuid.NullUUID          `json:"team_id"`
-	TeamName           sql.NullString         `json:"team_name"`
-	EventCount         int64                  `json:"event_count"`
-	FirstOccurrence    time.Time              `json:"first_occurrence"`
-	LastOccurrence     time.Time              `json:"last_occurrence"`
+	DayOfWeek          string             `json:"day_of_week"`
+	StartTime          string             `json:"start_time"`
+	EndTime            string             `json:"end_time"`
+	ProgramID          uuid.UUID          `json:"program_id"`
+	ProgramName        string             `json:"program_name"`
+	ProgramDescription string             `json:"program_description"`
+	ProgramType        ProgramProgramType `json:"program_type"`
+	LocationID         uuid.UUID          `json:"location_id"`
+	LocationName       string             `json:"location_name"`
+	LocationAddress    string             `json:"location_address"`
+	TeamID             uuid.NullUUID      `json:"team_id"`
+	TeamName           sql.NullString     `json:"team_name"`
+	EventCount         int64              `json:"event_count"`
+	FirstOccurrence    time.Time          `json:"first_occurrence"`
+	LastOccurrence     time.Time          `json:"last_occurrence"`
 }
 
 func (q *Queries) GetEventsSchedules(ctx context.Context, arg GetEventsSchedulesParams) ([]GetEventsSchedulesRow, error) {

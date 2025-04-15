@@ -36,7 +36,7 @@ INTO events.events (location_id,
                     is_cancelled,
                     cancellation_reason)
 SELECT location_id,
-       NULLIF(program_id, '00000000-0000-0000-0000-000000000000'::uuid),
+       program_id,
        NULLIF(team_id, '00000000-0000-0000-0000-000000000000'::uuid),
        start_at,
        end_at,
@@ -107,37 +107,37 @@ SELECT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.cre
 FROM events.events e
          JOIN users.users creator ON creator.id = e.created_by
          JOIN users.users updater ON updater.id = e.updated_by
-         LEFT JOIN program.programs p ON e.program_id = p.id
+         JOIN program.programs p ON e.program_id = p.id
          JOIN location.locations l ON e.location_id = l.id
          LEFT JOIN athletic.teams t ON t.id = e.team_id
 WHERE e.id = $1
 `
 
 type GetEventByIdRow struct {
-	ID                 uuid.UUID              `json:"id"`
-	LocationID         uuid.UUID              `json:"location_id"`
-	ProgramID          uuid.NullUUID          `json:"program_id"`
-	TeamID             uuid.NullUUID          `json:"team_id"`
-	StartAt            time.Time              `json:"start_at"`
-	EndAt              time.Time              `json:"end_at"`
-	CreatedBy          uuid.UUID              `json:"created_by"`
-	UpdatedBy          uuid.UUID              `json:"updated_by"`
-	Capacity           sql.NullInt32          `json:"capacity"`
-	IsCancelled        bool                   `json:"is_cancelled"`
-	CancellationReason sql.NullString         `json:"cancellation_reason"`
-	CreatedAt          time.Time              `json:"created_at"`
-	UpdatedAt          time.Time              `json:"updated_at"`
-	CreatorFirstName   string                 `json:"creator_first_name"`
-	CreatorLastName    string                 `json:"creator_last_name"`
-	UpdaterFirstName   string                 `json:"updater_first_name"`
-	UpdaterLastName    string                 `json:"updater_last_name"`
-	ProgramName        sql.NullString         `json:"program_name"`
-	ProgramDescription sql.NullString         `json:"program_description"`
-	ProgramType        NullProgramProgramType `json:"program_type"`
-	LocationName       string                 `json:"location_name"`
-	LocationAddress    string                 `json:"location_address"`
-	TeamID_2           uuid.NullUUID          `json:"team_id_2"`
-	TeamName           sql.NullString         `json:"team_name"`
+	ID                 uuid.UUID          `json:"id"`
+	LocationID         uuid.UUID          `json:"location_id"`
+	ProgramID          uuid.UUID          `json:"program_id"`
+	TeamID             uuid.NullUUID      `json:"team_id"`
+	StartAt            time.Time          `json:"start_at"`
+	EndAt              time.Time          `json:"end_at"`
+	CreatedBy          uuid.UUID          `json:"created_by"`
+	UpdatedBy          uuid.UUID          `json:"updated_by"`
+	Capacity           sql.NullInt32      `json:"capacity"`
+	IsCancelled        bool               `json:"is_cancelled"`
+	CancellationReason sql.NullString     `json:"cancellation_reason"`
+	CreatedAt          time.Time          `json:"created_at"`
+	UpdatedAt          time.Time          `json:"updated_at"`
+	CreatorFirstName   string             `json:"creator_first_name"`
+	CreatorLastName    string             `json:"creator_last_name"`
+	UpdaterFirstName   string             `json:"updater_first_name"`
+	UpdaterLastName    string             `json:"updater_last_name"`
+	ProgramName        string             `json:"program_name"`
+	ProgramDescription string             `json:"program_description"`
+	ProgramType        ProgramProgramType `json:"program_type"`
+	LocationName       string             `json:"location_name"`
+	LocationAddress    string             `json:"location_address"`
+	TeamID_2           uuid.NullUUID      `json:"team_id_2"`
+	TeamName           sql.NullString     `json:"team_name"`
 }
 
 func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdRow, error) {
@@ -300,7 +300,7 @@ SELECT DISTINCT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_
                 l.address          AS location_address,
                 t.name             as team_name
 FROM events.events e
-         LEFT JOIN program.programs p ON e.program_id = p.id
+         JOIN program.programs p ON e.program_id = p.id
          JOIN location.locations l ON e.location_id = l.id
          LEFT JOIN events.staff es ON e.id = es.event_id
          LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
@@ -336,29 +336,29 @@ type GetEventsParams struct {
 }
 
 type GetEventsRow struct {
-	ID                 uuid.UUID              `json:"id"`
-	LocationID         uuid.UUID              `json:"location_id"`
-	ProgramID          uuid.NullUUID          `json:"program_id"`
-	TeamID             uuid.NullUUID          `json:"team_id"`
-	StartAt            time.Time              `json:"start_at"`
-	EndAt              time.Time              `json:"end_at"`
-	CreatedBy          uuid.UUID              `json:"created_by"`
-	UpdatedBy          uuid.UUID              `json:"updated_by"`
-	Capacity           sql.NullInt32          `json:"capacity"`
-	IsCancelled        bool                   `json:"is_cancelled"`
-	CancellationReason sql.NullString         `json:"cancellation_reason"`
-	CreatedAt          time.Time              `json:"created_at"`
-	UpdatedAt          time.Time              `json:"updated_at"`
-	CreatorFirstName   string                 `json:"creator_first_name"`
-	CreatorLastName    string                 `json:"creator_last_name"`
-	UpdaterFirstName   string                 `json:"updater_first_name"`
-	UpdaterLastName    string                 `json:"updater_last_name"`
-	ProgramName        sql.NullString         `json:"program_name"`
-	ProgramDescription sql.NullString         `json:"program_description"`
-	ProgramType        NullProgramProgramType `json:"program_type"`
-	LocationName       string                 `json:"location_name"`
-	LocationAddress    string                 `json:"location_address"`
-	TeamName           sql.NullString         `json:"team_name"`
+	ID                 uuid.UUID          `json:"id"`
+	LocationID         uuid.UUID          `json:"location_id"`
+	ProgramID          uuid.UUID          `json:"program_id"`
+	TeamID             uuid.NullUUID      `json:"team_id"`
+	StartAt            time.Time          `json:"start_at"`
+	EndAt              time.Time          `json:"end_at"`
+	CreatedBy          uuid.UUID          `json:"created_by"`
+	UpdatedBy          uuid.UUID          `json:"updated_by"`
+	Capacity           sql.NullInt32      `json:"capacity"`
+	IsCancelled        bool               `json:"is_cancelled"`
+	CancellationReason sql.NullString     `json:"cancellation_reason"`
+	CreatedAt          time.Time          `json:"created_at"`
+	UpdatedAt          time.Time          `json:"updated_at"`
+	CreatorFirstName   string             `json:"creator_first_name"`
+	CreatorLastName    string             `json:"creator_last_name"`
+	UpdaterFirstName   string             `json:"updater_first_name"`
+	UpdaterLastName    string             `json:"updater_last_name"`
+	ProgramName        string             `json:"program_name"`
+	ProgramDescription string             `json:"program_description"`
+	ProgramType        ProgramProgramType `json:"program_type"`
+	LocationName       string             `json:"location_name"`
+	LocationAddress    string             `json:"location_address"`
+	TeamName           sql.NullString     `json:"team_name"`
 }
 
 func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEventsRow, error) {
@@ -439,7 +439,7 @@ type UpdateEventParams struct {
 	StartAt            time.Time      `json:"start_at"`
 	EndAt              time.Time      `json:"end_at"`
 	LocationID         uuid.UUID      `json:"location_id"`
-	ProgramID          uuid.NullUUID  `json:"program_id"`
+	ProgramID          uuid.UUID      `json:"program_id"`
 	TeamID             uuid.NullUUID  `json:"team_id"`
 	IsCancelled        bool           `json:"is_cancelled"`
 	CancellationReason sql.NullString `json:"cancellation_reason"`
@@ -481,30 +481,26 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 }
 
 const updateEvents = `-- name: UpdateEvents :execrows
-WITH update_data AS (
-    SELECT
-        unnest($2::uuid[]) AS id,
-        unnest($3::timestamptz[]) AS start_at,
-        unnest($4::timestamptz[]) AS end_at,
-        unnest($5::uuid[]) AS location_id,
-        unnest($6::uuid[]) AS program_id,
-        unnest($7::uuid[]) AS team_id,
-        unnest($8::bool[]) AS is_cancelled,
-        unnest($9::text[]) AS cancellation_reason,
-        unnest($10::int[]) AS capacity
-)
+WITH update_data AS (SELECT unnest($2::uuid[])                   AS id,
+                            unnest($3::timestamptz[]) AS start_at,
+                            unnest($4::timestamptz[])   AS end_at,
+                            unnest($5::uuid[])          AS location_id,
+                            unnest($6::uuid[])           AS program_id,
+                            unnest($7::uuid[])              AS team_id,
+                            unnest($8::bool[])    AS is_cancelled,
+                            unnest($9::text[])  AS cancellation_reason,
+                            unnest($10::int[])             AS capacity)
 UPDATE events.events e
-SET
-    start_at = ud.start_at,
-    end_at = ud.end_at,
-    location_id = ud.location_id,
-    program_id = NULLIF(ud.program_id, '00000000-0000-0000-0000-000000000000'::uuid),
-    team_id = NULLIF(ud.team_id, '00000000-0000-0000-0000-000000000000'::uuid),
-    is_cancelled = ud.is_cancelled,
+SET start_at            = ud.start_at,
+    end_at              = ud.end_at,
+    location_id         = ud.location_id,
+    program_id          = ud.program_id,
+    team_id             = NULLIF(ud.team_id, '00000000-0000-0000-0000-000000000000'::uuid),
+    is_cancelled        = ud.is_cancelled,
     cancellation_reason = NULLIF(ud.cancellation_reason, ''),
-    capacity = ud.capacity,
-    updated_at = CURRENT_TIMESTAMP,
-    updated_by = $1
+    capacity            = ud.capacity,
+    updated_at          = CURRENT_TIMESTAMP,
+    updated_by          = $1
 FROM update_data ud
 WHERE e.id = ud.id
 `

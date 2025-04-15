@@ -16,7 +16,7 @@ type (
 		Day               string   `json:"day"`
 		Team              *Team    `json:"team,omitempty"`
 		Location          Location `json:"location"`
-		Program           *Program `json:"program,omitempty"`
+		Program           Program  `json:"program"`
 	}
 
 	Program struct {
@@ -49,14 +49,11 @@ func NewScheduleResponseDto(schedule values.Schedule) ScheduleResponseDto {
 			Name:    schedule.Location.Name,
 			Address: schedule.Location.Address,
 		},
-	}
-
-	if schedule.Program != nil {
-		response.Program = &Program{
+		Program: Program{
 			ID:   schedule.Program.ID,
 			Name: schedule.Program.Name,
 			Type: schedule.Program.Type,
-		}
+		},
 	}
 
 	if schedule.Team != nil {

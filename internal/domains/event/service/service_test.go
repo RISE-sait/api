@@ -348,7 +348,7 @@ func TestConvertEventsForUpdate(t *testing.T) {
 				NewStartTime: "14:00:00", // Missing timezone
 				NewEndTime:   "16:00:00+00:00",
 			},
-			wantErr: errLib.New("invalid start time format - must be HH:MM:SS±HH:MM (e.g. 09:00:00+00:00)", http.StatusBadRequest),
+			wantErr: errLib.New("Invalid start time format - must be HH:MM:SS±HH:MM (e.g. 09:00:00+00:00)", http.StatusBadRequest),
 		},
 		{
 			name: "invalid timezone format",
@@ -356,7 +356,7 @@ func TestConvertEventsForUpdate(t *testing.T) {
 				NewStartTime: "14:00:00+0000", // Invalid timezone format
 				NewEndTime:   "16:00:00+00:00",
 			},
-			wantErr: errLib.New("invalid start time format - must be HH:MM:SS±HH:MM (e.g. 09:00:00+00:00)", http.StatusBadRequest),
+			wantErr: errLib.New("Invalid start time format - must be HH:MM:SS±HH:MM (e.g. 09:00:00+00:00)", http.StatusBadRequest),
 		},
 		{
 			name: "zero capacity",

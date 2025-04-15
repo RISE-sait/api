@@ -332,7 +332,7 @@ func TestConvertEventsForUpdate(t *testing.T) {
 				NewStartTime: "25:00:00+00:00", // Invalid hour
 				NewEndTime:   "16:00:00+00:00",
 			},
-			wantErr: errLib.New("invalid start time: parsing time \"25:00:00+00:00\": hour out of range", http.StatusBadRequest),
+			wantErr: errLib.New("Invalid start time format - must be HH:MM:SS±HH:MM (e.g. 09:00:00+00:00)", http.StatusBadRequest),
 		},
 		{
 			name: "invalid end time format",
@@ -340,7 +340,7 @@ func TestConvertEventsForUpdate(t *testing.T) {
 				NewStartTime: "14:00:00+00:00",
 				NewEndTime:   "16:60:00+00:00", // Invalid minute
 			},
-			wantErr: errLib.New("invalid end time: parsing time \"16:60:00+00:00\": minute out of range", http.StatusBadRequest),
+			wantErr: errLib.New("Invalid end time format - must be HH:MM:SS±HH:MM (e.g. 09:00:00+00:00)", http.StatusBadRequest),
 		},
 		{
 			name: "invalid time format (missing timezone)",

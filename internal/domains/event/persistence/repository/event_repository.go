@@ -276,20 +276,17 @@ func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEvent
 				FirstName: row.UpdaterFirstName,
 				LastName:  row.UpdaterLastName,
 			},
-		}
-
-		if row.ProgramID.Valid && row.ProgramName.Valid && row.ProgramType.Valid && row.ProgramDescription.Valid {
-			event.Program = &struct {
+			Program: struct {
 				ID          uuid.UUID
 				Name        string
 				Description string
 				Type        string
 			}{
-				ID:          row.ProgramID.UUID,
-				Name:        row.ProgramName.String,
-				Description: row.ProgramDescription.String,
-				Type:        string(row.ProgramType.ProgramProgramType),
-			}
+				ID:          row.ProgramID,
+				Name:        row.ProgramName,
+				Description: row.ProgramDescription,
+				Type:        string(row.ProgramType),
+			},
 		}
 
 		if row.TeamID.Valid && row.TeamName.Valid {
@@ -397,10 +394,7 @@ func (r *EventsRepository) UpdateEvent(ctx context.Context, event values.UpdateE
 			UUID:  event.TeamID,
 			Valid: event.TeamID != uuid.Nil,
 		},
-		ProgramID: uuid.NullUUID{
-			UUID:  event.ProgramID,
-			Valid: event.ProgramID != uuid.Nil,
-		},
+		ProgramID: event.ProgramID,
 		Capacity: sql.NullInt32{
 			Int32: event.Capacity,
 			Valid: event.Capacity != 0,

@@ -387,7 +387,7 @@ type EventsCustomerEnrollment struct {
 type EventsEvent struct {
 	ID                 uuid.UUID      `json:"id"`
 	LocationID         uuid.UUID      `json:"location_id"`
-	ProgramID          uuid.NullUUID  `json:"program_id"`
+	ProgramID          uuid.UUID      `json:"program_id"`
 	TeamID             uuid.NullUUID  `json:"team_id"`
 	StartAt            time.Time      `json:"start_at"`
 	EndAt              time.Time      `json:"end_at"`

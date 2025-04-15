@@ -9,7 +9,7 @@ type Schedule struct {
 	DayOfWeek string
 	StartTime string
 	EndTime   string
-	Program   *struct {
+	Program   struct {
 		ID          uuid.UUID
 		Name        string
 		Description string

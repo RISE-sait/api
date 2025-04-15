@@ -58,7 +58,7 @@ type (
 
 	EventResponseDto struct {
 		ID        uuid.UUID         `json:"id"`
-		Program   *ProgramInfo      `json:"program,omitempty"`
+		Program   ProgramInfo       `json:"program"`
 		Location  LocationInfo      `json:"location"`
 		Capacity  int32             `json:"capacity"`
 		CreatedBy PersonResponseDto `json:"created_by"`
@@ -84,14 +84,11 @@ func NewEventResponseDto(event values.ReadEventValues, includePeople bool) Event
 			StartAt: event.StartAt.String(),
 			EndAt:   event.EndAt.String(),
 		},
-	}
-
-	if event.Program != nil {
-		response.Program = &ProgramInfo{
+		Program: ProgramInfo{
 			ID:   event.Program.ID,
 			Name: event.Program.Name,
 			Type: event.Program.Type,
-		}
+		},
 	}
 
 	if event.Team != nil {

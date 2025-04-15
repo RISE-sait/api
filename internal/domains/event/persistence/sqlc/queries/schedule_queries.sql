@@ -20,7 +20,7 @@ SELECT trim(to_char(start_at, 'Day')) AS day_of_week, -- More readable
 FROM events.events e
          LEFT JOIN events.staff es ON e.id = es.event_id
          LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
-         LEFT JOIN program.programs p ON e.program_id = p.id
+         JOIN program.programs p ON e.program_id = p.id
          LEFT JOIN athletic.teams t ON e.team_id = t.id
          JOIN location.locations l ON e.location_id = l.id
 WHERE (sqlc.narg('program_id')::uuid IS NULL OR program_id = sqlc.narg('program_id')::uuid)

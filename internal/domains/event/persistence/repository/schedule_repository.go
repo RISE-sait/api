@@ -74,23 +74,20 @@ func (r *SchedulesRepository) GetEventsSchedules(ctx context.Context, programTyp
 				Name:    row.LocationName,
 				Address: row.LocationAddress,
 			},
-			EventCount:      row.EventCount,
-			FirstOccurrence: row.FirstOccurrence,
-			LastOccurrence:  row.LastOccurrence,
-		}
-
-		if row.ProgramID.Valid && row.ProgramName.Valid && row.ProgramDescription.Valid && row.ProgramType.Valid {
-			schedule.Program = &struct {
+			Program: struct {
 				ID          uuid.UUID
 				Name        string
 				Description string
 				Type        string
 			}{
-				ID:          row.ProgramID.UUID,
-				Name:        row.ProgramName.String,
-				Description: row.ProgramDescription.String,
-				Type:        string(row.ProgramType.ProgramProgramType),
-			}
+				ID:          row.ProgramID,
+				Name:        row.ProgramName,
+				Description: row.ProgramDescription,
+				Type:        string(row.ProgramType),
+			},
+			EventCount:      row.EventCount,
+			FirstOccurrence: row.FirstOccurrence,
+			LastOccurrence:  row.LastOccurrence,
 		}
 
 		if row.TeamID.Valid && row.TeamName.Valid {

@@ -1,11 +1,11 @@
 package team
 
 import (
-	databaseErrors "api/internal/constants"
 	db "api/internal/domains/team/persistence/sqlc/generated"
 	values "api/internal/domains/team/values"
 	errLib "api/internal/libs/errors"
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -13,6 +13,20 @@ import (
 	"log"
 	"net/http"
 )
+
+var constraintErrors = map[string]struct {
+	Message string
+	Status  int
+}{
+	"fk_coach": {
+		Message: "The referenced coach doesn't exist",
+		Status:  http.StatusNotFound,
+	},
+	"unique_team_name": {
+		Message: "The team name already exists",
+		Status:  http.StatusConflict,
+	},
+}
 
 type Repository struct {
 	Queries *db.Queries
@@ -39,16 +53,15 @@ func (r *Repository) Update(ctx context.Context, team values.UpdateTeamValues) *
 	_, err := r.Queries.UpdateTeam(ctx, params)
 
 	if err != nil {
-		// Check if the error is a unique violation (duplicate name)
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
-			if pqErr.Code == databaseErrors.UniqueViolation {
-				return errLib.New("Team name already exists", http.StatusConflict)
+
+			if errInfo, found := constraintErrors[pqErr.Constraint]; found {
+				return errLib.New(errInfo.Message, errInfo.Status)
 			}
-			log.Println(fmt.Sprintf("Database error when updating team: %v", err.Error()))
-			return errLib.New("Database error when updating team:", http.StatusInternalServerError)
 		}
-		return errLib.New("Internal server error", http.StatusInternalServerError)
+		log.Println(fmt.Sprintf("Database error when updating team: %v", err.Error()))
+		return errLib.New("Database error when updating team:", http.StatusInternalServerError)
 	}
 
 	return nil
@@ -81,6 +94,8 @@ func (r *Repository) List(ctx context.Context) ([]values.GetTeamValues, *errLib.
 
 		if dbPractice.CoachID.Valid {
 			team.TeamDetails.CoachID = dbPractice.CoachID.UUID
+			team.TeamDetails.CoachName = dbPractice.CoachName
+			team.TeamDetails.CoachEmail = dbPractice.CoachEmail.String
 		}
 
 		teams[i] = team
@@ -93,6 +108,7 @@ func (r *Repository) Delete(c context.Context, id uuid.UUID) *errLib.CommonError
 	row, err := r.Queries.DeleteTeam(c, id)
 
 	if err != nil {
+		log.Printf("Failed to delete team with ID: %s. Error: %v", id, err.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
@@ -101,6 +117,34 @@ func (r *Repository) Delete(c context.Context, id uuid.UUID) *errLib.CommonError
 	}
 
 	return nil
+}
+
+func (r *Repository) getRosterMembers(ctx context.Context, teamID uuid.UUID) ([]values.RosterMemberInfo, *errLib.CommonError) {
+	dbMembers, err := r.Queries.GetTeamRoster(ctx, teamID)
+
+	if err != nil {
+		log.Printf("Failed to get team roster: %v", err)
+		return nil, errLib.New("Internal server error when getting team roster", http.StatusInternalServerError)
+	}
+
+	members := make([]values.RosterMemberInfo, len(dbMembers))
+
+	for i, dbMember := range dbMembers {
+		members[i] = values.RosterMemberInfo{
+			ID:       dbMember.ID,
+			Email:    dbMember.Email.String,
+			Country:  dbMember.CountryAlpha2Code,
+			Name:     dbMember.Name,
+			Points:   dbMember.Points,
+			Wins:     dbMember.Wins,
+			Losses:   dbMember.Losses,
+			Assists:  dbMember.Assists,
+			Rebounds: dbMember.Rebounds,
+			Steals:   dbMember.Steals,
+		}
+	}
+
+	return members, nil
 }
 
 func (r *Repository) Create(c context.Context, teamDetails values.CreateTeamValues) *errLib.CommonError {
@@ -117,16 +161,58 @@ func (r *Repository) Create(c context.Context, teamDetails values.CreateTeamValu
 	_, err := r.Queries.CreateTeam(c, params)
 
 	if err != nil {
-
 		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
-			// Return a custom error for unique violation
-			return errLib.New("Team name already exists", http.StatusConflict)
+
+		if errors.As(err, &pqErr) {
+
+			if errInfo, found := constraintErrors[pqErr.Constraint]; found {
+				return errLib.New(errInfo.Message, errInfo.Status)
+			}
 		}
 
-		// Return a generic internal server error for other cases
-		return errLib.New("Internal server error", http.StatusInternalServerError)
+		log.Println(fmt.Sprintf("Database error when creating team: %v", err.Error()))
+		return errLib.New("Database error when creating team:", http.StatusInternalServerError)
 	}
 
 	return nil
+}
+
+func (r *Repository) GetByID(ctx context.Context, id uuid.UUID) (values.GetTeamValues, *errLib.CommonError) {
+
+	dbTeam, dbErr := r.Queries.GetTeamById(ctx, id)
+
+	if dbErr != nil {
+		if errors.Is(dbErr, sql.ErrNoRows) {
+			return values.GetTeamValues{}, errLib.New("Team not found", http.StatusNotFound)
+		}
+
+		log.Println("Error getting team: ", dbErr)
+		return values.GetTeamValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	team := values.GetTeamValues{
+		ID:        dbTeam.ID,
+		CreatedAt: dbTeam.CreatedAt,
+		UpdatedAt: dbTeam.UpdatedAt,
+		TeamDetails: values.Details{
+			Name:     dbTeam.Name,
+			Capacity: dbTeam.Capacity,
+		},
+	}
+
+	if dbTeam.CoachID.Valid {
+		team.TeamDetails.CoachID = dbTeam.CoachID.UUID
+		team.TeamDetails.CoachName = dbTeam.CoachName
+		team.TeamDetails.CoachEmail = dbTeam.CoachEmail.String
+	}
+
+	roster, err := r.getRosterMembers(ctx, id)
+
+	if err != nil {
+		return values.GetTeamValues{}, err
+	}
+
+	team.Roster = roster
+
+	return team, nil
 }

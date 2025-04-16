@@ -7,6 +7,8 @@ package db_team
 
 import (
 	"context"
+	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -52,14 +54,26 @@ func (q *Queries) DeleteTeam(ctx context.Context, id uuid.UUID) (int64, error) {
 }
 
 const getTeamById = `-- name: GetTeamById :one
-SELECT id, name, capacity, created_at, updated_at, coach_id
-FROM athletic.teams
-WHERE id = $1
+SELECT t.id, t.name, t.capacity, t.created_at, t.updated_at, t.coach_id, u.email AS coach_email, (u.first_name || ' ' || u.last_name)::varchar AS coach_name
+FROM athletic.teams t
+JOIN users.users u ON t.coach_id = u.id
+WHERE t.id = $1
 `
 
-func (q *Queries) GetTeamById(ctx context.Context, id uuid.UUID) (AthleticTeam, error) {
+type GetTeamByIdRow struct {
+	ID         uuid.UUID      `json:"id"`
+	Name       string         `json:"name"`
+	Capacity   int32          `json:"capacity"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
+	CoachID    uuid.NullUUID  `json:"coach_id"`
+	CoachEmail sql.NullString `json:"coach_email"`
+	CoachName  string         `json:"coach_name"`
+}
+
+func (q *Queries) GetTeamById(ctx context.Context, id uuid.UUID) (GetTeamByIdRow, error) {
 	row := q.db.QueryRowContext(ctx, getTeamById, id)
-	var i AthleticTeam
+	var i GetTeamByIdRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -67,24 +81,94 @@ func (q *Queries) GetTeamById(ctx context.Context, id uuid.UUID) (AthleticTeam, 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CoachID,
+		&i.CoachEmail,
+		&i.CoachName,
 	)
 	return i, err
 }
 
-const getTeams = `-- name: GetTeams :many
-SELECT id, name, capacity, created_at, updated_at, coach_id
-FROM athletic.teams
+const getTeamRoster = `-- name: GetTeamRoster :many
+SELECT u.id, u.email, u.country_alpha2_code, (u.first_name || ' ' || u.last_name)::varchar AS name,
+       a.points, a.wins, a.losses, a.assists, a.rebounds, a.steals
+FROM athletic.teams t
+    JOIN athletic.athletes a ON t.id = a.team_id
+JOIN users.users u ON a.id = u.id
+WHERE t.id = $1
 `
 
-func (q *Queries) GetTeams(ctx context.Context) ([]AthleticTeam, error) {
+type GetTeamRosterRow struct {
+	ID                uuid.UUID      `json:"id"`
+	Email             sql.NullString `json:"email"`
+	CountryAlpha2Code string         `json:"country_alpha2_code"`
+	Name              string         `json:"name"`
+	Points            int32          `json:"points"`
+	Wins              int32          `json:"wins"`
+	Losses            int32          `json:"losses"`
+	Assists           int32          `json:"assists"`
+	Rebounds          int32          `json:"rebounds"`
+	Steals            int32          `json:"steals"`
+}
+
+func (q *Queries) GetTeamRoster(ctx context.Context, id uuid.UUID) ([]GetTeamRosterRow, error) {
+	rows, err := q.db.QueryContext(ctx, getTeamRoster, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTeamRosterRow
+	for rows.Next() {
+		var i GetTeamRosterRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Email,
+			&i.CountryAlpha2Code,
+			&i.Name,
+			&i.Points,
+			&i.Wins,
+			&i.Losses,
+			&i.Assists,
+			&i.Rebounds,
+			&i.Steals,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTeams = `-- name: GetTeams :many
+SELECT t.id, t.name, t.capacity, t.created_at, t.updated_at, t.coach_id, u.email AS coach_email, (u.first_name || ' ' || u.last_name)::varchar AS coach_name
+FROM athletic.teams t
+JOIN users.users u ON t.coach_id = u.id
+`
+
+type GetTeamsRow struct {
+	ID         uuid.UUID      `json:"id"`
+	Name       string         `json:"name"`
+	Capacity   int32          `json:"capacity"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
+	CoachID    uuid.NullUUID  `json:"coach_id"`
+	CoachEmail sql.NullString `json:"coach_email"`
+	CoachName  string         `json:"coach_name"`
+}
+
+func (q *Queries) GetTeams(ctx context.Context) ([]GetTeamsRow, error) {
 	rows, err := q.db.QueryContext(ctx, getTeams)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []AthleticTeam
+	var items []GetTeamsRow
 	for rows.Next() {
-		var i AthleticTeam
+		var i GetTeamsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -92,6 +176,8 @@ func (q *Queries) GetTeams(ctx context.Context) ([]AthleticTeam, error) {
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.CoachID,
+			&i.CoachEmail,
+			&i.CoachName,
 		); err != nil {
 			return nil, err
 		}

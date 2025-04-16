@@ -10,7 +10,7 @@ import (
 type RequestDto struct {
 	Name     string    `json:"name" validate:"required,notwhitespace"`
 	Capacity int32     `json:"capacity" validate:"required,gt=0"`
-	CoachID  uuid.UUID `json:"coach_id"`
+	CoachID  uuid.UUID `json:"coach_id" example:"faae4b3a-ad9f-463c-ae4b-3aad9fb63c9b"`
 }
 
 func (dto RequestDto) ToCreateValueObjects() (values.CreateTeamValues, *errLib.CommonError) {

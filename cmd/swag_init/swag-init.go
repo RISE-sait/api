@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -70,6 +69,6 @@ func main() {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		fmt.Println("Error running swag init:", err)
+		panic("Error running swag init: " + err.Error())
 	}
 }

@@ -8,7 +8,7 @@ import (
 
 type Response struct {
 	UserID         uuid.UUID              `json:"user_id"`
-	Age            int32                  `json:"age"`
+	DOB            string                 `json:"dob"`
 	FirstName      string                 `json:"first_name"`
 	LastName       string                 `json:"last_name"`
 	Email          *string                `json:"email,omitempty"`
@@ -39,7 +39,7 @@ type AthleteResponseDto struct {
 func UserReadValueToResponse(customer values.ReadValue) Response {
 	response := Response{
 		UserID:      customer.ID,
-		Age:         customer.Age,
+		DOB:         customer.DOB.Format("2006-01-02"),
 		FirstName:   customer.FirstName,
 		LastName:    customer.LastName,
 		Email:       customer.Email,

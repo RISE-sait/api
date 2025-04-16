@@ -7,6 +7,92 @@ import (
 	"testing"
 )
 
+//func TestGetCustomerTeam(t *testing.T) {
+//
+//	db, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
+//
+//	identityQ := identityDb.New(db)
+//	userQ := userDb.New(db)
+//	teamQ := teamDb.New(db)
+//	paymentQ := paymentDb.New(db)
+//
+//	defer cleanup()
+//
+//	createdCustomer, err := identityQ.CreateUser(context.Background(), identityDb.CreateUserParams{
+//		CountryAlpha2Code: "CA",
+//		Dob:               time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+//		Phone: sql.NullString{
+//			String: "+1514123456337",
+//			Valid:  true,
+//		},
+//		HasMarketingEmailConsent: false,
+//		HasSmsConsent:            false,
+//		FirstName:                "John",
+//		LastName:                 "Doe",
+//	})
+//
+//	require.NoError(t, err)
+//
+//	err = identityQ.CreateAthlete(context.Background(), createdCustomer.ID)
+//
+//	require.NoError(t, err)
+//
+//	createdStaffRole, err := userQ.CreateStaffRole(context.Background(), "coach")
+//
+//	require.NoError(t, err)
+//
+//	createdPendingStaff, err := identityQ.CreatePendingStaff(context.Background(), identityDb.CreatePendingStaffParams{
+//		CountryAlpha2Code: "CA",
+//		Dob:               time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+//		Phone: sql.NullString{
+//			String: "+14141234567",
+//			Valid:  true,
+//		},
+//		Email: "klintlee1@gmail.com",
+//		Gender: sql.NullString{
+//			String: "M",
+//			Valid:  true,
+//		},
+//		RoleName:  createdStaffRole.RoleName,
+//		FirstName: "John",
+//		LastName:  "Doe",
+//	})
+//
+//	require.NoError(t, err)
+//
+//	createdStaff, err := identityQ.ApproveStaff(context.Background(), createdPendingStaff.ID)
+//	require.NoError(t, err)
+//
+//	createdTeam, err := teamQ.CreateTeam(context.Background(), teamDb.CreateTeamParams{
+//		Name:     "Go Team",
+//		Capacity: 20,
+//		CoachID: uuid.NullUUID{
+//			UUID:  createdStaff.ID,
+//			Valid: true,
+//		},
+//	})
+//
+//	require.NoError(t, err)
+//
+//	impactedRows, err := userQ.AddAthleteToTeam(context.Background(), userDb.AddAthleteToTeamParams{
+//		CustomerID: createdCustomer.ID,
+//		TeamID: uuid.NullUUID{
+//			UUID:  createdTeam.ID,
+//			Valid: true,
+//		},
+//	})
+//
+//	require.NoError(t, err)
+//	require.Equal(t, int64(1), impactedRows)
+//
+//	team, err := paymentQ.GetCustomersTeam(context.Background(), createdCustomer.ID)
+//
+//	require.NoError(t, err)
+//
+//	require.True(t, team.ID.Valid)
+//	require.Equal(t, createdTeam.ID, team.ID.UUID)
+//}
+
 func SetupUsersTestDb(t *testing.T, testDb *sql.DB) (*db.Queries, func()) {
 
 	migrationScript := `

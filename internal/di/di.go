@@ -6,7 +6,7 @@ import (
 	eventDb "api/internal/domains/event/persistence/sqlc/generated"
 	gameDb "api/internal/domains/game/persistence/sqlc/generated"
 	haircutEventDb "api/internal/domains/haircut/event/persistence/sqlc/generated"
-	haircutServiceDb "api/internal/domains/haircut/service/persistence/sqlc/generated"
+	haircutServiceDb "api/internal/domains/haircut/haircut_service/persistence/sqlc/generated"
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
 	locationDb "api/internal/domains/location/persistence/sqlc/generated"
 	membershipDb "api/internal/domains/membership/persistence/sqlc/generated"

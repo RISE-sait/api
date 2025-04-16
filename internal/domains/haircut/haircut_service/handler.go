@@ -2,8 +2,8 @@ package haircut_service
 
 import (
 	"api/internal/di"
-	dto "api/internal/domains/haircut/service/dto"
-	repository "api/internal/domains/haircut/service/persistence"
+	dto "api/internal/domains/haircut/haircut_service/dto"
+	repository "api/internal/domains/haircut/haircut_service/persistence"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"github.com/go-chi/chi"

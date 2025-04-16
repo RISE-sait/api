@@ -176,7 +176,6 @@ func (s *Service) DeleteEvents(ctx context.Context, ids []uuid.UUID) *errLib.Com
 const timeLayout = "15:04:05Z07:00"
 
 func generateEventsFromRecurrence(recurrence values.CreateEventsRecurrenceValues) ([]values.CreateEventsSpecificValues, *errLib.CommonError) {
-	var specificEvents []values.CreateEventsSpecificValues
 
 	if recurrence.RecurrenceStartAt.After(recurrence.RecurrenceEndAt) {
 		return nil, errLib.New("Recurrence start date must be before the end date", http.StatusBadRequest)
@@ -185,9 +184,6 @@ func generateEventsFromRecurrence(recurrence values.CreateEventsRecurrenceValues
 	if recurrence.Capacity <= 0 {
 		return nil, errLib.New("Capacity must be greater than zero", http.StatusBadRequest)
 	}
-
-	// Parse the time strings into time.Time objects for the current day
-	eventDate := recurrence.RecurrenceStartAt
 
 	startTime, err := time.Parse(timeLayout, recurrence.EventStartTime)
 	if err != nil {
@@ -199,84 +195,46 @@ func generateEventsFromRecurrence(recurrence values.CreateEventsRecurrenceValues
 		return nil, errLib.New(fmt.Sprintf("Invalid end time format - must be HH:MM:SS±HH:MM (e.g. 17:00:00+00:00)"), http.StatusBadRequest)
 	}
 
-	// Adjust the times to be on the event date
-	startTime = time.Date(eventDate.Year(), eventDate.Month(), eventDate.Day(),
-		startTime.Hour(), startTime.Minute(), 0, 0, eventDate.Location())
-
-	endTime = time.Date(eventDate.Year(), eventDate.Month(), eventDate.Day(),
-		endTime.Hour(), endTime.Minute(), 0, 0, eventDate.Location())
-
-	if recurrence.Day == nil {
-		// non recurring
-		specificEvent := values.CreateEventsSpecificValues{
-			CreatedBy:  recurrence.CreatedBy,
-			StartAt:    startTime,
-			EndAt:      endTime,
-			ProgramID:  recurrence.ProgramID,
-			LocationID: recurrence.LocationID,
-			TeamID:     recurrence.TeamID,
-			Capacity:   recurrence.Capacity,
-		}
-		specificEvents = append(specificEvents, specificEvent)
-
-		return specificEvents, nil
-	}
-
 	// If the end time is before start time (crosses midnight), add a day to end time
 	if endTime.Before(startTime) {
 		endTime = endTime.AddDate(0, 0, 1)
 	}
 
-	// Iterate through each week between start and end dates
-	for currentDate := recurrence.RecurrenceStartAt; !currentDate.After(recurrence.RecurrenceEndAt); currentDate = currentDate.AddDate(0, 0, 7) {
+	adjustTime := func(date time.Time, t time.Time) time.Time {
+		return time.Date(date.Year(), date.Month(), date.Day(), t.Hour(), t.Minute(), 0, 0, date.Location())
+	}
 
-		// Find the next occurrence of the specified weekday
-		eventDate = currentDate
-		for eventDate.Weekday() != *recurrence.Day {
-			eventDate = eventDate.AddDate(0, 0, 1)
-
-			// If we've moved past the end date, break
-			if eventDate.After(recurrence.RecurrenceEndAt) {
-				break
-			}
+	var events []values.CreateEventsSpecificValues
+	addEvent := func(date time.Time) {
+		start := adjustTime(date, startTime)
+		end := adjustTime(date, endTime)
+		if end.Before(start) {
+			end = end.AddDate(0, 0, 1)
 		}
-
-		// Check if we're still within the recurrence period
-		if eventDate.After(recurrence.RecurrenceEndAt) {
-			continue
-		}
-
-		// Set the specific times for this event
-		eventStart := time.Date(
-			eventDate.Year(), eventDate.Month(), eventDate.Day(),
-			startTime.Hour(), startTime.Minute(), 0, 0, eventDate.Location(),
-		)
-
-		eventEnd := time.Date(
-			eventDate.Year(), eventDate.Month(), eventDate.Day(),
-			endTime.Hour(), endTime.Minute(), 0, 0, eventDate.Location(),
-		)
-
-		// Handle midnight crossing
-		if eventEnd.Before(eventStart) {
-			eventEnd = eventEnd.AddDate(0, 0, 1)
-		}
-
-		// Create the specific event
-		specificEvent := values.CreateEventsSpecificValues{
+		events = append(events, values.CreateEventsSpecificValues{
 			CreatedBy:  recurrence.CreatedBy,
-			StartAt:    eventStart,
-			EndAt:      eventEnd,
+			StartAt:    start,
+			EndAt:      end,
 			ProgramID:  recurrence.ProgramID,
 			LocationID: recurrence.LocationID,
 			TeamID:     recurrence.TeamID,
 			Capacity:   recurrence.Capacity,
-		}
-
-		specificEvents = append(specificEvents, specificEvent)
+		})
 	}
 
-	return specificEvents, nil
+	if recurrence.Day == nil {
+		addEvent(recurrence.RecurrenceStartAt)
+		return events, nil
+	}
+
+	for date := recurrence.RecurrenceStartAt; !date.After(recurrence.RecurrenceEndAt); date = date.AddDate(0, 0, 1) {
+		if date.Weekday() == *recurrence.Day {
+			addEvent(date)
+			date = date.AddDate(0, 0, 6) // Skip to next week
+		}
+	}
+
+	return events, nil
 }
 
 type EventTimeUpdate struct {
@@ -318,9 +276,9 @@ func convertEventsForUpdate(
 	}
 
 	// Pre-allocate slice
-	updates := make([]values.UpdateEventValues, 0, len(existingEvents))
+	updates := make([]values.UpdateEventValues, len(existingEvents))
 
-	for _, evt := range existingEvents {
+	for i, evt := range existingEvents {
 		newStart := updateTimeKeepingDate(evt.StartAt, startTime)
 		newEnd := updateTimeKeepingDate(evt.EndAt, endTime)
 
@@ -328,7 +286,7 @@ func convertEventsForUpdate(
 			newEnd = newEnd.AddDate(0, 0, 1) // Handle midnight crossing
 		}
 
-		updates = append(updates, values.UpdateEventValues{
+		updates[i] = values.UpdateEventValues{
 			ID:        evt.ID,
 			UpdatedBy: updatedBy,
 			Details: values.Details{
@@ -339,7 +297,7 @@ func convertEventsForUpdate(
 				TeamID:     idUpdate.NewTeamID,
 				Capacity:   newCapacity,
 			},
-		})
+		}
 	}
 
 	return updates, nil

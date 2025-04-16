@@ -39,7 +39,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/sqlc
-          key: sqlc-${{ runner.os }}-${{ hashFiles('go.mod') }}
+          key: sqlc-${{ runner.os }}-vlatest
           restore-keys: |
             sqlc-${{ runner.os }}-
 

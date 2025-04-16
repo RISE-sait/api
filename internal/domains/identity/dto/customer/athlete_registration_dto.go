@@ -6,6 +6,7 @@ import (
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
 	"net/http"
+	"time"
 )
 
 type AthleteRegistrationRequestDto struct {
@@ -50,9 +51,15 @@ func (dto AthleteRegistrationRequestDto) ToAthlete(email string) (values.Athlete
 		}
 	}
 
+	dob, err := time.Parse("2006-01-02", dto.DOB)
+
+	if err != nil {
+		return values.AthleteRegistrationRequestInfo{}, errLib.New("Invalid date format", http.StatusBadRequest)
+	}
+
 	return values.AthleteRegistrationRequestInfo{
 		UserRegistrationRequestNecessaryInfo: values.UserRegistrationRequestNecessaryInfo{
-			Age:         dto.Age,
+			DOB:         dob,
 			FirstName:   dto.FirstName,
 			LastName:    dto.LastName,
 			CountryCode: dto.CountryCode,

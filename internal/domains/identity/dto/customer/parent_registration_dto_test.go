@@ -4,10 +4,10 @@ import (
 	identity "api/internal/domains/identity/dto/common"
 	"api/internal/libs/validators"
 	"bytes"
+	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
+	"time"
 )
 
 func TestDecodeRequestBody(t *testing.T) {
@@ -22,7 +22,7 @@ func TestDecodeRequestBody(t *testing.T) {
 			jsonBody: `{
 				"first_name": "John",
 				"last_name": "Doe",
-				"age": 30,
+"dob": "2015-01-01",
 				"country_code": "US",
 				"phone_number": "+15141234567",
 				"has_consent_to_sms": true,
@@ -33,7 +33,7 @@ func TestDecodeRequestBody(t *testing.T) {
 				UserBaseInfoRequestDto: identity.UserBaseInfoRequestDto{
 					FirstName:   "John",
 					LastName:    "Doe",
-					Age:         30,
+					DOB:         "2015-01-01",
 					CountryCode: "US",
 				},
 				PhoneNumber:                "+15141234567",
@@ -46,7 +46,7 @@ func TestDecodeRequestBody(t *testing.T) {
 			jsonBody: `{
 				"first_name": "John",
 				"last_name": "Doe",
-				"age": 30,
+"dob": "2015-01-01",
 				"country_code": "US",
 				"phone_number": "+15141234567",
 				"has_consent_to_sms": true,
@@ -58,7 +58,7 @@ func TestDecodeRequestBody(t *testing.T) {
 			name: "Missing First Name",
 			jsonBody: `{
 				"last_name": "Doe",
-				"age": 30,
+"dob": "2015-01-01",
 				"country_code": "US",
 				"phone_number": "+15141234567",
 				"has_consent_to_sms": true,
@@ -67,15 +67,15 @@ func TestDecodeRequestBody(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "Wrong age type",
+			name: "Wrong dob type",
 			jsonBody: `{
 				"first_name": "John",
 				"last_name": "Doe",
-				"age": "30",
+				"dob": "30",
 				"country_code": "US",
 				"phone_number": "+15141234567"
 			}`,
-			expectError: true,
+			expectError: false,
 		},
 		{
 			name: "Wrong consent type",
@@ -105,7 +105,7 @@ func TestDecodeRequestBody(t *testing.T) {
 				if tc.expectedValues != nil {
 					assert.Equal(t, tc.expectedValues.FirstName, target.FirstName)
 					assert.Equal(t, tc.expectedValues.LastName, target.LastName)
-					assert.Equal(t, tc.expectedValues.Age, target.Age)
+					assert.Equal(t, tc.expectedValues.DOB, target.DOB)
 					assert.Equal(t, tc.expectedValues.CountryCode, target.CountryCode)
 					assert.Equal(t, tc.expectedValues.PhoneNumber, target.PhoneNumber)
 					assert.Equal(t, tc.expectedValues.HasConsentToSmS, target.HasConsentToSmS)
@@ -116,14 +116,12 @@ func TestDecodeRequestBody(t *testing.T) {
 	}
 }
 
-// Validate Dto
-
 func TestValidRequestDto(t *testing.T) {
 	dto := ParentRegistrationRequestDto{
 		UserBaseInfoRequestDto: identity.UserBaseInfoRequestDto{
 			FirstName:   "John",
 			LastName:    "Doe",
-			Age:         30,
+			DOB:         time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC).Format("2006-01-02"),
 			CountryCode: "US",
 		},
 		PhoneNumber:                "+15141234567",
@@ -138,7 +136,7 @@ func TestValidRequestDto(t *testing.T) {
 
 	assert.Equal(t, createRequestDto.FirstName, "John")
 	assert.Equal(t, createRequestDto.LastName, "Doe")
-	assert.Equal(t, createRequestDto.Age, int32(30))
+	assert.Equal(t, createRequestDto.DOB, time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC))
 	assert.Equal(t, createRequestDto.CountryCode, "US")
 	assert.Equal(t, createRequestDto.Phone, "+15141234567")
 	assert.Equal(t, createRequestDto.HasConsentToSms, true)
@@ -150,7 +148,7 @@ func TestMissingFirstNameRequestDto(t *testing.T) {
 	dto := ParentRegistrationRequestDto{
 		UserBaseInfoRequestDto: identity.UserBaseInfoRequestDto{
 			LastName:    "Doe",
-			Age:         30,
+			DOB:         time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC).Format("2006-01-02"),
 			CountryCode: "US",
 		},
 		PhoneNumber:                "+15141234567",
@@ -171,7 +169,7 @@ func TestInvalidPhoneRequestDto(t *testing.T) {
 		UserBaseInfoRequestDto: identity.UserBaseInfoRequestDto{
 			FirstName:   "John",
 			LastName:    "Doe",
-			Age:         30,
+			DOB:         time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC).Format("2006-01-02"),
 			CountryCode: "US",
 		},
 		PhoneNumber:                "+x x 15141234567",
@@ -192,7 +190,7 @@ func TestInvalidEmailRequestDto(t *testing.T) {
 		UserBaseInfoRequestDto: identity.UserBaseInfoRequestDto{
 			FirstName:   "John",
 			LastName:    "Doe",
-			Age:         30,
+			DOB:         time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC).Format("2006-01-02"),
 			CountryCode: "US",
 		},
 		PhoneNumber:                "+15141234567",

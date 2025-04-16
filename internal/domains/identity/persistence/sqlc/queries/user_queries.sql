@@ -1,5 +1,5 @@
 -- name: CreateUser :one
-INSERT INTO users.users (hubspot_id, country_alpha2_code, email, age, phone, has_marketing_email_consent,
+INSERT INTO users.users (hubspot_id, country_alpha2_code, email, dob, phone, has_marketing_email_consent,
                          has_sms_consent, parent_id, first_name, last_name)
 VALUES ($1, $2, $3, $4, $5,
         $6, $7, (SELECT pu.id from users.users pu WHERE sqlc.arg('parent_email') = pu.email), $8, $9)

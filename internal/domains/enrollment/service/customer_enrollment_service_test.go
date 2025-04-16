@@ -101,7 +101,7 @@ SELECT COUNT(*)
 			for i := 0; i < 3; i++ {
 				customer, userErr := container.Queries.IdentityDb.CreateUser(context.Background(), dbIdentity.CreateUserParams{
 					CountryAlpha2Code:        "CA",
-					Age:                      20,
+					Dob:                      time.Now(),
 					HasMarketingEmailConsent: false,
 					HasSmsConsent:            false,
 					FirstName:                "John",
@@ -237,7 +237,7 @@ SELECT COUNT(*)
 	for i := 0; i < 3; i++ {
 		customer, userErr := identityQ.CreateUser(context.Background(), dbIdentity.CreateUserParams{
 			CountryAlpha2Code:        "CA",
-			Age:                      20,
+			Dob:                      time.Now(),
 			HasMarketingEmailConsent: false,
 			HasSmsConsent:            false,
 			FirstName:                "John",

@@ -79,7 +79,7 @@ func (r *UsersRepository) getUserFromDB(ctx context.Context, email string, id uu
 func (r *UsersRepository) buildUserResponse(ctx context.Context, user dbIdentity.GetUserByIdOrEmailRow) values.UserReadInfo {
 	response := values.UserReadInfo{
 		ID:          user.ID,
-		Age:         user.Age,
+		DOB:         user.Dob,
 		CountryCode: user.CountryAlpha2Code,
 		FirstName:   user.FirstName,
 		LastName:    user.LastName,

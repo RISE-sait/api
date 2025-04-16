@@ -7,6 +7,7 @@ import (
 	"api/internal/libs/validators"
 	"net/http"
 	"net/mail"
+	"time"
 )
 
 type ParentRegistrationRequestDto struct {
@@ -31,9 +32,15 @@ func (dto ParentRegistrationRequestDto) ToParent(email string) (values.ParentReg
 		return values.ParentRegistrationRequestInfo{}, errLib.New("Invalid email format", http.StatusBadRequest)
 	}
 
+	dob, err := time.Parse("2006-01-02", dto.DOB)
+
+	if err != nil {
+		return values.ParentRegistrationRequestInfo{}, errLib.New("Invalid date format", http.StatusBadRequest)
+	}
+
 	return values.ParentRegistrationRequestInfo{
 		UserRegistrationRequestNecessaryInfo: values.UserRegistrationRequestNecessaryInfo{
-			Age:         dto.Age,
+			DOB:         dob,
 			FirstName:   dto.FirstName,
 			LastName:    dto.LastName,
 			CountryCode: dto.CountryCode,

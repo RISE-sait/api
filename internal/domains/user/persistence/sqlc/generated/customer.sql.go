@@ -62,7 +62,7 @@ func (q *Queries) CreateAthleteInfo(ctx context.Context, arg CreateAthleteInfoPa
 }
 
 const getCustomer = `-- name: GetCustomer :one
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.age, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at,
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob,
        m.name           AS membership_name,
        mp.id            AS membership_plan_id,
        mp.name          AS membership_plan_name,
@@ -103,7 +103,6 @@ type GetCustomerRow struct {
 	Gender                    sql.NullString `json:"gender"`
 	FirstName                 string         `json:"first_name"`
 	LastName                  string         `json:"last_name"`
-	Age                       int32          `json:"age"`
 	ParentID                  uuid.NullUUID  `json:"parent_id"`
 	Phone                     sql.NullString `json:"phone"`
 	Email                     sql.NullString `json:"email"`
@@ -111,6 +110,7 @@ type GetCustomerRow struct {
 	HasSmsConsent             bool           `json:"has_sms_consent"`
 	CreatedAt                 time.Time      `json:"created_at"`
 	UpdatedAt                 time.Time      `json:"updated_at"`
+	Dob                       time.Time      `json:"dob"`
 	MembershipName            sql.NullString `json:"membership_name"`
 	MembershipPlanID          uuid.NullUUID  `json:"membership_plan_id"`
 	MembershipPlanName        sql.NullString `json:"membership_plan_name"`
@@ -134,7 +134,6 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 		&i.Gender,
 		&i.FirstName,
 		&i.LastName,
-		&i.Age,
 		&i.ParentID,
 		&i.Phone,
 		&i.Email,
@@ -142,6 +141,7 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 		&i.HasSmsConsent,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Dob,
 		&i.MembershipName,
 		&i.MembershipPlanID,
 		&i.MembershipPlanName,
@@ -158,7 +158,7 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 }
 
 const getCustomers = `-- name: GetCustomers :many
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.age, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at,
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob,
        m.name           AS membership_name,
        mp.id            AS membership_plan_id,
        mp.name          AS membership_plan_name,
@@ -200,7 +200,6 @@ type GetCustomersRow struct {
 	Gender                    sql.NullString `json:"gender"`
 	FirstName                 string         `json:"first_name"`
 	LastName                  string         `json:"last_name"`
-	Age                       int32          `json:"age"`
 	ParentID                  uuid.NullUUID  `json:"parent_id"`
 	Phone                     sql.NullString `json:"phone"`
 	Email                     sql.NullString `json:"email"`
@@ -208,6 +207,7 @@ type GetCustomersRow struct {
 	HasSmsConsent             bool           `json:"has_sms_consent"`
 	CreatedAt                 time.Time      `json:"created_at"`
 	UpdatedAt                 time.Time      `json:"updated_at"`
+	Dob                       time.Time      `json:"dob"`
 	MembershipName            sql.NullString `json:"membership_name"`
 	MembershipPlanID          uuid.NullUUID  `json:"membership_plan_id"`
 	MembershipPlanName        sql.NullString `json:"membership_plan_name"`
@@ -237,7 +237,6 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]G
 			&i.Gender,
 			&i.FirstName,
 			&i.LastName,
-			&i.Age,
 			&i.ParentID,
 			&i.Phone,
 			&i.Email,
@@ -245,6 +244,7 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]G
 			&i.HasSmsConsent,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Dob,
 			&i.MembershipName,
 			&i.MembershipPlanID,
 			&i.MembershipPlanName,

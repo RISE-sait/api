@@ -44,8 +44,8 @@ func GetClientsMembershipPlans() (dbSeed.InsertClientsMembershipPlansParams, err
 		lastStartDate := time.Now()
 
 		var renewalDate time.Time
-		if record[21] != "" { // Check if the renewal date is not empty
-			renewalDate, err = time.Parse("1/2/2006", record[21]) // Adjust the date format as needed
+		if record[20] != "" { // Check if the renewal date is not empty
+			renewalDate, err = time.Parse("1/2/2006", record[20]) // Adjust the date format as needed
 			if err != nil {
 				return params, fmt.Errorf("error parsing renewal date: %w", err)
 			}

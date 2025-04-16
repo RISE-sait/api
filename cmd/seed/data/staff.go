@@ -4,6 +4,7 @@ import (
 	dbSeed "api/cmd/seed/sqlc/generated"
 	"github.com/google/uuid"
 	"strings"
+	"time"
 )
 
 type Staff struct {
@@ -144,6 +145,14 @@ var staff = []Staff{
 		Email:       "denistorjai@gmail.com",
 		Country:     "CA",
 	},
+	{
+		FirstName:   "Mostapha",
+		LastName:    "Alahmair",
+		Email:       "mostapha4567@gmail.com",
+		PhoneNumber: "+9645876648922",
+		Country:     "IQ",
+		Role:        "Coach",
+	},
 }
 
 func GetStaffs() dbSeed.InsertStaffParams {
@@ -177,11 +186,16 @@ func GetStaffsAsClients() dbSeed.InsertUsersParams {
 		countryArray             []string
 		genderArray              []string
 		phoneArray               []string
-		ageArray                 []int32
+		dobArray                 []time.Time
 		hasMarketingConsentArray []bool
 		hasSMSConsentArray       []bool
 		parentIDArray            []uuid.UUID
 	)
+
+	defaultDOB, err := time.Parse("2006-01-02", "2000-01-01")
+	if err != nil {
+		panic("Failed to parse default date of birth: " + err.Error())
+	}
 
 	for _, s := range staff {
 		firstNameArray = append(firstNameArray, s.FirstName)
@@ -189,7 +203,7 @@ func GetStaffsAsClients() dbSeed.InsertUsersParams {
 		countryArray = append(countryArray, s.Country)
 		genderArray = append(genderArray, "N")
 		phoneArray = append(phoneArray, s.PhoneNumber)
-		ageArray = append(ageArray, 1)
+		dobArray = append(dobArray, defaultDOB)
 		emailArray = append(emailArray, s.Email)
 		hasMarketingConsentArray = append(hasMarketingConsentArray, false)
 		hasSMSConsentArray = append(hasSMSConsentArray, false)
@@ -201,7 +215,7 @@ func GetStaffsAsClients() dbSeed.InsertUsersParams {
 		CountryAlpha2CodeArray:        countryArray,
 		FirstNameArray:                firstNameArray,
 		LastNameArray:                 lastNameArray,
-		AgeArray:                      ageArray,
+		DobArray:                      dobArray,
 		GenderArray:                   genderArray,
 		ParentIDArray:                 parentIDArray,
 		PhoneArray:                    phoneArray,

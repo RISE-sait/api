@@ -79,7 +79,7 @@ func (h *ChildRegistrationHandlers) RegisterChild(w http.ResponseWriter, r *http
 			Email:       userInfo.Email,
 			Role:        userInfo.Role,
 			Phone:       userInfo.Phone,
-			Age:         userInfo.Age,
+			DOB:         userInfo.DOB.Format("2006-01-02"),
 			CountryCode: userInfo.CountryCode,
 		}
 

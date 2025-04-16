@@ -6,13 +6,14 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Client struct to hold client data
 type Client struct {
 	FirstName        string
 	LastName         string
-	Age              int
+	DOB              time.Time
 	CountryAlpha2    string
 	Email            string
 	Phone            string
@@ -67,9 +68,9 @@ func GetClients() ([]Client, error) {
 		}
 
 		// Parse booleans
-		studioWaiver := parseBool(record[23])
-		emailConsent := parseBool(record[24])
-		smsConsent := parseBool(record[25])
+		studioWaiver := parseBool(record[22])
+		emailConsent := parseBool(record[23])
+		smsConsent := parseBool(record[24])
 
 		var gender string
 
@@ -77,21 +78,22 @@ func GetClients() ([]Client, error) {
 
 		switch genderStr {
 		case "male":
-			{
-				gender = "M"
-			}
+			gender = "M"
 		case "female":
 			gender = "F"
 		default:
 			gender = "N"
 		}
 
-		ageStr := record[6]
+		dobOriginal := record[6]
 
-		age, err := strconv.Atoi(ageStr)
+		if dobOriginal == "" {
+			dobOriginal = "2000-01-01T00:00:00Z" // Default date of birth
+		}
 
+		dob, err := time.Parse(time.RFC3339, dobOriginal)
 		if err != nil {
-			age = 0
+			return nil, fmt.Errorf("error parsing date of birth: %w", err)
 		}
 
 		// Create a new Client struct
@@ -100,10 +102,10 @@ func GetClients() ([]Client, error) {
 			LastName:         record[2],
 			Email:            record[3],
 			Phone:            record[4],
-			Age:              age,
+			DOB:              dob,
 			Gender:           gender,
-			CountryAlpha2:    record[8],
-			CreditsRemaining: parseInt(record[19]),
+			CountryAlpha2:    record[7],
+			CreditsRemaining: parseInt(record[18]),
 			StudioWaiver:     studioWaiver,
 			EmailConsent:     emailConsent,
 			SMSConsent:       smsConsent,

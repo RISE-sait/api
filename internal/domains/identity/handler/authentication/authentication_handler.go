@@ -111,7 +111,7 @@ func mapReadValueToResponse(userInfo identity.UserReadInfo) dto.UserAuthenticati
 		Email:       userInfo.Email,
 		Role:        userInfo.Role,
 		Phone:       userInfo.Phone,
-		Age:         userInfo.Age,
+		DOB:         userInfo.DOB.Format("2006-01-02"),
 		CountryCode: userInfo.CountryCode,
 	}
 

@@ -32,7 +32,7 @@ type UserAuthenticationResponseDto struct {
 	Role           string                     `json:"role"`
 	IsActiveStaff  *bool                      `json:"is_active_staff,omitempty"`
 	Phone          *string                    `json:"phone,omitempty"`
-	Age            int32                      `json:"age"`
+	DOB            string                     `json:"age"`
 	CountryCode    string                     `json:"country_code,omitempty"`
 	MembershipInfo *MembershipReadResponseDto `json:"membership_info,omitempty"`
 	AthleteInfo    *AthleteResponseDto        `json:"athlete_info,omitempty"`

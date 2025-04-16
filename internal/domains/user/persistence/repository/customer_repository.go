@@ -46,7 +46,7 @@ func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int
 	for i, dbCustomer := range dbCustomers {
 		customer := userValues.ReadValue{
 			ID:          dbCustomer.ID,
-			Age:         dbCustomer.Age,
+			DOB:         dbCustomer.Dob,
 			FirstName:   dbCustomer.FirstName,
 			LastName:    dbCustomer.LastName,
 			CountryCode: dbCustomer.CountryAlpha2Code,
@@ -117,7 +117,7 @@ func (r *CustomerRepository) GetCustomer(ctx context.Context, id uuid.UUID, emai
 
 	customer := userValues.ReadValue{
 		ID:          dbCustomer.ID,
-		Age:         dbCustomer.Age,
+		DOB:         dbCustomer.Dob,
 		FirstName:   dbCustomer.FirstName,
 		LastName:    dbCustomer.LastName,
 		CountryCode: dbCustomer.CountryAlpha2Code,

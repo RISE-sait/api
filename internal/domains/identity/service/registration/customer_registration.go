@@ -25,7 +25,7 @@ func NewCustomerRegistrationService(container *di.Container) *CustomerRegistrati
 
 	return &CustomerRegistrationService{
 		UserRepo:          user.NewUserRepository(container),
-		WaiverSigningRepo: repo.NewWaiverSigningRepository(container.Queries.IdentityDb),
+		WaiverSigningRepo: repo.NewWaiverSigningRepository(container),
 		DB:                container.DB,
 	}
 }

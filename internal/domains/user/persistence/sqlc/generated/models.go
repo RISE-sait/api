@@ -387,7 +387,7 @@ type EventsCustomerEnrollment struct {
 type EventsEvent struct {
 	ID                 uuid.UUID      `json:"id"`
 	LocationID         uuid.UUID      `json:"location_id"`
-	ProgramID          uuid.NullUUID  `json:"program_id"`
+	ProgramID          uuid.UUID      `json:"program_id"`
 	TeamID             uuid.NullUUID  `json:"team_id"`
 	StartAt            time.Time      `json:"start_at"`
 	EndAt              time.Time      `json:"end_at"`
@@ -507,12 +507,12 @@ type StaffPendingStaff struct {
 	LastName          string         `json:"last_name"`
 	Email             string         `json:"email"`
 	Gender            sql.NullString `json:"gender"`
-	Age               int32          `json:"age"`
 	Phone             sql.NullString `json:"phone"`
 	CountryAlpha2Code string         `json:"country_alpha2_code"`
 	RoleID            uuid.UUID      `json:"role_id"`
 	CreatedAt         sql.NullTime   `json:"created_at"`
 	UpdatedAt         sql.NullTime   `json:"updated_at"`
+	Dob               time.Time      `json:"dob"`
 }
 
 type StaffStaff struct {
@@ -560,7 +560,6 @@ type UsersUser struct {
 	Gender                   sql.NullString `json:"gender"`
 	FirstName                string         `json:"first_name"`
 	LastName                 string         `json:"last_name"`
-	Age                      int32          `json:"age"`
 	ParentID                 uuid.NullUUID  `json:"parent_id"`
 	Phone                    sql.NullString `json:"phone"`
 	Email                    sql.NullString `json:"email"`
@@ -568,6 +567,7 @@ type UsersUser struct {
 	HasSmsConsent            bool           `json:"has_sms_consent"`
 	CreatedAt                time.Time      `json:"created_at"`
 	UpdatedAt                time.Time      `json:"updated_at"`
+	Dob                      time.Time      `json:"dob"`
 }
 
 type WaiverWaiver struct {

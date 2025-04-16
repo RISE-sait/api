@@ -79,7 +79,7 @@ func (q *Queries) GetAvailableStaffRoles(ctx context.Context) ([]StaffStaffRole,
 }
 
 const getStaffs = `-- name: GetStaffs :many
-SELECT s.is_active, u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.age, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, sr.role_name, cs.wins, cs.losses
+SELECT s.is_active, u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, sr.role_name, cs.wins, cs.losses
 FROM staff.staff s
 JOIN users.users u ON u.id = s.id
 JOIN staff.staff_roles sr ON s.role_id = sr.id
@@ -95,7 +95,6 @@ type GetStaffsRow struct {
 	Gender                   sql.NullString `json:"gender"`
 	FirstName                string         `json:"first_name"`
 	LastName                 string         `json:"last_name"`
-	Age                      int32          `json:"age"`
 	ParentID                 uuid.NullUUID  `json:"parent_id"`
 	Phone                    sql.NullString `json:"phone"`
 	Email                    sql.NullString `json:"email"`
@@ -103,6 +102,7 @@ type GetStaffsRow struct {
 	HasSmsConsent            bool           `json:"has_sms_consent"`
 	CreatedAt                time.Time      `json:"created_at"`
 	UpdatedAt                time.Time      `json:"updated_at"`
+	Dob                      time.Time      `json:"dob"`
 	RoleName                 string         `json:"role_name"`
 	Wins                     sql.NullInt32  `json:"wins"`
 	Losses                   sql.NullInt32  `json:"losses"`
@@ -125,7 +125,6 @@ func (q *Queries) GetStaffs(ctx context.Context, roleName sql.NullString) ([]Get
 			&i.Gender,
 			&i.FirstName,
 			&i.LastName,
-			&i.Age,
 			&i.ParentID,
 			&i.Phone,
 			&i.Email,
@@ -133,6 +132,7 @@ func (q *Queries) GetStaffs(ctx context.Context, roleName sql.NullString) ([]Get
 			&i.HasSmsConsent,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Dob,
 			&i.RoleName,
 			&i.Wins,
 			&i.Losses,

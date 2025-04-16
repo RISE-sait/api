@@ -7,7 +7,7 @@ import (
 
 type ReadValue struct {
 	ID             uuid.UUID
-	Age            int32
+	DOB            time.Time
 	HubspotID      *string
 	CountryCode    string
 	FirstName      string

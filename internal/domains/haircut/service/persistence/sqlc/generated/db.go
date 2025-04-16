@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.27.0
 
-package db_haircut
+package db_haircut_service
 
 import (
 	"context"

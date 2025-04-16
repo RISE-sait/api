@@ -17,8 +17,8 @@ const createHaircutEvent = `-- name: CreateHaircutEvent :one
 INSERT INTO haircut.events (begin_date_time, end_date_time, barber_id, customer_id, service_type_id)
 VALUES ($1, $2, $3, $4, $5)
 RETURNING id, begin_date_time, end_date_time, customer_id, barber_id, service_type_id, created_at, updated_at,
-    ( SELECT first_name || ' ' || last_name FROM users.users WHERE id = customer_id)::varchar as customer_name,
-              (SELECT first_name || ' ' || last_name FROM users.users WHERE id = barber_id)::varchar as barber_name
+    (SELECT first_name || ' ' || last_name FROM users.users WHERE id = customer_id)::varchar as customer_name,
+    (SELECT first_name || ' ' || last_name FROM users.users WHERE id = barber_id)::varchar as barber_name
 `
 
 type CreateHaircutEventParams struct {
@@ -81,7 +81,7 @@ func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) (int64, error) 
 }
 
 const getEventById = `-- name: GetEventById :one
-SELECT e.id, begin_date_time, end_date_time, customer_id, barber_id, service_type_id, e.created_at, e.updated_at, barbers.id, barbers.hubspot_id, barbers.country_alpha2_code, barbers.gender, barbers.first_name, barbers.last_name, barbers.age, barbers.parent_id, barbers.phone, barbers.email, barbers.has_marketing_email_consent, barbers.has_sms_consent, barbers.created_at, barbers.updated_at, customers.id, customers.hubspot_id, customers.country_alpha2_code, customers.gender, customers.first_name, customers.last_name, customers.age, customers.parent_id, customers.phone, customers.email, customers.has_marketing_email_consent, customers.has_sms_consent, customers.created_at, customers.updated_at,
+SELECT e.id, begin_date_time, end_date_time, customer_id, barber_id, service_type_id, e.created_at, e.updated_at, barbers.id, barbers.hubspot_id, barbers.country_alpha2_code, barbers.gender, barbers.first_name, barbers.last_name, barbers.parent_id, barbers.phone, barbers.email, barbers.has_marketing_email_consent, barbers.has_sms_consent, barbers.created_at, barbers.updated_at, barbers.dob, customers.id, customers.hubspot_id, customers.country_alpha2_code, customers.gender, customers.first_name, customers.last_name, customers.parent_id, customers.phone, customers.email, customers.has_marketing_email_consent, customers.has_sms_consent, customers.created_at, customers.updated_at, customers.dob,
        (barbers.first_name || ' ' || barbers.last_name)::text     as barber_name,
        (customers.first_name || ' ' || customers.last_name)::text as customer_name
 FROM haircut.events e
@@ -108,7 +108,6 @@ type GetEventByIdRow struct {
 	Gender                     sql.NullString `json:"gender"`
 	FirstName                  string         `json:"first_name"`
 	LastName                   string         `json:"last_name"`
-	Age                        int32          `json:"age"`
 	ParentID                   uuid.NullUUID  `json:"parent_id"`
 	Phone                      sql.NullString `json:"phone"`
 	Email                      sql.NullString `json:"email"`
@@ -116,13 +115,13 @@ type GetEventByIdRow struct {
 	HasSmsConsent              bool           `json:"has_sms_consent"`
 	CreatedAt_2                time.Time      `json:"created_at_2"`
 	UpdatedAt_2                time.Time      `json:"updated_at_2"`
+	Dob                        time.Time      `json:"dob"`
 	ID_3                       uuid.UUID      `json:"id_3"`
 	HubspotID_2                sql.NullString `json:"hubspot_id_2"`
 	CountryAlpha2Code_2        string         `json:"country_alpha2_code_2"`
 	Gender_2                   sql.NullString `json:"gender_2"`
 	FirstName_2                string         `json:"first_name_2"`
 	LastName_2                 string         `json:"last_name_2"`
-	Age_2                      int32          `json:"age_2"`
 	ParentID_2                 uuid.NullUUID  `json:"parent_id_2"`
 	Phone_2                    sql.NullString `json:"phone_2"`
 	Email_2                    sql.NullString `json:"email_2"`
@@ -130,6 +129,7 @@ type GetEventByIdRow struct {
 	HasSmsConsent_2            bool           `json:"has_sms_consent_2"`
 	CreatedAt_3                time.Time      `json:"created_at_3"`
 	UpdatedAt_3                time.Time      `json:"updated_at_3"`
+	Dob_2                      time.Time      `json:"dob_2"`
 	BarberName                 string         `json:"barber_name"`
 	CustomerName               string         `json:"customer_name"`
 }
@@ -152,7 +152,6 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdR
 		&i.Gender,
 		&i.FirstName,
 		&i.LastName,
-		&i.Age,
 		&i.ParentID,
 		&i.Phone,
 		&i.Email,
@@ -160,13 +159,13 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdR
 		&i.HasSmsConsent,
 		&i.CreatedAt_2,
 		&i.UpdatedAt_2,
+		&i.Dob,
 		&i.ID_3,
 		&i.HubspotID_2,
 		&i.CountryAlpha2Code_2,
 		&i.Gender_2,
 		&i.FirstName_2,
 		&i.LastName_2,
-		&i.Age_2,
 		&i.ParentID_2,
 		&i.Phone_2,
 		&i.Email_2,
@@ -174,6 +173,7 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdR
 		&i.HasSmsConsent_2,
 		&i.CreatedAt_3,
 		&i.UpdatedAt_3,
+		&i.Dob_2,
 		&i.BarberName,
 		&i.CustomerName,
 	)

@@ -33,3 +33,12 @@ type UpdateValue struct {
 	Gender                   string
 	ID                       uuid.UUID
 }
+
+type CustomerFilter struct {
+	ParentID  uuid.UUID
+	FirstName string
+	LastName  string
+	Email     string
+	Phone     string
+	ID        uuid.UUID
+}

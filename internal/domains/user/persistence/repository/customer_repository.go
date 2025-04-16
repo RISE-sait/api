@@ -1,6 +1,7 @@
 package user
 
 import (
+	"api/internal/di"
 	db "api/internal/domains/user/persistence/sqlc/generated"
 	userValues "api/internal/domains/user/values"
 	errLib "api/internal/libs/errors"
@@ -14,27 +15,29 @@ import (
 	"net/http"
 )
 
-// UsersRepository provides methods to interact with the user data in the database.
 type CustomerRepository struct {
 	Queries *db.Queries
 }
 
-// NewUsersRepository creates a new instance of UsersRepository with the provided dependency injection container.
-func NewCustomerRepository(queries *db.Queries) *CustomerRepository {
+func NewCustomerRepository(container *di.Container) *CustomerRepository {
 	return &CustomerRepository{
-		Queries: queries,
+		Queries: container.Queries.UserDb,
 	}
 }
 
-func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int32, parentID uuid.UUID) ([]userValues.ReadValue, *errLib.CommonError) {
+func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int32, parentID uuid.UUID, search string) ([]userValues.ReadValue, *errLib.CommonError) {
 
 	dbCustomers, err := r.Queries.GetCustomers(ctx, db.GetCustomersParams{
-		Limit:  limit,
-		Offset: offset,
 		ParentID: uuid.NullUUID{
 			UUID:  parentID,
 			Valid: parentID != uuid.Nil,
 		},
+		Search: sql.NullString{
+			String: search,
+			Valid:  search != "",
+		},
+		Offset: offset,
+		Limit:  limit,
 	})
 
 	if err != nil {

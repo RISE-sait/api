@@ -38,6 +38,11 @@ FROM users.users u
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
          LEFT JOIN athletic.athletes a ON u.id = a.id
 WHERE (u.parent_id = $1 OR $1 IS NULL)
+  AND (u.first_name ILIKE sqlc.narg('search') || '%' OR sqlc.narg('search') IS NULL)
+  AND (u.last_name ILIKE sqlc.narg('search') || '%' OR sqlc.narg('search') IS NULL)
+  AND (u.email ILIKE sqlc.narg('search') || '%' OR sqlc.narg('search') IS NULL)
+  AND (u.phone ILIKE sqlc.narg('search') || '%' OR sqlc.narg('search') IS NULL)
+  AND (u.id::varchar ILIKE sqlc.narg('search') || '%' OR sqlc.narg('search') IS NULL)
   AND NOT EXISTS (SELECT 1
                   FROM staff.staff s
                   WHERE s.id = u.id)

@@ -161,17 +161,24 @@ FROM users.users u
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
          LEFT JOIN athletic.athletes a ON u.id = a.id
-WHERE (u.parent_id = $1 OR $1 IS NULL)
+WHERE
+    (u.parent_id = $1 OR $1 IS NULL) AND
+    (u.first_name ILIKE $2 || '%' OR $2 IS NULL) AND
+    (u.last_name ILIKE $2 || '%' OR $2 IS NULL) AND
+    (u.email ILIKE $2 || '%' OR $2 IS NULL) AND
+    (u.phone ILIKE $2 || '%' OR $2 IS NULL) AND
+    (u.id::varchar ILIKE $2 || '%' OR $2 IS NULL)
   AND NOT EXISTS (SELECT 1
                   FROM staff.staff s
                   WHERE s.id = u.id)
-LIMIT $3 OFFSET $2
+LIMIT $4 OFFSET $3
 `
 
 type GetCustomersParams struct {
-	ParentID uuid.NullUUID `json:"parent_id"`
-	Offset   int32         `json:"offset"`
-	Limit    int32         `json:"limit"`
+	ParentID uuid.NullUUID  `json:"parent_id"`
+	Search   sql.NullString `json:"search"`
+	Offset   int32          `json:"offset"`
+	Limit    int32          `json:"limit"`
 }
 
 type GetCustomersRow struct {
@@ -203,7 +210,12 @@ type GetCustomersRow struct {
 }
 
 func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]GetCustomersRow, error) {
-	rows, err := q.db.QueryContext(ctx, getCustomers, arg.ParentID, arg.Offset, arg.Limit)
+	rows, err := q.db.QueryContext(ctx, getCustomers,
+		arg.ParentID,
+		arg.Search,
+		arg.Offset,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}

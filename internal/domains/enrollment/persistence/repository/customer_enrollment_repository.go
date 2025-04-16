@@ -51,6 +51,7 @@ func (r *CustomerEnrollmentRepository) UnEnrollCustomerFromEvent(c context.Conte
 	})
 
 	if err != nil {
+		log.Println("error unenrolling customer from event: ", err)
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
@@ -78,34 +79,7 @@ func (r *CustomerEnrollmentRepository) EnrollCustomerInMembershipPlan(ctx contex
 	return nil
 }
 
-func (r *CustomerEnrollmentRepository) checkIfProgramExists(ctx context.Context, programID uuid.UUID) (bool, *errLib.CommonError) {
-
-	_, err := r.ProgramService.GetProgram(ctx, programID)
-
-	if err != nil {
-		if err.HTTPCode == http.StatusNotFound {
-			return false, err
-		}
-		log.Println("error checking program existence: ", err)
-		return false, errLib.New("Internal server error while finding program", http.StatusInternalServerError)
-	}
-
-	return true, nil
-}
-
-func (r *CustomerEnrollmentRepository) checkIfProgramCapacityExist(ctx context.Context, programID uuid.UUID) (bool, *errLib.CommonError) {
-
-	isExist, err := r.Queries.CheckProgramCapacityExists(ctx, programID)
-
-	if err != nil {
-		log.Println("error checking program capacity: ", err)
-		return false, errLib.New("Internal server error while finding program capacity", http.StatusInternalServerError)
-	}
-
-	return isExist, nil
-}
-
-func (r *CustomerEnrollmentRepository) checkIfEventCapacityExist(ctx context.Context, eventID uuid.UUID) (bool, *errLib.CommonError) {
+func (r *CustomerEnrollmentRepository) CheckIfEventCapacityExist(ctx context.Context, eventID uuid.UUID) (bool, *errLib.CommonError) {
 
 	isExist, err := r.Queries.CheckEventCapacityExists(ctx, eventID)
 
@@ -119,22 +93,11 @@ func (r *CustomerEnrollmentRepository) checkIfEventCapacityExist(ctx context.Con
 
 func (r *CustomerEnrollmentRepository) GetProgramIsFull(ctx context.Context, programID uuid.UUID) (bool, *errLib.CommonError) {
 
-	if isExist, err := r.checkIfProgramExists(ctx, programID); err != nil {
-		return false, err
-	} else if !isExist {
-		return false, errLib.New("Program not found", http.StatusNotFound)
-	}
-
-	if isExist, err := r.checkIfProgramCapacityExist(ctx, programID); err != nil {
-		return false, err
-	} else if !isExist {
-		return false, errLib.New("Capacity for program not found", http.StatusNotFound)
-	}
-
 	isFull, err := r.Queries.CheckProgramIsFull(ctx, programID)
 
 	if err != nil {
-		return true, errLib.New(fmt.Sprintf("error checking program availability: %v", err), http.StatusInternalServerError)
+		log.Println("error checking program availability: ", err)
+		return true, errLib.New("error checking program availability", http.StatusInternalServerError)
 	}
 
 	return isFull, nil
@@ -142,42 +105,18 @@ func (r *CustomerEnrollmentRepository) GetProgramIsFull(ctx context.Context, pro
 
 func (r *CustomerEnrollmentRepository) GetEventIsFull(ctx context.Context, eventID uuid.UUID) (bool, *errLib.CommonError) {
 
-	if _, err := r.EventService.GetEvent(ctx, eventID); err != nil {
-		return false, err
-	}
-
-	if isExist, err := r.checkIfEventCapacityExist(ctx, eventID); err != nil {
-		return false, err
-	} else if !isExist {
-		return false, errLib.New("Capacity for event not found", http.StatusNotFound)
-	}
-
 	isFull, err := r.Queries.CheckEventIsFull(ctx, eventID)
 
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return true, errLib.New("Event or capacity for event not found", http.StatusNotFound)
-		}
 
-		return true, errLib.New(fmt.Sprintf("error checking event availability: %v", err), http.StatusInternalServerError)
+		log.Println("error checking event availability: ", err)
+		return true, errLib.New("error checking event availability: %v", http.StatusInternalServerError)
 	}
 
 	return isFull, nil
 }
 
 func (r *CustomerEnrollmentRepository) ReserveSeatInProgram(ctx context.Context, programID, customerID uuid.UUID) *errLib.CommonError {
-
-	if isExist, err := r.checkIfProgramExists(ctx, programID); err != nil {
-		return err
-	} else if !isExist {
-		return errLib.New("Program not found", http.StatusNotFound)
-	}
-
-	if isExist, err := r.checkIfProgramCapacityExist(ctx, programID); err != nil {
-		return err
-	} else if !isExist {
-		return errLib.New("Capacity for program not found", http.StatusNotFound)
-	}
 
 	if isEnrolled, err := r.Queries.GetCustomerIsEnrolledInProgram(ctx, dbEnrollment.GetCustomerIsEnrolledInProgramParams{
 		CustomerID: customerID,
@@ -213,12 +152,6 @@ func (r *CustomerEnrollmentRepository) ReserveSeatInProgram(ctx context.Context,
 
 func (r *CustomerEnrollmentRepository) UpdateReservationStatusInProgram(ctx context.Context, programID, customerID uuid.UUID, status dbEnrollment.PaymentStatus) *errLib.CommonError {
 
-	if isExist, err := r.checkIfProgramExists(ctx, programID); err != nil {
-		return err
-	} else if !isExist {
-		return errLib.New("Program not found", http.StatusNotFound)
-	}
-
 	affectedRows, err := r.Queries.UpdateSeatReservationStatusInProgram(ctx, dbEnrollment.UpdateSeatReservationStatusInProgramParams{
 		ProgramID:     programID,
 		CustomerID:    customerID,
@@ -240,10 +173,6 @@ func (r *CustomerEnrollmentRepository) UpdateReservationStatusInProgram(ctx cont
 }
 
 func (r *CustomerEnrollmentRepository) UpdateReservationStatusInEvent(ctx context.Context, eventID, customerID uuid.UUID, status dbEnrollment.PaymentStatus) *errLib.CommonError {
-
-	if _, err := r.EventService.GetEvent(ctx, eventID); err != nil {
-		return err
-	}
 
 	affectedRows, err := r.Queries.UpdateSeatReservationStatusInEvent(ctx, dbEnrollment.UpdateSeatReservationStatusInEventParams{
 		EventID:       eventID,
@@ -298,12 +227,6 @@ func (r *CustomerEnrollmentRepository) ReserveSeatInEvent(ctx context.Context, e
 }
 
 func (r *CustomerEnrollmentRepository) EnrollCustomerInProgram(ctx context.Context, programID, customerID uuid.UUID) *errLib.CommonError {
-
-	if isExist, err := r.checkIfProgramExists(ctx, programID); err != nil {
-		return err
-	} else if !isExist {
-		return errLib.New("Program not found", http.StatusNotFound)
-	}
 
 	params := dbEnrollment.EnrollCustomerInProgramParams{
 		CustomerID: customerID,

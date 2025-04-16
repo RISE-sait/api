@@ -7,7 +7,7 @@ import (
 )
 
 type UserRegistrationRequestNecessaryInfo struct {
-	Age         int32
+	DOB         time.Time
 	FirstName   string
 	LastName    string
 	CountryCode string
@@ -36,7 +36,7 @@ type UserReadInfo struct {
 	ID             uuid.UUID
 	HubspotID      *string
 	Gender         *string
-	Age            int32
+	DOB            time.Time
 	CountryCode    string
 	FirstName      string
 	LastName       string

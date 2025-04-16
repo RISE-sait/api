@@ -4,6 +4,7 @@ import (
 	databaseErrors "api/internal/constants"
 	dbIdentity "api/internal/domains/identity/persistence/sqlc/generated"
 	dbTestUtils "api/utils/test_utils"
+	"time"
 
 	"context"
 	"database/sql"
@@ -27,7 +28,7 @@ func TestCreateValidUser(t *testing.T) {
 
 	firstName := "John"
 	lastName := "Doe"
-	age := int32(20)
+	dob := time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)
 	countryCode := "CA"
 	email := sql.NullString{String: "john.doe@example.com", Valid: true}
 	phone := sql.NullString{String: "+15141234567", Valid: true}
@@ -36,7 +37,7 @@ func TestCreateValidUser(t *testing.T) {
 	createUserParams := db.CreateUserParams{
 		CountryAlpha2Code:        countryCode,
 		Email:                    email,
-		Age:                      age,
+		Dob:                      dob,
 		Phone:                    phone,
 		HasMarketingEmailConsent: false,
 		HasSmsConsent:            false,
@@ -50,7 +51,7 @@ func TestCreateValidUser(t *testing.T) {
 
 	require.Equal(t, firstName, createdUser.FirstName)
 	require.Equal(t, lastName, createdUser.LastName)
-	require.Equal(t, age, createdUser.Age)
+	require.Equal(t, dob, createdUser.Dob)
 	require.Equal(t, countryCode, createdUser.CountryAlpha2Code)
 	require.Equal(t, email, createdUser.Email)
 	require.Equal(t, phone, createdUser.Phone)
@@ -69,7 +70,7 @@ func TestCreateUserViolateUniqueEmailConstraint(t *testing.T) {
 	// Define test data
 	firstName := "John"
 	lastName := "Doe"
-	age := int32(20)
+	dob := time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)
 	countryCode := "CA"
 	email := sql.NullString{String: "john.doe@example.com", Valid: true}
 	phone := sql.NullString{String: "+15141234567", Valid: true}
@@ -78,7 +79,7 @@ func TestCreateUserViolateUniqueEmailConstraint(t *testing.T) {
 	createUserParams := db.CreateUserParams{
 		CountryAlpha2Code:        countryCode,
 		Email:                    email,
-		Age:                      age,
+		Dob:                      dob,
 		Phone:                    phone,
 		HasMarketingEmailConsent: false,
 		HasSmsConsent:            false,
@@ -110,7 +111,7 @@ func TestUpdateUser(t *testing.T) {
 	// Define test data for creating a user
 	firstName := "John"
 	lastName := "Doe"
-	age := int32(20)
+	dob := time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)
 	countryCode := "CA"
 	email := sql.NullString{String: "john.doe@example.com", Valid: true}
 	phone := sql.NullString{String: "+15141234567", Valid: true}
@@ -120,7 +121,7 @@ func TestUpdateUser(t *testing.T) {
 		CountryAlpha2Code:        countryCode,
 		HubspotID:                sql.NullString{String: "abcde", Valid: true},
 		Email:                    email,
-		Age:                      age,
+		Dob:                      dob,
 		Phone:                    phone,
 		HasMarketingEmailConsent: false,
 		HasSmsConsent:            false,
@@ -135,7 +136,7 @@ func TestUpdateUser(t *testing.T) {
 	// Define updated data
 	newFirstName := "John"
 	newLastName := "Doe"
-	newAge := int32(20)
+	newDob := time.Date(2013, 1, 1, 0, 0, 0, 0, time.UTC)
 	newCountryCode := "CA"
 	newEmail := sql.NullString{String: "john.doe@example.com", Valid: true}
 	newPhone := sql.NullString{String: "+15141234567", Valid: true}
@@ -162,7 +163,7 @@ func TestUpdateUser(t *testing.T) {
 	// Assert the updated fields
 	require.Equal(t, newFirstName, updatedUser.FirstName)
 	require.Equal(t, newLastName, updatedUser.LastName)
-	require.Equal(t, newAge, updatedUser.Age)
+	require.Equal(t, newDob, updatedUser.Dob)
 	require.Equal(t, newCountryCode, updatedUser.CountryAlpha2Code)
 	require.Equal(t, newEmail, updatedUser.Email)
 	require.Equal(t, newPhone, updatedUser.Phone)

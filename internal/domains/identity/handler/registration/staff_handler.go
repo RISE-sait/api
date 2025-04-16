@@ -37,7 +37,7 @@ func NewStaffRegistrationHandlers(container *di.Container) *StaffHandlers {
 // @Tags registration
 // @Accept json
 // @Produce json
-// @Param firebase_token header string true "Firebase token for user verification" // Firebase token in the Authorization header
+// @Param Authorization header string true "Firebase token for user verification" // Firebase token in the Authorization header
 // @Param staff body dto.RegistrationRequestDto true "Staff registration details"
 // @Success 201 {object} map[string]interface{} "Staff registered successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"

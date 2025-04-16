@@ -7,6 +7,7 @@ import (
 	"api/internal/libs/validators"
 	"api/utils/countries"
 	"net/http"
+	"time"
 )
 
 type RegistrationRequestDto struct {
@@ -25,9 +26,15 @@ func (dto RegistrationRequestDto) ToCreateStaffValues(email string) (values.Staf
 		return values.StaffRegistrationRequestInfo{}, errLib.New("Invalid country code", http.StatusBadRequest)
 	}
 
+	dob, err := time.Parse("2006-01-02", dto.DOB)
+
+	if err != nil {
+		return values.StaffRegistrationRequestInfo{}, errLib.New("Invalid date format", http.StatusBadRequest)
+	}
+
 	return values.StaffRegistrationRequestInfo{
 		UserRegistrationRequestNecessaryInfo: values.UserRegistrationRequestNecessaryInfo{
-			Age:         dto.Age,
+			DOB:         dob,
 			FirstName:   dto.FirstName,
 			LastName:    dto.LastName,
 			CountryCode: dto.CountryCode,

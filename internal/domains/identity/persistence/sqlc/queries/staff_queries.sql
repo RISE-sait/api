@@ -14,7 +14,7 @@ WITH approved_staff as (SELECT *
                                                 FROM staff.pending_staff ps
                                                 WHERE ps.id = $1),
          u AS (
-                 INSERT INTO users.users (country_alpha2_code, gender, first_name, last_name, age, 
+             INSERT INTO users.users (country_alpha2_code, gender, first_name, last_name, dob,
                                                                   parent_id, phone, email, has_sms_consent, has_marketing_email_consent)
                          SELECT 
                                          aps.country_alpha2_code,
@@ -47,7 +47,7 @@ WITH approved_staff as (SELECT *
 SELECT * FROM s;
 
 -- name: CreatePendingStaff :one
-INSERT INTO staff.pending_staff(first_name, last_name, email, gender, age, phone, country_alpha2_code, role_id)
+INSERT INTO staff.pending_staff(first_name, last_name, email, gender, dob, phone, country_alpha2_code, role_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7,
         (SELECT id FROM staff.staff_roles WHERE role_name = $8))
 RETURNING *;

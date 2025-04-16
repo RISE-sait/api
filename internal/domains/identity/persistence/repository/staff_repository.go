@@ -53,7 +53,7 @@ func (r *StaffRepository) CreatePendingStaff(ctx context.Context, input identity
 		FirstName: input.FirstName,
 		LastName:  input.LastName,
 		Email:     input.Email,
-		Age:       input.Age,
+		Dob:       input.DOB,
 		Phone: sql.NullString{
 			String: input.Phone,
 			Valid:  input.Phone != "",

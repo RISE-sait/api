@@ -11,7 +11,7 @@ type UserBaseInfoRequestDto struct {
 	CountryCode string `json:"country_code"`
 	FirstName   string `json:"first_name" validate:"required,notwhitespace"`
 	LastName    string `json:"last_name" validate:"required,notwhitespace"`
-	Age         int32  `json:"age" validate:"required,gt=0"`
+	DOB         string `json:"dob" validate:"required" example:"2000-01-01"`
 	Gender      string `json:"gender" validate:"omitempty,oneof=M F"`
 }
 

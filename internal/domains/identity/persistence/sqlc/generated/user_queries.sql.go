@@ -24,18 +24,18 @@ func (q *Queries) CreateAthlete(ctx context.Context, id uuid.UUID) error {
 }
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users.users (hubspot_id, country_alpha2_code, email, age, phone, has_marketing_email_consent,
+INSERT INTO users.users (hubspot_id, country_alpha2_code, email, dob, phone, has_marketing_email_consent,
                          has_sms_consent, parent_id, first_name, last_name)
 VALUES ($1, $2, $3, $4, $5,
         $6, $7, (SELECT pu.id from users.users pu WHERE $10 = pu.email), $8, $9)
-RETURNING id, hubspot_id, country_alpha2_code, gender, first_name, last_name, age, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at
+RETURNING id, hubspot_id, country_alpha2_code, gender, first_name, last_name, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at, dob
 `
 
 type CreateUserParams struct {
 	HubspotID                sql.NullString `json:"hubspot_id"`
 	CountryAlpha2Code        string         `json:"country_alpha2_code"`
 	Email                    sql.NullString `json:"email"`
-	Age                      int32          `json:"age"`
+	Dob                      time.Time      `json:"dob"`
 	Phone                    sql.NullString `json:"phone"`
 	HasMarketingEmailConsent bool           `json:"has_marketing_email_consent"`
 	HasSmsConsent            bool           `json:"has_sms_consent"`
@@ -49,7 +49,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (UsersUs
 		arg.HubspotID,
 		arg.CountryAlpha2Code,
 		arg.Email,
-		arg.Age,
+		arg.Dob,
 		arg.Phone,
 		arg.HasMarketingEmailConsent,
 		arg.HasSmsConsent,
@@ -65,7 +65,6 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (UsersUs
 		&i.Gender,
 		&i.FirstName,
 		&i.LastName,
-		&i.Age,
 		&i.ParentID,
 		&i.Phone,
 		&i.Email,
@@ -73,6 +72,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (UsersUs
 		&i.HasSmsConsent,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Dob,
 	)
 	return i, err
 }
@@ -111,7 +111,7 @@ func (q *Queries) GetIsUserAParent(ctx context.Context, parentID uuid.NullUUID) 
 
 const getUserByIdOrEmail = `-- name: GetUserByIdOrEmail :one
 WITH u
-         as (SELECT id, hubspot_id, country_alpha2_code, gender, first_name, last_name, age, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at
+         as (SELECT id, hubspot_id, country_alpha2_code, gender, first_name, last_name, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at, dob
              FROM users.users u2
              WHERE (u2.id = $1 OR $1 IS NULL)
                AND (u2.email = $2 OR $2 IS NULL)
@@ -120,7 +120,7 @@ WITH u
                     FROM users.customer_membership_plans
                     WHERE customer_id = (SELECT id FROM u)
                     ORDER BY customer_id, start_date DESC)
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.age, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at,
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob,
        mp.name          as membership_plan_name,
        cmp.start_date   as membership_plan_start_date,
        cmp.renewal_date as membership_plan_renewal_date,
@@ -154,7 +154,6 @@ type GetUserByIdOrEmailRow struct {
 	Gender                    sql.NullString `json:"gender"`
 	FirstName                 string         `json:"first_name"`
 	LastName                  string         `json:"last_name"`
-	Age                       int32          `json:"age"`
 	ParentID                  uuid.NullUUID  `json:"parent_id"`
 	Phone                     sql.NullString `json:"phone"`
 	Email                     sql.NullString `json:"email"`
@@ -162,6 +161,7 @@ type GetUserByIdOrEmailRow struct {
 	HasSmsConsent             bool           `json:"has_sms_consent"`
 	CreatedAt                 time.Time      `json:"created_at"`
 	UpdatedAt                 time.Time      `json:"updated_at"`
+	Dob                       time.Time      `json:"dob"`
 	MembershipPlanName        sql.NullString `json:"membership_plan_name"`
 	MembershipPlanStartDate   sql.NullTime   `json:"membership_plan_start_date"`
 	MembershipPlanRenewalDate sql.NullTime   `json:"membership_plan_renewal_date"`
@@ -186,7 +186,6 @@ func (q *Queries) GetUserByIdOrEmail(ctx context.Context, arg GetUserByIdOrEmail
 		&i.Gender,
 		&i.FirstName,
 		&i.LastName,
-		&i.Age,
 		&i.ParentID,
 		&i.Phone,
 		&i.Email,
@@ -194,6 +193,7 @@ func (q *Queries) GetUserByIdOrEmail(ctx context.Context, arg GetUserByIdOrEmail
 		&i.HasSmsConsent,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Dob,
 		&i.MembershipPlanName,
 		&i.MembershipPlanStartDate,
 		&i.MembershipPlanRenewalDate,

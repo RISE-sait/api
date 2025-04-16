@@ -2822,7 +2822,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Firebase token for user verification",
-                        "name": "firebase_token",
+                        "name": "Authorization",
                         "in": "header",
                         "required": true
                     },
@@ -3471,16 +3471,17 @@ const docTemplate = `{
         "customer.AthleteRegistrationRequestDto": {
             "type": "object",
             "required": [
-                "age",
+                "dob",
                 "first_name",
                 "last_name"
             ],
             "properties": {
-                "age": {
-                    "type": "integer"
-                },
                 "country_code": {
                     "type": "string"
+                },
+                "dob": {
+                    "type": "string",
+                    "example": "2000-01-01"
                 },
                 "first_name": {
                     "type": "string"
@@ -3539,16 +3540,17 @@ const docTemplate = `{
         "customer.ChildRegistrationRequestDto": {
             "type": "object",
             "required": [
-                "age",
+                "dob",
                 "first_name",
                 "last_name"
             ],
             "properties": {
-                "age": {
-                    "type": "integer"
-                },
                 "country_code": {
                     "type": "string"
+                },
+                "dob": {
+                    "type": "string",
+                    "example": "2000-01-01"
                 },
                 "first_name": {
                     "type": "string"
@@ -3594,16 +3596,17 @@ const docTemplate = `{
         "customer.ParentRegistrationRequestDto": {
             "type": "object",
             "required": [
-                "age",
+                "dob",
                 "first_name",
                 "last_name"
             ],
             "properties": {
-                "age": {
-                    "type": "integer"
-                },
                 "country_code": {
                     "type": "string"
+                },
+                "dob": {
+                    "type": "string",
+                    "example": "2000-01-01"
                 },
                 "first_name": {
                     "type": "string"
@@ -4298,7 +4301,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "age": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "athlete_info": {
                     "$ref": "#/definitions/identity.AthleteResponseDto"
@@ -4543,17 +4546,18 @@ const docTemplate = `{
         "staff.RegistrationRequestDto": {
             "type": "object",
             "required": [
-                "age",
+                "dob",
                 "first_name",
                 "last_name",
                 "role"
             ],
             "properties": {
-                "age": {
-                    "type": "integer"
-                },
                 "country_code": {
                     "type": "string"
+                },
+                "dob": {
+                    "type": "string",
+                    "example": "2000-01-01"
                 },
                 "first_name": {
                     "type": "string"

@@ -5,6 +5,7 @@ import (
 	dbSeed "api/cmd/seed/sqlc/generated"
 	"api/config"
 	"github.com/google/uuid"
+	"time"
 
 	"fmt"
 	"strings"
@@ -86,7 +87,7 @@ func seedUsers(ctx context.Context, db *sql.DB) []uuid.UUID {
 		countryAlpha2CodeArray      []string
 		firstNameArray              []string
 		lastNameArray               []string
-		ageArray                    []int32
+		dobArray                    []time.Time
 		parentIDArray               []uuid.UUID
 		phoneArray                  []string
 		emailArray                  []string
@@ -100,7 +101,7 @@ func seedUsers(ctx context.Context, db *sql.DB) []uuid.UUID {
 		firstNameArray = append(firstNameArray, client.FirstName)
 		lastNameArray = append(lastNameArray, client.LastName)
 		genderArray = append(genderArray, client.Gender)
-		ageArray = append(ageArray, int32(client.Age))
+		dobArray = append(dobArray, client.DOB)
 		parentIDArray = append(parentIDArray, uuid.Nil)
 		phoneArray = append(phoneArray, client.Phone)
 		emailArray = append(emailArray, client.Email)
@@ -112,7 +113,7 @@ func seedUsers(ctx context.Context, db *sql.DB) []uuid.UUID {
 		CountryAlpha2CodeArray:        countryAlpha2CodeArray,
 		FirstNameArray:                firstNameArray,
 		LastNameArray:                 lastNameArray,
-		AgeArray:                      ageArray,
+		DobArray:                      dobArray,
 		GenderArray:                   genderArray,
 		ParentIDArray:                 parentIDArray,
 		PhoneArray:                    phoneArray,

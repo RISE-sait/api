@@ -97,7 +97,7 @@ func (s *Service) UpdateEvent(ctx context.Context, details values.UpdateEventVal
 //
 // - Updates events within the new recurrence period
 // - Deletes events outside the new period
-// - Returns error if recurrence is being extended
+// - Returns *errLib.CommonError if recurrence is being extended
 func (s *Service) UpdateEvents(ctx context.Context, details values.UpdateEventsValues) *errLib.CommonError {
 
 	if details.NewRecurrenceEndAt.After(details.OriginalRecurrenceEndAt) {

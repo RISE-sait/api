@@ -7,6 +7,7 @@ package db_seed
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -114,7 +115,7 @@ const insertUsers = `-- name: InsertUsers :many
 WITH prepared_data AS (SELECT unnest($1::text[])            AS country_alpha2_code,
                               unnest($2::text[])                     AS first_name,
                               unnest($3::text[])                      AS last_name,
-                              unnest($4::int[])                             AS age,
+                              unnest($4::timestamptz[])                             AS dob,
                               unnest($5::uuid[]) AS parent_id,
                               unnest($6::char[])    AS gender,
                               unnest($7::text[])                          AS phone,
@@ -125,7 +126,7 @@ INSERT
 INTO users.users (country_alpha2_code,
                   first_name,
                   last_name,
-                  age,
+                  dob,
                   gender,
                   parent_id,
                   phone,
@@ -135,7 +136,7 @@ INTO users.users (country_alpha2_code,
 SELECT country_alpha2_code,
        first_name,
        last_name,
-       age,
+       dob,
        NULLIF(gender, 'N')                                       AS gender,    -- Replace 'N' with NULL
        NULLIF(parent_id, '00000000-0000-0000-0000-000000000000') AS parent_id, -- Replace default UUID with NULL
        phone,
@@ -151,7 +152,7 @@ type InsertUsersParams struct {
 	CountryAlpha2CodeArray        []string    `json:"country_alpha2_code_array"`
 	FirstNameArray                []string    `json:"first_name_array"`
 	LastNameArray                 []string    `json:"last_name_array"`
-	AgeArray                      []int32     `json:"age_array"`
+	DobArray                      []time.Time `json:"dob_array"`
 	ParentIDArray                 []uuid.UUID `json:"parent_id_array"`
 	GenderArray                   []string    `json:"gender_array"`
 	PhoneArray                    []string    `json:"phone_array"`
@@ -165,7 +166,7 @@ func (q *Queries) InsertUsers(ctx context.Context, arg InsertUsersParams) ([]uui
 		pq.Array(arg.CountryAlpha2CodeArray),
 		pq.Array(arg.FirstNameArray),
 		pq.Array(arg.LastNameArray),
-		pq.Array(arg.AgeArray),
+		pq.Array(arg.DobArray),
 		pq.Array(arg.ParentIDArray),
 		pq.Array(arg.GenderArray),
 		pq.Array(arg.PhoneArray),

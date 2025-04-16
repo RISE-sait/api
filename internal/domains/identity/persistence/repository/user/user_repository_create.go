@@ -22,8 +22,8 @@ func (r *UsersRepository) createCustomerTx(ctx context.Context, tx *sql.Tx, inpu
 	}
 
 	sqlStatement := fmt.Sprintf(
-		"CREATE user (first_name, last_name, age, email, phone, role_name, is_active, country) VALUES ('%s', '%s', '%v', '%v', '%v', '%s', '%v', '%v')",
-		input.FirstName, input.LastName, input.Age, input.Email, input.Phone,
+		"CREATE user (first_name, last_name, dob, email, phone, role_name, is_active, country) VALUES ('%s', '%s', '%v', '%v', '%v', '%s', '%v', '%v')",
+		input.FirstName, input.LastName, input.Dob, input.Email, input.Phone,
 		role, false, input.CountryAlpha2Code,
 	)
 
@@ -56,7 +56,7 @@ func (r *UsersRepository) createCustomerTx(ctx context.Context, tx *sql.Tx, inpu
 
 	return values.UserReadInfo{
 		ID:          user.ID,
-		Age:         user.Age,
+		DOB:         user.Dob,
 		CountryCode: user.CountryAlpha2Code,
 		FirstName:   user.FirstName,
 		LastName:    user.LastName,
@@ -72,7 +72,7 @@ func (r *UsersRepository) CreateAthleteTx(ctx context.Context, tx *sql.Tx, input
 		HubspotID:                sql.NullString{},
 		Phone:                    sql.NullString{String: input.Phone, Valid: true},
 		CountryAlpha2Code:        input.CountryCode,
-		Age:                      input.Age,
+		Dob:                      input.DOB,
 		HasMarketingEmailConsent: input.HasConsentToEmailMarketing,
 		HasSmsConsent:            input.HasConsentToSms,
 		ParentEmail:              sql.NullString{Valid: false},
@@ -95,7 +95,7 @@ func (r *UsersRepository) CreateAthleteTx(ctx context.Context, tx *sql.Tx, input
 
 	return values.UserReadInfo{
 		ID:          customer.ID,
-		Age:         customer.Age,
+		DOB:         customer.DOB,
 		CountryCode: customer.CountryCode,
 		FirstName:   customer.FirstName,
 		LastName:    customer.LastName,
@@ -111,7 +111,7 @@ func (r *UsersRepository) CreateParentTx(ctx context.Context, tx *sql.Tx, input 
 		Email:                    sql.NullString{String: input.Email, Valid: true},
 		HubspotID:                sql.NullString{},
 		CountryAlpha2Code:        input.CountryCode,
-		Age:                      input.Age,
+		Dob:                      input.DOB,
 		HasMarketingEmailConsent: input.HasConsentToEmailMarketing,
 		HasSmsConsent:            input.HasConsentToSms,
 		ParentEmail:              sql.NullString{},
@@ -124,7 +124,7 @@ func (r *UsersRepository) CreateChildTx(ctx context.Context, tx *sql.Tx, input v
 	createdCustomer, err := r.createCustomerTx(ctx, tx, dbIdentity.CreateUserParams{
 		HubspotID:                sql.NullString{},
 		CountryAlpha2Code:        input.CountryCode,
-		Age:                      input.Age,
+		Dob:                      input.DOB,
 		HasMarketingEmailConsent: false,
 		HasSmsConsent:            false,
 		ParentEmail:              sql.NullString{String: input.ParentEmail, Valid: true},

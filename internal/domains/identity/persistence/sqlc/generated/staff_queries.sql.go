@@ -14,11 +14,11 @@ import (
 )
 
 const approveStaff = `-- name: ApproveStaff :one
-WITH approved_staff as (SELECT id, first_name, last_name, email, gender, age, phone, country_alpha2_code, role_id, created_at, updated_at
+WITH approved_staff as (SELECT id, first_name, last_name, email, gender, phone, country_alpha2_code, role_id, created_at, updated_at, dob
                                                 FROM staff.pending_staff ps
                                                 WHERE ps.id = $1),
          u AS (
-                 INSERT INTO users.users (country_alpha2_code, gender, first_name, last_name, age, 
+                 INSERT INTO users.users (country_alpha2_code, gender, first_name, last_name, dob,
                                                                   parent_id, phone, email, has_sms_consent, has_marketing_email_consent)
                          SELECT 
                                          aps.country_alpha2_code,
@@ -73,10 +73,10 @@ func (q *Queries) ApproveStaff(ctx context.Context, id uuid.UUID) (ApproveStaffR
 }
 
 const createPendingStaff = `-- name: CreatePendingStaff :one
-INSERT INTO staff.pending_staff(first_name, last_name, email, gender, age, phone, country_alpha2_code, role_id)
+INSERT INTO staff.pending_staff(first_name, last_name, email, gender, dob, phone, country_alpha2_code, role_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7,
         (SELECT id FROM staff.staff_roles WHERE role_name = $8))
-RETURNING id, first_name, last_name, email, gender, age, phone, country_alpha2_code, role_id, created_at, updated_at
+RETURNING id, first_name, last_name, email, gender, phone, country_alpha2_code, role_id, created_at, updated_at, dob
 `
 
 type CreatePendingStaffParams struct {
@@ -84,7 +84,7 @@ type CreatePendingStaffParams struct {
 	LastName          string         `json:"last_name"`
 	Email             string         `json:"email"`
 	Gender            sql.NullString `json:"gender"`
-	Age               int32          `json:"age"`
+	Dob               time.Time      `json:"dob"`
 	Phone             sql.NullString `json:"phone"`
 	CountryAlpha2Code string         `json:"country_alpha2_code"`
 	RoleName          string         `json:"role_name"`
@@ -96,7 +96,7 @@ func (q *Queries) CreatePendingStaff(ctx context.Context, arg CreatePendingStaff
 		arg.LastName,
 		arg.Email,
 		arg.Gender,
-		arg.Age,
+		arg.Dob,
 		arg.Phone,
 		arg.CountryAlpha2Code,
 		arg.RoleName,
@@ -108,12 +108,12 @@ func (q *Queries) CreatePendingStaff(ctx context.Context, arg CreatePendingStaff
 		&i.LastName,
 		&i.Email,
 		&i.Gender,
-		&i.Age,
 		&i.Phone,
 		&i.CountryAlpha2Code,
 		&i.RoleID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Dob,
 	)
 	return i, err
 }

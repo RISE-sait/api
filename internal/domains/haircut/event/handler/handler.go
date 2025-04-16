@@ -34,7 +34,7 @@ func NewEventsHandler(container *di.Container) *EventsHandler {
 // @Param before query string false "End date of the events range (YYYY-MM-DD)" example("2025-03-31")
 // @Param barber_id query string false "Filter by barber ID"
 // @Param customer_id query string false "Filter by customer ID"
-// @Success 200 {array} haircut.EventResponseDto "List of haircut events retrieved successfully"
+// @Success 200 {array} dto.EventResponseDto "List of haircut events retrieved successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /haircuts/events [get]
@@ -112,7 +112,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Security Bearer
 // @Param event body dto.RequestDto true "Haircut event details"
-// @Success 201 {object} haircut.EventResponseDto "Haircut event created successfully"
+// @Success 201 {object} dto.EventResponseDto "Haircut event created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /haircuts/events [post]
@@ -186,7 +186,7 @@ func (h *EventsHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param id path string true "Haircut event ID"
-// @Success 200 {object} haircut.EventResponseDto "Haircut event details retrieved successfully"
+// @Success 200 {object} dto.EventResponseDto "Haircut event details retrieved successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Haircut event not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"

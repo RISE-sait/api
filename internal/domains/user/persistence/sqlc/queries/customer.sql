@@ -9,10 +9,10 @@ SET wins       = COALESCE(sqlc.narg('wins'), wins),
     updated_at = current_timestamp
 WHERE id = sqlc.arg('id');
 
--- name: AddAthleteToTeam :execrows
+-- name: UpdateAthleteTeam :execrows
 UPDATE athletic.athletes
-SET team_id = sqlc.arg('team_id')
-WHERE id = sqlc.arg('customer_id');
+SET team_id = $1
+WHERE id = sqlc.arg('athlete_id');
 
 -- name: GetCustomers :many
 SELECT u.*,

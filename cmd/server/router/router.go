@@ -54,6 +54,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		// Users & Staff routes
 		"/users":     RegisterUserRoutes,
 		"/customers": RegisterCustomerRoutes,
+		"/athletes":  RegisterAthleteRoutes,
 		"/staffs":    RegisterStaffRoutes,
 
 		// Haircut routes
@@ -89,7 +90,16 @@ func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 		r.Get("/", h.GetCustomers)
 		r.Get("/id/{id}", h.GetCustomerByID)
 		r.Get("/email/{email}", h.GetCustomerByEmail)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Patch("/{customer_id}/athlete", h.UpdateCustomerStats)
+	}
+}
+
+func RegisterAthleteRoutes(container *di.Container) func(chi.Router) {
+
+	h := userHandler.NewCustomersHandler(container)
+
+	return func(r chi.Router) {
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Patch("/{id}/stats", h.UpdateAthleteStats)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{athlete_id}/team/{team_id}", h.UpdateAthletesTeam)
 	}
 }
 

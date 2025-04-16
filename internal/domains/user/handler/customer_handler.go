@@ -24,20 +24,20 @@ func NewCustomersHandler(container *di.Container) *CustomersHandler {
 	}
 }
 
-// UpdateCustomerStats updates customer statistics based on the provided customer ID.
+// UpdateAthleteStats updates statistics based on the provided athlete ID.
 // @Tags customers
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param customer_id path string true "Customer ID" // Customer ID to update stats for
-// @Param update_body body customer.StatsUpdateRequestDto true "Customer stats update data"
+// @Param id path string true "Athlete ID" // Athlete ID to update stats for
+// @Param update_body body dto.StatsUpdateRequestDto true "Customer stats update data"
 // @Success 204 {object} map[string]interface{} "Customer stats updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid parameters"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /customers/{customer_id}/athlete [patch]
-func (h *CustomersHandler) UpdateCustomerStats(w http.ResponseWriter, r *http.Request) {
+// @Router /athletes/{id}/stats [patch]
+func (h *CustomersHandler) UpdateAthleteStats(w http.ResponseWriter, r *http.Request) {
 
-	customerIdStr := chi.URLParam(r, "customer_id")
+	athleteIdStr := chi.URLParam(r, "id")
 
 	var requestDto dto.StatsUpdateRequestDto
 
@@ -46,7 +46,7 @@ func (h *CustomersHandler) UpdateCustomerStats(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	details, err := requestDto.ToUpdateValue(customerIdStr)
+	details, err := requestDto.ToUpdateValue(athleteIdStr)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -60,6 +60,45 @@ func (h *CustomersHandler) UpdateCustomerStats(w http.ResponseWriter, r *http.Re
 
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 
+}
+
+// UpdateAthletesTeam updates the team of an athlete.
+// @Tags athletes
+// @Accept json
+// @Produce json
+// @Param athlete_id path string true "Athlete ID"
+// @Param team_id path string true "Team ID"
+// @Security Bearer
+// @Success 204 "No Content: Team updated successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 404 {object} map[string]interface{} "Not Found: Athlete or team not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /athletes/{athlete_id}/team/{team_id} [put]
+func (h *CustomersHandler) UpdateAthletesTeam(w http.ResponseWriter, r *http.Request) {
+
+	athleteIdStr := chi.URLParam(r, "athlete_id")
+	teamIdStr := chi.URLParam(r, "team_id")
+
+	athleteID, err := validators.ParseUUID(athleteIdStr)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	teamID, err := validators.ParseUUID(teamIdStr)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	if err = h.CustomerRepo.UpdateAthleteTeam(r.Context(), athleteID, teamID); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
 // GetCustomers retrieves a list of customers with optional filtering and pagination.

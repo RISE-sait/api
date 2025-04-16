@@ -15,18 +15,17 @@ import (
 
 const updateUserInfo = `-- name: UpdateUserInfo :execrows
 UPDATE users.users
-SET
-    first_name = $2,
-    last_name = $3,
-    email = $4,
-    phone = $5,
-    dob = $6,
-    country_alpha2_code = $7,
+SET first_name                  = $2,
+    last_name                   = $3,
+    email                       = $4,
+    phone                       = $5,
+    dob                         = $6,
+    country_alpha2_code         = $7,
     has_marketing_email_consent = $8,
-    has_sms_consent = $9,
-    gender = $10,
-    parent_id = $1,
-    updated_at = current_timestamp
+    has_sms_consent             = $9,
+    gender                      = $10,
+    parent_id                   = $1,
+    updated_at                  = current_timestamp
 WHERE id = $11
 `
 

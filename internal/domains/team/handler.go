@@ -97,6 +97,7 @@ func (h *Handler) GetTeams(w http.ResponseWriter, r *http.Request) {
 // @Tags teams
 // @Accept json
 // @Produce json
+// @Param id path string true "Team ID"
 // @Success 200 {object} dto.Response "Team retrieved successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Team not found"
@@ -138,6 +139,7 @@ func (h *Handler) GetTeamByID(w http.ResponseWriter, r *http.Request) {
 	roster := make([]dto.RosterMemberInfo, len(team.Roster))
 
 	for i, member := range team.Roster {
+
 		roster[i] = dto.RosterMemberInfo{
 			ID:       member.ID,
 			Name:     member.Name,

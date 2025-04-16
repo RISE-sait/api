@@ -13,25 +13,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const addAthleteToTeam = `-- name: AddAthleteToTeam :execrows
-UPDATE athletic.athletes
-SET team_id = $1
-WHERE id = $2
-`
-
-type AddAthleteToTeamParams struct {
-	TeamID     uuid.NullUUID `json:"team_id"`
-	CustomerID uuid.UUID     `json:"customer_id"`
-}
-
-func (q *Queries) AddAthleteToTeam(ctx context.Context, arg AddAthleteToTeamParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, addAthleteToTeam, arg.TeamID, arg.CustomerID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
-}
-
 const createAthleteInfo = `-- name: CreateAthleteInfo :execrows
 INSERT INTO athletic.athletes (id, rebounds, assists, losses, wins, points)
 VALUES ($1, $2, $3, $4, $5, $6)
@@ -302,6 +283,25 @@ func (q *Queries) UpdateAthleteStats(ctx context.Context, arg UpdateAthleteStats
 		arg.Rebounds,
 		arg.ID,
 	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateAthleteTeam = `-- name: UpdateAthleteTeam :execrows
+UPDATE athletic.athletes
+SET team_id = $1
+WHERE id = $2
+`
+
+type UpdateAthleteTeamParams struct {
+	TeamID    uuid.NullUUID `json:"team_id"`
+	AthleteID uuid.UUID     `json:"athlete_id"`
+}
+
+func (q *Queries) UpdateAthleteTeam(ctx context.Context, arg UpdateAthleteTeamParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateAthleteTeam, arg.TeamID, arg.AthleteID)
 	if err != nil {
 		return 0, err
 	}

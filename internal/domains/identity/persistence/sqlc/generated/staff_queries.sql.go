@@ -18,14 +18,14 @@ WITH approved_staff as (SELECT id, first_name, last_name, email, gender, phone, 
                                                 FROM staff.pending_staff ps
                                                 WHERE ps.id = $1),
          u AS (
-                 INSERT INTO users.users (country_alpha2_code, gender, first_name, last_name, dob,
+             INSERT INTO users.users (country_alpha2_code, gender, first_name, last_name, dob,
                                                                   parent_id, phone, email, has_sms_consent, has_marketing_email_consent)
                          SELECT 
                                          aps.country_alpha2_code,
                                          aps.gender,
                                          aps.first_name,
                                          aps.last_name,
-                                         aps.age,
+                                         aps.dob,
                                          NULL,
                                          aps.phone,
                                          aps.email,

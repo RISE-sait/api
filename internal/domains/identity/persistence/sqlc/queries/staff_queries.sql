@@ -21,7 +21,7 @@ WITH approved_staff as (SELECT *
                                          aps.gender,
                                          aps.first_name,
                                          aps.last_name,
-                                         aps.age,
+                                         aps.dob,
                                          NULL,
                                          aps.phone,
                                          aps.email,

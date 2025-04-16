@@ -6,6 +6,7 @@ import (
 	teamDb "api/internal/domains/team/persistence/sqlc/generated"
 	userDb "api/internal/domains/user/persistence/sqlc/generated"
 	dbTestUtils "api/utils/test_utils"
+	"time"
 
 	"context"
 	"database/sql"
@@ -29,7 +30,7 @@ func TestGetCustomerTeam(t *testing.T) {
 
 	createdCustomer, err := identityQ.CreateUser(context.Background(), identityDb.CreateUserParams{
 		CountryAlpha2Code: "CA",
-		Age:               20,
+		Dob:               time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		Phone: sql.NullString{
 			String: "+1514123456337",
 			Valid:  true,
@@ -52,7 +53,7 @@ func TestGetCustomerTeam(t *testing.T) {
 
 	createdPendingStaff, err := identityQ.CreatePendingStaff(context.Background(), identityDb.CreatePendingStaffParams{
 		CountryAlpha2Code: "CA",
-		Age:               20,
+		Dob:               time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		Phone: sql.NullString{
 			String: "+14141234567",
 			Valid:  true,
@@ -113,7 +114,7 @@ func TestGetCustomerNonExistingTeam(t *testing.T) {
 
 	createdCustomer, err := identityQ.CreateUser(context.Background(), identityDb.CreateUserParams{
 		CountryAlpha2Code: "CA",
-		Age:               20,
+		Dob:               time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		Phone: sql.NullString{
 			String: "+1514123456337",
 			Valid:  true,
@@ -147,7 +148,7 @@ func TestIsCustomerExist(t *testing.T) {
 
 	createdCustomer, err := identityQ.CreateUser(context.Background(), identityDb.CreateUserParams{
 		CountryAlpha2Code:        "CA",
-		Age:                      20,
+		Dob:                      time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		HasMarketingEmailConsent: false,
 		HasSmsConsent:            false,
 		FirstName:                "John",

@@ -67,6 +67,37 @@ func (r *Repository) Update(ctx context.Context, team values.UpdateTeamValues) *
 	return nil
 }
 
+func (r *Repository) UpdateAthletesTeam(ctx context.Context, athleteID, teamID uuid.UUID) *errLib.CommonError {
+
+	params := db.UpdateAthleteTeamParams{
+		TeamID: uuid.NullUUID{
+			UUID:  teamID,
+			Valid: teamID != uuid.Nil,
+		},
+		AthleteID: athleteID,
+	}
+
+	impactedRows, err := r.Queries.UpdateAthleteTeam(ctx, params)
+
+	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+
+			if pqErr.Constraint == "fk_team" {
+				return errLib.New("The referenced team doesn't exist", http.StatusNotFound)
+			}
+		}
+		log.Println(fmt.Sprintf("Database error when updating athlete's team: %v", err.Error()))
+		return errLib.New("Database error when updating athlete's team:", http.StatusInternalServerError)
+	}
+
+	if impactedRows == 0 {
+		return errLib.New("Athlete not found", http.StatusNotFound)
+	}
+
+	return nil
+}
+
 func (r *Repository) List(ctx context.Context) ([]values.GetTeamValues, *errLib.CommonError) {
 
 	dbTeams, err := r.Queries.GetTeams(ctx)

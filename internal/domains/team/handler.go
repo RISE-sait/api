@@ -97,6 +97,7 @@ func (h *Handler) GetTeams(w http.ResponseWriter, r *http.Request) {
 // @Tags teams
 // @Accept json
 // @Produce json
+// @Param id path string true "Team ID"
 // @Success 200 {object} dto.Response "Team retrieved successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Team not found"

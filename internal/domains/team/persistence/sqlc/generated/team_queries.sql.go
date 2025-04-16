@@ -56,7 +56,7 @@ func (q *Queries) DeleteTeam(ctx context.Context, id uuid.UUID) (int64, error) {
 const getTeamById = `-- name: GetTeamById :one
 SELECT t.id, t.name, t.capacity, t.created_at, t.updated_at, t.coach_id, u.email AS coach_email, (u.first_name || ' ' || u.last_name)::varchar AS coach_name
 FROM athletic.teams t
-JOIN users.users u ON t.coach_id = u.id
+         JOIN users.users u ON t.coach_id = u.id
 WHERE t.id = $1
 `
 
@@ -88,11 +88,19 @@ func (q *Queries) GetTeamById(ctx context.Context, id uuid.UUID) (GetTeamByIdRow
 }
 
 const getTeamRoster = `-- name: GetTeamRoster :many
-SELECT u.id, u.email, u.country_alpha2_code, (u.first_name || ' ' || u.last_name)::varchar AS name,
-       a.points, a.wins, a.losses, a.assists, a.rebounds, a.steals
+SELECT u.id,
+       u.email,
+       u.country_alpha2_code,
+       (u.first_name || ' ' || u.last_name)::varchar AS name,
+       a.points,
+       a.wins,
+       a.losses,
+       a.assists,
+       a.rebounds,
+       a.steals
 FROM athletic.teams t
-    JOIN athletic.athletes a ON t.id = a.team_id
-JOIN users.users u ON a.id = u.id
+         JOIN athletic.athletes a ON t.id = a.team_id
+         JOIN users.users u ON a.id = u.id
 WHERE t.id = $1
 `
 
@@ -146,7 +154,7 @@ func (q *Queries) GetTeamRoster(ctx context.Context, id uuid.UUID) ([]GetTeamRos
 const getTeams = `-- name: GetTeams :many
 SELECT t.id, t.name, t.capacity, t.created_at, t.updated_at, t.coach_id, u.email AS coach_email, (u.first_name || ' ' || u.last_name)::varchar AS coach_name
 FROM athletic.teams t
-JOIN users.users u ON t.coach_id = u.id
+         JOIN users.users u ON t.coach_id = u.id
 `
 
 type GetTeamsRow struct {
@@ -192,7 +200,26 @@ func (q *Queries) GetTeams(ctx context.Context) ([]GetTeamsRow, error) {
 	return items, nil
 }
 
-const updateTeam = `-- name: UpdateTeam :one
+const updateAthleteTeam = `-- name: UpdateAthleteTeam :execrows
+UPDATE athletic.athletes
+SET team_id = $1
+WHERE id = $2
+`
+
+type UpdateAthleteTeamParams struct {
+	TeamID    uuid.NullUUID `json:"team_id"`
+	AthleteID uuid.UUID     `json:"athlete_id"`
+}
+
+func (q *Queries) UpdateAthleteTeam(ctx context.Context, arg UpdateAthleteTeamParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateAthleteTeam, arg.TeamID, arg.AthleteID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateTeam = `-- name: UpdateAthletesTeam :one
 UPDATE athletic.teams
 SET name       = $1,
     coach_id   = $2,

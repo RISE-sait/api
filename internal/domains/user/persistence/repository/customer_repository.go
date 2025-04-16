@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"log"
 	"net/http"
 )
@@ -162,26 +163,34 @@ func (r *CustomerRepository) GetCustomer(ctx context.Context, id uuid.UUID, emai
 	return customer, nil
 }
 
-func (r *CustomerRepository) AddAthleteToTeam(ctx context.Context, customerID, teamID uuid.UUID) *errLib.CommonError {
+func (r *CustomerRepository) UpdateAthleteTeam(ctx context.Context, athleteID, teamID uuid.UUID) *errLib.CommonError {
 
-	args := db.AddAthleteToTeamParams{
-		CustomerID: customerID,
+	args := db.UpdateAthleteTeamParams{
+		AthleteID: athleteID,
 		TeamID: uuid.NullUUID{
 			UUID:  teamID,
 			Valid: true,
 		},
 	}
 
-	updatedRows, err := r.Queries.AddAthleteToTeam(ctx, args)
+	updatedRows, err := r.Queries.UpdateAthleteTeam(ctx, args)
 
 	if err != nil {
 
-		log.Printf("Unhandled error: %v", err)
+		var pqErr *pq.Error
+
+		if errors.As(err, &pqErr) {
+			if pqErr.Constraint == "fk_team" {
+				return errLib.New("Team not found", http.StatusNotFound)
+			}
+		}
+
+		log.Printf("Unhandled error when updating athlete's team: %v", err)
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
 	if updatedRows == 0 {
-		return errLib.New("Person with the associated ID, or the team not found", http.StatusNotFound)
+		return errLib.New("Athlete not found", http.StatusNotFound)
 	}
 
 	return nil

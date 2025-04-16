@@ -51,7 +51,7 @@ func TestCreateValidUser(t *testing.T) {
 
 	require.Equal(t, firstName, createdUser.FirstName)
 	require.Equal(t, lastName, createdUser.LastName)
-	require.Equal(t, dob, createdUser.Dob)
+	require.Equal(t, dob, createdUser.Dob.UTC())
 	require.Equal(t, countryCode, createdUser.CountryAlpha2Code)
 	require.Equal(t, email, createdUser.Email)
 	require.Equal(t, phone, createdUser.Phone)
@@ -163,7 +163,7 @@ func TestUpdateUser(t *testing.T) {
 	// Assert the updated fields
 	require.Equal(t, newFirstName, updatedUser.FirstName)
 	require.Equal(t, newLastName, updatedUser.LastName)
-	require.Equal(t, newDob, updatedUser.Dob)
+	require.Equal(t, newDob, updatedUser.Dob.UTC())
 	require.Equal(t, newCountryCode, updatedUser.CountryAlpha2Code)
 	require.Equal(t, newEmail, updatedUser.Email)
 	require.Equal(t, newPhone, updatedUser.Phone)

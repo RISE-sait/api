@@ -69,7 +69,7 @@ jobs:
           cd ../../../../../
           cd internal/domains/haircut/event/persistence/sqlc && sqlc generate
           cd ../../../../../../
-          cd internal/domains/haircut/service/persistence/sqlc && sqlc generate
+          cd internal/domains/haircut/haircut_service/persistence/sqlc && sqlc generate
           cd ../../../../../../
           cd internal/domains/identity/persistence/sqlc && sqlc generate
           cd ../../../../../

@@ -3,8 +3,8 @@ package haircut_service
 import (
 	databaseErrors "api/internal/constants"
 	"api/internal/di"
-	db "api/internal/domains/haircut/service/persistence/sqlc/generated"
-	values "api/internal/domains/haircut/service/values"
+	db "api/internal/domains/haircut/haircut_service/persistence/sqlc/generated"
+	values "api/internal/domains/haircut/haircut_service/values"
 	errLib "api/internal/libs/errors"
 	"context"
 	"errors"

@@ -3,8 +3,8 @@ package router
 import (
 	"api/internal/di"
 	haircutEvents "api/internal/domains/haircut/event/handler"
+	barberServicesHandler "api/internal/domains/haircut/haircut_service"
 	"api/internal/domains/haircut/portfolio"
-	barberServicesHandler "api/internal/domains/haircut/service"
 
 	enrollmentHandler "api/internal/domains/enrollment/handler"
 

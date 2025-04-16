@@ -4,7 +4,7 @@ import (
 	"api/internal/di"
 	values "api/internal/domains/haircut/event"
 	db "api/internal/domains/haircut/event/persistence/sqlc/generated"
-	service "api/internal/domains/haircut/service/persistence"
+	service "api/internal/domains/haircut/haircut_service/persistence"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"

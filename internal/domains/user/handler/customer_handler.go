@@ -25,7 +25,7 @@ func NewCustomersHandler(container *di.Container) *CustomersHandler {
 }
 
 // UpdateAthleteStats updates statistics based on the provided athlete ID.
-// @Tags customers
+// @Tags athletes
 // @Accept json
 // @Produce json
 // @Security Bearer

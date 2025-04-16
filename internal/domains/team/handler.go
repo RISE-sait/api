@@ -6,6 +6,7 @@ import (
 	repository "api/internal/domains/team/persistence"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
+	"github.com/google/uuid"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -70,17 +71,90 @@ func (h *Handler) GetTeams(w http.ResponseWriter, r *http.Request) {
 	result := make([]dto.Response, len(teams))
 
 	for i, team := range teams {
-		result[i] = dto.Response{
+		response := dto.Response{
 			ID:        team.ID,
 			Name:      team.TeamDetails.Name,
 			Capacity:  team.TeamDetails.Capacity,
-			CoachID:   team.TeamDetails.CoachID,
 			CreatedAt: team.CreatedAt,
 			UpdatedAt: team.UpdatedAt,
 		}
+
+		if team.TeamDetails.CoachID != uuid.Nil {
+			response.Coach = &dto.Coach{
+				ID:    team.TeamDetails.CoachID,
+				Name:  team.TeamDetails.CoachName,
+				Email: team.TeamDetails.CoachEmail,
+			}
+		}
+
+		result[i] = response
 	}
 
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
+}
+
+// GetTeamByID retrieves team by ID.
+// @Tags teams
+// @Accept json
+// @Produce json
+// @Success 200 {object} dto.Response "Team retrieved successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
+// @Failure 404 {object} map[string]interface{} "Not Found: Team not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /teams/{id} [get]
+func (h *Handler) GetTeamByID(w http.ResponseWriter, r *http.Request) {
+
+	idStr := chi.URLParam(r, "id")
+
+	id, err := validators.ParseUUID(idStr)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	team, err := h.Repo.GetByID(r.Context(), id)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	response := dto.Response{
+		ID:        team.ID,
+		Name:      team.TeamDetails.Name,
+		Capacity:  team.TeamDetails.Capacity,
+		CreatedAt: team.CreatedAt,
+		UpdatedAt: team.UpdatedAt,
+	}
+
+	if team.TeamDetails.CoachID != uuid.Nil {
+		response.Coach = &dto.Coach{
+			ID:    team.TeamDetails.CoachID,
+			Name:  team.TeamDetails.CoachName,
+			Email: team.TeamDetails.CoachEmail,
+		}
+	}
+
+	roster := make([]dto.RosterMemberInfo, len(team.Roster))
+
+	for i, member := range team.Roster {
+		roster[i] = dto.RosterMemberInfo{
+			ID:       member.ID,
+			Name:     member.Name,
+			Email:    member.Email,
+			Country:  member.Country,
+			Points:   member.Points,
+			Wins:     member.Wins,
+			Losses:   member.Losses,
+			Assists:  member.Assists,
+			Rebounds: member.Rebounds,
+			Steals:   member.Steals,
+		}
+	}
+
+	response.Roster = &roster
+
+	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 }
 
 // UpdateTeam updates an existing team.

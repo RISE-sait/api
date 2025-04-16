@@ -3299,6 +3299,46 @@ const docTemplate = `{
             }
         },
         "/teams/{id}": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teams"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Team retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/team.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Team not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
             "put": {
                 "security": [
                     {
@@ -3534,6 +3574,41 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "api_internal_domains_team_dto.RosterMemberInfo": {
+            "type": "object",
+            "properties": {
+                "assists": {
+                    "type": "integer"
+                },
+                "country": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "losses": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "points": {
+                    "type": "integer"
+                },
+                "rebounds": {
+                    "type": "integer"
+                },
+                "steals": {
+                    "type": "integer"
+                },
+                "wins": {
+                    "type": "integer"
+                }
+            }
+        },
         "customer.AthleteRegistrationRequestDto": {
             "type": "object",
             "required": [
@@ -4706,6 +4781,20 @@ const docTemplate = `{
                 }
             }
         },
+        "team.Coach": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "team.RequestDto": {
             "type": "object",
             "required": [
@@ -4717,7 +4806,8 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "coach_id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "faae4b3a-ad9f-463c-ae4b-3aad9fb63c9b"
                 },
                 "name": {
                     "type": "string"
@@ -4730,8 +4820,8 @@ const docTemplate = `{
                 "capacity": {
                     "type": "integer"
                 },
-                "coach_id": {
-                    "type": "string"
+                "coach": {
+                    "$ref": "#/definitions/team.Coach"
                 },
                 "created_at": {
                     "type": "string"
@@ -4741,6 +4831,12 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "roster": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api_internal_domains_team_dto.RosterMemberInfo"
+                    }
                 },
                 "updated_at": {
                     "type": "string"

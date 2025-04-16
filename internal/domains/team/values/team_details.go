@@ -6,9 +6,11 @@ import (
 )
 
 type Details struct {
-	Name     string
-	Capacity int32
-	CoachID  uuid.UUID
+	Name       string
+	Capacity   int32
+	CoachID    uuid.UUID
+	CoachName  string
+	CoachEmail string
 }
 
 type CreateTeamValues struct {
@@ -25,4 +27,18 @@ type GetTeamValues struct {
 	ID          uuid.UUID
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+	Roster      []RosterMemberInfo
+}
+
+type RosterMemberInfo struct {
+	ID       uuid.UUID
+	Email    string
+	Country  string
+	Name     string
+	Points   int32
+	Wins     int32
+	Losses   int32
+	Assists  int32
+	Rebounds int32
+	Steals   int32
 }

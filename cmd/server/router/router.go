@@ -2,6 +2,9 @@ package router
 
 import (
 	"api/internal/di"
+	haircutEvents "api/internal/domains/haircut/event/handler"
+	"api/internal/domains/haircut/portfolio"
+	barberServicesHandler "api/internal/domains/haircut/service"
 
 	enrollmentHandler "api/internal/domains/enrollment/handler"
 
@@ -15,9 +18,6 @@ import (
 
 	eventHandler "api/internal/domains/event/handler"
 
-	barberServicesHandler "api/internal/domains/haircut/handler/barber_services"
-	haircutEvents "api/internal/domains/haircut/handler/events"
-	haircut "api/internal/domains/haircut/handler/haircuts"
 	"api/internal/domains/identity/handler/authentication"
 	"api/internal/domains/identity/handler/registration"
 	locationsHandler "api/internal/domains/location/handler"
@@ -111,6 +111,7 @@ func RegisterHaircutRoutes(container *di.Container) func(chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleBarber)).Post("/", haircut.UploadHaircutImage)
 
 		r.Route("/events", RegisterHaircutEventsRoutes(container))
+		r.Route("/services", RegisterBarberServicesRoutes(container))
 	}
 }
 

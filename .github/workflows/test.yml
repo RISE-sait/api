@@ -52,6 +52,9 @@ jobs:
       - name: Add sqlc to PATH
         run: echo "~/.cache/sqlc" >> $GITHUB_PATH
 
+      - name: Install Swag
+        run: go install github.com/swaggo/swag/cmd/swag@latest
+
       - name: Set up Testcontainers environment
         run: echo "TESTCONTAINERS_RYUK_DISABLED=true" >> $GITHUB_ENV
 
@@ -64,8 +67,10 @@ jobs:
           cd ../../../../../
           cd internal/domains/game/persistence/sqlc && sqlc generate
           cd ../../../../../
-          cd internal/domains/haircut/persistence/sqlc && sqlc generate
-          cd ../../../../../
+          cd internal/domains/haircut/event/persistence/sqlc && sqlc generate
+          cd ../../../../../../
+          cd internal/domains/haircut/service/persistence/sqlc && sqlc generate
+          cd ../../../../../../
           cd internal/domains/identity/persistence/sqlc && sqlc generate
           cd ../../../../../
           cd internal/domains/location/persistence/sqlc && sqlc generate
@@ -85,3 +90,6 @@ jobs:
           TESTCONTAINERS_RYUK_DISABLED: true # Prevents cleanup failures in GitHub Actions
           STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
         run: go test -v ./...
+
+      - name: Generate Swagger Documentation
+        run: go run cmd/swag_init/swag-init.go

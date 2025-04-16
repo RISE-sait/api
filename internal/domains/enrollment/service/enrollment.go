@@ -1,10 +1,12 @@
 package enrollment
 
 import (
-	database_errors "api/internal/constants"
+	databaseErrors "api/internal/constants"
 	"api/internal/di"
 	repo "api/internal/domains/enrollment/persistence/repository"
 	dbEnrollment "api/internal/domains/enrollment/persistence/sqlc/generated"
+	event "api/internal/domains/event/service"
+	"api/internal/domains/program"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
@@ -17,14 +19,18 @@ import (
 )
 
 type CustomerEnrollmentService struct {
-	repo *repo.CustomerEnrollmentRepository
-	db   *sql.DB
+	repo           *repo.CustomerEnrollmentRepository
+	programService *program.Service
+	eventService   *event.Service
+	db             *sql.DB
 }
 
 func NewCustomerEnrollmentService(container *di.Container) *CustomerEnrollmentService {
 	return &CustomerEnrollmentService{
-		repo: repo.NewEnrollmentRepository(container),
-		db:   container.DB,
+		repo:           repo.NewEnrollmentRepository(container),
+		programService: program.NewProgramService(container),
+		eventService:   event.NewEventService(container),
+		db:             container.DB,
 	}
 }
 
@@ -49,7 +55,7 @@ func (s *CustomerEnrollmentService) executeInTx(ctx context.Context, fn func(rep
 
 	if err = tx.Commit(); err != nil {
 		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == database_errors.TxSerializationError {
+		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.TxSerializationError {
 			return errLib.New(
 				"Too many people enrolled at the same time. Please try again.",
 				http.StatusConflict,
@@ -60,14 +66,25 @@ func (s *CustomerEnrollmentService) executeInTx(ctx context.Context, fn func(rep
 	return nil
 }
 
-func (s *CustomerEnrollmentService) EnrollCustomerInProgram(ctx context.Context, customerID, programID uuid.UUID) *errLib.CommonError {
+// should only be used if want to force enrollment, default behavior is to reserve a seat, then update reservation status
 
-	return s.repo.EnrollCustomerInProgram(ctx, programID, customerID)
-}
-
-func (s *CustomerEnrollmentService) EnrollCustomerInEvent(ctx context.Context, customerID, eventID uuid.UUID) *errLib.CommonError {
-	return s.repo.EnrollCustomerInEvent(ctx, customerID, eventID)
-}
+//func (s *CustomerEnrollmentService) EnrollCustomerInProgram(ctx context.Context, customerID, programID uuid.UUID) *errLib.CommonError {
+//
+//	if _, err := s.programService.GetProgram(ctx, programID); err != nil {
+//		return err
+//	}
+//
+//	return s.repo.EnrollCustomerInProgram(ctx, programID, customerID)
+//}
+//
+//func (s *CustomerEnrollmentService) EnrollCustomerInEvent(ctx context.Context, customerID, eventID uuid.UUID) *errLib.CommonError {
+//
+//	if _, err := s.eventService.GetEvent(ctx, eventID); err != nil {
+//		return err
+//	}
+//
+//	return s.repo.EnrollCustomerInEvent(ctx, customerID, eventID)
+//}
 
 func (s *CustomerEnrollmentService) EnrollCustomerInMembershipPlan(ctx context.Context, customerID, planID uuid.UUID, cancelAtDateTime time.Time) *errLib.CommonError {
 	return s.repo.EnrollCustomerInMembershipPlan(ctx, customerID, planID, cancelAtDateTime)
@@ -77,16 +94,21 @@ func (s *CustomerEnrollmentService) UnEnrollCustomerFromEvent(ctx context.Contex
 	return s.repo.UnEnrollCustomerFromEvent(ctx, eventID, customerID)
 }
 
-func (s *CustomerEnrollmentService) GetProgramIsFull(ctx context.Context, programID uuid.UUID) (bool, *errLib.CommonError) {
-	return s.repo.GetProgramIsFull(ctx, programID)
-}
-
-func (s *CustomerEnrollmentService) GetEventIsFull(ctx context.Context, eventID uuid.UUID) (bool, *errLib.CommonError) {
-	return s.repo.GetEventIsFull(ctx, eventID)
-}
-
 func (s *CustomerEnrollmentService) ReserveSeatInEvent(ctx context.Context, eventID, customerID uuid.UUID) *errLib.CommonError {
 	return s.executeInTx(ctx, func(r *repo.CustomerEnrollmentRepository) *errLib.CommonError {
+
+		if _, err := s.eventService.GetEvent(ctx, eventID); err != nil {
+			return err
+		}
+
+		capacityExist, err := r.CheckIfEventCapacityExist(ctx, eventID)
+		if err != nil {
+			return err
+		}
+		if !capacityExist {
+			return errLib.New("Capacity for event not found", http.StatusNotFound)
+		}
+
 		if isFull, err := r.GetEventIsFull(ctx, eventID); err != nil {
 			return err
 		} else if isFull {
@@ -98,6 +120,12 @@ func (s *CustomerEnrollmentService) ReserveSeatInEvent(ctx context.Context, even
 
 func (s *CustomerEnrollmentService) ReserveSeatInProgram(ctx context.Context, programID, customerID uuid.UUID) *errLib.CommonError {
 	return s.executeInTx(ctx, func(r *repo.CustomerEnrollmentRepository) *errLib.CommonError {
+
+		if getProgram, err := s.programService.GetProgram(ctx, programID); err != nil {
+			return err
+		} else if getProgram.Capacity == nil {
+			return errLib.New("Program does not have a capacity", http.StatusBadRequest)
+		}
 
 		isFull, err := r.GetProgramIsFull(ctx, programID)
 		if err != nil {
@@ -112,9 +140,19 @@ func (s *CustomerEnrollmentService) ReserveSeatInProgram(ctx context.Context, pr
 }
 
 func (s *CustomerEnrollmentService) UpdateReservationStatusInProgram(ctx context.Context, programID, customerID uuid.UUID, status dbEnrollment.PaymentStatus) *errLib.CommonError {
+
+	if _, err := s.programService.GetProgram(ctx, programID); err != nil {
+		return err
+	}
+
 	return s.repo.UpdateReservationStatusInProgram(ctx, programID, customerID, status)
 }
 
 func (s *CustomerEnrollmentService) UpdateReservationStatusInEvent(ctx context.Context, eventID, customerID uuid.UUID, status dbEnrollment.PaymentStatus) *errLib.CommonError {
+
+	if _, err := s.eventService.GetEvent(ctx, eventID); err != nil {
+		return err
+	}
+
 	return s.repo.UpdateReservationStatusInEvent(ctx, eventID, customerID, status)
 }

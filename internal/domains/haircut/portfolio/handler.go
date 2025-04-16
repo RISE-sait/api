@@ -13,7 +13,7 @@ import (
 
 // UploadHaircutImage handles the upload of a haircut image to Google Cloud Storage.
 // @Description Uploads a haircut image to Google Cloud Storage and returns the object URL.
-// @Tags haircut
+// @Tags haircuts
 // @Accept multipart/form-data
 // @Produce json
 // @Security Bearer
@@ -70,7 +70,7 @@ func UploadHaircutImage(w http.ResponseWriter, r *http.Request) {
 
 // GetHaircutImages retrieves haircut images from Google Cloud Storage.
 // @Description Retrieves all haircut images from a folder in Google Cloud Storage. Optionally, specify a barber name to get images from that barber's folder.
-// @Tags haircut
+// @Tags haircuts
 // @Accept json
 // @Produce json
 // @Param barber_id query string false "Barber ID to filter images"

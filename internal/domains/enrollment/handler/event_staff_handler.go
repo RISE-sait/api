@@ -33,33 +33,19 @@ func NewEventStaffsHandler(container *di.Container) *StaffsHandler {
 // @Router /events/{event_id}/staffs/{staff_id} [post]
 func (h *StaffsHandler) AssignStaffToEvent(w http.ResponseWriter, r *http.Request) {
 
-	var eventId, staffId uuid.UUID
-
-	if idStr := chi.URLParam(r, "event_id"); idStr != "" {
-		if id, err := validators.ParseUUID(idStr); err != nil {
-			responseHandlers.RespondWithError(w, err)
-			return
-		} else {
-			eventId = id
-		}
-	} else {
-		responseHandlers.RespondWithError(w, errLib.New("event_id must be provided", http.StatusBadRequest))
+	eventId, err := parseUUIDParam(r, "event_id")
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	if idStr := chi.URLParam(r, "staff_id"); idStr != "" {
-		if id, err := validators.ParseUUID(idStr); err != nil {
-			responseHandlers.RespondWithError(w, err)
-			return
-		} else {
-			staffId = id
-		}
-	} else {
-		responseHandlers.RespondWithError(w, errLib.New("staff_id must be provided", http.StatusBadRequest))
+	staffId, err := parseUUIDParam(r, "staff_id")
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	if err := h.Repo.AssignStaffToEvent(r.Context(), eventId, staffId); err != nil {
+	if err = h.Repo.AssignStaffToEvent(r.Context(), eventId, staffId); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -81,36 +67,30 @@ func (h *StaffsHandler) AssignStaffToEvent(w http.ResponseWriter, r *http.Reques
 // @Router /events/{event_id}/staffs/{staff_id} [delete]
 func (h *StaffsHandler) UnassignStaffFromEvent(w http.ResponseWriter, r *http.Request) {
 
-	var eventId, staffId uuid.UUID
-
-	if idStr := chi.URLParam(r, "event_id"); idStr != "" {
-		if id, err := validators.ParseUUID(idStr); err != nil {
-			responseHandlers.RespondWithError(w, err)
-			return
-		} else {
-			eventId = id
-		}
-	} else {
-		responseHandlers.RespondWithError(w, errLib.New("event_id must be provided", http.StatusBadRequest))
+	eventId, err := parseUUIDParam(r, "event_id")
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	if idStr := chi.URLParam(r, "staff_id"); idStr != "" {
-		if id, err := validators.ParseUUID(idStr); err != nil {
-			responseHandlers.RespondWithError(w, err)
-			return
-		} else {
-			staffId = id
-		}
-	} else {
-		responseHandlers.RespondWithError(w, errLib.New("staff_id must be provided", http.StatusBadRequest))
+	staffId, err := parseUUIDParam(r, "staff_id")
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	if err := h.Repo.UnassignedStaffFromEvent(r.Context(), eventId, staffId); err != nil {
+	if err = h.Repo.UnassignedStaffFromEvent(r.Context(), eventId, staffId); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusOK)
+}
+
+func parseUUIDParam(r *http.Request, param string) (uuid.UUID, *errLib.CommonError) {
+	idStr := chi.URLParam(r, param)
+	if idStr == "" {
+		return uuid.Nil, errLib.New(param+" must be provided", http.StatusBadRequest)
+	}
+	return validators.ParseUUID(idStr)
 }

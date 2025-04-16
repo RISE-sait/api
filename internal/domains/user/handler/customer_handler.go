@@ -20,7 +20,7 @@ type CustomersHandler struct {
 
 func NewCustomersHandler(container *di.Container) *CustomersHandler {
 	return &CustomersHandler{
-		CustomerRepo: customerRepo.NewCustomerRepository(container.Queries.UserDb),
+		CustomerRepo: customerRepo.NewCustomerRepository(container),
 	}
 }
 
@@ -103,12 +103,13 @@ func (h *CustomersHandler) UpdateAthletesTeam(w http.ResponseWriter, r *http.Req
 
 // GetCustomers retrieves a list of customers with optional filtering and pagination.
 // @Summary Get customers
-// @Description Retrieves a list of customers, optionally filtered by HubSpot IDs, with pagination support.
+// @Description Retrieves a list of customers, optionally filtered by fields like parent ID, name, email, phone, and ID, with pagination support.
 // @Tags customers
 // @Accept json
 // @Produce json
-// @Param limit query int false "Number of customers to retrieve (default: 20)"
+// @Param limit query int false "Number of customers to retrieve (default: 20, max: 20)"
 // @Param offset query int false "Number of customers to skip (default: 0)"
+// @Param search query string false "Search term to filter customers"
 // @Param parent_id query string false "Parent ID to filter customers (example: 123e4567-e89b-12d3-a456-426614174000)"
 // @Success 200 {array} customer.Response "List of customers"
 // @Failure 400 "Bad Request: Invalid parameters"
@@ -125,7 +126,7 @@ func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) 
 	if limitStr := query.Get("limit"); limitStr != "" {
 		parsedLimit, err := strconv.Atoi(limitStr)
 		if err != nil {
-			responseHandlers.RespondWithError(w, errLib.New(fmt.Sprintf("Error encountered parsing limit: %s", err.Error()), http.StatusBadRequest))
+			responseHandlers.RespondWithError(w, errLib.New("Invalid 'limit' value", http.StatusBadRequest))
 			return
 		}
 		if parsedLimit <= 0 {
@@ -158,10 +159,13 @@ func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) 
 			responseHandlers.RespondWithError(w, err)
 			return
 		}
+
 		parentID = id
 	}
 
-	dbCustomers, err := h.CustomerRepo.GetCustomers(r.Context(), int32(maxLimit), int32(offset), parentID)
+	searchTerm := query.Get("search")
+
+	dbCustomers, err := h.CustomerRepo.GetCustomers(r.Context(), int32(maxLimit), int32(offset), parentID, searchTerm)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)

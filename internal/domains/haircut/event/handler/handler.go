@@ -27,7 +27,7 @@ func NewEventsHandler(container *di.Container) *EventsHandler {
 // GetEvents retrieves all haircut events based on filter criteria.
 // @Summary Get all haircut events
 // @Description Retrieve all haircut events, with optional filters by barber ID and customer ID.
-// @Tags haircut
+// @Tags haircuts
 // @Accept json
 // @Produce json
 // @Param after query string false "Start date of the events range (YYYY-MM-DD)" example("2025-03-01")
@@ -107,7 +107,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 // CreateEvent creates a new haircut event.
 // @Description Registers a new haircut event with the provided details from request body.
 // @Description Requires an Authorization header containing the customer's JWT, ensuring only logged-in customers can make the request.
-// @Tags haircut
+// @Tags haircuts
 // @Accept json
 // @Produce json
 // @Security Bearer
@@ -153,7 +153,7 @@ func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 
 // DeleteEvent deletes a haircut event by ID.
 // @Description Deletes a haircut event by its ID.
-// @Tags haircut
+// @Tags haircuts
 // @Accept json
 // @Produce json
 // @Param id path string true "Haircut event ID"
@@ -182,7 +182,7 @@ func (h *EventsHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 
 // GetEvent retrieves information about a specific haircut event.
 // @Description Retrieves details of a specific haircut event based on its ID.
-// @Tags haircut
+// @Tags haircuts
 // @Accept json
 // @Produce json
 // @Param id path string true "Haircut event ID"

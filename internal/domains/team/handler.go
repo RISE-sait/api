@@ -139,6 +139,7 @@ func (h *Handler) GetTeamByID(w http.ResponseWriter, r *http.Request) {
 	roster := make([]dto.RosterMemberInfo, len(team.Roster))
 
 	for i, member := range team.Roster {
+
 		roster[i] = dto.RosterMemberInfo{
 			ID:       member.ID,
 			Name:     member.Name,

@@ -2,6 +2,7 @@ package identity
 
 import (
 	databaseErrors "api/internal/constants"
+	"api/internal/di"
 	db "api/internal/domains/identity/persistence/sqlc/generated"
 	values "api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
@@ -18,9 +19,9 @@ type WaiverSigningRepository struct {
 	Queries *db.Queries
 }
 
-func NewWaiverSigningRepository(db *db.Queries) *WaiverSigningRepository {
+func NewWaiverSigningRepository(container *di.Container) *WaiverSigningRepository {
 	return &WaiverSigningRepository{
-		Queries: db,
+		Queries: container.Queries.IdentityDb,
 	}
 }
 

@@ -13,12 +13,12 @@ import (
 	"net/http"
 )
 
-// CustomerRepository provides methods to interact with the user data in the database.
+// UsersRepository provides methods to interact with the user data in the database.
 type CustomerRepository struct {
 	Queries *db.Queries
 }
 
-// NewCustomerRepository creates a new instance of UserRepository with the provided dependency injection container.
+// NewUsersRepository creates a new instance of UsersRepository with the provided dependency injection container.
 func NewCustomerRepository(queries *db.Queries) *CustomerRepository {
 	return &CustomerRepository{
 		Queries: queries,

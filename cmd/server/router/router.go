@@ -52,6 +52,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		"/teams":     RegisterTeamsRoutes,
 
 		// Users & Staff routes
+		"/users":     RegisterUserRoutes,
 		"/customers": RegisterCustomerRoutes,
 		"/staffs":    RegisterStaffRoutes,
 
@@ -68,6 +69,15 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 
 	for path, handler := range routeMappings {
 		router.Route(path, handler(container))
+	}
+}
+
+func RegisterUserRoutes(container *di.Container) func(chi.Router) {
+
+	h := userHandler.NewUsersHandlers(container)
+
+	return func(r chi.Router) {
+		r.With(middlewares.JWTAuthMiddleware(true)).Put("/{id}", h.UpdateUser)
 	}
 }
 

@@ -16,21 +16,21 @@ type RequestDto struct {
 // @Description Converts the request DTO to domain values for updating staff details.
 // @Param idStr path string true "The UUID of the staff member to update"
 // @Param dto body RequestDto true "Request body containing updated staff details"
-// @Return values.UpdateValues "Converted domain values for updating a staff member"
+// @Return values.UpdateStaffValues "Converted domain values for updating a staff member"
 // @Return *errLib.CommonError "Validation or processing error"
-func (dto RequestDto) ToUpdateRequestValues(idStr string) (values.UpdateValues, *errLib.CommonError) {
+func (dto RequestDto) ToUpdateRequestValues(idStr string) (values.UpdateStaffValues, *errLib.CommonError) {
 
 	id, err := validators.ParseUUID(idStr)
 
 	if err != nil {
-		return values.UpdateValues{}, err
+		return values.UpdateStaffValues{}, err
 	}
 
 	if err = validators.ValidateDto(&dto); err != nil {
-		return values.UpdateValues{}, err
+		return values.UpdateStaffValues{}, err
 	}
 
-	return values.UpdateValues{
+	return values.UpdateStaffValues{
 		ID:       id,
 		IsActive: *dto.IsActive,
 		RoleName: dto.RoleName,

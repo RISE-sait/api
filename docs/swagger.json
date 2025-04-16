@@ -3402,6 +3402,72 @@
                 }
             }
         },
+      "/users/{id}": {
+        "put": {
+          "security": [
+            {
+              "Bearer": []
+            }
+          ],
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "tags": [
+            "users"
+          ],
+          "parameters": [
+            {
+              "type": "string",
+              "description": "User ID",
+              "name": "id",
+              "in": "path",
+              "required": true
+            },
+            {
+              "description": "Updated user details",
+              "name": "user",
+              "in": "body",
+              "required": true,
+              "schema": {
+                "$ref": "#/definitions/user.UpdateRequestDto"
+              }
+            }
+          ],
+          "responses": {
+            "204": {
+              "description": "No Content: User updated successfully",
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "400": {
+              "description": "Bad Request: Invalid input",
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "403": {
+              "description": "Forbidden: Unauthorized access",
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "500": {
+              "description": "Internal Server Error",
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      },
         "/webhooks/stripe": {
             "post": {
                 "description": "- checkout.session.completed: Logs completed checkout sessions",
@@ -3627,14 +3693,14 @@
         "customer.Response": {
             "type": "object",
             "properties": {
-                "age": {
-                    "type": "integer"
-                },
                 "athlete_info": {
                     "$ref": "#/definitions/customer.AthleteResponseDto"
                 },
                 "country_code": {
                     "type": "string"
+                },
+              "dob": {
+                "type": "string"
                 },
                 "email": {
                     "type": "string"
@@ -4669,6 +4735,55 @@
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+      "user.UpdateRequestDto": {
+        "type": "object",
+        "required": [
+          "country_alpha2_code",
+          "dob",
+          "first_name",
+          "has_marketing_email_consent",
+          "has_sms_consent",
+          "last_name"
+        ],
+        "properties": {
+          "country_alpha2_code": {
+            "type": "string",
+            "example": "US"
+          },
+          "dob": {
+            "type": "string",
+            "example": "2000-01-01"
+          },
+          "email": {
+            "type": "string"
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "M",
+              "F"
+            ]
+          },
+          "has_marketing_email_consent": {
+            "type": "boolean"
+          },
+          "has_sms_consent": {
+            "type": "boolean"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
                 }
             }
         }

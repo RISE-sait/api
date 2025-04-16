@@ -33,7 +33,7 @@ type CoachStatsReadValues struct {
 	Losses int32
 }
 
-type UpdateValues struct {
+type UpdateStaffValues struct {
 	ID       uuid.UUID
 	IsActive bool
 	RoleName string

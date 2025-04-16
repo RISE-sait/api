@@ -20,7 +20,7 @@ func TestRequestDto_ToUpdateRequestValues(t *testing.T) {
 		name          string
 		idStr         string
 		dto           RequestDto
-		expected      values.UpdateValues
+		expected      values.UpdateStaffValues
 		expectError   bool
 		expectedError *errLib.CommonError
 	}{
@@ -28,7 +28,7 @@ func TestRequestDto_ToUpdateRequestValues(t *testing.T) {
 			name:  "Valid Input",
 			idStr: validUUID.String(),
 			dto:   RequestDto{IsActive: boolPtr(true), RoleName: "Coach"},
-			expected: values.UpdateValues{
+			expected: values.UpdateStaffValues{
 				ID:       validUUID,
 				IsActive: true,
 				RoleName: "Coach",
@@ -39,7 +39,7 @@ func TestRequestDto_ToUpdateRequestValues(t *testing.T) {
 			name:  "Valid Input",
 			idStr: validUUID.String(),
 			dto:   RequestDto{IsActive: boolPtr(false), RoleName: "Coach"},
-			expected: values.UpdateValues{
+			expected: values.UpdateStaffValues{
 				ID:       validUUID,
 				IsActive: false,
 				RoleName: "Coach",

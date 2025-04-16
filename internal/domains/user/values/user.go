@@ -19,3 +19,17 @@ type ReadValue struct {
 	MembershipInfo *MembershipReadValue
 	AthleteInfo    *AthleteReadValue
 }
+
+type UpdateValue struct {
+	ParentID                 uuid.UUID
+	FirstName                string
+	LastName                 string
+	Email                    string
+	Phone                    string
+	Dob                      time.Time
+	CountryAlpha2Code        string
+	HasMarketingEmailConsent bool
+	HasSmsConsent            bool
+	Gender                   string
+	ID                       uuid.UUID
+}

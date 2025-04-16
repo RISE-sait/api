@@ -104,7 +104,7 @@ func (r *StaffRepository) GetAvailableStaffRoles(ctx context.Context) ([]values.
 	return roles, nil
 }
 
-func (r *StaffRepository) Update(ctx context.Context, staffFields values.UpdateValues) *errLib.CommonError {
+func (r *StaffRepository) Update(ctx context.Context, staffFields values.UpdateStaffValues) *errLib.CommonError {
 
 	var availableRoles []string
 

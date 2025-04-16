@@ -2,6 +2,7 @@ package identity
 
 import (
 	databaseErrors "api/internal/constants"
+	"api/internal/di"
 	dbIdentity "api/internal/domains/identity/persistence/sqlc/generated"
 	identityValues "api/internal/domains/identity/values"
 	userValues "api/internal/domains/user/values"
@@ -20,9 +21,9 @@ type StaffRepository struct {
 	IdentityQueries *dbIdentity.Queries
 }
 
-func NewStaffRepository(identityDb *dbIdentity.Queries) *StaffRepository {
+func NewStaffRepository(container *di.Container) *StaffRepository {
 	return &StaffRepository{
-		IdentityQueries: identityDb,
+		IdentityQueries: container.Queries.IdentityDb,
 	}
 }
 

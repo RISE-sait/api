@@ -1,6 +1,7 @@
 package user
 
 import (
+	"api/internal/di"
 	dbIdentity "api/internal/domains/identity/persistence/sqlc/generated"
 	dbOutbox "api/internal/services/outbox/generated"
 )
@@ -12,9 +13,9 @@ type UsersRepository struct {
 }
 
 // NewUserRepository creates a new instance of UserRepository with the provided dependency injection container.
-func NewUserRepository(identityDb *dbIdentity.Queries, outboxDb *dbOutbox.Queries) *UsersRepository {
+func NewUserRepository(container *di.Container) *UsersRepository {
 	return &UsersRepository{
-		IdentityQueries: identityDb,
-		OutboxQueries:   outboxDb,
+		IdentityQueries: container.Queries.IdentityDb,
+		OutboxQueries:   container.Queries.OutboxDb,
 	}
 }

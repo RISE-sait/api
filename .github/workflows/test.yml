@@ -2,9 +2,7 @@ name: Run Tests with Testcontainers
 
 on:
   push:
-    branches:
-      - '**'           # Run on all branches
-      - '!main'
+    branches-ignore: [ 'main' ]
 
 jobs:
   test:
@@ -19,8 +17,12 @@ jobs:
         with:
           go-version: '1.23.4'
 
+      - name: Clean Go Modules Cache
+        run: |
+          go clean -cache
+          go clean -modcache
+
       - name: Cache Go Modules
-        id: go-cache
         uses: actions/cache@v3
         with:
           path: |
@@ -29,55 +31,26 @@ jobs:
           key: go-mod-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             go-mod-${{ runner.os }}-
-
-      - name: Cache sqlc
-        id: sqlc-cache
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/sqlc
-          key: sqlc-${{ runner.os }}-${{ hashFiles('go.mod') }}
-          restore-keys: |
-            sqlc-${{ runner.os }}-
+            go-mod-
 
       - name: Install sqlc
-        if: steps.sqlc-cache.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p ~/.cache/sqlc
-          GOBIN=~/.cache/sqlc go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
-
-      - name: Add sqlc to PATH
-        run: echo "~/.cache/sqlc" >> $GITHUB_PATH
-
-      - name: Set up Testcontainers environment
-        run: echo "TESTCONTAINERS_RYUK_DISABLED=true" >> $GITHUB_ENV
+        uses: kjconroy/setup-sqlc@v1
+        with:
+          version: latest
 
       - name: Download Dependencies
         run: go mod tidy
 
       - name: Run sqlc generate
         run: |
-          cd internal/domains/event/persistence/sqlc && sqlc generate
-          cd ../../../../../
-          cd internal/domains/game/persistence/sqlc && sqlc generate
-          cd ../../../../../
-          cd internal/domains/haircut/persistence/sqlc && sqlc generate
-          cd ../../../../../
-          cd internal/domains/identity/persistence/sqlc && sqlc generate
-          cd ../../../../../
-          cd internal/domains/location/persistence/sqlc && sqlc generate
-          cd ../../../../../
-          cd internal/domains/membership/persistence/sqlc && sqlc generate
-          cd ../../../../../
-          cd internal/domains/program/persistence/sqlc && sqlc generate
-          cd ../../../../../
-          cd internal/domains/payment/persistence/sqlc && sqlc generate
-          cd ../../../../../
-          cd internal/domains/user/persistence/sqlc && sqlc generate
-          cd ../../../../../
-          cd cmd/seed/sqlc && sqlc generate
+          for dir in internal/domains/*/persistence/sqlc cmd/seed/sqlc; do
+            (cd "$dir" && sqlc generate) || exit 1
+          done
 
       - name: Run Tests
         env:
-          TESTCONTAINERS_RYUK_DISABLED: true # Prevents cleanup failures in GitHub Actions
+          TESTCONTAINERS_RYUK_DISABLED: true
           STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
-        run: go test -v ./...
+          DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+          DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
+        run: go test -v -race ./...

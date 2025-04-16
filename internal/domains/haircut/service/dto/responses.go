@@ -1,7 +1,7 @@
-package haircut
+package haircut_service
 
 import (
-	values "api/internal/domains/haircut/values"
+	values "api/internal/domains/haircut/service/values"
 	"github.com/google/uuid"
 	"time"
 )

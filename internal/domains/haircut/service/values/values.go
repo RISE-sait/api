@@ -1,4 +1,4 @@
-package haircut
+package haircut_service
 
 import (
 	"github.com/google/uuid"

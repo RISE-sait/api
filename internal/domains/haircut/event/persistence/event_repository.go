@@ -1,9 +1,10 @@
-package haircut
+package haircut_event
 
 import (
 	"api/internal/di"
-	db "api/internal/domains/haircut/persistence/sqlc/generated"
-	values "api/internal/domains/haircut/values"
+	values "api/internal/domains/haircut/event"
+	db "api/internal/domains/haircut/event/persistence/sqlc/generated"
+	service "api/internal/domains/haircut/service/persistence"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
@@ -20,13 +21,13 @@ import (
 
 type Repository struct {
 	Queries     *db.Queries
-	ServiceRepo *BarberServiceRepository
+	ServiceRepo *service.BarberServiceRepository
 }
 
 func NewEventsRepository(container *di.Container) *Repository {
 	return &Repository{
-		Queries:     container.Queries.HaircutDb,
-		ServiceRepo: NewBarberServiceRepository(container),
+		Queries:     container.Queries.HaircutEventDb,
+		ServiceRepo: service.NewBarberServiceRepository(container),
 	}
 }
 

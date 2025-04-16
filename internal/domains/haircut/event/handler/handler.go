@@ -1,9 +1,9 @@
-package haircut
+package haircut_event
 
 import (
 	"api/internal/di"
-	dto "api/internal/domains/haircut/dto/events"
-	repository "api/internal/domains/haircut/persistence/repository"
+	dto "api/internal/domains/haircut/event/dto"
+	repository "api/internal/domains/haircut/event/persistence"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"

@@ -5,7 +5,8 @@ import (
 	enrollmentDb "api/internal/domains/enrollment/persistence/sqlc/generated"
 	eventDb "api/internal/domains/event/persistence/sqlc/generated"
 	gameDb "api/internal/domains/game/persistence/sqlc/generated"
-	haircutDb "api/internal/domains/haircut/persistence/sqlc/generated"
+	haircutEventDb "api/internal/domains/haircut/event/persistence/sqlc/generated"
+	haircutServiceDb "api/internal/domains/haircut/service/persistence/sqlc/generated"
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
 	locationDb "api/internal/domains/location/persistence/sqlc/generated"
 	membershipDb "api/internal/domains/membership/persistence/sqlc/generated"
@@ -35,18 +36,19 @@ type Container struct {
 }
 
 type QueriesType struct {
-	IdentityDb   *identityDb.Queries
-	PurchasesDb  *purchaseDb.Queries
-	ProgramDb    *programDb.Queries
-	MembershipDb *membershipDb.Queries
-	LocationDb   *locationDb.Queries
-	EventDb      *eventDb.Queries
-	EnrollmentDb *enrollmentDb.Queries
-	HaircutDb    *haircutDb.Queries
-	GameDb       *gameDb.Queries
-	TeamDb       *teamDb.Queries
-	UserDb       *userDb.Queries
-	OutboxDb     *outboxDb.Queries
+	IdentityDb       *identityDb.Queries
+	PurchasesDb      *purchaseDb.Queries
+	ProgramDb        *programDb.Queries
+	MembershipDb     *membershipDb.Queries
+	LocationDb       *locationDb.Queries
+	EventDb          *eventDb.Queries
+	EnrollmentDb     *enrollmentDb.Queries
+	HaircutServiceDb *haircutServiceDb.Queries
+	HaircutEventDb   *haircutEventDb.Queries
+	GameDb           *gameDb.Queries
+	TeamDb           *teamDb.Queries
+	UserDb           *userDb.Queries
+	OutboxDb         *outboxDb.Queries
 }
 
 // NewContainer initializes and returns a Container with database, queries, HubSpot, Firebase, and Square services.
@@ -93,18 +95,19 @@ func NewContainer() *Container {
 //	queries := initializeQueries(db)  // Initializes the queries for all services.
 func initializeQueries(db *sql.DB) *QueriesType {
 	return &QueriesType{
-		IdentityDb:   identityDb.New(db),
-		UserDb:       userDb.New(db),
-		PurchasesDb:  purchaseDb.New(db),
-		ProgramDb:    programDb.New(db),
-		MembershipDb: membershipDb.New(db),
-		LocationDb:   locationDb.New(db),
-		EventDb:      eventDb.New(db),
-		EnrollmentDb: enrollmentDb.New(db),
-		HaircutDb:    haircutDb.New(db),
-		GameDb:       gameDb.New(db),
-		TeamDb:       teamDb.New(db),
-		OutboxDb:     outboxDb.New(db),
+		IdentityDb:       identityDb.New(db),
+		UserDb:           userDb.New(db),
+		PurchasesDb:      purchaseDb.New(db),
+		ProgramDb:        programDb.New(db),
+		MembershipDb:     membershipDb.New(db),
+		LocationDb:       locationDb.New(db),
+		EventDb:          eventDb.New(db),
+		EnrollmentDb:     enrollmentDb.New(db),
+		HaircutServiceDb: haircutServiceDb.New(db),
+		HaircutEventDb:   haircutEventDb.New(db),
+		GameDb:           gameDb.New(db),
+		TeamDb:           teamDb.New(db),
+		OutboxDb:         outboxDb.New(db),
 	}
 }
 

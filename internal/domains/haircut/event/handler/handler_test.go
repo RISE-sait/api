@@ -1,4 +1,4 @@
-package haircut
+package haircut_event
 
 //
 //import (

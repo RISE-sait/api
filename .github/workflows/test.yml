@@ -85,11 +85,11 @@ jobs:
           cd ../../../../../
           cd cmd/seed/sqlc && sqlc generate
 
+      - name: Generate Swagger Documentation
+        run: go run cmd/swag_init/swag-init.go
+
       - name: Run Tests
         env:
           TESTCONTAINERS_RYUK_DISABLED: true # Prevents cleanup failures in GitHub Actions
           STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
         run: go test -v ./...
-
-      - name: Generate Swagger Documentation
-        run: go run cmd/swag_init/swag-init.go

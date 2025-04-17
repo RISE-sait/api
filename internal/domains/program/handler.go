@@ -19,8 +19,6 @@ func NewHandler(container *di.Container) *Handler {
 }
 
 // CreateProgram creates a new program.
-// @Summary Create a new program
-// @Description Create a new program
 // @Tags programs
 // @Accept json
 // @Produce json
@@ -54,8 +52,6 @@ func (h *Handler) CreateProgram(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetPrograms retrieves a list of programs.
-// @Summary Get a list of programs
-// @Description Get a list of programs
 // @Tags programs
 // @Param type query string false "Program Type (game, practice, course, others)"
 // @Accept json
@@ -140,7 +136,6 @@ func (h *Handler) GetProgram(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetProgramLevels retrieves available program levels.
-// @Description Retrieves a list of available program levels.
 // @Tags programs
 // @Accept json
 // @Produce json
@@ -156,8 +151,6 @@ func (h *Handler) GetProgramLevels(w http.ResponseWriter, _ *http.Request) {
 }
 
 // UpdateProgram updates an existing program.
-// @Summary Update a program
-// @Description Update a program
 // @Tags programs
 // @Accept json
 // @Produce json

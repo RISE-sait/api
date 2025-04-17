@@ -105,6 +105,7 @@ func (r *Repository) Update(c context.Context, membership *values.UpdateValues) 
 	_, err := r.Queries.UpdateMembership(c, dbMembershipParams)
 
 	if err != nil {
+		log.Printf("Internal server error while updating membership: %s", err.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
@@ -115,6 +116,7 @@ func (r *Repository) Delete(c context.Context, id uuid.UUID) *errLib.CommonError
 	row, err := r.Queries.DeleteMembership(c, id)
 
 	if err != nil {
+		log.Println("Failed to delete membership: ", err.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 

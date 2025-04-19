@@ -3,14 +3,13 @@ package event
 import (
 	"api/internal/di"
 	dto "api/internal/domains/event/dto"
-	repository "api/internal/domains/event/persistence/repository"
 	"api/internal/domains/event/service"
 	values "api/internal/domains/event/values"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	contextUtils "api/utils/context"
-	"log"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -21,18 +20,13 @@ import (
 // EventsHandler provides HTTP handlers for managing events.
 type EventsHandler struct {
 	EventsService *service.Service
-	SchedulesRepo *repository.SchedulesRepository
 }
 
 func NewEventsHandler(container *di.Container) *EventsHandler {
-	return &EventsHandler{EventsService: service.NewEventService(container),
-		SchedulesRepo: repository.NewSchedulesRepository(container),
-	}
+	return &EventsHandler{EventsService: service.NewEventService(container)}
 }
 
 // GetEvents retrieves all events based on filter criteria.
-// @Summary Get events
-// @Description Retrieve all events within a specific date range, with optional filters by course, location, game, and practice.
 // @Tags events
 // @Param after query string false "Start date of the events range (YYYY-MM-DD)" example("2025-03-01")
 // @Param before query string false "End date of the events range (YYYY-MM-DD)" example("2025-03-31")
@@ -53,12 +47,23 @@ func NewEventsHandler(container *di.Container) *EventsHandler {
 // @Router /events [get]
 func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 
+	type FilterKey string
+
+	const (
+		FilterKeyParticipantID FilterKey = "participant_id"
+		FilterKeyTeamID        FilterKey = "team_id"
+		FilterKeyProgramID     FilterKey = "program_id"
+		FilterKeyLocationID    FilterKey = "location_id"
+		FilterKeyCreatedBy     FilterKey = "created_by"
+		FilterKeyUpdatedBy     FilterKey = "updated_by"
+	)
+
 	query := r.URL.Query()
 
 	var (
-		after, before                                                      time.Time
-		locationID, programID, participantID, teamID, createdBy, updatedBy uuid.UUID
-		programType, responseType                                          string
+		after, before             time.Time
+		uuidFilters               = make(map[string]uuid.UUID)
+		programType, responseType string
 	)
 
 	if afterStr := query.Get("after"); afterStr != "" {
@@ -79,65 +84,34 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if participantIDStr := query.Get("participant_id"); participantIDStr != "" {
-		if id, err := validators.ParseUUID(participantIDStr); err != nil {
-			responseHandlers.RespondWithError(w, errLib.New("invalid 'participant_id' format, expected uuid format", http.StatusBadRequest))
-			return
-		} else {
-			participantID = id
-		}
+	uuidFilterFields := []FilterKey{
+		FilterKeyParticipantID,
+		FilterKeyTeamID,
+		FilterKeyProgramID,
+		FilterKeyLocationID,
+		FilterKeyCreatedBy,
+		FilterKeyUpdatedBy,
 	}
 
-	if teamIDStr := query.Get("team_id"); teamIDStr != "" {
-		if id, err := validators.ParseUUID(teamIDStr); err != nil {
-			responseHandlers.RespondWithError(w, errLib.New("invalid 'team_id' format, expected uuid format", http.StatusBadRequest))
-			return
-		} else {
-			teamID = id
-		}
-	}
-
-	if programIDStr := query.Get("program_id"); programIDStr != "" {
-		if id, err := validators.ParseUUID(programIDStr); err != nil {
-			responseHandlers.RespondWithError(w, errLib.New("invalid 'program_id' format, expected uuid format", http.StatusBadRequest))
-			return
-		} else {
-			programID = id
+	for _, filterKey := range uuidFilterFields {
+		if paramValue := query.Get(string(filterKey)); paramValue != "" {
+			if id, err := validators.ParseUUID(paramValue); err != nil {
+				responseHandlers.RespondWithError(w, errLib.New(
+					fmt.Sprintf("invalid '%s' format, expected uuid format", filterKey),
+					http.StatusBadRequest,
+				))
+				return
+			} else {
+				// Use the same key for both query param and struct field
+				uuidFilters[string(filterKey)] = id
+			}
 		}
 	}
 
 	programType = query.Get("program_type")
 
-	if locationIDStr := query.Get("location_id"); locationIDStr != "" {
-		if id, err := validators.ParseUUID(locationIDStr); err != nil {
-			responseHandlers.RespondWithError(w, errLib.New("invalid 'location_id' format, expected uuid format", http.StatusBadRequest))
-			return
-		} else {
-			locationID = id
-		}
-	}
-
-	if createdByStr := query.Get("created_by"); createdByStr != "" {
-		if id, err := validators.ParseUUID(createdByStr); err != nil {
-			responseHandlers.RespondWithError(w, errLib.New("invalid 'created_by' format, expected uuid format", http.StatusBadRequest))
-			return
-		} else {
-			createdBy = id
-		}
-	}
-
-	if updatedByStr := query.Get("updated_by"); updatedByStr != "" {
-		if id, err := validators.ParseUUID(updatedByStr); err != nil {
-			responseHandlers.RespondWithError(w, errLib.New("invalid 'updated_by' format, expected uuid format", http.StatusBadRequest))
-			return
-		} else {
-			updatedBy = id
-		}
-	}
-
 	responseType = query.Get("response_type")
 
-	log.Printf("responseType: %s", responseType)
 	if responseType == "" {
 		responseType = "date"
 	}
@@ -147,7 +121,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if (after.IsZero() || before.IsZero()) &&
-		(programID == uuid.Nil && participantID == uuid.Nil && locationID == uuid.Nil && teamID == uuid.Nil && programType == "") {
+		(len(uuidFilters) == 0 && programType == "") {
 		responseHandlers.RespondWithError(w,
 			errLib.New(`at least one of (before and after) or 
 (program_id, participant_id, location_id, team_id, program_type, created_by, updated_by), must be provided`, http.StatusBadRequest))
@@ -156,12 +130,12 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 
 	filter := values.GetEventsFilter{
 		ProgramType:   programType,
-		ProgramID:     programID,
-		LocationID:    locationID,
-		ParticipantID: participantID,
-		TeamID:        teamID,
-		CreatedBy:     createdBy,
-		UpdatedBy:     updatedBy,
+		ProgramID:     uuidFilters[string(FilterKeyProgramID)],
+		LocationID:    uuidFilters[string(FilterKeyLocationID)],
+		ParticipantID: uuidFilters[string(FilterKeyParticipantID)],
+		TeamID:        uuidFilters[string(FilterKeyTeamID)],
+		CreatedBy:     uuidFilters[string(FilterKeyCreatedBy)],
+		UpdatedBy:     uuidFilters[string(FilterKeyUpdatedBy)],
 		Before:        before,
 		After:         after,
 	}
@@ -189,7 +163,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	schedules, err := h.SchedulesRepo.GetEventsSchedules(r.Context(), programType, programID, locationID, participantID, teamID, createdBy, updatedBy, before, after)
+	schedules, err := h.EventsService.GetEventsSchedules(r.Context(), filter)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -284,44 +258,6 @@ func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusCreated)
 }
 
-// CreateRecurrences creates new events given its recurrence information.
-// @Tags events
-// @Accept json
-// @Produce json
-// @Security Bearer
-// @Param event body dto.RecurrenceRequestDto true "Event details"
-// @Success 201 {object} map[string]interface{} "Event created successfully"
-// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
-// @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /events/recurring [post]
-func (h *EventsHandler) CreateRecurrences(w http.ResponseWriter, r *http.Request) {
-
-	userID, ctxErr := contextUtils.GetUserID(r.Context())
-
-	if ctxErr != nil {
-		responseHandlers.RespondWithError(w, ctxErr)
-		return
-	}
-
-	var targetBody dto.RecurrenceRequestDto
-
-	if err := validators.ParseJSON(r.Body, &targetBody); err != nil {
-		responseHandlers.RespondWithError(w, err)
-		return
-	}
-
-	if recurrenceValues, err := targetBody.ToRecurrenceValues(userID); err != nil {
-		responseHandlers.RespondWithError(w, err)
-		return
-	} else {
-		if err = h.EventsService.CreateEvents(r.Context(), recurrenceValues); err != nil {
-			responseHandlers.RespondWithError(w, err)
-			return
-		}
-	}
-	responseHandlers.RespondWithSuccess(w, nil, http.StatusCreated)
-}
-
 // UpdateEvent updates an existing event by ID.
 // @Tags events
 // @Accept json
@@ -393,59 +329,6 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = h.EventsService.UpdateEvent(r.Context(), params); err != nil {
-		responseHandlers.RespondWithError(w, err)
-		return
-	}
-
-	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
-}
-
-// UpdateRecurrences updates existing events by filters.
-// @Tags events
-// @Accept json
-// @Produce json
-// @Security Bearer
-// @Param event body dto.RecurrenceRequestDto true "Update events details"
-// @Success 204 {object} map[string]interface{} "No Content: Events updated successfully"
-// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
-// @Failure 404 {object} map[string]interface{} "Not Found: Events not found"
-// @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /events/recurring/{id} [put]
-func (h *EventsHandler) UpdateRecurrences(w http.ResponseWriter, r *http.Request) {
-
-	idStr := chi.URLParam(r, "id")
-
-	recurrenceID, err := validators.ParseUUID(idStr)
-
-	if err != nil {
-		responseHandlers.RespondWithError(w, err)
-		return
-	}
-
-	userID, err := contextUtils.GetUserID(r.Context())
-
-	if err != nil {
-		responseHandlers.RespondWithError(w, err)
-		return
-	}
-
-	var targetBody dto.RecurrenceRequestDto
-
-	if err = validators.ParseJSON(r.Body, &targetBody); err != nil {
-		responseHandlers.RespondWithError(w, err)
-		return
-	}
-
-	// Convert to domain values
-
-	params, err := targetBody.ToUpdateRecurrenceValues(userID, recurrenceID)
-
-	if err != nil {
-		responseHandlers.RespondWithError(w, err)
-		return
-	}
-
-	if err = h.EventsService.UpdateRecurringEvents(r.Context(), params); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

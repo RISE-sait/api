@@ -16,14 +16,16 @@ import (
 )
 
 type Service struct {
-	repo *repo.EventsRepository
-	db   *sql.DB
+	eventsRepository    *repo.EventsRepository
+	schedulesRepository *repo.SchedulesRepository
+	db                  *sql.DB
 }
 
 func NewEventService(container *di.Container) *Service {
 	return &Service{
-		repo: repo.NewEventsRepository(container),
-		db:   container.DB,
+		eventsRepository:    repo.NewEventsRepository(container),
+		schedulesRepository: repo.NewSchedulesRepository(container),
+		db:                  container.DB,
 	}
 }
 
@@ -41,7 +43,7 @@ func (s *Service) executeInTx(ctx context.Context, fn func(repo *repo.EventsRepo
 		}
 	}()
 
-	if txErr := fn(s.repo.WithTx(tx)); txErr != nil {
+	if txErr := fn(s.eventsRepository.WithTx(tx)); txErr != nil {
 		return txErr
 	}
 
@@ -71,11 +73,11 @@ func (s *Service) executeInTx(ctx context.Context, fn func(repo *repo.EventsRepo
 //	if err.HTTPCode == http.StatusNotFound {
 //		// Handle not found error
 func (s *Service) GetEvent(ctx context.Context, eventID uuid.UUID) (values.ReadEventValues, *errLib.CommonError) {
-	return s.repo.GetEvent(ctx, eventID)
+	return s.eventsRepository.GetEvent(ctx, eventID)
 }
 
 func (s *Service) GetEvents(ctx context.Context, filter values.GetEventsFilter) ([]values.ReadEventValues, *errLib.CommonError) {
-	return s.repo.GetEvents(ctx, filter)
+	return s.eventsRepository.GetEvents(ctx, filter)
 }
 
 func (s *Service) CreateEvents(ctx context.Context, details values.RecurrenceValues) *errLib.CommonError {
@@ -86,16 +88,16 @@ func (s *Service) CreateEvents(ctx context.Context, details values.RecurrenceVal
 		return err
 	}
 
-	return s.repo.CreateEvents(ctx, events)
+	return s.eventsRepository.CreateEvents(ctx, events)
 }
 
 func (s *Service) CreateEvent(ctx context.Context, details values.CreateEventValues) *errLib.CommonError {
 
-	return s.repo.CreateEvents(ctx, []values.CreateEventValues{details})
+	return s.eventsRepository.CreateEvents(ctx, []values.CreateEventValues{details})
 }
 
 func (s *Service) UpdateEvent(ctx context.Context, details values.UpdateEventValues) *errLib.CommonError {
-	return s.repo.UpdateEvent(ctx, details)
+	return s.eventsRepository.UpdateEvent(ctx, details)
 }
 
 // UpdateRecurringEvents updates existing events within a recurrence schedule
@@ -128,7 +130,11 @@ func (s *Service) UpdateRecurringEvents(ctx context.Context, details values.Recu
 }
 
 func (s *Service) DeleteEvents(ctx context.Context, ids []uuid.UUID) *errLib.CommonError {
-	return s.repo.DeleteEvents(ctx, ids)
+	return s.eventsRepository.DeleteEvents(ctx, ids)
+}
+
+func (s *Service) GetEventsSchedules(ctx context.Context, filter values.GetEventsFilter) ([]values.Schedule, *errLib.CommonError) {
+	return s.schedulesRepository.GetEventsSchedules(ctx, filter.ProgramType, filter.ProgramID, filter.LocationID, filter.ParticipantID, filter.TeamID, filter.CreatedBy, filter.UpdatedBy, filter.Before, filter.After)
 }
 
 func generateEventsFromRecurrence(recurrence values.RecurrenceValues) ([]values.CreateEventValues, *errLib.CommonError) {

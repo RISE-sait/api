@@ -142,23 +142,13 @@ SET start_at              = $1,
     capacity              = $8,
     updated_at            = current_timestamp,
     updated_by            = sqlc.arg('updated_by')::uuid,
-    recurrence_id         = $9,
-    is_date_time_modified = $10
-WHERE id = $11
+    is_date_time_modified = (
+        recurrence_id IS NOT NULL
+        )
+WHERE id = $9
 RETURNING *;
 
 -- name: DeleteEventsByIds :exec
 DELETE
 FROM events.events
 WHERE id = ANY (sqlc.arg('ids')::uuid[]);
-
--- name: DeleteUnmodifiedEventsByRecurrenceID :exec
-DELETE
-FROM events.events
-WHERE recurrence_id = $1
-  AND is_date_time_modified = false
-  AND start_at >= CURRENT_TIMESTAMP
-  AND NOT EXISTS (SELECT 1
-                  FROM events.customer_enrollment ce
-                  WHERE ce.event_id = events.events.id
-                    AND ce.is_cancelled = false);

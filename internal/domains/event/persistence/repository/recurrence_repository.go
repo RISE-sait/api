@@ -15,17 +15,17 @@ import (
 	"github.com/google/uuid"
 )
 
-type SchedulesRepository struct {
+type RecurrencesRepository struct {
 	Queries *db.Queries
 }
 
-func NewSchedulesRepository(container *di.Container) *SchedulesRepository {
-	return &SchedulesRepository{
+func NewRecurrencesRepository(container *di.Container) *RecurrencesRepository {
+	return &RecurrencesRepository{
 		Queries: container.Queries.EventDb,
 	}
 }
 
-func (r *SchedulesRepository) GetEventsSchedules(ctx context.Context, programTypeStr string, programID, locationID, userID, teamID, createdBy, updatedBy uuid.UUID, before, after time.Time) ([]values.Schedule, *errLib.CommonError) {
+func (r *RecurrencesRepository) GetEventsRecurrences(ctx context.Context, programTypeStr string, programID, locationID, userID, teamID, createdBy, updatedBy uuid.UUID, before, after time.Time) ([]values.Schedule, *errLib.CommonError) {
 
 	var programType db.NullProgramProgramType
 

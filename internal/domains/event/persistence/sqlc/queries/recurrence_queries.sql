@@ -45,3 +45,15 @@ GROUP BY to_char(start_at, 'Day'),
          location_id,
          l.name,
          l.address;
+
+
+-- name: DeleteUnmodifiedEventsByRecurrenceID :exec
+DELETE
+FROM events.events
+WHERE recurrence_id = $1
+  AND is_date_time_modified = false
+  AND start_at >= CURRENT_TIMESTAMP
+  AND NOT EXISTS (SELECT 1
+                  FROM events.customer_enrollment ce
+                  WHERE ce.event_id = events.events.id
+                    AND ce.is_cancelled = false);

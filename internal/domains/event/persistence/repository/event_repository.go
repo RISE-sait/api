@@ -228,7 +228,6 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 
 func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEventsFilter) ([]values.ReadEventValues, *errLib.CommonError) {
 
-	// Execute the query using SqlC generated function
 	param := db.GetEventsParams{
 		ProgramID:     uuid.NullUUID{UUID: filter.ProgramID, Valid: filter.ProgramID != uuid.Nil},
 		LocationID:    uuid.NullUUID{UUID: filter.LocationID, Valid: filter.LocationID != uuid.Nil},
@@ -240,20 +239,12 @@ func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEvent
 		UpdatedBy:     uuid.NullUUID{UUID: filter.UpdatedBy, Valid: filter.UpdatedBy != uuid.Nil},
 	}
 
-	programType := db.ProgramProgramType(filter.ProgramType)
-
 	if filter.ProgramType != "" {
-		if programType.Valid() {
-			param.Type = db.NullProgramProgramType{
-				ProgramProgramType: programType,
-				Valid:              true,
-			}
-		} else {
-			validTypes := db.AllProgramProgramTypeValues()
-
-			return nil, errLib.New(fmt.Sprintf("Invalid program type. Valid types are: %v", validTypes), http.StatusBadRequest)
+		programType := db.ProgramProgramType(filter.ProgramType)
+		if !programType.Valid() {
+			return nil, errLib.New(fmt.Sprintf("Invalid program type. Valid types are: %v", db.AllProgramProgramTypeValues()), http.StatusBadRequest)
 		}
-
+		param.Type = db.NullProgramProgramType{ProgramProgramType: programType, Valid: true}
 	}
 
 	dbRows, err := r.Queries.GetEvents(ctx, param)
@@ -263,7 +254,7 @@ func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEvent
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	var events []values.ReadEventValues
+	events := make([]values.ReadEventValues, 0, len(dbRows))
 
 	for _, row := range dbRows {
 
@@ -314,10 +305,6 @@ func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEvent
 				ID:   row.TeamID.UUID,
 				Name: row.TeamName.String,
 			}
-		}
-
-		if row.Capacity.Valid {
-			event.Capacity = row.Capacity.Int32
 		}
 
 		events = append(events, event)

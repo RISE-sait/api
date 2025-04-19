@@ -16,16 +16,16 @@ import (
 )
 
 type Service struct {
-	eventsRepository    *repo.EventsRepository
-	schedulesRepository *repo.SchedulesRepository
-	db                  *sql.DB
+	eventsRepository      *repo.EventsRepository
+	recurrencesRepository *repo.RecurrencesRepository
+	db                    *sql.DB
 }
 
 func NewEventService(container *di.Container) *Service {
 	return &Service{
-		eventsRepository:    repo.NewEventsRepository(container),
-		schedulesRepository: repo.NewSchedulesRepository(container),
-		db:                  container.DB,
+		eventsRepository:      repo.NewEventsRepository(container),
+		recurrencesRepository: repo.NewRecurrencesRepository(container),
+		db:                    container.DB,
 	}
 }
 
@@ -134,7 +134,7 @@ func (s *Service) DeleteEvents(ctx context.Context, ids []uuid.UUID) *errLib.Com
 }
 
 func (s *Service) GetEventsSchedules(ctx context.Context, filter values.GetEventsFilter) ([]values.Schedule, *errLib.CommonError) {
-	return s.schedulesRepository.GetEventsSchedules(ctx, filter.ProgramType, filter.ProgramID, filter.LocationID, filter.ParticipantID, filter.TeamID, filter.CreatedBy, filter.UpdatedBy, filter.Before, filter.After)
+	return s.recurrencesRepository.GetEventsRecurrences(ctx, filter.ProgramType, filter.ProgramID, filter.LocationID, filter.ParticipantID, filter.TeamID, filter.CreatedBy, filter.UpdatedBy, filter.Before, filter.After)
 }
 
 func generateEventsFromRecurrence(recurrence values.RecurrenceValues) ([]values.CreateEventValues, *errLib.CommonError) {

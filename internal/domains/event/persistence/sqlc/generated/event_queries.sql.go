@@ -15,17 +15,17 @@ import (
 )
 
 const createEvents = `-- name: CreateEvents :execrows
-WITH unnested_data AS (SELECT unnest($1::uuid[])                       AS location_id,
-                              unnest($2::uuid[])                        AS program_id,
-                              unnest($3::uuid[])                           AS team_id,
-                              unnest($4::timestamptz[])              AS start_at,
-                              unnest($5::timestamptz[])                AS end_at,
+WITH unnested_data AS (SELECT unnest($1::uuid[])                AS location_id,
+                              unnest($2::uuid[])                 AS program_id,
+                              unnest($3::uuid[])                    AS team_id,
+                              unnest($4::timestamptz[])       AS start_at,
+                              unnest($5::timestamptz[])         AS end_at,
                               unnest($6::bool[]) AS is_date_time_modified,
-                              unnest($7::uuid[])                     AS recurrence_id,
-                              unnest($8::uuid[])                     AS created_by,
-                              unnest($9::int[])                          AS capacity,
-                              unnest($10::bool[])                 AS is_cancelled,
-                              unnest($11::text[])               AS cancellation_reason)
+                              unnest($7::uuid[])              AS recurrence_id,
+                              unnest($8::uuid[])              AS created_by,
+                              unnest($9::int[])                   AS capacity,
+                              unnest($10::bool[])          AS is_cancelled,
+                              unnest($11::text[])        AS cancellation_reason)
 INSERT
 INTO events.events (location_id,
                     program_id,
@@ -98,24 +98,6 @@ WHERE id = ANY ($1::uuid[])
 
 func (q *Queries) DeleteEventsByIds(ctx context.Context, ids []uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deleteEventsByIds, pq.Array(ids))
-	return err
-}
-
-const deleteUnmodifiedEventsByRecurrenceID = `-- name: DeleteUnmodifiedEventsByRecurrenceID :exec
-DELETE FROM events.events
-WHERE recurrence_id = $1
-  AND is_date_time_modified = false
-  AND start_at >= CURRENT_TIMESTAMP
-  AND NOT EXISTS (
-    SELECT 1
-    FROM events.customer_enrollment ce
-    WHERE ce.event_id = events.events.id
-      AND ce.is_cancelled = false
-)
-`
-
-func (q *Queries) DeleteUnmodifiedEventsByRecurrenceID(ctx context.Context, recurrenceID uuid.NullUUID) error {
-	_, err := q.db.ExecContext(ctx, deleteUnmodifiedEventsByRecurrenceID, recurrenceID)
 	return err
 }
 
@@ -471,10 +453,11 @@ SET start_at              = $1,
     cancellation_reason   = $7,
     capacity              = $8,
     updated_at            = current_timestamp,
-    updated_by            = $12::uuid,
-    recurrence_id         = $9,
-    is_date_time_modified = $10
-WHERE id = $11
+    updated_by            = $10::uuid,
+    is_date_time_modified = (
+        recurrence_id IS NOT NULL
+        )
+WHERE id = $9
 RETURNING id, location_id, program_id, team_id, start_at, end_at, created_by, updated_by, capacity, is_cancelled, cancellation_reason, created_at, updated_at, is_date_time_modified, recurrence_id
 `
 
@@ -487,8 +470,6 @@ type UpdateEventParams struct {
 	IsCancelled        bool           `json:"is_cancelled"`
 	CancellationReason sql.NullString `json:"cancellation_reason"`
 	Capacity           sql.NullInt32  `json:"capacity"`
-	RecurrenceID       uuid.NullUUID  `json:"recurrence_id"`
-	IsDateTimeModified bool           `json:"is_date_time_modified"`
 	ID                 uuid.UUID      `json:"id"`
 	UpdatedBy          uuid.UUID      `json:"updated_by"`
 }
@@ -503,8 +484,6 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 		arg.IsCancelled,
 		arg.CancellationReason,
 		arg.Capacity,
-		arg.RecurrenceID,
-		arg.IsDateTimeModified,
 		arg.ID,
 		arg.UpdatedBy,
 	)

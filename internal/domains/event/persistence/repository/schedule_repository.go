@@ -1,6 +1,7 @@
 package event
 
 import (
+	"api/internal/di"
 	db "api/internal/domains/event/persistence/sqlc/generated"
 	values "api/internal/domains/event/values"
 	errLib "api/internal/libs/errors"
@@ -18,9 +19,9 @@ type SchedulesRepository struct {
 	Queries *db.Queries
 }
 
-func NewSchedulesRepository(dbQueries *db.Queries) *SchedulesRepository {
+func NewSchedulesRepository(container *di.Container) *SchedulesRepository {
 	return &SchedulesRepository{
-		Queries: dbQueries,
+		Queries: container.Queries.EventDb,
 	}
 }
 

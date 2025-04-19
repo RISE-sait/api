@@ -14,22 +14,26 @@ import (
 	"github.com/lib/pq"
 )
 
-const createEvents = `-- name: CreateEvents :exec
-WITH unnested_data AS (SELECT unnest($1::uuid[])          AS location_id,
-                              unnest($2::uuid[])           AS program_id,
-                              unnest($3::uuid[])              AS team_id,
-                              unnest($4::timestamptz[]) AS start_at,
-                              unnest($5::timestamptz[])   AS end_at,
-                              unnest($6::uuid[])        AS created_by,
-                              unnest($7::int[])             AS capacity,
-                              unnest($8::bool[])    AS is_cancelled,
-                              unnest($9::text[])  AS cancellation_reason)
+const createEvents = `-- name: CreateEvents :execrows
+WITH unnested_data AS (SELECT unnest($1::uuid[])                       AS location_id,
+                              unnest($2::uuid[])                        AS program_id,
+                              unnest($3::uuid[])                           AS team_id,
+                              unnest($4::timestamptz[])              AS start_at,
+                              unnest($5::timestamptz[])                AS end_at,
+                              unnest($6::bool[]) AS is_date_time_modified,
+                              unnest($7::uuid[])                     AS recurrence_id,
+                              unnest($8::uuid[])                     AS created_by,
+                              unnest($9::int[])                          AS capacity,
+                              unnest($10::bool[])                 AS is_cancelled,
+                              unnest($11::text[])               AS cancellation_reason)
 INSERT
 INTO events.events (location_id,
                     program_id,
                     team_id,
                     start_at,
                     end_at,
+                    is_date_time_modified,
+                    recurrence_id,
                     created_by,
                     updated_by,
                     capacity,
@@ -40,54 +44,83 @@ SELECT location_id,
        NULLIF(team_id, '00000000-0000-0000-0000-000000000000'::uuid),
        start_at,
        end_at,
+       is_date_time_modified,
+       NULLIF(recurrence_id, '00000000-0000-0000-0000-000000000000'::uuid),
        created_by,
        created_by,
        NULLIF(capacity, 0),
        is_cancelled,
        NULLIF(cancellation_reason, '')
 FROM unnested_data
+ON CONFLICT ON CONSTRAINT no_overlapping_events
+    DO NOTHING
 `
 
 type CreateEventsParams struct {
-	LocationIds         []uuid.UUID `json:"location_ids"`
-	ProgramIds          []uuid.UUID `json:"program_ids"`
-	TeamIds             []uuid.UUID `json:"team_ids"`
-	StartAtArray        []time.Time `json:"start_at_array"`
-	EndAtArray          []time.Time `json:"end_at_array"`
-	CreatedByIds        []uuid.UUID `json:"created_by_ids"`
-	Capacities          []int32     `json:"capacities"`
-	IsCancelledArray    []bool      `json:"is_cancelled_array"`
-	CancellationReasons []string    `json:"cancellation_reasons"`
+	LocationIds             []uuid.UUID `json:"location_ids"`
+	ProgramIds              []uuid.UUID `json:"program_ids"`
+	TeamIds                 []uuid.UUID `json:"team_ids"`
+	StartAtArray            []time.Time `json:"start_at_array"`
+	EndAtArray              []time.Time `json:"end_at_array"`
+	IsDateTimeModifiedArray []bool      `json:"is_date_time_modified_array"`
+	RecurrenceIds           []uuid.UUID `json:"recurrence_ids"`
+	CreatedByIds            []uuid.UUID `json:"created_by_ids"`
+	Capacities              []int32     `json:"capacities"`
+	IsCancelledArray        []bool      `json:"is_cancelled_array"`
+	CancellationReasons     []string    `json:"cancellation_reasons"`
 }
 
-func (q *Queries) CreateEvents(ctx context.Context, arg CreateEventsParams) error {
-	_, err := q.db.ExecContext(ctx, createEvents,
+func (q *Queries) CreateEvents(ctx context.Context, arg CreateEventsParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, createEvents,
 		pq.Array(arg.LocationIds),
 		pq.Array(arg.ProgramIds),
 		pq.Array(arg.TeamIds),
 		pq.Array(arg.StartAtArray),
 		pq.Array(arg.EndAtArray),
+		pq.Array(arg.IsDateTimeModifiedArray),
+		pq.Array(arg.RecurrenceIds),
 		pq.Array(arg.CreatedByIds),
 		pq.Array(arg.Capacities),
 		pq.Array(arg.IsCancelledArray),
 		pq.Array(arg.CancellationReasons),
 	)
-	return err
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
-const deleteEvent = `-- name: DeleteEvent :exec
+const deleteEventsByIds = `-- name: DeleteEventsByIds :exec
 DELETE
 FROM events.events
 WHERE id = ANY ($1::uuid[])
 `
 
-func (q *Queries) DeleteEvent(ctx context.Context, ids []uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteEvent, pq.Array(ids))
+func (q *Queries) DeleteEventsByIds(ctx context.Context, ids []uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteEventsByIds, pq.Array(ids))
+	return err
+}
+
+const deleteUnmodifiedEventsByRecurrenceID = `-- name: DeleteUnmodifiedEventsByRecurrenceID :exec
+DELETE FROM events.events
+WHERE recurrence_id = $1
+  AND is_date_time_modified = false
+  AND start_at >= CURRENT_TIMESTAMP
+  AND NOT EXISTS (
+    SELECT 1
+    FROM events.customer_enrollment ce
+    WHERE ce.event_id = events.events.id
+      AND ce.is_cancelled = false
+)
+`
+
+func (q *Queries) DeleteUnmodifiedEventsByRecurrenceID(ctx context.Context, recurrenceID uuid.NullUUID) error {
+	_, err := q.db.ExecContext(ctx, deleteUnmodifiedEventsByRecurrenceID, recurrenceID)
 	return err
 }
 
 const getEventById = `-- name: GetEventById :one
-SELECT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.capacity, e.is_cancelled, e.cancellation_reason, e.created_at, e.updated_at,
+SELECT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.capacity, e.is_cancelled, e.cancellation_reason, e.created_at, e.updated_at, e.is_date_time_modified, e.recurrence_id,
 
        creator.first_name AS creator_first_name,
        creator.last_name  AS creator_last_name,
@@ -127,6 +160,8 @@ type GetEventByIdRow struct {
 	CancellationReason sql.NullString     `json:"cancellation_reason"`
 	CreatedAt          time.Time          `json:"created_at"`
 	UpdatedAt          time.Time          `json:"updated_at"`
+	IsDateTimeModified bool               `json:"is_date_time_modified"`
+	RecurrenceID       uuid.NullUUID      `json:"recurrence_id"`
 	CreatorFirstName   string             `json:"creator_first_name"`
 	CreatorLastName    string             `json:"creator_last_name"`
 	UpdaterFirstName   string             `json:"updater_first_name"`
@@ -157,6 +192,8 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdR
 		&i.CancellationReason,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsDateTimeModified,
+		&i.RecurrenceID,
 		&i.CreatorFirstName,
 		&i.CreatorLastName,
 		&i.UpdaterFirstName,
@@ -285,7 +322,7 @@ func (q *Queries) GetEventStaffs(ctx context.Context, eventID uuid.UUID) ([]GetE
 }
 
 const getEvents = `-- name: GetEvents :many
-SELECT DISTINCT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.capacity, e.is_cancelled, e.cancellation_reason, e.created_at, e.updated_at,
+SELECT DISTINCT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.capacity, e.is_cancelled, e.cancellation_reason, e.created_at, e.updated_at, e.is_date_time_modified, e.recurrence_id,
 
                 creator.first_name AS creator_first_name,
                 creator.last_name  AS creator_last_name,
@@ -349,6 +386,8 @@ type GetEventsRow struct {
 	CancellationReason sql.NullString     `json:"cancellation_reason"`
 	CreatedAt          time.Time          `json:"created_at"`
 	UpdatedAt          time.Time          `json:"updated_at"`
+	IsDateTimeModified bool               `json:"is_date_time_modified"`
+	RecurrenceID       uuid.NullUUID      `json:"recurrence_id"`
 	CreatorFirstName   string             `json:"creator_first_name"`
 	CreatorLastName    string             `json:"creator_last_name"`
 	UpdaterFirstName   string             `json:"updater_first_name"`
@@ -395,6 +434,8 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 			&i.CancellationReason,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.IsDateTimeModified,
+			&i.RecurrenceID,
 			&i.CreatorFirstName,
 			&i.CreatorLastName,
 			&i.UpdaterFirstName,
@@ -421,18 +462,20 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 
 const updateEvent = `-- name: UpdateEvent :one
 UPDATE events.events
-SET start_at            = $1,
-    end_at              = $2,
-    location_id         = $3,
-    program_id          = $4,
-    team_id             = $5,
-    is_cancelled        = $6,
-    cancellation_reason = $7,
-    capacity            = $8,
-    updated_at          = current_timestamp,
-    updated_by          = $10::uuid
-WHERE id = $9
-RETURNING id, location_id, program_id, team_id, start_at, end_at, created_by, updated_by, capacity, is_cancelled, cancellation_reason, created_at, updated_at
+SET start_at              = $1,
+    end_at                = $2,
+    location_id           = $3,
+    program_id            = $4,
+    team_id               = $5,
+    is_cancelled          = $6,
+    cancellation_reason   = $7,
+    capacity              = $8,
+    updated_at            = current_timestamp,
+    updated_by            = $12::uuid,
+    recurrence_id         = $9,
+    is_date_time_modified = $10
+WHERE id = $11
+RETURNING id, location_id, program_id, team_id, start_at, end_at, created_by, updated_by, capacity, is_cancelled, cancellation_reason, created_at, updated_at, is_date_time_modified, recurrence_id
 `
 
 type UpdateEventParams struct {
@@ -444,6 +487,8 @@ type UpdateEventParams struct {
 	IsCancelled        bool           `json:"is_cancelled"`
 	CancellationReason sql.NullString `json:"cancellation_reason"`
 	Capacity           sql.NullInt32  `json:"capacity"`
+	RecurrenceID       uuid.NullUUID  `json:"recurrence_id"`
+	IsDateTimeModified bool           `json:"is_date_time_modified"`
 	ID                 uuid.UUID      `json:"id"`
 	UpdatedBy          uuid.UUID      `json:"updated_by"`
 }
@@ -458,6 +503,8 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 		arg.IsCancelled,
 		arg.CancellationReason,
 		arg.Capacity,
+		arg.RecurrenceID,
+		arg.IsDateTimeModified,
 		arg.ID,
 		arg.UpdatedBy,
 	)
@@ -476,63 +523,8 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 		&i.CancellationReason,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsDateTimeModified,
+		&i.RecurrenceID,
 	)
 	return i, err
-}
-
-const updateEvents = `-- name: UpdateEvents :execrows
-WITH update_data AS (SELECT unnest($2::uuid[])                   AS id,
-                            unnest($3::timestamptz[]) AS start_at,
-                            unnest($4::timestamptz[])   AS end_at,
-                            unnest($5::uuid[])          AS location_id,
-                            unnest($6::uuid[])           AS program_id,
-                            unnest($7::uuid[])              AS team_id,
-                            unnest($8::bool[])    AS is_cancelled,
-                            unnest($9::text[])  AS cancellation_reason,
-                            unnest($10::int[])             AS capacity)
-UPDATE events.events e
-SET start_at            = ud.start_at,
-    end_at              = ud.end_at,
-    location_id         = ud.location_id,
-    program_id          = ud.program_id,
-    team_id             = NULLIF(ud.team_id, '00000000-0000-0000-0000-000000000000'::uuid),
-    is_cancelled        = ud.is_cancelled,
-    cancellation_reason = NULLIF(ud.cancellation_reason, ''),
-    capacity            = ud.capacity,
-    updated_at          = CURRENT_TIMESTAMP,
-    updated_by          = $1
-FROM update_data ud
-WHERE e.id = ud.id
-`
-
-type UpdateEventsParams struct {
-	UpdatedBy           uuid.UUID   `json:"updated_by"`
-	Ids                 []uuid.UUID `json:"ids"`
-	StartAtArray        []time.Time `json:"start_at_array"`
-	EndAtArray          []time.Time `json:"end_at_array"`
-	LocationIds         []uuid.UUID `json:"location_ids"`
-	ProgramIds          []uuid.UUID `json:"program_ids"`
-	TeamIds             []uuid.UUID `json:"team_ids"`
-	IsCancelledArray    []bool      `json:"is_cancelled_array"`
-	CancellationReasons []string    `json:"cancellation_reasons"`
-	Capacities          []int32     `json:"capacities"`
-}
-
-func (q *Queries) UpdateEvents(ctx context.Context, arg UpdateEventsParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateEvents,
-		arg.UpdatedBy,
-		pq.Array(arg.Ids),
-		pq.Array(arg.StartAtArray),
-		pq.Array(arg.EndAtArray),
-		pq.Array(arg.LocationIds),
-		pq.Array(arg.ProgramIds),
-		pq.Array(arg.TeamIds),
-		pq.Array(arg.IsCancelledArray),
-		pq.Array(arg.CancellationReasons),
-		pq.Array(arg.Capacities),
-	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
 }

@@ -79,7 +79,6 @@ func setupServer(container *di.Container, swaggerUrl string) http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
 			"message": "Hello, welcome to Rise API",
-			"version": "1.0.0",
 		})
 	})
 

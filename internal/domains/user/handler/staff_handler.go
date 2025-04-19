@@ -4,9 +4,11 @@ import (
 	"api/internal/di"
 	dto "api/internal/domains/user/dto/staff"
 	repo "api/internal/domains/user/persistence/repository"
+	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"api/internal/services/hubspot"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -24,9 +26,7 @@ func NewStaffHandlers(container *di.Container) *StaffHandler {
 		HubspotService: container.HubspotService}
 }
 
-// GetStaffs retrieves a list of staff members.
-// @Summary Get a list of staff members
-// @Description Retrieves staff members based on optional role filter.
+// GetStaffs retrieves a list of staff members based on optional role filter.
 // @Tags staff
 // @Accept json
 // @Produce json
@@ -63,8 +63,6 @@ func (h *StaffHandler) GetStaffs(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateStaff updates an existing staff member.
-// @Summary Update a staff member
-// @Description Update a staff member
 // @Tags staff
 // @Accept json
 // @Produce json
@@ -94,6 +92,32 @@ func (h *StaffHandler) UpdateStaff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var availableRoles []string
+
+	if roles, err := h.StaffRepo.GetAvailableStaffRoles(r.Context()); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	} else {
+		for _, role := range roles {
+			availableRoles = append(availableRoles, role.RoleName)
+		}
+	}
+
+	// Check if the role exists
+	roleExists := false
+
+	for _, role := range availableRoles {
+		if role == staffUpdateFields.RoleName {
+			roleExists = true
+			break
+		}
+	}
+
+	if !roleExists {
+		responseHandlers.RespondWithError(w, errLib.New(fmt.Sprintf("Role not found. Available roles: %v", availableRoles), http.StatusNotFound))
+		return
+	}
+
 	if err = h.StaffRepo.Update(r.Context(), staffUpdateFields); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
@@ -102,15 +126,13 @@ func (h *StaffHandler) UpdateStaff(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-// DeleteStaff deletes a staff member by HubSpotId.
-// @Summary Delete a staff member
-// @Description Delete a staff member by HubSpotId
+// DeleteStaff deletes a staff member by ID.
 // @Tags staff
 // @Accept json
 // @Produce json
-// @Param id path string true "Staff HubSpotId" example("f47ac10b-58cc-4372-a567-0e02b2c3d479")
+// @Param id path string true "Staff ID" example("f47ac10b-58cc-4372-a567-0e02b2c3d479")
 // @Success 204 "No Content: Staff deleted successfully"
-// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid HubSpotId"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Staff not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /staffs/{id} [delete]

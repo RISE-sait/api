@@ -8,7 +8,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"github.com/lib/pq"
 	"log"
 	"net/http"
@@ -105,30 +104,6 @@ func (r *StaffRepository) GetAvailableStaffRoles(ctx context.Context) ([]values.
 }
 
 func (r *StaffRepository) Update(ctx context.Context, staffFields values.UpdateStaffValues) *errLib.CommonError {
-
-	var availableRoles []string
-
-	if roles, err := r.GetAvailableStaffRoles(ctx); err != nil {
-		return err
-	} else {
-		for _, role := range roles {
-			availableRoles = append(availableRoles, role.RoleName)
-		}
-	}
-
-	// Check if the role exists
-	roleExists := false
-
-	for _, role := range availableRoles {
-		if role == staffFields.RoleName {
-			roleExists = true
-			break
-		}
-	}
-
-	if !roleExists {
-		return errLib.New(fmt.Sprintf("Role not found. Available roles: %v", availableRoles), http.StatusNotFound)
-	}
 
 	dbStaffParams := db.UpdateStaffParams{
 		ID:       staffFields.ID,

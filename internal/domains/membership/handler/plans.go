@@ -22,8 +22,6 @@ func NewPlansHandlers(container *di.Container) *PlansHandlers {
 }
 
 // CreateMembershipPlan creates a new membership plan.
-// @Summary Create a new membership plan
-// @Description Create a new membership plan
 // @Tags membership-plans
 // @Accept json
 // @Produce json
@@ -57,9 +55,7 @@ func (h *PlansHandlers) CreateMembershipPlan(w http.ResponseWriter, r *http.Requ
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusCreated)
 }
 
-// GetMembershipPlans retrieves membership plans.
-// @Summary Get membership plans by membership ID
-// @Description Get membership plans by membership ID
+// GetMembershipPlans retrieves membership plans by membership ID.
 // @Tags membership-plans
 // @Accept json
 // @Produce json
@@ -98,8 +94,6 @@ func (h *PlansHandlers) GetMembershipPlans(w http.ResponseWriter, r *http.Reques
 }
 
 // UpdateMembershipPlan updates an existing membership plan.
-// @Summary Update a membership plan
-// @Description Update a membership plan
 // @Tags membership-plans
 // @Accept json
 // @Produce json
@@ -138,8 +132,6 @@ func (h *PlansHandlers) UpdateMembershipPlan(w http.ResponseWriter, r *http.Requ
 }
 
 // DeleteMembershipPlan deletes a membership plan by ID.
-// @Summary Delete a membership plan
-// @Description Delete a membership plan by ID
 // @Tags membership-plans
 // @Accept json
 // @Produce json

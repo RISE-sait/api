@@ -21,8 +21,6 @@ func NewHandlers(container *di.Container) *Handlers {
 }
 
 // CreateMembership creates a new membership.
-// @Summary Create a new membership
-// @Description Create a new membership
 // @Tags memberships
 // @Accept json
 // @Produce json
@@ -56,8 +54,6 @@ func (h *Handlers) CreateMembership(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetMembershipById retrieves a membership by ID.
-// @Summary Get a membership by ID
-// @Description Get a membership by ID
 // @Tags memberships
 // @Accept json
 // @Produce json
@@ -88,8 +84,6 @@ func (h *Handlers) GetMembershipById(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetMemberships retrieves a list of memberships.
-// @Summary Get a list of memberships
-// @Description Get a list of memberships
 // @Tags memberships
 // @Accept json
 // @Produce json
@@ -112,8 +106,6 @@ func (h *Handlers) GetMemberships(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateMembership updates an existing membership.
-// @Summary Update a membership
-// @Description Update a membership
 // @Tags memberships
 // @Accept json
 // @Produce json
@@ -152,8 +144,6 @@ func (h *Handlers) UpdateMembership(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteMembership deletes a membership by ID.
-// @Summary Delete a membership
-// @Description Delete a membership by ID
 // @Tags memberships
 // @Accept json
 // @Produce json

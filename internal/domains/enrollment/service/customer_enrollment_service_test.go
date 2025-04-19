@@ -130,7 +130,7 @@ SELECT COUNT(*)
 				if enrollErr != nil {
 					assert.Equal(t, http.StatusConflict, enrollErr.HTTPCode)
 					assert.True(t, strings.Contains(enrollErr.Message, "Too many people enrolled at the same time. Please try again.") ||
-						strings.Contains(enrollErr.Message, "Too many people enrolled at the same time. Please try again."))
+						strings.Contains(enrollErr.Message, "Program is full"))
 					failedEnrollments++
 				}
 			}

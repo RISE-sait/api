@@ -93,6 +93,7 @@ func TestCreateEvents(t *testing.T) {
 		createEventsParams.ProgramIds[i] = createdProgram.ID
 		createEventsParams.CreatedByIds[i] = creator.ID
 		createEventsParams.Capacities[i] = tm.capacity
+		createEventsParams.IsDateTimeModifiedArray[i] = false
 		createEventsParams.IsCancelledArray[i] = false
 	}
 
@@ -163,13 +164,14 @@ func TestUpdateEvent(t *testing.T) {
 	now := time.Now().Truncate(time.Second)
 
 	createEventsParams := eventDb.CreateEventsParams{
-		StartAtArray:     []time.Time{now},
-		EndAtArray:       []time.Time{now.Add(24 * time.Hour)},
-		LocationIds:      []uuid.UUID{createdLocation.ID},
-		ProgramIds:       []uuid.UUID{createdProgram.ID},
-		CreatedByIds:     []uuid.UUID{creator.ID},
-		Capacities:       []int32{20},
-		IsCancelledArray: []bool{false},
+		StartAtArray:            []time.Time{now},
+		EndAtArray:              []time.Time{now.Add(24 * time.Hour)},
+		LocationIds:             []uuid.UUID{createdLocation.ID},
+		ProgramIds:              []uuid.UUID{createdProgram.ID},
+		CreatedByIds:            []uuid.UUID{creator.ID},
+		Capacities:              []int32{20},
+		IsCancelledArray:        []bool{false},
+		IsDateTimeModifiedArray: []bool{false},
 	}
 
 	_, err = eventQueries.CreateEvents(context.Background(), createEventsParams)
@@ -256,13 +258,14 @@ func TestDeleteEvent(t *testing.T) {
 	now := time.Now().Truncate(time.Second)
 
 	createEventsParams := eventDb.CreateEventsParams{
-		StartAtArray:     []time.Time{now, now.Add(48 * time.Hour)},
-		EndAtArray:       []time.Time{now.Add(24 * time.Hour), now.Add(72 * time.Hour)},
-		LocationIds:      []uuid.UUID{createdLocation.ID, createdLocation.ID},
-		ProgramIds:       []uuid.UUID{createdProgram.ID, createdProgram.ID},
-		CreatedByIds:     []uuid.UUID{creator.ID, creator.ID},
-		Capacities:       []int32{20, 30},
-		IsCancelledArray: []bool{false, false},
+		StartAtArray:            []time.Time{now, now.Add(48 * time.Hour)},
+		EndAtArray:              []time.Time{now.Add(24 * time.Hour), now.Add(72 * time.Hour)},
+		LocationIds:             []uuid.UUID{createdLocation.ID, createdLocation.ID},
+		ProgramIds:              []uuid.UUID{createdProgram.ID, createdProgram.ID},
+		CreatedByIds:            []uuid.UUID{creator.ID, creator.ID},
+		Capacities:              []int32{20, 30},
+		IsCancelledArray:        []bool{false, false},
+		IsDateTimeModifiedArray: []bool{false, false},
 	}
 
 	_, err = eventQueries.CreateEvents(context.Background(), createEventsParams)

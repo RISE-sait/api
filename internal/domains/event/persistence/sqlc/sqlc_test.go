@@ -77,13 +77,14 @@ func TestCreateEvents(t *testing.T) {
 	}
 
 	createEventsParams := eventDb.CreateEventsParams{
-		StartAtArray:     make([]time.Time, len(testTimes)),
-		EndAtArray:       make([]time.Time, len(testTimes)),
-		LocationIds:      make([]uuid.UUID, len(testTimes)),
-		ProgramIds:       make([]uuid.UUID, len(testTimes)),
-		CreatedByIds:     make([]uuid.UUID, len(testTimes)),
-		Capacities:       make([]int32, len(testTimes)),
-		IsCancelledArray: make([]bool, len(testTimes)),
+		StartAtArray:            make([]time.Time, len(testTimes)),
+		EndAtArray:              make([]time.Time, len(testTimes)),
+		LocationIds:             make([]uuid.UUID, len(testTimes)),
+		ProgramIds:              make([]uuid.UUID, len(testTimes)),
+		CreatedByIds:            make([]uuid.UUID, len(testTimes)),
+		Capacities:              make([]int32, len(testTimes)),
+		IsCancelledArray:        make([]bool, len(testTimes)),
+		IsDateTimeModifiedArray: make([]bool, len(testTimes)),
 	}
 
 	for i, tm := range testTimes {

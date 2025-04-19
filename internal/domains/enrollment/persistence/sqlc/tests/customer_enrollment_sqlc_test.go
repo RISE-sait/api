@@ -70,7 +70,7 @@ func TestEnrollCustomerInEvent(t *testing.T) {
 		IsCancelledArray: []bool{false},
 	}
 
-	err = eventQueries.CreateEvents(context.Background(), createEventsParams)
+	_, err = eventQueries.CreateEvents(context.Background(), createEventsParams)
 
 	require.NoError(t, err)
 
@@ -205,7 +205,7 @@ func TestEnrollCustomerInProgramEvents(t *testing.T) {
 		CancellationReasons: cancellationReasons,
 	}
 
-	err = eventQueries.CreateEvents(context.Background(), createEventsParams)
+	_, err = eventQueries.CreateEvents(context.Background(), createEventsParams)
 
 	require.NoError(t, err)
 

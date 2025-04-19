@@ -96,7 +96,7 @@ func TestCreateEvents(t *testing.T) {
 		createEventsParams.IsCancelledArray[i] = false
 	}
 
-	err = eventQueries.CreateEvents(context.Background(), createEventsParams)
+	_, err = eventQueries.CreateEvents(context.Background(), createEventsParams)
 
 	require.NoError(t, err)
 
@@ -172,7 +172,7 @@ func TestUpdateEvent(t *testing.T) {
 		IsCancelledArray: []bool{false},
 	}
 
-	err = eventQueries.CreateEvents(context.Background(), createEventsParams)
+	_, err = eventQueries.CreateEvents(context.Background(), createEventsParams)
 	require.NoError(t, err)
 
 	createdEvents, err := eventQueries.GetEvents(context.Background(), eventDb.GetEventsParams{
@@ -265,7 +265,7 @@ func TestDeleteEvent(t *testing.T) {
 		IsCancelledArray: []bool{false, false},
 	}
 
-	err = eventQueries.CreateEvents(context.Background(), createEventsParams)
+	_, err = eventQueries.CreateEvents(context.Background(), createEventsParams)
 
 	require.NoError(t, err)
 
@@ -281,7 +281,7 @@ func TestDeleteEvent(t *testing.T) {
 	createdEvent2 := createdEvents[1]
 
 	// Now, delete the createdEvent
-	err = eventQueries.DeleteEvent(context.Background(), []uuid.UUID{
+	err = eventQueries.DeleteEventsByIds(context.Background(), []uuid.UUID{
 		createdEvent1.ID,
 		createdEvent2.ID,
 	})

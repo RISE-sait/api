@@ -46,7 +46,6 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		// Core functionalities
 		"/programs":  RegisterProgramRoutes,
 		"/events":    RegisterEventRoutes,
-		"/schedules": RegisterScheduleRoutes,
 		"/locations": RegisterLocationsRoutes,
 		"/games":     RegisterGamesRoutes,
 		"/teams":     RegisterTeamsRoutes,
@@ -233,23 +232,16 @@ func RegisterStaffRoutes(container *di.Container) func(chi.Router) {
 	}
 }
 
-func RegisterScheduleRoutes(container *di.Container) func(chi.Router) {
-	handler := eventHandler.NewSchedulesHandler(container)
-
-	return func(r chi.Router) {
-		r.Get("/", handler.GetSchedules)
-	}
-}
-
 func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 	handler := eventHandler.NewEventsHandler(container)
 
 	return func(r chi.Router) {
 		r.Get("/", handler.GetEvents)
 		r.Get("/{id}", handler.GetEvent)
-		r.With(middlewares.JWTAuthMiddleware(true)).Post("/", handler.CreateEvents)
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/one-time", handler.CreateEvent)
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/recurring", handler.CreateRecurrences)
 		r.With(middlewares.JWTAuthMiddleware(true)).Put("/{id}", handler.UpdateEvent)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/", handler.UpdateEvents)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/recurring/{id}", handler.UpdateRecurrences)
 		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/", handler.DeleteEvents)
 
 		r.Route("/{event_id}/staffs", RegisterEventStaffRoutes(container))

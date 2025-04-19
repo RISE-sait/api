@@ -21,7 +21,6 @@ func NewCheckoutHandlers(container *di.Container) *CheckoutHandlers {
 }
 
 // CheckoutMembership allows a customer to check out a membership plan.
-// @Summary CheckoutMembershipPlan a membership plan
 // @Description Generates a payment link for purchasing a membership plan.
 // @Tags payments
 // @Accept json

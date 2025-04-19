@@ -6,17 +6,9 @@ import (
 	"github.com/google/uuid"
 )
 
-type Details struct {
-	StartAt    time.Time
-	EndAt      time.Time
-	ProgramID  uuid.UUID
-	LocationID uuid.UUID
-	TeamID     uuid.UUID
-	Capacity   int32
-}
-
-type CreateEventsRecurrenceValues struct {
-	CreatedBy         uuid.UUID
+type RecurrenceValues struct {
+	RecurrenceID      uuid.UUID
+	UpdatedBy         uuid.UUID
 	Day               *time.Weekday
 	RecurrenceStartAt time.Time
 	RecurrenceEndAt   time.Time
@@ -28,7 +20,8 @@ type CreateEventsRecurrenceValues struct {
 	Capacity          int32
 }
 
-type CreateEventsSpecificValues struct {
+//goland:noinspection GoNameStartsWithPackageName
+type EventDetails struct {
 	CreatedBy  uuid.UUID
 	StartAt    time.Time
 	EndAt      time.Time
@@ -38,33 +31,15 @@ type CreateEventsSpecificValues struct {
 	Capacity   int32
 }
 
+type CreateEventValues struct {
+	CreatedBy uuid.UUID
+	EventDetails
+}
+
 type UpdateEventValues struct {
 	ID        uuid.UUID
 	UpdatedBy uuid.UUID
-	Details
-}
-
-type UpdateEventsValues struct {
-	UpdatedBy                 uuid.UUID
-	OriginalRecurrenceStartAt time.Time
-	OriginalRecurrenceEndAt   time.Time
-	OriginalRecurrenceDay     time.Weekday
-	OriginalEventStartTime    string
-	OriginalEventEndTime      string
-	OriginalProgramID         uuid.UUID
-	OriginalLocationID        uuid.UUID
-	OriginalTeamID            uuid.UUID
-	OriginalCapacity          int32
-
-	NewRecurrenceStartAt time.Time
-	NewRecurrenceEndAt   time.Time
-	NewRecurrenceDay     time.Weekday
-	NewEventStartTime    string
-	NewEventEndTime      string
-	NewProgramID         uuid.UUID
-	NewLocationID        uuid.UUID
-	NewTeamID            uuid.UUID
-	NewCapacity          int32
+	EventDetails
 }
 
 type ReadPersonValues struct {

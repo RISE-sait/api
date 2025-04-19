@@ -91,7 +91,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "customers"
+                    "athletes"
                 ],
                 "parameters": [
                     {
@@ -216,119 +216,6 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request: Invalid Firebase token",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/barbers/services": {
-            "get": {
-                "description": "Retrieve a list of all barber services",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "barber"
-                ],
-                "summary": "Get all barber services",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/haircut.BarberServiceResponseDto"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Create a new barber service with the provided details",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "barber"
-                ],
-                "summary": "Create a new barber service",
-                "parameters": [
-                    {
-                        "description": "Create Barber Service Request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/haircut.CreateBarberServiceRequestDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created"
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/barbers/services/{id}": {
-            "delete": {
-                "description": "Delete a barber service by its ID",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "barber"
-                ],
-                "summary": "Delete a barber service",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Barber Service ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content: Updated successfully"
-                    },
-                    "400": {
-                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -511,7 +398,7 @@ const docTemplate = `{
         },
         "/customers": {
             "get": {
-                "description": "Retrieves a list of customers, optionally filtered by HubSpot IDs, with pagination support.",
+                "description": "Retrieves a list of customers, optionally filtered by fields like parent ID, name, email, phone, and ID, with pagination support.",
                 "consumes": [
                     "application/json"
                 ],
@@ -525,7 +412,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Number of customers to retrieve (default: 20)",
+                        "description": "Number of customers to retrieve (default: 20, max: 20)",
                         "name": "limit",
                         "in": "query"
                     },
@@ -533,6 +420,12 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Number of customers to skip (default: 0)",
                         "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search term to filter customers",
+                        "name": "search",
                         "in": "query"
                     },
                     {
@@ -758,7 +651,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/event.UpdateEventsRequestDto"
+                            "$ref": "#/definitions/event.RecurrenceRequestDto"
                         }
                     }
                 ],
@@ -779,56 +672,6 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found: Events not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "events"
-                ],
-                "parameters": [
-                    {
-                        "description": "Event details",
-                        "name": "event",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/event.CreateRequestDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Event created successfully",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid input",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -886,6 +729,110 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found: One or more events not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/events/one-time": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "parameters": [
+                    {
+                        "description": "Event details",
+                        "name": "event",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/event.EventRequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Event created successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/events/recurring": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "parameters": [
+                    {
+                        "description": "Event details",
+                        "name": "event",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/event.RecurrenceRequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Event created successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1092,7 +1039,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/event.UpdateRequestDto"
+                            "$ref": "#/definitions/event.EventRequestDto"
                         }
                     }
                 ],
@@ -1377,7 +1324,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "haircut"
+                    "haircuts"
                 ],
                 "parameters": [
                     {
@@ -1431,7 +1378,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "haircut"
+                    "haircuts"
                 ],
                 "parameters": [
                     {
@@ -1483,7 +1430,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "haircut"
+                    "haircuts"
                 ],
                 "summary": "Get all haircut events",
                 "parameters": [
@@ -1520,7 +1467,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/haircut.EventResponseDto"
+                                "$ref": "#/definitions/haircut_event.EventResponseDto"
                             }
                         }
                     },
@@ -1554,7 +1501,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "haircut"
+                    "haircuts"
                 ],
                 "parameters": [
                     {
@@ -1563,7 +1510,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/haircut.RequestDto"
+                            "$ref": "#/definitions/haircut_event.RequestDto"
                         }
                     }
                 ],
@@ -1571,7 +1518,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Haircut event created successfully",
                         "schema": {
-                            "$ref": "#/definitions/haircut.EventResponseDto"
+                            "$ref": "#/definitions/haircut_event.EventResponseDto"
                         }
                     },
                     "400": {
@@ -1601,7 +1548,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "haircut"
+                    "haircuts"
                 ],
                 "parameters": [
                     {
@@ -1616,7 +1563,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Haircut event details retrieved successfully",
                         "schema": {
-                            "$ref": "#/definitions/haircut.EventResponseDto"
+                            "$ref": "#/definitions/haircut_event.EventResponseDto"
                         }
                     },
                     "400": {
@@ -1651,7 +1598,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "haircut"
+                    "haircuts"
                 ],
                 "parameters": [
                     {
@@ -1675,6 +1622,113 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found: Haircut event not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/haircuts/services": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "haircuts"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/haircut_service.BarberServiceResponseDto"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "haircuts"
+                ],
+                "parameters": [
+                    {
+                        "description": "Create Barber Service Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/haircut_service.CreateBarberServiceRequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/haircuts/services/{id}": {
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "haircuts"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Barber Service ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Updated successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3915,53 +3969,6 @@ const docTemplate = `{
                 }
             }
         },
-        "event.CreateRequestDto": {
-            "type": "object",
-            "required": [
-                "end_at",
-                "recurrence_end_at",
-                "recurrence_start_at",
-                "start_at"
-            ],
-            "properties": {
-                "capacity": {
-                    "type": "integer",
-                    "example": 100
-                },
-                "day": {
-                    "type": "string",
-                    "example": "THURSDAY"
-                },
-                "end_at": {
-                    "type": "string",
-                    "example": "23:00:00+00:00"
-                },
-                "location_id": {
-                    "type": "string",
-                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
-                },
-                "program_id": {
-                    "type": "string",
-                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
-                },
-                "recurrence_end_at": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
-                "recurrence_start_at": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
-                "start_at": {
-                    "type": "string",
-                    "example": "23:00:00+00:00"
-                },
-                "team_id": {
-                    "type": "string",
-                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
-                }
-            }
-        },
         "event.CustomerResponseDto": {
             "type": "object",
             "properties": {
@@ -4000,6 +4007,39 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "event.EventRequestDto": {
+            "type": "object",
+            "required": [
+                "end_at",
+                "start_at"
+            ],
+            "properties": {
+                "capacity": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "end_at": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "location_id": {
+                    "type": "string",
+                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+                },
+                "program_id": {
+                    "type": "string",
+                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+                },
+                "start_at": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "team_id": {
+                    "type": "string",
+                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
                 }
             }
         },
@@ -4117,6 +4157,53 @@ const docTemplate = `{
                 }
             }
         },
+        "event.RecurrenceRequestDto": {
+            "type": "object",
+            "required": [
+                "end_at",
+                "recurrence_end_at",
+                "recurrence_start_at",
+                "start_at"
+            ],
+            "properties": {
+                "capacity": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "day": {
+                    "type": "string",
+                    "example": "THURSDAY"
+                },
+                "end_at": {
+                    "type": "string",
+                    "example": "23:00:00+00:00"
+                },
+                "location_id": {
+                    "type": "string",
+                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+                },
+                "program_id": {
+                    "type": "string",
+                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+                },
+                "recurrence_end_at": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "recurrence_start_at": {
+                    "type": "string",
+                    "example": "2023-10-05T07:00:00Z"
+                },
+                "start_at": {
+                    "type": "string",
+                    "example": "23:00:00+00:00"
+                },
+                "team_id": {
+                    "type": "string",
+                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
+                }
+            }
+        },
         "event.ScheduleResponseDto": {
             "type": "object",
             "properties": {
@@ -4194,118 +4281,6 @@ const docTemplate = `{
                 }
             }
         },
-        "event.UpdateEventsRequestDto": {
-            "type": "object",
-            "required": [
-                "new_event_end_at",
-                "new_event_start_at",
-                "new_recurrence_end_at",
-                "new_recurrence_start_at",
-                "original_event_end_at",
-                "original_event_start_at",
-                "original_recurrence_end_at",
-                "original_recurrence_start_at"
-            ],
-            "properties": {
-                "new_capacity": {
-                    "type": "integer",
-                    "example": 100
-                },
-                "new_event_end_at": {
-                    "type": "string",
-                    "example": "23:00:00+00:00"
-                },
-                "new_event_start_at": {
-                    "type": "string",
-                    "example": "21:00:00+00:00"
-                },
-                "new_location_id": {
-                    "type": "string",
-                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
-                },
-                "new_program_id": {
-                    "type": "string",
-                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
-                },
-                "new_recurrence_end_at": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
-                "new_recurrence_start_at": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
-                "new_team_id": {
-                    "type": "string",
-                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
-                },
-                "original_capacity": {
-                    "type": "integer",
-                    "example": 100
-                },
-                "original_event_end_at": {
-                    "type": "string",
-                    "example": "13:00:00+00:00"
-                },
-                "original_event_start_at": {
-                    "type": "string",
-                    "example": "10:00:00+00:00"
-                },
-                "original_location_id": {
-                    "type": "string",
-                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
-                },
-                "original_program_id": {
-                    "type": "string",
-                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
-                },
-                "original_recurrence_end_at": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
-                "original_recurrence_start_at": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
-                "original_team_id": {
-                    "type": "string",
-                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
-                }
-            }
-        },
-        "event.UpdateRequestDto": {
-            "type": "object",
-            "required": [
-                "end_at",
-                "start_at"
-            ],
-            "properties": {
-                "capacity": {
-                    "type": "integer",
-                    "example": 100
-                },
-                "end_at": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
-                "location_id": {
-                    "type": "string",
-                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
-                },
-                "program_id": {
-                    "type": "string",
-                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
-                },
-                "start_at": {
-                    "type": "string",
-                    "example": "2023-10-05T07:00:00Z"
-                },
-                "team_id": {
-                    "type": "string",
-                    "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
-                }
-            }
-        },
         "game.RequestDto": {
             "type": "object",
             "required": [
@@ -4364,46 +4339,7 @@ const docTemplate = `{
                 }
             }
         },
-        "haircut.BarberServiceResponseDto": {
-            "type": "object",
-            "properties": {
-                "barber_id": {
-                    "type": "string"
-                },
-                "barber_name": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "haircut_name": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "service_type_id": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "haircut.CreateBarberServiceRequestDto": {
-            "type": "object",
-            "properties": {
-                "barber_id": {
-                    "type": "string",
-                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
-                },
-                "haircut_service_id": {
-                    "type": "string",
-                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
-                }
-            }
-        },
-        "haircut.EventResponseDto": {
+        "haircut_event.EventResponseDto": {
             "type": "object",
             "properties": {
                 "barber_id": {
@@ -4435,7 +4371,7 @@ const docTemplate = `{
                 }
             }
         },
-        "haircut.RequestDto": {
+        "haircut_event.RequestDto": {
             "type": "object",
             "required": [
                 "begin_time",
@@ -4458,6 +4394,45 @@ const docTemplate = `{
                 "service_name": {
                     "type": "string",
                     "example": "Haircut"
+                }
+            }
+        },
+        "haircut_service.BarberServiceResponseDto": {
+            "type": "object",
+            "properties": {
+                "barber_id": {
+                    "type": "string"
+                },
+                "barber_name": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "haircut_id": {
+                    "type": "string"
+                },
+                "haircut_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "haircut_service.CreateBarberServiceRequestDto": {
+            "type": "object",
+            "properties": {
+                "barber_id": {
+                    "type": "string",
+                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
+                },
+                "haircut_service_id": {
+                    "type": "string",
+                    "example": "f0e21457-75d4-4de6-b765-5ee13221fd72"
                 }
             }
         },
@@ -4974,8 +4949,8 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "",
-	BasePath:         "",
+	Host:             "localhost",
+	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Rise API",
 	Description:      "",

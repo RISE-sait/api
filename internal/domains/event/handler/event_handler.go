@@ -3,12 +3,14 @@ package event
 import (
 	"api/internal/di"
 	dto "api/internal/domains/event/dto"
+	repository "api/internal/domains/event/persistence/repository"
 	"api/internal/domains/event/service"
 	values "api/internal/domains/event/values"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	contextUtils "api/utils/context"
+	"log"
 	"net/http"
 	"time"
 
@@ -19,10 +21,13 @@ import (
 // EventsHandler provides HTTP handlers for managing events.
 type EventsHandler struct {
 	EventsService *service.Service
+	SchedulesRepo *repository.SchedulesRepository
 }
 
 func NewEventsHandler(container *di.Container) *EventsHandler {
-	return &EventsHandler{EventsService: service.NewEventService(container)}
+	return &EventsHandler{EventsService: service.NewEventService(container),
+		SchedulesRepo: repository.NewSchedulesRepository(container),
+	}
 }
 
 // GetEvents retrieves all events based on filter criteria.
@@ -36,12 +41,13 @@ func NewEventsHandler(container *di.Container) *EventsHandler {
 // @Param team_id query string false "Filter by team ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
 // @Param location_id query string false "Filter by location ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
 // @Param program_type query string false "Program Type (game, practice, course, others)"
+// @Param response_type query string false "Response type (date or day)" default(date)
 // @Param created_by query string false "ID of person who created the event (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")"
 // @Param updated_by query string false "ID of person who updated the event (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
 // @Accept json
 // @Produce json
 // @Success 200 {array} dto.EventResponseDto "List of events retrieved successfully"
-// @Schema(oneOf={[]event.DayResponseDto,[]event.DateResponseDto})
+// @Schema(oneOf={[]dto.EventResponseDto,[]dto.ScheduleResponseDto})
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input format or missing required parameters"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /events [get]
@@ -52,7 +58,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	var (
 		after, before                                                      time.Time
 		locationID, programID, participantID, teamID, createdBy, updatedBy uuid.UUID
-		programType                                                        string
+		programType, responseType                                          string
 	)
 
 	if afterStr := query.Get("after"); afterStr != "" {
@@ -129,6 +135,17 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	responseType = query.Get("response_type")
+
+	log.Printf("responseType: %s", responseType)
+	if responseType == "" {
+		responseType = "date"
+	}
+	if responseType != "date" && responseType != "day" {
+		responseHandlers.RespondWithError(w, errLib.New("invalid 'response_type', must be 'date' or 'day'", http.StatusBadRequest))
+		return
+	}
+
 	if (after.IsZero() || before.IsZero()) &&
 		(programID == uuid.Nil && participantID == uuid.Nil && locationID == uuid.Nil && teamID == uuid.Nil && programType == "") {
 		responseHandlers.RespondWithError(w,
@@ -149,7 +166,30 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		After:         after,
 	}
 
-	events, err := h.EventsService.GetEvents(r.Context(), filter)
+	if responseType == "date" {
+
+		events, err := h.EventsService.GetEvents(r.Context(), filter)
+
+		if err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		}
+
+		// empty list instead of var responseDto []dto.EventResponseDto, so that it would return empty list instead of nil if no events found
+		responseDto := []dto.EventResponseDto{}
+
+		for _, retrievedEvent := range events {
+
+			eventDto := dto.NewEventResponseDto(retrievedEvent, false)
+
+			responseDto = append(responseDto, eventDto)
+		}
+
+		responseHandlers.RespondWithSuccess(w, responseDto, http.StatusOK)
+		return
+	}
+
+	schedules, err := h.SchedulesRepo.GetEventsSchedules(r.Context(), programType, programID, locationID, participantID, teamID, createdBy, updatedBy, before, after)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -157,13 +197,13 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// empty list instead of var responseDto []dto.EventResponseDto, so that it would return empty list instead of nil if no events found
-	responseDto := []dto.EventResponseDto{}
+	responseDto := []dto.ScheduleResponseDto{}
 
-	for _, retrievedEvent := range events {
+	for _, schedule := range schedules {
 
-		eventDto := dto.NewEventResponseDto(retrievedEvent, false)
+		scheduleDto := dto.NewScheduleResponseDto(schedule)
 
-		responseDto = append(responseDto, eventDto)
+		responseDto = append(responseDto, scheduleDto)
 	}
 
 	responseHandlers.RespondWithSuccess(w, responseDto, http.StatusOK)
@@ -206,17 +246,17 @@ func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// CreateEvents creates new events given its recurrence information.
+// CreateEvent creates new events given its recurrence information.
 // @Tags events
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param event body dto.CreateRequestDto true "Event details"
+// @Param event body dto.EventRequestDto true "Event details"
 // @Success 201 {object} map[string]interface{} "Event created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /events [post]
-func (h *EventsHandler) CreateEvents(w http.ResponseWriter, r *http.Request) {
+// @Router /events/one-time [post]
+func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 
 	userID, ctxErr := contextUtils.GetUserID(r.Context())
 
@@ -225,18 +265,56 @@ func (h *EventsHandler) CreateEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var targetBody dto.CreateRequestDto
+	var targetBody dto.EventRequestDto
 
 	if err := validators.ParseJSON(r.Body, &targetBody); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	if eventCreate, err := targetBody.ToCreateEventsValues(userID); err != nil {
+	if eventCreate, err := targetBody.ToCreateEventValues(userID); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {
-		if err = h.EventsService.CreateEvents(r.Context(), eventCreate); err != nil {
+		if err = h.EventsService.CreateEvent(r.Context(), eventCreate); err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		}
+	}
+	responseHandlers.RespondWithSuccess(w, nil, http.StatusCreated)
+}
+
+// CreateRecurrences creates new events given its recurrence information.
+// @Tags events
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param event body dto.RecurrenceRequestDto true "Event details"
+// @Success 201 {object} map[string]interface{} "Event created successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /events/recurring [post]
+func (h *EventsHandler) CreateRecurrences(w http.ResponseWriter, r *http.Request) {
+
+	userID, ctxErr := contextUtils.GetUserID(r.Context())
+
+	if ctxErr != nil {
+		responseHandlers.RespondWithError(w, ctxErr)
+		return
+	}
+
+	var targetBody dto.RecurrenceRequestDto
+
+	if err := validators.ParseJSON(r.Body, &targetBody); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	if recurrenceValues, err := targetBody.ToRecurrenceValues(userID); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	} else {
+		if err = h.EventsService.CreateEvents(r.Context(), recurrenceValues); err != nil {
 			responseHandlers.RespondWithError(w, err)
 			return
 		}
@@ -250,7 +328,7 @@ func (h *EventsHandler) CreateEvents(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Security Bearer
 // @Param id path string true "Event ID"
-// @Param event body dto.UpdateRequestDto true "Updated event details"
+// @Param event body dto.EventRequestDto true "Updated event details"
 // @Success 204 {object} map[string]interface{} "No Content: Event updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 404 {object} map[string]interface{} "Not Found: Event not found"
@@ -269,7 +347,7 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 
 	idStr := chi.URLParam(r, "id")
 
-	var targetBody dto.UpdateRequestDto
+	var targetBody dto.EventRequestDto
 
 	if err = validators.ParseJSON(r.Body, &targetBody); err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -322,18 +400,27 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
-// UpdateEvents updates existing events by filters.
+// UpdateRecurrences updates existing events by filters.
 // @Tags events
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param event body dto.UpdateEventsRequestDto true "Update events details"
+// @Param event body dto.RecurrenceRequestDto true "Update events details"
 // @Success 204 {object} map[string]interface{} "No Content: Events updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 404 {object} map[string]interface{} "Not Found: Events not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /events [put]
-func (h *EventsHandler) UpdateEvents(w http.ResponseWriter, r *http.Request) {
+// @Router /events/recurring/{id} [put]
+func (h *EventsHandler) UpdateRecurrences(w http.ResponseWriter, r *http.Request) {
+
+	idStr := chi.URLParam(r, "id")
+
+	recurrenceID, err := validators.ParseUUID(idStr)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
 
 	userID, err := contextUtils.GetUserID(r.Context())
 
@@ -342,7 +429,7 @@ func (h *EventsHandler) UpdateEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var targetBody dto.UpdateEventsRequestDto
+	var targetBody dto.RecurrenceRequestDto
 
 	if err = validators.ParseJSON(r.Body, &targetBody); err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -351,14 +438,14 @@ func (h *EventsHandler) UpdateEvents(w http.ResponseWriter, r *http.Request) {
 
 	// Convert to domain values
 
-	params, err := targetBody.ToUpdateEventsValues(userID)
+	params, err := targetBody.ToUpdateRecurrenceValues(userID, recurrenceID)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	if err = h.EventsService.UpdateEvents(r.Context(), params); err != nil {
+	if err = h.EventsService.UpdateRecurringEvents(r.Context(), params); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

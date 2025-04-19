@@ -68,39 +68,51 @@ var constraintErrors = map[string]struct {
 	},
 }
 
-func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []values.CreateEventsSpecificValues) *errLib.CommonError {
+func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []values.CreateEventValues) *errLib.CommonError {
 
 	var (
-		locationIDs, programIDs, teamIDs, createdByIds []uuid.UUID
-		startAtArray, endAtArray                       []time.Time
-		capacities                                     []int32
-		isCancelledArray                               []bool
+		locationIDs, programIDs, teamIDs, createdByIds, recurrenceIds []uuid.UUID
+		startAtArray, endAtArray                                      []time.Time
+		capacities                                                    []int32
+		isCancelledArray, isDateTimeModifiedArray                     []bool
 	)
+
+	recurrenceId := uuid.Nil
+
+	if len(eventDetails) > 1 {
+		recurrenceId = uuid.New()
+	}
+
+	log.Printf("Creating events with recurrence ID: %s", recurrenceId)
 
 	for _, event := range eventDetails {
 		locationIDs = append(locationIDs, event.LocationID)
 		programIDs = append(programIDs, event.ProgramID)
+		recurrenceIds = append(recurrenceIds, recurrenceId)
 		teamIDs = append(teamIDs, event.TeamID)
 		startAtArray = append(startAtArray, event.StartAt)
 		endAtArray = append(endAtArray, event.EndAt)
 		createdByIds = append(createdByIds, event.CreatedBy)
 		capacities = append(capacities, event.Capacity)
 		isCancelledArray = append(isCancelledArray, false)
+		isDateTimeModifiedArray = append(isDateTimeModifiedArray, false)
 	}
 
 	dbParams := db.CreateEventsParams{
-		LocationIds:         locationIDs,
-		ProgramIds:          programIDs,
-		TeamIds:             teamIDs,
-		StartAtArray:        startAtArray,
-		EndAtArray:          endAtArray,
-		CreatedByIds:        createdByIds,
-		Capacities:          capacities,
-		IsCancelledArray:    isCancelledArray,
-		CancellationReasons: nil,
+		LocationIds:             locationIDs,
+		ProgramIds:              programIDs,
+		TeamIds:                 teamIDs,
+		StartAtArray:            startAtArray,
+		EndAtArray:              endAtArray,
+		CreatedByIds:            createdByIds,
+		Capacities:              capacities,
+		RecurrenceIds:           recurrenceIds,
+		IsCancelledArray:        isCancelledArray,
+		IsDateTimeModifiedArray: isDateTimeModifiedArray,
+		CancellationReasons:     nil,
 	}
 
-	dbErr := r.Queries.CreateEvents(ctx, dbParams)
+	impactedRows, dbErr := r.Queries.CreateEvents(ctx, dbParams)
 
 	if dbErr != nil {
 
@@ -113,7 +125,12 @@ func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []valu
 		}
 
 		log.Printf("Failed to create eventDetails: %+v. Error: %v", eventDetails, dbErr.Error())
-		return errLib.New("Internal server error", http.StatusInternalServerError)
+		return errLib.New("Internal server error when creating events", http.StatusInternalServerError)
+	}
+
+	if impactedRows < int64(len(eventDetails)) {
+
+		return errLib.New("Not all events were created successfully, likely due to overlapping events", http.StatusBadRequest)
 	}
 
 	return nil
@@ -316,66 +333,6 @@ func stringToPtr(s sql.NullString) *string {
 	return nil
 }
 
-func (r *EventsRepository) UpdateEvents(ctx context.Context, updater uuid.UUID, events []values.UpdateEventValues) *errLib.CommonError {
-
-	var (
-		IDs, locationIDs, programIDs, teamIDs []uuid.UUID
-		startAtArray, endAtArray              []time.Time
-		capacities                            []int32
-		isCancelledArray                      []bool
-		cancellationReasons                   []string
-	)
-
-	for _, event := range events {
-		IDs = append(IDs, event.ID)
-		startAtArray = append(startAtArray, event.StartAt)
-		endAtArray = append(endAtArray, event.EndAt)
-		locationIDs = append(locationIDs, event.LocationID)
-		programIDs = append(programIDs, event.ProgramID)
-		teamIDs = append(teamIDs, event.TeamID)
-		capacities = append(capacities, event.Capacity)
-		isCancelledArray = append(isCancelledArray, false)
-		cancellationReasons = append(cancellationReasons, "")
-	}
-
-	dbEventParams := db.UpdateEventsParams{
-		UpdatedBy:           updater,
-		Ids:                 IDs,
-		StartAtArray:        startAtArray,
-		EndAtArray:          endAtArray,
-		LocationIds:         locationIDs,
-		ProgramIds:          programIDs,
-		TeamIds:             teamIDs,
-		IsCancelledArray:    isCancelledArray,
-		CancellationReasons: cancellationReasons,
-		Capacities:          capacities,
-	}
-
-	impactedRows, dbErr := r.Queries.UpdateEvents(ctx, dbEventParams)
-
-	if dbErr != nil {
-
-		var pqErr *pq.Error
-		if errors.As(dbErr, &pqErr) {
-
-			if errInfo, found := constraintErrors[pqErr.Constraint]; found {
-				return errLib.New(errInfo.Message, errInfo.Status)
-			}
-		}
-
-		log.Printf("Failed to update events: %+v. Error: %v", events, dbErr.Error())
-		return errLib.New("Internal server error when updating event", http.StatusInternalServerError)
-	}
-
-	if impactedRows == 0 {
-		log.Printf("No events were updated for unknown reason: %v", IDs)
-		return errLib.New("No events were updated for unknown reason", http.StatusNotFound)
-	}
-
-	return nil
-
-}
-
 func (r *EventsRepository) UpdateEvent(ctx context.Context, event values.UpdateEventValues) *errLib.CommonError {
 
 	userID, err := contextUtils.GetUserID(ctx)
@@ -421,11 +378,25 @@ func (r *EventsRepository) UpdateEvent(ctx context.Context, event values.UpdateE
 
 }
 
-func (r *EventsRepository) DeleteEvent(c context.Context, ids []uuid.UUID) *errLib.CommonError {
-	err := r.Queries.DeleteEvent(c, ids)
+func (r *EventsRepository) DeleteEvents(c context.Context, ids []uuid.UUID) *errLib.CommonError {
+	err := r.Queries.DeleteEventsByIds(c, ids)
 
 	if err != nil {
 		log.Printf("Failed to delete event with Ids: %s. Error: %s", ids, err.Error())
+		return errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	return nil
+}
+
+func (r *EventsRepository) DeleteUnmodifiedEventsByRecurrenceID(c context.Context, id uuid.UUID) *errLib.CommonError {
+	err := r.Queries.DeleteUnmodifiedEventsByRecurrenceID(c, uuid.NullUUID{
+		UUID:  id,
+		Valid: true,
+	})
+
+	if err != nil {
+		log.Printf("Failed to delete event with recurrence Id: %s. Error: %s", id, err.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 

@@ -61,16 +61,17 @@ func TestEnrollCustomerInEvent(t *testing.T) {
 	capacity := 20
 
 	createEventsParams := eventDb.CreateEventsParams{
-		StartAtArray:     []time.Time{now},
-		EndAtArray:       []time.Time{now.Add(time.Hour * 24)},
-		LocationIds:      []uuid.UUID{createdLocation.ID},
-		ProgramIds:       []uuid.UUID{createdProgram.ID},
-		Capacities:       []int32{int32(capacity)},
-		CreatedByIds:     []uuid.UUID{eventCreator.ID},
-		IsCancelledArray: []bool{false},
+		StartAtArray:            []time.Time{now},
+		EndAtArray:              []time.Time{now.Add(time.Hour * 24)},
+		LocationIds:             []uuid.UUID{createdLocation.ID},
+		ProgramIds:              []uuid.UUID{createdProgram.ID},
+		Capacities:              []int32{int32(capacity)},
+		CreatedByIds:            []uuid.UUID{eventCreator.ID},
+		IsCancelledArray:        []bool{false},
+		IsDateTimeModifiedArray: []bool{false},
 	}
 
-	err = eventQueries.CreateEvents(context.Background(), createEventsParams)
+	_, err = eventQueries.CreateEvents(context.Background(), createEventsParams)
 
 	require.NoError(t, err)
 
@@ -195,17 +196,18 @@ func TestEnrollCustomerInProgramEvents(t *testing.T) {
 	}
 
 	createEventsParams := eventDb.CreateEventsParams{
-		LocationIds:         locationIDs,
-		ProgramIds:          programIDs,
-		CreatedByIds:        createdByIDs,
-		StartAtArray:        startTimes,
-		EndAtArray:          endTimes,
-		Capacities:          capacities,
-		IsCancelledArray:    isCancelledArray,
-		CancellationReasons: cancellationReasons,
+		LocationIds:             locationIDs,
+		ProgramIds:              programIDs,
+		CreatedByIds:            createdByIDs,
+		StartAtArray:            startTimes,
+		EndAtArray:              endTimes,
+		Capacities:              capacities,
+		IsCancelledArray:        isCancelledArray,
+		CancellationReasons:     cancellationReasons,
+		IsDateTimeModifiedArray: make([]bool, numEvents),
 	}
 
-	err = eventQueries.CreateEvents(context.Background(), createEventsParams)
+	_, err = eventQueries.CreateEvents(context.Background(), createEventsParams)
 
 	require.NoError(t, err)
 

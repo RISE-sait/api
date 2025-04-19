@@ -66,7 +66,7 @@ func (q *Queries) CreateHaircutEvent(ctx context.Context, arg CreateHaircutEvent
 	return i, err
 }
 
-const deleteEvent = `-- name: DeleteEvent :execrows
+const deleteEvent = `-- name: DeleteEvents :execrows
 DELETE
 FROM haircut.events
 WHERE id = $1

@@ -10,6 +10,7 @@ import (
 	"api/internal/libs/validators"
 	contextUtils "api/utils/context"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -144,19 +145,21 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 
 		events, err := h.EventsService.GetEvents(r.Context(), filter)
 
+		log.Printf("events length: %d", len(events))
+
 		if err != nil {
 			responseHandlers.RespondWithError(w, err)
 			return
 		}
 
 		// empty list instead of var responseDto []dto.EventResponseDto, so that it would return empty list instead of nil if no events found
-		responseDto := []dto.EventResponseDto{}
+		responseDto := make([]dto.EventResponseDto, len(events))
 
-		for _, retrievedEvent := range events {
+		for i, retrievedEvent := range events {
 
 			eventDto := dto.NewEventResponseDto(retrievedEvent, false)
 
-			responseDto = append(responseDto, eventDto)
+			responseDto[i] = eventDto
 		}
 
 		responseHandlers.RespondWithSuccess(w, responseDto, http.StatusOK)
@@ -171,11 +174,11 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// empty list instead of var responseDto []dto.EventResponseDto, so that it would return empty list instead of nil if no events found
-	responseDto := []dto.ScheduleResponseDto{}
+	responseDto := []dto.RecurrenceResponseDto{}
 
 	for _, schedule := range schedules {
 
-		scheduleDto := dto.NewScheduleResponseDto(schedule)
+		scheduleDto := dto.NewRecurrenceResponseDto(schedule)
 
 		responseDto = append(responseDto, scheduleDto)
 	}

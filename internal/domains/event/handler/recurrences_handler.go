@@ -5,8 +5,9 @@ import (
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	contextUtils "api/utils/context"
-	"github.com/go-chi/chi"
 	"net/http"
+
+	"github.com/go-chi/chi"
 )
 
 // CreateRecurrences creates new events given its recurrence information.
@@ -35,7 +36,7 @@ func (h *EventsHandler) CreateRecurrences(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if recurrenceValues, err := targetBody.ToRecurrenceValues(userID); err != nil {
+	if recurrenceValues, err := targetBody.ToCreateRecurrenceValues(userID); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {

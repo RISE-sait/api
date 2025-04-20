@@ -11,10 +11,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Service struct {
@@ -84,9 +85,20 @@ func (s *Service) GetEvents(ctx context.Context, filter values.GetEventsFilter) 
 	return s.eventsRepository.GetEvents(ctx, filter)
 }
 
-func (s *Service) CreateEvents(ctx context.Context, details values.RecurrenceValues) *errLib.CommonError {
+func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurrenceValues) *errLib.CommonError {
 
-	events, err := generateEventsFromRecurrence(details)
+	events, err := generateEventsFromRecurrence(
+		details.FirstOccurrence,
+		details.LastOccurrence,
+		details.Capacity,
+		details.StartTime,
+		details.EndTime,
+		details.CreatedBy,
+		details.ProgramID,
+		details.LocationID,
+		details.TeamID,
+		details.DayOfWeek,
+	)
 
 	if err != nil {
 		return err
@@ -101,7 +113,7 @@ func (s *Service) CreateEvents(ctx context.Context, details values.RecurrenceVal
 		return s.staffActivityLogsService.InsertStaffActivity(
 			ctx,
 			txRepo.GetTx(),
-			details.UpdatedBy,
+			details.CreatedBy,
 			fmt.Sprintf("Created events with details: %+v", details),
 		)
 	})
@@ -166,15 +178,26 @@ func (s *Service) UpdateEvent(ctx context.Context, details values.UpdateEventVal
 // - Updates events within the new recurrence period
 // - Deletes events outside the new period
 // - Returns *errLib.CommonError if recurrence is being extended
-func (s *Service) UpdateRecurringEvents(ctx context.Context, details values.RecurrenceValues) *errLib.CommonError {
+func (s *Service) UpdateRecurringEvents(ctx context.Context, details values.UpdateRecurrenceValues) *errLib.CommonError {
 
 	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
 
-		if err := txRepo.DeleteUnmodifiedEventsByRecurrenceID(ctx, details.RecurrenceID); err != nil {
+		if err := txRepo.DeleteUnmodifiedEventsByRecurrenceID(ctx, details.ID); err != nil {
 			return err
 		}
 
-		eventsToCreate, err := generateEventsFromRecurrence(details)
+		eventsToCreate, err := generateEventsFromRecurrence(
+			details.FirstOccurrence,
+			details.LastOccurrence,
+			details.Capacity,
+			details.StartTime,
+			details.EndTime,
+			details.UpdatedBy,
+			details.ProgramID,
+			details.LocationID,
+			details.TeamID,
+			details.DayOfWeek,
+		)
 
 		if err != nil {
 			return err
@@ -232,30 +255,36 @@ func (s *Service) DeleteEvents(ctx context.Context, ids []uuid.UUID) *errLib.Com
 	})
 }
 
-func (s *Service) GetEventsSchedules(ctx context.Context, filter values.GetEventsFilter) ([]values.Schedule, *errLib.CommonError) {
-	return s.recurrencesRepository.GetEventsRecurrences(ctx, filter.ProgramType, filter.ProgramID, filter.LocationID, filter.ParticipantID, filter.TeamID, filter.CreatedBy, filter.UpdatedBy, filter.Before, filter.After)
+func (s *Service) GetEventsSchedules(ctx context.Context, filter values.GetEventsFilter) ([]values.ReadRecurrenceValues, *errLib.CommonError) {
+	return s.recurrencesRepository.GetEventsRecurrences(ctx, filter.ProgramType, filter.ProgramID, filter.LocationID,
+		filter.ParticipantID, filter.TeamID, filter.CreatedBy, filter.UpdatedBy, filter.Before, filter.After)
 }
 
-func generateEventsFromRecurrence(recurrence values.RecurrenceValues) ([]values.CreateEventValues, *errLib.CommonError) {
+func generateEventsFromRecurrence(
+	firstOccurrence, lastOccurrence time.Time,
+	capacity int32, startTimeStr, endTimeStr string,
+	mutater, programID, locationID, teamID uuid.UUID,
+	day time.Weekday,
+) ([]values.CreateEventValues, *errLib.CommonError) {
 
 	const timeLayout = "15:04:05Z07:00"
 
-	if recurrence.RecurrenceStartAt.After(recurrence.RecurrenceEndAt) {
+	if firstOccurrence.After(lastOccurrence) {
 		return nil, errLib.New("Recurrence start date must be before the end date", http.StatusBadRequest)
 	}
 
-	if recurrence.Capacity <= 0 {
+	if capacity <= 0 {
 		return nil, errLib.New("Capacity must be greater than zero", http.StatusBadRequest)
 	}
 
-	startTime, err := time.Parse(timeLayout, recurrence.EventStartTime)
+	startTime, err := time.Parse(timeLayout, startTimeStr)
 	if err != nil {
-		return nil, errLib.New(fmt.Sprintf("Invalid start time format - must be HH:MM:SS±HH:MM (e.g. 09:00:00+00:00)"), http.StatusBadRequest)
+		return nil, errLib.New("Invalid start time format - must be HH:MM:SS±HH:MM (e.g. 09:00:00+00:00)", http.StatusBadRequest)
 	}
 
-	endTime, err := time.Parse(timeLayout, recurrence.EventEndTime)
+	endTime, err := time.Parse(timeLayout, endTimeStr)
 	if err != nil {
-		return nil, errLib.New(fmt.Sprintf("Invalid end time format - must be HH:MM:SS±HH:MM (e.g. 17:00:00+00:00)"), http.StatusBadRequest)
+		return nil, errLib.New("Invalid end time format - must be HH:MM:SS±HH:MM (e.g. 17:00:00+00:00)", http.StatusBadRequest)
 	}
 
 	// If the end time is before start time (crosses midnight), add a day to end time
@@ -275,25 +304,20 @@ func generateEventsFromRecurrence(recurrence values.RecurrenceValues) ([]values.
 			end = end.AddDate(0, 0, 1)
 		}
 		events = append(events, values.CreateEventValues{
-			CreatedBy: recurrence.UpdatedBy,
+			CreatedBy: mutater,
 			EventDetails: values.EventDetails{
 				StartAt:    start,
 				EndAt:      end,
-				ProgramID:  recurrence.ProgramID,
-				LocationID: recurrence.LocationID,
-				TeamID:     recurrence.TeamID,
-				Capacity:   recurrence.Capacity,
+				ProgramID:  programID,
+				LocationID: locationID,
+				TeamID:     teamID,
+				Capacity:   capacity,
 			},
 		})
 	}
 
-	if recurrence.Day == nil {
-		addEvent(recurrence.RecurrenceStartAt)
-		return events, nil
-	}
-
-	for date := recurrence.RecurrenceStartAt; !date.After(recurrence.RecurrenceEndAt); date = date.AddDate(0, 0, 1) {
-		if date.Weekday() == *recurrence.Day {
+	for date := firstOccurrence; !date.After(lastOccurrence); date = date.AddDate(0, 0, 1) {
+		if date.Weekday() == day {
 			addEvent(date)
 			date = date.AddDate(0, 0, 6) // Skip to next week
 		}

@@ -2,37 +2,50 @@ package service
 
 import (
 	values "api/internal/domains/event/values"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGenerateEventsFromRecurrence(t *testing.T) {
 	t.Run("Valid input generates events", func(t *testing.T) {
 
-		day := time.Monday
+		recurrence := values.CreateRecurrenceValues{
+			CreatedBy: uuid.New(),
+			BaseRecurrenceValues: values.BaseRecurrenceValues{
+				DayOfWeek:       time.Monday,
+				FirstOccurrence: time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC),  // Monday
+				LastOccurrence:  time.Date(2023, 10, 30, 0, 0, 0, 0, time.UTC), // 4 weeks later
+				StartTime:       "10:00:00+00:00",
+				EndTime:         "12:00:00+00:00",
+			},
 
-		recurrence := values.RecurrenceValues{
-			UpdatedBy:         uuid.New(),
-			Day:               &day,
-			RecurrenceStartAt: time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC),  // Monday
-			RecurrenceEndAt:   time.Date(2023, 10, 30, 0, 0, 0, 0, time.UTC), // 4 weeks later
-			EventStartTime:    "10:00:00+00:00",
-			EventEndTime:      "12:00:00+00:00",
-			ProgramID:         uuid.New(),
-			LocationID:        uuid.New(),
-			TeamID:            uuid.New(),
-			Capacity:          50,
+			ProgramID:  uuid.New(),
+			LocationID: uuid.New(),
+			TeamID:     uuid.New(),
+			Capacity:   50,
 		}
 
-		events, err := generateEventsFromRecurrence(recurrence)
+		events, err := generateEventsFromRecurrence(
+			recurrence.FirstOccurrence,
+			recurrence.LastOccurrence,
+			recurrence.Capacity,
+			recurrence.StartTime,
+			recurrence.EndTime,
+			recurrence.CreatedBy,
+			recurrence.ProgramID,
+			recurrence.LocationID,
+			recurrence.TeamID,
+			recurrence.DayOfWeek,
+		)
 
 		assert.Nil(t, err)
 		assert.Len(t, events, 5) // 5 Mondays in the range
 		for _, event := range events {
-			assert.Equal(t, recurrence.UpdatedBy, event.CreatedBy)
+			assert.Equal(t, recurrence.CreatedBy, event.CreatedBy)
 			assert.Equal(t, recurrence.ProgramID, event.ProgramID)
 			assert.Equal(t, recurrence.LocationID, event.LocationID)
 			assert.Equal(t, recurrence.TeamID, event.TeamID)
@@ -47,20 +60,33 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 
 		day := time.Monday
 
-		recurrence := values.RecurrenceValues{
-			UpdatedBy:         uuid.New(),
-			Day:               &day,
-			RecurrenceStartAt: time.Now(),
-			RecurrenceEndAt:   time.Now().AddDate(0, 0, 7),
-			EventStartTime:    "invalid-time",
-			EventEndTime:      "12:00",
-			ProgramID:         uuid.New(),
-			LocationID:        uuid.New(),
-			TeamID:            uuid.New(),
-			Capacity:          50,
+		recurrence := values.CreateRecurrenceValues{
+			CreatedBy: uuid.New(),
+			BaseRecurrenceValues: values.BaseRecurrenceValues{
+				DayOfWeek:       day,
+				FirstOccurrence: time.Now(),
+				LastOccurrence:  time.Now().AddDate(0, 0, 7),
+				StartTime:       "invalid-time",
+				EndTime:         "12:00",
+			},
+			ProgramID:  uuid.New(),
+			LocationID: uuid.New(),
+			TeamID:     uuid.New(),
+			Capacity:   50,
 		}
 
-		events, err := generateEventsFromRecurrence(recurrence)
+		events, err := generateEventsFromRecurrence(
+			recurrence.FirstOccurrence,
+			recurrence.LastOccurrence,
+			recurrence.Capacity,
+			recurrence.StartTime,
+			recurrence.EndTime,
+			recurrence.CreatedBy,
+			recurrence.ProgramID,
+			recurrence.LocationID,
+			recurrence.TeamID,
+			recurrence.DayOfWeek,
+		)
 
 		assert.Nil(t, events)
 		assert.NotNil(t, err)
@@ -72,20 +98,33 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 
 		day := time.Monday
 
-		recurrence := values.RecurrenceValues{
-			UpdatedBy:         uuid.New(),
-			Day:               &day,
-			RecurrenceStartAt: time.Now(),
-			RecurrenceEndAt:   time.Now().AddDate(0, 0, 7),
-			EventStartTime:    "10:00",
-			EventEndTime:      "invalid-time",
-			ProgramID:         uuid.New(),
-			LocationID:        uuid.New(),
-			TeamID:            uuid.New(),
-			Capacity:          50,
+		recurrence := values.CreateRecurrenceValues{
+			CreatedBy: uuid.New(),
+			BaseRecurrenceValues: values.BaseRecurrenceValues{
+				DayOfWeek:       day,
+				FirstOccurrence: time.Now(),
+				LastOccurrence:  time.Now().AddDate(0, 0, 7),
+				StartTime:       "10:00",
+				EndTime:         "invalid-time",
+			},
+			ProgramID:  uuid.New(),
+			LocationID: uuid.New(),
+			TeamID:     uuid.New(),
+			Capacity:   50,
 		}
 
-		events, err := generateEventsFromRecurrence(recurrence)
+		events, err := generateEventsFromRecurrence(
+			recurrence.FirstOccurrence,
+			recurrence.LastOccurrence,
+			recurrence.Capacity,
+			recurrence.StartTime,
+			recurrence.EndTime,
+			recurrence.CreatedBy,
+			recurrence.ProgramID,
+			recurrence.LocationID,
+			recurrence.TeamID,
+			recurrence.DayOfWeek,
+		)
 
 		assert.Nil(t, events)
 		assert.NotNil(t, err)
@@ -97,20 +136,33 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 
 		day := time.Monday
 
-		recurrence := values.RecurrenceValues{
-			UpdatedBy:         uuid.New(),
-			Day:               &day,
-			RecurrenceStartAt: time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC),  // Monday
-			RecurrenceEndAt:   time.Date(2023, 10, 30, 0, 0, 0, 0, time.UTC), // 4 weeks later
-			EventStartTime:    "23:00:00+00:00",                              // Changed from "23:00"
-			EventEndTime:      "01:00:00+00:00",                              // Changed from "01:00"
-			ProgramID:         uuid.New(),
-			LocationID:        uuid.New(),
-			TeamID:            uuid.New(),
-			Capacity:          50,
+		recurrence := values.CreateRecurrenceValues{
+			CreatedBy: uuid.New(),
+			BaseRecurrenceValues: values.BaseRecurrenceValues{
+				DayOfWeek:       day,
+				FirstOccurrence: time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC),  // Monday
+				LastOccurrence:  time.Date(2023, 10, 30, 0, 0, 0, 0, time.UTC), // 4 weeks later
+				StartTime:       "23:00:00+00:00",                              // Changed from "23:00"
+				EndTime:         "01:00:00+00:00",                              // Changed from "01:00"
+			},
+			ProgramID:  uuid.New(),
+			LocationID: uuid.New(),
+			TeamID:     uuid.New(),
+			Capacity:   50,
 		}
 
-		events, err := generateEventsFromRecurrence(recurrence)
+		events, err := generateEventsFromRecurrence(
+			recurrence.FirstOccurrence,
+			recurrence.LastOccurrence,
+			recurrence.Capacity,
+			recurrence.StartTime,
+			recurrence.EndTime,
+			recurrence.CreatedBy,
+			recurrence.ProgramID,
+			recurrence.LocationID,
+			recurrence.TeamID,
+			recurrence.DayOfWeek,
+		)
 
 		assert.Nil(t, err)
 		assert.Len(t, events, 5) // 5 Mondays in the range
@@ -123,22 +175,33 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 
 	t.Run("No events generated if recurrence period is invalid", func(t *testing.T) {
 
-		day := time.Monday
-
-		recurrence := values.RecurrenceValues{
-			UpdatedBy:         uuid.New(),
-			Day:               &day,
-			RecurrenceStartAt: time.Date(2023, 10, 30, 0, 0, 0, 0, time.UTC), // Monday
-			RecurrenceEndAt:   time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC),  // Earlier date
-			EventStartTime:    "10:00:00+00:00",                              // Changed from "10:00"
-			EventEndTime:      "12:00:00+00:00",                              // Changed from "12:00"
-			ProgramID:         uuid.New(),
-			LocationID:        uuid.New(),
-			TeamID:            uuid.New(),
-			Capacity:          50,
+		recurrence := values.CreateRecurrenceValues{
+			CreatedBy: uuid.New(),
+			BaseRecurrenceValues: values.BaseRecurrenceValues{
+				DayOfWeek:       time.Monday,
+				FirstOccurrence: time.Date(2023, 10, 30, 0, 0, 0, 0, time.UTC), // Monday
+				LastOccurrence:  time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC),  // Earlier date
+				StartTime:       "10:00:00+00:00",                              // Changed from "10:00"
+				EndTime:         "12:00:00+00:00",
+			},
+			ProgramID:  uuid.New(),
+			LocationID: uuid.New(),
+			TeamID:     uuid.New(),
+			Capacity:   50,
 		}
 
-		events, err := generateEventsFromRecurrence(recurrence)
+		events, err := generateEventsFromRecurrence(
+			recurrence.FirstOccurrence,
+			recurrence.LastOccurrence,
+			recurrence.Capacity,
+			recurrence.StartTime,
+			recurrence.EndTime,
+			recurrence.CreatedBy,
+			recurrence.ProgramID,
+			recurrence.LocationID,
+			recurrence.TeamID,
+			recurrence.DayOfWeek,
+		)
 
 		assert.NotNil(t, err)
 		assert.Equal(t, http.StatusBadRequest, err.HTTPCode)
@@ -146,45 +209,35 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 		assert.Empty(t, events)
 	})
 
-	t.Run("Single-day recurrence period", func(t *testing.T) {
-		recurrence := values.RecurrenceValues{
-			UpdatedBy:         uuid.New(),
-			Day:               nil,
-			RecurrenceStartAt: time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC), // Monday
-			RecurrenceEndAt:   time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC), // Same day
-			EventStartTime:    "10:00:00+00:00",                             // Changed from "10:00"
-			EventEndTime:      "12:00:00+00:00",                             // Changed from "12:00"
-			ProgramID:         uuid.New(),
-			LocationID:        uuid.New(),
-			TeamID:            uuid.New(),
-			Capacity:          50,
-		}
-
-		events, err := generateEventsFromRecurrence(recurrence)
-
-		assert.Nil(t, err)
-		assert.Len(t, events, 1)
-		assert.Equal(t, time.Monday, events[0].StartAt.Weekday())
-	})
-
 	t.Run("No matching weekdays in recurrence period", func(t *testing.T) {
 
-		day := time.Sunday
-
-		recurrence := values.RecurrenceValues{
-			UpdatedBy:         uuid.New(),
-			Day:               &day,                                         // No Sundays in the range
-			RecurrenceStartAt: time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC), // Monday
-			RecurrenceEndAt:   time.Date(2023, 10, 6, 0, 0, 0, 0, time.UTC), // Friday
-			EventStartTime:    "10:00:00+00:00",                             // Changed from "10:00"
-			EventEndTime:      "12:00:00+00:00",                             // Changed from "12:00"
-			ProgramID:         uuid.New(),
-			LocationID:        uuid.New(),
-			TeamID:            uuid.New(),
-			Capacity:          50,
+		recurrence := values.CreateRecurrenceValues{
+			CreatedBy: uuid.New(),
+			BaseRecurrenceValues: values.BaseRecurrenceValues{
+				DayOfWeek:       time.Sunday,                                  // No Sundays in the range
+				FirstOccurrence: time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC), // Monday
+				LastOccurrence:  time.Date(2023, 10, 6, 0, 0, 0, 0, time.UTC), // Friday
+				StartTime:       "10:00:00+00:00",                             // Changed from "10:00"
+				EndTime:         "12:00:00+00:00",
+			},
+			ProgramID:  uuid.New(),
+			LocationID: uuid.New(),
+			TeamID:     uuid.New(),
+			Capacity:   50,
 		}
 
-		events, err := generateEventsFromRecurrence(recurrence)
+		events, err := generateEventsFromRecurrence(
+			recurrence.FirstOccurrence,
+			recurrence.LastOccurrence,
+			recurrence.Capacity,
+			recurrence.StartTime,
+			recurrence.EndTime,
+			recurrence.CreatedBy,
+			recurrence.ProgramID,
+			recurrence.LocationID,
+			recurrence.TeamID,
+			recurrence.DayOfWeek,
+		)
 
 		assert.Nil(t, err)
 		assert.Empty(t, events)

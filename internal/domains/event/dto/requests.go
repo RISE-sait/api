@@ -5,10 +5,11 @@ import (
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/validators"
 	"fmt"
-	"github.com/google/uuid"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type RecurrenceRequestDto struct {
@@ -69,69 +70,86 @@ func (dto EventRequestDto) validate() (time.Time, time.Time, *errLib.CommonError
 
 }
 
-func (dto RecurrenceRequestDto) ToUpdateRecurrenceValues(creator, recurrenceID uuid.UUID) (values.RecurrenceValues, *errLib.CommonError) {
+func (dto RecurrenceRequestDto) ToCreateRecurrenceValues(creator uuid.UUID) (values.CreateRecurrenceValues, *errLib.CommonError) {
 
-	recurrence, err := dto.ToRecurrenceValues(creator)
+	recurrence, err := dto.ToBaseRecurrenceValues()
 
 	if err != nil {
-		return values.RecurrenceValues{}, err
+		return values.CreateRecurrenceValues{}, err
 	}
 
-	recurrence.RecurrenceID = recurrenceID
+	createRecurrenceValues := values.CreateRecurrenceValues{
+		CreatedBy:            creator,
+		BaseRecurrenceValues: recurrence,
+		TeamID:               dto.TeamID,
+		LocationID:           dto.LocationID,
+		ProgramID:            dto.ProgramID,
+	}
 
-	return recurrence, nil
+	return createRecurrenceValues, nil
 }
 
-func (dto RecurrenceRequestDto) ToRecurrenceValues(mutater uuid.UUID) (values.RecurrenceValues, *errLib.CommonError) {
+func (dto RecurrenceRequestDto) ToUpdateRecurrenceValues(updater, recurrenceID uuid.UUID) (values.UpdateRecurrenceValues, *errLib.CommonError) {
+
+	recurrence, err := dto.ToBaseRecurrenceValues()
+
+	if err != nil {
+		return values.UpdateRecurrenceValues{}, err
+	}
+
+	updateRecurrenceValues := values.UpdateRecurrenceValues{
+		UpdatedBy:            updater,
+		BaseRecurrenceValues: recurrence,
+		ID:                   recurrenceID,
+		TeamID:               dto.TeamID,
+		LocationID:           dto.LocationID,
+		ProgramID:            dto.ProgramID,
+	}
+
+	return updateRecurrenceValues, nil
+}
+
+func (dto RecurrenceRequestDto) ToBaseRecurrenceValues() (values.BaseRecurrenceValues, *errLib.CommonError) {
 
 	if err := validators.ValidateDto(&dto); err != nil {
-		return values.RecurrenceValues{}, err
+		return values.BaseRecurrenceValues{}, err
 	}
 
 	recurrenceStartAt, err := validators.ParseDateTime(dto.RecurrenceStartAt)
 
 	if err != nil {
-		return values.RecurrenceValues{}, err
+		return values.BaseRecurrenceValues{}, err
 	}
 
 	recurrenceEndAt, err := validators.ParseDateTime(dto.RecurrenceEndAt)
 
 	if err != nil {
-		return values.RecurrenceValues{}, err
+		return values.BaseRecurrenceValues{}, err
 	}
 
 	eventStartTime, err := validators.ParseTime(dto.EventStartTime)
 
 	if err != nil {
-		return values.RecurrenceValues{}, err
+		return values.BaseRecurrenceValues{}, err
 	}
 
 	eventEndTime, err := validators.ParseTime(dto.EventEndTime)
 
 	if err != nil {
-		return values.RecurrenceValues{}, err
+		return values.BaseRecurrenceValues{}, err
 	}
 
-	var day *time.Weekday
-
-	if dto.Day != "" {
-		weekDay, err := validateWeekday(dto.Day)
-		if err != nil {
-			return values.RecurrenceValues{}, err
-		}
-		day = &weekDay
+	day, err := validateWeekday(dto.Day)
+	if err != nil {
+		return values.BaseRecurrenceValues{}, err
 	}
 
-	return values.RecurrenceValues{
-		UpdatedBy:         mutater,
-		Day:               day,
-		RecurrenceStartAt: recurrenceStartAt,
-		RecurrenceEndAt:   recurrenceEndAt,
-		EventStartTime:    eventStartTime,
-		EventEndTime:      eventEndTime,
-		ProgramID:         dto.ProgramID,
-		LocationID:        dto.LocationID,
-		Capacity:          dto.Capacity,
+	return values.BaseRecurrenceValues{
+		DayOfWeek:       day,
+		FirstOccurrence: recurrenceStartAt,
+		LastOccurrence:  recurrenceEndAt,
+		StartTime:       eventStartTime,
+		EndTime:         eventEndTime,
 	}, nil
 }
 

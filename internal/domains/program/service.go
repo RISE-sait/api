@@ -164,5 +164,22 @@ func (s *Service) UpdateProgram(ctx context.Context, details values.UpdateProgra
 }
 
 func (s *Service) DeleteProgram(ctx context.Context, id uuid.UUID) *errLib.CommonError {
-	return s.repo.Delete(ctx, id)
+
+	return s.executeInTx(ctx, func(txRepo *repo.Repository) *errLib.CommonError {
+		if err := txRepo.Delete(ctx, id); err != nil {
+			return err
+		}
+
+		staffID, err := contextUtils.GetUserID(ctx)
+		if err != nil {
+			return err
+		}
+
+		return s.staffActivityLogsService.InsertStaffActivity(
+			ctx,
+			txRepo.GetTx(),
+			staffID,
+			fmt.Sprintf("Deleted program with ID: %s", id),
+		)
+	})
 }

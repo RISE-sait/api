@@ -2,6 +2,7 @@ package game
 
 import (
 	databaseErrors "api/internal/constants"
+	"api/internal/di"
 	db "api/internal/domains/game/persistence/sqlc/generated"
 	values "api/internal/domains/game/values"
 	errLib "api/internal/libs/errors"
@@ -18,11 +19,23 @@ import (
 
 type Repository struct {
 	Queries *db.Queries
+	Tx      *sql.Tx
 }
 
-func NewGameRepository(dbQueries *db.Queries) *Repository {
+func (r *Repository) GetTx() *sql.Tx {
+	return r.Tx
+}
+
+func (r *Repository) WithTx(tx *sql.Tx) *Repository {
 	return &Repository{
-		Queries: dbQueries,
+		Queries: r.Queries.WithTx(tx),
+		Tx:      tx,
+	}
+}
+
+func NewGameRepository(container *di.Container) *Repository {
+	return &Repository{
+		Queries: container.Queries.GameDb,
 	}
 }
 

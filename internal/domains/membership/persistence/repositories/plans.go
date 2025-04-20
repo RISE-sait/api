@@ -16,11 +16,23 @@ import (
 
 type PlansRepository struct {
 	Queries *db.Queries
+	Tx      *sql.Tx
 }
 
 func NewMembershipPlansRepository(container *di.Container) *PlansRepository {
 	return &PlansRepository{
 		Queries: container.Queries.MembershipDb,
+	}
+}
+
+func (r *PlansRepository) GetTx() *sql.Tx {
+	return r.Tx
+}
+
+func (r *PlansRepository) WithTx(tx *sql.Tx) *PlansRepository {
+	return &PlansRepository{
+		Queries: r.Queries.WithTx(tx),
+		Tx:      tx,
 	}
 }
 

@@ -3,7 +3,7 @@ package location
 import (
 	"api/internal/di"
 	dto "api/internal/domains/location/dto"
-	repository "api/internal/domains/location/persistence"
+	service "api/internal/domains/location/services"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -12,16 +12,14 @@ import (
 )
 
 type Handler struct {
-	Repository *repository.Repository
+	Service *service.Service
 }
 
 func NewLocationsHandler(container *di.Container) *Handler {
-	return &Handler{Repository: repository.NewLocationRepository(container.Queries.LocationDb)}
+	return &Handler{Service: service.NewService(container)}
 }
 
 // CreateLocation creates a new Location.
-// @Summary Create a new Location
-// @Description Registers a new Location with the provided details.
 // @Tags locations
 // @Accept json
 // @Produce json
@@ -45,7 +43,7 @@ func (h *Handler) CreateLocation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	location, err := h.Repository.CreateLocation(r.Context(), details)
+	location, err := h.Service.CreateLocation(r.Context(), details)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -62,8 +60,6 @@ func (h *Handler) CreateLocation(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetLocationById retrieves a Location by its UUID.
-// @Summary Get a Location by ID
-// @Description Retrieves a Location by its unique identifier.
 // @Tags locations
 // @Accept json
 // @Produce json
@@ -82,7 +78,7 @@ func (h *Handler) GetLocationById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	Location, err := h.Repository.GetLocationByID(r.Context(), id)
+	Location, err := h.Service.GetLocation(r.Context(), id)
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
@@ -94,8 +90,6 @@ func (h *Handler) GetLocationById(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetLocations retrieves all locations.
-// @Summary Get all locations
-// @Description Retrieves a list of all locations.
 // @Tags locations
 // @Accept json
 // @Produce json
@@ -104,7 +98,7 @@ func (h *Handler) GetLocationById(w http.ResponseWriter, r *http.Request) {
 // @Router /locations [get]
 func (h *Handler) GetLocations(w http.ResponseWriter, r *http.Request) {
 
-	facilities, err := h.Repository.GetLocations(r.Context())
+	facilities, err := h.Service.GetLocations(r.Context())
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
@@ -119,8 +113,6 @@ func (h *Handler) GetLocations(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateLocation updates an existing Location by its UUID.
-// @Summary Update a Location
-// @Description Updates the details of an existing Location by its UUID.
 // @Tags locations
 // @Accept json
 // @Produce json
@@ -148,7 +140,7 @@ func (h *Handler) UpdateLocation(w http.ResponseWriter, r *http.Request) {
 		responseHandlers.RespondWithError(w, err)
 	}
 
-	if err = h.Repository.UpdateLocation(r.Context(), LocationUpdate); err != nil {
+	if err = h.Service.UpdateLocation(r.Context(), LocationUpdate); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -157,8 +149,6 @@ func (h *Handler) UpdateLocation(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteLocation deletes a Location by its UUID.
-// @Summary Delete a Location
-// @Description Deletes a Location by its UUID.
 // @Tags locations
 // @Accept json
 // @Produce json
@@ -177,7 +167,7 @@ func (h *Handler) DeleteLocation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Repository.DeleteLocation(r.Context(), id); err != nil {
+	if err = h.Service.DeleteLocation(r.Context(), id); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

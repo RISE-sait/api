@@ -11,20 +11,20 @@ type RequestDto struct {
 	Description string `json:"description" validate:"omitempty,notwhitespace" example:"Access to all premium features"`
 }
 
-func (dto *RequestDto) validate() *errLib.CommonError {
-	if err := validators.ValidateDto(dto); err != nil {
+func (dto RequestDto) validate() *errLib.CommonError {
+	if err := validators.ValidateDto(&dto); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (dto *RequestDto) ToMembershipCreateValueObject() (*values.CreateValues, *errLib.CommonError) {
+func (dto RequestDto) ToMembershipCreateValueObject() (values.CreateValues, *errLib.CommonError) {
 
 	if err := dto.validate(); err != nil {
-		return nil, err
+		return values.CreateValues{}, err
 	}
 
-	return &values.CreateValues{
+	return values.CreateValues{
 		BaseValue: values.BaseValue{
 			Name:        dto.Name,
 			Description: dto.Description,
@@ -32,19 +32,19 @@ func (dto *RequestDto) ToMembershipCreateValueObject() (*values.CreateValues, *e
 	}, nil
 }
 
-func (dto *RequestDto) ToMembershipUpdateValueObject(idStr string) (*values.UpdateValues, *errLib.CommonError) {
+func (dto RequestDto) ToMembershipUpdateValueObject(idStr string) (values.UpdateValues, *errLib.CommonError) {
 
 	id, err := validators.ParseUUID(idStr)
 
 	if err != nil {
-		return nil, err
+		return values.UpdateValues{}, err
 	}
 
 	if err = dto.validate(); err != nil {
-		return nil, err
+		return values.UpdateValues{}, err
 	}
 
-	return &values.UpdateValues{
+	return values.UpdateValues{
 		ID: id,
 		BaseValue: values.BaseValue{
 			Name:        dto.Name,

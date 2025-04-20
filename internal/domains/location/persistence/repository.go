@@ -2,6 +2,7 @@ package location
 
 import (
 	databaseErrors "api/internal/constants"
+	"api/internal/di"
 	db "api/internal/domains/location/persistence/sqlc/generated"
 	values "api/internal/domains/location/values"
 	errLib "api/internal/libs/errors"
@@ -17,11 +18,23 @@ import (
 
 type Repository struct {
 	Queries *db.Queries
+	Tx      *sql.Tx
 }
 
-func NewLocationRepository(queries *db.Queries) *Repository {
+func (r *Repository) GetTx() *sql.Tx {
+	return r.Tx
+}
+
+func (r *Repository) WithTx(tx *sql.Tx) *Repository {
 	return &Repository{
-		Queries: queries,
+		Queries: r.Queries.WithTx(tx),
+		Tx:      tx,
+	}
+}
+
+func NewLocationRepository(container *di.Container) *Repository {
+	return &Repository{
+		Queries: container.Queries.LocationDb,
 	}
 }
 

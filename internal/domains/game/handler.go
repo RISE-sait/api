@@ -3,7 +3,7 @@ package game
 import (
 	"api/internal/di"
 	dto "api/internal/domains/game/dto"
-	repository "api/internal/domains/game/persistence"
+	service "api/internal/domains/game/services"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
@@ -12,11 +12,11 @@ import (
 )
 
 type Handler struct {
-	Repo *repository.Repository
+	Service *service.Service
 }
 
 func NewHandler(container *di.Container) *Handler {
-	return &Handler{Repo: repository.NewGameRepository(container.Queries.GameDb)}
+	return &Handler{Service: service.NewService(container)}
 }
 
 // CreateGame creates a new game.
@@ -44,7 +44,7 @@ func (h *Handler) CreateGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Repo.CreateGame(r.Context(), name); err != nil {
+	if err = h.Service.CreateGame(r.Context(), name); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -71,7 +71,7 @@ func (h *Handler) GetGameById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	game, err := h.Repo.GetGameById(r.Context(), id)
+	game, err := h.Service.GetGameById(r.Context(), id)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -92,7 +92,7 @@ func (h *Handler) GetGameById(w http.ResponseWriter, r *http.Request) {
 // @Router /games [get]
 func (h *Handler) GetGames(w http.ResponseWriter, r *http.Request) {
 
-	games, err := h.Repo.GetGames(r.Context())
+	games, err := h.Service.GetGames(r.Context())
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
@@ -136,7 +136,7 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Repo.UpdateGame(r.Context(), gameToUpdate); err != nil {
+	if err = h.Service.UpdateGame(r.Context(), gameToUpdate); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -164,7 +164,7 @@ func (h *Handler) DeleteGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Repo.DeleteGame(r.Context(), id); err != nil {
+	if err = h.Service.DeleteGame(r.Context(), id); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

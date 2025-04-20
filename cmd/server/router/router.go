@@ -122,8 +122,8 @@ func RegisterBarberServicesRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 
 		r.Get("/", h.GetBarberServices)
-		r.Post("/", h.CreateBarberService)
-		r.Delete("/{id}", h.DeleteBarberService)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleBarber)).Post("/", h.CreateBarberService)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleBarber)).Delete("/{id}", h.DeleteBarberService)
 	}
 }
 
@@ -242,7 +242,7 @@ func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 		r.Get("/", handler.GetEvents)
 		r.Get("/{id}", handler.GetEvent)
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/one-time", handler.CreateEvent)
-		r.With(middlewares.JWTAuthMiddleware(true)).Post("/recurring", handler.CreateRecurrences)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/recurring", handler.CreateRecurrences)
 		r.With(middlewares.JWTAuthMiddleware(true)).Put("/{id}", handler.UpdateEvent)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/recurring/{id}", handler.UpdateRecurrences)
 		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/", handler.DeleteEvents)

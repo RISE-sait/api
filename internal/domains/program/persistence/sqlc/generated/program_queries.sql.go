@@ -50,7 +50,7 @@ func (q *Queries) CreateProgram(ctx context.Context, arg CreateProgramParams) (P
 	return i, err
 }
 
-const deleteProgram = `-- name: DeleteProgram :execrows
+const deleteProgram = `-- name: DeleteMembership :execrows
 DELETE FROM program.programs WHERE id = $1
 `
 
@@ -83,7 +83,7 @@ func (q *Queries) GetProgramById(ctx context.Context, id uuid.UUID) (ProgramProg
 	return i, err
 }
 
-const getPrograms = `-- name: GetPrograms :many
+const getPrograms = `-- name: GetMemberships :many
 SELECT id, name, description, level, type, capacity, created_at, updated_at, pay_per_event
 FROM program.programs
 WHERE type = $1
@@ -123,7 +123,7 @@ func (q *Queries) GetPrograms(ctx context.Context, type_ NullProgramProgramType)
 	return items, nil
 }
 
-const updateProgram = `-- name: UpdateProgram :one
+const updateProgram = `-- name: UpdateMembership :one
 UPDATE program.programs
 SET
     name = $1,

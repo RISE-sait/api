@@ -1,17 +1,18 @@
 package team
 
 import (
+	"api/internal/di"
 	db "api/internal/domains/team/persistence/sqlc/generated"
 	values "api/internal/domains/team/values"
 	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
-	"github.com/google/uuid"
-	"github.com/lib/pq"
 	"log"
 	"net/http"
+
+	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 var constraintErrors = map[string]struct {
@@ -30,11 +31,23 @@ var constraintErrors = map[string]struct {
 
 type Repository struct {
 	Queries *db.Queries
+	Tx      *sql.Tx
 }
 
-func NewTeamRepository(dbQueries *db.Queries) *Repository {
+func (r *Repository) GetTx() *sql.Tx {
+	return r.Tx
+}
+
+func (r *Repository) WithTx(tx *sql.Tx) *Repository {
 	return &Repository{
-		Queries: dbQueries,
+		Queries: r.Queries.WithTx(tx),
+		Tx:      tx,
+	}
+}
+
+func NewTeamRepository(container *di.Container) *Repository {
+	return &Repository{
+		Queries: container.Queries.TeamDb,
 	}
 }
 
@@ -60,7 +73,7 @@ func (r *Repository) Update(ctx context.Context, team values.UpdateTeamValues) *
 				return errLib.New(errInfo.Message, errInfo.Status)
 			}
 		}
-		log.Println(fmt.Sprintf("Database error when updating team: %v", err.Error()))
+		log.Printf("Database error when updating team: %v", err.Error())
 		return errLib.New("Database error when updating team:", http.StatusInternalServerError)
 	}
 
@@ -87,7 +100,7 @@ func (r *Repository) UpdateAthletesTeam(ctx context.Context, athleteID, teamID u
 				return errLib.New("The referenced team doesn't exist", http.StatusNotFound)
 			}
 		}
-		log.Println(fmt.Sprintf("Database error when updating athlete's team: %v", err.Error()))
+		log.Printf("Database error when updating athlete's team: %v", err.Error())
 		return errLib.New("Database error when updating athlete's team:", http.StatusInternalServerError)
 	}
 
@@ -201,7 +214,7 @@ func (r *Repository) Create(c context.Context, teamDetails values.CreateTeamValu
 			}
 		}
 
-		log.Println(fmt.Sprintf("Database error when creating team: %v", err.Error()))
+		log.Printf("Database error when creating team: %v", err.Error())
 		return errLib.New("Database error when creating team:", http.StatusInternalServerError)
 	}
 

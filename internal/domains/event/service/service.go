@@ -7,11 +7,10 @@ import (
 	values "api/internal/domains/event/values"
 	errLib "api/internal/libs/errors"
 	contextUtils "api/utils/context"
+	txUtils "api/utils/db"
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -35,28 +34,9 @@ func NewEventService(container *di.Container) *Service {
 }
 
 func (s *Service) executeInTx(ctx context.Context, fn func(repo *repo.EventsRepository) *errLib.CommonError) *errLib.CommonError {
-	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{})
-
-	if err != nil {
-		log.Printf("Failed to begin transaction: %v", err)
-		return errLib.New("Failed to begin transaction", http.StatusInternalServerError)
-	}
-
-	defer func() {
-		if err = tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
-			log.Printf("Rollback error (usually harmless): %v", err)
-		}
-	}()
-
-	if txErr := fn(s.eventsRepository.WithTx(tx)); txErr != nil {
-		return txErr
-	}
-
-	if err = tx.Commit(); err != nil {
-		log.Printf("Failed to commit transaction for events: %v", err)
-		return errLib.New("Failed to commit transaction", http.StatusInternalServerError)
-	}
-	return nil
+	return txUtils.ExecuteInTx(ctx, s.db, func(tx *sql.Tx) *errLib.CommonError {
+		return fn(s.eventsRepository.WithTx(tx))
+	})
 }
 
 // GetEvent retrieves a single event by its ID from the repository.
@@ -120,6 +100,14 @@ func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurre
 }
 
 func (s *Service) CreateEvent(ctx context.Context, details values.CreateEventValues) *errLib.CommonError {
+
+	if details.CreatedBy == uuid.Nil {
+		return errLib.New("Creator ID is required", http.StatusBadRequest)
+	}
+
+	if details.ProgramID == uuid.Nil {
+		return errLib.New("Program ID is required", http.StatusBadRequest)
+	}
 
 	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
 
@@ -226,7 +214,7 @@ func (s *Service) DeleteEvents(ctx context.Context, ids []uuid.UUID) *errLib.Com
 
 	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
 
-		if err = s.eventsRepository.DeleteEvents(ctx, ids); err != nil {
+		if err = txRepo.DeleteEvents(ctx, ids); err != nil {
 			return err
 		}
 

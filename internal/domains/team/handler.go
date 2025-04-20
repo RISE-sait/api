@@ -3,21 +3,23 @@ package team
 import (
 	"api/internal/di"
 	dto "api/internal/domains/team/dto"
-	repository "api/internal/domains/team/persistence"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
-	"github.com/google/uuid"
 	"net/http"
+
+	"github.com/google/uuid"
 
 	"github.com/go-chi/chi"
 )
 
 type Handler struct {
-	Repo *repository.Repository
+	Service *Service
 }
 
 func NewHandler(container *di.Container) *Handler {
-	return &Handler{Repo: repository.NewTeamRepository(container.Queries.TeamDb)}
+	return &Handler{
+		Service: NewService(container),
+	}
 }
 
 // CreateTeam creates a new team.
@@ -45,7 +47,7 @@ func (h *Handler) CreateTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Repo.Create(r.Context(), teamCreate); err != nil {
+	if err = h.Service.Create(r.Context(), teamCreate); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -62,7 +64,7 @@ func (h *Handler) CreateTeam(w http.ResponseWriter, r *http.Request) {
 // @Router /teams [get]
 func (h *Handler) GetTeams(w http.ResponseWriter, r *http.Request) {
 
-	teams, err := h.Repo.List(r.Context())
+	teams, err := h.Service.GetTeams(r.Context())
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
@@ -114,7 +116,7 @@ func (h *Handler) GetTeamByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	team, err := h.Repo.GetByID(r.Context(), id)
+	team, err := h.Service.GetTeamByID(r.Context(), id)
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
@@ -189,7 +191,7 @@ func (h *Handler) UpdateTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Repo.Update(r.Context(), details); err != nil {
+	if err = h.Service.UpdateTeam(r.Context(), details); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -217,7 +219,7 @@ func (h *Handler) DeleteTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Repo.Delete(r.Context(), id); err != nil {
+	if err = h.Service.DeleteTeam(r.Context(), id); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

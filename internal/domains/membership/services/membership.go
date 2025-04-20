@@ -7,13 +7,13 @@ import (
 	values "api/internal/domains/membership/values"
 	errLib "api/internal/libs/errors"
 	contextUtils "api/utils/context"
+	txUtils "api/utils/db"
+
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
+
 	"github.com/google/uuid"
-	"log"
-	"net/http"
 )
 
 type Service struct {
@@ -32,28 +32,9 @@ func NewService(container *di.Container) *Service {
 }
 
 func (s *Service) executeInTx(ctx context.Context, fn func(repo *repo.Repository) *errLib.CommonError) *errLib.CommonError {
-	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{})
-
-	if err != nil {
-		log.Printf("Failed to begin transaction: %v", err)
-		return errLib.New("Failed to begin transaction", http.StatusInternalServerError)
-	}
-
-	defer func() {
-		if err = tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
-			log.Printf("Rollback error (usually harmless): %v", err)
-		}
-	}()
-
-	if txErr := fn(s.repo.WithTx(tx)); txErr != nil {
-		return txErr
-	}
-
-	if err = tx.Commit(); err != nil {
-		log.Printf("Failed to commit transaction for membership: %v", err)
-		return errLib.New("Failed to commit transaction", http.StatusInternalServerError)
-	}
-	return nil
+	return txUtils.ExecuteInTx(ctx, s.db, func(tx *sql.Tx) *errLib.CommonError {
+		return fn(s.repo.WithTx(tx))
+	})
 }
 
 func (s *Service) GetMembership(ctx context.Context, id uuid.UUID) (values.ReadValues, *errLib.CommonError) {

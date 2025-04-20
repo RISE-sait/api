@@ -1,6 +1,12 @@
 package service
 
 import (
+	"context"
+	"database/sql"
+	"fmt"
+	"net/http"
+	"time"
+
 	"api/internal/di"
 	staffActivityLogs "api/internal/domains/audit/staff_activity_logs/service"
 	repo "api/internal/domains/event/persistence/repository"
@@ -8,11 +14,6 @@ import (
 	errLib "api/internal/libs/errors"
 	contextUtils "api/utils/context"
 	txUtils "api/utils/db"
-	"context"
-	"database/sql"
-	"fmt"
-	"net/http"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -66,7 +67,6 @@ func (s *Service) GetEvents(ctx context.Context, filter values.GetEventsFilter) 
 }
 
 func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurrenceValues) *errLib.CommonError {
-
 	events, err := generateEventsFromRecurrence(
 		details.FirstOccurrence,
 		details.LastOccurrence,
@@ -79,7 +79,6 @@ func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurre
 		details.TeamID,
 		details.DayOfWeek,
 	)
-
 	if err != nil {
 		return err
 	}
@@ -100,29 +99,17 @@ func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurre
 }
 
 func (s *Service) CreateEvent(ctx context.Context, details values.CreateEventValues) *errLib.CommonError {
-
-	if details.CreatedBy == uuid.Nil {
-		return errLib.New("Creator ID is required", http.StatusBadRequest)
-	}
-
-	if details.ProgramID == uuid.Nil {
-		return errLib.New("Program ID is required", http.StatusBadRequest)
-	}
-
 	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
-
 		if err := txRepo.CreateEvents(ctx, []values.CreateEventValues{details}); err != nil {
 			return err
 		}
 
 		isStaff, err := contextUtils.IsStaff(ctx)
-
 		if err != nil {
 			return err
 		}
 
 		if isStaff {
-
 			return s.staffActivityLogsService.InsertStaffActivity(
 				ctx,
 				txRepo.GetTx(),
@@ -135,9 +122,7 @@ func (s *Service) CreateEvent(ctx context.Context, details values.CreateEventVal
 }
 
 func (s *Service) UpdateEvent(ctx context.Context, details values.UpdateEventValues) *errLib.CommonError {
-
 	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
-
 		if err := txRepo.UpdateEvent(ctx, details); err != nil {
 			return err
 		}
@@ -157,7 +142,6 @@ func (s *Service) UpdateEvent(ctx context.Context, details values.UpdateEventVal
 		} else {
 			return nil
 		}
-
 	})
 }
 
@@ -167,9 +151,7 @@ func (s *Service) UpdateEvent(ctx context.Context, details values.UpdateEventVal
 // - Deletes events outside the new period
 // - Returns *errLib.CommonError if recurrence is being extended
 func (s *Service) UpdateRecurringEvents(ctx context.Context, details values.UpdateRecurrenceValues) *errLib.CommonError {
-
 	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
-
 		if err := txRepo.DeleteUnmodifiedEventsByRecurrenceID(ctx, details.ID); err != nil {
 			return err
 		}
@@ -186,7 +168,6 @@ func (s *Service) UpdateRecurringEvents(ctx context.Context, details values.Upda
 			details.TeamID,
 			details.DayOfWeek,
 		)
-
 		if err != nil {
 			return err
 		}
@@ -205,7 +186,6 @@ func (s *Service) UpdateRecurringEvents(ctx context.Context, details values.Upda
 }
 
 func (s *Service) DeleteEvents(ctx context.Context, ids []uuid.UUID) *errLib.CommonError {
-
 	var (
 		err     *errLib.CommonError
 		isStaff bool
@@ -213,7 +193,6 @@ func (s *Service) DeleteEvents(ctx context.Context, ids []uuid.UUID) *errLib.Com
 	)
 
 	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
-
 		if err = txRepo.DeleteEvents(ctx, ids); err != nil {
 			return err
 		}
@@ -226,7 +205,6 @@ func (s *Service) DeleteEvents(ctx context.Context, ids []uuid.UUID) *errLib.Com
 		if isStaff {
 
 			staffID, err = contextUtils.GetUserID(ctx)
-
 			if err != nil {
 				return err
 			}
@@ -254,7 +232,6 @@ func generateEventsFromRecurrence(
 	mutater, programID, locationID, teamID uuid.UUID,
 	day time.Weekday,
 ) ([]values.CreateEventValues, *errLib.CommonError) {
-
 	const timeLayout = "15:04:05Z07:00"
 
 	if firstOccurrence.After(lastOccurrence) {

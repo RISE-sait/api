@@ -2,13 +2,14 @@ package event
 
 import (
 	values "api/internal/domains/event/values"
-	"github.com/google/uuid"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 //goland:noinspection GoNameStartsWithPackageName
 type (
-	ScheduleResponseDto struct {
+	RecurrenceResponseDto struct {
 		RecurrenceStartAt string   `json:"recurrence_start_at"`
 		RecurrenceEndAt   string   `json:"recurrence_end_at"`
 		SessionStart      string   `json:"session_start_at"`
@@ -37,13 +38,13 @@ type (
 	}
 )
 
-func NewScheduleResponseDto(schedule values.Schedule) ScheduleResponseDto {
-	response := ScheduleResponseDto{
+func NewRecurrenceResponseDto(schedule values.ReadRecurrenceValues) RecurrenceResponseDto {
+	response := RecurrenceResponseDto{
 		RecurrenceStartAt: schedule.FirstOccurrence.String(),
 		RecurrenceEndAt:   schedule.LastOccurrence.String(),
 		SessionStart:      schedule.StartTime,
 		SessionEnd:        schedule.EndTime,
-		Day:               strings.ToUpper(schedule.DayOfWeek),
+		Day:               strings.ToUpper(schedule.DayOfWeek.String()),
 		Location: Location{
 			ID:      schedule.Location.ID,
 			Name:    schedule.Location.Name,

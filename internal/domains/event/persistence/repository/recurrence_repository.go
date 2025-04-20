@@ -25,7 +25,30 @@ func NewRecurrencesRepository(container *di.Container) *RecurrencesRepository {
 	}
 }
 
-func (r *RecurrencesRepository) GetEventsRecurrences(ctx context.Context, programTypeStr string, programID, locationID, userID, teamID, createdBy, updatedBy uuid.UUID, before, after time.Time) ([]values.Schedule, *errLib.CommonError) {
+// create a function to map from day in string format to time.Weekday
+func mapDayToWeekday(day string) (time.Weekday, *errLib.CommonError) {
+	switch day {
+	case "Sunday":
+		return time.Sunday, nil
+	case "Monday":
+		return time.Monday, nil
+	case "Tuesday":
+		return time.Tuesday, nil
+	case "Wednesday":
+		return time.Wednesday, nil
+	case "Thursday":
+		return time.Thursday, nil
+	case "Friday":
+		return time.Friday, nil
+	case "Saturday":
+		return time.Saturday, nil
+	default:
+		return 0, errLib.New(fmt.Sprintf("invalid day: %s", day), http.StatusInternalServerError)
+	}
+}
+
+func (r *RecurrencesRepository) GetEventsRecurrences(ctx context.Context, programTypeStr string, programID, locationID,
+	userID, teamID, createdBy, updatedBy uuid.UUID, before, after time.Time) ([]values.ReadRecurrenceValues, *errLib.CommonError) {
 
 	var programType db.NullProgramProgramType
 
@@ -59,13 +82,26 @@ func (r *RecurrencesRepository) GetEventsRecurrences(ctx context.Context, progra
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	var schedules []values.Schedule
+	var schedules []values.ReadRecurrenceValues
 
 	for _, row := range rows {
-		schedule := values.Schedule{
-			DayOfWeek: row.DayOfWeek,
-			StartTime: row.StartTime,
-			EndTime:   row.EndTime,
+
+		day, err := mapDayToWeekday(row.DayOfWeek)
+
+		if err != nil {
+			return nil, err
+		}
+
+		schedule := values.ReadRecurrenceValues{
+			BaseRecurrenceValues: values.BaseRecurrenceValues{
+
+				// convert from string to time.Weekday
+				DayOfWeek:       time.Weekday(day),
+				StartTime:       row.StartTime,
+				EndTime:         row.EndTime,
+				FirstOccurrence: row.FirstOccurrence,
+				LastOccurrence:  row.LastOccurrence,
+			},
 			Location: struct {
 				ID      uuid.UUID
 				Name    string
@@ -86,9 +122,7 @@ func (r *RecurrencesRepository) GetEventsRecurrences(ctx context.Context, progra
 				Description: row.ProgramDescription,
 				Type:        string(row.ProgramType),
 			},
-			EventCount:      row.EventCount,
-			FirstOccurrence: row.FirstOccurrence,
-			LastOccurrence:  row.LastOccurrence,
+			EventCount: row.EventCount,
 		}
 
 		if row.TeamID.Valid && row.TeamName.Valid {

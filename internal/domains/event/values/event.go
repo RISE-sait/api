@@ -6,20 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type RecurrenceValues struct {
-	RecurrenceID      uuid.UUID
-	UpdatedBy         uuid.UUID
-	Day               *time.Weekday
-	RecurrenceStartAt time.Time
-	RecurrenceEndAt   time.Time
-	EventStartTime    string
-	EventEndTime      string
-	ProgramID         uuid.UUID
-	LocationID        uuid.UUID
-	TeamID            uuid.UUID
-	Capacity          int32
-}
-
 //goland:noinspection GoNameStartsWithPackageName
 type EventDetails struct {
 	CreatedBy  uuid.UUID

@@ -4,8 +4,9 @@ import (
 	"api/cmd/seed/data"
 	dbSeed "api/cmd/seed/sqlc/generated"
 	"api/config"
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 
 	"fmt"
 	"strings"
@@ -268,7 +269,6 @@ func seedStaffRoles(ctx context.Context, db *sql.DB) {
 
 	if err != nil {
 		log.Fatalf("Failed to insert roles: %v", err)
-		return
 		return
 	}
 }

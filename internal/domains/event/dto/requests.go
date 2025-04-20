@@ -84,6 +84,7 @@ func (dto RecurrenceRequestDto) ToCreateRecurrenceValues(creator uuid.UUID) (val
 		TeamID:               dto.TeamID,
 		LocationID:           dto.LocationID,
 		ProgramID:            dto.ProgramID,
+		Capacity:             dto.Capacity,
 	}
 
 	return createRecurrenceValues, nil
@@ -104,6 +105,7 @@ func (dto RecurrenceRequestDto) ToUpdateRecurrenceValues(updater, recurrenceID u
 		TeamID:               dto.TeamID,
 		LocationID:           dto.LocationID,
 		ProgramID:            dto.ProgramID,
+		Capacity:             dto.Capacity,
 	}
 
 	return updateRecurrenceValues, nil

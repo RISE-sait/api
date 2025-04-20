@@ -10,7 +10,6 @@ import (
 	"api/internal/libs/validators"
 	contextUtils "api/utils/context"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -144,8 +143,6 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	if responseType == "date" {
 
 		events, err := h.EventsService.GetEvents(r.Context(), filter)
-
-		log.Printf("events length: %d", len(events))
 
 		if err != nil {
 			responseHandlers.RespondWithError(w, err)

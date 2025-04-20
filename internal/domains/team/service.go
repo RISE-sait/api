@@ -1,10 +1,10 @@
-package membership
+package team
 
 import (
 	"api/internal/di"
 	staffActivityLogs "api/internal/domains/audit/staff_activity_logs/service"
-	repo "api/internal/domains/location/persistence"
-	values "api/internal/domains/location/values"
+	repo "api/internal/domains/team/persistence"
+	values "api/internal/domains/team/values"
 	errLib "api/internal/libs/errors"
 	contextUtils "api/utils/context"
 	txUtils "api/utils/db"
@@ -24,7 +24,7 @@ type Service struct {
 func NewService(container *di.Container) *Service {
 
 	return &Service{
-		repo:                     repo.NewLocationRepository(container),
+		repo:                     repo.NewTeamRepository(container),
 		staffActivityLogsService: staffActivityLogs.NewService(container),
 		db:                       container.DB,
 	}
@@ -36,28 +36,25 @@ func (s *Service) executeInTx(ctx context.Context, fn func(repo *repo.Repository
 	})
 }
 
-func (s *Service) GetLocation(ctx context.Context, id uuid.UUID) (values.ReadValues, *errLib.CommonError) {
+func (s *Service) GetTeamByID(ctx context.Context, id uuid.UUID) (values.GetTeamValues, *errLib.CommonError) {
 
-	return s.repo.GetLocationByID(ctx, id)
+	return s.repo.GetByID(ctx, id)
 }
 
-func (s *Service) GetLocations(ctx context.Context) ([]values.ReadValues, *errLib.CommonError) {
+func (s *Service) GetTeams(ctx context.Context) ([]values.GetTeamValues, *errLib.CommonError) {
 
-	return s.repo.GetLocations(ctx)
+	return s.repo.List(ctx)
 }
 
-func (s *Service) CreateLocation(ctx context.Context, details values.CreateDetails) (values.ReadValues, *errLib.CommonError) {
+func (s *Service) Create(ctx context.Context, details values.CreateTeamValues) *errLib.CommonError {
 
 	var (
-		createdLocation values.ReadValues
-		err             *errLib.CommonError
-		staffID         uuid.UUID
+		err     *errLib.CommonError
+		staffID uuid.UUID
 	)
 
-	err = s.executeInTx(ctx, func(txRepo *repo.Repository) *errLib.CommonError {
-		createdLocation, err = txRepo.CreateLocation(ctx, details)
-
-		if err != nil {
+	return s.executeInTx(ctx, func(txRepo *repo.Repository) *errLib.CommonError {
+		if err = txRepo.Create(ctx, details); err != nil {
 			return err
 		}
 
@@ -71,24 +68,19 @@ func (s *Service) CreateLocation(ctx context.Context, details values.CreateDetai
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Created location with details: %+v", details),
+			fmt.Sprintf("Created team with details: %+v", details),
 		); err != nil {
 			return err
 		}
 
 		return nil
 	})
-
-	if err != nil {
-		return values.ReadValues{}, err
-	}
-	return createdLocation, nil
 }
 
-func (s *Service) UpdateLocation(ctx context.Context, details values.UpdateDetails) *errLib.CommonError {
+func (s *Service) UpdateTeam(ctx context.Context, details values.UpdateTeamValues) *errLib.CommonError {
 
 	return s.executeInTx(ctx, func(txRepo *repo.Repository) *errLib.CommonError {
-		if err := txRepo.UpdateLocation(ctx, details); err != nil {
+		if err := txRepo.Update(ctx, details); err != nil {
 			return err
 		}
 
@@ -101,15 +93,15 @@ func (s *Service) UpdateLocation(ctx context.Context, details values.UpdateDetai
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Updated location with ID and new details: %+v", details),
+			fmt.Sprintf("Updated team with ID and new details: %+v", details),
 		)
 	})
 }
 
-func (s *Service) DeleteLocation(ctx context.Context, id uuid.UUID) *errLib.CommonError {
+func (s *Service) DeleteTeam(ctx context.Context, id uuid.UUID) *errLib.CommonError {
 
 	return s.executeInTx(ctx, func(txRepo *repo.Repository) *errLib.CommonError {
-		if err := txRepo.DeleteLocation(ctx, id); err != nil {
+		if err := txRepo.Delete(ctx, id); err != nil {
 			return err
 		}
 
@@ -122,7 +114,7 @@ func (s *Service) DeleteLocation(ctx context.Context, id uuid.UUID) *errLib.Comm
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Deleted location with ID: %s", id),
+			fmt.Sprintf("Deleted team with ID: %s", id),
 		)
 	})
 }

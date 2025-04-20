@@ -2,9 +2,11 @@ package service
 
 import (
 	"api/internal/di"
+	staffActivityLogs "api/internal/domains/audit/staff_activity_logs/service"
 	repo "api/internal/domains/event/persistence/repository"
 	values "api/internal/domains/event/values"
 	errLib "api/internal/libs/errors"
+	contextUtils "api/utils/context"
 	"context"
 	"database/sql"
 	"errors"
@@ -16,16 +18,18 @@ import (
 )
 
 type Service struct {
-	eventsRepository      *repo.EventsRepository
-	recurrencesRepository *repo.RecurrencesRepository
-	db                    *sql.DB
+	eventsRepository         *repo.EventsRepository
+	recurrencesRepository    *repo.RecurrencesRepository
+	staffActivityLogsService *staffActivityLogs.Service
+	db                       *sql.DB
 }
 
 func NewEventService(container *di.Container) *Service {
 	return &Service{
-		eventsRepository:      repo.NewEventsRepository(container),
-		recurrencesRepository: repo.NewRecurrencesRepository(container),
-		db:                    container.DB,
+		eventsRepository:         repo.NewEventsRepository(container),
+		recurrencesRepository:    repo.NewRecurrencesRepository(container),
+		staffActivityLogsService: staffActivityLogs.NewService(container),
+		db:                       container.DB,
 	}
 }
 
@@ -88,7 +92,31 @@ func (s *Service) CreateEvents(ctx context.Context, details values.RecurrenceVal
 		return err
 	}
 
-	return s.eventsRepository.CreateEvents(ctx, events)
+	isStaff, err := contextUtils.IsStaff(ctx)
+
+	if err != nil {
+		log.Printf("Failed to check if user is staff: %v", err)
+		return errLib.New("Failed to check if user is staff", http.StatusInternalServerError)
+	}
+
+	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
+		// Create events
+		if err = txRepo.CreateEvents(ctx, events); err != nil {
+			return err
+		}
+
+		// Log activity if staff
+		if isStaff {
+			staffID, _ := contextUtils.GetUserID(ctx)
+			return s.staffActivityLogsService.InsertStaffActivity(
+				ctx,
+				txRepo.GetTx(),
+				staffID,
+				"Created recurring events wefwefeewcewcwe",
+			)
+		}
+		return nil
+	})
 }
 
 func (s *Service) CreateEvent(ctx context.Context, details values.CreateEventValues) *errLib.CommonError {

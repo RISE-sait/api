@@ -2,6 +2,7 @@ package router
 
 import (
 	"api/internal/di"
+	staff_activity_logs "api/internal/domains/audit/staff_activity_logs/handler"
 	haircutEvents "api/internal/domains/haircut/event/handler"
 	barberServicesHandler "api/internal/domains/haircut/haircut_service"
 	"api/internal/domains/haircut/portfolio"
@@ -215,20 +216,22 @@ func RegisterProgramRoutes(container *di.Container) func(chi.Router) {
 		r.Get("/", h.GetPrograms)
 		r.Get("/{id}", h.GetProgram)
 		r.Get("/levels", h.GetProgramLevels)
-		r.Post("/", h.CreateProgram)
-		r.Put("/{id}", h.UpdateProgram)
-		r.Delete("/{id}", h.DeleteProgram)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/", h.CreateProgram)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}", h.UpdateProgram)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", h.DeleteProgram)
 	}
 }
 
 func RegisterStaffRoutes(container *di.Container) func(chi.Router) {
-	h := userHandler.NewStaffHandlers(container)
+	staffHandlers := userHandler.NewStaffHandlers(container)
+	staffLogsHandlers := staff_activity_logs.NewHandler(container)
 
 	return func(r chi.Router) {
-		r.Get("/", h.GetStaffs)
+		r.Get("/", staffHandlers.GetStaffs)
+		r.Get("/logs", staffLogsHandlers.GetStaffActivityLogs)
 
-		r.With(middlewares.JWTAuthMiddleware(false)).Put("/{id}", h.UpdateStaff)
-		r.With(middlewares.JWTAuthMiddleware(false)).Delete("/{id}", h.DeleteStaff)
+		r.With(middlewares.JWTAuthMiddleware(false)).Put("/{id}", staffHandlers.UpdateStaff)
+		r.With(middlewares.JWTAuthMiddleware(false)).Delete("/{id}", staffHandlers.DeleteStaff)
 	}
 }
 

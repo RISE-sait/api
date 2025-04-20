@@ -20,6 +20,7 @@ import (
 
 type EventsRepository struct {
 	Queries *db.Queries
+	Tx      *sql.Tx
 }
 
 func NewEventsRepository(container *di.Container) *EventsRepository {
@@ -28,9 +29,14 @@ func NewEventsRepository(container *di.Container) *EventsRepository {
 	}
 }
 
+func (r *EventsRepository) GetTx() *sql.Tx {
+	return r.Tx
+}
+
 func (r *EventsRepository) WithTx(tx *sql.Tx) *EventsRepository {
 	return &EventsRepository{
 		Queries: r.Queries.WithTx(tx),
+		Tx:      tx,
 	}
 }
 
@@ -82,8 +88,6 @@ func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []valu
 	if len(eventDetails) > 1 {
 		recurrenceId = uuid.New()
 	}
-
-	log.Printf("Creating events with recurrence ID: %s", recurrenceId)
 
 	for _, event := range eventDetails {
 		locationIDs = append(locationIDs, event.LocationID)

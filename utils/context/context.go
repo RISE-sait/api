@@ -76,3 +76,17 @@ func GetUserRole(ctx context.Context) (CtxRole, *errLib.CommonError) {
 
 	return userRole, nil
 }
+
+func IsStaff(ctx context.Context) (bool, *errLib.CommonError) {
+	role, err := GetUserRole(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	switch role {
+	case RoleSuperAdmin, RoleAdmin, RoleInstructor, RoleCoach, RoleBarber:
+		return true, nil
+	default:
+		return false, nil
+	}
+}

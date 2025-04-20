@@ -139,14 +139,9 @@ func (dto RecurrenceRequestDto) ToBaseRecurrenceValues() (values.BaseRecurrenceV
 		return values.BaseRecurrenceValues{}, err
 	}
 
-	var day time.Weekday
-
-	if dto.Day != "" {
-		weekDay, err := validateWeekday(dto.Day)
-		if err != nil {
-			return values.BaseRecurrenceValues{}, err
-		}
-		day = weekDay
+	day, err := validateWeekday(dto.Day)
+	if err != nil {
+		return values.BaseRecurrenceValues{}, err
 	}
 
 	return values.BaseRecurrenceValues{

@@ -3,7 +3,7 @@ package membership
 import (
 	"api/internal/di"
 	"api/internal/domains/membership/dto/membership_plan"
-	repo "api/internal/domains/membership/persistence/repositories"
+	membership "api/internal/domains/membership/services"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
@@ -14,11 +14,11 @@ import (
 )
 
 type PlansHandlers struct {
-	Repo *repo.PlansRepository
+	Service *membership.PlanService
 }
 
 func NewPlansHandlers(container *di.Container) *PlansHandlers {
-	return &PlansHandlers{Repo: repo.NewMembershipPlansRepository(container)}
+	return &PlansHandlers{Service: membership.NewPlanService(container)}
 }
 
 // CreateMembershipPlan creates a new membership plan.
@@ -47,7 +47,7 @@ func (h *PlansHandlers) CreateMembershipPlan(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err = h.Repo.CreateMembershipPlan(r.Context(), plan); err != nil {
+	if err = h.Service.CreateMembershipPlan(r.Context(), plan); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -77,7 +77,7 @@ func (h *PlansHandlers) GetMembershipPlans(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	plans, err := h.Repo.GetMembershipPlans(r.Context(), membershipId)
+	plans, err := h.Service.GetPlans(r.Context(), membershipId)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -123,7 +123,7 @@ func (h *PlansHandlers) UpdateMembershipPlan(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err = h.Repo.UpdateMembershipPlan(r.Context(), plan); err != nil {
+	if err = h.Service.UpdateMembershipPlan(r.Context(), plan); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
@@ -153,7 +153,7 @@ func (h *PlansHandlers) DeleteMembershipPlan(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err = h.Repo.DeleteMembershipPlan(r.Context(), id); err != nil {
+	if err = h.Service.DeleteMembershipPlan(r.Context(), id); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

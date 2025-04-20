@@ -19,11 +19,23 @@ import (
 
 type Repository struct {
 	Queries *db.Queries
+	Tx      *sql.Tx
 }
 
 func NewProgramRepository(container *di.Container) *Repository {
 	return &Repository{
 		Queries: container.Queries.ProgramDb,
+	}
+}
+
+func (r *Repository) GetTx() *sql.Tx {
+	return r.Tx
+}
+
+func (r *Repository) WithTx(tx *sql.Tx) *Repository {
+	return &Repository{
+		Queries: r.Queries.WithTx(tx),
+		Tx:      tx,
 	}
 }
 
@@ -70,10 +82,9 @@ func (r *Repository) Update(ctx context.Context, program values.UpdateProgramVal
 			if pqErr.Code == databaseErrors.UniqueViolation {
 				return errLib.New("Program name already exists", http.StatusConflict)
 			}
-			log.Println(fmt.Sprintf("Database error when updating program: %v", err.Error()))
-			return errLib.New("Database error when updating program", http.StatusInternalServerError)
 		}
-		return errLib.New("Internal server error", http.StatusInternalServerError)
+		log.Println(fmt.Sprintf("Database error when updating program: %v", err.Error()))
+		return errLib.New("Internal server error when updating program", http.StatusInternalServerError)
 	}
 
 	return nil
@@ -199,12 +210,14 @@ func (r *Repository) Create(c context.Context, details values.CreateProgramValue
 	if err != nil {
 		// Check if the error is a unique violation (error code 23505)
 		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
-			// Return a custom error for unique violation
-			return errLib.New("Program name already exists", http.StatusConflict)
+		if errors.As(err, &pqErr) {
+			if pqErr.Code == databaseErrors.UniqueViolation {
+				// Return a custom error for unique violation
+				return errLib.New("Program name already exists", http.StatusConflict)
+			}
 		}
 
-		// Return a generic internal server error for other cases
+		log.Printf("Error creating program: %v", err)
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 

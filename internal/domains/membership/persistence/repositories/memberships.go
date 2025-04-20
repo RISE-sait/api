@@ -18,6 +18,18 @@ import (
 
 type Repository struct {
 	Queries *db.Queries
+	Tx      *sql.Tx
+}
+
+func (r *Repository) GetTx() *sql.Tx {
+	return r.Tx
+}
+
+func (r *Repository) WithTx(tx *sql.Tx) *Repository {
+	return &Repository{
+		Queries: r.Queries.WithTx(tx),
+		Tx:      tx,
+	}
 }
 
 func NewMembershipsRepository(container *di.Container) *Repository {
@@ -26,7 +38,7 @@ func NewMembershipsRepository(container *di.Container) *Repository {
 	}
 }
 
-func (r *Repository) Create(c context.Context, membership *values.CreateValues) *errLib.CommonError {
+func (r *Repository) Create(c context.Context, membership values.CreateValues) *errLib.CommonError {
 
 	dbParams := db.CreateMembershipParams{
 		Name: membership.Name, Description: membership.Description,
@@ -47,17 +59,17 @@ func (r *Repository) Create(c context.Context, membership *values.CreateValues) 
 	return nil
 }
 
-func (r *Repository) GetByID(c context.Context, id uuid.UUID) (*values.ReadValues, *errLib.CommonError) {
+func (r *Repository) GetByID(c context.Context, id uuid.UUID) (values.ReadValues, *errLib.CommonError) {
 	membership, err := r.Queries.GetMembershipById(c, id)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errLib.New("Membership not found", http.StatusNotFound)
+			return values.ReadValues{}, errLib.New("Membership not found", http.StatusNotFound)
 		}
-		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+		return values.ReadValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return &values.ReadValues{
+	return values.ReadValues{
 		ID: membership.ID,
 		BaseValue: values.BaseValue{
 			Name:        membership.Name,
@@ -93,7 +105,7 @@ func (r *Repository) List(c context.Context) ([]values.ReadValues, *errLib.Commo
 	return memberships, nil
 }
 
-func (r *Repository) Update(c context.Context, membership *values.UpdateValues) *errLib.CommonError {
+func (r *Repository) Update(c context.Context, membership values.UpdateValues) *errLib.CommonError {
 
 	dbMembershipParams := db.UpdateMembershipParams{
 		ID:          membership.ID,

@@ -2,9 +2,11 @@ package service
 
 import (
 	"api/internal/di"
+	staffActivityLogs "api/internal/domains/audit/staff_activity_logs/service"
 	repo "api/internal/domains/event/persistence/repository"
 	values "api/internal/domains/event/values"
 	errLib "api/internal/libs/errors"
+	contextUtils "api/utils/context"
 	"context"
 	"database/sql"
 	"errors"
@@ -16,16 +18,18 @@ import (
 )
 
 type Service struct {
-	eventsRepository      *repo.EventsRepository
-	recurrencesRepository *repo.RecurrencesRepository
-	db                    *sql.DB
+	eventsRepository         *repo.EventsRepository
+	recurrencesRepository    *repo.RecurrencesRepository
+	staffActivityLogsService *staffActivityLogs.Service
+	db                       *sql.DB
 }
 
 func NewEventService(container *di.Container) *Service {
 	return &Service{
-		eventsRepository:      repo.NewEventsRepository(container),
-		recurrencesRepository: repo.NewRecurrencesRepository(container),
-		db:                    container.DB,
+		eventsRepository:         repo.NewEventsRepository(container),
+		recurrencesRepository:    repo.NewRecurrencesRepository(container),
+		staffActivityLogsService: staffActivityLogs.NewService(container),
+		db:                       container.DB,
 	}
 }
 
@@ -88,16 +92,73 @@ func (s *Service) CreateEvents(ctx context.Context, details values.RecurrenceVal
 		return err
 	}
 
-	return s.eventsRepository.CreateEvents(ctx, events)
+	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
+		// Create events
+		if err = txRepo.CreateEvents(ctx, events); err != nil {
+			return err
+		}
+
+		return s.staffActivityLogsService.InsertStaffActivity(
+			ctx,
+			txRepo.GetTx(),
+			details.UpdatedBy,
+			fmt.Sprintf("Created events with details: %+v", details),
+		)
+	})
 }
 
 func (s *Service) CreateEvent(ctx context.Context, details values.CreateEventValues) *errLib.CommonError {
 
-	return s.eventsRepository.CreateEvents(ctx, []values.CreateEventValues{details})
+	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
+
+		if err := txRepo.CreateEvents(ctx, []values.CreateEventValues{details}); err != nil {
+			return err
+		}
+
+		isStaff, err := contextUtils.IsStaff(ctx)
+
+		if err != nil {
+			return err
+		}
+
+		if isStaff {
+
+			return s.staffActivityLogsService.InsertStaffActivity(
+				ctx,
+				txRepo.GetTx(),
+				details.CreatedBy,
+				fmt.Sprintf("Created event with details: %+v", details),
+			)
+		}
+		return nil
+	})
 }
 
 func (s *Service) UpdateEvent(ctx context.Context, details values.UpdateEventValues) *errLib.CommonError {
-	return s.eventsRepository.UpdateEvent(ctx, details)
+
+	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
+
+		if err := txRepo.UpdateEvent(ctx, details); err != nil {
+			return err
+		}
+
+		isStaff, err := contextUtils.IsStaff(ctx)
+		if err != nil {
+			return err
+		}
+
+		if isStaff {
+			return s.staffActivityLogsService.InsertStaffActivity(
+				ctx,
+				txRepo.GetTx(),
+				details.UpdatedBy,
+				fmt.Sprintf("Updated event with ID and new details: %+v", details),
+			)
+		} else {
+			return nil
+		}
+
+	})
 }
 
 // UpdateRecurringEvents updates existing events within a recurrence schedule
@@ -110,8 +171,7 @@ func (s *Service) UpdateRecurringEvents(ctx context.Context, details values.Recu
 	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
 
 		if err := txRepo.DeleteUnmodifiedEventsByRecurrenceID(ctx, details.RecurrenceID); err != nil {
-			log.Printf("Failed to delete events: %v", err)
-			return errLib.New("Failed to delete events", http.StatusInternalServerError)
+			return err
 		}
 
 		eventsToCreate, err := generateEventsFromRecurrence(details)
@@ -121,16 +181,55 @@ func (s *Service) UpdateRecurringEvents(ctx context.Context, details values.Recu
 		}
 
 		if err = txRepo.CreateEvents(ctx, eventsToCreate); err != nil {
-			log.Printf("Failed to update events: %v", err)
-			return errLib.New("Failed to update events", http.StatusInternalServerError)
+			return err
 		}
 
-		return nil
+		return s.staffActivityLogsService.InsertStaffActivity(
+			ctx,
+			txRepo.GetTx(),
+			details.UpdatedBy,
+			fmt.Sprintf("Updated events with details: %+v", details),
+		)
 	})
 }
 
 func (s *Service) DeleteEvents(ctx context.Context, ids []uuid.UUID) *errLib.CommonError {
-	return s.eventsRepository.DeleteEvents(ctx, ids)
+
+	var (
+		err     *errLib.CommonError
+		isStaff bool
+		staffID uuid.UUID
+	)
+
+	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
+
+		if err = s.eventsRepository.DeleteEvents(ctx, ids); err != nil {
+			return err
+		}
+
+		isStaff, err = contextUtils.IsStaff(ctx)
+		if err != nil {
+			return err
+		}
+
+		if isStaff {
+
+			staffID, err = contextUtils.GetUserID(ctx)
+
+			if err != nil {
+				return err
+			}
+
+			return s.staffActivityLogsService.InsertStaffActivity(
+				ctx,
+				txRepo.GetTx(),
+				staffID,
+				fmt.Sprintf("Deleted events with ids: %+v", ids),
+			)
+		} else {
+			return nil
+		}
+	})
 }
 
 func (s *Service) GetEventsSchedules(ctx context.Context, filter values.GetEventsFilter) ([]values.Schedule, *errLib.CommonError) {

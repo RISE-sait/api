@@ -2,6 +2,7 @@ package di
 
 import (
 	"api/config"
+	staffActivityLogsDb "api/internal/domains/audit/staff_activity_logs/persistence/sqlc/generated"
 	enrollmentDb "api/internal/domains/enrollment/persistence/sqlc/generated"
 	eventDb "api/internal/domains/event/persistence/sqlc/generated"
 	gameDb "api/internal/domains/game/persistence/sqlc/generated"
@@ -36,19 +37,20 @@ type Container struct {
 }
 
 type QueriesType struct {
-	IdentityDb       *identityDb.Queries
-	PurchasesDb      *purchaseDb.Queries
-	ProgramDb        *programDb.Queries
-	MembershipDb     *membershipDb.Queries
-	LocationDb       *locationDb.Queries
-	EventDb          *eventDb.Queries
-	EnrollmentDb     *enrollmentDb.Queries
-	HaircutServiceDb *haircutServiceDb.Queries
-	HaircutEventDb   *haircutEventDb.Queries
-	GameDb           *gameDb.Queries
-	TeamDb           *teamDb.Queries
-	UserDb           *userDb.Queries
-	OutboxDb         *outboxDb.Queries
+	IdentityDb          *identityDb.Queries
+	PurchasesDb         *purchaseDb.Queries
+	ProgramDb           *programDb.Queries
+	MembershipDb        *membershipDb.Queries
+	LocationDb          *locationDb.Queries
+	EventDb             *eventDb.Queries
+	EnrollmentDb        *enrollmentDb.Queries
+	HaircutServiceDb    *haircutServiceDb.Queries
+	HaircutEventDb      *haircutEventDb.Queries
+	GameDb              *gameDb.Queries
+	TeamDb              *teamDb.Queries
+	UserDb              *userDb.Queries
+	OutboxDb            *outboxDb.Queries
+	StaffActivityLogsDb *staffActivityLogsDb.Queries
 }
 
 // NewContainer initializes and returns a Container with database, queries, HubSpot, Firebase, and Square services.
@@ -95,19 +97,20 @@ func NewContainer() *Container {
 //	queries := initializeQueries(db)  // Initializes the queries for all services.
 func initializeQueries(db *sql.DB) *QueriesType {
 	return &QueriesType{
-		IdentityDb:       identityDb.New(db),
-		UserDb:           userDb.New(db),
-		PurchasesDb:      purchaseDb.New(db),
-		ProgramDb:        programDb.New(db),
-		MembershipDb:     membershipDb.New(db),
-		LocationDb:       locationDb.New(db),
-		EventDb:          eventDb.New(db),
-		EnrollmentDb:     enrollmentDb.New(db),
-		HaircutServiceDb: haircutServiceDb.New(db),
-		HaircutEventDb:   haircutEventDb.New(db),
-		GameDb:           gameDb.New(db),
-		TeamDb:           teamDb.New(db),
-		OutboxDb:         outboxDb.New(db),
+		IdentityDb:          identityDb.New(db),
+		UserDb:              userDb.New(db),
+		PurchasesDb:         purchaseDb.New(db),
+		ProgramDb:           programDb.New(db),
+		MembershipDb:        membershipDb.New(db),
+		LocationDb:          locationDb.New(db),
+		EventDb:             eventDb.New(db),
+		EnrollmentDb:        enrollmentDb.New(db),
+		HaircutServiceDb:    haircutServiceDb.New(db),
+		HaircutEventDb:      haircutEventDb.New(db),
+		GameDb:              gameDb.New(db),
+		TeamDb:              teamDb.New(db),
+		OutboxDb:            outboxDb.New(db),
+		StaffActivityLogsDb: staffActivityLogsDb.New(db),
 	}
 }
 

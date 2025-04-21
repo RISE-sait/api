@@ -35,14 +35,13 @@ func NewEventsHandler(container *di.Container) *EventsHandler {
 // @Param participant_id query string false "Filter by participant ID" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")
 // @Param team_id query string false "Filter by team ID" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")
 // @Param location_id query string false "Filter by location ID" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")
-// @Param program_type query string false "Filter by program type" Enums(game,practice,course) example(game)
+// @Param program_type query string false "Filter by program type" Enums(game,practice,course,others) example(game)
 // @Param response_type query string false "Response format type" Enums(date,day) default(date) example(date)
 // @Param created_by query string false "ID of person who created the event" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")"
 // @Param updated_by query string false "ID of person who updated the event" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")
 // @Accept json
 // @Produce json
-// @Success 200 {array} dto.EventResponseDto "List of events retrieved successfully (when response_type=date)"
-// @Success 200 {array} dto.RecurrenceResponseDto "List of schedules (when response_type=day)"
+// @Success 200 {array} dto.RecurrenceResponseDto "It actually returns either RecurrenceResponseDto or EventResponseDto based on the response_type parameter"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input format or missing required parameters"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /events [get]

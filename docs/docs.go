@@ -312,7 +312,6 @@ const docTemplate = `{
                 "tags": [
                     "payments"
                 ],
-                "summary": "CheckoutMembershipPlan a membership plan",
                 "parameters": [
                     {
                         "type": "string",
@@ -528,7 +527,6 @@ const docTemplate = `{
         },
         "/events": {
             "get": {
-                "description": "Retrieve all events within a specific date range, with optional filters by course, location, game, and practice.",
                 "consumes": [
                     "application/json"
                 ],
@@ -538,10 +536,10 @@ const docTemplate = `{
                 "tags": [
                     "events"
                 ],
-                "summary": "Get events",
                 "parameters": [
                     {
                         "type": "string",
+                        "format": "date",
                         "example": "\"2025-03-01\"",
                         "description": "Start date of the events range (YYYY-MM-DD)",
                         "name": "after",
@@ -549,6 +547,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "format": "date",
                         "example": "\"2025-03-31\"",
                         "description": "End date of the events range (YYYY-MM-DD)",
                         "name": "before",
@@ -556,122 +555,90 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "format": "uuid",
                         "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-                        "description": "Filter by program ID (UUID format)",
+                        "description": "Filter by program ID",
                         "name": "program_id",
                         "in": "query"
                     },
                     {
                         "type": "string",
+                        "format": "uuid",
                         "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-                        "description": "Filter by participant ID (UUID format)",
+                        "description": "Filter by participant ID",
                         "name": "participant_id",
                         "in": "query"
                     },
                     {
                         "type": "string",
+                        "format": "uuid",
                         "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-                        "description": "Filter by team ID (UUID format)",
+                        "description": "Filter by team ID",
                         "name": "team_id",
                         "in": "query"
                     },
                     {
                         "type": "string",
+                        "format": "uuid",
                         "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-                        "description": "Filter by location ID (UUID format)",
+                        "description": "Filter by location ID",
                         "name": "location_id",
                         "in": "query"
                     },
                     {
+                        "enum": [
+                            "game",
+                            "practice",
+                            "course",
+                            "others"
+                        ],
                         "type": "string",
-                        "description": "Program Type (game, practice, course, others)",
+                        "example": "game",
+                        "description": "Filter by program type",
                         "name": "program_type",
                         "in": "query"
                     },
                     {
+                        "enum": [
+                            "date",
+                            "day"
+                        ],
                         "type": "string",
+                        "default": "date",
+                        "example": "date",
+                        "description": "Response format type",
+                        "name": "response_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "format": "uuid",
                         "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-                        "description": "ID of person who created the event (UUID format)",
+                        "description": "ID of person who created the event",
                         "name": "created_by",
                         "in": "query"
                     },
                     {
                         "type": "string",
+                        "format": "uuid",
                         "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-                        "description": "ID of person who updated the event (UUID format)",
+                        "description": "ID of person who updated the event",
                         "name": "updated_by",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "List of events retrieved successfully",
+                        "description": "It actually returns either RecurrenceResponseDto or EventResponseDto based on the response_type parameter",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/event.EventResponseDto"
+                                "$ref": "#/definitions/event.RecurrenceResponseDto"
                             }
                         }
                     },
                     "400": {
                         "description": "Bad Request: Invalid input format or missing required parameters",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "events"
-                ],
-                "parameters": [
-                    {
-                        "description": "Update events details",
-                        "name": "event",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/event.RecurrenceRequestDto"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content: Events updated successfully",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request: Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found: Events not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -848,6 +815,65 @@ const docTemplate = `{
                 }
             }
         },
+        "/events/recurring/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "parameters": [
+                    {
+                        "description": "Update events details",
+                        "name": "event",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/event.RecurrenceRequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content: Events updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Events not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/events/{event_id}/staffs/{staff_id}": {
             "post": {
                 "description": "Assign a staff member to an event using event_id and staff_id in the request body.",
@@ -968,16 +994,12 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "format": "uuid",
+                        "example": "550e8400-e29b-41d4-a716-446655440000",
                         "description": "Event ID",
                         "name": "id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Choose between 'date' and 'day'. Response type for the schedule, in specific dates or recurring day information. Default is 'day'.",
-                        "name": "view",
-                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -1028,6 +1050,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "format": "uuid",
+                        "example": "550e8400-e29b-41d4-a716-446655440000",
                         "description": "Event ID",
                         "name": "id",
                         "in": "path",
@@ -1746,7 +1770,6 @@ const docTemplate = `{
         },
         "/locations": {
             "get": {
-                "description": "Retrieves a list of all locations.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1756,7 +1779,6 @@ const docTemplate = `{
                 "tags": [
                     "locations"
                 ],
-                "summary": "Get all locations",
                 "responses": {
                     "200": {
                         "description": "List of locations retrieved successfully",
@@ -1777,7 +1799,6 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Registers a new Location with the provided details.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1787,7 +1808,6 @@ const docTemplate = `{
                 "tags": [
                     "locations"
                 ],
-                "summary": "Create a new Location",
                 "parameters": [
                     {
                         "description": "Location details",
@@ -1825,7 +1845,6 @@ const docTemplate = `{
         },
         "/locations/{id}": {
             "get": {
-                "description": "Retrieves a Location by its unique identifier.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1835,7 +1854,6 @@ const docTemplate = `{
                 "tags": [
                     "locations"
                 ],
-                "summary": "Get a Location by ID",
                 "parameters": [
                     {
                         "type": "string",
@@ -1876,7 +1894,6 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Updates the details of an existing Location by its UUID.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1886,7 +1903,6 @@ const docTemplate = `{
                 "tags": [
                     "locations"
                 ],
-                "summary": "Update a Location",
                 "parameters": [
                     {
                         "type": "string",
@@ -1933,7 +1949,6 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Deletes a Location by its UUID.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1943,7 +1958,6 @@ const docTemplate = `{
                 "tags": [
                     "locations"
                 ],
-                "summary": "Delete a Location",
                 "parameters": [
                     {
                         "type": "string",
@@ -1983,7 +1997,6 @@ const docTemplate = `{
         },
         "/memberships": {
             "get": {
-                "description": "Get a list of memberships",
                 "consumes": [
                     "application/json"
                 ],
@@ -1993,7 +2006,6 @@ const docTemplate = `{
                 "tags": [
                     "memberships"
                 ],
-                "summary": "Get a list of memberships",
                 "responses": {
                     "200": {
                         "description": "GetMemberships of memberships retrieved successfully",
@@ -2019,7 +2031,6 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Create a new membership",
                 "consumes": [
                     "application/json"
                 ],
@@ -2029,7 +2040,6 @@ const docTemplate = `{
                 "tags": [
                     "memberships"
                 ],
-                "summary": "Create a new membership",
                 "parameters": [
                     {
                         "description": "Membership details",
@@ -2069,7 +2079,6 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Create a new membership plan",
                 "consumes": [
                     "application/json"
                 ],
@@ -2079,7 +2088,6 @@ const docTemplate = `{
                 "tags": [
                     "membership-plans"
                 ],
-                "summary": "Create a new membership plan",
                 "parameters": [
                     {
                         "description": "Membership plan details",
@@ -2119,7 +2127,6 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Update a membership plan",
                 "consumes": [
                     "application/json"
                 ],
@@ -2129,7 +2136,6 @@ const docTemplate = `{
                 "tags": [
                     "membership-plans"
                 ],
-                "summary": "Update a membership plan",
                 "parameters": [
                     {
                         "type": "string",
@@ -2181,7 +2187,6 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Delete a membership plan by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -2191,7 +2196,6 @@ const docTemplate = `{
                 "tags": [
                     "membership-plans"
                 ],
-                "summary": "Delete a membership plan",
                 "parameters": [
                     {
                         "type": "string",
@@ -2231,7 +2235,6 @@ const docTemplate = `{
         },
         "/memberships/{id}": {
             "get": {
-                "description": "Get a membership by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -2241,7 +2244,6 @@ const docTemplate = `{
                 "tags": [
                     "memberships"
                 ],
-                "summary": "Get a membership by ID",
                 "parameters": [
                     {
                         "type": "string",
@@ -2288,7 +2290,6 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Update a membership",
                 "consumes": [
                     "application/json"
                 ],
@@ -2298,7 +2299,6 @@ const docTemplate = `{
                 "tags": [
                     "memberships"
                 ],
-                "summary": "Update a membership",
                 "parameters": [
                     {
                         "type": "string",
@@ -2351,7 +2351,6 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Delete a membership by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -2361,7 +2360,6 @@ const docTemplate = `{
                 "tags": [
                     "memberships"
                 ],
-                "summary": "Delete a membership",
                 "parameters": [
                     {
                         "type": "string",
@@ -2402,7 +2400,6 @@ const docTemplate = `{
         },
         "/memberships/{id}/plans": {
             "get": {
-                "description": "Get membership plans by membership ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -2412,7 +2409,6 @@ const docTemplate = `{
                 "tags": [
                     "membership-plans"
                 ],
-                "summary": "Get membership plans by membership ID",
                 "parameters": [
                     {
                         "type": "string",
@@ -2459,7 +2455,6 @@ const docTemplate = `{
         },
         "/programs": {
             "get": {
-                "description": "Get a list of programs",
                 "consumes": [
                     "application/json"
                 ],
@@ -2469,7 +2464,6 @@ const docTemplate = `{
                 "tags": [
                     "programs"
                 ],
-                "summary": "Get a list of programs",
                 "parameters": [
                     {
                         "type": "string",
@@ -2503,7 +2497,6 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Create a new program",
                 "consumes": [
                     "application/json"
                 ],
@@ -2513,7 +2506,6 @@ const docTemplate = `{
                 "tags": [
                     "programs"
                 ],
-                "summary": "Create a new program",
                 "parameters": [
                     {
                         "description": "Program details",
@@ -2552,7 +2544,6 @@ const docTemplate = `{
         },
         "/programs/levels": {
             "get": {
-                "description": "Retrieves a list of available program levels.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2636,7 +2627,6 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Update a program",
                 "consumes": [
                     "application/json"
                 ],
@@ -2646,7 +2636,6 @@ const docTemplate = `{
                 "tags": [
                     "programs"
                 ],
-                "summary": "Update a program",
                 "parameters": [
                     {
                         "type": "string",
@@ -3055,117 +3044,8 @@ const docTemplate = `{
                 }
             }
         },
-        "/schedules": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Schedules"
-                ],
-                "parameters": [
-                    {
-                        "type": "string",
-                        "example": "\"2025-03-01\"",
-                        "description": "Start date of the events range (YYYY-MM-DD format)",
-                        "name": "after",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "example": "\"2025-03-31\"",
-                        "description": "End date of the events range (YYYY-MM-DD format)",
-                        "name": "before",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-                        "description": "Filter by program ID (UUID format)",
-                        "name": "program_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-                        "description": "Filter by user ID (UUID format)",
-                        "name": "user_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-                        "description": "Filter by team ID (UUID format)",
-                        "name": "team_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-                        "description": "Filter by location ID (UUID format)",
-                        "name": "location_id",
-                        "in": "query"
-                    },
-                    {
-                        "enum": [
-                            "game",
-                            "practice",
-                            "course",
-                            "others"
-                        ],
-                        "type": "string",
-                        "description": "Filter by program type",
-                        "name": "program_type",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-                        "description": "Filter by creator ID (UUID format)",
-                        "name": "created_by",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
-                        "description": "Filter by updater ID (UUID format)",
-                        "name": "updated_by",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Schedule retrieved successfully",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/event.ScheduleResponseDto"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid parameters",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/staffs": {
             "get": {
-                "description": "Retrieves staff members based on optional role filter.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3175,7 +3055,6 @@ const docTemplate = `{
                 "tags": [
                     "staff"
                 ],
-                "summary": "Get a list of staff members",
                 "parameters": [
                     {
                         "type": "string",
@@ -3212,6 +3091,72 @@ const docTemplate = `{
                 }
             }
         },
+        "/staffs/logs": {
+            "get": {
+                "description": "Retrieves a paginated list of staff activity logs with optional filtering",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "staff_activity_logs"
+                ],
+                "summary": "Get staff activity logs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
+                        "description": "Filter by staff member ID (UUID format)",
+                        "name": "staff_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search term to filter activity descriptions (case-insensitive partial match)",
+                        "name": "search_description",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "example": 10,
+                        "description": "Number of records to return (default: 10)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "example": 0,
+                        "description": "Number of records to skip for pagination (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of staff activity logs retrieved successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/staff_activity_logs.StaffActivityLogResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request: Invalid input format",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/staffs/{id}": {
             "put": {
                 "security": [
@@ -3219,7 +3164,6 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Update a staff member",
                 "consumes": [
                     "application/json"
                 ],
@@ -3229,7 +3173,6 @@ const docTemplate = `{
                 "tags": [
                     "staff"
                 ],
-                "summary": "Update a staff member",
                 "parameters": [
                     {
                         "type": "string",
@@ -3282,7 +3225,6 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Delete a staff member by HubSpotId",
                 "consumes": [
                     "application/json"
                 ],
@@ -3292,12 +3234,11 @@ const docTemplate = `{
                 "tags": [
                     "staff"
                 ],
-                "summary": "Delete a staff member",
                 "parameters": [
                     {
                         "type": "string",
                         "example": "\"f47ac10b-58cc-4372-a567-0e02b2c3d479\"",
-                        "description": "Staff HubSpotId",
+                        "description": "Staff ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -3308,7 +3249,7 @@ const docTemplate = `{
                         "description": "No Content: Staff deleted successfully"
                     },
                     "400": {
-                        "description": "Bad Request: Invalid HubSpotId",
+                        "description": "Bad Request: Invalid ID",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -4160,10 +4101,10 @@ const docTemplate = `{
         "event.RecurrenceRequestDto": {
             "type": "object",
             "required": [
-                "end_at",
+                "event_end_at",
+                "event_start_at",
                 "recurrence_end_at",
-                "recurrence_start_at",
-                "start_at"
+                "recurrence_start_at"
             ],
             "properties": {
                 "capacity": {
@@ -4174,7 +4115,11 @@ const docTemplate = `{
                     "type": "string",
                     "example": "THURSDAY"
                 },
-                "end_at": {
+                "event_end_at": {
+                    "type": "string",
+                    "example": "23:00:00+00:00"
+                },
+                "event_start_at": {
                     "type": "string",
                     "example": "23:00:00+00:00"
                 },
@@ -4194,17 +4139,13 @@ const docTemplate = `{
                     "type": "string",
                     "example": "2023-10-05T07:00:00Z"
                 },
-                "start_at": {
-                    "type": "string",
-                    "example": "23:00:00+00:00"
-                },
                 "team_id": {
                     "type": "string",
                     "example": "0bab3927-50eb-42b3-9d6b-2350dd00a100"
                 }
             }
         },
-        "event.ScheduleResponseDto": {
+        "event.RecurrenceResponseDto": {
             "type": "object",
             "properties": {
                 "day": {
@@ -4825,6 +4766,32 @@ const docTemplate = `{
                 }
             }
         },
+        "staff_activity_logs.StaffActivityLogResponse": {
+            "type": "object",
+            "properties": {
+                "activity_description": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "staff_id": {
+                    "type": "string"
+                }
+            }
+        },
         "team.Coach": {
             "type": "object",
             "properties": {
@@ -4949,8 +4916,8 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost",
-	BasePath:         "/",
+	Host:             "",
+	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "Rise API",
 	Description:      "",

@@ -1,6 +1,10 @@
 package event
 
 import (
+	"fmt"
+	"net/http"
+	"time"
+
 	"api/internal/di"
 	dto "api/internal/domains/event/dto"
 	"api/internal/domains/event/service"
@@ -9,9 +13,6 @@ import (
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	contextUtils "api/utils/context"
-	"fmt"
-	"net/http"
-	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
@@ -28,25 +29,24 @@ func NewEventsHandler(container *di.Container) *EventsHandler {
 
 // GetEvents retrieves all events based on filter criteria.
 // @Tags events
-// @Param after query string false "Start date of the events range (YYYY-MM-DD)" example("2025-03-01")
-// @Param before query string false "End date of the events range (YYYY-MM-DD)" example("2025-03-31")
-// @Param program_id query string false "Filter by program ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
-// @Param participant_id query string false "Filter by participant ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
-// @Param team_id query string false "Filter by team ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
-// @Param location_id query string false "Filter by location ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
-// @Param program_type query string false "Program Type (game, practice, course, others)"
-// @Param response_type query string false "Response type (date or day)" default(date)
-// @Param created_by query string false "ID of person who created the event (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")"
-// @Param updated_by query string false "ID of person who updated the event (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
+// @Param after query string false "Start date of the events range (YYYY-MM-DD)" Format(date) example("2025-03-01")
+// @Param before query string false "End date of the events range (YYYY-MM-DD)" Format(date) example("2025-03-31")
+// @Param program_id query string false "Filter by program ID" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")
+// @Param participant_id query string false "Filter by participant ID" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")
+// @Param team_id query string false "Filter by team ID" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")
+// @Param location_id query string false "Filter by location ID" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")
+// @Param program_type query string false "Filter by program type" Enums(game,practice,course) example(game)
+// @Param response_type query string false "Response format type" Enums(date,day) default(date) example(date)
+// @Param created_by query string false "ID of person who created the event" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")"
+// @Param updated_by query string false "ID of person who updated the event" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")
 // @Accept json
 // @Produce json
-// @Success 200 {array} dto.EventResponseDto "List of events retrieved successfully"
-// @Schema(oneOf={[]dto.EventResponseDto,[]dto.ScheduleResponseDto})
+// @Success 200 {array} dto.EventResponseDto "List of events retrieved successfully (when response_type=date)"
+// @Success 200 {array} dto.RecurrenceResponseDto "List of schedules (when response_type=day)"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input format or missing required parameters"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /events [get]
 func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
-
 	type FilterKey string
 
 	const (
@@ -143,7 +143,6 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	if responseType == "date" {
 
 		events, err := h.EventsService.GetEvents(r.Context(), filter)
-
 		if err != nil {
 			responseHandlers.RespondWithError(w, err)
 			return
@@ -164,7 +163,6 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	schedules, err := h.EventsService.GetEventsSchedules(r.Context(), filter)
-
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
@@ -181,26 +179,22 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responseHandlers.RespondWithSuccess(w, responseDto, http.StatusOK)
-
 }
 
 // GetEvent retrieves detailed information about a specific event based on its ID.
 // @Tags events
 // @Accept json
 // @Produce json
-// @Param id path string true "Event ID"
-// @Param view query string false "Choose between 'date' and 'day'. Response type for the schedule, in specific dates or recurring day information. Default is 'day'."
+// @Param id path string true "Event ID" Format(uuid) example(550e8400-e29b-41d4-a716-446655440000)
 // @Success 200 {object} dto.EventResponseDto "Event details retrieved successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Event not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /events/{id} [get]
 func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
-
 	var eventId uuid.UUID
 
 	if eventIdStr := chi.URLParam(r, "id"); eventIdStr != "" {
-
 		if id, err := validators.ParseUUID(eventIdStr); err != nil {
 			responseHandlers.RespondWithError(w, err)
 			return
@@ -231,7 +225,6 @@ func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /events/one-time [post]
 func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
-
 	userID, ctxErr := contextUtils.GetUserID(r.Context())
 
 	if ctxErr != nil {
@@ -263,7 +256,7 @@ func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param id path string true "Event ID"
+// @Param id path string true "Event ID" Format(uuid) example(550e8400-e29b-41d4-a716-446655440000)
 // @Param event body dto.EventRequestDto true "Updated event details"
 // @Success 204 {object} map[string]interface{} "No Content: Event updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
@@ -271,9 +264,7 @@ func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /events/{id} [put]
 func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
-
 	userID, err := contextUtils.GetUserID(r.Context())
-
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
@@ -293,7 +284,6 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	// Convert to domain values
 
 	params, err := targetBody.ToUpdateEventValues(idStr, userID)
-
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
@@ -304,7 +294,6 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	userRole := r.Context().Value(contextUtils.RoleKey).(contextUtils.CtxRole)
 
 	loggedInUserID, err := contextUtils.GetUserID(r.Context())
-
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
@@ -313,7 +302,6 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	// Authorization check
 
 	retrievedEvent, err := h.EventsService.GetEvent(r.Context(), params.ID)
-
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
@@ -348,7 +336,6 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /events [delete]
 func (h *EventsHandler) DeleteEvents(w http.ResponseWriter, r *http.Request) {
-
 	// Get auth context
 	userRole := r.Context().Value(contextUtils.RoleKey).(contextUtils.CtxRole)
 	loggedInUserID, err := contextUtils.GetUserID(r.Context())
@@ -374,7 +361,6 @@ func (h *EventsHandler) DeleteEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	retrievedEvents, err := h.EventsService.GetEvents(r.Context(), filter)
-
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return

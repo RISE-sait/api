@@ -115,7 +115,7 @@ const insertUsers = `-- name: InsertUsers :many
 WITH prepared_data AS (SELECT unnest($1::text[])            AS country_alpha2_code,
                               unnest($2::text[])                     AS first_name,
                               unnest($3::text[])                      AS last_name,
-                              unnest($4::timestamptz[])                             AS dob,
+                              unnest($4::timestamptz[]) AS dob,
                               unnest($5::uuid[]) AS parent_id,
                               unnest($6::char[])    AS gender,
                               unnest($7::text[])                          AS phone,

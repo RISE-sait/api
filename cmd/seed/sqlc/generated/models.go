@@ -366,6 +366,13 @@ type AuditOutbox struct {
 	CreatedAt    time.Time        `json:"created_at"`
 }
 
+type AuditStaffActivityLog struct {
+	ID                  uuid.UUID `json:"id"`
+	StaffID             uuid.UUID `json:"staff_id"`
+	ActivityDescription string    `json:"activity_description"`
+	CreatedAt           time.Time `json:"created_at"`
+}
+
 type EventsAttendance struct {
 	ID          uuid.UUID    `json:"id"`
 	EventID     uuid.UUID    `json:"event_id"`
@@ -394,11 +401,12 @@ type EventsEvent struct {
 	EndAt              time.Time      `json:"end_at"`
 	CreatedBy          uuid.UUID      `json:"created_by"`
 	UpdatedBy          uuid.UUID      `json:"updated_by"`
-	Capacity           sql.NullInt32  `json:"capacity"`
 	IsCancelled        bool           `json:"is_cancelled"`
 	CancellationReason sql.NullString `json:"cancellation_reason"`
 	CreatedAt          time.Time      `json:"created_at"`
 	UpdatedAt          time.Time      `json:"updated_at"`
+	IsDateTimeModified bool           `json:"is_date_time_modified"`
+	RecurrenceID       uuid.NullUUID  `json:"recurrence_id"`
 }
 
 type EventsStaff struct {
@@ -522,13 +530,6 @@ type StaffStaff struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	RoleID    uuid.UUID `json:"role_id"`
-}
-
-type StaffStaffActivityLog struct {
-	ID         uuid.UUID `json:"id"`
-	UserID     uuid.UUID `json:"user_id"`
-	Activity   string    `json:"activity"`
-	OccurredAt time.Time `json:"occurred_at"`
 }
 
 type StaffStaffRole struct {

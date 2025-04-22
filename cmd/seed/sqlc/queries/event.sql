@@ -4,17 +4,15 @@ WITH events_data AS (SELECT unnest(@start_at_array::timestamptz[])     as start_
                             unnest(@program_name_array::varchar[]) as program_name,
                             unnest(@location_name_array::varchar[])    as location_name,
                             unnest(@created_by_email_array::varchar[]) AS created_by_email,
-                            unnest(@updated_by_email_array::varchar[]) AS updated_by_email,
-                            unnest(@capacity_array::int[])         AS capacity)
-INSERT
-INTO events.events (start_at, end_at, program_id, location_id, created_by, updated_by, capacity)
+                            unnest(@updated_by_email_array::varchar[]) AS updated_by_email)
+                            INSERT
+INTO events.events (start_at, end_at, program_id, location_id, created_by, updated_by)
 SELECT e.start_at,
        e.end_at,
        p.id,
        l.id,
        creator.id,
-       updater.id,
-       e.capacity
+       updater.id
 FROM events_data e
          JOIN program.programs p ON p.name = e.program_name
          JOIN users.users creator ON creator.email = e.created_by_email

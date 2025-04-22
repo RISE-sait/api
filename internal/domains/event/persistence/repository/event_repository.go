@@ -151,6 +151,17 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 		UpdatedAt: dbEvent.UpdatedAt,
 		StartAt:   dbEvent.StartAt,
 		EndAt:     dbEvent.EndAt,
+		Program: struct {
+			ID          uuid.UUID
+			Name        string
+			Description string
+			Type        string
+		}{
+			ID:          dbEvent.ProgramID,
+			Name:        dbEvent.ProgramName,
+			Description: dbEvent.ProgramDescription,
+			Type:        string(dbEvent.ProgramType),
+		},
 		Location: struct {
 			ID      uuid.UUID
 			Name    string
@@ -172,9 +183,6 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 		},
 	}
 
-	eventCustomers := make([]values.Customer, 0)
-	eventStaffs := make([]values.Staff, 0)
-
 	dbStaffs, err := r.Queries.GetEventStaffs(ctx, id)
 	if err != nil {
 		log.Println("Failed to get event staffs from db: ", err.Error())
@@ -194,7 +202,7 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 			RoleName: dbStaff.StaffRoleName,
 		}
 
-		eventStaffs = append(eventStaffs, staff)
+		eventValue.Staffs = append(eventValue.Staffs, staff)
 	}
 
 	dbCustomers, err := r.Queries.GetEventCustomers(ctx, id)
@@ -211,10 +219,11 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 				FirstName: dbCustomer.CustomerFirstName,
 				LastName:  dbCustomer.CustomerLastName,
 			},
+			Email:  stringToPtr(dbCustomer.CustomerEmail),
 			Phone:  stringToPtr(dbCustomer.CustomerPhone),
 			Gender: stringToPtr(dbCustomer.CustomerGender),
 		}
-		eventCustomers = append(eventCustomers, customer)
+		eventValue.Customers = append(eventValue.Customers, customer)
 	}
 
 	return eventValue, nil

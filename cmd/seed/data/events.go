@@ -1,15 +1,15 @@
 package data
 
 import (
-	dbSeed "api/cmd/seed/sqlc/generated"
 	"log"
 	"math/rand"
 	"strings"
 	"time"
+
+	dbSeed "api/cmd/seed/sqlc/generated"
 )
 
 func GetEvents() dbSeed.InsertEventsParams {
-
 	var (
 		startAtArray        []time.Time
 		endAtArray          []time.Time
@@ -17,13 +17,9 @@ func GetEvents() dbSeed.InsertEventsParams {
 		createdByEmailArray []string
 		updatedByEmailArray []string
 		programNameArray    []string
-		capacityArray       []int32
 	)
 
 	for _, practice := range Practices {
-
-		capacity := practice.Capacity
-
 		for _, schedule := range practice.Schedules {
 
 			var programStartAt, programEndAt time.Time
@@ -92,7 +88,6 @@ func GetEvents() dbSeed.InsertEventsParams {
 				locationNameArray = append(locationNameArray, schedule.Location)
 				createdByEmailArray = append(createdByEmailArray, "klintlee1@gmail.com")
 				updatedByEmailArray = append(updatedByEmailArray, "klintlee1@gmail.com")
-				capacityArray = append(capacityArray, int32(capacity))
 				programNameArray = append(programNameArray, practice.Name)
 			}
 		}
@@ -104,13 +99,11 @@ func GetEvents() dbSeed.InsertEventsParams {
 		LocationNameArray:   locationNameArray,
 		CreatedByEmailArray: createdByEmailArray,
 		UpdatedByEmailArray: updatedByEmailArray,
-		CapacityArray:       capacityArray,
 		ProgramNameArray:    programNameArray,
 	}
 }
 
 func GetFakeEvents(programs, locations []string, isRecurring bool) dbSeed.InsertEventsParams {
-
 	var (
 		startAtArray        []time.Time
 		endAtArray          []time.Time
@@ -118,7 +111,6 @@ func GetFakeEvents(programs, locations []string, isRecurring bool) dbSeed.Insert
 		createdByEmailArray []string
 		updatedByEmailArray []string
 		programNameArray    []string
-		capacityArray       []int32
 	)
 
 	for _, game := range programs {
@@ -163,7 +155,6 @@ func GetFakeEvents(programs, locations []string, isRecurring bool) dbSeed.Insert
 				locationNameArray = append(locationNameArray, randomLocation)
 				createdByEmailArray = append(createdByEmailArray, "klintlee1@gmail.com")
 				updatedByEmailArray = append(updatedByEmailArray, "klintlee1@gmail.com")
-				capacityArray = append(capacityArray, int32(40))
 				programNameArray = append(programNameArray, game)
 			}
 		} else {
@@ -189,7 +180,6 @@ func GetFakeEvents(programs, locations []string, isRecurring bool) dbSeed.Insert
 			locationNameArray = append(locationNameArray, randomLocation)
 			createdByEmailArray = append(createdByEmailArray, "klintlee1@gmail.com")
 			updatedByEmailArray = append(updatedByEmailArray, "klintlee1@gmail.com")
-			capacityArray = append(capacityArray, int32(40))
 			programNameArray = append(programNameArray, game)
 		}
 	}
@@ -200,7 +190,6 @@ func GetFakeEvents(programs, locations []string, isRecurring bool) dbSeed.Insert
 		LocationNameArray:   locationNameArray,
 		CreatedByEmailArray: createdByEmailArray,
 		UpdatedByEmailArray: updatedByEmailArray,
-		CapacityArray:       capacityArray,
 		ProgramNameArray:    programNameArray,
 	}
 }

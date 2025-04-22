@@ -61,17 +61,15 @@ WITH events_data AS (SELECT unnest($1::timestamptz[])     as start_at,
                             unnest($3::varchar[]) as program_name,
                             unnest($4::varchar[])    as location_name,
                             unnest($5::varchar[]) AS created_by_email,
-                            unnest($6::varchar[]) AS updated_by_email,
-                            unnest($7::int[])         AS capacity)
-INSERT
-INTO events.events (start_at, end_at, program_id, location_id, created_by, updated_by, capacity)
+                            unnest($6::varchar[]) AS updated_by_email)
+                            INSERT
+INTO events.events (start_at, end_at, program_id, location_id, created_by, updated_by)
 SELECT e.start_at,
        e.end_at,
        p.id,
        l.id,
        creator.id,
-       updater.id,
-       e.capacity
+       updater.id
 FROM events_data e
          JOIN program.programs p ON p.name = e.program_name
          JOIN users.users creator ON creator.email = e.created_by_email
@@ -88,7 +86,6 @@ type InsertEventsParams struct {
 	LocationNameArray   []string    `json:"location_name_array"`
 	CreatedByEmailArray []string    `json:"created_by_email_array"`
 	UpdatedByEmailArray []string    `json:"updated_by_email_array"`
-	CapacityArray       []int32     `json:"capacity_array"`
 }
 
 func (q *Queries) InsertEvents(ctx context.Context, arg InsertEventsParams) ([]uuid.UUID, error) {
@@ -99,7 +96,6 @@ func (q *Queries) InsertEvents(ctx context.Context, arg InsertEventsParams) ([]u
 		pq.Array(arg.LocationNameArray),
 		pq.Array(arg.CreatedByEmailArray),
 		pq.Array(arg.UpdatedByEmailArray),
-		pq.Array(arg.CapacityArray),
 	)
 	if err != nil {
 		return nil, err

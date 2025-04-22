@@ -41,7 +41,6 @@ type CreateRecurrenceValues struct {
 	TeamID     uuid.UUID
 	LocationID uuid.UUID
 	CreatedBy  uuid.UUID
-	Capacity   int32
 }
 
 type UpdateRecurrenceValues struct {
@@ -49,7 +48,6 @@ type UpdateRecurrenceValues struct {
 	ID         uuid.UUID
 	ProgramID  uuid.UUID
 	TeamID     uuid.UUID
-	Capacity   int32
 	LocationID uuid.UUID
 	UpdatedBy  uuid.UUID
 }

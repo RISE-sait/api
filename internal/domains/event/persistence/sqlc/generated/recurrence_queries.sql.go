@@ -30,10 +30,11 @@ func (q *Queries) DeleteUnmodifiedEventsByRecurrenceID(ctx context.Context, recu
 	return err
 }
 
-const getEventsSchedules = `-- name: GetEventsRecurrences :many
+const getEventsRecurrence = `-- name: GetEventsRecurrence :many
 SELECT trim(to_char(start_at, 'Day')) AS day_of_week, -- More readable
        to_char(start_at, 'HH24:MI')   AS start_time,
        to_char(end_at, 'HH24:MI')     AS end_time,
+       recurrence_id,
        p.id                           AS program_id,
        p.name                         AS program_name,
        p.description                  AS program_description,
@@ -76,10 +77,11 @@ GROUP BY to_char(start_at, 'Day'),
          t.name,
          location_id,
          l.name,
-         l.address
+         l.address,
+        recurrence_id
 `
 
-type GetEventsSchedulesParams struct {
+type GetEventsRecurrenceParams struct {
 	ProgramID  uuid.NullUUID          `json:"program_id"`
 	TeamID     uuid.NullUUID          `json:"team_id"`
 	LocationID uuid.NullUUID          `json:"location_id"`
@@ -91,10 +93,11 @@ type GetEventsSchedulesParams struct {
 	UserID     uuid.NullUUID          `json:"user_id"`
 }
 
-type GetEventsSchedulesRow struct {
+type GetEventsRecurrenceRow struct {
 	DayOfWeek          string             `json:"day_of_week"`
 	StartTime          string             `json:"start_time"`
 	EndTime            string             `json:"end_time"`
+	RecurrenceID       uuid.NullUUID      `json:"recurrence_id"`
 	ProgramID          uuid.UUID          `json:"program_id"`
 	ProgramName        string             `json:"program_name"`
 	ProgramDescription string             `json:"program_description"`
@@ -109,8 +112,8 @@ type GetEventsSchedulesRow struct {
 	LastOccurrence     time.Time          `json:"last_occurrence"`
 }
 
-func (q *Queries) GetEventsSchedules(ctx context.Context, arg GetEventsSchedulesParams) ([]GetEventsSchedulesRow, error) {
-	rows, err := q.db.QueryContext(ctx, getEventsSchedules,
+func (q *Queries) GetEventsRecurrence(ctx context.Context, arg GetEventsRecurrenceParams) ([]GetEventsRecurrenceRow, error) {
+	rows, err := q.db.QueryContext(ctx, getEventsRecurrence,
 		arg.ProgramID,
 		arg.TeamID,
 		arg.LocationID,
@@ -125,13 +128,14 @@ func (q *Queries) GetEventsSchedules(ctx context.Context, arg GetEventsSchedules
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetEventsSchedulesRow
+	var items []GetEventsRecurrenceRow
 	for rows.Next() {
-		var i GetEventsSchedulesRow
+		var i GetEventsRecurrenceRow
 		if err := rows.Scan(
 			&i.DayOfWeek,
 			&i.StartTime,
 			&i.EndTime,
+			&i.RecurrenceID,
 			&i.ProgramID,
 			&i.ProgramName,
 			&i.ProgramDescription,

@@ -19,9 +19,7 @@ func (dto RequestDto) validate() *errLib.CommonError {
 }
 
 func (dto RequestDto) ToCreateValueObjects() (values.CreateProgramValues, *errLib.CommonError) {
-
 	err := dto.validate()
-
 	if err != nil {
 		return values.CreateProgramValues{}, err
 	}
@@ -37,15 +35,12 @@ func (dto RequestDto) ToCreateValueObjects() (values.CreateProgramValues, *errLi
 }
 
 func (dto RequestDto) ToUpdateValueObjects(idStr string) (values.UpdateProgramValues, *errLib.CommonError) {
-
 	id, err := validators.ParseUUID(idStr)
-
 	if err != nil {
 		return values.UpdateProgramValues{}, err
 	}
 
 	err = dto.validate()
-
 	if err != nil {
 		return values.UpdateProgramValues{}, err
 	}
@@ -56,6 +51,7 @@ func (dto RequestDto) ToUpdateValueObjects(idStr string) (values.UpdateProgramVa
 			Name:        dto.Name,
 			Description: dto.Description,
 			Level:       dto.Level,
+			Capacity:    dto.Capacity,
 			Type:        dto.Type,
 		},
 	}, nil

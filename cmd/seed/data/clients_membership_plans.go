@@ -1,15 +1,15 @@
 package data
 
 import (
-	dbSeed "api/cmd/seed/sqlc/generated"
 	"encoding/csv"
 	"fmt"
 	"os"
 	"time"
+
+	dbSeed "api/cmd/seed/sqlc/generated"
 )
 
 func GetClientsMembershipPlans() (dbSeed.InsertClientsMembershipPlansParams, error) {
-
 	var params dbSeed.InsertClientsMembershipPlansParams
 
 	var (
@@ -54,7 +54,8 @@ func GetClientsMembershipPlans() (dbSeed.InsertClientsMembershipPlansParams, err
 			renewalDate = time.Time{}
 		}
 
-		membershipPlan := record[20]
+		membershipPlan := record[19]
+
 		email := record[3]
 
 		// Append to the arrays

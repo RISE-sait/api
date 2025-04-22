@@ -1,16 +1,16 @@
 package sqlc_test
 
 import (
+	"context"
+	"database/sql"
+	"testing"
+	"time"
+
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
 	locationDb "api/internal/domains/location/persistence/sqlc/generated"
 	dbTestUtils "api/utils/test_utils"
 
-	"database/sql"
-
-	"context"
 	"github.com/google/uuid"
-	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -19,7 +19,6 @@ import (
 )
 
 func TestGetNonExistingEvent(t *testing.T) {
-
 	db, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	eventQueries := eventDb.New(db)
@@ -33,7 +32,6 @@ func TestGetNonExistingEvent(t *testing.T) {
 }
 
 func TestCreateEvents(t *testing.T) {
-
 	db, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	identityQueries := identityDb.New(db)
@@ -82,7 +80,6 @@ func TestCreateEvents(t *testing.T) {
 		LocationIds:             make([]uuid.UUID, len(testTimes)),
 		ProgramIds:              make([]uuid.UUID, len(testTimes)),
 		CreatedByIds:            make([]uuid.UUID, len(testTimes)),
-		Capacities:              make([]int32, len(testTimes)),
 		IsCancelledArray:        make([]bool, len(testTimes)),
 		IsDateTimeModifiedArray: make([]bool, len(testTimes)),
 	}
@@ -93,7 +90,6 @@ func TestCreateEvents(t *testing.T) {
 		createEventsParams.LocationIds[i] = createdLocation.ID
 		createEventsParams.ProgramIds[i] = createdProgram.ID
 		createEventsParams.CreatedByIds[i] = creator.ID
-		createEventsParams.Capacities[i] = tm.capacity
 		createEventsParams.IsDateTimeModifiedArray[i] = false
 		createEventsParams.IsCancelledArray[i] = false
 	}
@@ -120,7 +116,6 @@ func TestCreateEvents(t *testing.T) {
 				require.Equal(t, testTime.endAt.UTC(), event.EndAt.UTC())
 				require.Equal(t, createdLocation.ID, event.LocationID)
 				require.Equal(t, createdProgram.ID, event.ProgramID)
-				require.Equal(t, testTime.capacity, event.Capacity.Int32)
 				found = true
 				break
 			}
@@ -130,7 +125,6 @@ func TestCreateEvents(t *testing.T) {
 }
 
 func TestUpdateEvent(t *testing.T) {
-
 	db, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	identityQueries := identityDb.New(db)
@@ -170,7 +164,6 @@ func TestUpdateEvent(t *testing.T) {
 		LocationIds:             []uuid.UUID{createdLocation.ID},
 		ProgramIds:              []uuid.UUID{createdProgram.ID},
 		CreatedByIds:            []uuid.UUID{creator.ID},
-		Capacities:              []int32{20},
 		IsCancelledArray:        []bool{false},
 		IsDateTimeModifiedArray: []bool{false},
 	}
@@ -193,7 +186,6 @@ func TestUpdateEvent(t *testing.T) {
 	// Now, update the createdEvent
 	newStart := now.Add(3 * time.Hour).UTC()
 	newEnd := now.Add(4 * time.Hour).UTC()
-	newCapacity := int32(15)
 
 	updateEventParams := eventDb.UpdateEventParams{
 		ID:         originalEvent.ID,
@@ -201,11 +193,7 @@ func TestUpdateEvent(t *testing.T) {
 		EndAt:      newEnd,
 		LocationID: originalEvent.LocationID,
 		ProgramID:  originalEvent.ProgramID,
-		Capacity: sql.NullInt32{
-			Int32: newCapacity,
-			Valid: true,
-		},
-		UpdatedBy: originalEvent.CreatedBy,
+		UpdatedBy:  originalEvent.CreatedBy,
 	}
 
 	updatedEvent, err := eventQueries.UpdateEvent(context.Background(), updateEventParams)
@@ -216,11 +204,9 @@ func TestUpdateEvent(t *testing.T) {
 	require.Equal(t, newEnd, updatedEvent.EndAt.UTC())
 	require.Equal(t, originalEvent.LocationID, updatedEvent.LocationID)
 	require.Equal(t, originalEvent.ProgramID, updatedEvent.ProgramID)
-	require.Equal(t, newCapacity, updatedEvent.Capacity.Int32)
 }
 
 func TestDeleteEvent(t *testing.T) {
-
 	db, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
 
 	identityQueries := identityDb.New(db)
@@ -264,7 +250,6 @@ func TestDeleteEvent(t *testing.T) {
 		LocationIds:             []uuid.UUID{createdLocation.ID, createdLocation.ID},
 		ProgramIds:              []uuid.UUID{createdProgram.ID, createdProgram.ID},
 		CreatedByIds:            []uuid.UUID{creator.ID, creator.ID},
-		Capacities:              []int32{20, 30},
 		IsCancelledArray:        []bool{false, false},
 		IsDateTimeModifiedArray: []bool{false, false},
 	}

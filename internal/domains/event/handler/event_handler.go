@@ -161,7 +161,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	schedules, err := h.EventsService.GetEventsSchedules(r.Context(), filter)
+	schedules, err := h.EventsService.GetEventsRecurrences(r.Context(), filter)
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return

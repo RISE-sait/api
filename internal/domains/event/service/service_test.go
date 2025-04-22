@@ -1,10 +1,11 @@
 package service
 
 import (
-	values "api/internal/domains/event/values"
 	"net/http"
 	"testing"
 	"time"
+
+	values "api/internal/domains/event/values"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -12,7 +13,6 @@ import (
 
 func TestGenerateEventsFromRecurrence(t *testing.T) {
 	t.Run("Valid input generates events", func(t *testing.T) {
-
 		recurrence := values.CreateRecurrenceValues{
 			CreatedBy: uuid.New(),
 			BaseRecurrenceValues: values.BaseRecurrenceValues{
@@ -26,13 +26,11 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			ProgramID:  uuid.New(),
 			LocationID: uuid.New(),
 			TeamID:     uuid.New(),
-			Capacity:   50,
 		}
 
 		events, err := generateEventsFromRecurrence(
 			recurrence.FirstOccurrence,
 			recurrence.LastOccurrence,
-			recurrence.Capacity,
 			recurrence.StartTime,
 			recurrence.EndTime,
 			recurrence.CreatedBy,
@@ -49,7 +47,6 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			assert.Equal(t, recurrence.ProgramID, event.ProgramID)
 			assert.Equal(t, recurrence.LocationID, event.LocationID)
 			assert.Equal(t, recurrence.TeamID, event.TeamID)
-			assert.Equal(t, recurrence.Capacity, event.Capacity)
 			assert.Equal(t, time.Monday, event.StartAt.Weekday())
 			assert.Equal(t, "10:00", event.StartAt.Format("15:04"))
 			assert.Equal(t, "12:00", event.EndAt.Format("15:04"))
@@ -57,7 +54,6 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 	})
 
 	t.Run("Invalid start time format", func(t *testing.T) {
-
 		day := time.Monday
 
 		recurrence := values.CreateRecurrenceValues{
@@ -72,13 +68,11 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			ProgramID:  uuid.New(),
 			LocationID: uuid.New(),
 			TeamID:     uuid.New(),
-			Capacity:   50,
 		}
 
 		events, err := generateEventsFromRecurrence(
 			recurrence.FirstOccurrence,
 			recurrence.LastOccurrence,
-			recurrence.Capacity,
 			recurrence.StartTime,
 			recurrence.EndTime,
 			recurrence.CreatedBy,
@@ -95,7 +89,6 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 	})
 
 	t.Run("Invalid end time format", func(t *testing.T) {
-
 		day := time.Monday
 
 		recurrence := values.CreateRecurrenceValues{
@@ -110,13 +103,11 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			ProgramID:  uuid.New(),
 			LocationID: uuid.New(),
 			TeamID:     uuid.New(),
-			Capacity:   50,
 		}
 
 		events, err := generateEventsFromRecurrence(
 			recurrence.FirstOccurrence,
 			recurrence.LastOccurrence,
-			recurrence.Capacity,
 			recurrence.StartTime,
 			recurrence.EndTime,
 			recurrence.CreatedBy,
@@ -133,7 +124,6 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 	})
 
 	t.Run("End time before start time (crosses midnight)", func(t *testing.T) {
-
 		day := time.Monday
 
 		recurrence := values.CreateRecurrenceValues{
@@ -148,13 +138,11 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			ProgramID:  uuid.New(),
 			LocationID: uuid.New(),
 			TeamID:     uuid.New(),
-			Capacity:   50,
 		}
 
 		events, err := generateEventsFromRecurrence(
 			recurrence.FirstOccurrence,
 			recurrence.LastOccurrence,
-			recurrence.Capacity,
 			recurrence.StartTime,
 			recurrence.EndTime,
 			recurrence.CreatedBy,
@@ -174,7 +162,6 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 	})
 
 	t.Run("No events generated if recurrence period is invalid", func(t *testing.T) {
-
 		recurrence := values.CreateRecurrenceValues{
 			CreatedBy: uuid.New(),
 			BaseRecurrenceValues: values.BaseRecurrenceValues{
@@ -187,13 +174,11 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			ProgramID:  uuid.New(),
 			LocationID: uuid.New(),
 			TeamID:     uuid.New(),
-			Capacity:   50,
 		}
 
 		events, err := generateEventsFromRecurrence(
 			recurrence.FirstOccurrence,
 			recurrence.LastOccurrence,
-			recurrence.Capacity,
 			recurrence.StartTime,
 			recurrence.EndTime,
 			recurrence.CreatedBy,
@@ -210,7 +195,6 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 	})
 
 	t.Run("No matching weekdays in recurrence period", func(t *testing.T) {
-
 		recurrence := values.CreateRecurrenceValues{
 			CreatedBy: uuid.New(),
 			BaseRecurrenceValues: values.BaseRecurrenceValues{
@@ -223,13 +207,11 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			ProgramID:  uuid.New(),
 			LocationID: uuid.New(),
 			TeamID:     uuid.New(),
-			Capacity:   50,
 		}
 
 		events, err := generateEventsFromRecurrence(
 			recurrence.FirstOccurrence,
 			recurrence.LastOccurrence,
-			recurrence.Capacity,
 			recurrence.StartTime,
 			recurrence.EndTime,
 			recurrence.CreatedBy,

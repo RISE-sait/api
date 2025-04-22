@@ -1,17 +1,20 @@
 package user
 
 import (
+	"fmt"
+	"log"
+	"net/http"
+	"strconv"
+
 	"api/internal/di"
 	dto "api/internal/domains/user/dto/customer"
 	customerRepo "api/internal/domains/user/persistence/repository"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
-	"fmt"
+
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
-	"net/http"
-	"strconv"
 )
 
 type CustomersHandler struct {
@@ -36,7 +39,6 @@ func NewCustomersHandler(container *di.Container) *CustomersHandler {
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /athletes/{id}/stats [patch]
 func (h *CustomersHandler) UpdateAthleteStats(w http.ResponseWriter, r *http.Request) {
-
 	athleteIdStr := chi.URLParam(r, "id")
 
 	var requestDto dto.StatsUpdateRequestDto
@@ -47,7 +49,6 @@ func (h *CustomersHandler) UpdateAthleteStats(w http.ResponseWriter, r *http.Req
 	}
 
 	details, err := requestDto.ToUpdateValue(athleteIdStr)
-
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
@@ -59,7 +60,6 @@ func (h *CustomersHandler) UpdateAthleteStats(w http.ResponseWriter, r *http.Req
 	}
 
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
-
 }
 
 // UpdateAthletesTeam updates the team of an athlete.
@@ -75,19 +75,16 @@ func (h *CustomersHandler) UpdateAthleteStats(w http.ResponseWriter, r *http.Req
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /athletes/{athlete_id}/team/{team_id} [put]
 func (h *CustomersHandler) UpdateAthletesTeam(w http.ResponseWriter, r *http.Request) {
-
 	athleteIdStr := chi.URLParam(r, "athlete_id")
 	teamIdStr := chi.URLParam(r, "team_id")
 
 	athleteID, err := validators.ParseUUID(athleteIdStr)
-
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
 	teamID, err := validators.ParseUUID(teamIdStr)
-
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
@@ -116,7 +113,6 @@ func (h *CustomersHandler) UpdateAthletesTeam(w http.ResponseWriter, r *http.Req
 // @Failure 500 "Internal Server Error"
 // @Router /customers [get]
 func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) {
-
 	query := r.URL.Query()
 
 	maxLimit, offset := 20, 0
@@ -165,12 +161,15 @@ func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) 
 
 	searchTerm := query.Get("search")
 
-	dbCustomers, err := h.CustomerRepo.GetCustomers(r.Context(), int32(maxLimit), int32(offset), parentID, searchTerm)
+	log.Printf("Search term: %s", searchTerm)
 
+	dbCustomers, err := h.CustomerRepo.GetCustomers(r.Context(), int32(maxLimit), int32(offset), parentID, searchTerm)
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
+
+	log.Println("DB Customers: ", len(dbCustomers))
 
 	result := make([]dto.Response, len(dbCustomers))
 
@@ -181,7 +180,6 @@ func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) 
 	}
 
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
-
 }
 
 // GetCustomerByID retrieves a customer by ID.
@@ -194,7 +192,6 @@ func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) 
 // @Failure 500 "Internal Server Error"
 // @Router /customers/id/{id} [get]
 func (h *CustomersHandler) GetCustomerByID(w http.ResponseWriter, r *http.Request) {
-
 	var id uuid.UUID
 
 	if idStr := chi.URLParam(r, "id"); idStr != "" {
@@ -207,7 +204,6 @@ func (h *CustomersHandler) GetCustomerByID(w http.ResponseWriter, r *http.Reques
 	}
 
 	customer, err := h.CustomerRepo.GetCustomer(r.Context(), id, "")
-
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
@@ -216,7 +212,6 @@ func (h *CustomersHandler) GetCustomerByID(w http.ResponseWriter, r *http.Reques
 	response := dto.UserReadValueToResponse(customer)
 
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
-
 }
 
 // GetCustomerByEmail retrieves a customer by email
@@ -229,11 +224,9 @@ func (h *CustomersHandler) GetCustomerByID(w http.ResponseWriter, r *http.Reques
 // @Failure 500 "Internal Server Error"
 // @Router /customers/email/{email} [get]
 func (h *CustomersHandler) GetCustomerByEmail(w http.ResponseWriter, r *http.Request) {
-
 	email := chi.URLParam(r, "email")
 
 	customer, err := h.CustomerRepo.GetCustomer(r.Context(), uuid.Nil, email)
-
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
@@ -242,5 +235,4 @@ func (h *CustomersHandler) GetCustomerByEmail(w http.ResponseWriter, r *http.Req
 	response := dto.UserReadValueToResponse(customer)
 
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
-
 }

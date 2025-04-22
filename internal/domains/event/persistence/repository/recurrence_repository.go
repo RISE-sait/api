@@ -1,16 +1,17 @@
 package event
 
 import (
-	"api/internal/di"
-	db "api/internal/domains/event/persistence/sqlc/generated"
-	values "api/internal/domains/event/values"
-	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"time"
+
+	"api/internal/di"
+	db "api/internal/domains/event/persistence/sqlc/generated"
+	values "api/internal/domains/event/values"
+	errLib "api/internal/libs/errors"
 
 	"github.com/google/uuid"
 )
@@ -48,8 +49,8 @@ func mapDayToWeekday(day string) (time.Weekday, *errLib.CommonError) {
 }
 
 func (r *RecurrencesRepository) GetEventsRecurrences(ctx context.Context, programTypeStr string, programID, locationID,
-	userID, teamID, createdBy, updatedBy uuid.UUID, before, after time.Time) ([]values.ReadRecurrenceValues, *errLib.CommonError) {
-
+	userID, teamID, createdBy, updatedBy uuid.UUID, before, after time.Time,
+) ([]values.ReadRecurrenceValues, *errLib.CommonError) {
 	var programType db.NullProgramProgramType
 
 	if programTypeStr == "" {
@@ -64,7 +65,7 @@ func (r *RecurrencesRepository) GetEventsRecurrences(ctx context.Context, progra
 	}
 
 	// Execute the query using SQLC generated function
-	param := db.GetEventsSchedulesParams{
+	param := db.GetEventsRecurrenceParams{
 		ProgramID:  uuid.NullUUID{UUID: programID, Valid: programID != uuid.Nil},
 		LocationID: uuid.NullUUID{UUID: locationID, Valid: locationID != uuid.Nil},
 		Before:     sql.NullTime{Time: before, Valid: !before.IsZero()},
@@ -76,7 +77,7 @@ func (r *RecurrencesRepository) GetEventsRecurrences(ctx context.Context, progra
 		Type:       programType,
 	}
 
-	rows, err := r.Queries.GetEventsSchedules(ctx, param)
+	rows, err := r.Queries.GetEventsRecurrence(ctx, param)
 	if err != nil {
 		log.Println("Failed to get events schedules from db: ", err.Error())
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
@@ -87,15 +88,13 @@ func (r *RecurrencesRepository) GetEventsRecurrences(ctx context.Context, progra
 	for _, row := range rows {
 
 		day, err := mapDayToWeekday(row.DayOfWeek)
-
 		if err != nil {
 			return nil, err
 		}
 
 		schedule := values.ReadRecurrenceValues{
+			ID: row.RecurrenceID.UUID,
 			BaseRecurrenceValues: values.BaseRecurrenceValues{
-
-				// convert from string to time.Weekday
 				DayOfWeek:       time.Weekday(day),
 				StartTime:       row.StartTime,
 				EndTime:         row.EndTime,

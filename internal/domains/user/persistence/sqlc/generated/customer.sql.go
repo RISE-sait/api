@@ -161,13 +161,12 @@ FROM users.users u
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
          LEFT JOIN athletic.athletes a ON u.id = a.id
-WHERE
-    (u.parent_id = $1 OR $1 IS NULL) AND
-    (u.first_name ILIKE $2 || '%' OR $2 IS NULL) AND
-    (u.last_name ILIKE $2 || '%' OR $2 IS NULL) AND
-    (u.email ILIKE $2 || '%' OR $2 IS NULL) AND
-    (u.phone ILIKE $2 || '%' OR $2 IS NULL) AND
-    (u.id::varchar ILIKE $2 || '%' OR $2 IS NULL)
+WHERE (u.parent_id = $1 OR $1 IS NULL)
+  AND ($2::varchar IS NULL
+  OR u.first_name ILIKE $2 || '%'
+  OR u.last_name ILIKE $2 || '%' 
+  OR u.email ILIKE $2 || '%' 
+  OR u.phone ILIKE $2 || '%')
   AND NOT EXISTS (SELECT 1
                   FROM staff.staff s
                   WHERE s.id = u.id)

@@ -1,6 +1,10 @@
 package events_test
 
 import (
+	"context"
+	"testing"
+	"time"
+
 	locationDb "api/internal/domains/location/persistence/sqlc/generated"
 
 	eventDb "api/internal/domains/event/persistence/sqlc/generated"
@@ -9,10 +13,7 @@ import (
 	enrollmentDb "api/internal/domains/enrollment/persistence/sqlc/generated"
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
 
-	"context"
 	"github.com/google/uuid"
-	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -20,7 +21,6 @@ import (
 )
 
 func TestEnrollCustomerInEvent(t *testing.T) {
-
 	db, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	identityQueries := identityDb.New(db)
@@ -58,14 +58,12 @@ func TestEnrollCustomerInEvent(t *testing.T) {
 	require.NoError(t, err)
 
 	now := time.Now().Truncate(time.Second)
-	capacity := 20
 
 	createEventsParams := eventDb.CreateEventsParams{
 		StartAtArray:            []time.Time{now},
 		EndAtArray:              []time.Time{now.Add(time.Hour * 24)},
 		LocationIds:             []uuid.UUID{createdLocation.ID},
 		ProgramIds:              []uuid.UUID{createdProgram.ID},
-		Capacities:              []int32{int32(capacity)},
 		CreatedByIds:            []uuid.UUID{eventCreator.ID},
 		IsCancelledArray:        []bool{false},
 		IsDateTimeModifiedArray: []bool{false},
@@ -121,7 +119,6 @@ func TestEnrollCustomerInEvent(t *testing.T) {
 }
 
 func TestEnrollCustomerInProgramEvents(t *testing.T) {
-
 	db, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../../db/migrations")
 
 	identityQueries := identityDb.New(db)
@@ -201,7 +198,6 @@ func TestEnrollCustomerInProgramEvents(t *testing.T) {
 		CreatedByIds:            createdByIDs,
 		StartAtArray:            startTimes,
 		EndAtArray:              endTimes,
-		Capacities:              capacities,
 		IsCancelledArray:        isCancelledArray,
 		CancellationReasons:     cancellationReasons,
 		IsDateTimeModifiedArray: make([]bool, numEvents),

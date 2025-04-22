@@ -42,13 +42,13 @@ func (q *Queries) EnrollCustomer(ctx context.Context, arg EnrollCustomerParams) 
 }
 
 const getEventIsFull = `-- name: GetEventIsFull :one
-SELECT COUNT(ce.customer_id) >= COALESCE(e.capacity, p.capacity, t.capacity)::boolean AS is_full
+SELECT COUNT(ce.customer_id) >= COALESCE(t.capacity, p.capacity)::boolean AS is_full
 FROM events.events e
          JOIN program.programs p ON e.program_id = p.id
          LEFT JOIN athletic.teams t ON e.team_id = t.id
 LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
 WHERE e.id = $1
-GROUP BY e.id, e.capacity, p.capacity, t.capacity
+GROUP BY e.id, t.capacity, p.capacity
 `
 
 func (q *Queries) GetEventIsFull(ctx context.Context, eventID uuid.UUID) (bool, error) {

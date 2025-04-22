@@ -1,17 +1,18 @@
 package program
 
 import (
-	databaseErrors "api/internal/constants"
-	"api/internal/di"
-	db "api/internal/domains/program/persistence/sqlc/generated"
-	"api/internal/domains/program/values"
-	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
+
+	databaseErrors "api/internal/constants"
+	"api/internal/di"
+	db "api/internal/domains/program/persistence/sqlc/generated"
+	"api/internal/domains/program/values"
+	errLib "api/internal/libs/errors"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -52,7 +53,6 @@ func (r *Repository) GetProgramLevels() []string {
 }
 
 func (r *Repository) Update(ctx context.Context, program values.UpdateProgramValues) *errLib.CommonError {
-
 	if !db.ProgramProgramType(program.Type).Valid() {
 		validTypes := db.AllProgramProgramTypeValues()
 		return errLib.New(fmt.Sprintf("Invalid program type. Valid types are: %v", validTypes), http.StatusBadRequest)
@@ -74,7 +74,6 @@ func (r *Repository) Update(ctx context.Context, program values.UpdateProgramVal
 	}
 
 	_, err := r.Queries.UpdateProgram(ctx, params)
-
 	if err != nil {
 		// Check if the error is a unique violation (duplicate name)
 		var pqErr *pq.Error
@@ -91,9 +90,7 @@ func (r *Repository) Update(ctx context.Context, program values.UpdateProgramVal
 }
 
 func (r *Repository) GetProgramByID(ctx context.Context, id uuid.UUID) (values.GetProgramValues, *errLib.CommonError) {
-
 	dbProgram, err := r.Queries.GetProgramById(ctx, id)
-
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return values.GetProgramValues{}, errLib.New("Program not found", http.StatusNotFound)
@@ -122,7 +119,6 @@ func (r *Repository) GetProgramByID(ctx context.Context, id uuid.UUID) (values.G
 }
 
 func (r *Repository) List(ctx context.Context, programTypeStr string) ([]values.GetProgramValues, *errLib.CommonError) {
-
 	var params db.NullProgramProgramType
 
 	programType := db.ProgramProgramType(programTypeStr)
@@ -141,7 +137,6 @@ func (r *Repository) List(ctx context.Context, programTypeStr string) ([]values.
 	}
 
 	dbPrograms, err := r.Queries.GetPrograms(ctx, params)
-
 	if err != nil {
 
 		log.Println("Error getting programs: ", err)
@@ -177,8 +172,17 @@ func (r *Repository) List(ctx context.Context, programTypeStr string) ([]values.
 
 func (r *Repository) Delete(c context.Context, id uuid.UUID) *errLib.CommonError {
 	row, err := r.Queries.DeleteProgram(c, id)
-
 	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			if pqErr.Code == databaseErrors.NotNullViolation {
+				return errLib.New("Cannot delete program with existing dependencies", http.StatusConflict)
+			}
+			if pqErr.Code == databaseErrors.ForeignKeyViolation {
+				return errLib.New("Cannot delete program with existing dependencies", http.StatusConflict)
+			}
+		}
+		log.Printf("Error deleting program: %v", err)
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
@@ -190,7 +194,6 @@ func (r *Repository) Delete(c context.Context, id uuid.UUID) *errLib.CommonError
 }
 
 func (r *Repository) Create(c context.Context, details values.CreateProgramValues) *errLib.CommonError {
-
 	dbPracticeParams := db.CreateProgramParams{
 		Name:        details.Name,
 		Description: details.Description,
@@ -206,7 +209,6 @@ func (r *Repository) Create(c context.Context, details values.CreateProgramValue
 	}
 
 	_, err := r.Queries.CreateProgram(c, dbPracticeParams)
-
 	if err != nil {
 		// Check if the error is a unique violation (error code 23505)
 		var pqErr *pq.Error

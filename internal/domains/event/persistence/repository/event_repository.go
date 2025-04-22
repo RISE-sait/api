@@ -1,11 +1,6 @@
 package event
 
 import (
-	"api/internal/di"
-	db "api/internal/domains/event/persistence/sqlc/generated"
-	values "api/internal/domains/event/values"
-	errLib "api/internal/libs/errors"
-	contextUtils "api/utils/context"
 	"context"
 	"database/sql"
 	"errors"
@@ -13,6 +8,12 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"api/internal/di"
+	db "api/internal/domains/event/persistence/sqlc/generated"
+	values "api/internal/domains/event/values"
+	errLib "api/internal/libs/errors"
+	contextUtils "api/utils/context"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -75,11 +76,9 @@ var constraintErrors = map[string]struct {
 }
 
 func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []values.CreateEventValues) *errLib.CommonError {
-
 	var (
 		locationIDs, programIDs, teamIDs, createdByIds, recurrenceIds []uuid.UUID
 		startAtArray, endAtArray                                      []time.Time
-		capacities                                                    []int32
 		isCancelledArray, isDateTimeModifiedArray                     []bool
 	)
 
@@ -97,7 +96,6 @@ func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []valu
 		startAtArray = append(startAtArray, event.StartAt)
 		endAtArray = append(endAtArray, event.EndAt)
 		createdByIds = append(createdByIds, event.CreatedBy)
-		capacities = append(capacities, event.Capacity)
 		isCancelledArray = append(isCancelledArray, false)
 		isDateTimeModifiedArray = append(isDateTimeModifiedArray, false)
 	}
@@ -109,7 +107,6 @@ func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []valu
 		StartAtArray:            startAtArray,
 		EndAtArray:              endAtArray,
 		CreatedByIds:            createdByIds,
-		Capacities:              capacities,
 		RecurrenceIds:           recurrenceIds,
 		IsCancelledArray:        isCancelledArray,
 		IsDateTimeModifiedArray: isDateTimeModifiedArray,
@@ -122,7 +119,6 @@ func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []valu
 
 		var pqErr *pq.Error
 		if errors.As(dbErr, &pqErr) {
-
 			if errInfo, found := constraintErrors[pqErr.Constraint]; found {
 				return errLib.New(errInfo.Message, errInfo.Status)
 			}
@@ -133,7 +129,6 @@ func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []valu
 	}
 
 	if impactedRows < int64(len(eventDetails)) {
-
 		return errLib.New("Not all events were created successfully, likely due to overlapping events", http.StatusBadRequest)
 	}
 
@@ -156,7 +151,6 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 		UpdatedAt: dbEvent.UpdatedAt,
 		StartAt:   dbEvent.StartAt,
 		EndAt:     dbEvent.EndAt,
-		Capacity:  dbEvent.Capacity.Int32,
 		Location: struct {
 			ID      uuid.UUID
 			Name    string
@@ -182,7 +176,6 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 	eventStaffs := make([]values.Staff, 0)
 
 	dbStaffs, err := r.Queries.GetEventStaffs(ctx, id)
-
 	if err != nil {
 		log.Println("Failed to get event staffs from db: ", err.Error())
 		return values.ReadEventValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
@@ -192,7 +185,6 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 
 		staff := values.Staff{
 			ReadPersonValues: values.ReadPersonValues{
-
 				ID:        dbStaff.StaffID,
 				FirstName: dbStaff.StaffFirstName,
 				LastName:  dbStaff.StaffLastName,
@@ -206,7 +198,6 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 	}
 
 	dbCustomers, err := r.Queries.GetEventCustomers(ctx, id)
-
 	if err != nil {
 		log.Println("Failed to get event customers from db: ", err.Error())
 		return values.ReadEventValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
@@ -216,7 +207,6 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 
 		customer := values.Customer{
 			ReadPersonValues: values.ReadPersonValues{
-
 				ID:        dbCustomer.CustomerID,
 				FirstName: dbCustomer.CustomerFirstName,
 				LastName:  dbCustomer.CustomerLastName,
@@ -231,7 +221,6 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 }
 
 func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEventsFilter) ([]values.ReadEventValues, *errLib.CommonError) {
-
 	param := db.GetEventsParams{
 		ProgramID:     uuid.NullUUID{UUID: filter.ProgramID, Valid: filter.ProgramID != uuid.Nil},
 		LocationID:    uuid.NullUUID{UUID: filter.LocationID, Valid: filter.LocationID != uuid.Nil},
@@ -252,7 +241,6 @@ func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEvent
 	}
 
 	dbRows, err := r.Queries.GetEvents(ctx, param)
-
 	if err != nil {
 		log.Println("Failed to get events from db: ", err.Error())
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
@@ -264,7 +252,6 @@ func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEvent
 
 		event := values.ReadEventValues{
 			ID:        row.ID,
-			Capacity:  row.Capacity.Int32,
 			CreatedAt: row.CreatedAt,
 			UpdatedAt: row.UpdatedAt,
 			StartAt:   row.StartAt,
@@ -325,9 +312,7 @@ func stringToPtr(s sql.NullString) *string {
 }
 
 func (r *EventsRepository) UpdateEvent(ctx context.Context, event values.UpdateEventValues) *errLib.CommonError {
-
 	userID, err := contextUtils.GetUserID(ctx)
-
 	if err != nil {
 		return err
 	}
@@ -343,10 +328,6 @@ func (r *EventsRepository) UpdateEvent(ctx context.Context, event values.UpdateE
 			Valid: event.TeamID != uuid.Nil,
 		},
 		ProgramID: event.ProgramID,
-		Capacity: sql.NullInt32{
-			Int32: event.Capacity,
-			Valid: event.Capacity != 0,
-		},
 	}
 
 	_, dbErr := r.Queries.UpdateEvent(ctx, dbEventParams)
@@ -355,7 +336,6 @@ func (r *EventsRepository) UpdateEvent(ctx context.Context, event values.UpdateE
 
 		var pqErr *pq.Error
 		if errors.As(dbErr, &pqErr) {
-
 			if errInfo, found := constraintErrors[pqErr.Constraint]; found {
 				return errLib.New(errInfo.Message, errInfo.Status)
 			}
@@ -366,12 +346,10 @@ func (r *EventsRepository) UpdateEvent(ctx context.Context, event values.UpdateE
 	}
 
 	return nil
-
 }
 
 func (r *EventsRepository) DeleteEvents(c context.Context, ids []uuid.UUID) *errLib.CommonError {
 	err := r.Queries.DeleteEventsByIds(c, ids)
-
 	if err != nil {
 		log.Printf("Failed to delete event with Ids: %s. Error: %s", ids, err.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)
@@ -385,7 +363,6 @@ func (r *EventsRepository) DeleteUnmodifiedEventsByRecurrenceID(c context.Contex
 		UUID:  id,
 		Valid: true,
 	})
-
 	if err != nil {
 		log.Printf("Failed to delete event with recurrence Id: %s. Error: %s", id, err.Error())
 		return errLib.New("Internal server error", http.StatusInternalServerError)

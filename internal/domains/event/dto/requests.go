@@ -1,13 +1,14 @@
 package event
 
 import (
-	values "api/internal/domains/event/values"
-	errLib "api/internal/libs/errors"
-	"api/internal/libs/validators"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
+
+	values "api/internal/domains/event/values"
+	errLib "api/internal/libs/errors"
+	"api/internal/libs/validators"
 
 	"github.com/google/uuid"
 )
@@ -21,7 +22,6 @@ type RecurrenceRequestDto struct {
 	ProgramID         uuid.UUID `json:"program_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
 	LocationID        uuid.UUID `json:"location_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
 	TeamID            uuid.UUID `json:"team_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
-	Capacity          int32     `json:"capacity" example:"100"`
 }
 
 //goland:noinspection GoNameStartsWithPackageName
@@ -31,7 +31,6 @@ type EventRequestDto struct {
 	ProgramID  uuid.UUID `json:"program_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
 	LocationID uuid.UUID `json:"location_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
 	TeamID     uuid.UUID `json:"team_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
-	Capacity   int32     `json:"capacity" example:"100"`
 }
 
 type DeleteRequestDto struct {
@@ -49,31 +48,25 @@ type DeleteRequestDto struct {
 //   - endAt (time.Time): The parsed end date-time
 //   - error (*errLib.CommonError): Error information if validation fails, nil otherwise
 func (dto EventRequestDto) validate() (time.Time, time.Time, *errLib.CommonError) {
-
 	if err := validators.ValidateDto(&dto); err != nil {
 		return time.Time{}, time.Time{}, err
 	}
 
 	startAt, err := validators.ParseDateTime(dto.StartAt)
-
 	if err != nil {
 		return time.Time{}, time.Time{}, err
 	}
 
 	endAt, err := validators.ParseDateTime(dto.EndAt)
-
 	if err != nil {
 		return time.Time{}, time.Time{}, err
 	}
 
 	return startAt, endAt, nil
-
 }
 
 func (dto RecurrenceRequestDto) ToCreateRecurrenceValues(creator uuid.UUID) (values.CreateRecurrenceValues, *errLib.CommonError) {
-
 	recurrence, err := dto.ToBaseRecurrenceValues()
-
 	if err != nil {
 		return values.CreateRecurrenceValues{}, err
 	}
@@ -84,16 +77,13 @@ func (dto RecurrenceRequestDto) ToCreateRecurrenceValues(creator uuid.UUID) (val
 		TeamID:               dto.TeamID,
 		LocationID:           dto.LocationID,
 		ProgramID:            dto.ProgramID,
-		Capacity:             dto.Capacity,
 	}
 
 	return createRecurrenceValues, nil
 }
 
 func (dto RecurrenceRequestDto) ToUpdateRecurrenceValues(updater, recurrenceID uuid.UUID) (values.UpdateRecurrenceValues, *errLib.CommonError) {
-
 	recurrence, err := dto.ToBaseRecurrenceValues()
-
 	if err != nil {
 		return values.UpdateRecurrenceValues{}, err
 	}
@@ -105,38 +95,32 @@ func (dto RecurrenceRequestDto) ToUpdateRecurrenceValues(updater, recurrenceID u
 		TeamID:               dto.TeamID,
 		LocationID:           dto.LocationID,
 		ProgramID:            dto.ProgramID,
-		Capacity:             dto.Capacity,
 	}
 
 	return updateRecurrenceValues, nil
 }
 
 func (dto RecurrenceRequestDto) ToBaseRecurrenceValues() (values.BaseRecurrenceValues, *errLib.CommonError) {
-
 	if err := validators.ValidateDto(&dto); err != nil {
 		return values.BaseRecurrenceValues{}, err
 	}
 
 	recurrenceStartAt, err := validators.ParseDateTime(dto.RecurrenceStartAt)
-
 	if err != nil {
 		return values.BaseRecurrenceValues{}, err
 	}
 
 	recurrenceEndAt, err := validators.ParseDateTime(dto.RecurrenceEndAt)
-
 	if err != nil {
 		return values.BaseRecurrenceValues{}, err
 	}
 
 	eventStartTime, err := validators.ParseTime(dto.EventStartTime)
-
 	if err != nil {
 		return values.BaseRecurrenceValues{}, err
 	}
 
 	eventEndTime, err := validators.ParseTime(dto.EventEndTime)
-
 	if err != nil {
 		return values.BaseRecurrenceValues{}, err
 	}
@@ -181,7 +165,6 @@ func validateWeekday(day string) (time.Weekday, *errLib.CommonError) {
 }
 
 func (dto EventRequestDto) ToCreateEventValues(creator uuid.UUID) (values.CreateEventValues, *errLib.CommonError) {
-
 	startAt, endAt, err := dto.validate()
 	if err != nil {
 		return values.CreateEventValues{}, err
@@ -190,7 +173,6 @@ func (dto EventRequestDto) ToCreateEventValues(creator uuid.UUID) (values.Create
 	v := values.CreateEventValues{
 		CreatedBy: creator,
 		EventDetails: values.EventDetails{
-			Capacity:   dto.Capacity,
 			StartAt:    startAt,
 			EndAt:      endAt,
 			ProgramID:  dto.ProgramID,
@@ -217,7 +199,6 @@ func (dto EventRequestDto) ToUpdateEventValues(idStr string, updater uuid.UUID) 
 		ID:        id,
 		UpdatedBy: updater,
 		EventDetails: values.EventDetails{
-			Capacity:   dto.Capacity,
 			StartAt:    startAt,
 			EndAt:      endAt,
 			ProgramID:  dto.ProgramID,

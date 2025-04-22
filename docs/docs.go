@@ -4151,6 +4151,9 @@ const docTemplate = `{
                 "day": {
                     "type": "string"
                 },
+                "id": {
+                    "type": "string"
+                },
                 "location": {
                     "$ref": "#/definitions/event.Location"
                 },

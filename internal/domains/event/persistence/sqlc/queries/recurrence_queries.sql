@@ -1,7 +1,8 @@
--- name: GetEventsSchedules :many
+-- name: GetEventsRecurrence :many
 SELECT trim(to_char(start_at, 'Day')) AS day_of_week, -- More readable
        to_char(start_at, 'HH24:MI')   AS start_time,
        to_char(end_at, 'HH24:MI')     AS end_time,
+       recurrence_id,
        p.id                           AS program_id,
        p.name                         AS program_name,
        p.description                  AS program_description,
@@ -44,8 +45,8 @@ GROUP BY to_char(start_at, 'Day'),
          t.name,
          location_id,
          l.name,
-         l.address;
-
+         l.address,
+        recurrence_id;
 
 -- name: DeleteUnmodifiedEventsByRecurrenceID :exec
 DELETE

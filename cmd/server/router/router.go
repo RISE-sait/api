@@ -5,7 +5,7 @@ import (
 	staff_activity_logs "api/internal/domains/audit/staff_activity_logs/handler"
 	haircutEvents "api/internal/domains/haircut/event/handler"
 	barberServicesHandler "api/internal/domains/haircut/haircut_service"
-	"api/internal/domains/haircut/portfolio"
+	haircut "api/internal/domains/haircut/portfolio"
 
 	enrollmentHandler "api/internal/domains/enrollment/handler"
 
@@ -36,7 +36,6 @@ type RouteConfig struct {
 
 func RegisterRoutes(router *chi.Mux, container *di.Container) {
 	routeMappings := map[string]func(*di.Container) func(chi.Router){
-
 		// Membership-related routes
 		"/memberships": RegisterMembershipRoutes,
 
@@ -74,7 +73,6 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 }
 
 func RegisterUserRoutes(container *di.Container) func(chi.Router) {
-
 	h := userHandler.NewUsersHandlers(container)
 
 	return func(r chi.Router) {
@@ -83,7 +81,6 @@ func RegisterUserRoutes(container *di.Container) func(chi.Router) {
 }
 
 func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
-
 	h := userHandler.NewCustomersHandler(container)
 
 	return func(r chi.Router) {
@@ -94,7 +91,6 @@ func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 }
 
 func RegisterAthleteRoutes(container *di.Container) func(chi.Router) {
-
 	h := userHandler.NewCustomersHandler(container)
 
 	return func(r chi.Router) {
@@ -104,9 +100,7 @@ func RegisterAthleteRoutes(container *di.Container) func(chi.Router) {
 }
 
 func RegisterHaircutRoutes(container *di.Container) func(chi.Router) {
-
 	return func(r chi.Router) {
-
 		r.Get("/", haircut.GetHaircutImages)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleBarber)).Post("/", haircut.UploadHaircutImage)
 
@@ -116,11 +110,9 @@ func RegisterHaircutRoutes(container *di.Container) func(chi.Router) {
 }
 
 func RegisterBarberServicesRoutes(container *di.Container) func(chi.Router) {
-
 	h := barberServicesHandler.NewBarberServicesHandler(container)
 
 	return func(r chi.Router) {
-
 		r.Get("/", h.GetBarberServices)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleBarber)).Post("/", h.CreateBarberService)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleBarber)).Delete("/{id}", h.DeleteBarberService)
@@ -128,11 +120,9 @@ func RegisterBarberServicesRoutes(container *di.Container) func(chi.Router) {
 }
 
 func RegisterHaircutEventsRoutes(container *di.Container) func(chi.Router) {
-
 	h := haircutEvents.NewEventsHandler(container)
 
 	return func(r chi.Router) {
-
 		r.Get("/", h.GetEvents)
 		r.Get("/{id}", h.GetEvent)
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/", h.CreateEvent)
@@ -161,7 +151,6 @@ func RegisterMembershipPlansRoutes(container *di.Container) func(chi.Router) {
 	h := membership.NewPlansHandlers(container)
 
 	return func(r chi.Router) {
-
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/", h.CreateMembershipPlan)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}", h.UpdateMembershipPlan)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", h.DeleteMembershipPlan)
@@ -169,7 +158,6 @@ func RegisterMembershipPlansRoutes(container *di.Container) func(chi.Router) {
 }
 
 func RegisterGamesRoutes(container *di.Container) func(chi.Router) {
-
 	h := game.NewHandler(container)
 
 	return func(r chi.Router) {
@@ -183,7 +171,6 @@ func RegisterGamesRoutes(container *di.Container) func(chi.Router) {
 }
 
 func RegisterTeamsRoutes(container *di.Container) func(chi.Router) {
-
 	h := teamsHandler.NewHandler(container)
 
 	return func(r chi.Router) {
@@ -196,7 +183,6 @@ func RegisterTeamsRoutes(container *di.Container) func(chi.Router) {
 }
 
 func RegisterLocationsRoutes(container *di.Container) func(chi.Router) {
-
 	h := locationsHandler.NewLocationsHandler(container)
 
 	return func(r chi.Router) {
@@ -209,7 +195,6 @@ func RegisterLocationsRoutes(container *di.Container) func(chi.Router) {
 }
 
 func RegisterProgramRoutes(container *di.Container) func(chi.Router) {
-
 	h := programHandler.NewHandler(container)
 
 	return func(r chi.Router) {
@@ -242,28 +227,35 @@ func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 		r.Get("/", handler.GetEvents)
 		r.Get("/{id}", handler.GetEvent)
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/one-time", handler.CreateEvent)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/recurring", handler.CreateRecurrences)
 		r.With(middlewares.JWTAuthMiddleware(true)).Put("/{id}", handler.UpdateEvent)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/recurring/{id}", handler.UpdateRecurrences)
 		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/", handler.DeleteEvents)
 
 		r.Route("/{event_id}/staffs", RegisterEventStaffRoutes(container))
+
+		r.Route("/recurring", RegisterRecurringEventRoutes(container))
+	}
+}
+
+func RegisterRecurringEventRoutes(container *di.Container) func(chi.Router) {
+	handler := eventHandler.NewEventsHandler(container)
+
+	return func(r chi.Router) {
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/", handler.CreateRecurrences)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}", handler.UpdateRecurrences)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", handler.DeleteRecurrence)
 	}
 }
 
 func RegisterEventStaffRoutes(container *di.Container) func(chi.Router) {
-
 	h := enrollmentHandler.NewEventStaffsHandler(container)
 
 	return func(r chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/{staff_id}", h.AssignStaffToEvent)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{staff_id}", h.UnassignStaffFromEvent)
-
 	}
 }
 
 func RegisterCheckoutRoutes(container *di.Container) func(chi.Router) {
-
 	h := payment.NewCheckoutHandlers(container)
 
 	return func(r chi.Router) {
@@ -274,7 +266,6 @@ func RegisterCheckoutRoutes(container *di.Container) func(chi.Router) {
 }
 
 func RegisterWebhooksRoutes(container *di.Container) func(chi.Router) {
-
 	h := payment.NewWebhookHandlers(container)
 
 	return func(r chi.Router) {
@@ -283,7 +274,6 @@ func RegisterWebhooksRoutes(container *di.Container) func(chi.Router) {
 }
 
 func RegisterAuthRoutes(container *di.Container) func(chi.Router) {
-
 	h := authentication.NewHandlers(container)
 
 	return func(r chi.Router) {
@@ -293,7 +283,6 @@ func RegisterAuthRoutes(container *di.Container) func(chi.Router) {
 }
 
 func RegisterRegistrationRoutes(container *di.Container) func(chi.Router) {
-
 	athleteHandler := registration.NewAthleteRegistrationHandlers(container)
 	staffHandler := registration.NewStaffRegistrationHandlers(container)
 
@@ -301,7 +290,6 @@ func RegisterRegistrationRoutes(container *di.Container) func(chi.Router) {
 	parentRegistrationHandler := registration.NewParentRegistrationHandlers(container)
 
 	return func(r chi.Router) {
-
 		r.Post("/athlete", athleteHandler.RegisterAthlete)
 
 		r.Post("/staff", staffHandler.RegisterStaff)

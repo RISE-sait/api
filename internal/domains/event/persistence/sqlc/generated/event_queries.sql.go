@@ -23,9 +23,8 @@ WITH unnested_data AS (SELECT unnest($1::uuid[])                AS location_id,
                               unnest($6::bool[]) AS is_date_time_modified,
                               unnest($7::uuid[])              AS recurrence_id,
                               unnest($8::uuid[])              AS created_by,
-                              unnest($9::int[])                   AS capacity,
-                              unnest($10::bool[])          AS is_cancelled,
-                              unnest($11::text[])        AS cancellation_reason)
+                              unnest($9::bool[])          AS is_cancelled,
+                              unnest($10::text[])        AS cancellation_reason)
 INSERT
 INTO events.events (location_id,
                     program_id,
@@ -36,7 +35,6 @@ INTO events.events (location_id,
                     recurrence_id,
                     created_by,
                     updated_by,
-                    capacity,
                     is_cancelled,
                     cancellation_reason)
 SELECT location_id,
@@ -48,7 +46,6 @@ SELECT location_id,
        NULLIF(recurrence_id, '00000000-0000-0000-0000-000000000000'::uuid),
        created_by,
        created_by,
-       NULLIF(capacity, 0),
        is_cancelled,
        NULLIF(cancellation_reason, '')
 FROM unnested_data
@@ -65,7 +62,6 @@ type CreateEventsParams struct {
 	IsDateTimeModifiedArray []bool      `json:"is_date_time_modified_array"`
 	RecurrenceIds           []uuid.UUID `json:"recurrence_ids"`
 	CreatedByIds            []uuid.UUID `json:"created_by_ids"`
-	Capacities              []int32     `json:"capacities"`
 	IsCancelledArray        []bool      `json:"is_cancelled_array"`
 	CancellationReasons     []string    `json:"cancellation_reasons"`
 }
@@ -80,7 +76,6 @@ func (q *Queries) CreateEvents(ctx context.Context, arg CreateEventsParams) (int
 		pq.Array(arg.IsDateTimeModifiedArray),
 		pq.Array(arg.RecurrenceIds),
 		pq.Array(arg.CreatedByIds),
-		pq.Array(arg.Capacities),
 		pq.Array(arg.IsCancelledArray),
 		pq.Array(arg.CancellationReasons),
 	)
@@ -102,7 +97,7 @@ func (q *Queries) DeleteEventsByIds(ctx context.Context, ids []uuid.UUID) error 
 }
 
 const getEventById = `-- name: GetEventById :one
-SELECT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.capacity, e.is_cancelled, e.cancellation_reason, e.created_at, e.updated_at, e.is_date_time_modified, e.recurrence_id,
+SELECT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.is_cancelled, e.cancellation_reason, e.created_at, e.updated_at, e.is_date_time_modified, e.recurrence_id,
 
        creator.first_name AS creator_first_name,
        creator.last_name  AS creator_last_name,
@@ -137,7 +132,6 @@ type GetEventByIdRow struct {
 	EndAt              time.Time          `json:"end_at"`
 	CreatedBy          uuid.UUID          `json:"created_by"`
 	UpdatedBy          uuid.UUID          `json:"updated_by"`
-	Capacity           sql.NullInt32      `json:"capacity"`
 	IsCancelled        bool               `json:"is_cancelled"`
 	CancellationReason sql.NullString     `json:"cancellation_reason"`
 	CreatedAt          time.Time          `json:"created_at"`
@@ -169,7 +163,6 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdR
 		&i.EndAt,
 		&i.CreatedBy,
 		&i.UpdatedBy,
-		&i.Capacity,
 		&i.IsCancelled,
 		&i.CancellationReason,
 		&i.CreatedAt,
@@ -304,7 +297,7 @@ func (q *Queries) GetEventStaffs(ctx context.Context, eventID uuid.UUID) ([]GetE
 }
 
 const getEvents = `-- name: GetEvents :many
-SELECT DISTINCT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.capacity, e.is_cancelled, e.cancellation_reason, e.created_at, e.updated_at, e.is_date_time_modified, e.recurrence_id,
+SELECT DISTINCT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.is_cancelled, e.cancellation_reason, e.created_at, e.updated_at, e.is_date_time_modified, e.recurrence_id,
 
                 creator.first_name AS creator_first_name,
                 creator.last_name  AS creator_last_name,
@@ -363,7 +356,6 @@ type GetEventsRow struct {
 	EndAt              time.Time          `json:"end_at"`
 	CreatedBy          uuid.UUID          `json:"created_by"`
 	UpdatedBy          uuid.UUID          `json:"updated_by"`
-	Capacity           sql.NullInt32      `json:"capacity"`
 	IsCancelled        bool               `json:"is_cancelled"`
 	CancellationReason sql.NullString     `json:"cancellation_reason"`
 	CreatedAt          time.Time          `json:"created_at"`
@@ -411,7 +403,6 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 			&i.EndAt,
 			&i.CreatedBy,
 			&i.UpdatedBy,
-			&i.Capacity,
 			&i.IsCancelled,
 			&i.CancellationReason,
 			&i.CreatedAt,
@@ -451,14 +442,13 @@ SET start_at              = $1,
     team_id               = $5,
     is_cancelled          = $6,
     cancellation_reason   = $7,
-    capacity              = $8,
     updated_at            = current_timestamp,
-    updated_by            = $10::uuid,
+    updated_by            = $9::uuid,
     is_date_time_modified = (
         recurrence_id IS NOT NULL
         )
-WHERE id = $9
-RETURNING id, location_id, program_id, team_id, start_at, end_at, created_by, updated_by, capacity, is_cancelled, cancellation_reason, created_at, updated_at, is_date_time_modified, recurrence_id
+WHERE id = $8
+RETURNING id, location_id, program_id, team_id, start_at, end_at, created_by, updated_by, is_cancelled, cancellation_reason, created_at, updated_at, is_date_time_modified, recurrence_id
 `
 
 type UpdateEventParams struct {
@@ -469,7 +459,6 @@ type UpdateEventParams struct {
 	TeamID             uuid.NullUUID  `json:"team_id"`
 	IsCancelled        bool           `json:"is_cancelled"`
 	CancellationReason sql.NullString `json:"cancellation_reason"`
-	Capacity           sql.NullInt32  `json:"capacity"`
 	ID                 uuid.UUID      `json:"id"`
 	UpdatedBy          uuid.UUID      `json:"updated_by"`
 }
@@ -483,7 +472,6 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 		arg.TeamID,
 		arg.IsCancelled,
 		arg.CancellationReason,
-		arg.Capacity,
 		arg.ID,
 		arg.UpdatedBy,
 	)
@@ -497,7 +485,6 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 		&i.EndAt,
 		&i.CreatedBy,
 		&i.UpdatedBy,
-		&i.Capacity,
 		&i.IsCancelled,
 		&i.CancellationReason,
 		&i.CreatedAt,

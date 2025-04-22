@@ -1,8 +1,9 @@
 package event
 
 import (
-	values "api/internal/domains/event/values"
 	"strings"
+
+	values "api/internal/domains/event/values"
 
 	"github.com/google/uuid"
 )
@@ -10,14 +11,15 @@ import (
 //goland:noinspection GoNameStartsWithPackageName
 type (
 	RecurrenceResponseDto struct {
-		RecurrenceStartAt string   `json:"recurrence_start_at"`
-		RecurrenceEndAt   string   `json:"recurrence_end_at"`
-		SessionStart      string   `json:"session_start_at"`
-		SessionEnd        string   `json:"session_end_at"`
-		Day               string   `json:"day"`
-		Team              *Team    `json:"team,omitempty"`
-		Location          Location `json:"location"`
-		Program           Program  `json:"program"`
+		ID                uuid.UUID `json:"id"`
+		RecurrenceStartAt string    `json:"recurrence_start_at"`
+		RecurrenceEndAt   string    `json:"recurrence_end_at"`
+		SessionStart      string    `json:"session_start_at"`
+		SessionEnd        string    `json:"session_end_at"`
+		Day               string    `json:"day"`
+		Team              *Team     `json:"team,omitempty"`
+		Location          Location  `json:"location"`
+		Program           Program   `json:"program"`
 	}
 
 	Program struct {
@@ -38,29 +40,30 @@ type (
 	}
 )
 
-func NewRecurrenceResponseDto(schedule values.ReadRecurrenceValues) RecurrenceResponseDto {
+func NewRecurrenceResponseDto(recurrence values.ReadRecurrenceValues) RecurrenceResponseDto {
 	response := RecurrenceResponseDto{
-		RecurrenceStartAt: schedule.FirstOccurrence.String(),
-		RecurrenceEndAt:   schedule.LastOccurrence.String(),
-		SessionStart:      schedule.StartTime,
-		SessionEnd:        schedule.EndTime,
-		Day:               strings.ToUpper(schedule.DayOfWeek.String()),
+		ID:                recurrence.ID,
+		RecurrenceStartAt: recurrence.FirstOccurrence.String(),
+		RecurrenceEndAt:   recurrence.LastOccurrence.String(),
+		SessionStart:      recurrence.StartTime,
+		SessionEnd:        recurrence.EndTime,
+		Day:               strings.ToUpper(recurrence.DayOfWeek.String()),
 		Location: Location{
-			ID:      schedule.Location.ID,
-			Name:    schedule.Location.Name,
-			Address: schedule.Location.Address,
+			ID:      recurrence.Location.ID,
+			Name:    recurrence.Location.Name,
+			Address: recurrence.Location.Address,
 		},
 		Program: Program{
-			ID:   schedule.Program.ID,
-			Name: schedule.Program.Name,
-			Type: schedule.Program.Type,
+			ID:   recurrence.Program.ID,
+			Name: recurrence.Program.Name,
+			Type: recurrence.Program.Type,
 		},
 	}
 
-	if schedule.Team != nil {
+	if recurrence.Team != nil {
 		response.Team = &Team{
-			ID:   schedule.Team.ID,
-			Name: schedule.Team.Name,
+			ID:   recurrence.Team.ID,
+			Name: recurrence.Team.Name,
 		}
 	}
 

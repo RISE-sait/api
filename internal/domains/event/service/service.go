@@ -70,7 +70,6 @@ func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurre
 	events, err := generateEventsFromRecurrence(
 		details.FirstOccurrence,
 		details.LastOccurrence,
-		details.Capacity,
 		details.StartTime,
 		details.EndTime,
 		details.CreatedBy,
@@ -159,7 +158,6 @@ func (s *Service) UpdateRecurringEvents(ctx context.Context, details values.Upda
 		eventsToCreate, err := generateEventsFromRecurrence(
 			details.FirstOccurrence,
 			details.LastOccurrence,
-			details.Capacity,
 			details.StartTime,
 			details.EndTime,
 			details.UpdatedBy,
@@ -181,6 +179,21 @@ func (s *Service) UpdateRecurringEvents(ctx context.Context, details values.Upda
 			txRepo.GetTx(),
 			details.UpdatedBy,
 			fmt.Sprintf("Updated events with details: %+v", details),
+		)
+	})
+}
+
+func (s *Service) DeleteUnmodifiedEventsByRecurrenceID(ctx context.Context, staffId, id uuid.UUID) *errLib.CommonError {
+	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
+		if err := txRepo.DeleteUnmodifiedEventsByRecurrenceID(ctx, id); err != nil {
+			return err
+		}
+
+		return s.staffActivityLogsService.InsertStaffActivity(
+			ctx,
+			txRepo.GetTx(),
+			staffId,
+			fmt.Sprintf("Deleted events with recurring id: %+v", id),
 		)
 	})
 }
@@ -221,14 +234,14 @@ func (s *Service) DeleteEvents(ctx context.Context, ids []uuid.UUID) *errLib.Com
 	})
 }
 
-func (s *Service) GetEventsSchedules(ctx context.Context, filter values.GetEventsFilter) ([]values.ReadRecurrenceValues, *errLib.CommonError) {
+func (s *Service) GetEventsRecurrences(ctx context.Context, filter values.GetEventsFilter) ([]values.ReadRecurrenceValues, *errLib.CommonError) {
 	return s.recurrencesRepository.GetEventsRecurrences(ctx, filter.ProgramType, filter.ProgramID, filter.LocationID,
 		filter.ParticipantID, filter.TeamID, filter.CreatedBy, filter.UpdatedBy, filter.Before, filter.After)
 }
 
 func generateEventsFromRecurrence(
 	firstOccurrence, lastOccurrence time.Time,
-	capacity int32, startTimeStr, endTimeStr string,
+	startTimeStr, endTimeStr string,
 	mutater, programID, locationID, teamID uuid.UUID,
 	day time.Weekday,
 ) ([]values.CreateEventValues, *errLib.CommonError) {
@@ -236,10 +249,6 @@ func generateEventsFromRecurrence(
 
 	if firstOccurrence.After(lastOccurrence) {
 		return nil, errLib.New("Recurrence start date must be before the end date", http.StatusBadRequest)
-	}
-
-	if capacity <= 0 {
-		return nil, errLib.New("Capacity must be greater than zero", http.StatusBadRequest)
 	}
 
 	startTime, err := time.Parse(timeLayout, startTimeStr)
@@ -276,7 +285,6 @@ func generateEventsFromRecurrence(
 				ProgramID:  programID,
 				LocationID: locationID,
 				TeamID:     teamID,
-				Capacity:   capacity,
 			},
 		})
 	}

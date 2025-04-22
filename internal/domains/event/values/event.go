@@ -14,7 +14,6 @@ type EventDetails struct {
 	ProgramID  uuid.UUID
 	LocationID uuid.UUID
 	TeamID     uuid.UUID
-	Capacity   int32
 }
 
 type CreateEventValues struct {

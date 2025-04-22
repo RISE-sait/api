@@ -1,11 +1,12 @@
 package event
 
 import (
+	"net/http"
+
 	dto "api/internal/domains/event/dto"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	contextUtils "api/utils/context"
-	"net/http"
 
 	"github.com/go-chi/chi"
 )
@@ -21,7 +22,6 @@ import (
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /events/recurring [post]
 func (h *EventsHandler) CreateRecurrences(w http.ResponseWriter, r *http.Request) {
-
 	userID, ctxErr := contextUtils.GetUserID(r.Context())
 
 	if ctxErr != nil {
@@ -60,18 +60,15 @@ func (h *EventsHandler) CreateRecurrences(w http.ResponseWriter, r *http.Request
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /events/recurring/{id} [put]
 func (h *EventsHandler) UpdateRecurrences(w http.ResponseWriter, r *http.Request) {
-
 	idStr := chi.URLParam(r, "id")
 
 	recurrenceID, err := validators.ParseUUID(idStr)
-
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
 	userID, err := contextUtils.GetUserID(r.Context())
-
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
@@ -87,13 +84,46 @@ func (h *EventsHandler) UpdateRecurrences(w http.ResponseWriter, r *http.Request
 	// Convert to domain values
 
 	params, err := targetBody.ToUpdateRecurrenceValues(userID, recurrenceID)
-
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
 	if err = h.EventsService.UpdateRecurringEvents(r.Context(), params); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
+}
+
+// DeleteRecurrence deletes existing events by recurrence ID.
+// @Tags events
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path string true "Recurrence ID"
+// @Success 204 {object} map[string]interface{} "No Content: Events deleted successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 404 {object} map[string]interface{} "Not Found: Events not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /events/recurring/{id} [delete]
+func (h *EventsHandler) DeleteRecurrence(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+
+	recurrenceID, err := validators.ParseUUID(idStr)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	staffID, err := contextUtils.GetUserID(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	if err = h.EventsService.DeleteUnmodifiedEventsByRecurrenceID(r.Context(), staffID, recurrenceID); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

@@ -7,7 +7,6 @@ WITH unnested_data AS (SELECT unnest(sqlc.arg('location_ids')::uuid[])          
                               unnest(sqlc.arg('is_date_time_modified_array')::bool[]) AS is_date_time_modified,
                               unnest(sqlc.arg('recurrence_ids')::uuid[])              AS recurrence_id,
                               unnest(sqlc.arg('created_by_ids')::uuid[])              AS created_by,
-                              unnest(sqlc.arg('capacities')::int[])                   AS capacity,
                               unnest(sqlc.arg('is_cancelled_array')::bool[])          AS is_cancelled,
                               unnest(sqlc.arg('cancellation_reasons')::text[])        AS cancellation_reason)
 INSERT
@@ -20,7 +19,6 @@ INTO events.events (location_id,
                     recurrence_id,
                     created_by,
                     updated_by,
-                    capacity,
                     is_cancelled,
                     cancellation_reason)
 SELECT location_id,
@@ -32,7 +30,6 @@ SELECT location_id,
        NULLIF(recurrence_id, '00000000-0000-0000-0000-000000000000'::uuid),
        created_by,
        created_by,
-       NULLIF(capacity, 0),
        is_cancelled,
        NULLIF(cancellation_reason, '')
 FROM unnested_data
@@ -139,13 +136,12 @@ SET start_at              = $1,
     team_id               = $5,
     is_cancelled          = $6,
     cancellation_reason   = $7,
-    capacity              = $8,
     updated_at            = current_timestamp,
     updated_by            = sqlc.arg('updated_by')::uuid,
     is_date_time_modified = (
         recurrence_id IS NOT NULL
         )
-WHERE id = $9
+WHERE id = $8
 RETURNING *;
 
 -- name: DeleteEventsByIds :exec

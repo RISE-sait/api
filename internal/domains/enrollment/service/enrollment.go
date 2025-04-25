@@ -1,6 +1,13 @@
 package enrollment
 
 import (
+	"context"
+	"database/sql"
+	"errors"
+	"log"
+	"net/http"
+	"time"
+
 	databaseErrors "api/internal/constants"
 	"api/internal/di"
 	repo "api/internal/domains/enrollment/persistence/repository"
@@ -8,14 +15,9 @@ import (
 	event "api/internal/domains/event/service"
 	"api/internal/domains/program"
 	errLib "api/internal/libs/errors"
-	"context"
-	"database/sql"
-	"errors"
+
 	"github.com/google/uuid"
 	"github.com/lib/pq"
-	"log"
-	"net/http"
-	"time"
 )
 
 type CustomerEnrollmentService struct {
@@ -34,6 +36,9 @@ func NewCustomerEnrollmentService(container *di.Container) *CustomerEnrollmentSe
 	}
 }
 
+// transaction isolation level is set to Serializable to prevent write skew due to race conditions
+// this is important for the enrollment process, as multiple users may try to enroll at the same time
+// and cause overbooking
 func (s *CustomerEnrollmentService) executeInTx(ctx context.Context, fn func(repo *repo.CustomerEnrollmentRepository) *errLib.CommonError) *errLib.CommonError {
 	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelSerializable,
@@ -96,7 +101,6 @@ func (s *CustomerEnrollmentService) UnEnrollCustomerFromEvent(ctx context.Contex
 
 func (s *CustomerEnrollmentService) ReserveSeatInEvent(ctx context.Context, eventID, customerID uuid.UUID) *errLib.CommonError {
 	return s.executeInTx(ctx, func(r *repo.CustomerEnrollmentRepository) *errLib.CommonError {
-
 		if _, err := s.eventService.GetEvent(ctx, eventID); err != nil {
 			return err
 		}
@@ -120,7 +124,6 @@ func (s *CustomerEnrollmentService) ReserveSeatInEvent(ctx context.Context, even
 
 func (s *CustomerEnrollmentService) ReserveSeatInProgram(ctx context.Context, programID, customerID uuid.UUID) *errLib.CommonError {
 	return s.executeInTx(ctx, func(r *repo.CustomerEnrollmentRepository) *errLib.CommonError {
-
 		if getProgram, err := s.programService.GetProgram(ctx, programID); err != nil {
 			return err
 		} else if getProgram.Capacity == nil {
@@ -140,7 +143,6 @@ func (s *CustomerEnrollmentService) ReserveSeatInProgram(ctx context.Context, pr
 }
 
 func (s *CustomerEnrollmentService) UpdateReservationStatusInProgram(ctx context.Context, programID, customerID uuid.UUID, status dbEnrollment.PaymentStatus) *errLib.CommonError {
-
 	if _, err := s.programService.GetProgram(ctx, programID); err != nil {
 		return err
 	}
@@ -149,7 +151,6 @@ func (s *CustomerEnrollmentService) UpdateReservationStatusInProgram(ctx context
 }
 
 func (s *CustomerEnrollmentService) UpdateReservationStatusInEvent(ctx context.Context, eventID, customerID uuid.UUID, status dbEnrollment.PaymentStatus) *errLib.CommonError {
-
 	if _, err := s.eventService.GetEvent(ctx, eventID); err != nil {
 		return err
 	}

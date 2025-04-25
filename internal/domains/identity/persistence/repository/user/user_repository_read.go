@@ -1,15 +1,17 @@
 package user
 
 import (
-	dbIdentity "api/internal/domains/identity/persistence/sqlc/generated"
-	values "api/internal/domains/identity/values"
-	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/google/uuid"
 	"log"
 	"net/http"
+
+	dbIdentity "api/internal/domains/identity/persistence/sqlc/generated"
+	values "api/internal/domains/identity/values"
+	errLib "api/internal/libs/errors"
+
+	"github.com/google/uuid"
 )
 
 func (r *UsersRepository) GetIsActualParentChild(ctx context.Context, childID, parentID uuid.UUID) (bool, *errLib.CommonError) {
@@ -20,7 +22,6 @@ func (r *UsersRepository) GetIsActualParentChild(ctx context.Context, childID, p
 		},
 		ChildID: childID,
 	})
-
 	if err != nil {
 		log.Printf("Error verifying parent-child relationship: %v", err.Error())
 		return false, errLib.New("Internal server error", http.StatusInternalServerError)
@@ -30,7 +31,6 @@ func (r *UsersRepository) GetIsActualParentChild(ctx context.Context, childID, p
 }
 
 func (r *UsersRepository) GetUserInfo(ctx context.Context, email string, id uuid.UUID) (values.UserReadInfo, *errLib.CommonError) {
-
 	if err := validateUserLookupParams(email, id); err != nil {
 		return values.UserReadInfo{}, err
 	}
@@ -134,6 +134,10 @@ func addAthleteInfo(response *values.UserReadInfo, user dbIdentity.GetUserByIdOr
 	}
 }
 
+// i really don't like the way this is done, since it treats the roles as like a hierarchy, kinda?
+// its like if u have athlete info and theres parent info associated with u, then u are a parent.
+// but if u have staff info and parent info associated with u, then u are a staff.
+// i mean, it works since we treat them as mutually exclusive, but the mental model is a bit off.
 func setUserRole(ctx context.Context, r *UsersRepository, response *values.UserReadInfo, user dbIdentity.GetUserByIdOrEmailRow) {
 	switch {
 	case user.ParentID.Valid:

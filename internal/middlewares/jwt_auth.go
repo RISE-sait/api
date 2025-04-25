@@ -1,13 +1,14 @@
 package middlewares
 
 import (
+	"context"
+	"net/http"
+	"strings"
+
 	errLib "api/internal/libs/errors"
 	jwtLib "api/internal/libs/jwt"
 	responseHandlers "api/internal/libs/responses"
 	contextUtils "api/utils/context"
-	"context"
-	"net/http"
-	"strings"
 )
 
 // JWTAuthMiddleware validates JWT tokens and checks user roles.
@@ -21,7 +22,6 @@ import (
 func JWTAuthMiddleware(isAllowAnyoneWithValidToken bool, allowedRoles ...contextUtils.CtxRole) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 			token, err := extractToken(r)
 			if err != nil {
 				responseHandlers.RespondWithError(w, err)
@@ -38,7 +38,6 @@ func JWTAuthMiddleware(isAllowAnyoneWithValidToken bool, allowedRoles ...context
 			ctx := r.Context()
 
 			userRole, err := extractRole(claims.RoleInfo)
-
 			if err != nil {
 				responseHandlers.RespondWithError(w, err)
 				return
@@ -76,7 +75,6 @@ func extractToken(r *http.Request) (string, *errLib.CommonError) {
 }
 
 func extractRole(userRoleInfo *jwtLib.RoleInfo) (contextUtils.CtxRole, *errLib.CommonError) {
-
 	if userRoleInfo == nil {
 		return "", errLib.New("No role found in jwt", http.StatusUnauthorized)
 	}
@@ -105,7 +103,6 @@ func extractRole(userRoleInfo *jwtLib.RoleInfo) (contextUtils.CtxRole, *errLib.C
 
 // hasRequiredRole checks if the user's role matches any of the allowed roles or is SUPERADMIN.
 func hasRequiredRole(userRole contextUtils.CtxRole, allowedRoles []contextUtils.CtxRole) bool {
-
 	if userRole == "" {
 		return false
 	}

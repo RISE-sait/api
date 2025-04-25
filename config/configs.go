@@ -2,9 +2,10 @@ package config
 
 import (
 	"database/sql"
-	"github.com/stripe/stripe-go/v81"
 	"log"
 	"os"
+
+	"github.com/stripe/stripe-go/v81"
 
 	_ "github.com/lib/pq"
 )
@@ -45,7 +46,6 @@ var Env = initConfig()
 //
 //	cfg := initConfig()  // Initializes the configuration with environment variables.
 func initConfig() *config {
-
 	stripeApiKey := os.Getenv("STRIPE_API_KEY")
 
 	stripe.Key = stripeApiKey
@@ -69,6 +69,7 @@ func initConfig() *config {
 // If the variable is found, its value is returned. If not, the behavior depends on the calmIfNotExist parameter.
 //
 // If calmIfNotExist is omitted or set to true, it returns an empty string. If set to false, it panics.
+// By default, it doesn't panic.
 //
 // Parameters:
 //   - key: The environment variable to retrieve.
@@ -83,11 +84,12 @@ func initConfig() *config {
 //	value := getEnv("MY_ENV_VAR", true)  // Same behavior, explicitly returns an empty string.
 //	value := getEnv("MY_ENV_VAR", false)  // Panics if MY_ENV_VAR is not set.
 func getEnv(key string, calmIfNotExist ...bool) string {
-
 	if value, exists := os.LookupEnv(key); exists {
 		return value
 	}
 
+	// If calmIfNotExist is not provided, len(calmIfNotExist) will be 0
+	// which means we should not panic
 	if len(calmIfNotExist) > 0 && !calmIfNotExist[0] {
 		panic("Environment variable " + key + " not set")
 	}
@@ -109,7 +111,6 @@ func GetDBConnection() *sql.DB {
 
 	log.Println(connStr)
 	dbConn, err := sql.Open("postgres", connStr)
-
 	if err != nil {
 		log.Fatal(err)
 	}

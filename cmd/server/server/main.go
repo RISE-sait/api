@@ -1,20 +1,22 @@
 package main
 
 import (
-	"api/cmd/server/router"
-	"api/internal/di"
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/go-chi/cors"
+	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"api/cmd/server/router"
+	"api/internal/di"
+
+	"github.com/go-chi/cors"
+
 	"api/internal/middlewares"
-	"log"
-	"net/http"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -34,7 +36,6 @@ import (
 // @in header
 // @name Authorization
 func main() {
-
 	swaggerUrl := os.Getenv("SWAGGER_URL")
 	if swaggerUrl == "" {
 		swaggerUrl = "http://localhost/swagger/doc.json"
@@ -71,6 +72,17 @@ func main() {
 	}
 }
 
+// setupServer initializes and configures the HTTP server router.
+//
+// It creates a new Chi router, sets up middleware, registers the endpoints
+// including the root handler and Swagger documentation, and registers application routes.
+//
+// Parameters:
+//   - container: Dependency injection container that holds application services like db connections and Gcp service
+//   - swaggerUrl: The URL where Swagger documentation will be served from
+//
+// Returns:
+//   - An http.Handler that can be used with an HTTP server
 func setupServer(container *di.Container, swaggerUrl string) http.Handler {
 	r := chi.NewRouter()
 	setupMiddlewares(r)
@@ -90,17 +102,27 @@ func setupServer(container *di.Container, swaggerUrl string) http.Handler {
 	return r
 }
 
+// setupMiddlewares configures the middleware stack for the Chi router.
+// It sets up:
+//   - Standard logging of HTTP requests
+//   - Panic recovery to prevent application crashes
+//   - Automatic JSON content type header for responses
+//   - CORS configuration allowing requests from specific origins with
+//     support for credentials, authorized methods, and custom headers
+//
+// Parameters:
+//   - router: The Chi router instance to which middleware will be attached
 func setupMiddlewares(router *chi.Mux) {
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
 	router.Use(middlewares.SetJSONContentType)
 
 	router.Use(cors.New(cors.Options{
-		AllowedOrigins:   []string{"https://rise-web-461776259687.us-west2.run.app", "*"}, // Allow this specific origin
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},             // Allowed HTTP methods
-		AllowedHeaders:   []string{"Content-Type", "Authorization"},                       // Allowed headers
-		ExposedHeaders:   []string{"Authorization"},                                       // Add this line
-		AllowCredentials: true,                                                            // Allow cookies and credentials
-		Debug:            true,                                                            // Enable CORS debugging
+		AllowedOrigins:   []string{"https://rise-web-461776259687.us-west2.run.app", "*"}, // * is used but should be replaced when going to prod
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		ExposedHeaders:   []string{"Authorization"},
+		AllowCredentials: true,
+		Debug:            true,
 	}).Handler)
 }

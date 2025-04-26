@@ -1,27 +1,33 @@
 package main
 
 import (
+	"context"
+	"database/sql"
+	"fmt"
+	"log"
+	"strings"
+	"time"
+
 	"api/cmd/seed/data"
 	dbSeed "api/cmd/seed/sqlc/generated"
 	"api/config"
-	"time"
 
 	"github.com/google/uuid"
-
-	"fmt"
-	"strings"
-
-	"context"
-	"database/sql"
-	"log"
 
 	_ "github.com/lib/pq"
 )
 
+/*
+clearTables should be used to clear all tables in the database before seeding new data.
+It's like a reset tables function. It will not drop the tables, but it will truncate them.
+It truncates everything but the goose_db_version table, since that table is for tracking migrations for db schemas.
+*/
 func clearTables(ctx context.Context, db *sql.DB) {
 	// Define the schemas you want to truncate tables from
-	schemas := []string{"athletic", "audit", "events", "haircut",
-		"location", "membership", "program", "public", "staff", "users", "waiver"}
+	schemas := []string{
+		"athletic", "audit", "events", "haircut",
+		"location", "membership", "program", "public", "staff", "users", "waiver",
+	}
 
 	// Build the TRUNCATE query
 	var tables []string
@@ -64,12 +70,10 @@ func clearTables(ctx context.Context, db *sql.DB) {
 	if _, err := db.ExecContext(ctx, truncateQuery); err != nil {
 		log.Fatalf("Failed to truncate tables: %v", err)
 	}
-
 }
 
 func seedUsers(ctx context.Context, db *sql.DB) []uuid.UUID {
 	clients, err := data.GetClients()
-
 	if err != nil {
 		log.Fatalf("Failed to get clients: %v", err)
 		return nil
@@ -122,14 +126,12 @@ func seedUsers(ctx context.Context, db *sql.DB) []uuid.UUID {
 		HasMarketingEmailConsentArray: hasMarketingEmailConsentArr,
 		HasSmsConsentArray:            hasSMSConsentArray,
 	})
-
 	if err != nil {
 		log.Fatalf("Failed to insert clients: %v", err)
 		return nil
 	}
 
 	_, err = seedQueries.InsertUsers(ctx, staffs)
-
 	if err != nil {
 		log.Fatalf("Failed to insert staff as clients: %v", err)
 		return nil
@@ -139,7 +141,6 @@ func seedUsers(ctx context.Context, db *sql.DB) []uuid.UUID {
 }
 
 func seedHaircutServices(ctx context.Context, db *sql.DB) {
-
 	seedQueries := dbSeed.New(db)
 
 	services := data.GetHaircutServices()
@@ -151,7 +152,6 @@ func seedHaircutServices(ctx context.Context, db *sql.DB) {
 }
 
 func seedFakeWaivers(ctx context.Context, db *sql.DB) {
-
 	seedQueries := dbSeed.New(db)
 
 	if err := seedQueries.InsertWaivers(ctx); err != nil {
@@ -160,7 +160,6 @@ func seedFakeWaivers(ctx context.Context, db *sql.DB) {
 }
 
 func seedFakeBarberServices(ctx context.Context, db *sql.DB) {
-
 	seedQueries := dbSeed.New(db)
 
 	services := data.GetBarberServices()
@@ -172,7 +171,6 @@ func seedFakeBarberServices(ctx context.Context, db *sql.DB) {
 }
 
 func seedFakeHaircutEvents(ctx context.Context, db *sql.DB, clientIds []uuid.UUID) {
-
 	seedQueries := dbSeed.New(db)
 
 	events := data.GetHaircutEvents(clientIds)
@@ -184,7 +182,6 @@ func seedFakeHaircutEvents(ctx context.Context, db *sql.DB, clientIds []uuid.UUI
 }
 
 func seedFakeAthletes(ctx context.Context, db *sql.DB, ids []uuid.UUID) {
-
 	seedQueries := dbSeed.New(db)
 
 	if _, err := seedQueries.InsertAthletes(ctx, ids); err != nil {
@@ -194,7 +191,6 @@ func seedFakeAthletes(ctx context.Context, db *sql.DB, ids []uuid.UUID) {
 }
 
 func seedPractices(ctx context.Context, db *sql.DB) {
-
 	seedQueries := dbSeed.New(db)
 
 	practices := data.Practices
@@ -219,14 +215,12 @@ func seedPractices(ctx context.Context, db *sql.DB) {
 		LevelArray:         levelArray,
 		IsPayPerEventArray: isPayPerEvent,
 	})
-
 	if err != nil {
 		log.Fatalf("Failed to insert practices: %v", err)
 	}
 }
 
 func seedProgramsFees(ctx context.Context, db *sql.DB) {
-
 	seedQueries := dbSeed.New(db)
 
 	practices := data.Practices
@@ -255,18 +249,15 @@ func seedProgramsFees(ctx context.Context, db *sql.DB) {
 		MembershipNameArray:       membershipNameArray,
 		StripeProgramPriceIDArray: stripePriceIDArray,
 	})
-
 	if err != nil {
 		log.Fatalf("Failed to insert program fees: %v", err)
 	}
 }
 
 func seedStaffRoles(ctx context.Context, db *sql.DB) {
-
 	seedQueries := dbSeed.New(db)
 
 	err := seedQueries.InsertStaffRoles(ctx)
-
 	if err != nil {
 		log.Fatalf("Failed to insert roles: %v", err)
 		return
@@ -274,13 +265,11 @@ func seedStaffRoles(ctx context.Context, db *sql.DB) {
 }
 
 func seedStaff(ctx context.Context, db *sql.DB) []uuid.UUID {
-
 	seedQueries := dbSeed.New(db)
 
 	staffs := data.GetStaffs()
 
 	ids, err := seedQueries.InsertStaff(ctx, staffs)
-
 	if err != nil {
 		log.Fatalf("Failed to insert staff: %v", err)
 	}
@@ -289,7 +278,6 @@ func seedStaff(ctx context.Context, db *sql.DB) []uuid.UUID {
 }
 
 func seedFakeCoachStats(ctx context.Context, db *sql.DB) {
-
 	seedQueries := dbSeed.New(db)
 
 	if err := seedQueries.InsertCoachStats(ctx); err != nil {
@@ -299,7 +287,6 @@ func seedFakeCoachStats(ctx context.Context, db *sql.DB) {
 }
 
 func seedFakeCourses(ctx context.Context, db *sql.DB) []string {
-
 	seedQueries := dbSeed.New(db)
 
 	courses := data.GetCourses()
@@ -313,7 +300,6 @@ func seedFakeCourses(ctx context.Context, db *sql.DB) []string {
 }
 
 func seedFakeTeams(ctx context.Context, db *sql.DB) []uuid.UUID {
-
 	seedQueries := dbSeed.New(db)
 
 	teams := dbSeed.InsertTeamsParams{
@@ -326,7 +312,6 @@ func seedFakeTeams(ctx context.Context, db *sql.DB) []uuid.UUID {
 	}
 
 	teamIds, err := seedQueries.InsertTeams(ctx, teams)
-
 	if err != nil {
 		log.Fatalf("Failed to insert teams: %v", err)
 		return nil
@@ -349,7 +334,6 @@ func seedFakeGames(ctx context.Context, db *sql.DB, teamIds []uuid.UUID) []strin
 }
 
 func seedLocations(ctx context.Context, db *sql.DB) []string {
-
 	seedQueries := dbSeed.New(db)
 
 	var (
@@ -382,7 +366,6 @@ func seedMembershipPlans(ctx context.Context, db *sql.DB) {
 }
 
 func seedMemberships(ctx context.Context, db *sql.DB) {
-
 	seedQueries := dbSeed.New(db)
 
 	benefits := []string{
@@ -421,7 +404,6 @@ func seedMemberships(ctx context.Context, db *sql.DB) {
 		DescriptionArray: descriptionArray,
 		BenefitsArray:    benefitsArray,
 	})
-
 	if err != nil {
 		log.Fatalf("Failed to insert memberships: %v", err)
 	}
@@ -434,7 +416,6 @@ func seedEvents(ctx context.Context, db *sql.DB) []uuid.UUID {
 
 	// Insert events and sessions into the database
 	ids, err := seedQueries.InsertEvents(ctx, arg)
-
 	if err != nil {
 		log.Fatalf("Failed to insert events: %v", err)
 		return nil
@@ -450,7 +431,6 @@ func seedFakeEvents(ctx context.Context, db *sql.DB, programs, locations []strin
 
 	// Insert events and sessions into the database
 	ids, err := seedQueries.InsertEvents(ctx, arg)
-
 	if err != nil {
 		log.Fatalf("Failed to insert events: %v", err)
 		return nil
@@ -463,7 +443,6 @@ func seedClientsMembershipPlans(ctx context.Context, db *sql.DB) {
 	seedQueries := dbSeed.New(db)
 
 	plans, err := data.GetClientsMembershipPlans()
-
 	if err != nil {
 		log.Fatalf("Failed to insert client membership plans: %v", err)
 		return
@@ -479,7 +458,6 @@ func seedFakeClientsEnrollments(ctx context.Context, db *sql.DB, clients, events
 	seedQueries := dbSeed.New(db)
 
 	_, err := seedQueries.InsertCustomersEnrollments(ctx, data.GetClientsEnrollments(clients, events))
-
 	if err != nil {
 		log.Fatalf("Failed to insert client enrollments: %v", err)
 		return
@@ -490,7 +468,6 @@ func seedFakeEventStaff(ctx context.Context, db *sql.DB, eventIds, staffIds []uu
 	seedQueries := dbSeed.New(db)
 
 	err := seedQueries.InsertEventsStaff(ctx, data.GetEventStaff(eventIds, staffIds))
-
 	if err != nil {
 		log.Fatalf("Failed to insert client enrollments: %v", err)
 	}
@@ -500,7 +477,6 @@ func updateFakeParents(ctx context.Context, db *sql.DB) {
 	seedQueries := dbSeed.New(db)
 
 	rows, err := seedQueries.UpdateParents(ctx)
-
 	if err != nil {
 		log.Fatalf("Failed to insert client enrollments: %v", err)
 		return
@@ -512,7 +488,6 @@ func updateFakeParents(ctx context.Context, db *sql.DB) {
 }
 
 func main() {
-
 	ctx := context.Background()
 
 	db := config.GetDBConnection()

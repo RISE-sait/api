@@ -1,12 +1,14 @@
 package staff_activity_logs
 
 import (
+	"context"
+	"database/sql"
+
 	"api/internal/di"
 	repo "api/internal/domains/audit/staff_activity_logs/persistence"
 	values "api/internal/domains/audit/staff_activity_logs/values"
 	errLib "api/internal/libs/errors"
-	"context"
-	"database/sql"
+
 	"github.com/google/uuid"
 )
 
@@ -22,6 +24,9 @@ func NewService(container *di.Container) *Service {
 	}
 }
 
+// InsertStaffActivity inserts a new staff activity log into the database.
+// It is not implemented in HTTP handler currently, only as a service for other domains.
+// It should be used in the context of a transaction for atomicity purposes.
 func (s *Service) InsertStaffActivity(ctx context.Context, tx *sql.Tx, staffId uuid.UUID, activityDescription string) *errLib.CommonError {
 	return s.repo.InsertStaffActivity(ctx, tx, staffId, activityDescription)
 }

@@ -7,6 +7,42 @@ import (
 	"strings"
 )
 
+/*
+Swagger Documentation Generator
+
+This tool automates the generation of Swagger/OpenAPI documentation for the Rise API.
+It scans specified directories for Go files containing Swagger annotations and
+generates corresponding documentation files.
+
+Features:
+  - Recursive directory scanning
+  - Configurable directory exclusions
+  - Multiple format output (JSON, Go)
+  - Test file exclusion
+  - Smart directory filtering based on project structure
+
+Usage:
+  Run this tool from the project root directory:
+  > go run cmd/swag_init/swag-init.go
+
+Configuration:
+  Base Directories:
+    - ./cmd/server/server
+    - ./internal/domains
+
+  Excluded Directories:
+    - persistence
+    - values
+    - tests
+    - test_utils
+    - service
+    - router (only in cmd/server)
+
+Output:
+  Generates Swagger documentation in both JSON and Go formats
+*/
+
+// ngl idek this code well, I just LLMed it and it works, so u know
 func main() {
 	// Define the base directories to scan
 	baseDirs := []string{"./cmd/server/server", "./internal/domains"}
@@ -39,6 +75,8 @@ func main() {
 						return filepath.SkipDir
 					}
 
+					// "entity" is no longer used in the project structure
+					// but just keep it in case shit breaks
 					if info.Name() == "entity" {
 						parentDir := filepath.Base(filepath.Dir(path))
 						if parentDir != "identity" {

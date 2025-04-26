@@ -1,11 +1,49 @@
 package main
 
+/*
+This file provides a database migration tool that uses Goose to manage database migrations.
+
+Usage:
+    migrate [command]
+
+Commands:
+    up      - Apply all pending migrations
+    down    - Rollback the last applied migration
+    reset   - Rollback all migrations and reapply them from scratch
+
+The tool expects migrations to be located in the 'db/migrations' directory relative to the
+current working directory. Migration files should follow Goose naming conventions:
+    YYYYMMDDHHMMSS_description.sql
+
+Run:
+
+`goose create <migration_name> sql -dir ./db/migrations`
+in the root directory to create a new migration file.
+
+eg: `goose create event_is_date_time_modified_to_is_modified sql -dir ./db/migrations`
+
+Example:
+    migrate up     # Apply all pending migrations
+    migrate down   # Rollback the most recent migration
+    migrate reset  # Reset and reapply all migrations
+
+Environment:
+    The database connection is configured through environment variables using the config package.
+    See config.GetDBConnection() for required environment variables.
+
+Error Handling:
+    - Validates migrations directory exists before execution
+    - Reports detailed error messages for common failures
+    - Ensures proper command argument is provided
+*/
+
 import (
-	"api/config"
 	"database/sql"
 	"fmt"
 	"log"
 	"os"
+
+	"api/config"
 
 	_ "github.com/lib/pq"
 	"github.com/pressly/goose"

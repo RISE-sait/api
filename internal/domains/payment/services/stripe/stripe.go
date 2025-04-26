@@ -1,15 +1,17 @@
 package stripe
 
 import (
+	"context"
+	"net/http"
+	"strings"
+
 	_ "api/internal/di"
 	errLib "api/internal/libs/errors"
 	contextUtils "api/utils/context"
-	"context"
+
 	_ "github.com/square/square-go-sdk/client"
 	"github.com/stripe/stripe-go/v81"
 	"github.com/stripe/stripe-go/v81/checkout/session"
-	"net/http"
-	"strings"
 )
 
 func CreateOneTimePayment(
@@ -17,7 +19,6 @@ func CreateOneTimePayment(
 	itemStripePriceID string,
 	quantity int,
 ) (string, *errLib.CommonError) {
-
 	if strings.ReplaceAll(stripe.Key, " ", "") == "" {
 		return "", errLib.New("Stripe not initialized", http.StatusInternalServerError)
 	}
@@ -31,11 +32,13 @@ func CreateOneTimePayment(
 	}
 
 	userID, err := contextUtils.GetUserID(ctx)
-
 	if err != nil {
 		return "", err
 	}
 
+	// we set userID in metadata so that we can access it later in the webhook handler.
+	// we cant use email since a membership can be purchased for a child who does not have an email.
+	// and the only other simplest way to identify the user on stripe afaik is by using the userID in metadata.
 	params := &stripe.CheckoutSessionParams{
 		Metadata: map[string]string{
 			"userID": userID.String(), // Accessible in subscription.Metadata
@@ -67,9 +70,7 @@ func CreateSubscription(
 	stripePlanPriceID string,
 	stripeJoiningFeesID string,
 ) (string, *errLib.CommonError) {
-
 	userID, err := contextUtils.GetUserID(ctx)
-
 	if err != nil {
 		return "", err
 	}

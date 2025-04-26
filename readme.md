@@ -110,4 +110,12 @@ are swagger docs.
 
 ### db design
 
-pretty self explanatory imo, ask me if u run into anything.
+stuff like user info like dob, email etc are stored in our db as the source of truth,
+even though we could use hubspot to store those info but it makes CRUD operations more difficult.
+
+Like if u wanna register a user, but u successfully store some user data in our db but not hubspot,
+which would fuck things out.
+
+Thats why we use our db as the source of truth, and use hubspot as like an external CRM tool.
+
+rest is pretty self explanatory imo, ask me if u run into anything.

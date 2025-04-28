@@ -1,47 +1,65 @@
-## Title
+# 📝 Pull Request Title Formatting
 
-<!-- Clear and short title summarizing the change -->
+✅ Please prefix your PR title with one of the following:
+- [Feature]
+- [Bugfix]
+- [Refactor]
+- [Chore]
+- [Docs]
+
+Example:  
+`[Feature] Add login screen for mobile app`
 
 ---
 
-## Changes Made
+# 📋 Title
 
-<!-- List what you changed/fixed/added -->
+<!-- Clear, short title summarizing the change -->
+
+---
+
+# ✨ Changes Made
+
+<!-- List what you changed, fixed, or added -->
 - 
 - 
 - 
 
 ---
 
-## Reason for Changes
+# 🧠 Reason for Changes
 
-<!-- Why was this change necessary? -->
-
----
-
-## Testing Performed
-
-<!-- How did you test it? (Local run, Postman, Browser, etc.) -->
-- [ ] Frontend tested locally (npm run dev)
-- [ ] Backend tested locally (API Postman calls)
-- [ ] No console errors
-- [ ] No server errors
+<!-- Explain why this change was necessary -->
 
 ---
 
-## Screenshots (Optional)
+# 🧪 Testing Performed
 
-<!-- Add screenshots or screen recordings if visual changes happened -->
+<!-- Confirm what testing was done -->
+
+- [ ] Frontend tested locally (`npm run dev`)
+- [ ] Mobile App tested via Expo / emulator
+- [ ] Backend APIs tested via Postman
+- [ ] No console errors (Frontend)
+- [ ] No server errors (Backend)
+- [ ] Mobile app builds successfully (if applicable)
 
 ---
 
-## Related Trello Task (Optional)
+# 📸 Screenshots or Screen Recording (Optional)
 
-<!-- Link the Trello task if applicable -->
+<!-- Attach screenshots or recordings if visual/UI changes were made -->
 
 ---
 
-## Notes for Reviewer (Optional)
+# 🔗 Related Trello Task
 
-<!-- Anything you want the reviewer to know -->
+<!-- Link to the related Trello card -->
+Example: `https://trello.com/c/your-task-id`
+
+---
+
+# 🗒️ Notes for Reviewer (Optional)
+
+<!-- Anything special to highlight, known issues, extra context, etc. -->
 

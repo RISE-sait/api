@@ -118,4 +118,4 @@ which would fuck things out.
 
 Thats why we use our db as the source of truth, and use hubspot as like an external CRM tool.
 
-rest is pretty self explanatory imo, ask me if u run into anything.
+rest is pretty self explanatory imo, ask me if u run into anything. Test

@@ -44,15 +44,16 @@ func GetClientsMembershipPlans() (dbSeed.InsertClientsMembershipPlansParams, err
 		lastStartDate := time.Now()
 
 		var renewalDate time.Time
-		if record[20] != "" { // Check if the renewal date is not empty
-			renewalDate, err = time.Parse("1/2/2006", record[20]) // Adjust the date format as needed
+		if record[20] != "" && record[20] != "0" {
+			renewalDate, err = time.Parse("1/2/2006", record[20])
 			if err != nil {
-				return params, fmt.Errorf("error parsing renewal date: %w", err)
+				fmt.Printf("Skipping invalid renewal date (%s): %v\n", record[20], err)
+				renewalDate = time.Time{} // or continue if you'd rather skip the row
 			}
 		} else {
-			// Use a default "empty" date (e.g., time.Time{} or a specific placeholder)
 			renewalDate = time.Time{}
 		}
+		
 
 		membershipPlan := record[19]
 

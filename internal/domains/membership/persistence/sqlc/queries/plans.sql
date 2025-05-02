@@ -9,9 +9,21 @@ FROM membership.membership_plans
 WHERE id = $1;
 
 -- name: GetMembershipPlans :many
-SELECT * 
+SELECT 
+  mp.id,
+  mp.membership_id,
+  mp.name,
+  mp.stripe_price_id,
+  mp.stripe_joining_fee_id,
+  mp.amt_periods,
+  mp.unit_amount,
+  mp.currency,
+  mp.interval,
+  mp.created_at,
+  mp.updated_at
 FROM membership.membership_plans mp
 WHERE mp.membership_id = $1;
+
 
 -- name: UpdateMembershipPlan :one
 UPDATE membership.membership_plans

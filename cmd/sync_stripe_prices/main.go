@@ -17,7 +17,9 @@ type Plan struct {
 	ID            string
 	StripePriceID string
 }
-
+// This script syncs Stripe pricing data (unit_amount, currency, interval) for all membership plans
+// that have a valid stripe_price_id. It fetches each price from Stripe using the API, then updates
+// the corresponding row in the membership_plans table with the real Stripe price details.
 func main() {
 	err := godotenv.Load("config/.env.local")
 	if err != nil {

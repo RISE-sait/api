@@ -495,6 +495,10 @@ type Plan struct {
 	ID            string
 	StripePriceID string
 }
+// syncStripePrices fetches pricing details from Stripe for all membership plans
+// that have a stripe_price_id, and updates the local database with the unit_amount,
+// currency, and interval values. This ensures the membership_plans table reflects
+// accurate, display-ready pricing information from Stripe.
 
 func syncStripePrices(ctx context.Context, db *sql.DB) {
 	stripe.Key = os.Getenv("STRIPE_API_KEY")

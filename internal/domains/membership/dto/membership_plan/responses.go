@@ -25,7 +25,7 @@ type PlanResponse struct {
 }
 
 func NewPlanResponse(plan values.PlanReadValues) PlanResponse {
-	displayPrice := fmt.Sprintf("$%.2f", float64(plan.UnitAmount)/100)
+	displayPrice := fmt.Sprintf("$%.2f", float64(plan.UnitAmount)/100) // convert unit_amount to dollars and format as string
 
 	return PlanResponse{
 		MembershipID:        plan.MembershipID,
@@ -35,9 +35,9 @@ func NewPlanResponse(plan values.PlanReadValues) PlanResponse {
 		StripeJoiningFeesID: getPtrIfNotEmpty(plan.StripeJoiningFeesID),
 		AmtPeriods:          plan.AmtPeriods,
 		UnitAmount:          plan.UnitAmount,
-		Currency:            strings.ToUpper(plan.Currency),
-		Interval:            plan.Interval,
-		Price:               displayPrice,
+		Currency:            strings.ToUpper(plan.Currency), // e.g. "USD", "CAD"
+		Interval:            plan.Interval, // e.g. "month", "year", weekly, etc.
+		Price:               displayPrice, // e.g. "$10.00" display price
 		CreatedAt:           plan.CreatedAt,
 		UpdatedAt:           plan.UpdatedAt,
 	}

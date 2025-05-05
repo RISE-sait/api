@@ -38,6 +38,22 @@ func parseBool(s string) bool {
 	return s == "true" || s == "false"
 }
 
+// convertCountryToAlpha2 converts country names to ISO Alpha-2 codes.
+func convertCountryToAlpha2(name string) string {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "canada":
+		return "CA"
+	case "united states", "usa":
+		return "US"
+	case "mexico":
+		return "MX"
+	case "":
+		return "XX" // Unknown
+	default:
+		return "XX" // Fallback for unsupported
+	}
+}
+
 // GetClients : extract clients data from the CSV file
 func GetClients() ([]Client, error) {
 
@@ -70,7 +86,7 @@ func GetClients() ([]Client, error) {
 		// Parse booleans
 		studioWaiver := parseBool(record[22])
 		emailConsent := parseBool(record[23])
-		smsConsent := parseBool(record[24])
+		smsConsent := parseBool(record[23])
 
 		var gender string
 
@@ -104,7 +120,7 @@ func GetClients() ([]Client, error) {
 			Phone:            record[4],
 			DOB:              dob,
 			Gender:           gender,
-			CountryAlpha2:    record[7],
+			CountryAlpha2:    convertCountryToAlpha2(record[10]),
 			CreditsRemaining: parseInt(record[18]),
 			StudioWaiver:     studioWaiver,
 			EmailConsent:     emailConsent,

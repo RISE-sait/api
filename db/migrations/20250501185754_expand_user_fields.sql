@@ -1,0 +1,9 @@
+-- +goose Up
+ALTER TABLE users.users
+  ALTER COLUMN phone TYPE VARCHAR(100),
+  ALTER COLUMN email TYPE VARCHAR(100);
+
+-- +goose Down
+ALTER TABLE users.users
+  ALTER COLUMN phone TYPE VARCHAR(50),
+  ALTER COLUMN email TYPE VARCHAR(50);

@@ -135,6 +135,17 @@ func (r *PlansRepository) GetMembershipPlans(ctx context.Context, membershipId u
 		if dbPlan.AmtPeriods.Valid {
 			plan.AmtPeriods = &dbPlan.AmtPeriods.Int32
 		}
+		if dbPlan.UnitAmount.Valid {
+			plan.UnitAmount = int(dbPlan.UnitAmount.Int32)
+		}
+	
+		if dbPlan.Currency.Valid {
+			plan.Currency = dbPlan.Currency.String
+		}
+	
+		if dbPlan.Interval.Valid {
+			plan.Interval = dbPlan.Interval.String
+		}
 
 		plans[i] = plan
 	}

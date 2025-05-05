@@ -1,8 +1,9 @@
 package membership
 
 import (
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type PlanDetails struct {
@@ -25,6 +26,9 @@ type PlanUpdateValues struct {
 type PlanReadValues struct {
 	ID uuid.UUID
 	PlanDetails
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	UnitAmount int
+	Currency   string
+	Interval   string
 }

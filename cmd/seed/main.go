@@ -1,16 +1,19 @@
 package main
 
 import (
+	"api/cmd/seed/data"
+	dbSeed "api/cmd/seed/sqlc/generated"
+	"api/config"
 	"context"
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 
-	"api/cmd/seed/data"
-	dbSeed "api/cmd/seed/sqlc/generated"
-	"api/config"
+	"github.com/stripe/stripe-go/v81"
+	"github.com/stripe/stripe-go/v81/price"
 
 	"github.com/google/uuid"
 
@@ -487,6 +490,65 @@ func updateFakeParents(ctx context.Context, db *sql.DB) {
 	}
 }
 
+
+type Plan struct {
+	ID            string
+	StripePriceID string
+}
+// syncStripePrices fetches pricing details from Stripe for all membership plans
+// that have a stripe_price_id, and updates the local database with the unit_amount,
+// currency, and interval values. This ensures the membership_plans table reflects
+// accurate, display-ready pricing information from Stripe.
+
+func syncStripePrices(ctx context.Context, db *sql.DB) {
+	stripe.Key = os.Getenv("STRIPE_API_KEY")
+
+	rows, err := db.QueryContext(ctx, `
+		SELECT id, stripe_price_id 
+		FROM membership.membership_plans 
+		WHERE stripe_price_id IS NOT NULL
+	`)
+	if err != nil {
+		log.Printf("Query failed: %v", err)
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var plan Plan
+		if err := rows.Scan(&plan.ID, &plan.StripePriceID); err != nil {
+			log.Printf("Failed to scan row: %v", err)
+			continue
+		}
+
+		priceObj, err := price.Get(plan.StripePriceID, nil)
+		if err != nil {
+			log.Printf("Failed to fetch Stripe price for %s: %v", plan.StripePriceID, err)
+			continue
+		}
+
+		unitAmount := int(priceObj.UnitAmount)
+		currency := string(priceObj.Currency)
+		interval := ""
+		if priceObj.Recurring != nil {
+			interval = string(priceObj.Recurring.Interval)
+		}
+
+		_, err = db.ExecContext(ctx, `
+			UPDATE membership.membership_plans 
+			SET unit_amount = $1, currency = $2, interval = $3 
+			WHERE id = $4
+		`, unitAmount, strings.ToUpper(currency), interval, plan.ID)
+
+		if err != nil {
+			log.Printf("Failed to update plan %s: %v", plan.ID, err)
+		} else {
+			fmt.Printf("✅ Updated %s → $%.2f %s / %s\n", plan.ID, float64(unitAmount)/100, strings.ToUpper(currency), interval)
+		}
+	}
+}
+
+
 func main() {
 	ctx := context.Background()
 
@@ -542,4 +604,6 @@ func main() {
 	seedFakeBarberServices(ctx, db)
 
 	seedFakeHaircutEvents(ctx, db, clientIds)
+
+	syncStripePrices(ctx, db)
 }

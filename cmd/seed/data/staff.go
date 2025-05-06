@@ -2,9 +2,10 @@ package data
 
 import (
 	dbSeed "api/cmd/seed/sqlc/generated"
-	"github.com/google/uuid"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Staff struct {
@@ -90,11 +91,11 @@ var staff = []Staff{
 		Country:     "CA",
 	},
 	{
-		FirstName:   "Klint",
-		LastName:    "Lee",
+		FirstName:   "test",
+		LastName:    "admin",
 		Role:        "Admin",
 		PhoneNumber: "403 466 1009",
-		Email:       "klintlee1@gmail.com",
+		Email:       "testadmin@rise.com",
 		Country:     "CA",
 	},
 	{

@@ -1,37 +1,37 @@
 package data
 
 import (
-	dbSeed "api/cmd/seed/sqlc/generated"
+	//dbSeed "api/cmd/seed/sqlc/generated"
 	"fmt"
-	"github.com/google/uuid"
+	//"github.com/google/uuid"
 	"math/rand"
 )
 
-func GetGames(numGames int, teamIds []uuid.UUID) dbSeed.InsertGamesParams {
-	params := dbSeed.InsertGamesParams{
-		NameArray:          make([]string, numGames),
-		DescriptionArray:   make([]string, numGames),
-		LevelArray:         make([]dbSeed.ProgramProgramLevel, numGames),
-		WinTeamArray:       make([]uuid.UUID, numGames),
-		LoseTeamArray:      make([]uuid.UUID, numGames),
-		WinScoreArray:      make([]int32, numGames),
-		LoseScoreArray:     make([]int32, numGames),
-		IsPayPerEventArray: make([]bool, numGames),
-	}
+// func GetGames(numGames int, teamIds []uuid.UUID) dbSeed.InsertGamesParams {
+// 	params := dbSeed.InsertGamesParams{
+// 		NameArray:          make([]string, numGames),
+// 		DescriptionArray:   make([]string, numGames),
+// 		LevelArray:         make([]dbSeed.ProgramProgramLevel, numGames),
+// 		WinTeamArray:       make([]uuid.UUID, numGames),
+// 		LoseTeamArray:      make([]uuid.UUID, numGames),
+// 		WinScoreArray:      make([]int32, numGames),
+// 		LoseScoreArray:     make([]int32, numGames),
+// 		IsPayPerEventArray: make([]bool, numGames),
+// 	}
 
-	for i := 0; i < numGames; i++ {
-		params.IsPayPerEventArray[i] = true
-		params.NameArray[i] = generateGameName(i)
-		params.DescriptionArray[i] = generateGameDescription(i)
-		params.LevelArray[i] = dbSeed.ProgramProgramLevelAll
-		params.WinTeamArray[i] = teamIds[i%len(teamIds)]
-		params.LoseTeamArray[i] = teamIds[(i+1)%len(teamIds)]
-		params.WinScoreArray[i] = int32(21 + i%15)
-		params.LoseScoreArray[i] = int32(15 + i%10)
-	}
+// 	for i := 0; i < numGames; i++ {
+// 		params.IsPayPerEventArray[i] = true
+// 		params.NameArray[i] = generateGameName(i)
+// 		params.DescriptionArray[i] = generateGameDescription(i)
+// 		params.LevelArray[i] = dbSeed.ProgramProgramLevelAll
+// 		params.WinTeamArray[i] = teamIds[i%len(teamIds)]
+// 		params.LoseTeamArray[i] = teamIds[(i+1)%len(teamIds)]
+// 		params.WinScoreArray[i] = int32(21 + i%15)
+// 		params.LoseScoreArray[i] = int32(15 + i%10)
+// 	}
 
-	return params
-}
+// 	return params
+// }
 
 func generateGameName(index int) string {
 	gameTypes := []string{"Soccer", "Basketball", "Hockey"}

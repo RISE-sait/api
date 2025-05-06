@@ -1,7 +1,7 @@
 package data
 
 import (
-	dbSeed "api/cmd/seed/sqlc/generated"
+	//dbSeed "api/cmd/seed/sqlc/generated"
 	"fmt"
 	"math/rand"
 )
@@ -24,29 +24,29 @@ func generateCourseDescription(name string) string {
 	return fmt.Sprintf(templates[rand.Intn(len(templates))], name)
 }
 
-func GetCourses() dbSeed.InsertCoursesParams {
+// func GetCourses() dbSeed.InsertCoursesParams {
 
-	var (
-		nameArray        []string
-		descriptionArray []string
-		levelArray       []dbSeed.ProgramProgramLevel
-		isPayPerEvent    []bool
-	)
+// 	var (
+// 		nameArray        []string
+// 		descriptionArray []string
+// 		levelArray       []dbSeed.ProgramProgramLevel
+// 		isPayPerEvent    []bool
+// 	)
 
-	for i := 0; i < 20; i++ {
-		name := generateCourseName(i)
-		description := generateCourseDescription(name)
+// 	for i := 0; i < 20; i++ {
+// 		name := generateCourseName(i)
+// 		description := generateCourseDescription(name)
 
-		nameArray = append(nameArray, name)
-		descriptionArray = append(descriptionArray, description)
-		levelArray = append(levelArray, dbSeed.ProgramProgramLevelIntermediate)
-		isPayPerEvent = append(isPayPerEvent, true)
-	}
+// 		nameArray = append(nameArray, name)
+// 		descriptionArray = append(descriptionArray, description)
+// 		levelArray = append(levelArray, dbSeed.ProgramProgramLevelIntermediate)
+// 		isPayPerEvent = append(isPayPerEvent, true)
+// 	}
 
-	return dbSeed.InsertCoursesParams{
-		NameArray:          nameArray,
-		DescriptionArray:   descriptionArray,
-		LevelArray:         levelArray,
-		IsPayPerEventArray: isPayPerEvent,
-	}
-}
+// 	return dbSeed.InsertCoursesParams{
+// 		NameArray:          nameArray,
+// 		DescriptionArray:   descriptionArray,
+// 		LevelArray:         levelArray,
+// 		IsPayPerEventArray: isPayPerEvent,
+// 	}
+// }

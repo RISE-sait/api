@@ -2,15 +2,14 @@ package program_test
 
 import (
 	databaseErrors "api/internal/constants"
-	"context"
-	"database/sql"
-	"errors"
-	"fmt"
-	"testing"
+	context "context"
+	sql "database/sql"
+	errors "errors"
+	fmt "fmt"
+	testing "testing"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
-
 	"github.com/stretchr/testify/require"
 
 	dbTestUtils "api/utils/test_utils"
@@ -18,230 +17,182 @@ import (
 	db "api/internal/domains/program/persistence/sqlc/generated"
 )
 
-func TestCreateProgram(t *testing.T) {
+func truncateProgramsTable(dbConn *sql.DB) {
+	_, err := dbConn.ExecContext(context.Background(), `TRUNCATE TABLE program.programs RESTART IDENTITY CASCADE`)
+	if err != nil {
+		panic(fmt.Sprintf("failed to truncate programs table: %v", err))
+	}
+}
 
+func TestCreateProgram(t *testing.T) {
 	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+	defer cleanup()
+	truncateProgramsTable(dbConn)
 
 	queries := db.New(dbConn)
 
-	defer cleanup()
-
-	CreateProgramParams := db.CreateProgramParams{
+	params := db.CreateProgramParams{
 		Name:        "Go Course",
 		Description: "Learn Go programming",
 		Level:       db.ProgramProgramLevelAll,
 		Type:        db.ProgramProgramTypeCourse,
 	}
 
-	createdProgram, err := queries.CreateProgram(context.Background(), CreateProgramParams)
-
+	created, err := queries.CreateProgram(context.Background(), params)
 	require.NoError(t, err)
-
-	// Assert course data
-	require.Equal(t, CreateProgramParams.Name, createdProgram.Name)
-	require.Equal(t, CreateProgramParams.Description, createdProgram.Description)
-	require.Equal(t, CreateProgramParams.Level, createdProgram.Level)
-	require.Equal(t, CreateProgramParams.Type, createdProgram.Type)
+	require.Equal(t, params.Name, created.Name)
+	require.Equal(t, params.Description, created.Description)
+	require.Equal(t, params.Level, created.Level)
+	require.Equal(t, params.Type, created.Type)
 }
 
 func TestUpdateProgramValid(t *testing.T) {
-
 	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+	defer cleanup()
+	truncateProgramsTable(dbConn)
 
 	queries := db.New(dbConn)
 
-	defer cleanup()
-
-	// Create a course to update
-	name := "Go Course"
-	description := "Learn Go programming"
-
-	CreateProgramParams := db.CreateProgramParams{
-		Name:        name,
-		Description: description,
+	original := db.CreateProgramParams{
+		Name:        "Go Course",
+		Description: "Learn Go programming",
 		Level:       db.ProgramProgramLevelAll,
 		Type:        db.ProgramProgramTypeCourse,
 	}
-
-	createdProgram, err := queries.CreateProgram(context.Background(), CreateProgramParams)
+	created, err := queries.CreateProgram(context.Background(), original)
 	require.NoError(t, err)
 
-	// Now, update the course
-	newName := "Advanced Go Course"
-	updateParams := db.UpdateProgramParams{
-		ID:          createdProgram.ID,
-		Name:        newName,
+	update := db.UpdateProgramParams{
+		ID:          created.ID,
+		Name:        "Advanced Go Course",
 		Description: "Learn advanced Go programming",
 		Level:       db.ProgramProgramLevelAll,
 		Type:        db.ProgramProgramTypeCourse,
 	}
-
-	updatedProgram, err := queries.UpdateProgram(context.Background(), updateParams)
-
+	updated, err := queries.UpdateProgram(context.Background(), update)
 	require.NoError(t, err)
-	require.Equal(t, newName, updatedProgram.Name)
-	require.Equal(t, "Learn advanced Go programming", updatedProgram.Description)
-	require.Equal(t, db.ProgramProgramLevelAll, updatedProgram.Level)
-	require.Equal(t, db.ProgramProgramTypeCourse, updatedProgram.Type)
+	require.Equal(t, update.Name, updated.Name)
+	require.Equal(t, update.Description, updated.Description)
 }
 
 func TestUpdatePracticeInvalidLevel(t *testing.T) {
-
 	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+	defer cleanup()
+	truncateProgramsTable(dbConn)
 
 	queries := db.New(dbConn)
 
-	defer cleanup()
-
-	// Create a course to update
-	name := "Go Course"
-	description := "Learn Go programming"
-
-	CreateProgramParams := db.CreateProgramParams{
-		Name:        name,
-		Description: description,
+	created, err := queries.CreateProgram(context.Background(), db.CreateProgramParams{
+		Name:        "Test",
+		Description: "Desc",
 		Level:       db.ProgramProgramLevelAll,
 		Type:        db.ProgramProgramTypeCourse,
-	}
-
-	createdProgram, err := queries.CreateProgram(context.Background(), CreateProgramParams)
+	})
 	require.NoError(t, err)
 
-	// Now, update the course
-	newName := "Advanced Go Course"
-	updateParams := db.UpdateProgramParams{
-		ID:          createdProgram.ID,
-		Name:        newName,
-		Description: "Learn advanced Go programming",
-	}
-
-	_, err = queries.UpdateProgram(context.Background(), updateParams)
+	_, err = dbConn.ExecContext(context.Background(), `UPDATE program.programs SET level = 'INVALID' WHERE id = $1`, created.ID)
+	require.Error(t, err)
 	var pgErr *pq.Error
 	require.True(t, errors.As(err, &pgErr))
 	require.Equal(t, databaseErrors.InvalidTextRepresentation, string(pgErr.Code))
-
 }
 
 func TestCreateProgramUniqueNameConstraint(t *testing.T) {
-
 	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+	defer cleanup()
+	truncateProgramsTable(dbConn)
 
 	queries := db.New(dbConn)
 
-	defer cleanup()
-
-	// Create a course
-	name := "Go Course"
-	description := "Learn Go programming"
-	createCourseParams := db.CreateProgramParams{
-		Name:        name,
-		Description: description,
-		Level:       db.ProgramProgramLevelAdvanced,
+	params := db.CreateProgramParams{
+		Name:        "Go Course",
+		Description: "Learn Go",
+		Level:       db.ProgramProgramLevelAll,
 		Type:        db.ProgramProgramTypeCourse,
 	}
-
-	_, err := queries.CreateProgram(context.Background(), createCourseParams)
+	_, err := queries.CreateProgram(context.Background(), params)
 	require.NoError(t, err)
-
-	// Attempt to create another course with the same name
-	_, err = queries.CreateProgram(context.Background(), createCourseParams)
+	_, err = queries.CreateProgram(context.Background(), params)
 	require.Error(t, err)
-
 	var pgErr *pq.Error
 	require.True(t, errors.As(err, &pgErr))
 	require.Equal(t, databaseErrors.UniqueViolation, string(pgErr.Code))
 }
 
 func TestGetAllPrograms(t *testing.T) {
-
 	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+	defer cleanup()
+	truncateProgramsTable(dbConn)
 
 	queries := db.New(dbConn)
-
-	defer cleanup()
-
-	// Create some courses
-	for i := 1; i <= 5; i++ {
-		createCourseParams := db.CreateProgramParams{
-			Name:        fmt.Sprintf("Course %d", i),
-			Description: fmt.Sprintf("Description %d", i),
-			Level:       db.ProgramProgramLevelAll,
-			Type:        db.ProgramProgramTypeCourse,
-		}
-		createdProgram, err := queries.CreateProgram(context.Background(), createCourseParams)
-		require.NoError(t, err)
-
-		require.Equal(t, createCourseParams.Name, createdProgram.Name)
-		require.Equal(t, createCourseParams.Description, createdProgram.Description)
-		require.Equal(t, createCourseParams.Level, createdProgram.Level)
-		require.Equal(t, createCourseParams.Type, createdProgram.Type)
+	enumTypes := []db.ProgramProgramType{
+		db.ProgramProgramTypeCourse,
+		db.ProgramProgramTypeGame,
+		db.ProgramProgramTypePractice,
+		
 	}
 
-	// Fetch all courses
-	courses, err := queries.GetPrograms(context.Background(), db.NullProgramProgramType{
-		ProgramProgramType: db.ProgramProgramTypeCourse,
-		Valid:              true,
-	})
+	for i, tpe := range enumTypes {
+		params := db.CreateProgramParams{
+			Name:        fmt.Sprintf("Program %d", i),
+			Description: fmt.Sprintf("Desc %d", i),
+			Level:       db.ProgramProgramLevelAll,
+			Type:        tpe,
+		}
+		_, err := queries.CreateProgram(context.Background(), params)
+		require.NoError(t, err)
+	}
+
+	programs, err := queries.GetPrograms(context.Background(), db.NullProgramProgramType{Valid: false})
 	require.NoError(t, err)
-	require.EqualValues(t, 5, len(courses))
+	require.EqualValues(t, len(enumTypes), len(programs))
 }
 
 func TestGetNotExistingProgram(t *testing.T) {
-
 	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
-
+	defer cleanup()
 	queries := db.New(dbConn)
 
-	defer cleanup()
-
-	// Fetch all courses
 	_, err := queries.GetProgramById(context.Background(), uuid.New())
 	require.Error(t, err)
 	require.Equal(t, sql.ErrNoRows, err)
 }
 
 func TestUpdateNonExistentProgram(t *testing.T) {
-
 	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
-
+	defer cleanup()
 	queries := db.New(dbConn)
 
-	defer cleanup()
-
-	// Attempt to update a practice that doesn't exist
-	nonExistentId := uuid.New() // Random UUID
-
-	updateParams := db.UpdateProgramParams{
-		ID:          nonExistentId,
-		Name:        "Updated Practice",
-		Description: "Updated practice description",
+	update := db.UpdateProgramParams{
+		ID:          uuid.New(),
+		Name:        "Nonexistent",
+		Description: "Update",
 		Level:       db.ProgramProgramLevelAll,
-		Type:        db.ProgramProgramTypeGame,
+		Type:        db.ProgramProgramTypeCourse,
 	}
-
-	_, err := queries.UpdateProgram(context.Background(), updateParams)
+	_, err := queries.UpdateProgram(context.Background(), update)
 	require.Error(t, err)
 	require.Equal(t, sql.ErrNoRows, err)
 }
 
 func TestCreateCourseWithWrongLevel(t *testing.T) {
-
 	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+	defer cleanup()
+
+	_, err := dbConn.ExecContext(context.Background(), "TRUNCATE program.programs CASCADE")
+	require.NoError(t, err)
 
 	queries := db.New(dbConn)
 
-	defer cleanup()
-
-	// Create a course with a null description
-	CreateProgramParams := db.CreateProgramParams{
+	// 👇 Intentionally use an invalid level
+	params := db.CreateProgramParams{
 		Name:        "Go Course",
-		Description: "wefwefew",
-		Level:       "jhwwf",
+		Description: "Invalid level test",
+		Level:       "not_a_valid_enum", // Invalid value for enum
 		Type:        db.ProgramProgramTypeCourse,
 	}
 
-	_, err := queries.CreateProgram(context.Background(), CreateProgramParams)
-
+	_, err = queries.CreateProgram(context.Background(), params)
 	require.Error(t, err)
 
 	var pgErr *pq.Error
@@ -250,35 +201,26 @@ func TestCreateCourseWithWrongLevel(t *testing.T) {
 }
 
 func TestDeleteProgram(t *testing.T) {
-
 	dbConn, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+	defer cleanup()
+	truncateProgramsTable(dbConn)
 
 	queries := db.New(dbConn)
 
-	defer cleanup()
-
-	// Create a course to delete
-	name := "Go Course"
-	CreateProgramParams := db.CreateProgramParams{
-		Name:        name,
-		Description: "Learn Go programming",
+	params := db.CreateProgramParams{
+		Name:        "ToDelete",
+		Description: "Desc",
 		Level:       db.ProgramProgramLevelAll,
 		Type:        db.ProgramProgramTypeCourse,
 	}
-
-	createdProgram, err := queries.CreateProgram(context.Background(), CreateProgramParams)
+	created, err := queries.CreateProgram(context.Background(), params)
 	require.NoError(t, err)
 
-	// Delete the course
-	impactedRows, err := queries.DeleteProgram(context.Background(), createdProgram.ID)
+	rows, err := queries.DeleteProgram(context.Background(), created.ID)
 	require.NoError(t, err)
+	require.Equal(t, int64(1), rows)
 
-	require.Equal(t, impactedRows, int64(1))
-
-	// Attempt to fetch the deleted course (expecting error)
-	_, err = queries.GetProgramById(context.Background(), createdProgram.ID)
-
+	_, err = queries.GetProgramById(context.Background(), created.ID)
 	require.Error(t, err)
-
 	require.Equal(t, sql.ErrNoRows, err)
 }

@@ -568,6 +568,7 @@ func seedBuiltInPrograms(ctx context.Context, db *sql.DB) {
 	}
 }
 
+
 func main() {
 	ctx := context.Background()
 	db := config.GetDBConnection()
@@ -588,7 +589,7 @@ func main() {
 
 	// seedPractices(ctx, db)
 	// courses := seedFakeCourses(ctx, db)
-	// games := seedFakeGames(ctx, db, teamIds)
+
 
 	locations := seedLocations(ctx, db)
 
@@ -596,22 +597,41 @@ func main() {
 	seedBuiltInPrograms(ctx, db)
 
 	
-	_ = seedFakeEvents(ctx, db, []string{"Game"}, locations, false)
-	_ = seedFakeEvents(ctx, db, []string{"Practice"}, locations, true)
-	_ = seedFakeEvents(ctx, db, []string{"Course"}, locations, true)
+	gameEvents := seedFakeEvents(ctx, db, []string{"Game"}, locations, false)
+
+	practiceEvents := seedFakeEvents(ctx, db, []string{"Practice"}, locations, true)
+
+	courseEvents := seedFakeEvents(ctx, db, []string{"Course"}, locations, true)
+	
+	var allEventIds []uuid.UUID
+	allEventIds = append(allEventIds, gameEvents...)
+	allEventIds = append(allEventIds, practiceEvents...)
+	allEventIds = append(allEventIds, courseEvents...)
+	
 
 	
 	seedMemberships(ctx, db)
+
 	seedMembershipPlans(ctx, db)
+
 	seedProgramsFees(ctx, db)
+
 	updateFakeParents(ctx, db)
+
 	seedFakeAthletes(ctx, db, clientIds)
+
 	seedClientsMembershipPlans(ctx, db)
-	seedFakeClientsEnrollments(ctx, db, clientIds, []uuid.UUID{})
-	seedFakeEventStaff(ctx, db, []uuid.UUID{}, staffIds)
+
+	seedFakeClientsEnrollments(ctx, db, clientIds, allEventIds)
+
+	seedFakeEventStaff(ctx, db, allEventIds, staffIds)
+
 	seedHaircutServices(ctx, db)
+
 	seedFakeBarberServices(ctx, db)
+
 	seedFakeHaircutEvents(ctx, db, clientIds)
+
 	syncStripePrices(ctx, db)
 }
 

@@ -27,7 +27,14 @@ func TestEnrollCustomerInEvent(t *testing.T) {
 	locationQueries := locationDb.New(db)
 
 	defer cleanup()
-
+	// Seed the database with a default program of type 'course'
+	// This is a workaround to avoid the need for a separate migration for the test database
+	_, err := db.ExecContext(context.Background(), `
+	INSERT INTO program.programs (id, name, type, level, description)
+	VALUES (gen_random_uuid(), 'Course', 'course', 'all', 'Default test program')
+	ON CONFLICT (type) DO NOTHING
+`)
+require.NoError(t, err)
 	// Create a user to be the creator of the event
 	eventCreator, err := identityQueries.CreateUser(context.Background(), identityDb.CreateUserParams{
 		FirstName: "John",
@@ -117,6 +124,15 @@ func TestEnrollCustomerInProgramEvents(t *testing.T) {
 	locationQueries := locationDb.New(db)
 
 	defer cleanup()
+
+	// Seed the database with a default program of type 'course'
+	// This is a workaround to avoid the need for a separate migration for the test database
+	_, err := db.ExecContext(context.Background(), `
+	INSERT INTO program.programs (id, name, type, level, description)
+	VALUES (gen_random_uuid(), 'Course', 'course', 'all', 'Default test program')
+	ON CONFLICT (type) DO NOTHING
+	`)
+	require.NoError(t, err)
 
 	creator, err := identityQueries.CreateUser(context.Background(), identityDb.CreateUserParams{
 		FirstName: "John",

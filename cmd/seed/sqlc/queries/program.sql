@@ -85,3 +85,9 @@ FROM prepared_data
 JOIN program.programs p ON p.name = program_name
 LEFT JOIN membership.memberships m ON m.name = membership_name
 WHERE stripe_program_price_id <> '';
+
+-- name: GetProgramByType :one
+SELECT *
+FROM program.programs
+WHERE type = $1
+LIMIT 1;

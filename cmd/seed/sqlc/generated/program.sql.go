@@ -11,6 +11,30 @@ import (
 	"github.com/lib/pq"
 )
 
+const getProgramByType = `-- name: GetProgramByType :one
+SELECT id, name, description, level, type, capacity, created_at, updated_at, pay_per_event
+FROM program.programs
+WHERE type = $1
+LIMIT 1
+`
+
+func (q *Queries) GetProgramByType(ctx context.Context, type_ ProgramProgramType) (ProgramProgram, error) {
+	row := q.db.QueryRowContext(ctx, getProgramByType, type_)
+	var i ProgramProgram
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Level,
+		&i.Type,
+		&i.Capacity,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.PayPerEvent,
+	)
+	return i, err
+}
+
 const insertBuiltInPrograms = `-- name: InsertBuiltInPrograms :exec
 
 

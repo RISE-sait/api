@@ -27,3 +27,9 @@ RETURNING *;
 
 -- name: DeleteProgram :execrows
 DELETE FROM program.programs WHERE id = $1;
+
+-- name: GetProgramByType :one
+SELECT id, name, description, level, type, capacity, created_at, updated_at, pay_per_event
+FROM program.programs
+WHERE type = $1
+LIMIT 1;

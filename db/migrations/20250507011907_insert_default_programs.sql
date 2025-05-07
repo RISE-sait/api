@@ -1,13 +1,16 @@
 -- +goose Up
 -- +goose StatementBegin
-ALTER TYPE program.program_type ADD VALUE IF NOT EXISTS 'other';
-
 DO $$
 BEGIN
     IF NOT EXISTS (
         SELECT 1
-        FROM pg_constraint
-        WHERE conname = 'unique_program_type'
+        FROM information_schema.table_constraints tc
+        JOIN information_schema.constraint_column_usage ccu
+            ON tc.constraint_name = ccu.constraint_name
+        WHERE tc.table_schema = 'program'
+          AND tc.table_name = 'programs'
+          AND tc.constraint_type = 'UNIQUE'
+          AND ccu.column_name = 'type'
     ) THEN
         ALTER TABLE program.programs
         ADD CONSTRAINT unique_program_type UNIQUE (type);

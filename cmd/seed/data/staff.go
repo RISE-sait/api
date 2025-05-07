@@ -93,7 +93,7 @@ var staff = []Staff{
 	{
 		FirstName:   "test",
 		LastName:    "admin",
-		Role:        "Admin",
+		Role:        "SuperAdmin",
 		PhoneNumber: "403 466 1009",
 		Email:       "testadmin@rise.com",
 		Country:     "CA",

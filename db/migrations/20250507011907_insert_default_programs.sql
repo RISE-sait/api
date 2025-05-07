@@ -1,7 +1,11 @@
 -- +goose Up
 -- +goose StatementBegin
 
--- Safely insert defaults without enforcing uniqueness on type
+-- Add a unique constraint so ON CONFLICT (type) works
+ALTER TABLE program.programs
+ADD CONSTRAINT unique_program_type UNIQUE (type);
+
+-- Safely insert defaults with conflict resolution on type
 INSERT INTO program.programs (id, name, type, description)
 VALUES
     (gen_random_uuid(), 'Game', 'game', 'Default program for games'),
@@ -14,6 +18,13 @@ ON CONFLICT (type) DO NOTHING;
 
 -- +goose Down
 -- +goose StatementBegin
+
+-- Delete the inserted default rows
 DELETE FROM program.programs
 WHERE type IN ('game', 'practice', 'course', 'other');
+
+-- Drop the unique constraint
+ALTER TABLE program.programs
+DROP CONSTRAINT IF EXISTS unique_program_type;
+
 -- +goose StatementEnd

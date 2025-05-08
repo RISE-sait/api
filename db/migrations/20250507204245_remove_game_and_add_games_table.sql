@@ -1,23 +1,23 @@
 -- +goose Up
 -- +goose StatementBegin
 
--- Step 1: Try to migrate 'game' events to 'other', only if 'game' program exists
+-- Step 1 + 2: Safely migrate 'game' program references and delete it only if it exists
 DO $$
 BEGIN
-  IF EXISTS (SELECT 1 FROM program.programs WHERE type = 'game') THEN
+  IF EXISTS (SELECT 1 FROM program.programs WHERE type::text = 'game') THEN
     UPDATE events.events
     SET program_id = (
-      SELECT id FROM program.programs WHERE type = 'other' LIMIT 1
+      SELECT id FROM program.programs WHERE type::text = 'other' LIMIT 1
     )
     WHERE program_id = (
-      SELECT id FROM program.programs WHERE type = 'game' LIMIT 1
+      SELECT id FROM program.programs WHERE type::text = 'game' LIMIT 1
     );
+
+    DELETE FROM program.programs WHERE type::text = 'game';
   END IF;
 END
 $$;
 
--- Step 2: Delete the 'game' program row
-DELETE FROM program.programs WHERE type = 'game';
 
 -- Step 3: Drop the UNIQUE constraint if it exists
 ALTER TABLE program.programs
@@ -57,7 +57,6 @@ CREATE TABLE IF NOT EXISTS game.games (
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
-
 
 -- +goose StatementEnd
 

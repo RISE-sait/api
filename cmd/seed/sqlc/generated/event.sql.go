@@ -56,25 +56,34 @@ func (q *Queries) InsertCustomersEnrollments(ctx context.Context, arg InsertCust
 }
 
 const insertEvents = `-- name: InsertEvents :many
-WITH events_data AS (SELECT unnest($1::timestamptz[])     as start_at,
-                            unnest($2::timestamptz[])       as end_at,
-                            unnest($3::varchar[]) as program_name,
-                            unnest($4::varchar[])    as location_name,
-                            unnest($5::varchar[]) AS created_by_email,
-                            unnest($6::varchar[]) AS updated_by_email)
-                            INSERT
-INTO events.events (start_at, end_at, program_id, location_id, created_by, updated_by)
-SELECT e.start_at,
-       e.end_at,
-       p.id,
-       l.id,
-       creator.id,
-       updater.id
+WITH events_data AS (
+    SELECT 
+        unnest($1::timestamptz[])        AS start_at,
+        unnest($2::timestamptz[])          AS end_at,
+        unnest($3::varchar[])        AS program_name,
+        unnest($4::varchar[])       AS location_name,
+        unnest($5::varchar[])    AS created_by_email,
+        unnest($6::varchar[])    AS updated_by_email
+)
+INSERT INTO events.events (
+    start_at, end_at, program_id, location_id, created_by, updated_by
+)
+SELECT 
+    e.start_at,
+    e.end_at,
+    p.id,
+    l.id,
+    creator.id,
+    updater.id
 FROM events_data e
-         JOIN program.programs p ON p.name = e.program_name
-         JOIN users.users creator ON creator.email = e.created_by_email
-         JOIN users.users updater ON updater.email = e.updated_by_email
-         JOIN location.locations l ON l.name = e.location_name
+JOIN program.programs p 
+  ON p.type = LOWER(e.program_name)::program.program_type
+JOIN users.users creator 
+  ON creator.email = e.created_by_email
+JOIN users.users updater 
+  ON updater.email = e.updated_by_email
+JOIN location.locations l 
+  ON l.name = e.location_name
 ON CONFLICT DO NOTHING
 RETURNING id
 `

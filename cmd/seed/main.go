@@ -602,9 +602,24 @@ func main() {
 
 	seedBuiltInPrograms(ctx, db)
 
-	practiceEvents := seedFakeEvents(ctx, db, []string{"Practice"}, locations, true)
+	rows, err := db.QueryContext(ctx, `SELECT type FROM program.programs`)
+	if err != nil {
+		log.Fatalf("Failed to query program types: %v", err)
+	}
+	defer rows.Close()
 
-	courseEvents := seedFakeEvents(ctx, db, []string{"Course"}, locations, true)
+	log.Println("Available program types in DB:")
+	for rows.Next() {
+		var t string
+		if err := rows.Scan(&t); err != nil {
+			log.Fatalf("Failed to scan type: %v", err)
+		}
+		log.Println("-", t)
+	}
+
+	practiceEvents := seedFakeEvents(ctx, db, []string{"practice"}, locations, true)
+
+	courseEvents := seedFakeEvents(ctx, db, []string{"course"}, locations, true)
 
 	var allEventIds []uuid.UUID
 	allEventIds = append(allEventIds, practiceEvents...)

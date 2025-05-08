@@ -31,6 +31,10 @@ func (dto *RequestDto) ToCreateGameValue() (values.CreateGameValue, *errLib.Comm
 		return details, err
 	}
 
+	if dto.HomeTeamID == dto.AwayTeamID {
+		return details, errLib.New("home_team_id and away_team_id must be different", 400)
+	}
+
 	// Map fields to domain struct
 	details = values.CreateGameValue{
 		HomeTeamID: dto.HomeTeamID,
@@ -60,6 +64,10 @@ func (dto *RequestDto) ToUpdateGameValue(idStr string) (values.UpdateGameValue, 
 	// Validate the rest of the DTO
 	if err := validators.ValidateDto(dto); err != nil {
 		return details, err
+	}
+
+	if dto.HomeTeamID == dto.AwayTeamID {
+		return details, errLib.New("home_team_id and away_team_id must be different", 400)
 	}
 
 	// Construct the UpdateGameValue object using embedded CreateGameValue

@@ -1,7 +1,6 @@
 package game
 
 import (
-	"api/internal/libs/validators"
 	"testing"
 	"time"
 
@@ -57,14 +56,15 @@ func TestRequestDto_Validation(t *testing.T) {
 	// Run each test case
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			err := validators.ValidateDto(tc.dto)
+			_, err := tc.dto.ToCreateGameValue() // ← call the actual conversion logic
 			if tc.expectErr {
-				assert.NotNil(t, err) // Expecting an error
+				assert.NotNil(t, err) // We expect a validation error
 			} else {
-				assert.Nil(t, err) // Expecting no error
+				assert.Nil(t, err) // No error expected
 			}
 		})
 	}
+
 }
 
 // intPtr returns a pointer to the given int32 value.

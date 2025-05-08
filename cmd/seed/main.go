@@ -193,35 +193,35 @@ func seedFakeAthletes(ctx context.Context, db *sql.DB, ids []uuid.UUID) {
 	}
 }
 
-func seedPractices(ctx context.Context, db *sql.DB) {
-	seedQueries := dbSeed.New(db)
+// func seedPractices(ctx context.Context, db *sql.DB) {
+// 	seedQueries := dbSeed.New(db)
 
-	practices := data.Practices
+// 	practices := data.Practices
 
-	var (
-		nameArray        []string
-		descriptionArray []string
-		levelArray       []dbSeed.ProgramProgramLevel
-		isPayPerEvent    []bool
-	)
-	for _, practice := range practices {
+// 	var (
+// 		nameArray        []string
+// 		descriptionArray []string
+// 		levelArray       []dbSeed.ProgramProgramLevel
+// 		isPayPerEvent    []bool
+// 	)
+// 	for _, practice := range practices {
 
-		nameArray = append(nameArray, practice.Name)
-		descriptionArray = append(descriptionArray, practice.Description)
-		levelArray = append(levelArray, dbSeed.ProgramProgramLevelAll)
-		isPayPerEvent = append(isPayPerEvent, practice.IsPayPerEvent)
-	}
+// 		nameArray = append(nameArray, practice.Name)
+// 		descriptionArray = append(descriptionArray, practice.Description)
+// 		levelArray = append(levelArray, dbSeed.ProgramProgramLevelAll)
+// 		isPayPerEvent = append(isPayPerEvent, practice.IsPayPerEvent)
+// 	}
 
-	_, err := seedQueries.InsertPractices(ctx, dbSeed.InsertPracticesParams{
-		NameArray:          nameArray,
-		DescriptionArray:   descriptionArray,
-		LevelArray:         levelArray,
-		IsPayPerEventArray: isPayPerEvent,
-	})
-	if err != nil {
-		log.Fatalf("Failed to insert practices: %v", err)
-	}
-}
+// 	_, err := seedQueries.InsertPractices(ctx, dbSeed.InsertPracticesParams{
+// 		NameArray:          nameArray,
+// 		DescriptionArray:   descriptionArray,
+// 		LevelArray:         levelArray,
+// 		IsPayPerEventArray: isPayPerEvent,
+// 	})
+// 	if err != nil {
+// 		log.Fatalf("Failed to insert practices: %v", err)
+// 	}
+// }
 
 func seedProgramsFees(ctx context.Context, db *sql.DB) {
 	seedQueries := dbSeed.New(db)
@@ -289,18 +289,18 @@ func seedFakeCoachStats(ctx context.Context, db *sql.DB) {
 	}
 }
 
-func seedFakeCourses(ctx context.Context, db *sql.DB) []string {
-	seedQueries := dbSeed.New(db)
+// func seedFakeCourses(ctx context.Context, db *sql.DB) []string {
+// 	seedQueries := dbSeed.New(db)
 
-	courses := data.GetCourses()
+// 	courses := data.GetCourses()
 
-	if err := seedQueries.InsertCourses(ctx, courses); err != nil {
-		log.Fatalf("Failed to insert courses: %v", err)
-		return nil
-	} else {
-		return courses.NameArray
-	}
-}
+// 	if err := seedQueries.InsertCourses(ctx, courses); err != nil {
+// 		log.Fatalf("Failed to insert courses: %v", err)
+// 		return nil
+// 	} else {
+// 		return courses.NameArray
+// 	}
+// }
 
 func seedFakeTeams(ctx context.Context, db *sql.DB) []uuid.UUID {
 	seedQueries := dbSeed.New(db)
@@ -323,18 +323,18 @@ func seedFakeTeams(ctx context.Context, db *sql.DB) []uuid.UUID {
 	return teamIds
 }
 
-func seedFakeGames(ctx context.Context, db *sql.DB, teamIds []uuid.UUID) []string {
-	seedQueries := dbSeed.New(db)
+// func seedFakeGames(ctx context.Context, db *sql.DB, teamIds []uuid.UUID) []string {
+// 	seedQueries := dbSeed.New(db)
 
-	gamesData := data.GetGames(10, teamIds) // Generate 20 games
+// 	gamesData := data.GetGames(10, teamIds) // Generate 20 games
 
-	if err := seedQueries.InsertGames(ctx, gamesData); err != nil {
-		log.Fatalf("Failed to insert games: %v", err)
-		return nil
-	} else {
-		return gamesData.NameArray
-	}
-}
+// 	if err := seedQueries.InsertGames(ctx, gamesData); err != nil {
+// 		log.Fatalf("Failed to insert games: %v", err)
+// 		return nil
+// 	} else {
+// 		return gamesData.NameArray
+// 	}
+// }
 
 func seedLocations(ctx context.Context, db *sql.DB) []string {
 	seedQueries := dbSeed.New(db)
@@ -412,31 +412,35 @@ func seedMemberships(ctx context.Context, db *sql.DB) {
 	}
 }
 
-func seedEvents(ctx context.Context, db *sql.DB) []uuid.UUID {
-	seedQueries := dbSeed.New(db)
+// func seedEvents(ctx context.Context, db *sql.DB) []uuid.UUID {
+// 	seedQueries := dbSeed.New(db)
 
-	arg := data.GetEvents()
+// 	arg := data.GetEvents()
 
-	// Insert events and sessions into the database
-	ids, err := seedQueries.InsertEvents(ctx, arg)
-	if err != nil {
-		log.Fatalf("Failed to insert events: %v", err)
-		return nil
-	}
+// 	// Insert events and sessions into the database
+// 	ids, err := seedQueries.InsertEvents(ctx, arg)
+// 	if err != nil {
+// 		log.Fatalf("Failed to insert events: %v", err)
+// 		return nil
+// 	}
 
-	return ids
-}
+// 	return ids
+// }
 
 func seedFakeEvents(ctx context.Context, db *sql.DB, programs, locations []string, isRecurring bool) []uuid.UUID {
 	seedQueries := dbSeed.New(db)
-
 	arg := data.GetFakeEvents(programs, locations, isRecurring)
 
-	// Insert events and sessions into the database
+	log.Printf("Generated %d fake events for programs: %v", len(arg.StartAtArray), programs)
+
 	ids, err := seedQueries.InsertEvents(ctx, arg)
 	if err != nil {
-		log.Fatalf("Failed to insert events: %v", err)
+		log.Fatalf("Failed to insert fake events: %v", err)
 		return nil
+	}
+
+	if len(ids) == 0 {
+		log.Printf("No events were inserted for programs: %v", programs)
 	}
 
 	return ids
@@ -490,11 +494,11 @@ func updateFakeParents(ctx context.Context, db *sql.DB) {
 	}
 }
 
-
 type Plan struct {
 	ID            string
 	StripePriceID string
 }
+
 // syncStripePrices fetches pricing details from Stripe for all membership plans
 // that have a stripe_price_id, and updates the local database with the unit_amount,
 // currency, and interval values. This ensures the membership_plans table reflects
@@ -513,6 +517,8 @@ func syncStripePrices(ctx context.Context, db *sql.DB) {
 		return
 	}
 	defer rows.Close()
+
+	updatedCount := 0
 
 	for rows.Next() {
 		var plan Plan
@@ -543,45 +549,74 @@ func syncStripePrices(ctx context.Context, db *sql.DB) {
 		if err != nil {
 			log.Printf("Failed to update plan %s: %v", plan.ID, err)
 		} else {
-			fmt.Printf("✅ Updated %s → $%.2f %s / %s\n", plan.ID, float64(unitAmount)/100, strings.ToUpper(currency), interval)
+			updatedCount++
 		}
+	}
+	if updatedCount > 0 {
+		log.Printf("Updated %d membership plans with Stripe pricing.", updatedCount)
+	}
+
+}
+
+func seedBuiltInPrograms(ctx context.Context, db *sql.DB) {
+	queries := dbSeed.New(db)
+
+	if err := queries.InsertBuiltInPrograms(ctx); err != nil {
+		log.Fatalf("Failed to insert built-in programs: %v", err)
+	} else {
+		fmt.Println("Inserted built-in programs: Game, Practice, Course, Other")
+	}
+}
+func seedGames(ctx context.Context, db *sql.DB, teamIDs []uuid.UUID, locationNames []string) {
+	seedQueries := dbSeed.New(db)
+	numGames := 10
+	gamesData := data.GetGames(teamIDs, locationNames, numGames)
+
+	_, err := seedQueries.InsertGames(ctx, gamesData)
+	if err != nil {
+		log.Fatalf("Failed to insert games: %v", err)
 	}
 }
 
-
 func main() {
 	ctx := context.Background()
-
 	db := config.GetDBConnection()
-
 	defer db.Close()
 
 	clearTables(ctx, db)
 
 	seedStaffRoles(ctx, db)
-
 	seedFakeWaivers(ctx, db)
 
 	clientIds := seedUsers(ctx, db)
-
 	staffIds := seedStaff(ctx, db)
-
 	seedFakeCoachStats(ctx, db)
 
 	teamIds := seedFakeTeams(ctx, db)
+	log.Printf("Seeded %d teams", len(teamIds))
 
-	seedPractices(ctx, db)
-
-	courses := seedFakeCourses(ctx, db)
-
-	games := seedFakeGames(ctx, db, teamIds)
+	// seedPractices(ctx, db)
+	// courses := seedFakeCourses(ctx, db)
 
 	locations := seedLocations(ctx, db)
 
-	eventIds := seedEvents(ctx, db)
+	seedBuiltInPrograms(ctx, db)
 
-	_ = seedFakeEvents(ctx, db, games, locations, false)
-	_ = seedFakeEvents(ctx, db, courses, locations, true)
+	practiceEvents := seedFakeEvents(ctx, db, []string{"Practice"}, locations, true)
+
+	courseEvents := seedFakeEvents(ctx, db, []string{"Course"}, locations, true)
+
+	var allEventIds []uuid.UUID
+	allEventIds = append(allEventIds, practiceEvents...)
+	allEventIds = append(allEventIds, courseEvents...)
+
+	// Convert locations from []string to []uuid.UUID
+	var locationNames []string
+	for _, loc := range data.Locations {
+		locationNames = append(locationNames, loc.Name)
+	}
+
+	seedGames(ctx, db, teamIds, locationNames)
 
 	seedMemberships(ctx, db)
 
@@ -595,9 +630,9 @@ func main() {
 
 	seedClientsMembershipPlans(ctx, db)
 
-	seedFakeClientsEnrollments(ctx, db, clientIds, eventIds)
+	seedFakeClientsEnrollments(ctx, db, clientIds, allEventIds)
 
-	seedFakeEventStaff(ctx, db, eventIds, staffIds)
+	seedFakeEventStaff(ctx, db, allEventIds, staffIds)
 
 	seedHaircutServices(ctx, db)
 

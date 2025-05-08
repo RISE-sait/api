@@ -86,8 +86,8 @@ func GetEvents() dbSeed.InsertEventsParams {
 				startAtArray = append(startAtArray, startAt)
 				endAtArray = append(endAtArray, endAt)
 				locationNameArray = append(locationNameArray, schedule.Location)
-				createdByEmailArray = append(createdByEmailArray, "klintlee1@gmail.com")
-				updatedByEmailArray = append(updatedByEmailArray, "klintlee1@gmail.com")
+				createdByEmailArray = append(createdByEmailArray, "c.davison18@gmail.com")
+				updatedByEmailArray = append(updatedByEmailArray, "c.davison18@gmail.com")
 				programNameArray = append(programNameArray, practice.Name)
 			}
 		}
@@ -153,8 +153,8 @@ func GetFakeEvents(programs, locations []string, isRecurring bool) dbSeed.Insert
 				startAtArray = append(startAtArray, startAt)
 				endAtArray = append(endAtArray, endAt)
 				locationNameArray = append(locationNameArray, randomLocation)
-				createdByEmailArray = append(createdByEmailArray, "klintlee1@gmail.com")
-				updatedByEmailArray = append(updatedByEmailArray, "klintlee1@gmail.com")
+				createdByEmailArray = append(createdByEmailArray, "c.davison18@gmail.com")
+				updatedByEmailArray = append(updatedByEmailArray, "c.davison18@gmail.com")
 				programNameArray = append(programNameArray, game)
 			}
 		} else {
@@ -178,8 +178,8 @@ func GetFakeEvents(programs, locations []string, isRecurring bool) dbSeed.Insert
 			startAtArray = append(startAtArray, startAt)
 			endAtArray = append(endAtArray, endAt)
 			locationNameArray = append(locationNameArray, randomLocation)
-			createdByEmailArray = append(createdByEmailArray, "klintlee1@gmail.com")
-			updatedByEmailArray = append(updatedByEmailArray, "klintlee1@gmail.com")
+			createdByEmailArray = append(createdByEmailArray, "c.davison18@gmail.com")
+			updatedByEmailArray = append(updatedByEmailArray, "c.davison18@gmail.com")
 			programNameArray = append(programNameArray, game)
 		}
 	}

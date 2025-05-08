@@ -11,21 +11,24 @@ import (
 	"errors"
 	"log"
 	"net/http"
-
-	"github.com/lib/pq"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
+// Repository wraps SQL queries and transaction context for the Game domain.
 type Repository struct {
 	Queries *db.Queries
 	Tx      *sql.Tx
 }
 
+// GetTx returns the current SQL transaction, if any.
 func (r *Repository) GetTx() *sql.Tx {
 	return r.Tx
 }
 
+// WithTx returns a new Repository instance bound to the given SQL transaction.
 func (r *Repository) WithTx(tx *sql.Tx) *Repository {
 	return &Repository{
 		Queries: r.Queries.WithTx(tx),
@@ -33,147 +36,172 @@ func (r *Repository) WithTx(tx *sql.Tx) *Repository {
 	}
 }
 
+// NewGameRepository initializes a Repository using the provided DI container.
 func NewGameRepository(container *di.Container) *Repository {
 	return &Repository{
 		Queries: container.Queries.GameDb,
 	}
 }
 
-func (r *Repository) GetGameById(ctx context.Context, id uuid.UUID) (values.ReadValue, *errLib.CommonError) {
-	dbGame, err := r.Queries.GetGameById(ctx, id)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return values.ReadValue{}, errLib.New("Game not found", http.StatusNotFound)
-		}
-		log.Printf("Error getting game: %v", err)
-		return values.ReadValue{}, errLib.New("Internal server error", http.StatusInternalServerError)
+// Helper: Converts sql.NullTime to *time.Time.
+func nullableTimeToPtr(nt sql.NullTime) *time.Time {
+	if nt.Valid {
+		return &nt.Time
 	}
-
-	game := values.ReadValue{
-		ID: dbGame.ID,
-		BaseValue: values.BaseValue{
-			Name:         dbGame.Name,
-			Description:  dbGame.Description,
-			WinTeamID:    dbGame.WinTeamID,
-			WinTeamName:  dbGame.WinTeamName,
-			LoseTeamID:   dbGame.LoseTeamID,
-			LoseTeamName: dbGame.LoseTeamName,
-			WinScore:     dbGame.WinScore,
-			LoseScore:    dbGame.LoseScore,
-		},
-		CreatedAt: dbGame.CreatedAt,
-		UpdatedAt: dbGame.UpdatedAt,
-	}
-
-	return game, nil
-}
-
-func (r *Repository) UpdateGame(ctx context.Context, value values.UpdateGameValue) *errLib.CommonError {
-
-	updateParams := db.UpdateGameParams{
-		ID:        value.ID,
-		Name:      value.Name,
-		WinTeam:   value.WinTeamID,
-		LoseTeam:  value.LoseTeamID,
-		WinScore:  value.WinScore,
-		LoseScore: value.LoseScore,
-	}
-
-	affectedRows, err := r.Queries.UpdateGame(ctx, updateParams)
-
-	if err != nil {
-		// Check if the error is a unique violation (duplicate name)
-		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
-			return errLib.New("Game name already exists", http.StatusConflict)
-		}
-		return errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-
-	if affectedRows == 0 {
-		return errLib.New("Game not found", http.StatusNotFound)
-	}
-
 	return nil
 }
 
-func (r *Repository) GetGames(ctx context.Context) ([]values.ReadValue, *errLib.CommonError) {
+// Helper: Converts sql.NullInt32 to *int32.
+func nullableInt32ToPtr(n sql.NullInt32) *int32 {
+	if n.Valid {
+		return &n.Int32
+	}
+	return nil
+}
 
-	dbGames, err := r.Queries.GetGames(ctx)
+// Helper: Converts *int32 to sql.NullInt32.
+func toNullInt32(ptr *int32) sql.NullInt32 {
+	if ptr != nil {
+		return sql.NullInt32{Int32: *ptr, Valid: true}
+	}
+	return sql.NullInt32{Valid: false}
+}
 
+// Helper: Converts *time.Time to sql.NullTime.
+func toNullTime(ptr *time.Time) sql.NullTime {
+	if ptr != nil {
+		return sql.NullTime{Time: *ptr, Valid: true}
+	}
+	return sql.NullTime{Valid: false}
+}
+
+// Helper: Converts a non-empty string to sql.NullString.
+func toNullString(s string) sql.NullString {
+	if s != "" {
+		return sql.NullString{String: s, Valid: true}
+	}
+	return sql.NullString{Valid: false}
+}
+
+// GetGameById fetches a single game record by ID and maps it to a domain value.
+// Returns a 404 error if not found.
+func (r *Repository) GetGameById(ctx context.Context, id uuid.UUID) (values.ReadGameValue, *errLib.CommonError) {
+	dbGame, err := r.Queries.GetGameById(ctx, id)
 	if err != nil {
-
-		log.Println("Error getting games: ", err)
-		dbErr := errLib.New("Internal server error", http.StatusInternalServerError)
-
-		return nil, dbErr
+		if errors.Is(err, sql.ErrNoRows) {
+			return values.ReadGameValue{}, errLib.New("Game not found", http.StatusNotFound)
+		}
+		log.Printf("Error getting game: %v", err)
+		return values.ReadGameValue{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	games := make([]values.ReadValue, len(dbGames))
+	return values.ReadGameValue{
+		ID:           dbGame.ID,
+		HomeTeamID:   dbGame.HomeTeamID,
+		HomeTeamName: dbGame.HomeTeamName,
+		AwayTeamID:   dbGame.AwayTeamID,
+		AwayTeamName: dbGame.AwayTeamName,
+		HomeScore:    nullableInt32ToPtr(dbGame.HomeScore),
+		AwayScore:    nullableInt32ToPtr(dbGame.AwayScore),
+		StartTime:    dbGame.StartTime,
+		EndTime:      nullableTimeToPtr(dbGame.EndTime),
+		LocationID:   dbGame.LocationID,
+		LocationName: dbGame.LocationName,
+		Status:       dbGame.Status.String,
+		CreatedAt:    nullableTimeToPtr(dbGame.CreatedAt),
+		UpdatedAt:    nullableTimeToPtr(dbGame.UpdatedAt),
+	}, nil
+}
 
+// UpdateGame updates an existing game in the database using the given value object.
+// Returns 404 if no rows were affected.
+func (r *Repository) UpdateGame(ctx context.Context, value values.UpdateGameValue) *errLib.CommonError {
+	params := db.UpdateGameParams{
+		ID:         value.ID,
+		HomeScore:  toNullInt32(value.HomeScore),
+		AwayScore:  toNullInt32(value.AwayScore),
+		StartTime:  value.StartTime,
+		EndTime:    toNullTime(value.EndTime),
+		LocationID: value.LocationID,
+		Status:     toNullString(value.Status),
+	}
+
+	affectedRows, err := r.Queries.UpdateGame(ctx, params)
+	if err != nil {
+		log.Println("Error updating game:", err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+	if affectedRows == 0 {
+		return errLib.New("Game not found", http.StatusNotFound)
+	}
+	return nil
+}
+
+// GetGames fetches all games and maps them to domain values.
+func (r *Repository) GetGames(ctx context.Context) ([]values.ReadGameValue, *errLib.CommonError) {
+	dbGames, err := r.Queries.GetGames(ctx)
+	if err != nil {
+		log.Println("Error getting games:", err)
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	games := make([]values.ReadGameValue, len(dbGames))
 	for i, dbGame := range dbGames {
-		games[i] = values.ReadValue{
-			ID: dbGame.ID,
-			BaseValue: values.BaseValue{
-				Name:         dbGame.Name,
-				Description:  dbGame.Description,
-				WinTeamID:    dbGame.WinTeamID,
-				WinTeamName:  dbGame.WinTeamName,
-				LoseTeamID:   dbGame.LoseTeamID,
-				LoseTeamName: dbGame.LoseTeamName,
-				WinScore:     dbGame.WinScore,
-				LoseScore:    dbGame.LoseScore,
-			},
-			CreatedAt: dbGame.CreatedAt,
-			UpdatedAt: dbGame.UpdatedAt,
+		games[i] = values.ReadGameValue{
+			ID:           dbGame.ID,
+			HomeTeamID:   dbGame.HomeTeamID,
+			HomeTeamName: dbGame.HomeTeamName,
+			AwayTeamID:   dbGame.AwayTeamID,
+			AwayTeamName: dbGame.AwayTeamName,
+			HomeScore:    nullableInt32ToPtr(dbGame.HomeScore),
+			AwayScore:    nullableInt32ToPtr(dbGame.AwayScore),
+			StartTime:    dbGame.StartTime,
+			EndTime:      nullableTimeToPtr(dbGame.EndTime),
+			LocationID:   dbGame.LocationID,
+			LocationName: dbGame.LocationName,
+			Status:       dbGame.Status.String,
+			CreatedAt:    nullableTimeToPtr(dbGame.CreatedAt),
+			UpdatedAt:    nullableTimeToPtr(dbGame.UpdatedAt),
 		}
 	}
 
 	return games, nil
 }
 
-func (r *Repository) DeleteGame(c context.Context, id uuid.UUID) *errLib.CommonError {
-	row, err := r.Queries.DeleteGame(c, id)
-
+// DeleteGame deletes a game by its ID. Returns a 404 error if no rows were deleted.
+func (r *Repository) DeleteGame(ctx context.Context, id uuid.UUID) *errLib.CommonError {
+	rowCount, err := r.Queries.DeleteGame(ctx, id)
 	if err != nil {
 		return errLib.New("Internal server error", http.StatusInternalServerError)
 	}
-
-	if row == 0 {
+	if rowCount == 0 {
 		return errLib.New("Game not found", http.StatusNotFound)
 	}
-
 	return nil
 }
 
-func (r *Repository) CreateGame(c context.Context, details values.CreateGameValue) *errLib.CommonError {
-
+// CreateGame inserts a new game into the database.
+// Handles unique constraint violations and wraps errors in common format.
+func (r *Repository) CreateGame(ctx context.Context, details values.CreateGameValue) *errLib.CommonError {
 	params := db.CreateGameParams{
-		Name:      details.Name,
-		WinTeam:   details.WinTeamID,
-		LoseTeam:  details.LoseTeamID,
-		WinScore:  details.WinScore,
-		LoseScore: details.LoseScore,
+		HomeTeamID: details.HomeTeamID,
+		AwayTeamID: details.AwayTeamID,
+		HomeScore:  toNullInt32(details.HomeScore),
+		AwayScore:  toNullInt32(details.AwayScore),
+		StartTime:  details.StartTime,
+		EndTime:    toNullTime(details.EndTime),
+		LocationID: details.LocationID,
+		Status:     toNullString(details.Status),
 	}
 
-	affectedRows, err := r.Queries.CreateGame(c, params)
-
+	err := r.Queries.CreateGame(ctx, params)
 	if err != nil {
-		// Check if the error is a unique violation (error code 23505)
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
-			// Return a custom error for unique violation
-			return errLib.New("Game name already exists", http.StatusConflict)
+			return errLib.New("Duplicate game entry", http.StatusConflict)
 		}
-
-		// Return a generic internal server error for other cases
-		log.Println("error creating createdGame: ", err)
+		log.Println("Error creating game:", err)
 		return errLib.New("Internal server error", http.StatusInternalServerError)
-	}
-
-	if affectedRows == 0 {
-		return errLib.New("Game not created for unknown reason", http.StatusInternalServerError)
 	}
 
 	return nil

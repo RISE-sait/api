@@ -269,8 +269,6 @@ type ProgramProgramType string
 const (
 	ProgramProgramTypePractice ProgramProgramType = "practice"
 	ProgramProgramTypeCourse   ProgramProgramType = "course"
-	ProgramProgramTypeGame     ProgramProgramType = "game"
-	ProgramProgramTypeOthers   ProgramProgramType = "others"
 	ProgramProgramTypeOther    ProgramProgramType = "other"
 )
 
@@ -313,8 +311,6 @@ func (e ProgramProgramType) Valid() bool {
 	switch e {
 	case ProgramProgramTypePractice,
 		ProgramProgramTypeCourse,
-		ProgramProgramTypeGame,
-		ProgramProgramTypeOthers,
 		ProgramProgramTypeOther:
 		return true
 	}
@@ -325,8 +321,6 @@ func AllProgramProgramTypeValues() []ProgramProgramType {
 	return []ProgramProgramType{
 		ProgramProgramTypePractice,
 		ProgramProgramTypeCourse,
-		ProgramProgramTypeGame,
-		ProgramProgramTypeOthers,
 		ProgramProgramTypeOther,
 	}
 }

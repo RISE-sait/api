@@ -4,7 +4,7 @@
 CREATE schema if not exists program;
 
 CREATE TYPE program.program_level AS ENUM ('beginner', 'intermediate', 'advanced', 'all');
-CREATE TYPE program.program_type AS ENUM ('practice', 'course', 'game','others');
+CREATE TYPE program.program_type AS ENUM ('practice', 'course','other');
 
 CREATE TABLE IF NOT EXISTS program.programs
 (

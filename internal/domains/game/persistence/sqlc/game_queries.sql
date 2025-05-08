@@ -1,4 +1,13 @@
+-- The following SQL functions provide full CRUD support for the game.games table.
+-- This structure replaces the older approach of inserting game data via a WITH clause
+-- that unwrapped parallel arrays (e.g., unnesting start_times, team_names, etc.).
+-- 
+-- - The new design promotes single-row transactional inserts, which are safer and easier to debug.
+-- - Complex batch insertion with unnested arrays was moved into Go, giving more control over data preparation.
+-- - This also simplifies SQL and avoids silent failures during multi-row joins.
+
 -- name: CreateGame :exec
+-- Inserts a single game into the game.games table using direct parameters.
 INSERT INTO game.games (
   id, home_team_id, away_team_id, home_score, away_score, start_time,
   end_time, location_id, status
@@ -7,6 +16,7 @@ INSERT INTO game.games (
 );
 
 -- name: GetGameById :one
+-- Retrieves a specific game along with team names and location name.
 SELECT 
     g.id,
     g.home_team_id,
@@ -29,6 +39,7 @@ JOIN location.locations loc ON g.location_id = loc.id
 WHERE g.id = $1;
 
 -- name: GetGames :many
+-- Retrieves all games, with team and location names.
 SELECT 
     g.id,
     g.home_team_id,
@@ -51,6 +62,7 @@ JOIN location.locations loc ON g.location_id = loc.id
 ORDER BY g.start_time DESC;
 
 -- name: UpdateGame :execrows
+-- Updates an existing game's scores, times, location, and status.
 UPDATE game.games
 SET home_score = $2,
     away_score = $3,
@@ -62,5 +74,6 @@ SET home_score = $2,
 WHERE id = $1;
 
 -- name: DeleteGame :execrows
+-- Deletes a game by ID.
 DELETE FROM game.games
 WHERE id = $1;

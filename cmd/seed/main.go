@@ -412,20 +412,20 @@ func seedMemberships(ctx context.Context, db *sql.DB) {
 	}
 }
 
-func seedEvents(ctx context.Context, db *sql.DB) []uuid.UUID {
-	seedQueries := dbSeed.New(db)
+// func seedEvents(ctx context.Context, db *sql.DB) []uuid.UUID {
+// 	seedQueries := dbSeed.New(db)
 
-	arg := data.GetEvents()
+// 	arg := data.GetEvents()
 
-	// Insert events and sessions into the database
-	ids, err := seedQueries.InsertEvents(ctx, arg)
-	if err != nil {
-		log.Fatalf("Failed to insert events: %v", err)
-		return nil
-	}
+// 	// Insert events and sessions into the database
+// 	ids, err := seedQueries.InsertEvents(ctx, arg)
+// 	if err != nil {
+// 		log.Fatalf("Failed to insert events: %v", err)
+// 		return nil
+// 	}
 
-	return ids
-}
+// 	return ids
+// }
 
 func seedFakeEvents(ctx context.Context, db *sql.DB, programs, locations []string, isRecurring bool) []uuid.UUID {
 	seedQueries := dbSeed.New(db)
@@ -567,7 +567,16 @@ func seedBuiltInPrograms(ctx context.Context, db *sql.DB) {
 		fmt.Println("Inserted built-in programs: Game, Practice, Course, Other")
 	}
 }
+func seedGames(ctx context.Context, db *sql.DB, teamIDs []uuid.UUID, locationNames []string) {
+	seedQueries := dbSeed.New(db)
+	numGames := 10
+	gamesData := data.GetGames(teamIDs, locationNames, numGames)
 
+	_, err := seedQueries.InsertGames(ctx, gamesData)
+	if err != nil {
+		log.Fatalf("Failed to insert games: %v", err)
+	}
+}
 
 func main() {
 	ctx := context.Background()
@@ -583,33 +592,32 @@ func main() {
 	staffIds := seedStaff(ctx, db)
 	seedFakeCoachStats(ctx, db)
 
-
 	teamIds := seedFakeTeams(ctx, db)
 	log.Printf("Seeded %d teams", len(teamIds))
 
 	// seedPractices(ctx, db)
 	// courses := seedFakeCourses(ctx, db)
 
-
 	locations := seedLocations(ctx, db)
 
-	
 	seedBuiltInPrograms(ctx, db)
-
-	
-	gameEvents := seedFakeEvents(ctx, db, []string{"Game"}, locations, false)
 
 	practiceEvents := seedFakeEvents(ctx, db, []string{"Practice"}, locations, true)
 
 	courseEvents := seedFakeEvents(ctx, db, []string{"Course"}, locations, true)
-	
+
 	var allEventIds []uuid.UUID
-	allEventIds = append(allEventIds, gameEvents...)
 	allEventIds = append(allEventIds, practiceEvents...)
 	allEventIds = append(allEventIds, courseEvents...)
-	
 
-	
+	// Convert locations from []string to []uuid.UUID
+	var locationNames []string
+	for _, loc := range data.Locations {
+		locationNames = append(locationNames, loc.Name)
+	}
+
+	seedGames(ctx, db, teamIds, locationNames)
+
 	seedMemberships(ctx, db)
 
 	seedMembershipPlans(ctx, db)
@@ -634,4 +642,3 @@ func main() {
 
 	syncStripePrices(ctx, db)
 }
-

@@ -417,6 +417,20 @@ type EventsStaff struct {
 	StaffID uuid.UUID `json:"staff_id"`
 }
 
+type GameGame struct {
+	ID         uuid.UUID      `json:"id"`
+	HomeTeamID uuid.UUID      `json:"home_team_id"`
+	AwayTeamID uuid.UUID      `json:"away_team_id"`
+	HomeScore  sql.NullInt32  `json:"home_score"`
+	AwayScore  sql.NullInt32  `json:"away_score"`
+	StartTime  time.Time      `json:"start_time"`
+	EndTime    sql.NullTime   `json:"end_time"`
+	LocationID uuid.UUID      `json:"location_id"`
+	Status     sql.NullString `json:"status"`
+	CreatedAt  sql.NullTime   `json:"created_at"`
+	UpdatedAt  sql.NullTime   `json:"updated_at"`
+}
+
 type HaircutBarberService struct {
 	ID        uuid.UUID `json:"id"`
 	BarberID  uuid.UUID `json:"barber_id"`

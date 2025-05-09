@@ -1,19 +1,31 @@
 -- +goose Up
 -- +goose StatementBegin
 
--- Step 1 + 2: Safely migrate 'game' program references and delete it only if it exists
+-- Step 1: Ensure 'other' program exists
 DO $$
 BEGIN
-  IF EXISTS (SELECT 1 FROM program.programs WHERE type::text = 'game') THEN
-    UPDATE events.events
-    SET program_id = (
-      SELECT id FROM program.programs WHERE type::text = 'other' LIMIT 1
-    )
-    WHERE program_id = (
-      SELECT id FROM program.programs WHERE type::text = 'game' LIMIT 1
-    );
+  IF NOT EXISTS (SELECT 1 FROM program.programs WHERE type::text = 'other') THEN
+    INSERT INTO program.programs (id, name, type, description)
+    VALUES (gen_random_uuid(), 'Other', 'other', 'Default program for uncategorized events');
+  END IF;
+END
+$$;
 
-    DELETE FROM program.programs WHERE type::text = 'game';
+-- Step 2: Safely migrate 'game' program references and delete it only if it exists
+DO $$
+DECLARE
+  other_program_id UUID;
+  game_program_id UUID;
+BEGIN
+  SELECT id INTO other_program_id FROM program.programs WHERE type::text = 'other' LIMIT 1;
+  SELECT id INTO game_program_id FROM program.programs WHERE type::text = 'game' LIMIT 1;
+
+  IF game_program_id IS NOT NULL THEN
+    UPDATE events.events
+    SET program_id = other_program_id
+    WHERE program_id = game_program_id;
+
+    DELETE FROM program.programs WHERE id = game_program_id;
   END IF;
 END
 $$;
@@ -62,14 +74,15 @@ CREATE TABLE IF NOT EXISTS game.games (
 
 -- +goose StatementEnd
 
+
 -- +goose Down
 -- +goose StatementBegin
 
--- Step 1: Drop games table and schema
+-- Step 1: Drop the games table and game schema
 DROP TABLE IF EXISTS game.games;
 DROP SCHEMA IF EXISTS game;
 
--- Step 2: Recreate enum with 'game'
+-- Step 2: Recreate the original enum with 'game'
 ALTER TYPE program.program_type RENAME TO program_type_temp;
 
 CREATE TYPE program.program_type AS ENUM ('course', 'practice', 'game', 'other');
@@ -80,15 +93,18 @@ USING type::text::program.program_type;
 
 DROP TYPE program.program_type_temp;
 
--- Step 3: Reinsert default game program row
+-- Step 3: Reinsert the default 'Game' program row
 INSERT INTO program.programs (id, name, type, description)
 VALUES (gen_random_uuid(), 'Game', 'game', 'Default program for games');
 
--- Step 4: Recreate old uniqueness constraints
+-- Step 4: Restore the previous unique constraints
 ALTER TABLE program.programs
 ADD CONSTRAINT unique_program_type UNIQUE (type);
 
+-- Optional: revert back to unnamed auto-generated name constraint if needed
+-- DROP NAMED constraint if it exists
 ALTER TABLE program.programs
 DROP CONSTRAINT IF EXISTS unique_program_name;
+
 
 -- +goose StatementEnd

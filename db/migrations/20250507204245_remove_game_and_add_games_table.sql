@@ -35,6 +35,10 @@ $$;
 ALTER TABLE program.programs
 DROP CONSTRAINT IF EXISTS unique_program_type;
 
+-- Force-delete any remaining rows with type 'game' to avoid enum cast failure
+DELETE FROM program.programs WHERE type::text = 'game';
+
+
 -- Step 4: Replace enum without 'game'
 DO $$
 BEGIN

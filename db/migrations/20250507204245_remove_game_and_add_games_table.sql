@@ -12,24 +12,16 @@ END
 $$;
 
 -- Step 2: Reassign any 'game' type rows to 'other' and delete the 'game' program
-DO $$
-DECLARE
-  other_program_id UUID;
-  game_program_id UUID;
-BEGIN
-  SELECT id INTO other_program_id FROM program.programs WHERE type = 'other' LIMIT 1;
-  -- Avoid enum casting error by using text comparison
-  SELECT id INTO game_program_id FROM program.programs WHERE type::text = 'game' LIMIT 1;
+UPDATE events.events
+SET program_id = (
+  SELECT id FROM program.programs WHERE type = 'other' LIMIT 1
+)
+WHERE program_id IN (
+  SELECT id FROM program.programs WHERE type::text = 'game'
+);
 
-  IF game_program_id IS NOT NULL THEN
-    UPDATE events.events
-    SET program_id = other_program_id
-    WHERE program_id = game_program_id;
+DELETE FROM program.programs WHERE type::text = 'game';
 
-    DELETE FROM program.programs WHERE id = game_program_id;
-  END IF;
-END
-$$;
 
 -- Step 3: Drop unique constraint on type if exists
 ALTER TABLE program.programs

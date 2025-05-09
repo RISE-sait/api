@@ -192,8 +192,6 @@ type ProgramProgramType string
 const (
 	ProgramProgramTypePractice ProgramProgramType = "practice"
 	ProgramProgramTypeCourse   ProgramProgramType = "course"
-	ProgramProgramTypeGame     ProgramProgramType = "game"
-	ProgramProgramTypeOthers   ProgramProgramType = "others"
 	ProgramProgramTypeOther    ProgramProgramType = "other"
 )
 
@@ -255,12 +253,13 @@ type AthleticCoachStat struct {
 }
 
 type AthleticTeam struct {
-	ID        uuid.UUID     `json:"id"`
-	Name      string        `json:"name"`
-	Capacity  int32         `json:"capacity"`
-	CreatedAt time.Time     `json:"created_at"`
-	UpdatedAt time.Time     `json:"updated_at"`
-	CoachID   uuid.NullUUID `json:"coach_id"`
+	ID        uuid.UUID      `json:"id"`
+	Name      string         `json:"name"`
+	Capacity  int32          `json:"capacity"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	CoachID   uuid.NullUUID  `json:"coach_id"`
+	LogoUrl   sql.NullString `json:"logo_url"`
 }
 
 type AuditOutbox struct {

@@ -14,6 +14,7 @@ import (
 )
 
 const createGame = `-- name: CreateGame :exec
+
 INSERT INTO game.games (
   id, home_team_id, away_team_id, home_score, away_score, start_time,
   end_time, location_id, status
@@ -33,6 +34,14 @@ type CreateGameParams struct {
 	Status     sql.NullString `json:"status"`
 }
 
+// The following SQL functions provide full CRUD support for the game.games table.
+// This structure replaces the older approach of inserting game data via a WITH clause
+// that unwrapped parallel arrays (e.g., unnesting start_times, team_names, etc.).
+//
+// - The new design promotes single-row transactional inserts, which are safer and easier to debug.
+// - Complex batch insertion with unnested arrays was moved into Go, giving more control over data preparation.
+// - This also simplifies SQL and avoids silent failures during multi-row joins.
+// Inserts a single game into the game.games table using direct parameters.
 func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) error {
 	_, err := q.db.ExecContext(ctx, createGame,
 		arg.HomeTeamID,
@@ -52,6 +61,7 @@ DELETE FROM game.games
 WHERE id = $1
 `
 
+// Deletes a game by ID.
 func (q *Queries) DeleteGame(ctx context.Context, id uuid.UUID) (int64, error) {
 	result, err := q.db.ExecContext(ctx, deleteGame, id)
 	if err != nil {
@@ -100,6 +110,7 @@ type GetGameByIdRow struct {
 	UpdatedAt    sql.NullTime   `json:"updated_at"`
 }
 
+// Retrieves a specific game along with team names and location name.
 func (q *Queries) GetGameById(ctx context.Context, id uuid.UUID) (GetGameByIdRow, error) {
 	row := q.db.QueryRowContext(ctx, getGameById, id)
 	var i GetGameByIdRow
@@ -127,8 +138,10 @@ SELECT
     g.id,
     g.home_team_id,
     ht.name AS home_team_name,
+    ht.logo_url AS home_team_logo_url,
     g.away_team_id,
     at.name AS away_team_name,
+    at.logo_url AS away_team_logo_url,
     g.home_score,
     g.away_score,
     g.start_time,
@@ -146,22 +159,25 @@ ORDER BY g.start_time DESC
 `
 
 type GetGamesRow struct {
-	ID           uuid.UUID      `json:"id"`
-	HomeTeamID   uuid.UUID      `json:"home_team_id"`
-	HomeTeamName string         `json:"home_team_name"`
-	AwayTeamID   uuid.UUID      `json:"away_team_id"`
-	AwayTeamName string         `json:"away_team_name"`
-	HomeScore    sql.NullInt32  `json:"home_score"`
-	AwayScore    sql.NullInt32  `json:"away_score"`
-	StartTime    time.Time      `json:"start_time"`
-	EndTime      sql.NullTime   `json:"end_time"`
-	LocationID   uuid.UUID      `json:"location_id"`
-	LocationName string         `json:"location_name"`
-	Status       sql.NullString `json:"status"`
-	CreatedAt    sql.NullTime   `json:"created_at"`
-	UpdatedAt    sql.NullTime   `json:"updated_at"`
+	ID              uuid.UUID      `json:"id"`
+	HomeTeamID      uuid.UUID      `json:"home_team_id"`
+	HomeTeamName    string         `json:"home_team_name"`
+	HomeTeamLogoUrl sql.NullString `json:"home_team_logo_url"`
+	AwayTeamID      uuid.UUID      `json:"away_team_id"`
+	AwayTeamName    string         `json:"away_team_name"`
+	AwayTeamLogoUrl sql.NullString `json:"away_team_logo_url"`
+	HomeScore       sql.NullInt32  `json:"home_score"`
+	AwayScore       sql.NullInt32  `json:"away_score"`
+	StartTime       time.Time      `json:"start_time"`
+	EndTime         sql.NullTime   `json:"end_time"`
+	LocationID      uuid.UUID      `json:"location_id"`
+	LocationName    string         `json:"location_name"`
+	Status          sql.NullString `json:"status"`
+	CreatedAt       sql.NullTime   `json:"created_at"`
+	UpdatedAt       sql.NullTime   `json:"updated_at"`
 }
 
+// Retrieves all games, with team and location names.
 func (q *Queries) GetGames(ctx context.Context) ([]GetGamesRow, error) {
 	rows, err := q.db.QueryContext(ctx, getGames)
 	if err != nil {
@@ -175,8 +191,10 @@ func (q *Queries) GetGames(ctx context.Context) ([]GetGamesRow, error) {
 			&i.ID,
 			&i.HomeTeamID,
 			&i.HomeTeamName,
+			&i.HomeTeamLogoUrl,
 			&i.AwayTeamID,
 			&i.AwayTeamName,
+			&i.AwayTeamLogoUrl,
 			&i.HomeScore,
 			&i.AwayScore,
 			&i.StartTime,
@@ -222,6 +240,7 @@ type UpdateGameParams struct {
 	Status     sql.NullString `json:"status"`
 }
 
+// Updates an existing game's scores, times, location, and status.
 func (q *Queries) UpdateGame(ctx context.Context, arg UpdateGameParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateGame,
 		arg.ID,

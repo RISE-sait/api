@@ -82,6 +82,12 @@ func toNullString(s string) sql.NullString {
 	}
 	return sql.NullString{Valid: false}
 }
+func unwrapNullableString(n sql.NullString) string {
+	if n.Valid {
+		return n.String
+	}
+	return ""
+}
 
 // GetGameById fetches a single game record by ID and maps it to a domain value.
 // Returns a 404 error if not found.
@@ -148,20 +154,22 @@ func (r *Repository) GetGames(ctx context.Context) ([]values.ReadGameValue, *err
 	games := make([]values.ReadGameValue, len(dbGames))
 	for i, dbGame := range dbGames {
 		games[i] = values.ReadGameValue{
-			ID:           dbGame.ID,
-			HomeTeamID:   dbGame.HomeTeamID,
-			HomeTeamName: dbGame.HomeTeamName,
-			AwayTeamID:   dbGame.AwayTeamID,
-			AwayTeamName: dbGame.AwayTeamName,
-			HomeScore:    nullableInt32ToPtr(dbGame.HomeScore),
-			AwayScore:    nullableInt32ToPtr(dbGame.AwayScore),
-			StartTime:    dbGame.StartTime,
-			EndTime:      nullableTimeToPtr(dbGame.EndTime),
-			LocationID:   dbGame.LocationID,
-			LocationName: dbGame.LocationName,
-			Status:       dbGame.Status.String,
-			CreatedAt:    nullableTimeToPtr(dbGame.CreatedAt),
-			UpdatedAt:    nullableTimeToPtr(dbGame.UpdatedAt),
+			ID:              dbGame.ID,
+			HomeTeamID:      dbGame.HomeTeamID,
+			HomeTeamName:    dbGame.HomeTeamName,
+			HomeTeamLogoUrl: unwrapNullableString(dbGame.HomeTeamLogoUrl),
+			AwayTeamID:      dbGame.AwayTeamID,
+			AwayTeamName:    dbGame.AwayTeamName,
+			AwayTeamLogoUrl: unwrapNullableString(dbGame.AwayTeamLogoUrl),
+			HomeScore:       nullableInt32ToPtr(dbGame.HomeScore),
+			AwayScore:       nullableInt32ToPtr(dbGame.AwayScore),
+			StartTime:       dbGame.StartTime,
+			EndTime:         nullableTimeToPtr(dbGame.EndTime),
+			LocationID:      dbGame.LocationID,
+			LocationName:    dbGame.LocationName,
+			Status:          dbGame.Status.String,
+			CreatedAt:       nullableTimeToPtr(dbGame.CreatedAt),
+			UpdatedAt:       nullableTimeToPtr(dbGame.UpdatedAt),
 		}
 	}
 

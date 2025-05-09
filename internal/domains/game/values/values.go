@@ -29,18 +29,20 @@ type UpdateGameValue struct {
 // ReadGameValue represents a full game record retrieved from the database.
 // Includes both UUIDs and display names for related entities, as well as timestamps.
 type ReadGameValue struct {
-	ID           uuid.UUID  // Game ID
-	HomeTeamID   uuid.UUID  // UUID of the home team
-	HomeTeamName string     // Name of the home team
-	AwayTeamID   uuid.UUID  // UUID of the away team
-	AwayTeamName string     // Name of the away team
-	HomeScore    *int32     // Home team score (nullable)
-	AwayScore    *int32     // Away team score (nullable)
-	StartTime    time.Time  // Scheduled start time
-	EndTime      *time.Time // End time (nullable)
-	LocationID   uuid.UUID  // UUID of the game location
-	LocationName string     // Name of the location
-	Status       string     // Game status
-	CreatedAt    *time.Time // Time the record was created (nullable)
-	UpdatedAt    *time.Time // Time the record was last updated (nullable)
+	ID              uuid.UUID  // Game ID
+	HomeTeamID      uuid.UUID  // UUID of the home team
+	HomeTeamName    string     // Name of the home team
+	HomeTeamLogoUrl string     // Logo URL of the home team
+	AwayTeamID      uuid.UUID  // UUID of the away team
+	AwayTeamName    string     // Name of the away team
+	AwayTeamLogoUrl string     // Logo URL of the away team
+	HomeScore       *int32     // Home team score (nullable)
+	AwayScore       *int32     // Away team score (nullable)
+	StartTime       time.Time  // Scheduled start time
+	EndTime         *time.Time // End time (nullable)
+	LocationID      uuid.UUID  // UUID of the game location
+	LocationName    string     // Name of the location
+	Status          string     // Game status
+	CreatedAt       *time.Time // Time the record was created (nullable)
+	UpdatedAt       *time.Time // Time the record was last updated (nullable)
 }

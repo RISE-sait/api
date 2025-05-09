@@ -32,7 +32,7 @@ func TestEnrollCustomerInEvent(t *testing.T) {
 	_, err := db.ExecContext(context.Background(), `
 	INSERT INTO program.programs (id, name, type, level, description)
 	VALUES (gen_random_uuid(), 'Course', 'course', 'all', 'Default test program')
-	ON CONFLICT (type) DO NOTHING
+	ON CONFLICT (name) DO NOTHING
 `)
 require.NoError(t, err)
 	// Create a user to be the creator of the event
@@ -130,7 +130,7 @@ func TestEnrollCustomerInProgramEvents(t *testing.T) {
 	_, err := db.ExecContext(context.Background(), `
 	INSERT INTO program.programs (id, name, type, level, description)
 	VALUES (gen_random_uuid(), 'Course', 'course', 'all', 'Default test program')
-	ON CONFLICT (type) DO NOTHING
+	ON CONFLICT (name) DO NOTHING
 	`)
 	require.NoError(t, err)
 

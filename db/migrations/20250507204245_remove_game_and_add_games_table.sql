@@ -18,8 +18,7 @@ BEGIN
 END
 $$;
 
-
--- Step 3: Drop the UNIQUE constraint if it exists
+-- Step 3: Drop the UNIQUE constraint on type if it exists
 ALTER TABLE program.programs
 DROP CONSTRAINT IF EXISTS unique_program_type;
 
@@ -37,10 +36,14 @@ BEGIN
 END
 $$;
 
+-- Step 5: Replace auto-generated unique name constraint with a named one
+ALTER TABLE program.programs
+DROP CONSTRAINT IF EXISTS programs_name_key;
+
 ALTER TABLE program.programs
 ADD CONSTRAINT unique_program_name UNIQUE (name);
 
--- Step 6: Create game schema + games table
+-- Step 6: Create game schema and games table
 CREATE SCHEMA IF NOT EXISTS game;
 
 CREATE TABLE IF NOT EXISTS game.games (
@@ -62,10 +65,11 @@ CREATE TABLE IF NOT EXISTS game.games (
 -- +goose Down
 -- +goose StatementBegin
 
+-- Step 1: Drop games table and schema
 DROP TABLE IF EXISTS game.games;
 DROP SCHEMA IF EXISTS game;
 
--- Recreate enum with 'game'
+-- Step 2: Recreate enum with 'game'
 ALTER TYPE program.program_type RENAME TO program_type_temp;
 
 CREATE TYPE program.program_type AS ENUM ('course', 'practice', 'game', 'other');
@@ -76,12 +80,15 @@ USING type::text::program.program_type;
 
 DROP TYPE program.program_type_temp;
 
--- Reinsert default game program row
+-- Step 3: Reinsert default game program row
 INSERT INTO program.programs (id, name, type, description)
 VALUES (gen_random_uuid(), 'Game', 'game', 'Default program for games');
 
--- Recreate constraint
+-- Step 4: Recreate old uniqueness constraints
 ALTER TABLE program.programs
 ADD CONSTRAINT unique_program_type UNIQUE (type);
+
+ALTER TABLE program.programs
+DROP CONSTRAINT IF EXISTS unique_program_name;
 
 -- +goose StatementEnd

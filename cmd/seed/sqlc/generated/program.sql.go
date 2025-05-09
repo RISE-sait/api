@@ -41,8 +41,8 @@ VALUES
     (gen_random_uuid(), 'Practice', 'practice'::program.program_type, 'Default program for practices'),
     (gen_random_uuid(), 'Course', 'course'::program.program_type, 'Default program for courses'),
     (gen_random_uuid(), 'Other', 'other'::program.program_type, 'Default program for other events')
-ON CONFLICT (type) DO UPDATE
-SET name = EXCLUDED.name,
+ON CONFLICT (name) DO UPDATE
+SET type = EXCLUDED.type,
     description = EXCLUDED.description
 `
 

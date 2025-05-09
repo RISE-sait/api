@@ -37,9 +37,8 @@ BEGIN
 END
 $$;
 
--- Step 5: Recreate the unique constraint
 ALTER TABLE program.programs
-ADD CONSTRAINT unique_program_type UNIQUE (type);
+ADD CONSTRAINT unique_program_name UNIQUE (name);
 
 -- Step 6: Create game schema + games table
 CREATE SCHEMA IF NOT EXISTS game;

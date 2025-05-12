@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-
+	
 	"api/internal/di"
 	athleteDto "api/internal/domains/user/dto/athlete"
 	customerDto "api/internal/domains/user/dto/customer"
@@ -247,8 +247,8 @@ func (h *CustomersHandler) GetCustomerByEmail(w http.ResponseWriter, r *http.Req
 // @Produce json
 // @Param limit query int false "Number of athletes to retrieve (default: 10)"
 // @Param offset query int false "Number of athletes to skip (default: 0)"
-// @Success 200 {array} athleteDto.ResponseAthlete "List of athletes"
-// @Failure 500 {object} errLib.CommonError "Internal server error"
+// @Success 200 {array} athleteDto.ResponseAthlete
+// @Failure 500 "Internal Server Error"
 // @Router /athletes [get]
 func (h *CustomersHandler) GetAthletes(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

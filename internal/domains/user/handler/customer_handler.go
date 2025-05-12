@@ -241,10 +241,13 @@ func (h *CustomersHandler) GetCustomerByEmail(w http.ResponseWriter, r *http.Req
 
 // GetAthletes returns a list of all athletes with profile info and stats
 // @Summary Get all athletes
+// @Description Retrieves a paginated list of athletes with profile details and stats.
 // @Tags athletes
 // @Accept json
 // @Produce json
-// @Success 200 {array} athlete.ResponseAthlete "List of athletes
+// @Param limit query int false "Number of athletes to retrieve (default: 10)"
+// @Param offset query int false "Number of athletes to skip (default: 0)"
+// @Success 200 {array} athleteDto.ResponseAthlete "List of athletes"
 // @Failure 500 {object} errLib.CommonError "Internal server error"
 // @Router /athletes [get]
 func (h *CustomersHandler) GetAthletes(w http.ResponseWriter, r *http.Request) {

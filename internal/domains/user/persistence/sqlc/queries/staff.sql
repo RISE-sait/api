@@ -1,5 +1,5 @@
 -- name: GetStaffs :many
-SELECT s.is_active, u.*, sr.role_name, cs.wins, cs.losses
+SELECT s.is_active, u.*, sr.role_name, cs.wins, cs.losses, s.photo_url
 FROM staff.staff s
 JOIN users.users u ON u.id = s.id
 JOIN staff.staff_roles sr ON s.role_id = sr.id

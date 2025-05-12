@@ -18,6 +18,8 @@ type ReadValues struct {
 	RoleName    string
 	CountryCode string
 	Phone       string
+	PhotoURL    *string
+
 	*CoachStatsReadValues
 }
 

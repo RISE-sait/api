@@ -35,7 +35,7 @@ func NewCustomersHandler(container *di.Container) *CustomersHandler {
 // @Produce json
 // @Security Bearer
 // @Param id path string true "Athlete ID" // Athlete ID to update stats for
-// @Param update_body body dto.StatsUpdateRequestDto true "Customer stats update data"
+// @Param update_body body customerDto.StatsUpdateRequestDto true "Customer stats update data"
 // @Success 204 {object} map[string]interface{} "Customer stats updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid parameters"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"

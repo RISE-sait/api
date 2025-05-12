@@ -94,6 +94,7 @@ func RegisterAthleteRoutes(container *di.Container) func(chi.Router) {
 	h := userHandler.NewCustomersHandler(container)
 
 	return func(r chi.Router) {
+		r.Get("/", h.GetAthletes)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Patch("/{id}/stats", h.UpdateAthleteStats)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{athlete_id}/team/{team_id}", h.UpdateAthletesTeam)
 	}

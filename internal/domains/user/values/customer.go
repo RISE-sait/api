@@ -1,8 +1,9 @@
 package user
 
 import (
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type MembershipReadValue struct {
@@ -38,10 +39,16 @@ type StatsUpdateValue struct {
 }
 
 type AthleteReadValue struct {
-	Wins     int32
-	Losses   int32
-	Points   int32
-	Steals   int32
-	Assists  int32
-	Rebounds int32
+	ID        uuid.UUID
+	FirstName string     
+	LastName  string    
+	Email     *string    
+	Points    int32    
+	Wins      int32     
+	Losses    int32     
+	Assists   int32    
+	Rebounds  int32     
+	Steals    int32   
+	PhotoURL  *string    
+	TeamID    *uuid.UUID 
 }

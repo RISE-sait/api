@@ -9,10 +9,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/lib/pq"
 	"log"
 	"net/http"
+
+	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 type CustomerRepository struct {
@@ -258,4 +259,39 @@ func (r *CustomerRepository) UpdateStats(ctx context.Context, valuesToUpdate use
 	}
 
 	return nil
+}
+func (r *CustomerRepository) ListAthletes(ctx context.Context, limit, offset int32) ([]userValues.AthleteReadValue, *errLib.CommonError) {
+	dbAthletes, err := r.Queries.GetAthletes(ctx, db.GetAthletesParams{
+		Limit:  limit,
+		Offset: offset,
+	})
+	if err != nil {
+		log.Println(fmt.Sprintf("Error getting athletes: %s", err))
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	athletes := make([]userValues.AthleteReadValue, len(dbAthletes))
+	for i, a := range dbAthletes {
+		athletes[i] = userValues.AthleteReadValue{
+			ID:        a.ID,
+			FirstName: a.FirstName,
+			LastName:  a.LastName,
+			Email:     ToStringPtr(a.Email),
+			Points:    a.Points,
+			Wins:      a.Wins,
+			Losses:    a.Losses,
+			Assists:   a.Assists,
+			Rebounds:  a.Rebounds,
+			Steals:    a.Steals,
+			PhotoURL:  ToStringPtr(a.PhotoUrl),
+			TeamID: func(n uuid.NullUUID) *uuid.UUID {
+				if n.Valid {
+					return &n.UUID
+				}
+				return nil
+			}(a.TeamID),
+		}
+	}
+
+	return athletes, nil
 }

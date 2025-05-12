@@ -80,3 +80,23 @@ WHERE (u.id = sqlc.narg('id') OR sqlc.narg('id') IS NULL)
 -- name: CreateAthleteInfo :execrows
 INSERT INTO athletic.athletes (id, rebounds, assists, losses, wins, points)
 VALUES ($1, $2, $3, $4, $5, $6);
+
+-- name: GetAthletes :many
+SELECT
+  u.id,
+  u.first_name,
+  u.last_name,
+  u.email,
+  a.points,
+  a.wins,
+  a.losses,
+  a.assists,
+  a.rebounds,
+  a.steals,
+  a.photo_url,
+  a.team_id
+FROM athletic.athletes a
+JOIN users.users u ON u.id = a.id
+ORDER BY a.points DESC
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
+

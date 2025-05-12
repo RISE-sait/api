@@ -2,20 +2,20 @@ package customer
 
 import (
 	values "api/internal/domains/user/values"
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Response struct {
-	UserID         uuid.UUID              `json:"user_id"`
-	DOB            string                 `json:"dob"`
-	FirstName      string                 `json:"first_name"`
-	LastName       string                 `json:"last_name"`
-	Email          *string                `json:"email,omitempty"`
-	Phone          *string                `json:"phone,omitempty"`
-	HubspotId      *string                `json:"hubspot_id,omitempty"`
-	CountryCode    string                 `json:"country_code"`
-	AthleteInfo    *AthleteResponseDto    `json:"athlete_info,omitempty"`
+	UserID      uuid.UUID `json:"user_id"`
+	DOB         string    `json:"dob"`
+	FirstName   string    `json:"first_name"`
+	LastName    string    `json:"last_name"`
+	Email       *string   `json:"email,omitempty"`
+	Phone       *string   `json:"phone,omitempty"`
+	HubspotId   *string   `json:"hubspot_id,omitempty"`
+	CountryCode string    `json:"country_code"`
 	MembershipInfo *MembershipResponseDto `json:"membership_info,omitempty"`
 }
 
@@ -25,15 +25,6 @@ type MembershipResponseDto struct {
 	MembershipPlanName    *string    `json:"membership_plan_name,omitempty"`
 	MembershipStartDate   *time.Time `json:"membership_start_date,omitempty"`
 	MembershipRenewalDate *time.Time `json:"membership_renewal_date,omitempty"`
-}
-
-type AthleteResponseDto struct {
-	Wins     int32 `json:"wins"`
-	Losses   int32 `json:"losses"`
-	Points   int32 `json:"points"`
-	Steals   int32 `json:"steals"`
-	Assists  int32 `json:"assists"`
-	Rebounds int32 `json:"rebounds"`
 }
 
 func UserReadValueToResponse(customer values.ReadValue) Response {
@@ -55,17 +46,6 @@ func UserReadValueToResponse(customer values.ReadValue) Response {
 			MembershipRenewalDate: &customer.MembershipInfo.MembershipRenewalDate,
 			MembershipPlanID:      &customer.MembershipInfo.MembershipPlanID,
 			MembershipPlanName:    &customer.MembershipInfo.MembershipPlanName,
-		}
-	}
-
-	if athleteInfo := customer.AthleteInfo; athleteInfo != nil {
-		response.AthleteInfo = &AthleteResponseDto{
-			Wins:     athleteInfo.Wins,
-			Losses:   athleteInfo.Losses,
-			Points:   athleteInfo.Points,
-			Steals:   athleteInfo.Steals,
-			Assists:  athleteInfo.Assists,
-			Rebounds: athleteInfo.Rebounds,
 		}
 	}
 

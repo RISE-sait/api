@@ -8,9 +8,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/lib/pq"
 	"log"
 	"net/http"
+
+	"github.com/lib/pq"
 
 	"github.com/google/uuid"
 )
@@ -38,6 +39,12 @@ func NewStaffRepository(container *di.Container) *StaffRepository {
 		Queries: container.Queries.UserDb,
 	}
 }
+func ToStringPtr(ns sql.NullString) *string {
+	if ns.Valid {
+		return &ns.String
+	}
+	return nil
+}
 
 func (r *StaffRepository) List(ctx context.Context, role string) ([]values.ReadValues, *errLib.CommonError) {
 
@@ -64,6 +71,7 @@ func (r *StaffRepository) List(ctx context.Context, role string) ([]values.ReadV
 			UpdatedAt:   dbStaff.UpdatedAt,
 			RoleName:    dbStaff.RoleName,
 			CountryCode: dbStaff.CountryAlpha2Code,
+			PhotoURL:    ToStringPtr(dbStaff.PhotoUrl),
 		}
 
 		if dbStaff.Wins.Valid && dbStaff.Losses.Valid {

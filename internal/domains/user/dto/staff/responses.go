@@ -20,6 +20,7 @@ type ResponseDto struct {
 	CreatedAt   time.Time              `json:"created_at"`
 	UpdatedAt   time.Time              `json:"updated_at"`
 	RoleName    string                 `json:"role_name"`
+	PhotoURL    *string                `json:"photo_url"`
 	CoachStats  *CoachStatsResponseDto `json:"coach_stats,omitempty"`
 }
 
@@ -42,6 +43,7 @@ func NewStaffResponse(staff values.ReadValues) ResponseDto {
 		UpdatedAt:   staff.UpdatedAt,
 		RoleName:    staff.RoleName,
 		Phone:       staff.Phone,
+		PhotoURL:    staff.PhotoURL,
 		CoachStats:  (*CoachStatsResponseDto)(staff.CoachStatsReadValues),
 	}
 }

@@ -5,9 +5,11 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-
+	
 	"api/internal/di"
-	dto "api/internal/domains/user/dto/customer"
+	athleteDto "api/internal/domains/user/dto/athlete"
+	customerDto "api/internal/domains/user/dto/customer"
+
 	customerRepo "api/internal/domains/user/persistence/repository"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
@@ -33,7 +35,7 @@ func NewCustomersHandler(container *di.Container) *CustomersHandler {
 // @Produce json
 // @Security Bearer
 // @Param id path string true "Athlete ID" // Athlete ID to update stats for
-// @Param update_body body dto.StatsUpdateRequestDto true "Customer stats update data"
+// @Param update_body body customerDto.StatsUpdateRequestDto true "Customer stats update data"
 // @Success 204 {object} map[string]interface{} "Customer stats updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid parameters"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
@@ -41,7 +43,7 @@ func NewCustomersHandler(container *di.Container) *CustomersHandler {
 func (h *CustomersHandler) UpdateAthleteStats(w http.ResponseWriter, r *http.Request) {
 	athleteIdStr := chi.URLParam(r, "id")
 
-	var requestDto dto.StatsUpdateRequestDto
+	var requestDto customerDto.StatsUpdateRequestDto
 
 	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
 		responseHandlers.RespondWithError(w, err)
@@ -171,10 +173,10 @@ func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) 
 
 	log.Println("DB Customers: ", len(dbCustomers))
 
-	result := make([]dto.Response, len(dbCustomers))
+	result := make([]customerDto.Response, len(dbCustomers))
 
 	for i, customer := range dbCustomers {
-		response := dto.UserReadValueToResponse(customer)
+		response := customerDto.UserReadValueToResponse(customer)
 
 		result[i] = response
 	}
@@ -209,7 +211,7 @@ func (h *CustomersHandler) GetCustomerByID(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	response := dto.UserReadValueToResponse(customer)
+	response := customerDto.UserReadValueToResponse(customer)
 
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 }
@@ -232,7 +234,44 @@ func (h *CustomersHandler) GetCustomerByEmail(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	response := dto.UserReadValueToResponse(customer)
+	response := customerDto.UserReadValueToResponse(customer)
 
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
+}
+
+// GetAthletes returns a list of all athletes with profile info and stats
+// @Summary Get all athletes
+// @Description Retrieves a paginated list of athletes with profile details and stats.
+// @Tags athletes
+// @Accept json
+// @Produce json
+// @Param limit query int false "Number of athletes to retrieve (default: 10)"
+// @Param offset query int false "Number of athletes to skip (default: 0)"
+// @Success 200 {array} athleteDto.ResponseAthlete
+// @Failure 500 "Internal Server Error"
+// @Router /athletes [get]
+func (h *CustomersHandler) GetAthletes(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+
+	limit, _ := strconv.Atoi(limitStr)
+	offset, _ := strconv.Atoi(offsetStr)
+
+	if limit == 0 {
+		limit = 10
+	}
+
+	athletes, err := h.CustomerRepo.ListAthletes(ctx, int32(limit), int32(offset))
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	responses := make([]athleteDto.ResponseAthlete, len(athletes))
+	for i, athlete := range athletes {
+		responses[i] = athleteDto.FromReadValue(athlete)
+	}
+	responseHandlers.RespondWithSuccess(w, responses, http.StatusOK)
 }

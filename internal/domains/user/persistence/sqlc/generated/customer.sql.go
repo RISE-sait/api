@@ -42,6 +42,82 @@ func (q *Queries) CreateAthleteInfo(ctx context.Context, arg CreateAthleteInfoPa
 	return result.RowsAffected()
 }
 
+const getAthletes = `-- name: GetAthletes :many
+SELECT
+  u.id,
+  u.first_name,
+  u.last_name,
+  u.email,
+  a.points,
+  a.wins,
+  a.losses,
+  a.assists,
+  a.rebounds,
+  a.steals,
+  a.photo_url,
+  a.team_id
+FROM athletic.athletes a
+JOIN users.users u ON u.id = a.id
+ORDER BY a.points DESC
+LIMIT $2 OFFSET $1
+`
+
+type GetAthletesParams struct {
+	Offset int32 `json:"offset"`
+	Limit  int32 `json:"limit"`
+}
+
+type GetAthletesRow struct {
+	ID        uuid.UUID      `json:"id"`
+	FirstName string         `json:"first_name"`
+	LastName  string         `json:"last_name"`
+	Email     sql.NullString `json:"email"`
+	Points    int32          `json:"points"`
+	Wins      int32          `json:"wins"`
+	Losses    int32          `json:"losses"`
+	Assists   int32          `json:"assists"`
+	Rebounds  int32          `json:"rebounds"`
+	Steals    int32          `json:"steals"`
+	PhotoUrl  sql.NullString `json:"photo_url"`
+	TeamID    uuid.NullUUID  `json:"team_id"`
+}
+
+func (q *Queries) GetAthletes(ctx context.Context, arg GetAthletesParams) ([]GetAthletesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAthletes, arg.Offset, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAthletesRow
+	for rows.Next() {
+		var i GetAthletesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.FirstName,
+			&i.LastName,
+			&i.Email,
+			&i.Points,
+			&i.Wins,
+			&i.Losses,
+			&i.Assists,
+			&i.Rebounds,
+			&i.Steals,
+			&i.PhotoUrl,
+			&i.TeamID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCustomer = `-- name: GetCustomer :one
 SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob,
        m.name           AS membership_name,

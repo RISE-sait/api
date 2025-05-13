@@ -276,7 +276,6 @@ func (r *CustomerRepository) ListAthletes(ctx context.Context, limit, offset int
 			ID:        a.ID,
 			FirstName: a.FirstName,
 			LastName:  a.LastName,
-			Email:     ToStringPtr(a.Email),
 			Points:    a.Points,
 			Wins:      a.Wins,
 			Losses:    a.Losses,

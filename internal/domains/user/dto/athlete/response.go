@@ -8,7 +8,6 @@ type ResponseAthlete struct {
 	ID        string  `json:"id"`
 	FirstName string  `json:"first_name"`
 	LastName  string  `json:"last_name"`
-	Email     *string `json:"email"`
 	Points    int32   `json:"points"`
 	Wins      int32   `json:"wins"`
 	Losses    int32   `json:"losses"`
@@ -30,7 +29,6 @@ func FromReadValue(v values.AthleteReadValue) ResponseAthlete {
 		ID:        v.ID.String(),
 		FirstName: v.FirstName,
 		LastName:  v.LastName,
-		Email:     v.Email,
 		Points:    v.Points,
 		Wins:      v.Wins,
 		Losses:    v.Losses,

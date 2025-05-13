@@ -86,7 +86,6 @@ SELECT
   u.id,
   u.first_name,
   u.last_name,
-  u.email,
   a.points,
   a.wins,
   a.losses,

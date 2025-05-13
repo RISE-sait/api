@@ -47,7 +47,6 @@ SELECT
   u.id,
   u.first_name,
   u.last_name,
-  u.email,
   a.points,
   a.wins,
   a.losses,
@@ -71,7 +70,6 @@ type GetAthletesRow struct {
 	ID        uuid.UUID      `json:"id"`
 	FirstName string         `json:"first_name"`
 	LastName  string         `json:"last_name"`
-	Email     sql.NullString `json:"email"`
 	Points    int32          `json:"points"`
 	Wins      int32          `json:"wins"`
 	Losses    int32          `json:"losses"`
@@ -95,7 +93,6 @@ func (q *Queries) GetAthletes(ctx context.Context, arg GetAthletesParams) ([]Get
 			&i.ID,
 			&i.FirstName,
 			&i.LastName,
-			&i.Email,
 			&i.Points,
 			&i.Wins,
 			&i.Losses,

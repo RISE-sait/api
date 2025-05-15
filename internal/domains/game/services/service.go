@@ -46,8 +46,18 @@ func (s *Service) GetGameById(ctx context.Context, id uuid.UUID) (values.ReadGam
 }
 
 // GetGames retrieves a list of all games from the database.
-func (s *Service) GetGames(ctx context.Context) ([]values.ReadGameValue, *errLib.CommonError) {
-	return s.repo.GetGames(ctx)
+func (s *Service) GetGames(ctx context.Context, limit, offset int32) ([]values.ReadGameValue, *errLib.CommonError) {
+	return s.repo.GetGames(ctx, limit, offset)
+}
+
+// GetUpcomingGames retrieves a list of upcoming games.
+func (s *Service) GetUpcomingGames(ctx context.Context, limit, offset int32) ([]values.ReadGameValue, *errLib.CommonError) {
+	return s.repo.GetUpcomingGames(ctx, limit, offset)
+}
+
+// GetPastGames retrieves a list of past games.
+func (s *Service) GetPastGames(ctx context.Context, limit, offset int32) ([]values.ReadGameValue, *errLib.CommonError) {
+	return s.repo.GetPastGames(ctx, limit, offset)
 }
 
 // CreateGame adds a new game to the database and logs the activity.

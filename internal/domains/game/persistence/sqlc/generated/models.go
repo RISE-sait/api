@@ -231,16 +231,17 @@ func (ns NullProgramProgramType) Value() (driver.Value, error) {
 }
 
 type AthleticAthlete struct {
-	ID        uuid.UUID     `json:"id"`
-	Wins      int32         `json:"wins"`
-	Losses    int32         `json:"losses"`
-	Points    int32         `json:"points"`
-	Steals    int32         `json:"steals"`
-	Assists   int32         `json:"assists"`
-	Rebounds  int32         `json:"rebounds"`
-	CreatedAt time.Time     `json:"created_at"`
-	UpdatedAt time.Time     `json:"updated_at"`
-	TeamID    uuid.NullUUID `json:"team_id"`
+	ID        uuid.UUID      `json:"id"`
+	Wins      int32          `json:"wins"`
+	Losses    int32          `json:"losses"`
+	Points    int32          `json:"points"`
+	Steals    int32          `json:"steals"`
+	Assists   int32          `json:"assists"`
+	Rebounds  int32          `json:"rebounds"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	TeamID    uuid.NullUUID  `json:"team_id"`
+	PhotoUrl  sql.NullString `json:"photo_url"`
 }
 
 type AthleticCoachStat struct {
@@ -445,11 +446,12 @@ type StaffPendingStaff struct {
 }
 
 type StaffStaff struct {
-	ID        uuid.UUID `json:"id"`
-	IsActive  bool      `json:"is_active"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	RoleID    uuid.UUID `json:"role_id"`
+	ID        uuid.UUID      `json:"id"`
+	IsActive  bool           `json:"is_active"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	RoleID    uuid.UUID      `json:"role_id"`
+	PhotoUrl  sql.NullString `json:"photo_url"`
 }
 
 type StaffStaffRole struct {

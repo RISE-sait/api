@@ -4,9 +4,12 @@ import (
 	"api/internal/di"
 	dto "api/internal/domains/game/dto"
 	service "api/internal/domains/game/services"
+	"api/internal/domains/game/values"
+	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi"
 )
@@ -83,17 +86,41 @@ func (h *Handler) GetGameById(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 }
 
-// GetGames returns all games.
-// @Summary List all games
-// @Description Retrieves a list of all games.
+// GetGames returns games, optionally filtered by 'upcoming' or 'past'.
+// @Summary List games (all, upcoming, or past)
+// @Description Retrieves a list of games with optional time-based filtering.
 // @Tags games
 // @Accept json
 // @Produce json
+// @Param filter query string false "Filter by time: upcoming or past"
 // @Success 200 {array} dto.ResponseDto "List of games"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /games [get]
 func (h *Handler) GetGames(w http.ResponseWriter, r *http.Request) {
-	games, err := h.Service.GetGames(r.Context())
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+
+	if page < 1 {
+		page = 1
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	filter := r.URL.Query().Get("filter")
+	var games []values.ReadGameValue
+	var err *errLib.CommonError
+
+	switch filter {
+	case "upcoming":
+		games, err = h.Service.GetUpcomingGames(r.Context(), int32(limit), int32(offset))
+	case "past":
+		games, err = h.Service.GetPastGames(r.Context(), int32(limit), int32(offset))
+	default:
+		games, err = h.Service.GetGames(r.Context(), int32(limit), int32(offset))
+	}
+
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return

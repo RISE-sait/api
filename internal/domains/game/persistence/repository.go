@@ -144,8 +144,13 @@ func (r *Repository) UpdateGame(ctx context.Context, value values.UpdateGameValu
 }
 
 // GetGames fetches all games and maps them to domain values.
-func (r *Repository) GetGames(ctx context.Context) ([]values.ReadGameValue, *errLib.CommonError) {
-	dbGames, err := r.Queries.GetGames(ctx)
+func (r *Repository) GetGames(ctx context.Context, limit, offset int32) ([]values.ReadGameValue, *errLib.CommonError) {
+	params := db.GetGamesParams{
+		Limit:  limit,
+		Offset: offset,
+	}
+
+	dbGames, err := r.Queries.GetGames(ctx, params)
 	if err != nil {
 		log.Println("Error getting games:", err)
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
@@ -174,6 +179,86 @@ func (r *Repository) GetGames(ctx context.Context) ([]values.ReadGameValue, *err
 	}
 
 	return games, nil
+}
+
+// GetUpcomingGames fetches all upcoming games and maps them to domain values.
+func (r *Repository) GetUpcomingGames(ctx context.Context, limit, offset int32) ([]values.ReadGameValue, *errLib.CommonError) {
+	params := db.GetUpcomingGamesParams{
+		Limit:  limit,
+		Offset: offset,
+	}
+
+	dbGames, err := r.Queries.GetUpcomingGames(ctx, params)
+	if err != nil {
+		log.Println("Error getting upcoming games:", err)
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+	return mapDbUpcomingGamesToValues(dbGames), nil
+}
+
+// GetPastGames fetches all past games and maps them to domain values.
+func (r *Repository) GetPastGames(ctx context.Context, limit, offset int32) ([]values.ReadGameValue, *errLib.CommonError) {
+	params := db.GetPastGamesParams{
+		Limit:  limit,
+		Offset: offset,
+	}
+
+	dbGames, err := r.Queries.GetPastGames(ctx, params)
+	if err != nil {
+		log.Println("Error getting past games:", err)
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+	return mapDbPastGamesToValues(dbGames), nil
+}
+
+func mapDbPastGamesToValues(dbGames []db.GetPastGamesRow) []values.ReadGameValue {
+	games := make([]values.ReadGameValue, len(dbGames))
+	for i, dbGame := range dbGames {
+		games[i] = values.ReadGameValue{
+			ID:              dbGame.ID,
+			HomeTeamID:      dbGame.HomeTeamID,
+			HomeTeamName:    dbGame.HomeTeamName,
+			HomeTeamLogoUrl: unwrapNullableString(dbGame.HomeTeamLogoUrl),
+			AwayTeamID:      dbGame.AwayTeamID,
+			AwayTeamName:    dbGame.AwayTeamName,
+			AwayTeamLogoUrl: unwrapNullableString(dbGame.AwayTeamLogoUrl),
+			HomeScore:       nullableInt32ToPtr(dbGame.HomeScore),
+			AwayScore:       nullableInt32ToPtr(dbGame.AwayScore),
+			StartTime:       dbGame.StartTime,
+			EndTime:         nullableTimeToPtr(dbGame.EndTime),
+			LocationID:      dbGame.LocationID,
+			LocationName:    dbGame.LocationName,
+			Status:          dbGame.Status.String,
+			CreatedAt:       nullableTimeToPtr(dbGame.CreatedAt),
+			UpdatedAt:       nullableTimeToPtr(dbGame.UpdatedAt),
+		}
+	}
+	return games
+}
+
+func mapDbUpcomingGamesToValues(dbGames []db.GetUpcomingGamesRow) []values.ReadGameValue {
+	games := make([]values.ReadGameValue, len(dbGames))
+	for i, dbGame := range dbGames {
+		games[i] = values.ReadGameValue{
+			ID:              dbGame.ID,
+			HomeTeamID:      dbGame.HomeTeamID,
+			HomeTeamName:    dbGame.HomeTeamName,
+			HomeTeamLogoUrl: unwrapNullableString(dbGame.HomeTeamLogoUrl),
+			AwayTeamID:      dbGame.AwayTeamID,
+			AwayTeamName:    dbGame.AwayTeamName,
+			AwayTeamLogoUrl: unwrapNullableString(dbGame.AwayTeamLogoUrl),
+			HomeScore:       nullableInt32ToPtr(dbGame.HomeScore),
+			AwayScore:       nullableInt32ToPtr(dbGame.AwayScore),
+			StartTime:       dbGame.StartTime,
+			EndTime:         nullableTimeToPtr(dbGame.EndTime),
+			LocationID:      dbGame.LocationID,
+			LocationName:    dbGame.LocationName,
+			Status:          dbGame.Status.String,
+			CreatedAt:       nullableTimeToPtr(dbGame.CreatedAt),
+			UpdatedAt:       nullableTimeToPtr(dbGame.UpdatedAt),
+		}
+	}
+	return games
 }
 
 // DeleteGame deletes a game by its ID. Returns a 404 error if no rows were deleted.

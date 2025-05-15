@@ -61,7 +61,8 @@ FROM game.games g
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 JOIN location.locations loc ON g.location_id = loc.id
-ORDER BY g.start_time DESC;
+ORDER BY g.start_time ASC
+LIMIT $1 OFFSET $2;
 
 -- name: UpdateGame :execrows
 -- Updates an existing game's scores, times, location, and status.
@@ -79,3 +80,58 @@ WHERE id = $1;
 -- Deletes a game by ID.
 DELETE FROM game.games
 WHERE id = $1;
+
+-- name: GetUpcomingGames :many
+-- Retrieves games that are upcoming and ongoing.
+-- This includes games that have started but not yet ended.
+SELECT 
+    g.id,
+    g.home_team_id,
+    ht.name AS home_team_name,
+    ht.logo_url AS home_team_logo_url,
+    g.away_team_id,
+    at.name AS away_team_name,
+    at.logo_url AS away_team_logo_url,
+    g.home_score,
+    g.away_score,
+    g.start_time,
+    g.end_time,
+    g.location_id,
+    loc.name AS location_name,
+    g.status,
+    g.created_at,
+    g.updated_at
+FROM game.games g
+JOIN athletic.teams ht ON g.home_team_id = ht.id
+JOIN athletic.teams at ON g.away_team_id = at.id
+JOIN location.locations loc ON g.location_id = loc.id
+WHERE g.end_time >= NOW()
+ORDER BY g.start_time ASC
+LIMIT $1 OFFSET $2;
+
+-- name: GetPastGames :many
+-- Retrieves games that have already completed.
+SELECT 
+    g.id,
+    g.home_team_id,
+    ht.name AS home_team_name,
+    ht.logo_url AS home_team_logo_url,
+    g.away_team_id,
+    at.name AS away_team_name,
+    at.logo_url AS away_team_logo_url,
+    g.home_score,
+    g.away_score,
+    g.start_time,
+    g.end_time,
+    g.location_id,
+    loc.name AS location_name,
+    g.status,
+    g.created_at,
+    g.updated_at
+FROM game.games g
+JOIN athletic.teams ht ON g.home_team_id = ht.id
+JOIN athletic.teams at ON g.away_team_id = at.id
+JOIN location.locations loc ON g.location_id = loc.id
+WHERE g.start_time < NOW()
+ORDER BY g.start_time DESC
+LIMIT $1 OFFSET $2;

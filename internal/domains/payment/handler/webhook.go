@@ -6,12 +6,13 @@ import (
 	service "api/internal/domains/payment/services"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
-	"github.com/stripe/stripe-go/v81"
-	"github.com/stripe/stripe-go/v81/webhook"
 	"io"
+	"log"
+	"net/http"
 	"strings"
 
-	"net/http"
+	"github.com/stripe/stripe-go/v81"
+	"github.com/stripe/stripe-go/v81/webhook"
 )
 
 type WebhookHandlers struct {
@@ -43,19 +44,29 @@ func (h *WebhookHandlers) HandleStripeWebhook(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	stripeWebhookSecret := config.Env.StripeWebhookSecret
+	stripeWebhookSecret := strings.TrimSpace(config.Env.StripeWebhookSecret)
 
 	if stripeWebhookSecret == "" {
 		responseHandlers.RespondWithError(w, errLib.New("Stripe webhook secret not configured", http.StatusInternalServerError))
 		return
 	}
 
-	event, err := webhook.ConstructEvent(
+	log.Println(">>> Incoming Stripe webhook")
+	log.Println("Stripe-Signature:", r.Header.Get("Stripe-Signature"))
+	log.Println("Webhook Secret:", stripeWebhookSecret)
+	log.Println("Payload:", string(payload))
+
+	event, err := webhook.ConstructEventWithOptions(
 		payload,
-		r.Header.Get("Stripe-Signature"), stripeWebhookSecret,
+		r.Header.Get("Stripe-Signature"),
+		stripeWebhookSecret,
+		webhook.ConstructEventOptions{
+			IgnoreAPIVersionMismatch: true,
+		},
 	)
 
 	if err != nil {
+		log.Println("Signature verification failed:", err)
 		responseHandlers.RespondWithError(w, errLib.New("Signature verification failed", http.StatusBadRequest))
 		return
 	}
@@ -72,6 +83,6 @@ func (h *WebhookHandlers) HandleStripeWebhook(w http.ResponseWriter, r *http.Req
 			return
 		}
 	}
-	w.WriteHeader(http.StatusOK)
 
+	w.WriteHeader(http.StatusOK)
 }

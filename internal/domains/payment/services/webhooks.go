@@ -9,11 +9,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/stripe/stripe-go/v81/checkout/session"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/stripe/stripe-go/v81/checkout/session"
 
 	"github.com/stripe/stripe-go/v81"
 	"github.com/stripe/stripe-go/v81/subscription"
@@ -38,56 +39,74 @@ func (s *WebhookService) HandleCheckoutSessionCompleted(event stripe.Event) *err
 		return errLib.New("Failed to parse session", http.StatusBadRequest)
 	}
 
+	log.Println("Parsed checkout session with ID:", checkSession.ID)
+	log.Println("Session Mode:", checkSession.Mode)
+
 	switch checkSession.Mode {
 	case stripe.CheckoutSessionModePayment:
 		return s.handleItemCheckoutComplete(checkSession)
 	case stripe.CheckoutSessionModeSubscription:
 		return s.handleSubscriptionCheckoutComplete(checkSession)
+	default:
+		log.Println("Unhandled session mode:", checkSession.Mode)
 	}
 
 	return nil
 }
 
 func (s *WebhookService) handleItemCheckoutComplete(checkoutSession stripe.CheckoutSession) *errLib.CommonError {
+	log.Println("Expanding session:", checkoutSession.ID)
 
 	fullSession, err := s.getExpandedSession(checkoutSession.ID)
 	if err != nil {
+		log.Printf("getExpandedSession failed: %v", err)
 		return err
 	}
 
+	log.Println("Full session expanded")
+
 	userIDStr := fullSession.Metadata["userID"]
+	log.Println("🔍 Metadata userID:", userIDStr)
 
 	if userIDStr == "" {
+		log.Println("userID not found in metadata")
 		return errLib.New("userID not found in metadata", http.StatusBadRequest)
 	}
 
 	customerID, uuidErr := uuid.Parse(userIDStr)
-
 	if uuidErr != nil {
+		log.Printf("Invalid UUID: %v", uuidErr)
 		return errLib.New("Invalid user ID format", http.StatusBadRequest)
 	}
 
-	// 2. Validate line items and get price ID
 	priceIDs, err := s.validateLineItems(fullSession.LineItems)
 	if err != nil {
+		log.Printf("validateLineItems failed: %v", err)
 		return err
 	}
+
+	log.Println("Price IDs:", priceIDs)
 
 	if len(priceIDs) == 0 {
 		return errLib.New("No price IDs found in line items", http.StatusBadRequest)
 	}
 
 	priceID := priceIDs[0]
+	log.Println("Checking mappings for priceID:", priceID)
 
 	programID, err := s.PostCheckoutRepository.GetProgramIdByStripePriceId(context.Background(), priceID)
 	if err != nil {
+		log.Printf("GetProgramIdByStripePriceId failed: %v", err)
+		return err
+	}
+	eventID, err := s.PostCheckoutRepository.GetEventIdByStripePriceId(context.Background(), priceID)
+	if err != nil {
+		log.Printf("GetEventIdByStripePriceId failed: %v", err)
 		return err
 	}
 
-	eventID, err := s.PostCheckoutRepository.GetEventIdByStripePriceId(context.Background(), priceID)
-	if err != nil {
-		return err
-	}
+	log.Println("ProgramID:", programID)
+	log.Println("EventID:", eventID)
 
 	switch {
 	case programID != uuid.Nil && eventID != uuid.Nil:
@@ -95,19 +114,20 @@ func (s *WebhookService) handleItemCheckoutComplete(checkoutSession stripe.Check
 	case programID == uuid.Nil && eventID == uuid.Nil:
 		return errLib.New("price ID doesn't map to any program or event", http.StatusNotFound)
 	case programID != uuid.Nil:
-		// Handle program enrollment
+		log.Printf("Updating program reservation for user %s and program %s", customerID, programID)
 		if err = s.EnrollmentService.UpdateReservationStatusInProgram(context.Background(), programID, customerID, dbEnrollment.PaymentStatusPaid); err != nil {
-			log.Printf("Failed to update program reservation (customer: %s, program: %s): %v", customerID, programID, err)
+			log.Printf("Failed to update program reservation: %v", err)
 			return errLib.New(fmt.Sprintf("failed to update program reservation (customer: %s, program: %s): %v", customerID, programID, err), http.StatusInternalServerError)
 		}
 	case eventID != uuid.Nil:
-		// Handle event enrollment
+		log.Printf("Updating event reservation for user %s and event %s", customerID, eventID)
 		if err = s.EnrollmentService.UpdateReservationStatusInEvent(context.Background(), eventID, customerID, dbEnrollment.PaymentStatusPaid); err != nil {
-			log.Printf("Failed to update event reservation (customer: %s, event: %s): %v", customerID, eventID, err)
+			log.Printf("Failed to update event reservation: %v", err)
 			return errLib.New(fmt.Sprintf("failed to update event reservation (customer: %s, event: %s): %v", customerID, eventID, err), http.StatusInternalServerError)
 		}
 	}
 
+	log.Println("handleItemCheckoutComplete completed")
 	return nil
 }
 
@@ -159,8 +179,10 @@ func (s *WebhookService) handleSubscriptionCheckoutComplete(checkoutSession stri
 func (s *WebhookService) getExpandedSession(sessionID string) (*stripe.CheckoutSession, *errLib.CommonError) {
 	params := &stripe.CheckoutSessionParams{
 		Expand: []*string{
+			stripe.String("line_items"),
 			stripe.String("line_items.data.price"),
 			stripe.String("subscription"),
+			stripe.String("customer"),
 		},
 	}
 
@@ -168,6 +190,9 @@ func (s *WebhookService) getExpandedSession(sessionID string) (*stripe.CheckoutS
 	if err != nil {
 		return nil, errLib.New("Failed to retrieve session details: "+err.Error(), http.StatusInternalServerError)
 	}
+
+	log.Println("Metadata in expanded session:", checkoutSession.Metadata)
+
 	return checkoutSession, nil
 }
 

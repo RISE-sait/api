@@ -14,15 +14,18 @@ import (
 	"github.com/stripe/stripe-go/v81/checkout/session"
 )
 
+// CreateOneTimePayment creates a Stripe Checkout Session for a one-time payment
 func CreateOneTimePayment(
-	ctx context.Context,
-	itemStripePriceID string,
-	quantity int,
+	ctx context.Context, // request-scoped context (for userID, cancellation, etc.)
+	itemStripePriceID string, // Stripe Price ID of the item being purchased
+	quantity int, // Number of items
 ) (string, *errLib.CommonError) {
+	// Check if the Stripe API key is set
 	if strings.ReplaceAll(stripe.Key, " ", "") == "" {
 		return "", errLib.New("Stripe not initialized", http.StatusInternalServerError)
 	}
 
+	// Validate input
 	if itemStripePriceID == "" {
 		return "", errLib.New("item stripe price ID cannot be empty", http.StatusBadRequest)
 	}
@@ -31,17 +34,16 @@ func CreateOneTimePayment(
 		return "", errLib.New("quantity must be positive", http.StatusBadRequest)
 	}
 
+	// Extract user ID from context (e.g. JWT or middleware-injected value)
 	userID, err := contextUtils.GetUserID(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	// we set userID in metadata so that we can access it later in the webhook handler.
-	// we cant use email since a membership can be purchased for a child who does not have an email.
-	// and the only other simplest way to identify the user on stripe afaik is by using the userID in metadata.
+	// Metadata includes userID to track who made the payment
 	params := &stripe.CheckoutSessionParams{
 		Metadata: map[string]string{
-			"userID": userID.String(), // Accessible in subscription.Metadata
+			"userID": userID.String(),
 		},
 		PaymentIntentData: &stripe.CheckoutSessionPaymentIntentDataParams{
 			Metadata: map[string]string{
@@ -50,61 +52,71 @@ func CreateOneTimePayment(
 		},
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			{
-				Price:    stripe.String(itemStripePriceID), // Use pre-created Price ID
-				Quantity: stripe.Int64(int64(quantity)),
+				Price:    stripe.String(itemStripePriceID), // Price ID (pre-created in Stripe dashboard)
+				Quantity: stripe.Int64(int64(quantity)),    // Number of items
 			},
 		},
-		Mode:       stripe.String("payment"),
-		SuccessURL: stripe.String("https://example.com/success"),
+		Mode:       stripe.String("payment"),                     // One-time payment mode
+		SuccessURL: stripe.String("https://example.com/success"), // Redirect URL after success
 	}
 
+	// Create Stripe session
 	s, sessionErr := session.New(params)
 	if sessionErr != nil {
 		return "", errLib.New("Payment session failed: "+sessionErr.Error(), http.StatusInternalServerError)
 	}
+
+	// Return session URL to redirect client to
 	return s.URL, nil
 }
 
+// CreateSubscription creates a Stripe Checkout Session for a recurring subscription
 func CreateSubscription(
 	ctx context.Context,
-	stripePlanPriceID string,
-	stripeJoiningFeesID string,
+	stripePlanPriceID string, // Stripe Price ID for the recurring plan
+	stripeJoiningFeesID string, // Optional one-time joining fee
 ) (string, *errLib.CommonError) {
+	// Extract user ID from context
 	userID, err := contextUtils.GetUserID(ctx)
 	if err != nil {
 		return "", err
 	}
 
+	// Check if Stripe is initialized
 	if strings.ReplaceAll(stripe.Key, " ", "") == "" {
 		return "", errLib.New("Stripe not initialized", http.StatusInternalServerError)
 	}
 
+	// Validate input
 	if stripePlanPriceID == "" {
 		return "", errLib.New("item stripe price ID cannot be empty", http.StatusBadRequest)
 	}
 
+	// Set up Checkout session with subscription mode
 	params := &stripe.CheckoutSessionParams{
 		Metadata: map[string]string{
-			"userID": userID.String(), // Accessible in subscription.Metadata
+			"userID": userID.String(),
 		},
 		SubscriptionData: &stripe.CheckoutSessionSubscriptionDataParams{
 			Metadata: map[string]string{
-				"userID": userID.String(), // Accessible in subscription.Metadata
+				"userID": userID.String(),
 			},
 		},
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			{
-				Price:    stripe.String(stripePlanPriceID),
+				Price:    stripe.String(stripePlanPriceID), // Main subscription plan
 				Quantity: stripe.Int64(1),
 			},
 		},
-		Mode:       stripe.String("subscription"),
+		Mode:       stripe.String("subscription"), // Subscription mode
 		SuccessURL: stripe.String("https://example.com/success"),
 	}
 
+	// Ask Stripe to expand line item pricing and subscription in response
 	params.AddExpand("line_items.data.price")
 	params.AddExpand("subscription")
 
+	// If there's a joining fee, add it as a second line item
 	if stripeJoiningFeesID != "" {
 		params.LineItems = append(params.LineItems, &stripe.CheckoutSessionLineItemParams{
 			Price:    stripe.String(stripeJoiningFeesID),
@@ -112,10 +124,11 @@ func CreateSubscription(
 		})
 	}
 
+	// Create Stripe session
 	s, sessionErr := session.New(params)
 	if sessionErr != nil {
 		return "", errLib.New("Subscription setup failed: "+sessionErr.Error(), http.StatusInternalServerError)
 	}
 
-	return s.URL, nil
+	return s.URL, nil // Return URL to redirect client for payment
 }

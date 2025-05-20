@@ -239,6 +239,8 @@ func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEvent
 		TeamID:        uuid.NullUUID{UUID: filter.TeamID, Valid: filter.TeamID != uuid.Nil},
 		CreatedBy:     uuid.NullUUID{UUID: filter.CreatedBy, Valid: filter.CreatedBy != uuid.Nil},
 		UpdatedBy:     uuid.NullUUID{UUID: filter.UpdatedBy, Valid: filter.UpdatedBy != uuid.Nil},
+		Limit:         sql.NullInt32{Int32: int32(filter.Limit), Valid: filter.Limit > 0},
+		Offset:        sql.NullInt32{Int32: int32(filter.Offset), Valid: filter.Offset > 0},
 	}
 
 	if filter.ProgramType != "" {

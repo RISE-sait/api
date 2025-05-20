@@ -36,13 +36,16 @@ func NewEventsHandler(container *di.Container) *EventsHandler {
 // @Param participant_id query string false "Filter by participant ID" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")
 // @Param team_id query string false "Filter by team ID" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")
 // @Param location_id query string false "Filter by location ID" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")
-// @Param program_type query string false "Filter by program type" Enums(game,practice,course,others) example(game)
+// @Param program_type query string false "Filter by program type" Enums(game,practice,course,others) example(practice)
 // @Param response_type query string false "Response format type" Enums(date,day) default(date) example(date)
-// @Param created_by query string false "ID of person who created the event" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")"
+// @Param created_by query string false "ID of person who created the event" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")
 // @Param updated_by query string false "ID of person who updated the event" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")
+// @Param limit query int false "Number of items per page" minimum(1) example(10)
+// @Param offset query int false "Number of items to skip (for pagination)" minimum(0) example(20)
+// @Param page query int false "Page number (alternative to offset)" minimum(1) example(2)
 // @Accept json
 // @Produce json
-// @Success 200 {array} dto.RecurrenceResponseDto "It actually returns either RecurrenceResponseDto or EventResponseDto based on the response_type parameter"
+// @Success 200 {object} map[string]interface{} "Returns a list of events with pagination metadata"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input format or missing required parameters"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /events [get]

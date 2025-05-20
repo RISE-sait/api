@@ -97,4 +97,6 @@ type GetEventsFilter struct {
 	UpdatedBy     uuid.UUID
 	Before        time.Time
 	After         time.Time
+	Limit         int
+	Offset        int
 }

@@ -3,6 +3,7 @@ package event
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"api/internal/di"
@@ -58,6 +59,27 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	)
 
 	query := r.URL.Query()
+
+	limit := 20
+	page := 1
+	offset := 0
+	if val := query.Get("limit"); val != "" {
+		if parsed, err := strconv.Atoi(val); err == nil && parsed > 0 {
+			limit = parsed
+		}
+	}
+	if val := query.Get("page"); val != "" {
+		if parsed, err := strconv.Atoi(val); err == nil && parsed > 0 {
+			limit = parsed
+		}
+
+	}
+
+	if val := query.Get("offset"); val != "" {
+		if parsed, err := strconv.Atoi(val); err == nil && parsed >= 0 {
+			offset = parsed
+		}
+	}
 
 	var (
 		after, before             time.Time
@@ -137,6 +159,8 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		UpdatedBy:     uuidFilters[string(FilterKeyUpdatedBy)],
 		Before:        before,
 		After:         after,
+		Limit:         limit,
+		Offset:        offset,
 	}
 
 	if responseType == "date" {
@@ -177,7 +201,15 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		responseDto = append(responseDto, scheduleDto)
 	}
 
-	responseHandlers.RespondWithSuccess(w, responseDto, http.StatusOK)
+	response := map[string]interface{}{
+		"data":  responseDto,
+		"page":  page,
+		"limit": limit,
+		"count": len(responseDto),
+	}
+
+	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
+
 }
 
 // GetEvent retrieves detailed information about a specific event based on its ID.

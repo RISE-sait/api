@@ -26,6 +26,9 @@ import (
 	payment "api/internal/domains/payment/handler"
 	"api/internal/middlewares"
 
+	contactHandler "api/internal/domains/contact/handler"
+	"time"
+
 	"github.com/go-chi/chi"
 )
 
@@ -65,6 +68,9 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 
 		// Webhooks
 		"/webhooks": RegisterWebhooksRoutes,
+
+		// Contact routes
+		"/contact": RegisterContactRoutes,
 	}
 
 	for path, handler := range routeMappings {
@@ -297,5 +303,16 @@ func RegisterRegistrationRoutes(container *di.Container) func(chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(false)).Post("/staff/approve/{id}", staffHandler.ApproveStaff)
 		r.Post("/child", childRegistrationHandler.RegisterChild)
 		r.Post("/parent", parentRegistrationHandler.RegisterParent)
+	}
+}
+
+func RegisterContactRoutes(container *di.Container) func(chi.Router) {
+	h := contactHandler.NewContactHandler(container)
+
+	return func(r chi.Router) {
+		// Apply rate limiting to the contact route
+		// 0.1 requests per second, burst of 1, reset every 10 minutes
+		r.With(middlewares.RateLimitMiddleware(0.1, 1, 10*time.Minute)).Post("/", h.SendContactEmail)
+
 	}
 }

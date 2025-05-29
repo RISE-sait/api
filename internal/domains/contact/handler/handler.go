@@ -12,7 +12,6 @@ import (
 	"api/internal/domains/contact/dto"
 	"api/internal/domains/contact/service"
 	"api/utils/recaptcha"
-
 )
 
 type Handler struct{}
@@ -21,6 +20,18 @@ func NewContactHandler(_ *di.Container) *Handler {
 	return &Handler{}
 }
 
+// SendContactEmail handles POST /contact
+// @Summary      Send a contact request
+// @Description  Verifies reCAPTCHA, sanitizes input, and emails the contact form
+// @Tags         contact
+// @Accept       json
+// @Produce      json
+// @Param        payload  body    dto.ContactRequest  true  "Contact form data"
+// @Success      200      {object} map[string]string  "success message"
+// @Failure      400      {object} map[string]string  "validation or recaptcha error"
+// @Failure      429      {object} map[string]string  "rate limit exceeded"
+// @Failure      500      {object} map[string]string  "internal server error"
+// @Router       /contact [post]
 func (h *Handler) SendContactEmail(w http.ResponseWriter, r *http.Request) {
 	// 1️⃣ Cap request body to 1 MB
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
@@ -120,5 +131,3 @@ func isValidPhone(phone string) bool {
 	re := regexp.MustCompile(`^\+?[0-9\s\-\(\)]+$`)
 	return re.MatchString(phone)
 }
-
-

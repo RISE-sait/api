@@ -30,7 +30,7 @@ func Verify(token string) (bool, error) {
 		return false, err
 	}
 	defer resp.Body.Close()
-
+	// Check for HTTP errors
 	var result Response
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return false, err

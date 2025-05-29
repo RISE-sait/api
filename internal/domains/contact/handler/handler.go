@@ -33,24 +33,24 @@ func NewContactHandler(_ *di.Container) *Handler {
 // @Failure      500      {object} map[string]string  "internal server error"
 // @Router       /contact [post]
 func (h *Handler) SendContactEmail(w http.ResponseWriter, r *http.Request) {
-	// 1️⃣ Cap request body to 1 MB
+	//Cap request body to 1 MB
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 
-	// 2️⃣ Decode JSON
+	//Decode JSON
 	var req dto.ContactRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// 3️⃣ Trim whitespace
+	//Trim whitespace
 	req.Name = strings.TrimSpace(req.Name)
 	req.Email = strings.TrimSpace(req.Email)
 	req.Phone = strings.TrimSpace(req.Phone)
 	req.Message = strings.TrimSpace(req.Message)
 	// (req.Token is a one-time value; no trim)
 
-	// 4️⃣ Field validation & blacklists
+	//Field validation & blacklists
 	if req.Name == "" || len(req.Name) > 100 || !isSafeHeaderValue(req.Name) {
 		http.Error(w, "Invalid name (required, max 100 chars, no special symbols)", http.StatusBadRequest)
 		return
@@ -59,15 +59,15 @@ func (h *Handler) SendContactEmail(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid email address", http.StatusBadRequest)
 		return
 	}
-	// … after trimming…
 	if req.Phone != "" {
-		// 1️⃣ Regex‐based sanity check
+		//Regex‐based sanity check
 		if !isValidPhone(req.Phone) || !isSafeHeaderValue(req.Phone) {
 			http.Error(w, "Invalid phone number format", http.StatusBadRequest)
 			return
 		}
 
-		// 2️⃣ Count digits and enforce a minimum (e.g. 7 digits)
+		//Count digits and enforce a minimum (e.g. 10 digits)
+		// This allows for international formats like +1 (123) 456-7890
 		digits := regexp.MustCompile(`\d`).FindAllString(req.Phone, -1)
 		if len(digits) < 10 {
 			http.Error(w, "Phone number must contain at least 10 digits", http.StatusBadRequest)
@@ -80,10 +80,10 @@ func (h *Handler) SendContactEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 5️⃣ Escape the message body
+	//Escape the message body
 	req.Message = html.EscapeString(req.Message)
 
-	// 6️⃣ Verify reCAPTCHA
+	//Verify reCAPTCHA
 	ok, err := recaptcha.Verify(req.Token)
 	if err != nil {
 		log.Printf("reCAPTCHA error: %v", err)
@@ -95,19 +95,20 @@ func (h *Handler) SendContactEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 7️⃣ Send the email
+	//Send the email
 	if err := service.SendContactRequest(req); err != nil {
 		log.Printf("SendContactRequest error: %v", err)
 		http.Error(w, "Failed to send contact request", http.StatusInternalServerError)
 		return
 	}
 
-	// 8️⃣ Success response
+	//Success response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"status":"success","message":"Contact request sent successfully"}`))
 }
 
+// isSafeHeaderValue checks if a header value is safe to use.
 func isSafeHeaderValue(value string) bool {
 	// reject CR/LF to prevent header injection
 	if strings.ContainsAny(value, "\r\n") {
@@ -122,11 +123,13 @@ func isSafeHeaderValue(value string) bool {
 	return true
 }
 
+// isValidEmail checks if the email address is in a valid format.
 func isValidEmail(email string) bool {
 	re := regexp.MustCompile(`^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$`)
 	return re.MatchString(email)
 }
 
+// isValidPhone checks if the phone number is in a valid format.
 func isValidPhone(phone string) bool {
 	re := regexp.MustCompile(`^\+?[0-9\s\-\(\)]+$`)
 	return re.MatchString(phone)

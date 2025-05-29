@@ -1,5 +1,5 @@
 package dto
-
+// ContactRequest represents the data structure for a contact form submission.
 type ContactRequest struct {
 	Name    string `json:"name" validate:"required"`
 	Email   string `json:"email" validate:"required,email"`

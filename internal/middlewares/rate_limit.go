@@ -55,7 +55,7 @@ func RateLimitMiddleware(rps float64, burst int, cleanupInterval time.Duration) 
 			mu.Unlock()
 		}
 	}()
-
+		// Return the middleware function
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ip := getRealIP(r)
@@ -73,6 +73,8 @@ func RateLimitMiddleware(rps float64, burst int, cleanupInterval time.Duration) 
 			}
 
 			v, exists := visitors[ip]
+			// If the visitor does not exist, create a new one
+			// with a rate limiter and reset the lastSeen time
 			if !exists {
 				limiter := rate.NewLimiter(rate.Limit(rps), burst)
 				v = &visitor{limiter: limiter, lastSeen: time.Now()}
@@ -80,6 +82,8 @@ func RateLimitMiddleware(rps float64, burst int, cleanupInterval time.Duration) 
 			}
 			v.lastSeen = time.Now()
 
+			// Check rate limit
+			// If the rate limit is exceeded, increment failCount
 			if !v.limiter.Allow() {
 				v.failCount++
 				if v.failCount > 20 {

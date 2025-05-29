@@ -7,7 +7,9 @@ import (
 
 	"api/internal/domains/contact/dto"
 )
-
+// SendContactRequest sends an email with the contact request details.
+// It uses environment variables for SMTP configuration and recipient email.
+// It returns an error if sending fails.
 func SendContactRequest(req dto.ContactRequest) error {
 	smtpHost := os.Getenv("SMTP_HOST")
 	smtpPort := os.Getenv("SMTP_PORT")

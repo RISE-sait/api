@@ -11,6 +11,7 @@ import (
 	"api/internal/di"
 	"api/internal/domains/contact/dto"
 	"api/internal/domains/contact/service"
+	hupspotService "api/internal/services/hubspot"
 	"api/utils/recaptcha"
 )
 
@@ -133,4 +134,48 @@ func isValidEmail(email string) bool {
 func isValidPhone(phone string) bool {
 	re := regexp.MustCompile(`^\+?[0-9\s\-\(\)]+$`)
 	return re.MatchString(phone)
+}
+
+// SubscribeNewsletter handles POST /newsletter
+// @Summary      Subscribe to newsletter
+// @Description  Adds or updates a contact with a HubSpot newsletter tag
+// @Tags         newsletter
+// @Accept       json
+// @Produce      json
+// @Param        payload  body    dto.NewsletterRequest  true  "Email and tag"
+// @Success      200      {object} map[string]string  "Subscription confirmation"
+// @Failure      400      {object} map[string]string  "Validation error"
+// @Failure      500      {object} map[string]string  "Internal server error"
+// @Router       /newsletter [post]
+func (h *Handler) SubscribeNewsletter(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+
+	var req dto.NewsletterRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	req.Email = strings.TrimSpace(req.Email)
+	req.Tag = strings.TrimSpace(req.Tag)
+
+	if !isValidEmail(req.Email) || !isSafeHeaderValue(req.Email) {
+		http.Error(w, "Invalid email address", http.StatusBadRequest)
+		return
+	}
+
+	hubspotSvc := hupspotService.GetHubSpotService(nil)
+	message, err := hubspotSvc.SubscribeToNewsletter(req.Email, req.Tag)
+	if err != nil {
+		log.Printf("SubscribeToNewsletter error: %v", err)
+		http.Error(w, err.Error(), err.HTTPCode)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "success",
+		"message": message,
+	})
 }

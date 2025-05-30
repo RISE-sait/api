@@ -310,9 +310,10 @@ func RegisterContactRoutes(container *di.Container) func(chi.Router) {
 	h := contactHandler.NewContactHandler(container)
 
 	return func(r chi.Router) {
-		// Apply rate limiting to the contact route
-		// 0.1 requests per second, burst of 1, reset every 10 minutes
+		// Contact form with rate limit
 		r.With(middlewares.RateLimitMiddleware(0.1, 1, 10*time.Minute)).Post("/", h.SendContactEmail)
 
+		// Newsletter subscription endpoint
+		r.Post("/newsletter", h.SubscribeNewsletter)
 	}
 }

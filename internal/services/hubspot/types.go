@@ -34,6 +34,7 @@ type UserProps struct {
 	HasMarketingEmailConsent string `json:"has_marketing_email_consent"`
 	HasSmsConsent            string `json:"has_sms_consent"`
 	CountryCode              string `json:"hs_country_region_code"`
+	NewsletterTag            string `json:"newsletter_tag,omitempty"`
 }
 
 type UserAssociations struct {

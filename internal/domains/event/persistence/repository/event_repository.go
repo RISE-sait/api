@@ -294,7 +294,7 @@ func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEvent
 			}{
 				ID:          row.ProgramID,
 				Name:        row.ProgramName,
-				Description: row.ProgramDescription,
+				Description: string(row.ProgramDescription),
 				Type:        string(row.ProgramType),
 			},
 		}

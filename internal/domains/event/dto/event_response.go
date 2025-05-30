@@ -2,6 +2,7 @@ package event
 
 import (
 	values "api/internal/domains/event/values"
+
 	"github.com/google/uuid"
 )
 
@@ -40,9 +41,10 @@ type (
 	}
 
 	ProgramInfo struct {
-		ID   uuid.UUID `json:"id"`
-		Name string    `json:"name"`
-		Type string    `json:"type"`
+		ID          uuid.UUID `json:"id"`
+		Name        string    `json:"name"`
+		Type        string    `json:"type"`
+		Description *string   `json:"description,omitempty"`
 	}
 
 	LocationInfo struct {
@@ -85,9 +87,10 @@ func NewEventResponseDto(event values.ReadEventValues, includePeople bool) Event
 			EndAt:   event.EndAt.String(),
 		},
 		Program: ProgramInfo{
-			ID:   event.Program.ID,
-			Name: event.Program.Name,
-			Type: event.Program.Type,
+			ID:          event.Program.ID,
+			Name:        event.Program.Name,
+			Type:        event.Program.Type,
+			Description: &event.Program.Description,
 		},
 	}
 

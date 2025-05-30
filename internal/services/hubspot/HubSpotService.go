@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -284,4 +285,74 @@ func executeHubSpotRequest[T any](s *Service, method, url string, body any) (*T,
 	// success
 
 	return &result, nil
+}
+
+var allowedNewsletterTags = map[string]bool{
+	"main-newsletter":         true,
+	"coffee-updates":          true,
+	"supplement-announcments": true,
+}
+
+// SubscribeToNewsletter creates or updates a contact with a newsletter tag without overwriting others.
+func (s *Service) SubscribeToNewsletter(email, tag string) (string, *errLib.CommonError) {
+	if email == "" || !strings.Contains(email, "@") {
+		return "", errLib.New("Invalid email format", http.StatusBadRequest)
+	}
+
+	if !allowedNewsletterTags[tag] {
+		tag = "main-newsletter"
+	}
+
+	props := UserProps{
+		Email:         email,
+		NewsletterTag: tag,
+	}
+
+	// Try to create the user
+	_, err := s.CreateUser(props)
+	if err != nil {
+		// If conflict, user exists: fetch and update
+		if err.HTTPCode == http.StatusConflict {
+			existing, getErr := s.GetUserByEmail(email)
+			if getErr != nil || existing == nil {
+				return "", errLib.New("Failed to retrieve existing contact", http.StatusInternalServerError)
+			}
+
+			// Parse current tags and check for duplicates
+			currentTags := strings.Split(existing.Properties.NewsletterTag, ";")
+			tagExists := false
+			for _, t := range currentTags {
+				if t == tag {
+					tagExists = true
+					break
+				}
+			}
+
+			if !tagExists {
+				currentTags = append(currentTags, tag)
+			}
+
+			// Join tags back
+			updatedValue := strings.Join(currentTags, ";")
+
+			updateProps := map[string]interface{}{
+				"properties": map[string]string{
+					"newsletter_tag": updatedValue,
+				},
+			}
+
+			url := fmt.Sprintf("%scrm/v3/objects/contacts/%s", s.BaseURL, existing.HubSpotId)
+			_, updateErr := executeHubSpotRequest[any](s, http.MethodPatch, url, updateProps)
+			if updateErr != nil {
+				return "", errLib.New("Failed to update contact's tag", updateErr.HTTPCode)
+			}
+
+			return "Subscribed! Tag added successfully.", nil
+		}
+
+		// Other errors
+		return "", err
+	}
+
+	return "Subscribed successfully!", nil
 }

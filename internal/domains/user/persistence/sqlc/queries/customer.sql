@@ -99,3 +99,22 @@ JOIN users.users u ON u.id = a.id
 ORDER BY a.points DESC
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
+-- name: CountCustomers :one
+SELECT COUNT(*)
+FROM users.users u
+         LEFT JOIN users.customer_membership_plans cmp ON (
+    cmp.customer_id = u.id AND
+    cmp.start_date = (SELECT MAX(start_date)
+                      FROM users.customer_membership_plans
+                      WHERE customer_id = u.id)
+    )
+         LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
+         LEFT JOIN membership.memberships m ON m.id = mp.membership_id
+         LEFT JOIN athletic.athletes a ON u.id = a.id
+WHERE (u.parent_id = $1 OR $1 IS NULL)
+  AND (sqlc.narg('search')::varchar IS NULL
+  OR u.first_name ILIKE sqlc.narg('search') || '%'
+  OR u.last_name ILIKE sqlc.narg('search') || '%'
+  OR u.email ILIKE sqlc.narg('search') || '%'
+  OR u.phone ILIKE sqlc.narg('search') || '%')
+  AND NOT EXISTS (SELECT 1 FROM staff.staff s WHERE s.id = u.id);

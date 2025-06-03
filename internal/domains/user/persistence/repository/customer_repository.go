@@ -294,3 +294,24 @@ func (r *CustomerRepository) ListAthletes(ctx context.Context, limit, offset int
 
 	return athletes, nil
 }
+func (r *CustomerRepository) CountCustomers(ctx context.Context, parentID uuid.UUID, search string) (int64, *errLib.CommonError) {
+	searchArg := sql.NullString{Valid: false}
+	if search != "" {
+		searchArg = sql.NullString{String: search, Valid: true}
+	}
+
+	parentArg := uuid.NullUUID{Valid: false}
+	if parentID != uuid.Nil {
+		parentArg = uuid.NullUUID{UUID: parentID, Valid: true}
+	}
+
+	count, err := r.Queries.CountCustomers(ctx, db.CountCustomersParams{
+		ParentID: parentArg,
+		Search:   searchArg,
+	})
+	if err != nil {
+		return 0, errLib.New("Failed to count customers: "+err.Error(), http.StatusInternalServerError)
+	}
+
+	return count, nil
+}

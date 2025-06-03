@@ -13,6 +13,39 @@ import (
 	"github.com/google/uuid"
 )
 
+const countCustomers = `-- name: CountCustomers :one
+SELECT COUNT(*)
+FROM users.users u
+         LEFT JOIN users.customer_membership_plans cmp ON (
+    cmp.customer_id = u.id AND
+    cmp.start_date = (SELECT MAX(start_date)
+                      FROM users.customer_membership_plans
+                      WHERE customer_id = u.id)
+    )
+         LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
+         LEFT JOIN membership.memberships m ON m.id = mp.membership_id
+         LEFT JOIN athletic.athletes a ON u.id = a.id
+WHERE (u.parent_id = $1 OR $1 IS NULL)
+  AND ($2::varchar IS NULL
+  OR u.first_name ILIKE $2 || '%'
+  OR u.last_name ILIKE $2 || '%'
+  OR u.email ILIKE $2 || '%'
+  OR u.phone ILIKE $2 || '%')
+  AND NOT EXISTS (SELECT 1 FROM staff.staff s WHERE s.id = u.id)
+`
+
+type CountCustomersParams struct {
+	ParentID uuid.NullUUID  `json:"parent_id"`
+	Search   sql.NullString `json:"search"`
+}
+
+func (q *Queries) CountCustomers(ctx context.Context, arg CountCustomersParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countCustomers, arg.ParentID, arg.Search)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createAthleteInfo = `-- name: CreateAthleteInfo :execrows
 INSERT INTO athletic.athletes (id, rebounds, assists, losses, wins, points)
 VALUES ($1, $2, $3, $4, $5, $6)

@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	
+
 	"api/internal/di"
 	athleteDto "api/internal/domains/user/dto/athlete"
 	customerDto "api/internal/domains/user/dto/customer"
@@ -117,71 +117,85 @@ func (h *CustomersHandler) UpdateAthletesTeam(w http.ResponseWriter, r *http.Req
 func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 
-	maxLimit, offset := 20, 0
+	limit := 20
+	page := 1
+	offset := 0
+	maxLimit := 20
 
-	var parentID uuid.UUID
-
+	// Parse limit
 	if limitStr := query.Get("limit"); limitStr != "" {
 		parsedLimit, err := strconv.Atoi(limitStr)
-		if err != nil {
+		if err != nil || parsedLimit <= 0 {
 			responseHandlers.RespondWithError(w, errLib.New("Invalid 'limit' value", http.StatusBadRequest))
 			return
 		}
-		if parsedLimit <= 0 {
-			responseHandlers.RespondWithError(w, errLib.New("Limit must be greater than 0", http.StatusBadRequest))
-			return
-		}
 		if parsedLimit > maxLimit {
-			responseHandlers.RespondWithError(w, errLib.New(fmt.Sprintf("max limit is %d", maxLimit), http.StatusBadRequest))
+			responseHandlers.RespondWithError(w, errLib.New(fmt.Sprintf("Max limit is %d", maxLimit), http.StatusBadRequest))
 			return
 		}
-		maxLimit = parsedLimit
+		limit = parsedLimit
 	}
 
-	if offsetStr := query.Get("offset"); offsetStr != "" {
-		parsedOffset, err := strconv.Atoi(offsetStr)
-		if err != nil {
-			responseHandlers.RespondWithError(w, errLib.New(fmt.Sprintf("Error encountered parsing offset: %s", err.Error()), http.StatusBadRequest))
-			return
+	// Parse page (preferred) or offset (fallback)
+	if pageStr := query.Get("page"); pageStr != "" {
+		if parsedPage, err := strconv.Atoi(pageStr); err == nil && parsedPage > 0 {
+			page = parsedPage
+			offset = (page - 1) * limit
 		}
-		if parsedOffset < 0 {
+	} else if offsetStr := query.Get("offset"); offsetStr != "" {
+		if parsedOffset, err := strconv.Atoi(offsetStr); err == nil && parsedOffset >= 0 {
+			offset = parsedOffset
+			page = (offset / limit) + 1
+		} else {
 			responseHandlers.RespondWithError(w, errLib.New("Offset must be at least 0", http.StatusBadRequest))
 			return
 		}
-		offset = parsedOffset
 	}
 
+	// Optional filters
+	var parentID uuid.UUID
 	if parentIdStr := query.Get("parent_id"); parentIdStr != "" {
 		id, err := validators.ParseUUID(parentIdStr)
 		if err != nil {
 			responseHandlers.RespondWithError(w, err)
 			return
 		}
-
 		parentID = id
 	}
 
 	searchTerm := query.Get("search")
-
 	log.Printf("Search term: %s", searchTerm)
 
-	dbCustomers, err := h.CustomerRepo.GetCustomers(r.Context(), int32(maxLimit), int32(offset), parentID, searchTerm)
+	// Fetch paginated data
+	dbCustomers, err := h.CustomerRepo.GetCustomers(r.Context(), int32(limit), int32(offset), parentID, searchTerm)
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	log.Println("DB Customers: ", len(dbCustomers))
-
-	result := make([]customerDto.Response, len(dbCustomers))
-
-	for i, customer := range dbCustomers {
-		response := customerDto.UserReadValueToResponse(customer)
-
-		result[i] = response
+	// Fetch total count for pagination
+	totalCount, err := h.CustomerRepo.CountCustomers(r.Context(), parentID, searchTerm)
+	if err != nil {
+		responseHandlers.RespondWithError(w, errLib.New("Failed to count customers: "+err.Error(), http.StatusInternalServerError))
+		return
 	}
 
-	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
+	// Map results
+	result := make([]customerDto.Response, len(dbCustomers))
+	for i, customer := range dbCustomers {
+		result[i] = customerDto.UserReadValueToResponse(customer)
+	}
+
+	// Compose response with pagination metadata
+	response := map[string]interface{}{
+		"data":  result,
+		"page":  page,
+		"limit": limit,
+		"total": totalCount,
+		"pages": int((totalCount + int64(limit) - 1) / int64(limit)), // ceil(total / limit)
+	}
+
+	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 }
 
 // GetCustomerByID retrieves a customer by ID.

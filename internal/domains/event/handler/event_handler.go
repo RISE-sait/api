@@ -32,6 +32,8 @@ func NewEventsHandler(container *di.Container) *EventsHandler {
 // @Tags events
 // @Param after query string false "Start date of the events range (YYYY-MM-DD)" Format(date) example("2025-03-01")
 // @Param before query string false "End date of the events range (YYYY-MM-DD)" Format(date) example("2025-03-31")
+// @Param month query string false "Convenience month filter in YYYY-MM format"
+// @Param day query string false "Convenience day filter in YYYY-MM-DD format"
 // @Param program_id query string false "Filter by program ID" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")
 // @Param participant_id query string false "Filter by participant ID" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")
 // @Param team_id query string false "Filter by team ID" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")
@@ -74,6 +76,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	if val := query.Get("page"); val != "" {
 		if parsed, err := strconv.Atoi(val); err == nil && parsed > 0 {
 			limit = parsed
+			page = parsed
 		}
 
 	}
@@ -82,6 +85,9 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		if parsed, err := strconv.Atoi(val); err == nil && parsed >= 0 {
 			offset = parsed
 		}
+	} else {
+		// use page based pagination if offset is not provided
+		offset = (page - 1) * limit
 	}
 
 	var (
@@ -105,6 +111,33 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			before = beforeDate
+		}
+	}
+
+	// Convenience parameters for calendar views
+	monthStr := query.Get("month") // format YYYY-MM
+	dayStr := query.Get("day")     // format YYYY-MM-DD
+	if monthStr != "" && dayStr != "" {
+		responseHandlers.RespondWithError(w, errLib.New("cannot provide both month and day parameters", http.StatusBadRequest))
+		return
+	}
+	if after.IsZero() && before.IsZero() {
+		if monthStr != "" {
+			month, err := time.Parse("2006-01", monthStr)
+			if err != nil {
+				responseHandlers.RespondWithError(w, errLib.New("invalid 'month' format, expected YYYY-MM", http.StatusBadRequest))
+				return
+			}
+			after = time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.UTC)
+			before = after.AddDate(0, 1, -1)
+		} else if dayStr != "" {
+			day, err := time.Parse("2006-01-02", dayStr)
+			if err != nil {
+				responseHandlers.RespondWithError(w, errLib.New("invalid 'day' format, expected YYYY-MM-DD", http.StatusBadRequest))
+				return
+			}
+			after = day
+			before = day
 		}
 	}
 
@@ -133,7 +166,6 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	programType = query.Get("program_type")
-
 	responseType = query.Get("response_type")
 
 	if responseType == "" {

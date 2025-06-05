@@ -75,6 +75,64 @@ func (q *Queries) CreateAthleteInfo(ctx context.Context, arg CreateAthleteInfoPa
 	return result.RowsAffected()
 }
 
+const getActiveMembershipInfo = `-- name: GetActiveMembershipInfo :one
+SELECT
+    cmp.id,
+    cmp.customer_id,
+    cmp.start_date,
+    cmp.renewal_date,
+    cmp.status,
+    cmp.created_at,
+    cmp.updated_at,
+    cmp.photo_url,
+    mp.membership_id,
+    cmp.membership_plan_id,
+    m.name AS membership_name,
+    mp.name AS membership_plan_name
+FROM users.customer_membership_plans cmp
+    JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
+    JOIN membership.memberships m ON m.id = mp.membership_id
+WHERE cmp.customer_id = $1
+  AND cmp.status = 'active'
+ORDER BY cmp.start_date DESC
+LIMIT 1
+`
+
+type GetActiveMembershipInfoRow struct {
+	ID                 uuid.UUID                  `json:"id"`
+	CustomerID         uuid.UUID                  `json:"customer_id"`
+	StartDate          time.Time                  `json:"start_date"`
+	RenewalDate        sql.NullTime               `json:"renewal_date"`
+	Status             MembershipMembershipStatus `json:"status"`
+	CreatedAt          time.Time                  `json:"created_at"`
+	UpdatedAt          time.Time                  `json:"updated_at"`
+	PhotoUrl           sql.NullString             `json:"photo_url"`
+	MembershipID       uuid.UUID                  `json:"membership_id"`
+	MembershipPlanID   uuid.UUID                  `json:"membership_plan_id"`
+	MembershipName     string                     `json:"membership_name"`
+	MembershipPlanName string                     `json:"membership_plan_name"`
+}
+
+func (q *Queries) GetActiveMembershipInfo(ctx context.Context, customerID uuid.UUID) (GetActiveMembershipInfoRow, error) {
+	row := q.db.QueryRowContext(ctx, getActiveMembershipInfo, customerID)
+	var i GetActiveMembershipInfoRow
+	err := row.Scan(
+		&i.ID,
+		&i.CustomerID,
+		&i.StartDate,
+		&i.RenewalDate,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.PhotoUrl,
+		&i.MembershipID,
+		&i.MembershipPlanID,
+		&i.MembershipName,
+		&i.MembershipPlanName,
+	)
+	return i, err
+}
+
 const getAthletes = `-- name: GetAthletes :many
 SELECT
   u.id,
@@ -160,7 +218,8 @@ SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last
        a.losses,
        a.assists,
        a.rebounds,
-       a.steals
+       a.steals,
+       a.photo_url
 FROM users.users u
          LEFT JOIN users.customer_membership_plans cmp ON (
     cmp.customer_id = u.id AND
@@ -209,6 +268,7 @@ type GetCustomerRow struct {
 	Assists                   sql.NullInt32  `json:"assists"`
 	Rebounds                  sql.NullInt32  `json:"rebounds"`
 	Steals                    sql.NullInt32  `json:"steals"`
+	PhotoUrl                  sql.NullString `json:"photo_url"`
 }
 
 func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCustomerRow, error) {
@@ -240,6 +300,7 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 		&i.Assists,
 		&i.Rebounds,
 		&i.Steals,
+		&i.PhotoUrl,
 	)
 	return i, err
 }
@@ -256,7 +317,8 @@ SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last
        a.losses,
        a.assists,
        a.rebounds,
-       a.steals
+       a.steals,
+       a.photo_url
 FROM users.users u
          LEFT JOIN users.customer_membership_plans cmp ON (
     cmp.customer_id = u.id AND
@@ -312,6 +374,7 @@ type GetCustomersRow struct {
 	Assists                   sql.NullInt32  `json:"assists"`
 	Rebounds                  sql.NullInt32  `json:"rebounds"`
 	Steals                    sql.NullInt32  `json:"steals"`
+	PhotoUrl                  sql.NullString `json:"photo_url"`
 }
 
 func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]GetCustomersRow, error) {
@@ -354,6 +417,7 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]G
 			&i.Assists,
 			&i.Rebounds,
 			&i.Steals,
+			&i.PhotoUrl,
 		); err != nil {
 			return nil, err
 		}

@@ -26,7 +26,8 @@ SELECT u.*,
        a.losses,
        a.assists,
        a.rebounds,
-       a.steals
+       a.steals,
+       a.photo_url
 FROM users.users u
          LEFT JOIN users.customer_membership_plans cmp ON (
     cmp.customer_id = u.id AND
@@ -60,7 +61,8 @@ SELECT u.*,
        a.losses,
        a.assists,
        a.rebounds,
-       a.steals
+       a.steals,
+       a.photo_url
 FROM users.users u
          LEFT JOIN users.customer_membership_plans cmp ON (
     cmp.customer_id = u.id AND
@@ -118,3 +120,25 @@ WHERE (u.parent_id = $1 OR $1 IS NULL)
   OR u.email ILIKE sqlc.narg('search') || '%'
   OR u.phone ILIKE sqlc.narg('search') || '%')
   AND NOT EXISTS (SELECT 1 FROM staff.staff s WHERE s.id = u.id);
+
+-- name: GetActiveMembershipInfo :one
+SELECT
+    cmp.id,
+    cmp.customer_id,
+    cmp.start_date,
+    cmp.renewal_date,
+    cmp.status,
+    cmp.created_at,
+    cmp.updated_at,
+    cmp.photo_url,
+    mp.membership_id,
+    cmp.membership_plan_id,
+    m.name AS membership_name,
+    mp.name AS membership_plan_name
+FROM users.customer_membership_plans cmp
+    JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
+    JOIN membership.memberships m ON m.id = mp.membership_id
+WHERE cmp.customer_id = $1
+  AND cmp.status = 'active'
+ORDER BY cmp.start_date DESC
+LIMIT 1;

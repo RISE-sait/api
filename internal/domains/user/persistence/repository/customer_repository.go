@@ -90,6 +90,12 @@ func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int
 				Steals:   dbCustomer.Steals.Int32,
 				Assists:  dbCustomer.Assists.Int32,
 				Rebounds: dbCustomer.Rebounds.Int32,
+				PhotoURL: func(n sql.NullString) *string {
+					if n.Valid {
+						return &n.String
+					}
+					return nil
+				}(dbCustomer.PhotoUrl),
 			}
 		}
 
@@ -161,6 +167,12 @@ func (r *CustomerRepository) GetCustomer(ctx context.Context, id uuid.UUID, emai
 			Steals:   dbCustomer.Steals.Int32,
 			Assists:  dbCustomer.Assists.Int32,
 			Rebounds: dbCustomer.Rebounds.Int32,
+			PhotoURL: func(n sql.NullString) *string {
+				if n.Valid {
+					return &n.String
+				}
+				return nil
+			}(dbCustomer.PhotoUrl),
 		}
 	}
 
@@ -314,4 +326,40 @@ func (r *CustomerRepository) CountCustomers(ctx context.Context, parentID uuid.U
 	}
 
 	return count, nil
+}
+
+func (r *CustomerRepository) GetActiveMembershipInfo(ctx context.Context, customerID uuid.UUID) (*userValues.MembershipPlansReadValue, *errLib.CommonError) {
+	row, err := r.Queries.GetActiveMembershipInfo(ctx, customerID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errLib.New("active membership not found", http.StatusNotFound)
+		}
+		log.Printf("error fetching active membership info: %v", err)
+		return nil, errLib.New("internal error", http.StatusInternalServerError)
+	}
+
+	info := userValues.MembershipPlansReadValue{
+		ID:         row.ID,
+		CustomerID: row.CustomerID,
+		StartDate:  row.StartDate,
+		Status:     string(row.Status),
+		CreatedAt:  row.CreatedAt,
+		UpdatedAt:  row.UpdatedAt,
+		PhotoURL: func(n sql.NullString) *string {
+			if n.Valid {
+				return &n.String
+			}
+			return nil
+		}(row.PhotoUrl),
+		MembershipID:       row.MembershipID,
+		MembershipPlanID:   row.MembershipPlanID,
+		MembershipName:     row.MembershipName,
+		MembershipPlanName: row.MembershipPlanName,
+	}
+
+	if row.RenewalDate.Valid {
+		info.RenewalDate = &row.RenewalDate.Time
+	}
+
+	return &info, nil
 }

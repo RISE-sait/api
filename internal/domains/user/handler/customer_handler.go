@@ -289,3 +289,56 @@ func (h *CustomersHandler) GetAthletes(w http.ResponseWriter, r *http.Request) {
 	}
 	responseHandlers.RespondWithSuccess(w, responses, http.StatusOK)
 }
+
+// CheckinCustomer verifies active membership for access scanning.
+// @Tags customers
+// @Accept json
+// @Produce json
+// @Param id path string true "Customer ID"
+// @Success 200 {object} map[string]interface{} "Membership info"
+// @Failure 400 {object} map[string]interface{} "Bad Request"
+// @Failure 404 {object} map[string]interface{} "Not Found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /customers/checkin/{id} [get]
+func (h *CustomersHandler) CheckinCustomer(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+
+	customerID, err := validators.ParseUUID(idStr)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	membership, err := h.CustomerRepo.GetActiveMembershipInfo(r.Context(), customerID)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	customer, err := h.CustomerRepo.GetCustomer(r.Context(), customerID, "")
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	response := map[string]interface{}{
+		"customer_id":           customer.ID,
+		"first_name":            customer.FirstName,
+		"last_name":             customer.LastName,
+		"membership_name":       membership.MembershipName,
+		"membership_plan_name":  membership.MembershipPlanName,
+		"membership_start_date": membership.StartDate,
+	}
+
+	if membership.PhotoURL != nil {
+		response["photo_url"] = *membership.PhotoURL
+	} else if customer.AthleteInfo != nil && customer.AthleteInfo.PhotoURL != nil {
+		response["photo_url"] = *customer.AthleteInfo.PhotoURL
+	}
+
+	if membership.RenewalDate != nil {
+		response["membership_renewal_date"] = membership.RenewalDate
+	}
+
+	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
+}

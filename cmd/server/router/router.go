@@ -93,6 +93,7 @@ func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 		r.Get("/", h.GetCustomers)
 		r.Get("/id/{id}", h.GetCustomerByID)
 		r.Get("/email/{email}", h.GetCustomerByEmail)
+		r.Get("/checkin/{id}", h.CheckinCustomer)
 	}
 }
 

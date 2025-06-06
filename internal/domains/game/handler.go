@@ -8,6 +8,7 @@ import (
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
+	contextUtils "api/utils/context"
 	"net/http"
 	"strconv"
 
@@ -112,13 +113,27 @@ func (h *Handler) GetGames(w http.ResponseWriter, r *http.Request) {
 	var games []values.ReadGameValue
 	var err *errLib.CommonError
 
-	switch filter {
-	case "upcoming":
-		games, err = h.Service.GetUpcomingGames(r.Context(), int32(limit), int32(offset))
-	case "past":
-		games, err = h.Service.GetPastGames(r.Context(), int32(limit), int32(offset))
-	default:
-		games, err = h.Service.GetGames(r.Context(), int32(limit), int32(offset))
+	userID, idErr := contextUtils.GetUserID(r.Context())
+	role, roleErr := contextUtils.GetUserRole(r.Context())
+
+	if idErr == nil && roleErr == nil && (role == contextUtils.RoleAthlete || role == contextUtils.RoleCoach) {
+		switch filter {
+		case "upcoming":
+			games, err = h.Service.GetUpcomingGamesForUser(r.Context(), userID, role, int32(limit), int32(offset))
+		case "past":
+			games, err = h.Service.GetPastGamesForUser(r.Context(), userID, role, int32(limit), int32(offset))
+		default:
+			games, err = h.Service.GetGamesForUser(r.Context(), userID, role, int32(limit), int32(offset))
+		}
+	} else {
+		switch filter {
+		case "upcoming":
+			games, err = h.Service.GetUpcomingGames(r.Context(), int32(limit), int32(offset))
+		case "past":
+			games, err = h.Service.GetPastGames(r.Context(), int32(limit), int32(offset))
+		default:
+			games, err = h.Service.GetGames(r.Context(), int32(limit), int32(offset))
+		}
 	}
 
 	if err != nil {

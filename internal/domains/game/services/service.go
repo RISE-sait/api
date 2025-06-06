@@ -10,7 +10,10 @@ import (
 	txUtils "api/utils/db"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"log"
+	"net/http"
 
 	"github.com/google/uuid"
 )
@@ -135,4 +138,64 @@ func (s *Service) DeleteGame(ctx context.Context, id uuid.UUID) *errLib.CommonEr
 			fmt.Sprintf("Deleted game with ID: %s", id),
 		)
 	})
+}
+
+// getTeamIDForUser returns the team ID associated with an athlete or coach.
+func (s *Service) getTeamIDForUser(ctx context.Context, userID uuid.UUID, role contextUtils.CtxRole) (uuid.UUID, *errLib.CommonError) {
+	var query string
+	switch role {
+	case contextUtils.RoleAthlete:
+		query = `SELECT team_id FROM athletic.athletes WHERE id = $1`
+	case contextUtils.RoleCoach:
+		query = `SELECT id FROM athletic.teams WHERE coach_id = $1`
+	default:
+		return uuid.Nil, nil
+	}
+
+	var teamID uuid.UUID
+	err := s.db.QueryRowContext(ctx, query, userID).Scan(&teamID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return uuid.Nil, nil
+		}
+		log.Println("error fetching team id:", err)
+		return uuid.Nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+	return teamID, nil
+}
+
+// GetGamesForUser retrieves games for the team associated with the given user.
+func (s *Service) GetGamesForUser(ctx context.Context, userID uuid.UUID, role contextUtils.CtxRole, limit, offset int32) ([]values.ReadGameValue, *errLib.CommonError) {
+	teamID, err := s.getTeamIDForUser(ctx, userID, role)
+	if err != nil {
+		return nil, err
+	}
+	if teamID == uuid.Nil {
+		return []values.ReadGameValue{}, nil
+	}
+	return s.repo.GetGamesByTeamID(ctx, teamID, limit, offset)
+}
+
+// GetUpcomingGamesForUser retrieves upcoming games for the user's team.
+func (s *Service) GetUpcomingGamesForUser(ctx context.Context, userID uuid.UUID, role contextUtils.CtxRole, limit, offset int32) ([]values.ReadGameValue, *errLib.CommonError) {
+	teamID, err := s.getTeamIDForUser(ctx, userID, role)
+	if err != nil {
+		return nil, err
+	}
+	if teamID == uuid.Nil {
+		return []values.ReadGameValue{}, nil
+	}
+	return s.repo.GetUpcomingGamesByTeamID(ctx, teamID, limit, offset)
+}
+
+// GetPastGamesForUser retrieves past games for the user's team.
+func (s *Service) GetPastGamesForUser(ctx context.Context, userID uuid.UUID, role contextUtils.CtxRole, limit, offset int32) ([]values.ReadGameValue, *errLib.CommonError) {
+	teamID, err := s.getTeamIDForUser(ctx, userID, role)
+	if err != nil {
+		return nil, err
+	}
+	if teamID == uuid.Nil {
+		return []values.ReadGameValue{}, nil
+	}
+	return s.repo.GetPastGamesByTeamID(ctx, teamID, limit, offset)
 }

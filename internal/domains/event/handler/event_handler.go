@@ -198,12 +198,16 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		Offset:        offset,
 	}
 
-	if responseType == "date" {
+	userID, idErr := contextUtils.GetUserID(r.Context())
+	role, roleErr := contextUtils.GetUserRole(r.Context())
 
-		events, err := h.EventsService.GetEvents(r.Context(), filter)
-		if err != nil {
-			responseHandlers.RespondWithError(w, err)
-			return
+	if responseType == "date" {
+		var events []values.ReadEventValues
+
+		if idErr == nil && roleErr == nil && (role == contextUtils.RoleAthlete || role == contextUtils.RoleCoach) {
+			events, _ = h.EventsService.GetEventsForUser(r.Context(), userID, role, filter)
+		} else {
+			events, _ = h.EventsService.GetEvents(r.Context(), filter)
 		}
 
 		// empty list instead of var responseDto []dto.EventResponseDto, so that it would return empty list instead of nil if no events found
@@ -220,7 +224,14 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	schedules, err := h.EventsService.GetEventsRecurrences(r.Context(), filter)
+	var schedules []values.ReadRecurrenceValues
+	var err *errLib.CommonError
+
+	if idErr == nil && roleErr == nil && (role == contextUtils.RoleAthlete || role == contextUtils.RoleCoach) {
+		schedules, err = h.EventsService.GetEventsRecurrencesForUser(r.Context(), userID, role, filter)
+	} else {
+		schedules, err = h.EventsService.GetEventsRecurrences(r.Context(), filter)
+	}
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return

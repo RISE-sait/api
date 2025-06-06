@@ -121,3 +121,40 @@ func hasRequiredRole(userRole contextUtils.CtxRole, allowedRoles []contextUtils.
 
 	return false
 }
+
+// OptionalJWTAuthMiddleware parses the JWT token if present and injects the claims into the request context.
+// It does not require the token; requests without a token proceed anonymously.
+func OptionalJWTAuthMiddleware() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			authHeader := r.Header.Get("Authorization")
+			if authHeader == "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			tokenParts := strings.Split(authHeader, " ")
+			if len(tokenParts) != 2 || strings.ToLower(tokenParts[0]) != "bearer" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			claims, err := jwtLib.VerifyToken(tokenParts[1])
+			if err != nil {
+				responseHandlers.RespondWithError(w, errLib.New("Invalid or expired token", http.StatusUnauthorized))
+				return
+			}
+
+			ctx := r.Context()
+			userRole, err := extractRole(claims.RoleInfo)
+			if err != nil {
+				responseHandlers.RespondWithError(w, err)
+				return
+			}
+
+			ctx = context.WithValue(ctx, contextUtils.RoleKey, userRole)
+			ctx = context.WithValue(ctx, contextUtils.UserIDKey, claims.UserID)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}

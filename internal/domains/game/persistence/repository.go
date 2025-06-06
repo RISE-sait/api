@@ -21,6 +21,7 @@ import (
 type Repository struct {
 	Queries *db.Queries
 	Tx      *sql.Tx
+	DB      *sql.DB
 }
 
 // GetTx returns the current SQL transaction, if any.
@@ -33,6 +34,7 @@ func (r *Repository) WithTx(tx *sql.Tx) *Repository {
 	return &Repository{
 		Queries: r.Queries.WithTx(tx),
 		Tx:      tx,
+		DB:      r.DB,
 	}
 }
 
@@ -40,6 +42,7 @@ func (r *Repository) WithTx(tx *sql.Tx) *Repository {
 func NewGameRepository(container *di.Container) *Repository {
 	return &Repository{
 		Queries: container.Queries.GameDb,
+		DB:      container.DB,
 	}
 }
 
@@ -260,6 +263,80 @@ func mapDbUpcomingGamesToValues(dbGames []db.GetUpcomingGamesRow) []values.ReadG
 	}
 	return games
 }
+func mapDbGamesByTeamToValues(dbGames []db.GetGamesByTeamIDRow) []values.ReadGameValue {
+	games := make([]values.ReadGameValue, len(dbGames))
+	for i, dbGame := range dbGames {
+		games[i] = values.ReadGameValue{
+			ID:              dbGame.ID,
+			HomeTeamID:      dbGame.HomeTeamID,
+			HomeTeamName:    dbGame.HomeTeamName,
+			HomeTeamLogoUrl: unwrapNullableString(dbGame.HomeTeamLogoUrl),
+			AwayTeamID:      dbGame.AwayTeamID,
+			AwayTeamName:    dbGame.AwayTeamName,
+			AwayTeamLogoUrl: unwrapNullableString(dbGame.AwayTeamLogoUrl),
+			HomeScore:       nullableInt32ToPtr(dbGame.HomeScore),
+			AwayScore:       nullableInt32ToPtr(dbGame.AwayScore),
+			StartTime:       dbGame.StartTime,
+			EndTime:         nullableTimeToPtr(dbGame.EndTime),
+			LocationID:      dbGame.LocationID,
+			LocationName:    dbGame.LocationName,
+			Status:          dbGame.Status.String,
+			CreatedAt:       nullableTimeToPtr(dbGame.CreatedAt),
+			UpdatedAt:       nullableTimeToPtr(dbGame.UpdatedAt),
+		}
+	}
+	return games
+}
+
+func mapDbUpcomingGamesByTeamToValues(dbGames []db.GetUpcomingGamesByTeamIDRow) []values.ReadGameValue {
+	games := make([]values.ReadGameValue, len(dbGames))
+	for i, dbGame := range dbGames {
+		games[i] = values.ReadGameValue{
+			ID:              dbGame.ID,
+			HomeTeamID:      dbGame.HomeTeamID,
+			HomeTeamName:    dbGame.HomeTeamName,
+			HomeTeamLogoUrl: unwrapNullableString(dbGame.HomeTeamLogoUrl),
+			AwayTeamID:      dbGame.AwayTeamID,
+			AwayTeamName:    dbGame.AwayTeamName,
+			AwayTeamLogoUrl: unwrapNullableString(dbGame.AwayTeamLogoUrl),
+			HomeScore:       nullableInt32ToPtr(dbGame.HomeScore),
+			AwayScore:       nullableInt32ToPtr(dbGame.AwayScore),
+			StartTime:       dbGame.StartTime,
+			EndTime:         nullableTimeToPtr(dbGame.EndTime),
+			LocationID:      dbGame.LocationID,
+			LocationName:    dbGame.LocationName,
+			Status:          dbGame.Status.String,
+			CreatedAt:       nullableTimeToPtr(dbGame.CreatedAt),
+			UpdatedAt:       nullableTimeToPtr(dbGame.UpdatedAt),
+		}
+	}
+	return games
+}
+
+func mapDbPastGamesByTeamToValues(dbGames []db.GetPastGamesByTeamIDRow) []values.ReadGameValue {
+	games := make([]values.ReadGameValue, len(dbGames))
+	for i, dbGame := range dbGames {
+		games[i] = values.ReadGameValue{
+			ID:              dbGame.ID,
+			HomeTeamID:      dbGame.HomeTeamID,
+			HomeTeamName:    dbGame.HomeTeamName,
+			HomeTeamLogoUrl: unwrapNullableString(dbGame.HomeTeamLogoUrl),
+			AwayTeamID:      dbGame.AwayTeamID,
+			AwayTeamName:    dbGame.AwayTeamName,
+			AwayTeamLogoUrl: unwrapNullableString(dbGame.AwayTeamLogoUrl),
+			HomeScore:       nullableInt32ToPtr(dbGame.HomeScore),
+			AwayScore:       nullableInt32ToPtr(dbGame.AwayScore),
+			StartTime:       dbGame.StartTime,
+			EndTime:         nullableTimeToPtr(dbGame.EndTime),
+			LocationID:      dbGame.LocationID,
+			LocationName:    dbGame.LocationName,
+			Status:          dbGame.Status.String,
+			CreatedAt:       nullableTimeToPtr(dbGame.CreatedAt),
+			UpdatedAt:       nullableTimeToPtr(dbGame.UpdatedAt),
+		}
+	}
+	return games
+}
 
 // DeleteGame deletes a game by its ID. Returns a 404 error if no rows were deleted.
 func (r *Repository) DeleteGame(ctx context.Context, id uuid.UUID) *errLib.CommonError {
@@ -298,4 +375,56 @@ func (r *Repository) CreateGame(ctx context.Context, details values.CreateGameVa
 	}
 
 	return nil
+}
+
+// GetGamesByTeamID retrieves games where the specified team is either the home
+// or away team.
+func (r *Repository) GetGamesByTeamID(ctx context.Context, teamID uuid.UUID, limit, offset int32) ([]values.ReadGameValue, *errLib.CommonError) {
+	params := db.GetGamesByTeamIDParams{
+		TeamID: uuid.NullUUID{UUID: teamID, Valid: true},
+		Limit:  limit,
+		Offset: offset,
+	}
+
+	dbGames, err := r.Queries.GetGamesByTeamID(ctx, params)
+	if err != nil {
+		log.Println("Error getting games by team:", err)
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	return mapDbGamesByTeamToValues(dbGames), nil
+}
+
+// GetUpcomingGamesByTeamID retrieves upcoming games for the specified team.
+func (r *Repository) GetUpcomingGamesByTeamID(ctx context.Context, teamID uuid.UUID, limit, offset int32) ([]values.ReadGameValue, *errLib.CommonError) {
+	params := db.GetUpcomingGamesByTeamIDParams{
+		TeamID: uuid.NullUUID{UUID: teamID, Valid: true},
+		Limit:  limit,
+		Offset: offset,
+	}
+
+	dbGames, err := r.Queries.GetUpcomingGamesByTeamID(ctx, params)
+	if err != nil {
+		log.Println("Error getting upcoming games by team:", err)
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	return mapDbUpcomingGamesByTeamToValues(dbGames), nil
+}
+
+// GetPastGamesByTeamID retrieves past games for the specified team.
+func (r *Repository) GetPastGamesByTeamID(ctx context.Context, teamID uuid.UUID, limit, offset int32) ([]values.ReadGameValue, *errLib.CommonError) {
+	params := db.GetPastGamesByTeamIDParams{
+		TeamID: uuid.NullUUID{UUID: teamID, Valid: true},
+		Limit:  limit,
+		Offset: offset,
+	}
+
+	dbGames, err := r.Queries.GetPastGamesByTeamID(ctx, params)
+	if err != nil {
+		log.Println("Error getting past games by team:", err)
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	return mapDbPastGamesByTeamToValues(dbGames), nil
 }

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
+	"errors"
 	"api/internal/di"
 	staffActivityLogs "api/internal/domains/audit/staff_activity_logs/service"
 	repo "api/internal/domains/event/persistence/repository"
@@ -235,6 +235,70 @@ func (s *Service) DeleteEvents(ctx context.Context, ids []uuid.UUID) *errLib.Com
 }
 
 func (s *Service) GetEventsRecurrences(ctx context.Context, filter values.GetEventsFilter) ([]values.ReadRecurrenceValues, *errLib.CommonError) {
+	return s.recurrencesRepository.GetEventsRecurrences(ctx, filter.ProgramType, filter.ProgramID, filter.LocationID,
+		filter.ParticipantID, filter.TeamID, filter.CreatedBy, filter.UpdatedBy, filter.Before, filter.After)
+}
+// getTeamIDForUser returns the team ID associated with the given athlete or coach.
+func (s *Service) getTeamIDForUser(ctx context.Context, userID uuid.UUID, role contextUtils.CtxRole) (uuid.UUID, *errLib.CommonError) {
+	var query string
+	switch role {
+	case contextUtils.RoleAthlete:
+		query = `SELECT team_id FROM athletic.athletes WHERE id = $1`
+	case contextUtils.RoleCoach:
+		query = `SELECT id FROM athletic.teams WHERE coach_id = $1`
+	default:
+		return uuid.Nil, nil
+	}
+
+	var teamID uuid.UUID
+	err := s.db.QueryRowContext(ctx, query, userID).Scan(&teamID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return uuid.Nil, nil
+		}
+		return uuid.Nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+	return teamID, nil
+}
+
+// GetEventsForUser retrieves events relevant to the authenticated athlete or coach.
+func (s *Service) GetEventsForUser(ctx context.Context, userID uuid.UUID, role contextUtils.CtxRole, filter values.GetEventsFilter) ([]values.ReadEventValues, *errLib.CommonError) {
+	teamID, err := s.getTeamIDForUser(ctx, userID, role)
+	if err != nil {
+		return nil, err
+	}
+	if role == contextUtils.RoleCoach {
+		if teamID == uuid.Nil {
+			return []values.ReadEventValues{}, nil
+		}
+		filter.TeamID = teamID
+	} else if role == contextUtils.RoleAthlete {
+		filter.ParticipantID = userID
+		if teamID != uuid.Nil {
+			filter.TeamID = teamID
+		}
+	}
+	return s.eventsRepository.GetEvents(ctx, filter)
+}
+
+// GetEventsRecurrencesForUser retrieves event recurrences for the authenticated athlete or coach.
+func (s *Service) GetEventsRecurrencesForUser(ctx context.Context, userID uuid.UUID, role contextUtils.CtxRole, filter values.GetEventsFilter) ([]values.ReadRecurrenceValues, *errLib.CommonError) {
+	teamID, err := s.getTeamIDForUser(ctx, userID, role)
+	if err != nil {
+		return nil, err
+	}
+	if role == contextUtils.RoleCoach {
+		if teamID == uuid.Nil {
+			return []values.ReadRecurrenceValues{}, nil
+		}
+		filter.TeamID = teamID
+	} else if role == contextUtils.RoleAthlete {
+		filter.ParticipantID = userID
+		if teamID != uuid.Nil {
+			filter.TeamID = teamID
+		}
+	}
+
 	return s.recurrencesRepository.GetEventsRecurrences(ctx, filter.ProgramType, filter.ProgramID, filter.LocationID,
 		filter.ParticipantID, filter.TeamID, filter.CreatedBy, filter.UpdatedBy, filter.Before, filter.After)
 }

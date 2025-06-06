@@ -169,8 +169,8 @@ func RegisterGamesRoutes(container *di.Container) func(chi.Router) {
 	h := game.NewHandler(container)
 
 	return func(r chi.Router) {
-		r.Get("/", h.GetGames)
-		r.Get("/{id}", h.GetGameById)
+		r.With(middlewares.OptionalJWTAuthMiddleware()).Get("/", h.GetGames)
+		r.With(middlewares.OptionalJWTAuthMiddleware()).Get("/{id}", h.GetGameById)
 
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/", h.CreateGame)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}", h.UpdateGame)
@@ -232,8 +232,9 @@ func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 	handler := eventHandler.NewEventsHandler(container)
 
 	return func(r chi.Router) {
-		r.Get("/", handler.GetEvents)
-		r.Get("/{id}", handler.GetEvent)
+		r.With(middlewares.OptionalJWTAuthMiddleware()).Get("/", handler.GetEvents)
+		r.With(middlewares.OptionalJWTAuthMiddleware()).Get("/{id}", handler.GetEvent)
+		
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/one-time", handler.CreateEvent)
 		r.With(middlewares.JWTAuthMiddleware(true)).Put("/{id}", handler.UpdateEvent)
 		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/", handler.DeleteEvents)

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const createGame = `-- name: CreateGame :exec
@@ -224,6 +225,99 @@ func (q *Queries) GetGames(ctx context.Context, arg GetGamesParams) ([]GetGamesR
 	return items, nil
 }
 
+const getGamesByTeams = `-- name: GetGamesByTeams :many
+SELECT
+    g.id,
+    g.home_team_id,
+    ht.name AS home_team_name,
+    ht.logo_url AS home_team_logo_url,
+    g.away_team_id,
+    at.name AS away_team_name,
+    at.logo_url AS away_team_logo_url,
+    g.home_score,
+    g.away_score,
+    g.start_time,
+    g.end_time,
+    g.location_id,
+    loc.name AS location_name,
+    g.status,
+    g.created_at,
+    g.updated_at
+FROM game.games g
+JOIN athletic.teams ht ON g.home_team_id = ht.id
+JOIN athletic.teams at ON g.away_team_id = at.id
+JOIN location.locations loc ON g.location_id = loc.id
+WHERE g.home_team_id = ANY($1::uuid[])
+   OR g.away_team_id = ANY($1::uuid[])
+ORDER BY g.start_time ASC
+LIMIT $3 OFFSET $2
+`
+
+type GetGamesByTeamsParams struct {
+	TeamIds []uuid.UUID `json:"team_ids"`
+	Offset  int32       `json:"offset"`
+	Limit   int32       `json:"limit"`
+}
+
+type GetGamesByTeamsRow struct {
+	ID              uuid.UUID      `json:"id"`
+	HomeTeamID      uuid.UUID      `json:"home_team_id"`
+	HomeTeamName    string         `json:"home_team_name"`
+	HomeTeamLogoUrl sql.NullString `json:"home_team_logo_url"`
+	AwayTeamID      uuid.UUID      `json:"away_team_id"`
+	AwayTeamName    string         `json:"away_team_name"`
+	AwayTeamLogoUrl sql.NullString `json:"away_team_logo_url"`
+	HomeScore       sql.NullInt32  `json:"home_score"`
+	AwayScore       sql.NullInt32  `json:"away_score"`
+	StartTime       time.Time      `json:"start_time"`
+	EndTime         sql.NullTime   `json:"end_time"`
+	LocationID      uuid.UUID      `json:"location_id"`
+	LocationName    string         `json:"location_name"`
+	Status          sql.NullString `json:"status"`
+	CreatedAt       sql.NullTime   `json:"created_at"`
+	UpdatedAt       sql.NullTime   `json:"updated_at"`
+}
+
+func (q *Queries) GetGamesByTeams(ctx context.Context, arg GetGamesByTeamsParams) ([]GetGamesByTeamsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getGamesByTeams, pq.Array(arg.TeamIds), arg.Offset, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetGamesByTeamsRow
+	for rows.Next() {
+		var i GetGamesByTeamsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.HomeTeamID,
+			&i.HomeTeamName,
+			&i.HomeTeamLogoUrl,
+			&i.AwayTeamID,
+			&i.AwayTeamName,
+			&i.AwayTeamLogoUrl,
+			&i.HomeScore,
+			&i.AwayScore,
+			&i.StartTime,
+			&i.EndTime,
+			&i.LocationID,
+			&i.LocationName,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPastGames = `-- name: GetPastGames :many
 SELECT 
     g.id,
@@ -275,7 +369,7 @@ type GetPastGamesRow struct {
 	UpdatedAt       sql.NullTime   `json:"updated_at"`
 }
 
-// Retrieves games that have already started (and possibly completed).
+// Retrieves games that have already completed.
 func (q *Queries) GetPastGames(ctx context.Context, arg GetPastGamesParams) ([]GetPastGamesRow, error) {
 	rows, err := q.db.QueryContext(ctx, getPastGames, arg.Limit, arg.Offset)
 	if err != nil {
@@ -367,7 +461,8 @@ type GetUpcomingGamesRow struct {
 	UpdatedAt       sql.NullTime   `json:"updated_at"`
 }
 
-// Retrieves games that have not started yet.
+// Retrieves games that are upcoming and ongoing.
+// This includes games that have started but not yet ended.
 func (q *Queries) GetUpcomingGames(ctx context.Context, arg GetUpcomingGamesParams) ([]GetUpcomingGamesRow, error) {
 	rows, err := q.db.QueryContext(ctx, getUpcomingGames, arg.Limit, arg.Offset)
 	if err != nil {

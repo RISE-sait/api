@@ -247,6 +247,40 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// GetMyEvents retrieves events for the authenticated user by automatically
+// applying the participant_id filter based on the JWT claims.
+// @Tags events
+// @Security Bearer
+// @Produce json
+// @Success 200 {object} map[string]interface{} "List of user specific events"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Router /secure/events [get]
+func (h *EventsHandler) GetRoleEvents(w http.ResponseWriter, r *http.Request) {
+	role, err := contextUtils.GetUserRole(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Admins should have access to all events 
+	if role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin {
+		h.GetEvents(w, r)
+		return
+	}
+	// For other roles, we filter by participant_id
+	userID, err := contextUtils.GetUserID(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+	// Add participant_id to the query parameters
+	q := r.URL.Query()
+	q.Set("participant_id", userID.String())
+	r.URL.RawQuery = q.Encode()
+
+	h.GetEvents(w, r)
+}
+
 // GetEvent retrieves detailed information about a specific event based on its ID.
 // @Tags events
 // @Accept json

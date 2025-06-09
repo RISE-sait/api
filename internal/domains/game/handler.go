@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"strconv"
 
+	contextUtils "api/utils/context"
+
 	"github.com/go-chi/chi"
 )
 
@@ -123,6 +125,69 @@ func (h *Handler) GetGames(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	result := make([]dto.ResponseDto, len(games))
+	for i, game := range games {
+		result[i] = dto.NewGameResponse(game)
+	}
+
+	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
+}
+
+// GetMyGames returns games associated with the authenticated user's team.
+// Only coaches and athletes are supported. The user's team is derived from
+// their role and used to filter games.
+// @Tags games
+// @Security Bearer
+// @Produce json
+// @Success 200 {array} dto.ResponseDto "List of games for the current user"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Router /secure/games [get]
+// GetMyGames returns games associated with the authenticated user's team.
+// Only coaches and athletes are supported. The user's team is derived from
+// their role and used to filter games.
+// @Tags games
+// @Security Bearer
+// @Produce json
+// @Success 200 {array} dto.ResponseDto "List of games for the current user"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Router /secure/games [get]
+func (h *Handler) GetRoleGames(w http.ResponseWriter, r *http.Request) {
+	role, err := contextUtils.GetUserRole(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Admins can view all games 
+	if role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin {
+		h.GetGames(w, r)
+		return
+	}
+	// Coaches and athletes can view games related to their teams
+	userID, err := contextUtils.GetUserID(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+
+	if page < 1 {
+		page = 1
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+	// Fetch games based on user role
+	// Coaches see games for teams they coach, athletes see games for their team
+	games, errC := h.Service.GetUserGames(r.Context(), userID, role, int32(limit), int32(offset))
+	if errC != nil {
+		responseHandlers.RespondWithError(w, errC)
 		return
 	}
 

@@ -475,6 +475,7 @@ type UsersCustomerMembershipPlan struct {
 	Status           MembershipMembershipStatus `json:"status"`
 	CreatedAt        time.Time                  `json:"created_at"`
 	UpdatedAt        time.Time                  `json:"updated_at"`
+	PhotoUrl         sql.NullString             `json:"photo_url"`
 }
 
 type UsersUser struct {

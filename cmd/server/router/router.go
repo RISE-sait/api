@@ -71,6 +71,9 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 
 		// Contact routes
 		"/contact": RegisterContactRoutes,
+
+		//Secure routes
+		"/secure": RegisterSecureRoutes,
 	}
 
 	for path, handler := range routeMappings {
@@ -316,5 +319,29 @@ func RegisterContactRoutes(container *di.Container) func(chi.Router) {
 
 		// Newsletter subscription endpoint
 		r.Post("/newsletter", h.SubscribeNewsletter)
+	}
+}
+
+// RegisterSecureRoutes registers all secure routes that require authentication.
+func RegisterSecureRoutes(container *di.Container) func(chi.Router) {
+	return func(r chi.Router) {
+		r.Route("/events", RegisterSecureEventRoutes(container))
+		r.Route("/games", RegisterSecureGameRoutes(container))
+	}
+}
+
+// RegisterSecureEventRoutes registers secure event routes that require authentication.
+func RegisterSecureEventRoutes(container *di.Container) func(chi.Router) {
+	h := eventHandler.NewEventsHandler(container)
+	return func(r chi.Router) {
+		r.With(middlewares.JWTAuthMiddleware(true)).Get("/", h.GetRoleEvents)
+	}
+}
+
+// RegisterSecureGameRoutes registers secure game routes that require authentication.
+func RegisterSecureGameRoutes(container *di.Container) func(chi.Router) {
+	h := game.NewHandler(container)
+	return func(r chi.Router) {
+		r.With(middlewares.JWTAuthMiddleware(true)).Get("/", h.GetRoleGames)
 	}
 }

@@ -13,11 +13,10 @@ import (
 	programHandler "api/internal/domains/program"
 	contextUtils "api/utils/context"
 
-	teamsHandler "api/internal/domains/team"
-
-	userHandler "api/internal/domains/user/handler"
-
 	eventHandler "api/internal/domains/event/handler"
+	playground "api/internal/domains/playground/handler"
+	teamsHandler "api/internal/domains/team"
+	userHandler "api/internal/domains/user/handler"
 
 	"api/internal/domains/identity/handler/authentication"
 	"api/internal/domains/identity/handler/registration"
@@ -47,11 +46,12 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		"/register": RegisterRegistrationRoutes,
 
 		// Core functionalities
-		"/programs":  RegisterProgramRoutes,
-		"/events":    RegisterEventRoutes,
-		"/locations": RegisterLocationsRoutes,
-		"/games":     RegisterGamesRoutes,
-		"/teams":     RegisterTeamsRoutes,
+		"/programs":   RegisterProgramRoutes,
+		"/events":     RegisterEventRoutes,
+		"/locations":  RegisterLocationsRoutes,
+		"/games":      RegisterGamesRoutes,
+		"/teams":      RegisterTeamsRoutes,
+		"/playground": RegisterPlaygroundRoutes,
 
 		// Users & Staff routes
 		"/users":     RegisterUserRoutes,
@@ -180,7 +180,15 @@ func RegisterGamesRoutes(container *di.Container) func(chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", h.DeleteGame)
 	}
 }
-
+func RegisterPlaygroundRoutes(container *di.Container) func(chi.Router) {
+	h := playground.NewHandler(container)
+	return func(r chi.Router) {
+		r.Get("/", h.GetSessions)
+		r.Get("/{id}", h.GetSession)
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/", h.CreateSession)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", h.DeleteSession)
+	}
+}
 func RegisterTeamsRoutes(container *di.Container) func(chi.Router) {
 	h := teamsHandler.NewHandler(container)
 

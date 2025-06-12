@@ -4,12 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/docker/docker/api/types/container"
-	"github.com/pressly/goose"
 	"os"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/docker/docker/api/types/container"
+	"github.com/pressly/goose"
 
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -107,6 +108,8 @@ func SetupTestDbQueries(t *testing.T, path string) (
         membership.memberships,
         program.programs, 
         events.events,
+		playground.sessions,
+		playground.systems,
         location.locations,
         users.users
     CASCADE;

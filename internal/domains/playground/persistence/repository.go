@@ -15,15 +15,19 @@ import (
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
+
 // Repository provides methods to interact with the database for the playground domain.
 type Repository struct {
 	Queries *db.Queries
 	Tx      *sql.Tx
+	Db      *sql.DB
 }
+
 // GetTx returns the current transaction of the repository.
 func (r *Repository) GetTx() *sql.Tx {
 	return r.Tx
 }
+
 // WithTx returns a new Repository with the provided transaction.
 func (r *Repository) WithTx(tx *sql.Tx) *Repository {
 	return &Repository{
@@ -31,10 +35,12 @@ func (r *Repository) WithTx(tx *sql.Tx) *Repository {
 		Tx:      tx,
 	}
 }
+
 // NewRepository initializes a new Repository with the provided DI container.
 func NewRepository(container *di.Container) *Repository {
-	return &Repository{Queries: container.Queries.PlaygroundDb}
+	return &Repository{Queries: container.Queries.PlaygroundDb, Db: container.DB}
 }
+
 // CreateSession creates a new session in the database.
 func (r *Repository) CreateSession(ctx context.Context, v values.CreateSessionValue) (values.Session, *errLib.CommonError) {
 	params := db.CreateSessionParams{
@@ -64,6 +70,7 @@ func (r *Repository) CreateSession(ctx context.Context, v values.CreateSessionVa
 	}
 	return mapDbCreateSessionToValue(row), nil
 }
+
 // GetSessions retrieves all sessions.
 func (r *Repository) GetSessions(ctx context.Context) ([]values.Session, *errLib.CommonError) {
 	dbSessions, err := r.Queries.GetSessions(ctx)
@@ -77,6 +84,7 @@ func (r *Repository) GetSessions(ctx context.Context) ([]values.Session, *errLib
 	}
 	return list, nil
 }
+
 // GetSession retrieves a session by its ID.
 func (r *Repository) GetSession(ctx context.Context, id uuid.UUID) (values.Session, *errLib.CommonError) {
 	row, err := r.Queries.GetSession(ctx, id)
@@ -89,6 +97,7 @@ func (r *Repository) GetSession(ctx context.Context, id uuid.UUID) (values.Sessi
 	}
 	return mapDbSessionToValue(row), nil
 }
+
 // DeleteSession deletes a session by its ID.
 func (r *Repository) DeleteSession(ctx context.Context, id uuid.UUID) *errLib.CommonError {
 	count, err := r.Queries.DeleteSession(ctx, id)
@@ -101,6 +110,7 @@ func (r *Repository) DeleteSession(ctx context.Context, id uuid.UUID) *errLib.Co
 	}
 	return nil
 }
+
 // mapDbSessionToValue maps a database row to a Session value.
 func mapDbSessionToValue(dbRow db.GetSessionRow) values.Session {
 	return values.Session{
@@ -116,6 +126,7 @@ func mapDbSessionToValue(dbRow db.GetSessionRow) values.Session {
 		UpdatedAt:         dbRow.UpdatedAt,
 	}
 }
+
 // mapDbCreateSessionToValue maps a database row to a CreateSession value.
 func mapDbCreateSessionToValue(dbRow db.CreateSessionRow) values.Session {
 	return values.Session{
@@ -128,6 +139,7 @@ func mapDbCreateSessionToValue(dbRow db.CreateSessionRow) values.Session {
 		UpdatedAt:  dbRow.UpdatedAt,
 	}
 }
+
 // mapDbSessionsRowToValue maps a database row to a Session value.
 func mapDbSessionsRowToValue(dbRow db.GetSessionsRow) values.Session {
 	return values.Session{
@@ -142,4 +154,74 @@ func mapDbSessionsRowToValue(dbRow db.GetSessionsRow) values.Session {
 		CreatedAt:         dbRow.CreatedAt,
 		UpdatedAt:         dbRow.UpdatedAt,
 	}
+}
+
+// CreateSystem inserts a new system into playground.systems.
+func (r *Repository) CreateSystem(ctx context.Context, v values.CreateSystemValue) (values.System, *errLib.CommonError) {
+	query := `INSERT INTO playground.systems (name) VALUES ($1) RETURNING id, name, created_at, updated_at`
+	row := r.Db.QueryRowContext(ctx, query, v.Name)
+
+	var sys values.System
+	if err := row.Scan(&sys.ID, &sys.Name, &sys.CreatedAt, &sys.UpdatedAt); err != nil {
+		log.Println("Failed to create system:", err)
+		return values.System{}, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+	return sys, nil
+}
+
+// GetSystems retrieves all playground systems ordered by name.
+func (r *Repository) GetSystems(ctx context.Context) ([]values.System, *errLib.CommonError) {
+	query := `SELECT id, name, created_at, updated_at FROM playground.systems ORDER BY name`
+	rows, err := r.Db.QueryContext(ctx, query)
+	if err != nil {
+		log.Println("Failed to get systems:", err)
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+	defer rows.Close()
+
+	var list []values.System
+	for rows.Next() {
+		var sys values.System
+		if err := rows.Scan(&sys.ID, &sys.Name, &sys.CreatedAt, &sys.UpdatedAt); err != nil {
+			log.Println("Failed to scan system:", err)
+			return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+		}
+		list = append(list, sys)
+	}
+	if err := rows.Err(); err != nil {
+		log.Println("Rows error when getting systems:", err)
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+	return list, nil
+}
+
+// UpdateSystem updates a system's name by ID.
+func (r *Repository) UpdateSystem(ctx context.Context, v values.UpdateSystemValue) (values.System, *errLib.CommonError) {
+	query := `UPDATE playground.systems SET name = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, name, created_at, updated_at`
+	row := r.Db.QueryRowContext(ctx, query, v.Name, v.ID)
+
+	var sys values.System
+	if err := row.Scan(&sys.ID, &sys.Name, &sys.CreatedAt, &sys.UpdatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return values.System{}, errLib.New("System not found", http.StatusNotFound)
+		}
+		log.Println("Failed to update system:", err)
+		return values.System{}, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+	return sys, nil
+}
+
+// DeleteSystem removes a system by ID.
+func (r *Repository) DeleteSystem(ctx context.Context, id uuid.UUID) *errLib.CommonError {
+	query := `DELETE FROM playground.systems WHERE id = $1`
+	result, err := r.Db.ExecContext(ctx, query, id)
+	if err != nil {
+		log.Println("Failed to delete system:", err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+	affected, _ := result.RowsAffected()
+	if affected == 0 {
+		return errLib.New("System not found", http.StatusNotFound)
+	}
+	return nil
 }

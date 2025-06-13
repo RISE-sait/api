@@ -2,7 +2,7 @@ package playground
 
 import (
 	"api/internal/di"
-	dto "api/internal/domains/playground/dto"
+	dto "api/internal/domains/playground/dto/session"
 	service "api/internal/domains/playground/services"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"

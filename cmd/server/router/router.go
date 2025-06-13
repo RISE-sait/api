@@ -182,11 +182,19 @@ func RegisterGamesRoutes(container *di.Container) func(chi.Router) {
 }
 func RegisterPlaygroundRoutes(container *di.Container) func(chi.Router) {
 	h := playground.NewHandler(container)
+	systemHandlers := playground.NewSystemsHandlers(container)
 	return func(r chi.Router) {
 		r.Get("/", h.GetSessions)
 		r.Get("/{id}", h.GetSession)
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/", h.CreateSession)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", h.DeleteSession)
+
+		r.Route("/systems", func(r chi.Router) {
+			r.Get("/", systemHandlers.GetSystems)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/", systemHandlers.CreateSystem)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}", systemHandlers.UpdateSystem)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", systemHandlers.DeleteSystem)
+		})
 	}
 }
 func RegisterTeamsRoutes(container *di.Container) func(chi.Router) {

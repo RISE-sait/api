@@ -37,10 +37,10 @@ api_go_server  | 2025/03/13 22:58:34 Server starting on :80
 ## Complete db setup
 
 1. Now your db is running but its got no data, no tables at all. So, run
-   `docker compose -f tasks.docker-compose.yml run --rm --build migrate up`, this setups the schemas and tables.
+   `docker compose -f docker-compose.tasks.yml run --rm --build migrate up`, this setups the schemas and tables.
 
 2. Now u got your db schemas and tables but still no data. So, run
-   `docker compose -f tasks.docker-compose.yml run --rm --build seed`.
+   `docker compose -f tasks.docker-compose.tasks.yml run --rm --build seed`.
 
 3. Now everything should work just fine.
 

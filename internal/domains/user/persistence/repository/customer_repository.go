@@ -8,9 +8,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -42,7 +42,7 @@ func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int
 	})
 
 	if err != nil {
-		log.Println(fmt.Sprintf("Error getting dbCustomers: %s", err))
+		log.Printf("Error getting dbCustomers: %s", err)
 		return nil, errLib.New("internal error", http.StatusInternalServerError)
 	}
 
@@ -122,7 +122,7 @@ func (r *CustomerRepository) GetCustomer(ctx context.Context, id uuid.UUID, emai
 		if errors.Is(err, sql.ErrNoRows) {
 			return userValues.ReadValue{}, errLib.New("Customer not found", http.StatusNotFound)
 		}
-		log.Println(fmt.Sprintf("Error getting dbCustomer: %s", err))
+		log.Printf("Error getting dbCustomer: %s", err)
 		return userValues.ReadValue{}, errLib.New("internal error", http.StatusInternalServerError)
 	}
 
@@ -278,7 +278,7 @@ func (r *CustomerRepository) ListAthletes(ctx context.Context, limit, offset int
 		Offset: offset,
 	})
 	if err != nil {
-		log.Println(fmt.Sprintf("Error getting athletes: %s", err))
+		log.Printf("Error getting athletes: %s", err)
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
@@ -362,4 +362,54 @@ func (r *CustomerRepository) GetActiveMembershipInfo(ctx context.Context, custom
 	}
 
 	return &info, nil
+}
+func (r *CustomerRepository) ListMembershipHistory(ctx context.Context, customerID uuid.UUID) ([]userValues.MembershipHistoryValue, *errLib.CommonError) {
+	dbRows, err := r.Queries.ListMembershipHistory(ctx, customerID)
+	if err != nil {
+		log.Printf("error querying membership history: %v", err)
+		return nil, errLib.New("internal error", http.StatusInternalServerError)
+	}
+
+	results := make([]userValues.MembershipHistoryValue, len(dbRows))
+	for i, row := range dbRows {
+		var renewal *time.Time
+		if row.RenewalDate.Valid {
+			renewal = &row.RenewalDate.Time
+		}
+
+		results[i] = userValues.MembershipHistoryValue{
+			ID:             row.ID,
+			CustomerID:     row.CustomerID,
+			StartDate:      row.StartDate,
+			RenewalDate:    renewal,
+			Status:         string(row.Status),
+			CreatedAt:      row.CreatedAt,
+			UpdatedAt:      row.UpdatedAt,
+			MembershipID:   row.MembershipID,
+			MembershipName: row.MembershipName,
+			MembershipDescription: row.MembershipDescription,
+			MembershipPlanID:   row.MembershipPlanID,
+			MembershipPlanName: row.MembershipPlanName,
+			UnitAmount: func(n sql.NullInt32) int {
+				if n.Valid {
+					return int(n.Int32)
+				}
+				return 0
+			}(row.UnitAmount),
+			Currency: func(n sql.NullString) string {
+				if n.Valid {
+					return n.String
+				}
+				return ""
+			}(row.Currency),
+			Interval: func(n sql.NullString) string {
+				if n.Valid {
+					return n.String
+				}
+				return ""
+			}(row.Interval),
+		}
+	}
+
+	return results, nil
 }

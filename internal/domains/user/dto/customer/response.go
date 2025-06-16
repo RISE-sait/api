@@ -2,20 +2,21 @@ package customer
 
 import (
 	values "api/internal/domains/user/values"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 type Response struct {
-	UserID      uuid.UUID `json:"user_id"`
-	DOB         string    `json:"dob"`
-	FirstName   string    `json:"first_name"`
-	LastName    string    `json:"last_name"`
-	Email       *string   `json:"email,omitempty"`
-	Phone       *string   `json:"phone,omitempty"`
-	HubspotId   *string   `json:"hubspot_id,omitempty"`
-	CountryCode string    `json:"country_code"`
+	UserID         uuid.UUID              `json:"user_id"`
+	DOB            string                 `json:"dob"`
+	FirstName      string                 `json:"first_name"`
+	LastName       string                 `json:"last_name"`
+	Email          *string                `json:"email,omitempty"`
+	Phone          *string                `json:"phone,omitempty"`
+	HubspotId      *string                `json:"hubspot_id,omitempty"`
+	CountryCode    string                 `json:"country_code"`
 	MembershipInfo *MembershipResponseDto `json:"membership_info,omitempty"`
 }
 
@@ -50,4 +51,27 @@ func UserReadValueToResponse(customer values.ReadValue) Response {
 	}
 
 	return response
+}
+
+type MembershipHistoryResponse struct {
+	MembershipName        string     `json:"membership_name"`
+	MembershipDescription string     `json:"membership_description"`
+	MembershipPlanName    string     `json:"membership_plan_name"`
+	Price                 string     `json:"price"`
+	StartDate             time.Time  `json:"start_date"`
+	RenewalDate           *time.Time `json:"renewal_date,omitempty"`
+	Status                string     `json:"status"`
+}
+
+func MembershipHistoryValueToResponse(v values.MembershipHistoryValue) MembershipHistoryResponse {
+	price := fmt.Sprintf("$%.2f", float64(v.UnitAmount)/100)
+	return MembershipHistoryResponse{
+		MembershipName:        v.MembershipName,
+		MembershipDescription: v.MembershipDescription,
+		MembershipPlanName:    v.MembershipPlanName,
+		Price:                 price,
+		StartDate:             v.StartDate,
+		RenewalDate:           v.RenewalDate,
+		Status:                v.Status,
+	}
 }

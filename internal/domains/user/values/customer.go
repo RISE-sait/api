@@ -22,7 +22,7 @@ type MembershipPlansReadValue struct {
 	Status             string
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
-	PhotoURL		   *string
+	PhotoURL           *string
 	MembershipID       uuid.UUID
 	MembershipPlanID   uuid.UUID
 	MembershipName     string
@@ -51,4 +51,22 @@ type AthleteReadValue struct {
 	Steals    int32
 	PhotoURL  *string
 	TeamID    *uuid.UUID
+}
+
+type MembershipHistoryValue struct {
+	ID                    uuid.UUID
+	CustomerID            uuid.UUID
+	StartDate             time.Time
+	RenewalDate           *time.Time
+	Status                string
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
+	MembershipID          uuid.UUID
+	MembershipName        string
+	MembershipDescription string
+	MembershipPlanID      uuid.UUID
+	MembershipPlanName    string
+	UnitAmount            int
+	Currency              string
+	Interval              string
 }

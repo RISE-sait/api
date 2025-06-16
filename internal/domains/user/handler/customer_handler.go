@@ -9,6 +9,7 @@ import (
 	"api/internal/di"
 	athleteDto "api/internal/domains/user/dto/athlete"
 	customerDto "api/internal/domains/user/dto/customer"
+	contextUtils "api/utils/context"
 
 	customerRepo "api/internal/domains/user/persistence/repository"
 	errLib "api/internal/libs/errors"
@@ -341,4 +342,65 @@ func (h *CustomersHandler) CheckinCustomer(w http.ResponseWriter, r *http.Reques
 	}
 
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
+}
+
+// GetMembershipHistory returns membership history for a customer.
+// @Tags customers
+// @Accept json
+// @Produce json
+// @Param id path string true "Customer ID"
+// @Success 200 {array} customer.MembershipHistoryResponse "Membership history"
+// @Failure 400 {object} map[string]interface{} "Bad Request"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /customers/{id}/memberships [get]
+func (h *CustomersHandler) GetMembershipHistory(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	customerID, err := validators.ParseUUID(idStr)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	history, err := h.CustomerRepo.ListMembershipHistory(r.Context(), customerID)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	responses := make([]customerDto.MembershipHistoryResponse, len(history))
+	for i, hst := range history {
+		responses[i] = customerDto.MembershipHistoryValueToResponse(hst)
+	}
+
+	responseHandlers.RespondWithSuccess(w, responses, http.StatusOK)
+}
+
+// GetMyMembershipHistory returns membership history for the logged-in customer.
+// @Tags customers
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Success 200 {array} customer.MembershipHistoryResponse "Membership history"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /secure/customers/memberships [get]
+func (h *CustomersHandler) GetUserMembershipHistory(w http.ResponseWriter, r *http.Request) {
+	customerID, err := contextUtils.GetUserID(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	history, err := h.CustomerRepo.ListMembershipHistory(r.Context(), customerID)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	responses := make([]customerDto.MembershipHistoryResponse, len(history))
+	for i, hst := range history {
+		responses[i] = customerDto.MembershipHistoryValueToResponse(hst)
+	}
+
+	responseHandlers.RespondWithSuccess(w, responses, http.StatusOK)
 }

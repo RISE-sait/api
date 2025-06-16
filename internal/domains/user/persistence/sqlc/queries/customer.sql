@@ -142,3 +142,26 @@ WHERE cmp.customer_id = $1
   AND cmp.status = 'active'
 ORDER BY cmp.start_date DESC
 LIMIT 1;
+
+-- name: ListMembershipHistory :many
+SELECT
+    cmp.id,
+    cmp.customer_id,
+    cmp.start_date,
+    cmp.renewal_date,
+    cmp.status,
+    cmp.created_at,
+    cmp.updated_at,
+    mp.membership_id,
+    m.name AS membership_name,
+    m.description AS membership_description,
+    mp.id AS membership_plan_id,
+    mp.name AS membership_plan_name,
+    mp.unit_amount,
+    mp.currency,
+    mp.interval
+FROM users.customer_membership_plans cmp
+    JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
+    JOIN membership.memberships m ON m.id = mp.membership_id
+WHERE cmp.customer_id = $1
+ORDER BY cmp.start_date DESC;

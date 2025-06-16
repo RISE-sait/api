@@ -486,6 +486,23 @@ type MembershipMembershipPlan struct {
 	Interval           sql.NullString `json:"interval"`
 }
 
+type PlaygroundSession struct {
+	ID         uuid.UUID `json:"id"`
+	SystemID   uuid.UUID `json:"system_id"`
+	CustomerID uuid.UUID `json:"customer_id"`
+	StartTime  time.Time `json:"start_time"`
+	EndTime    time.Time `json:"end_time"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+type PlaygroundSystem struct {
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 type ProgramCustomerEnrollment struct {
 	ID               uuid.UUID     `json:"id"`
 	CustomerID       uuid.UUID     `json:"customer_id"`

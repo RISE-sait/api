@@ -432,6 +432,87 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]G
 	return items, nil
 }
 
+const listMembershipHistory = `-- name: ListMembershipHistory :many
+SELECT
+    cmp.id,
+    cmp.customer_id,
+    cmp.start_date,
+    cmp.renewal_date,
+    cmp.status,
+    cmp.created_at,
+    cmp.updated_at,
+    mp.membership_id,
+    m.name AS membership_name,
+    m.description AS membership_description,
+    mp.id AS membership_plan_id,
+    mp.name AS membership_plan_name,
+    mp.unit_amount,
+    mp.currency,
+    mp.interval
+FROM users.customer_membership_plans cmp
+    JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
+    JOIN membership.memberships m ON m.id = mp.membership_id
+WHERE cmp.customer_id = $1
+ORDER BY cmp.start_date DESC
+`
+
+type ListMembershipHistoryRow struct {
+	ID                    uuid.UUID                  `json:"id"`
+	CustomerID            uuid.UUID                  `json:"customer_id"`
+	StartDate             time.Time                  `json:"start_date"`
+	RenewalDate           sql.NullTime               `json:"renewal_date"`
+	Status                MembershipMembershipStatus `json:"status"`
+	CreatedAt             time.Time                  `json:"created_at"`
+	UpdatedAt             time.Time                  `json:"updated_at"`
+	MembershipID          uuid.UUID                  `json:"membership_id"`
+	MembershipName        string                     `json:"membership_name"`
+	MembershipDescription string                     `json:"membership_description"`
+	MembershipPlanID      uuid.UUID                  `json:"membership_plan_id"`
+	MembershipPlanName    string                     `json:"membership_plan_name"`
+	UnitAmount            sql.NullInt32              `json:"unit_amount"`
+	Currency              sql.NullString             `json:"currency"`
+	Interval              sql.NullString             `json:"interval"`
+}
+
+func (q *Queries) ListMembershipHistory(ctx context.Context, customerID uuid.UUID) ([]ListMembershipHistoryRow, error) {
+	rows, err := q.db.QueryContext(ctx, listMembershipHistory, customerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListMembershipHistoryRow
+	for rows.Next() {
+		var i ListMembershipHistoryRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CustomerID,
+			&i.StartDate,
+			&i.RenewalDate,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.MembershipID,
+			&i.MembershipName,
+			&i.MembershipDescription,
+			&i.MembershipPlanID,
+			&i.MembershipPlanName,
+			&i.UnitAmount,
+			&i.Currency,
+			&i.Interval,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateAthleteStats = `-- name: UpdateAthleteStats :execrows
 UPDATE athletic.athletes
 SET wins       = COALESCE($1, wins),

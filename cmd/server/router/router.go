@@ -97,6 +97,7 @@ func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 		r.Get("/id/{id}", h.GetCustomerByID)
 		r.Get("/email/{email}", h.GetCustomerByEmail)
 		r.Get("/checkin/{id}", h.CheckinCustomer)
+		r.Get("/{id}/memberships", h.GetMembershipHistory)
 	}
 }
 
@@ -343,6 +344,7 @@ func RegisterSecureRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Route("/events", RegisterSecureEventRoutes(container))
 		r.Route("/games", RegisterSecureGameRoutes(container))
+		r.Route("/customers", RegisterSecureCustomerRoutes(container))
 	}
 }
 
@@ -359,5 +361,13 @@ func RegisterSecureGameRoutes(container *di.Container) func(chi.Router) {
 	h := game.NewHandler(container)
 	return func(r chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(true)).Get("/", h.GetRoleGames)
+	}
+}
+
+// RegisterSecureCustomerRoutes registers secure customer routes that require authentication.
+func RegisterSecureCustomerRoutes(container *di.Container) func(chi.Router) {
+	h := userHandler.NewCustomersHandler(container)
+	return func(r chi.Router) {
+		r.With(middlewares.JWTAuthMiddleware(true)).Get("/memberships", h.GetUserMembershipHistory)
 	}
 }

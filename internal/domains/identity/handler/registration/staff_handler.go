@@ -6,6 +6,7 @@ import (
 	firebaseService "api/internal/domains/identity/service/firebase"
 	registrationService "api/internal/domains/identity/service/registration"
 	identityUtils "api/internal/domains/identity/utils"
+
 	"github.com/google/uuid"
 
 	errLib "api/internal/libs/errors"
@@ -123,4 +124,26 @@ func (h *StaffHandlers) ApproveStaff(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusOK)
+}
+
+// GetPendingStaff retrieves a pending staff member's details.
+// @Summary Get pending staff member details
+// @Tags registration
+// @produce json
+// @Security Bearer
+// @Success 200 {object} dto.PendingStaffResponseDto "Pending staff member details"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error: Failed to retrieve pending staff"
+// @Router /register/staff/pending [get]
+func (h *StaffHandlers) GetPendingStaffs(w http.ResponseWriter, r *http.Request) {
+	staffs, err := h.StaffRegistrationService.GetPendingStaffs(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+	result := make([]dto.PendingStaffResponseDto, len(staffs))
+	for i, staff := range staffs {
+		result[i] = dto.NewPendingStaffResponse(staff)
+	}
+
+	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
 }

@@ -51,3 +51,7 @@ INSERT INTO staff.pending_staff(first_name, last_name, email, gender, dob, phone
 VALUES ($1, $2, $3, $4, $5, $6, $7,
         (SELECT id FROM staff.staff_roles WHERE role_name = $8))
 RETURNING *;
+
+-- name: GetPendingStaffs :many
+SELECT id, first_name, last_name, email, gender, phone, country_alpha2_code, role_id, created_at, updated_at, dob
+FROM staff.pending_staff;

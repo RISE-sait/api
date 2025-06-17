@@ -81,3 +81,6 @@ func (s *StaffsRegistrationService) ApproveStaff(
 
 	return nil
 }
+func (s *StaffsRegistrationService) GetPendingStaffs(ctx context.Context) ([]identity.PendingStaffInfo, *errLib.CommonError) {
+	return s.StaffRepository.GetPendingStaffs(ctx)
+}

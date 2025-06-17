@@ -136,3 +136,43 @@ func (r *StaffRepository) GetStaffRoles(ctx context.Context) ([]string, *errLib.
 
 	return roles, nil
 }
+
+func (r *StaffRepository) GetPendingStaffs(ctx context.Context) ([]identityValues.PendingStaffInfo, *errLib.CommonError) {
+
+	dbStaffs, err := r.IdentityQueries.GetPendingStaffs(ctx)
+	if err != nil {
+		log.Printf("Error fetching pending staffs: %v", err)
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	staffs := make([]identityValues.PendingStaffInfo, len(dbStaffs))
+	for i, s := range dbStaffs {
+		var genderPtr *string
+		if s.Gender.Valid {
+			gender := s.Gender.String
+			genderPtr = &gender
+		}
+
+		var phonePtr *string
+		if s.Phone.Valid {
+			phone := s.Phone.String
+			phonePtr = &phone
+		}
+
+		staffs[i] = identityValues.PendingStaffInfo{
+			ID:          s.ID,
+			FirstName:   s.FirstName,
+			LastName:    s.LastName,
+			Email:       s.Email,
+			Gender:      genderPtr,
+			Phone:       phonePtr,
+			CountryCode: s.CountryAlpha2Code,
+			RoleID:      s.RoleID,
+			CreatedAt:   s.CreatedAt.Time,
+			UpdatedAt:   s.UpdatedAt.Time,
+			Dob:         s.Dob,
+		}
+	}
+
+	return staffs, nil
+}

@@ -155,6 +155,7 @@ SELECT
     mp.membership_id,
     m.name AS membership_name,
     m.description AS membership_description,
+    m.benefits AS membership_benefits,
     mp.id AS membership_plan_id,
     mp.name AS membership_plan_name,
     mp.unit_amount,

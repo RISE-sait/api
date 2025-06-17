@@ -388,6 +388,7 @@ func (r *CustomerRepository) ListMembershipHistory(ctx context.Context, customer
 			MembershipID:   row.MembershipID,
 			MembershipName: row.MembershipName,
 			MembershipDescription: row.MembershipDescription,
+			MembershipBenefits: row.MembershipBenefits,
 			MembershipPlanID:   row.MembershipPlanID,
 			MembershipPlanName: row.MembershipPlanName,
 			UnitAmount: func(n sql.NullInt32) int {

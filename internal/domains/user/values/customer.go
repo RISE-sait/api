@@ -64,6 +64,7 @@ type MembershipHistoryValue struct {
 	MembershipID          uuid.UUID
 	MembershipName        string
 	MembershipDescription string
+	MembershipBenefits    string
 	MembershipPlanID      uuid.UUID
 	MembershipPlanName    string
 	UnitAmount            int

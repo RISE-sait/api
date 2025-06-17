@@ -57,6 +57,7 @@ type MembershipHistoryResponse struct {
 	MembershipName        string     `json:"membership_name"`
 	MembershipDescription string     `json:"membership_description"`
 	MembershipPlanName    string     `json:"membership_plan_name"`
+	MembsershipBenefits  string    `json:"membership_benefits"`
 	Price                 string     `json:"price"`
 	StartDate             time.Time  `json:"start_date"`
 	RenewalDate           *time.Time `json:"renewal_date,omitempty"`
@@ -73,5 +74,6 @@ func MembershipHistoryValueToResponse(v values.MembershipHistoryValue) Membershi
 		StartDate:             v.StartDate,
 		RenewalDate:           v.RenewalDate,
 		Status:                v.Status,
+		MembsershipBenefits: v.MembershipBenefits,
 	}
 }

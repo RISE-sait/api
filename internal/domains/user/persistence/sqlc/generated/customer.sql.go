@@ -444,6 +444,7 @@ SELECT
     mp.membership_id,
     m.name AS membership_name,
     m.description AS membership_description,
+    m.benefits AS membership_benefits,
     mp.id AS membership_plan_id,
     mp.name AS membership_plan_name,
     mp.unit_amount,
@@ -467,6 +468,7 @@ type ListMembershipHistoryRow struct {
 	MembershipID          uuid.UUID                  `json:"membership_id"`
 	MembershipName        string                     `json:"membership_name"`
 	MembershipDescription string                     `json:"membership_description"`
+	MembershipBenefits    string                     `json:"membership_benefits"`
 	MembershipPlanID      uuid.UUID                  `json:"membership_plan_id"`
 	MembershipPlanName    string                     `json:"membership_plan_name"`
 	UnitAmount            sql.NullInt32              `json:"unit_amount"`
@@ -494,6 +496,7 @@ func (q *Queries) ListMembershipHistory(ctx context.Context, customerID uuid.UUI
 			&i.MembershipID,
 			&i.MembershipName,
 			&i.MembershipDescription,
+			&i.MembershipBenefits,
 			&i.MembershipPlanID,
 			&i.MembershipPlanName,
 			&i.UnitAmount,

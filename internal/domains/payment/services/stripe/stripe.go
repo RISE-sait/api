@@ -12,6 +12,7 @@ import (
 	_ "github.com/square/square-go-sdk/client"
 	"github.com/stripe/stripe-go/v81"
 	"github.com/stripe/stripe-go/v81/checkout/session"
+	"github.com/stripe/stripe-go/v81/coupon"
 )
 
 // CreateOneTimePayment creates a Stripe Checkout Session for a one-time payment
@@ -131,4 +132,77 @@ func CreateSubscription(
 	}
 
 	return s.URL, nil // Return URL to redirect client for payment
+}
+
+// CreateSubscriptionWithDiscountPercent creates a subscription checkout session
+// applying a percentage discount via a temporary coupon
+func CreateSubscriptionWithDiscountPercent(
+	ctx context.Context,
+	stripePlanPriceID string,
+	stripeJoiningFeesID string,
+	discountPercent int,
+) (string, *errLib.CommonError) {
+	if discountPercent <= 0 || discountPercent > 100 {
+		return "", errLib.New("invalid discount percent", http.StatusBadRequest)
+	}
+
+	userID, err := contextUtils.GetUserID(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	if strings.ReplaceAll(stripe.Key, " ", "") == "" {
+		return "", errLib.New("Stripe not initialized", http.StatusInternalServerError)
+	}
+
+	if stripePlanPriceID == "" {
+		return "", errLib.New("item stripe price ID cannot be empty", http.StatusBadRequest)
+	}
+
+	c, cuErr := coupon.New(&stripe.CouponParams{
+		Duration:   stripe.String(string(stripe.CouponDurationOnce)),
+		PercentOff: stripe.Float64(float64(discountPercent)),
+	})
+	if cuErr != nil {
+		return "", errLib.New("failed to create coupon: "+cuErr.Error(), http.StatusInternalServerError)
+	}
+
+	params := &stripe.CheckoutSessionParams{
+		Metadata: map[string]string{
+			"userID": userID.String(),
+		},
+		SubscriptionData: &stripe.CheckoutSessionSubscriptionDataParams{
+			Metadata: map[string]string{
+				"userID": userID.String(),
+			},
+		},
+		LineItems: []*stripe.CheckoutSessionLineItemParams{
+			{
+				Price:    stripe.String(stripePlanPriceID),
+				Quantity: stripe.Int64(1),
+			},
+		},
+		Mode:       stripe.String("subscription"),
+		SuccessURL: stripe.String("https://example.com/success"),
+		Discounts: []*stripe.CheckoutSessionDiscountParams{
+			{Coupon: stripe.String(c.ID)},
+		},
+	}
+
+	params.AddExpand("line_items.data.price")
+	params.AddExpand("subscription")
+
+	if stripeJoiningFeesID != "" {
+		params.LineItems = append(params.LineItems, &stripe.CheckoutSessionLineItemParams{
+			Price:    stripe.String(stripeJoiningFeesID),
+			Quantity: stripe.Int64(1),
+		})
+	}
+
+	s, sessionErr := session.New(params)
+	if sessionErr != nil {
+		return "", errLib.New("Subscription setup failed: "+sessionErr.Error(), http.StatusInternalServerError)
+	}
+
+	return s.URL, nil
 }

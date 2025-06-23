@@ -44,3 +44,7 @@ VALUES ($1, $2)
 ON CONFLICT (customer_id, discount_id) DO UPDATE
 SET usage_count = users.customer_discount_usage.usage_count + 1,
     last_used_at = CURRENT_TIMESTAMP;
+
+-- name: GetRestrictedPlans :many
+SELECT membership_plan_id FROM membership.discount_restricted_membership_plans
+WHERE discount_id = $1;

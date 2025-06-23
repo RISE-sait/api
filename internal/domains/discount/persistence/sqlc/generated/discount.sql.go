@@ -122,6 +122,34 @@ func (q *Queries) GetDiscountByNameActive(ctx context.Context, name string) (Dis
 	return i, err
 }
 
+const getRestrictedPlans = `-- name: GetRestrictedPlans :many
+SELECT membership_plan_id FROM membership.discount_restricted_membership_plans
+WHERE discount_id = $1
+`
+
+func (q *Queries) GetRestrictedPlans(ctx context.Context, discountID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, getRestrictedPlans, discountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var membership_plan_id uuid.UUID
+		if err := rows.Scan(&membership_plan_id); err != nil {
+			return nil, err
+		}
+		items = append(items, membership_plan_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUsageCount = `-- name: GetUsageCount :one
 SELECT usage_count FROM users.customer_discount_usage WHERE customer_id = $1 AND discount_id = $2
 `

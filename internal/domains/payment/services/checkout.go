@@ -12,7 +12,7 @@ import (
 	"api/internal/domains/payment/services/stripe"
 	errLib "api/internal/libs/errors"
 	contextUtils "api/utils/context"
-
+	discountService "api/internal/domains/discount/service"
 	"github.com/google/uuid"
 	squareClient "github.com/square/square-go-sdk/client"
 )
@@ -21,6 +21,7 @@ type Service struct {
 	CheckoutRepo        *repository.CheckoutRepository
 	MembershipPlansRepo *membership.PlansRepository
 	SquareClient        *squareClient.Client
+	DiscountService     *discountService.Service
 	EnrollmentService   *enrollment.CustomerEnrollmentService
 }
 
@@ -28,15 +29,23 @@ func NewPurchaseService(container *di.Container) *Service {
 	return &Service{
 		CheckoutRepo:        repository.NewCheckoutRepository(container),
 		MembershipPlansRepo: membership.NewMembershipPlansRepository(container),
+		DiscountService:     discountService.NewService(container),
 		EnrollmentService:   enrollment.NewCustomerEnrollmentService(container),
 		SquareClient:        container.SquareClient,
 	}
 }
 
-func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID uuid.UUID) (string, *errLib.CommonError) {
+func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID uuid.UUID, discountCode *string) (string, *errLib.CommonError) {
 	requirements, err := s.CheckoutRepo.GetMembershipPlanJoiningRequirement(ctx, membershipPlanID)
 	if err != nil {
 		return "", err
+	}
+		if discountCode != nil {
+		applied, err := s.DiscountService.ApplyDiscount(ctx, *discountCode, &membershipPlanID)
+		if err != nil {
+			return "", err
+		}
+		return stripe.CreateSubscriptionWithDiscountPercent(ctx, requirements.StripePriceID, requirements.StripeJoiningFeeID, applied.DiscountPercent)
 	}
 
 	return stripe.CreateSubscription(ctx, requirements.StripePriceID, requirements.StripeJoiningFeeID)

@@ -26,6 +26,7 @@ func NewCheckoutHandlers(container *di.Container) *CheckoutHandlers {
 // @Accept json
 // @Produce json
 // @Param id path string true "Membership plan ID"
+// @Param discount_code query string false "Discount code to apply"
 // @Success 200 {object} dto.CheckoutResponseDto "Payment link generated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error: Failed to process checkout"
@@ -49,7 +50,12 @@ func (h *CheckoutHandlers) CheckoutMembership(w http.ResponseWriter, r *http.Req
 
 	var responseDto dto.CheckoutResponseDto
 
-	if paymentLink, err := h.Service.CheckoutMembershipPlan(r.Context(), membershipPlanId); err != nil {
+		var discountCode *string
+	if code := r.URL.Query().Get("discount_code"); code != "" {
+		discountCode = &code
+	}
+
+	if paymentLink, err := h.Service.CheckoutMembershipPlan(r.Context(), membershipPlanId, discountCode); err != nil {
 		responseDto.PaymentURL = paymentLink
 		responseHandlers.RespondWithError(w, err)
 	} else {

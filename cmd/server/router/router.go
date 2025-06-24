@@ -18,6 +18,7 @@ import (
 	teamsHandler "api/internal/domains/team"
 	userHandler "api/internal/domains/user/handler"
 
+	discountHandler "api/internal/domains/discount/handler"
 	"api/internal/domains/identity/handler/authentication"
 	"api/internal/domains/identity/handler/registration"
 	locationsHandler "api/internal/domains/location/handler"
@@ -52,6 +53,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		"/games":      RegisterGamesRoutes,
 		"/teams":      RegisterTeamsRoutes,
 		"/playground": RegisterPlaygroundRoutes,
+		"/discounts":  RegisterDiscountRoutes,
 
 		// Users & Staff routes
 		"/users":     RegisterUserRoutes,
@@ -216,7 +218,7 @@ func RegisterLocationsRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Get("/", h.GetLocations)
 		r.Get("/{id}", h.GetLocationById)
-		r.Post("/", h.CreateLocation)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/", h.CreateLocation)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}", h.UpdateLocation)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", h.DeleteLocation)
 	}
@@ -327,7 +329,18 @@ func RegisterRegistrationRoutes(container *di.Container) func(chi.Router) {
 		r.Post("/parent", parentRegistrationHandler.RegisterParent)
 	}
 }
+func RegisterDiscountRoutes(container *di.Container) func(chi.Router) {
+	h := discountHandler.NewHandler(container)
 
+	return func(r chi.Router) {
+		r.Get("/", h.GetDiscounts)
+		r.Get("/{id}", h.GetDiscount)
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/apply", h.ApplyDiscount)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/", h.CreateDiscount)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}", h.UpdateDiscount)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", h.DeleteDiscount)
+	}
+}
 func RegisterContactRoutes(container *di.Container) func(chi.Router) {
 	h := contactHandler.NewContactHandler(container)
 

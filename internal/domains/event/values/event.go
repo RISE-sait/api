@@ -13,6 +13,7 @@ type EventDetails struct {
 	EndAt      time.Time
 	ProgramID  uuid.UUID
 	LocationID uuid.UUID
+	CourtID    uuid.UUID
 	TeamID     uuid.UUID
 }
 

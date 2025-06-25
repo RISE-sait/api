@@ -36,6 +36,7 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			recurrence.CreatedBy,
 			recurrence.ProgramID,
 			recurrence.LocationID,
+			recurrence.CourtID,
 			recurrence.TeamID,
 			recurrence.DayOfWeek,
 		)
@@ -78,6 +79,7 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			recurrence.CreatedBy,
 			recurrence.ProgramID,
 			recurrence.LocationID,
+			recurrence.CourtID,
 			recurrence.TeamID,
 			recurrence.DayOfWeek,
 		)
@@ -113,6 +115,7 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			recurrence.CreatedBy,
 			recurrence.ProgramID,
 			recurrence.LocationID,
+			recurrence.CourtID,
 			recurrence.TeamID,
 			recurrence.DayOfWeek,
 		)
@@ -148,6 +151,7 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			recurrence.CreatedBy,
 			recurrence.ProgramID,
 			recurrence.LocationID,
+			recurrence.CourtID,
 			recurrence.TeamID,
 			recurrence.DayOfWeek,
 		)
@@ -184,6 +188,7 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			recurrence.CreatedBy,
 			recurrence.ProgramID,
 			recurrence.LocationID,
+			recurrence.CourtID,
 			recurrence.TeamID,
 			recurrence.DayOfWeek,
 		)
@@ -217,6 +222,7 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			recurrence.CreatedBy,
 			recurrence.ProgramID,
 			recurrence.LocationID,
+			recurrence.CourtID,
 			recurrence.TeamID,
 			recurrence.DayOfWeek,
 		)

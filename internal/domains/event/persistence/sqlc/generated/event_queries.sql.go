@@ -17,16 +17,18 @@ import (
 const createEvents = `-- name: CreateEvents :execrows
 WITH unnested_data AS (SELECT unnest($1::uuid[])                AS location_id,
                               unnest($2::uuid[])                 AS program_id,
-                              unnest($3::uuid[])                    AS team_id,
-                              unnest($4::timestamptz[])       AS start_at,
-                              unnest($5::timestamptz[])         AS end_at,
-                              unnest($6::bool[]) AS is_date_time_modified,
-                              unnest($7::uuid[])              AS recurrence_id,
-                              unnest($8::uuid[])              AS created_by,
-                              unnest($9::bool[])          AS is_cancelled,
-                              unnest($10::text[])        AS cancellation_reason)
+                              unnest($3::uuid[]) AS court_id,
+                              unnest($4::uuid[])                    AS team_id,
+                              unnest($5::timestamptz[])       AS start_at,
+                              unnest($6::timestamptz[])         AS end_at,
+                              unnest($7::bool[]) AS is_date_time_modified,
+                              unnest($8::uuid[])              AS recurrence_id,
+                              unnest($9::uuid[])              AS created_by,
+                              unnest($10::bool[])          AS is_cancelled,
+                              unnest($11::text[])        AS cancellation_reason)
 INSERT
 INTO events.events (location_id,
+                    court_id,
                     program_id,
                     team_id,
                     start_at,
@@ -38,6 +40,7 @@ INTO events.events (location_id,
                     is_cancelled,
                     cancellation_reason)
 SELECT location_id,
+         court_id,
        program_id,
        NULLIF(team_id, '00000000-0000-0000-0000-000000000000'::uuid),
        start_at,
@@ -56,6 +59,7 @@ ON CONFLICT ON CONSTRAINT no_overlapping_events
 type CreateEventsParams struct {
 	LocationIds             []uuid.UUID `json:"location_ids"`
 	ProgramIds              []uuid.UUID `json:"program_ids"`
+	CourtIds                []uuid.UUID `json:"court_ids"`
 	TeamIds                 []uuid.UUID `json:"team_ids"`
 	StartAtArray            []time.Time `json:"start_at_array"`
 	EndAtArray              []time.Time `json:"end_at_array"`
@@ -70,6 +74,7 @@ func (q *Queries) CreateEvents(ctx context.Context, arg CreateEventsParams) (int
 	result, err := q.db.ExecContext(ctx, createEvents,
 		pq.Array(arg.LocationIds),
 		pq.Array(arg.ProgramIds),
+		pq.Array(arg.CourtIds),
 		pq.Array(arg.TeamIds),
 		pq.Array(arg.StartAtArray),
 		pq.Array(arg.EndAtArray),
@@ -97,7 +102,7 @@ func (q *Queries) DeleteEventsByIds(ctx context.Context, ids []uuid.UUID) error 
 }
 
 const getEventById = `-- name: GetEventById :one
-SELECT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.is_cancelled, e.cancellation_reason, e.created_at, e.updated_at, e.is_date_time_modified, e.recurrence_id,
+SELECT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.is_cancelled, e.cancellation_reason, e.created_at, e.updated_at, e.is_date_time_modified, e.recurrence_id, e.court_id,
 
        creator.first_name AS creator_first_name,
        creator.last_name  AS creator_last_name,
@@ -110,6 +115,8 @@ SELECT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.cre
        p."type"           AS program_type,
        l.name             AS location_name,
        l.address          AS location_address,
+       c.id               AS court_id,
+       c.name             AS court_name,
 
        -- Team field (added missing team reference)
        t.id               AS team_id,
@@ -119,6 +126,7 @@ FROM events.events e
          JOIN users.users updater ON updater.id = e.updated_by
          JOIN program.programs p ON e.program_id = p.id
          JOIN location.locations l ON e.location_id = l.id
+         LEFT JOIN location.courts c ON e.court_id = c.id
          LEFT JOIN athletic.teams t ON t.id = e.team_id
 WHERE e.id = $1
 `
@@ -138,6 +146,7 @@ type GetEventByIdRow struct {
 	UpdatedAt          time.Time          `json:"updated_at"`
 	IsDateTimeModified bool               `json:"is_date_time_modified"`
 	RecurrenceID       uuid.NullUUID      `json:"recurrence_id"`
+	CourtID            uuid.NullUUID      `json:"court_id"`
 	CreatorFirstName   string             `json:"creator_first_name"`
 	CreatorLastName    string             `json:"creator_last_name"`
 	UpdaterFirstName   string             `json:"updater_first_name"`
@@ -147,6 +156,8 @@ type GetEventByIdRow struct {
 	ProgramType        ProgramProgramType `json:"program_type"`
 	LocationName       string             `json:"location_name"`
 	LocationAddress    string             `json:"location_address"`
+	CourtID_2          uuid.NullUUID      `json:"court_id_2"`
+	CourtName          sql.NullString     `json:"court_name"`
 	TeamID_2           uuid.NullUUID      `json:"team_id_2"`
 	TeamName           sql.NullString     `json:"team_name"`
 }
@@ -169,6 +180,7 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdR
 		&i.UpdatedAt,
 		&i.IsDateTimeModified,
 		&i.RecurrenceID,
+		&i.CourtID,
 		&i.CreatorFirstName,
 		&i.CreatorLastName,
 		&i.UpdaterFirstName,
@@ -178,6 +190,8 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdR
 		&i.ProgramType,
 		&i.LocationName,
 		&i.LocationAddress,
+		&i.CourtID_2,
+		&i.CourtName,
 		&i.TeamID_2,
 		&i.TeamName,
 	)
@@ -297,7 +311,7 @@ func (q *Queries) GetEventStaffs(ctx context.Context, eventID uuid.UUID) ([]GetE
 }
 
 const getEvents = `-- name: GetEvents :many
-SELECT DISTINCT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.is_cancelled, e.cancellation_reason, e.created_at, e.updated_at, e.is_date_time_modified, e.recurrence_id,
+SELECT DISTINCT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.is_cancelled, e.cancellation_reason, e.created_at, e.updated_at, e.is_date_time_modified, e.recurrence_id, e.court_id,
 
                 creator.first_name AS creator_first_name,
                 creator.last_name  AS creator_last_name,
@@ -310,10 +324,13 @@ SELECT DISTINCT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_
                 p."type"           AS program_type,
                 l.name             AS location_name,
                 l.address          AS location_address,
+                c.id               AS court_id,
+                c.name             AS court_name,
                 t.name             as team_name
 FROM events.events e
          JOIN program.programs p ON e.program_id = p.id
          JOIN location.locations l ON e.location_id = l.id
+         LEFT JOIN location.courts c ON e.court_id = c.id
          LEFT JOIN events.staff es ON e.id = es.event_id
          LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
          LEFT JOIN athletic.teams t ON t.id = e.team_id
@@ -332,8 +349,7 @@ WHERE (
               AND ($9::uuid IS NULL OR e.updated_by = $9)
               AND ($10::boolean IS NULL OR e.is_cancelled = $10)
           )
-        ORDER BY e.start_at ASC
-        OFFSET $11 LIMIT $12
+          OFFSET $11 LIMIT $12
 `
 
 type GetEventsParams struct {
@@ -366,6 +382,7 @@ type GetEventsRow struct {
 	UpdatedAt          time.Time          `json:"updated_at"`
 	IsDateTimeModified bool               `json:"is_date_time_modified"`
 	RecurrenceID       uuid.NullUUID      `json:"recurrence_id"`
+	CourtID            uuid.NullUUID      `json:"court_id"`
 	CreatorFirstName   string             `json:"creator_first_name"`
 	CreatorLastName    string             `json:"creator_last_name"`
 	UpdaterFirstName   string             `json:"updater_first_name"`
@@ -375,6 +392,8 @@ type GetEventsRow struct {
 	ProgramType        ProgramProgramType `json:"program_type"`
 	LocationName       string             `json:"location_name"`
 	LocationAddress    string             `json:"location_address"`
+	CourtID_2          uuid.NullUUID      `json:"court_id_2"`
+	CourtName          sql.NullString     `json:"court_name"`
 	TeamName           sql.NullString     `json:"team_name"`
 }
 
@@ -415,6 +434,7 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 			&i.UpdatedAt,
 			&i.IsDateTimeModified,
 			&i.RecurrenceID,
+			&i.CourtID,
 			&i.CreatorFirstName,
 			&i.CreatorLastName,
 			&i.UpdaterFirstName,
@@ -424,6 +444,8 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 			&i.ProgramType,
 			&i.LocationName,
 			&i.LocationAddress,
+			&i.CourtID_2,
+			&i.CourtName,
 			&i.TeamName,
 		); err != nil {
 			return nil, err
@@ -445,16 +467,17 @@ SET start_at              = $1,
     end_at                = $2,
     location_id           = $3,
     program_id            = $4,
-    team_id               = $5,
-    is_cancelled          = $6,
-    cancellation_reason   = $7,
+    court_id              = $5,
+    team_id               = $6,
+    is_cancelled          = $7,
+    cancellation_reason   = $8,
     updated_at            = current_timestamp,
-    updated_by            = $9::uuid,
+    updated_by            = $10::uuid,
     is_date_time_modified = (
         recurrence_id IS NOT NULL
         )
-WHERE id = $8
-RETURNING id, location_id, program_id, team_id, start_at, end_at, created_by, updated_by, is_cancelled, cancellation_reason, created_at, updated_at, is_date_time_modified, recurrence_id
+WHERE id = $9
+RETURNING id, location_id, program_id, team_id, start_at, end_at, created_by, updated_by, is_cancelled, cancellation_reason, created_at, updated_at, is_date_time_modified, recurrence_id, court_id
 `
 
 type UpdateEventParams struct {
@@ -462,6 +485,7 @@ type UpdateEventParams struct {
 	EndAt              time.Time      `json:"end_at"`
 	LocationID         uuid.UUID      `json:"location_id"`
 	ProgramID          uuid.UUID      `json:"program_id"`
+	CourtID            uuid.NullUUID  `json:"court_id"`
 	TeamID             uuid.NullUUID  `json:"team_id"`
 	IsCancelled        bool           `json:"is_cancelled"`
 	CancellationReason sql.NullString `json:"cancellation_reason"`
@@ -475,6 +499,7 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 		arg.EndAt,
 		arg.LocationID,
 		arg.ProgramID,
+		arg.CourtID,
 		arg.TeamID,
 		arg.IsCancelled,
 		arg.CancellationReason,
@@ -497,6 +522,7 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 		&i.UpdatedAt,
 		&i.IsDateTimeModified,
 		&i.RecurrenceID,
+		&i.CourtID,
 	)
 	return i, err
 }

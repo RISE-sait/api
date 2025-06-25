@@ -129,6 +129,7 @@ func (r *Repository) UpdateGame(ctx context.Context, value values.UpdateGameValu
 		StartTime:  value.StartTime,
 		EndTime:    toNullTime(value.EndTime),
 		LocationID: value.LocationID,
+		CourtID:    uuid.NullUUID{UUID: value.CourtID, Valid: value.CourtID != uuid.Nil},
 		Status:     toNullString(value.Status),
 	}
 
@@ -321,6 +322,7 @@ func (r *Repository) CreateGame(ctx context.Context, details values.CreateGameVa
 		StartTime:  details.StartTime,
 		EndTime:    toNullTime(details.EndTime),
 		LocationID: details.LocationID,
+		CourtID:    uuid.NullUUID{UUID: details.CourtID, Valid: details.CourtID != uuid.Nil},
 		Status:     toNullString(details.Status),
 	}
 

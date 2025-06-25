@@ -371,6 +371,20 @@ type AuditStaffActivityLog struct {
 	CreatedAt           time.Time `json:"created_at"`
 }
 
+type Discount struct {
+	ID              uuid.UUID      `json:"id"`
+	Name            string         `json:"name"`
+	Description     sql.NullString `json:"description"`
+	DiscountPercent int32          `json:"discount_percent"`
+	IsUseUnlimited  bool           `json:"is_use_unlimited"`
+	UsePerClient    sql.NullInt32  `json:"use_per_client"`
+	IsActive        bool           `json:"is_active"`
+	ValidFrom       time.Time      `json:"valid_from"`
+	ValidTo         sql.NullTime   `json:"valid_to"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+}
+
 type EventsAttendance struct {
 	ID          uuid.UUID    `json:"id"`
 	EventID     uuid.UUID    `json:"event_id"`
@@ -405,6 +419,7 @@ type EventsEvent struct {
 	UpdatedAt          time.Time      `json:"updated_at"`
 	IsDateTimeModified bool           `json:"is_date_time_modified"`
 	RecurrenceID       uuid.NullUUID  `json:"recurrence_id"`
+	CourtID            uuid.NullUUID  `json:"court_id"`
 }
 
 type EventsStaff struct {
@@ -424,6 +439,7 @@ type GameGame struct {
 	Status     sql.NullString `json:"status"`
 	CreatedAt  sql.NullTime   `json:"created_at"`
 	UpdatedAt  sql.NullTime   `json:"updated_at"`
+	CourtID    uuid.NullUUID  `json:"court_id"`
 }
 
 type HaircutBarberService struct {
@@ -455,12 +471,26 @@ type HaircutHaircutService struct {
 	UpdatedAt     time.Time      `json:"updated_at"`
 }
 
+type LocationCourt struct {
+	ID         uuid.UUID `json:"id"`
+	LocationID uuid.UUID `json:"location_id"`
+	Name       string    `json:"name"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
 type LocationLocation struct {
 	ID        uuid.UUID `json:"id"`
 	Name      string    `json:"name"`
 	Address   string    `json:"address"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type MembershipDiscountRestrictedMembershipPlan struct {
+	DiscountID       uuid.UUID `json:"discount_id"`
+	MembershipPlanID uuid.UUID `json:"membership_plan_id"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 type MembershipMembership struct {
@@ -484,6 +514,23 @@ type MembershipMembershipPlan struct {
 	UnitAmount         sql.NullInt32  `json:"unit_amount"`
 	Currency           sql.NullString `json:"currency"`
 	Interval           sql.NullString `json:"interval"`
+}
+
+type PlaygroundSession struct {
+	ID         uuid.UUID `json:"id"`
+	SystemID   uuid.UUID `json:"system_id"`
+	CustomerID uuid.UUID `json:"customer_id"`
+	StartTime  time.Time `json:"start_time"`
+	EndTime    time.Time `json:"end_time"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+type PlaygroundSystem struct {
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type ProgramCustomerEnrollment struct {
@@ -560,6 +607,13 @@ type UsersCustomerCredit struct {
 	Credits    int32     `json:"credits"`
 }
 
+type UsersCustomerDiscountUsage struct {
+	CustomerID uuid.UUID `json:"customer_id"`
+	DiscountID uuid.UUID `json:"discount_id"`
+	UsageCount int32     `json:"usage_count"`
+	LastUsedAt time.Time `json:"last_used_at"`
+}
+
 type UsersCustomerMembershipPlan struct {
 	ID               uuid.UUID                  `json:"id"`
 	CustomerID       uuid.UUID                  `json:"customer_id"`
@@ -569,6 +623,7 @@ type UsersCustomerMembershipPlan struct {
 	Status           MembershipMembershipStatus `json:"status"`
 	CreatedAt        time.Time                  `json:"created_at"`
 	UpdatedAt        time.Time                  `json:"updated_at"`
+	PhotoUrl         sql.NullString             `json:"photo_url"`
 }
 
 type UsersUser struct {

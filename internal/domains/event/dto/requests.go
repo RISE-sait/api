@@ -21,6 +21,7 @@ type RecurrenceRequestDto struct {
 	EventEndTime      string    `json:"event_end_at" validate:"required" example:"23:00:00+00:00"`
 	ProgramID         uuid.UUID `json:"program_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
 	LocationID        uuid.UUID `json:"location_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
+	CourtId 		 uuid.UUID `json:"court_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
 	TeamID            uuid.UUID `json:"team_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
 }
 
@@ -30,6 +31,7 @@ type EventRequestDto struct {
 	EndAt      string    `json:"end_at" validate:"required" example:"2023-10-05T07:00:00Z"`
 	ProgramID  uuid.UUID `json:"program_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
 	LocationID uuid.UUID `json:"location_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
+	CourtID    uuid.UUID `json:"court_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a111"`
 	TeamID     uuid.UUID `json:"team_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
 }
 
@@ -76,6 +78,7 @@ func (dto RecurrenceRequestDto) ToCreateRecurrenceValues(creator uuid.UUID) (val
 		BaseRecurrenceValues: recurrence,
 		TeamID:               dto.TeamID,
 		LocationID:           dto.LocationID,
+		CourtID:             dto.CourtId,
 		ProgramID:            dto.ProgramID,
 	}
 
@@ -94,6 +97,7 @@ func (dto RecurrenceRequestDto) ToUpdateRecurrenceValues(updater, recurrenceID u
 		ID:                   recurrenceID,
 		TeamID:               dto.TeamID,
 		LocationID:           dto.LocationID,
+		CourtID:             dto.CourtId,
 		ProgramID:            dto.ProgramID,
 	}
 
@@ -177,6 +181,7 @@ func (dto EventRequestDto) ToCreateEventValues(creator uuid.UUID) (values.Create
 			EndAt:      endAt,
 			ProgramID:  dto.ProgramID,
 			LocationID: dto.LocationID,
+			CourtID:    dto.CourtID,
 			TeamID:     dto.TeamID,
 		},
 	}
@@ -203,6 +208,7 @@ func (dto EventRequestDto) ToUpdateEventValues(idStr string, updater uuid.UUID) 
 			EndAt:      endAt,
 			ProgramID:  dto.ProgramID,
 			LocationID: dto.LocationID,
+			CourtID:    dto.CourtID,
 			TeamID:     dto.TeamID,
 		},
 	}

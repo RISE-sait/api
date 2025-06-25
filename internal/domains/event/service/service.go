@@ -75,6 +75,7 @@ func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurre
 		details.CreatedBy,
 		details.ProgramID,
 		details.LocationID,
+		details.CourtID,
 		details.TeamID,
 		details.DayOfWeek,
 	)
@@ -163,6 +164,7 @@ func (s *Service) UpdateRecurringEvents(ctx context.Context, details values.Upda
 			details.UpdatedBy,
 			details.ProgramID,
 			details.LocationID,
+			details.CourtID,
 			details.TeamID,
 			details.DayOfWeek,
 		)
@@ -242,7 +244,7 @@ func (s *Service) GetEventsRecurrences(ctx context.Context, filter values.GetEve
 func generateEventsFromRecurrence(
 	firstOccurrence, lastOccurrence time.Time,
 	startTimeStr, endTimeStr string,
-	mutater, programID, locationID, teamID uuid.UUID,
+	mutater, programID, locationID, courtID, teamID uuid.UUID,
 	day time.Weekday,
 ) ([]values.CreateEventValues, *errLib.CommonError) {
 	const timeLayout = "15:04:05Z07:00"
@@ -284,6 +286,7 @@ func generateEventsFromRecurrence(
 				EndAt:      end,
 				ProgramID:  programID,
 				LocationID: locationID,
+				CourtID:    courtID,
 				TeamID:     teamID,
 			},
 		})

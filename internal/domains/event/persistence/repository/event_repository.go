@@ -77,7 +77,7 @@ var constraintErrors = map[string]struct {
 
 func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []values.CreateEventValues) *errLib.CommonError {
 	var (
-		locationIDs, programIDs, teamIDs, createdByIds, recurrenceIds []uuid.UUID
+		locationIDs, programIDs, courtIDs,teamIDs, createdByIds, recurrenceIds []uuid.UUID
 		startAtArray, endAtArray                                      []time.Time
 		isCancelledArray, isDateTimeModifiedArray                     []bool
 	)
@@ -91,6 +91,7 @@ func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []valu
 	for _, event := range eventDetails {
 		locationIDs = append(locationIDs, event.LocationID)
 		programIDs = append(programIDs, event.ProgramID)
+		courtIDs = append(courtIDs, event.CourtID)
 		recurrenceIds = append(recurrenceIds, recurrenceId)
 		teamIDs = append(teamIDs, event.TeamID)
 		startAtArray = append(startAtArray, event.StartAt)
@@ -103,6 +104,7 @@ func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []valu
 	dbParams := db.CreateEventsParams{
 		LocationIds:             locationIDs,
 		ProgramIds:              programIDs,
+		CourtIds:                courtIDs,
 		TeamIds:                 teamIDs,
 		StartAtArray:            startAtArray,
 		EndAtArray:              endAtArray,
@@ -334,6 +336,10 @@ func (r *EventsRepository) UpdateEvent(ctx context.Context, event values.UpdateE
 		UpdatedBy:  userID,
 		ID:         event.ID,
 		LocationID: event.LocationID,
+		CourtID: uuid.NullUUID{
+			UUID:  event.CourtID,
+			Valid: event.CourtID != uuid.Nil,
+		},
 		TeamID: uuid.NullUUID{
 			UUID:  event.TeamID,
 			Valid: event.TeamID != uuid.Nil,

@@ -53,7 +53,6 @@ SELECT DISTINCT e.*,
                 p."type"           AS program_type,
                 l.name             AS location_name,
                 l.address          AS location_address,
-                c.id               AS court_id,
                 c.name             AS court_name,
                 t.name             as team_name
 FROM events.events e
@@ -124,11 +123,7 @@ SELECT e.*,
        p."type"           AS program_type,
        l.name             AS location_name,
        l.address          AS location_address,
-       c.id               AS court_id,
        c.name             AS court_name,
-
-       -- Team field (added missing team reference)
-       t.id               AS team_id,
        t.name             AS team_name
 FROM events.events e
          JOIN users.users creator ON creator.id = e.created_by

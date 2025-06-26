@@ -1,10 +1,10 @@
 package hubspot
 
-
 import (
-	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/joho/godotenv"
 )
@@ -52,8 +52,7 @@ func TestGetUserByNonExistentID(t *testing.T) {
 }
 
 func loadEnv(t *testing.T) {
-
 	if err := godotenv.Load("../../../config/.env"); err != nil {
-		t.Fatalf("Error loading .env file: %v", err)
+		t.Skipf("Skipping test: .env file not found: %v", err)
 	}
 }

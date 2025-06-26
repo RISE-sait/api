@@ -19,6 +19,7 @@ type RequestDto struct {
 	StartTime  time.Time  `json:"start_time" validate:"required"`                       // Required start time of the game
 	EndTime    *time.Time `json:"end_time"`                                             // Optional end time of the game
 	LocationID uuid.UUID  `json:"location_id" validate:"required"`                      // ID of the location where the game is played
+	CourtID    uuid.UUID  `json:"court_id"`                                             // ID of the court where the game is played
 	Status     string     `json:"status" validate:"oneof=scheduled completed canceled"` // Game status must be one of the allowed values
 }
 
@@ -44,6 +45,7 @@ func (dto *RequestDto) ToCreateGameValue() (values.CreateGameValue, *errLib.Comm
 		StartTime:  dto.StartTime,
 		EndTime:    dto.EndTime,
 		LocationID: dto.LocationID,
+		CourtID:    dto.CourtID,
 		Status:     dto.Status,
 	}
 
@@ -81,6 +83,7 @@ func (dto *RequestDto) ToUpdateGameValue(idStr string) (values.UpdateGameValue, 
 			StartTime:  dto.StartTime,
 			EndTime:    dto.EndTime,
 			LocationID: dto.LocationID,
+			CourtID:    dto.CourtID,
 			Status:     dto.Status,
 		},
 	}

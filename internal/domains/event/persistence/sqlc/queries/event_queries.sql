@@ -1,6 +1,7 @@
 -- name: CreateEvents :execrows
 WITH unnested_data AS (SELECT unnest(sqlc.arg('location_ids')::uuid[])                AS location_id,
                               unnest(sqlc.arg('program_ids')::uuid[])                 AS program_id,
+                              unnest(sqlc.arg('court_ids')::uuid[]) AS court_id,
                               unnest(sqlc.arg('team_ids')::uuid[])                    AS team_id,
                               unnest(sqlc.arg('start_at_array')::timestamptz[])       AS start_at,
                               unnest(sqlc.arg('end_at_array')::timestamptz[])         AS end_at,
@@ -11,6 +12,7 @@ WITH unnested_data AS (SELECT unnest(sqlc.arg('location_ids')::uuid[])          
                               unnest(sqlc.arg('cancellation_reasons')::text[])        AS cancellation_reason)
 INSERT
 INTO events.events (location_id,
+                    court_id,
                     program_id,
                     team_id,
                     start_at,
@@ -22,6 +24,7 @@ INTO events.events (location_id,
                     is_cancelled,
                     cancellation_reason)
 SELECT location_id,
+         court_id,
        program_id,
        NULLIF(team_id, '00000000-0000-0000-0000-000000000000'::uuid),
        start_at,
@@ -50,10 +53,12 @@ SELECT DISTINCT e.*,
                 p."type"           AS program_type,
                 l.name             AS location_name,
                 l.address          AS location_address,
+                c.name             AS court_name,
                 t.name             as team_name
 FROM events.events e
          JOIN program.programs p ON e.program_id = p.id
          JOIN location.locations l ON e.location_id = l.id
+         LEFT JOIN location.courts c ON e.court_id = c.id
          LEFT JOIN events.staff es ON e.id = es.event_id
          LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
          LEFT JOIN athletic.teams t ON t.id = e.team_id
@@ -62,6 +67,7 @@ FROM events.events e
 WHERE (
           (sqlc.narg('program_id')::uuid = e.program_id OR sqlc.narg('program_id') IS NULL)
               AND (sqlc.narg('location_id')::uuid = e.location_id OR sqlc.narg('location_id') IS NULL)
+              AND (sqlc.narg('court_id')::uuid = e.court_id OR sqlc.narg('court_id') IS NULL)
               AND (sqlc.narg('after')::timestamp <= e.start_at OR sqlc.narg('after') IS NULL)
               AND (sqlc.narg('before')::timestamp >= e.end_at OR sqlc.narg('before') IS NULL)
               AND (sqlc.narg('type') = p.type OR sqlc.narg('type') IS NULL)
@@ -117,15 +123,14 @@ SELECT e.*,
        p."type"           AS program_type,
        l.name             AS location_name,
        l.address          AS location_address,
-
-       -- Team field (added missing team reference)
-       t.id               AS team_id,
+       c.name             AS court_name,
        t.name             AS team_name
 FROM events.events e
          JOIN users.users creator ON creator.id = e.created_by
          JOIN users.users updater ON updater.id = e.updated_by
          JOIN program.programs p ON e.program_id = p.id
          JOIN location.locations l ON e.location_id = l.id
+         LEFT JOIN location.courts c ON e.court_id = c.id
          LEFT JOIN athletic.teams t ON t.id = e.team_id
 WHERE e.id = $1;
 
@@ -135,15 +140,16 @@ SET start_at              = $1,
     end_at                = $2,
     location_id           = $3,
     program_id            = $4,
-    team_id               = $5,
-    is_cancelled          = $6,
-    cancellation_reason   = $7,
+    court_id              = $5,
+    team_id               = $6,
+    is_cancelled          = $7,
+    cancellation_reason   = $8,
     updated_at            = current_timestamp,
     updated_by            = sqlc.arg('updated_by')::uuid,
     is_date_time_modified = (
         recurrence_id IS NOT NULL
         )
-WHERE id = $8
+WHERE id = $9
 RETURNING *;
 
 -- name: DeleteEventsByIds :exec

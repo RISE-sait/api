@@ -18,9 +18,9 @@ const createGame = `-- name: CreateGame :exec
 
 INSERT INTO game.games (
   id, home_team_id, away_team_id, home_score, away_score, start_time,
-  end_time, location_id, status
+  end_time,court_id, location_id, status
 ) VALUES (
-  gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8
+  gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9
 )
 `
 
@@ -31,6 +31,7 @@ type CreateGameParams struct {
 	AwayScore  sql.NullInt32  `json:"away_score"`
 	StartTime  time.Time      `json:"start_time"`
 	EndTime    sql.NullTime   `json:"end_time"`
+	CourtID    uuid.NullUUID  `json:"court_id"`
 	LocationID uuid.UUID      `json:"location_id"`
 	Status     sql.NullString `json:"status"`
 }
@@ -51,6 +52,7 @@ func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) error {
 		arg.AwayScore,
 		arg.StartTime,
 		arg.EndTime,
+		arg.CourtID,
 		arg.LocationID,
 		arg.Status,
 	)
@@ -84,12 +86,17 @@ SELECT
     g.end_time,
     g.location_id,
     loc.name AS location_name,
+    g.court_id,
+    c.name AS court_name,
+    g.court_id,
+    c.name AS court_name,
     g.status,
     g.created_at,
     g.updated_at
 FROM game.games g
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
+JOIN location.courts c ON g.court_id = c.id
 JOIN location.locations loc ON g.location_id = loc.id
 WHERE g.id = $1
 `
@@ -106,6 +113,10 @@ type GetGameByIdRow struct {
 	EndTime      sql.NullTime   `json:"end_time"`
 	LocationID   uuid.UUID      `json:"location_id"`
 	LocationName string         `json:"location_name"`
+	CourtID      uuid.NullUUID  `json:"court_id"`
+	CourtName    string         `json:"court_name"`
+	CourtID_2    uuid.NullUUID  `json:"court_id_2"`
+	CourtName_2  string         `json:"court_name_2"`
 	Status       sql.NullString `json:"status"`
 	CreatedAt    sql.NullTime   `json:"created_at"`
 	UpdatedAt    sql.NullTime   `json:"updated_at"`
@@ -127,6 +138,10 @@ func (q *Queries) GetGameById(ctx context.Context, id uuid.UUID) (GetGameByIdRow
 		&i.EndTime,
 		&i.LocationID,
 		&i.LocationName,
+		&i.CourtID,
+		&i.CourtName,
+		&i.CourtID_2,
+		&i.CourtName_2,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -153,16 +168,21 @@ SELECT
     g.created_at,
     g.updated_at
 FROM game.games g
+JOIN location.courts c ON g.court_id = c.id
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 JOIN location.locations loc ON g.location_id = loc.id
+WHERE ($1::uuid IS NULL OR g.court_id = $1)
+  AND ($2::uuid IS NULL OR g.location_id = $2)
 ORDER BY g.start_time ASC
-LIMIT $1 OFFSET $2
+LIMIT $4 OFFSET $3
 `
 
 type GetGamesParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	CourtID    uuid.UUID `json:"court_id"`
+	LocationID uuid.UUID `json:"location_id"`
+	Offset     int32     `json:"offset"`
+	Limit      int32     `json:"limit"`
 }
 
 type GetGamesRow struct {
@@ -186,7 +206,12 @@ type GetGamesRow struct {
 
 // Retrieves all games, with team and location names.
 func (q *Queries) GetGames(ctx context.Context, arg GetGamesParams) ([]GetGamesRow, error) {
-	rows, err := q.db.QueryContext(ctx, getGames, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, getGames,
+		arg.CourtID,
+		arg.LocationID,
+		arg.Offset,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -510,7 +535,8 @@ SET home_score = $2,
     start_time = $4,
     end_time = $5,
     location_id = $6,
-    status = $7,
+    court_id = $7,
+    status = $8,
     updated_at = now()
 WHERE id = $1
 `
@@ -522,6 +548,7 @@ type UpdateGameParams struct {
 	StartTime  time.Time      `json:"start_time"`
 	EndTime    sql.NullTime   `json:"end_time"`
 	LocationID uuid.UUID      `json:"location_id"`
+	CourtID    uuid.NullUUID  `json:"court_id"`
 	Status     sql.NullString `json:"status"`
 }
 
@@ -534,6 +561,7 @@ func (q *Queries) UpdateGame(ctx context.Context, arg UpdateGameParams) (int64, 
 		arg.StartTime,
 		arg.EndTime,
 		arg.LocationID,
+		arg.CourtID,
 		arg.Status,
 	)
 	if err != nil {

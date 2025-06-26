@@ -129,6 +129,7 @@ func (r *Repository) UpdateGame(ctx context.Context, value values.UpdateGameValu
 		StartTime:  value.StartTime,
 		EndTime:    toNullTime(value.EndTime),
 		LocationID: value.LocationID,
+		CourtID:    uuid.NullUUID{UUID: value.CourtID, Valid: value.CourtID != uuid.Nil},
 		Status:     toNullString(value.Status),
 	}
 
@@ -144,10 +145,12 @@ func (r *Repository) UpdateGame(ctx context.Context, value values.UpdateGameValu
 }
 
 // GetGames fetches all games and maps them to domain values.
-func (r *Repository) GetGames(ctx context.Context, limit, offset int32) ([]values.ReadGameValue, *errLib.CommonError) {
+func (r *Repository) GetGames(ctx context.Context, filter values.GetGamesFilter) ([]values.ReadGameValue, *errLib.CommonError) {
 	params := db.GetGamesParams{
-		Limit:  limit,
-		Offset: offset,
+		CourtID:    filter.CourtID,
+		LocationID: filter.LocationID,
+		Limit:      filter.Limit,
+		Offset:     filter.Offset,
 	}
 
 	dbGames, err := r.Queries.GetGames(ctx, params)
@@ -210,6 +213,7 @@ func (r *Repository) GetPastGames(ctx context.Context, limit, offset int32) ([]v
 	}
 	return mapDbPastGamesToValues(dbGames), nil
 }
+
 // GetGamesByTeams fetches games involving any of the provided team IDs.
 func (r *Repository) GetGamesByTeams(ctx context.Context, teamIDs []uuid.UUID, limit, offset int32) ([]values.ReadGameValue, *errLib.CommonError) {
 	params := db.GetGamesByTeamsParams{
@@ -321,6 +325,7 @@ func (r *Repository) CreateGame(ctx context.Context, details values.CreateGameVa
 		StartTime:  details.StartTime,
 		EndTime:    toNullTime(details.EndTime),
 		LocationID: details.LocationID,
+		CourtID:    uuid.NullUUID{UUID: details.CourtID, Valid: details.CourtID != uuid.Nil},
 		Status:     toNullString(details.Status),
 	}
 

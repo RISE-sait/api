@@ -61,6 +61,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		FilterKeyLocationID    FilterKey = "location_id"
 		FilterKeyCreatedBy     FilterKey = "created_by"
 		FilterKeyUpdatedBy     FilterKey = "updated_by"
+		FilterKeyCourtID		FilterKey = "court_id"
 	)
 
 	query := r.URL.Query()
@@ -148,6 +149,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		FilterKeyLocationID,
 		FilterKeyCreatedBy,
 		FilterKeyUpdatedBy,
+		FilterKeyCourtID,
 	}
 
 	for _, filterKey := range uuidFilterFields {
@@ -180,7 +182,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		(len(uuidFilters) == 0 && programType == "") {
 		responseHandlers.RespondWithError(w,
 			errLib.New(`at least one of (before and after) or 
-(program_id, participant_id, location_id, team_id, program_type, created_by, updated_by), must be provided`, http.StatusBadRequest))
+(program_id, participant_id, location_id, team_id, program_type, court_id created_by, updated_by), must be provided`, http.StatusBadRequest))
 		return
 	}
 
@@ -188,6 +190,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		ProgramType:   programType,
 		ProgramID:     uuidFilters[string(FilterKeyProgramID)],
 		LocationID:    uuidFilters[string(FilterKeyLocationID)],
+		CourtID:	   uuidFilters[string(FilterKeyCourtID)],
 		ParticipantID: uuidFilters[string(FilterKeyParticipantID)],
 		TeamID:        uuidFilters[string(FilterKeyTeamID)],
 		CreatedBy:     uuidFilters[string(FilterKeyCreatedBy)],

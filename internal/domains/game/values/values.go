@@ -16,6 +16,7 @@ type CreateGameValue struct {
 	StartTime  time.Time  // Start time of the game (required)
 	EndTime    *time.Time // Optional end time of the game
 	LocationID uuid.UUID  // ID of the location where the game is held
+	CourtID    uuid.UUID  // ID of the court where the game is played
 	Status     string     // Status of the game (scheduled, completed, canceled)
 }
 
@@ -42,7 +43,17 @@ type ReadGameValue struct {
 	EndTime         *time.Time // End time (nullable)
 	LocationID      uuid.UUID  // UUID of the game location
 	LocationName    string     // Name of the location
+	CourtID         uuid.UUID  // UUID of the game court
+	CourtName       string     // Name of the court
 	Status          string     // Game status
 	CreatedAt       *time.Time // Time the record was created (nullable)
 	UpdatedAt       *time.Time // Time the record was last updated (nullable)
+}
+
+// GetGamesFilter defines optional filters for querying games.
+type GetGamesFilter struct {
+	CourtID    uuid.UUID
+	LocationID uuid.UUID
+	Limit      int32
+	Offset     int32
 }

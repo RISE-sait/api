@@ -7,6 +7,7 @@ import (
 	enrollmentDb "api/internal/domains/enrollment/persistence/sqlc/generated"
 	eventDb "api/internal/domains/event/persistence/sqlc/generated"
 	gameDb "api/internal/domains/game/persistence/sqlc/generated"
+	courtDb "api/internal/domains/court/persistence/sqlc/generated"
 	haircutEventDb "api/internal/domains/haircut/event/persistence/sqlc/generated"
 	haircutServiceDb "api/internal/domains/haircut/haircut_service/persistence/sqlc/generated"
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
@@ -55,6 +56,7 @@ type QueriesType struct {
 	OutboxDb            *outboxDb.Queries
 	StaffActivityLogsDb *staffActivityLogsDb.Queries
 	DiscountDb          *discountDb.Queries
+	CourtDb             *courtDb.Queries
 }
 
 // NewContainer initializes and returns a Container with database, queries, HubSpot, Firebase, and Square services.
@@ -117,6 +119,7 @@ func initializeQueries(db *sql.DB) *QueriesType {
 		OutboxDb:            outboxDb.New(db),
 		StaffActivityLogsDb: staffActivityLogsDb.New(db),
 		DiscountDb:          discountDb.New(db),
+		CourtDb:             courtDb.New(db),
 	}
 }
 

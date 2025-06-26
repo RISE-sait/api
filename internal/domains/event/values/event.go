@@ -13,6 +13,7 @@ type EventDetails struct {
 	EndAt      time.Time
 	ProgramID  uuid.UUID
 	LocationID uuid.UUID
+	CourtID    uuid.UUID
 	TeamID     uuid.UUID
 }
 
@@ -91,6 +92,7 @@ type GetEventsFilter struct {
 	ProgramType   string
 	ProgramID     uuid.UUID
 	LocationID    uuid.UUID
+	CourtID       uuid.UUID
 	ParticipantID uuid.UUID
 	TeamID        uuid.UUID
 	CreatedBy     uuid.UUID

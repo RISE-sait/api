@@ -47,8 +47,8 @@ func (s *Service) GetGameById(ctx context.Context, id uuid.UUID) (values.ReadGam
 }
 
 // GetGames retrieves a list of all games from the database.
-func (s *Service) GetGames(ctx context.Context, limit, offset int32) ([]values.ReadGameValue, *errLib.CommonError) {
-	return s.repo.GetGames(ctx, limit, offset)
+func (s *Service) GetGames(ctx context.Context, filter values.GetGamesFilter) ([]values.ReadGameValue, *errLib.CommonError) {
+	return s.repo.GetGames(ctx, filter)
 }
 
 // GetUpcomingGames retrieves a list of upcoming games.

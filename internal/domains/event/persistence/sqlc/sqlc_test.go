@@ -12,10 +12,11 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/stretchr/testify/require"
-
+	courtDb "api/internal/domains/court/persistence/sqlc/generated"
 	eventDb "api/internal/domains/event/persistence/sqlc/generated"
 	programDb "api/internal/domains/program/persistence/sqlc/generated"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetNonExistingEvent(t *testing.T) {
@@ -285,4 +286,65 @@ func TestDeleteEvent(t *testing.T) {
 
 	require.Nil(t, err)
 	require.Equal(t, 0, len(retrievedEvents))
+}
+func TestGetEventsByCourt(t *testing.T) {
+	db, cleanup := dbTestUtils.SetupTestDbQueries(t, "../../../../../db/migrations")
+
+	identityQueries := identityDb.New(db)
+	eventQueries := eventDb.New(db)
+	programQueries := programDb.New(db)
+	locationQueries := locationDb.New(db)
+	courtQueries := courtDb.New(db)
+
+	defer cleanup()
+
+	creator, err := identityQueries.CreateUser(context.Background(), identityDb.CreateUserParams{
+		FirstName: "John",
+		LastName:  "Doe",
+	})
+	require.NoError(t, err)
+
+	createdProgram, err := programQueries.CreateProgram(context.Background(), programDb.CreateProgramParams{
+		Name:  "Test Program",
+		Level: "beginner",
+		Type:  programDb.ProgramProgramTypeCourse,
+	})
+	require.NoError(t, err)
+
+	createdLocation, err := locationQueries.CreateLocation(context.Background(), locationDb.CreateLocationParams{
+		Name:    "Main Court",
+		Address: "123 Street",
+	})
+	require.NoError(t, err)
+
+	court1, err := courtQueries.CreateCourt(context.Background(), courtDb.CreateCourtParams{LocationID: createdLocation.ID, Name: "Court A"})
+	require.NoError(t, err)
+	court2, err := courtQueries.CreateCourt(context.Background(), courtDb.CreateCourtParams{LocationID: createdLocation.ID, Name: "Court B"})
+	require.NoError(t, err)
+
+	now := time.Now().Truncate(time.Second)
+
+	createEventsParams := eventDb.CreateEventsParams{
+		StartAtArray:            []time.Time{now, now.Add(time.Hour)},
+		EndAtArray:              []time.Time{now.Add(time.Hour), now.Add(2 * time.Hour)},
+		LocationIds:             []uuid.UUID{createdLocation.ID, createdLocation.ID},
+		ProgramIds:              []uuid.UUID{createdProgram.ID, createdProgram.ID},
+		CourtIds:                []uuid.UUID{court1.ID, court2.ID},
+		TeamIds:                 []uuid.UUID{uuid.Nil, uuid.Nil},
+		CreatedByIds:            []uuid.UUID{creator.ID, creator.ID},
+		RecurrenceIds:           []uuid.UUID{uuid.Nil, uuid.Nil},
+		IsCancelledArray:        []bool{false, false},
+		IsDateTimeModifiedArray: []bool{false, false},
+		CancellationReasons:     []string{"", ""},
+	}
+
+	_, err = eventQueries.CreateEvents(context.Background(), createEventsParams)
+	require.NoError(t, err)
+
+	events, err := eventQueries.GetEvents(context.Background(), eventDb.GetEventsParams{
+		CourtID: uuid.NullUUID{UUID: court1.ID, Valid: true},
+	})
+	require.NoError(t, err)
+	require.Len(t, events, 1)
+	require.Equal(t, court1.ID, events[0].CourtID.UUID)
 }

@@ -14,6 +14,7 @@ import (
 	contextUtils "api/utils/context"
 
 	"github.com/go-chi/chi"
+	"github.com/google/uuid"
 )
 
 type Handler struct {
@@ -99,8 +100,9 @@ func (h *Handler) GetGameById(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /games [get]
 func (h *Handler) GetGames(w http.ResponseWriter, r *http.Request) {
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	query := r.URL.Query()
+	page, _ := strconv.Atoi(query.Get("page"))
+	limit, _ := strconv.Atoi(query.Get("limit"))
 
 	if page < 1 {
 		page = 1
@@ -110,17 +112,41 @@ func (h *Handler) GetGames(w http.ResponseWriter, r *http.Request) {
 	}
 	offset := (page - 1) * limit
 
-	filter := r.URL.Query().Get("filter")
-	var games []values.ReadGameValue
-	var err *errLib.CommonError
+	filter := query.Get("filter")
 
+	var courtID, locationID uuid.UUID
+	if val := query.Get("court_id"); val != "" {
+		id, err := validators.ParseUUID(val)
+		if err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		}
+		courtID = id
+	}
+	if val := query.Get("location_id"); val != "" {
+		id, err := validators.ParseUUID(val)
+		if err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		}
+		locationID = id
+	}
+	var games []values.ReadGameValue
+
+	var err *errLib.CommonError
+		gameFilter := values.GetGamesFilter{
+		CourtID:    courtID,
+		LocationID: locationID,
+		Limit:      int32(limit),
+		Offset:     int32(offset),
+	}
 	switch filter {
 	case "upcoming":
 		games, err = h.Service.GetUpcomingGames(r.Context(), int32(limit), int32(offset))
 	case "past":
 		games, err = h.Service.GetPastGames(r.Context(), int32(limit), int32(offset))
 	default:
-		games, err = h.Service.GetGames(r.Context(), int32(limit), int32(offset))
+		games, err = h.Service.GetGames(r.Context(), gameFilter)
 	}
 
 	if err != nil {

@@ -339,22 +339,24 @@ FROM events.events e
 WHERE (
           ($1::uuid = e.program_id OR $1 IS NULL)
               AND ($2::uuid = e.location_id OR $2 IS NULL)
-              AND ($3::timestamp <= e.start_at OR $3 IS NULL)
-              AND ($4::timestamp >= e.end_at OR $4 IS NULL)
-              AND ($5 = p.type OR $5 IS NULL)
-              AND ($6::uuid IS NULL OR ce.customer_id = $6::uuid OR
-                   es.staff_id = $6::uuid)
-              AND ($7::uuid IS NULL OR e.team_id = $7)
-              AND ($8::uuid IS NULL OR e.created_by = $8)
-              AND ($9::uuid IS NULL OR e.updated_by = $9)
-              AND ($10::boolean IS NULL OR e.is_cancelled = $10)
+              AND ($3::uuid = e.court_id OR $3 IS NULL)
+              AND ($4::timestamp <= e.start_at OR $4 IS NULL)
+              AND ($5::timestamp >= e.end_at OR $5 IS NULL)
+              AND ($6 = p.type OR $6 IS NULL)
+              AND ($7::uuid IS NULL OR ce.customer_id = $7::uuid OR
+                   es.staff_id = $7::uuid)
+              AND ($8::uuid IS NULL OR e.team_id = $8)
+              AND ($9::uuid IS NULL OR e.created_by = $9)
+              AND ($10::uuid IS NULL OR e.updated_by = $10)
+              AND ($11::boolean IS NULL OR e.is_cancelled = $11)
           )
-          OFFSET $11 LIMIT $12
+          OFFSET $12 LIMIT $13
 `
 
 type GetEventsParams struct {
 	ProgramID        uuid.NullUUID          `json:"program_id"`
 	LocationID       uuid.NullUUID          `json:"location_id"`
+	CourtID          uuid.NullUUID          `json:"court_id"`
 	After            sql.NullTime           `json:"after"`
 	Before           sql.NullTime           `json:"before"`
 	Type             NullProgramProgramType `json:"type"`
@@ -401,6 +403,7 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 	rows, err := q.db.QueryContext(ctx, getEvents,
 		arg.ProgramID,
 		arg.LocationID,
+		arg.CourtID,
 		arg.After,
 		arg.Before,
 		arg.Type,

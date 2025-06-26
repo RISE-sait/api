@@ -68,6 +68,7 @@ FROM events.events e
 WHERE (
           (sqlc.narg('program_id')::uuid = e.program_id OR sqlc.narg('program_id') IS NULL)
               AND (sqlc.narg('location_id')::uuid = e.location_id OR sqlc.narg('location_id') IS NULL)
+              AND (sqlc.narg('court_id')::uuid = e.court_id OR sqlc.narg('court_id') IS NULL)
               AND (sqlc.narg('after')::timestamp <= e.start_at OR sqlc.narg('after') IS NULL)
               AND (sqlc.narg('before')::timestamp >= e.end_at OR sqlc.narg('before') IS NULL)
               AND (sqlc.narg('type') = p.type OR sqlc.narg('type') IS NULL)

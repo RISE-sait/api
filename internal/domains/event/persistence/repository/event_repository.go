@@ -77,7 +77,7 @@ var constraintErrors = map[string]struct {
 
 func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []values.CreateEventValues) *errLib.CommonError {
 	var (
-		locationIDs, programIDs, courtIDs,teamIDs, createdByIds, recurrenceIds []uuid.UUID
+		locationIDs, programIDs, courtIDs, teamIDs, createdByIds, recurrenceIds []uuid.UUID
 		startAtArray, endAtArray                                      []time.Time
 		isCancelledArray, isDateTimeModifiedArray                     []bool
 	)
@@ -235,6 +235,7 @@ func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEvent
 	param := db.GetEventsParams{
 		ProgramID:     uuid.NullUUID{UUID: filter.ProgramID, Valid: filter.ProgramID != uuid.Nil},
 		LocationID:    uuid.NullUUID{UUID: filter.LocationID, Valid: filter.LocationID != uuid.Nil},
+		CourtID:       uuid.NullUUID{UUID: filter.CourtID, Valid: filter.CourtID != uuid.Nil},
 		Before:        sql.NullTime{Time: filter.Before, Valid: !filter.Before.IsZero()},
 		After:         sql.NullTime{Time: filter.After, Valid: !filter.After.IsZero()},
 		ParticipantID: uuid.NullUUID{UUID: filter.ParticipantID, Valid: filter.ParticipantID != uuid.Nil},

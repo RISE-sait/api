@@ -172,13 +172,17 @@ JOIN location.courts c ON g.court_id = c.id
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 JOIN location.locations loc ON g.location_id = loc.id
+WHERE ($1::uuid IS NULL OR g.court_id = $1)
+  AND ($2::uuid IS NULL OR g.location_id = $2)
 ORDER BY g.start_time ASC
-LIMIT $1 OFFSET $2
+LIMIT $4 OFFSET $3
 `
 
 type GetGamesParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	CourtID    uuid.UUID `json:"court_id"`
+	LocationID uuid.UUID `json:"location_id"`
+	Offset     int32     `json:"offset"`
+	Limit      int32     `json:"limit"`
 }
 
 type GetGamesRow struct {
@@ -202,7 +206,12 @@ type GetGamesRow struct {
 
 // Retrieves all games, with team and location names.
 func (q *Queries) GetGames(ctx context.Context, arg GetGamesParams) ([]GetGamesRow, error) {
-	rows, err := q.db.QueryContext(ctx, getGames, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, getGames,
+		arg.CourtID,
+		arg.LocationID,
+		arg.Offset,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}

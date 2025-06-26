@@ -92,6 +92,7 @@ type GetEventsFilter struct {
 	ProgramType   string
 	ProgramID     uuid.UUID
 	LocationID    uuid.UUID
+	CourtID       uuid.UUID
 	ParticipantID uuid.UUID
 	TeamID        uuid.UUID
 	CreatedBy     uuid.UUID

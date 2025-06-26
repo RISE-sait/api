@@ -49,3 +49,11 @@ type ReadGameValue struct {
 	CreatedAt       *time.Time // Time the record was created (nullable)
 	UpdatedAt       *time.Time // Time the record was last updated (nullable)
 }
+
+// GetGamesFilter defines optional filters for querying games.
+type GetGamesFilter struct {
+	CourtID    uuid.UUID
+	LocationID uuid.UUID
+	Limit      int32
+	Offset     int32
+}

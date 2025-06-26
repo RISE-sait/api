@@ -67,8 +67,11 @@ JOIN location.courts c ON g.court_id = c.id
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 JOIN location.locations loc ON g.location_id = loc.id
+WHERE (sqlc.arg('court_id')::uuid IS NULL OR g.court_id = sqlc.arg('court_id'))
+  AND (sqlc.arg('location_id')::uuid IS NULL OR g.location_id = sqlc.arg('location_id'))
 ORDER BY g.start_time ASC
-LIMIT $1 OFFSET $2;
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
+
 
 -- name: UpdateGame :execrows
 -- Updates an existing game's scores, times, location, and status.

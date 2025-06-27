@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"log"
 	"net/http"
+	"api/utils/email"
 )
 
 type ChildRegistrationService struct {
@@ -82,6 +83,10 @@ func (s *ChildRegistrationService) CreateChildAccount(
 		log.Printf("Failed to commit transaction: %v", txErr)
 		return response, errLib.New("Failed to commit transaction but event is logged", http.StatusInternalServerError)
 	}
+		if createdChild.Email != nil {
+		email.SendSignUpConfirmationEmail(*createdChild.Email, createdChild.FirstName)
+	}
+
 
 	return createdChild, nil
 

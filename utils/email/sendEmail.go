@@ -35,3 +35,18 @@ func SendEmail(to, subject, body string) *errLib.CommonError {
 
 	return nil
 }
+// SendSignUpConfirmationEmail sends a welcome message to newly registered users.
+func SendSignUpConfirmationEmail(to, firstName string) {
+	body := SignUpConfirmationBody(firstName)
+	if err := SendEmail(to, "Welcome to Rise", body); err != nil {
+		log.Println("failed to send signup email:", err.Message)
+	}
+}
+
+// SendMembershipPurchaseEmail sends a confirmation email after a membership purchase.
+func SendMembershipPurchaseEmail(to, firstName, plan string) {
+	body := MembershipPurchaseBody(firstName, plan)
+	if err := SendEmail(to, "Membership Purchase Confirmation", body); err != nil {
+		log.Println("failed to send membership email:", err.Message)
+	}
+}

@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"api/utils/email"
 
 	"github.com/google/uuid"
 )
@@ -66,6 +67,8 @@ func (s *StaffsRegistrationService) RegisterPendingStaff(
 	if err = s.StaffRepository.CreatePendingStaff(ctx, staffDetails); err != nil {
 		return err
 	}
+	
+	email.SendSignUpConfirmationEmail(staffDetails.Email, staffDetails.FirstName)
 
 	return nil
 }

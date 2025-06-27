@@ -13,22 +13,29 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/stripe/stripe-go/v81/checkout/session"
+	identityRepo "api/internal/domains/identity/persistence/repository/user"
+	membershipRepo "api/internal/domains/membership/persistence/repositories"
+	"api/utils/email"
 
+	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v81"
+	"github.com/stripe/stripe-go/v81/checkout/session"
 	"github.com/stripe/stripe-go/v81/subscription"
 )
 
 type WebhookService struct {
 	PostCheckoutRepository *repository.PostCheckoutRepository
 	EnrollmentService      *enrollment.CustomerEnrollmentService
+	UserRepo               *identityRepo.UsersRepository
+	PlansRepo              *membershipRepo.PlansRepository
 }
 
 func NewWebhookService(container *di.Container) *WebhookService {
 	return &WebhookService{
 		PostCheckoutRepository: repository.NewPostCheckoutRepository(container),
 		EnrollmentService:      enrollment.NewCustomerEnrollmentService(container),
+		UserRepo:               identityRepo.NewUserRepository(container),
+		PlansRepo:              membershipRepo.NewMembershipPlansRepository(container),
 	}
 }
 
@@ -166,14 +173,21 @@ func (s *WebhookService) handleSubscriptionCheckoutComplete(checkoutSession stri
 	}
 
 	if amtPeriods != nil {
-		return s.processSubscriptionWithEndDate(
+		if err := s.processSubscriptionWithEndDate(
 			fullSession.Subscription.ID,
 			*amtPeriods,
 			userID,
 			planID,
-		)
+		); err != nil {
+			return err
+		}
+	} else {
+		if err := s.EnrollmentService.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, time.Time{}); err != nil {
+			return err
+		}
 	}
-	return s.EnrollmentService.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, time.Time{})
+	s.sendMembershipPurchaseEmail(userID, planID)
+	return nil
 }
 
 func (s *WebhookService) getExpandedSession(sessionID string) (*stripe.CheckoutSession, *errLib.CommonError) {
@@ -224,6 +238,8 @@ func (s *WebhookService) processSubscriptionWithEndDate(subscriptionID string, t
 	if err = s.EnrollmentService.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, cancelAtDateTime); err != nil {
 		return err
 	}
+
+	s.sendMembershipPurchaseEmail(userID, planID)
 
 	return s.updateSubscriptionCancelAt(sub.ID, cancelAtUnix)
 }
@@ -292,4 +308,18 @@ func (s *WebhookService) updateSubscriptionCancelAt(subscriptionID string, cance
 		return errLib.New("Failed to set cancel date: "+err.Error(), http.StatusInternalServerError)
 	}
 	return nil
+}
+
+func (s *WebhookService) sendMembershipPurchaseEmail(userID, planID uuid.UUID) {
+	userInfo, err := s.UserRepo.GetUserInfo(context.Background(), "", userID)
+	if err != nil || userInfo.Email == nil {
+		return
+	}
+
+	plan, pErr := s.PlansRepo.GetMembershipPlanById(context.Background(), planID)
+	if pErr != nil {
+		return
+	}
+
+	email.SendMembershipPurchaseEmail(*userInfo.Email, userInfo.FirstName, plan.Name)
 }

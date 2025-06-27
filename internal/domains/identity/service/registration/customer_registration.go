@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"net/http"
+	"api/utils/email"
 )
 
 // CustomerRegistrationService handles customer registration and related operations.
@@ -89,6 +90,9 @@ func (s *CustomerRegistrationService) RegisterAthlete(
 		tx.Rollback()
 		return identity.UserReadInfo{}, errLib.New("Failed to commit transaction", http.StatusInternalServerError)
 	}
+	if createdUserInfo.Email != nil {
+		email.SendSignUpConfirmationEmail(*createdUserInfo.Email, createdUserInfo.FirstName)
+	}
 
 	return createdUserInfo, nil
 }
@@ -131,6 +135,9 @@ func (s *CustomerRegistrationService) RegisterParent(
 	if txErr = tx.Commit(); txErr != nil {
 		tx.Rollback()
 		return response, errLib.New("Failed to commit transaction", http.StatusInternalServerError)
+	}
+	if userInfo.Email != nil {
+		email.SendSignUpConfirmationEmail(*userInfo.Email, userInfo.FirstName)
 	}
 
 	return userInfo, nil

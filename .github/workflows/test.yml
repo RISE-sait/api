@@ -77,6 +77,8 @@ jobs:
           cd ../../../../../
           cd internal/domains/membership/persistence/sqlc && sqlc generate
           cd ../../../../../
+          cd internal/domains/practice/persistence/sqlc && sqlc generate
+          cd ../../../../../
           cd internal/domains/program/persistence/sqlc && sqlc generate
           cd ../../../../../
           cd internal/domains/payment/persistence/sqlc && sqlc generate

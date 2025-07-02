@@ -1,7 +1,6 @@
 -- name: InsertBuiltInPrograms :exec
 INSERT INTO program.programs (id, name, type, description)
 VALUES
-    (gen_random_uuid(), 'Practice', 'practice'::program.program_type, 'Default program for practices'),
     (gen_random_uuid(), 'Course', 'course'::program.program_type, 'Default program for courses'),
     (gen_random_uuid(), 'Other', 'other'::program.program_type, 'Default program for other events')
 ON CONFLICT (name) DO UPDATE

@@ -57,6 +57,7 @@ func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int
 			CountryCode: dbCustomer.CountryAlpha2Code,
 			CreatedAt:   dbCustomer.CreatedAt,
 			UpdatedAt:   dbCustomer.UpdatedAt,
+			IsArchived:  dbCustomer.IsArchived,
 		}
 
 		if dbCustomer.HubspotID.Valid {
@@ -134,6 +135,7 @@ func (r *CustomerRepository) GetCustomer(ctx context.Context, id uuid.UUID, emai
 		CountryCode: dbCustomer.CountryAlpha2Code,
 		CreatedAt:   dbCustomer.CreatedAt,
 		UpdatedAt:   dbCustomer.UpdatedAt,
+		IsArchived:  dbCustomer.IsArchived,
 	}
 
 	if dbCustomer.HubspotID.Valid {
@@ -378,19 +380,19 @@ func (r *CustomerRepository) ListMembershipHistory(ctx context.Context, customer
 		}
 
 		results[i] = userValues.MembershipHistoryValue{
-			ID:             row.ID,
-			CustomerID:     row.CustomerID,
-			StartDate:      row.StartDate,
-			RenewalDate:    renewal,
-			Status:         string(row.Status),
-			CreatedAt:      row.CreatedAt,
-			UpdatedAt:      row.UpdatedAt,
-			MembershipID:   row.MembershipID,
-			MembershipName: row.MembershipName,
+			ID:                    row.ID,
+			CustomerID:            row.CustomerID,
+			StartDate:             row.StartDate,
+			RenewalDate:           renewal,
+			Status:                string(row.Status),
+			CreatedAt:             row.CreatedAt,
+			UpdatedAt:             row.UpdatedAt,
+			MembershipID:          row.MembershipID,
+			MembershipName:        row.MembershipName,
 			MembershipDescription: row.MembershipDescription,
-			MembershipBenefits: row.MembershipBenefits,
-			MembershipPlanID:   row.MembershipPlanID,
-			MembershipPlanName: row.MembershipPlanName,
+			MembershipBenefits:    row.MembershipBenefits,
+			MembershipPlanID:      row.MembershipPlanID,
+			MembershipPlanName:    row.MembershipPlanName,
 			UnitAmount: func(n sql.NullInt32) int {
 				if n.Valid {
 					return int(n.Int32)
@@ -413,4 +415,60 @@ func (r *CustomerRepository) ListMembershipHistory(ctx context.Context, customer
 	}
 
 	return results, nil
+}
+
+func (r *CustomerRepository) ArchiveCustomer(ctx context.Context, id uuid.UUID) *errLib.CommonError {
+	affected, err := r.Queries.ArchiveCustomer(ctx, id)
+	if err != nil {
+		log.Printf("error archiving customer: %v", err)
+		return errLib.New("internal error", http.StatusInternalServerError)
+	}
+	if affected == 0 {
+		return errLib.New("customer not found", http.StatusNotFound)
+	}
+	return nil
+}
+
+func (r *CustomerRepository) UnarchiveCustomer(ctx context.Context, id uuid.UUID) *errLib.CommonError {
+	affected, err := r.Queries.UnarchiveCustomer(ctx, id)
+	if err != nil {
+		log.Printf("error unarchiving customer: %v", err)
+		return errLib.New("internal error", http.StatusInternalServerError)
+	}
+	if affected == 0 {
+		return errLib.New("customer not found", http.StatusNotFound)
+	}
+	return nil
+}
+
+func (r *CustomerRepository) ListArchivedCustomers(ctx context.Context, limit, offset int32) ([]userValues.ReadValue, *errLib.CommonError) {
+	rows, err := r.Queries.ListArchivedCustomers(ctx, db.ListArchivedCustomersParams{Offset: offset, Limit: limit})
+	if err != nil {
+		log.Printf("error listing archived customers: %v", err)
+		return nil, errLib.New("internal error", http.StatusInternalServerError)
+	}
+	customers := make([]userValues.ReadValue, len(rows))
+	for i, dbCustomer := range rows {
+		customers[i] = userValues.ReadValue{
+			ID:          dbCustomer.ID,
+			DOB:         dbCustomer.Dob,
+			FirstName:   dbCustomer.FirstName,
+			LastName:    dbCustomer.LastName,
+			CountryCode: dbCustomer.CountryAlpha2Code,
+			CreatedAt:   dbCustomer.CreatedAt,
+			UpdatedAt:   dbCustomer.UpdatedAt,
+			IsArchived:  dbCustomer.IsArchived,
+		}
+
+		if dbCustomer.HubspotID.Valid {
+			customers[i].HubspotID = &dbCustomer.HubspotID.String
+		}
+		if dbCustomer.Phone.Valid {
+			customers[i].Phone = &dbCustomer.Phone.String
+		}
+		if dbCustomer.Email.Valid {
+			customers[i].Email = &dbCustomer.Email.String
+		}
+	}
+	return customers, nil
 }

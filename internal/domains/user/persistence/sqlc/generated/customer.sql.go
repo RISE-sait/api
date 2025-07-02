@@ -13,6 +13,21 @@ import (
 	"github.com/google/uuid"
 )
 
+const archiveCustomer = `-- name: ArchiveCustomer :execrows
+UPDATE users.users
+SET is_archived = TRUE,
+    updated_at = current_timestamp
+WHERE id = $1
+`
+
+func (q *Queries) ArchiveCustomer(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, archiveCustomer, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const countCustomers = `-- name: CountCustomers :one
 SELECT COUNT(*)
 FROM users.users u
@@ -25,7 +40,8 @@ FROM users.users u
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
          LEFT JOIN athletic.athletes a ON u.id = a.id
-WHERE (u.parent_id = $1 OR $1 IS NULL)
+WHERE u.is_archived = FALSE
+  AND (u.parent_id = $1 OR $1 IS NULL)
   AND ($2::varchar IS NULL
   OR u.first_name ILIKE $2 || '%'
   OR u.last_name ILIKE $2 || '%'
@@ -207,7 +223,7 @@ func (q *Queries) GetAthletes(ctx context.Context, arg GetAthletesParams) ([]Get
 }
 
 const getCustomer = `-- name: GetCustomer :one
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob,
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived,
        m.name           AS membership_name,
        mp.id            AS membership_plan_id,
        mp.name          AS membership_plan_name,
@@ -230,7 +246,8 @@ FROM users.users u
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
          LEFT JOIN athletic.athletes a ON u.id = a.id
-WHERE (u.id = $1 OR $1 IS NULL)
+WHERE u.is_archived = FALSE
+  AND (u.id = $1 OR $1 IS NULL)
   AND (u.email = $2 OR $2 IS NULL)
   AND NOT EXISTS (SELECT 1
                   FROM staff.staff s
@@ -257,6 +274,7 @@ type GetCustomerRow struct {
 	CreatedAt                 time.Time      `json:"created_at"`
 	UpdatedAt                 time.Time      `json:"updated_at"`
 	Dob                       time.Time      `json:"dob"`
+	IsArchived                bool           `json:"is_archived"`
 	MembershipName            sql.NullString `json:"membership_name"`
 	MembershipPlanID          uuid.NullUUID  `json:"membership_plan_id"`
 	MembershipPlanName        sql.NullString `json:"membership_plan_name"`
@@ -289,6 +307,7 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Dob,
+		&i.IsArchived,
 		&i.MembershipName,
 		&i.MembershipPlanID,
 		&i.MembershipPlanName,
@@ -306,7 +325,7 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 }
 
 const getCustomers = `-- name: GetCustomers :many
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob,
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived,
        m.name           AS membership_name,
        mp.id            AS membership_plan_id,
        mp.name          AS membership_plan_name,
@@ -329,7 +348,8 @@ FROM users.users u
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
          LEFT JOIN athletic.athletes a ON u.id = a.id
-WHERE (u.parent_id = $1 OR $1 IS NULL)
+WHERE u.is_archived = FALSE
+  AND (u.parent_id = $1 OR $1 IS NULL)
   AND ($2::varchar IS NULL
   OR u.first_name ILIKE $2 || '%'
   OR u.last_name ILIKE $2 || '%' 
@@ -363,6 +383,7 @@ type GetCustomersRow struct {
 	CreatedAt                 time.Time      `json:"created_at"`
 	UpdatedAt                 time.Time      `json:"updated_at"`
 	Dob                       time.Time      `json:"dob"`
+	IsArchived                bool           `json:"is_archived"`
 	MembershipName            sql.NullString `json:"membership_name"`
 	MembershipPlanID          uuid.NullUUID  `json:"membership_plan_id"`
 	MembershipPlanName        sql.NullString `json:"membership_plan_name"`
@@ -406,6 +427,7 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]G
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Dob,
+			&i.IsArchived,
 			&i.MembershipName,
 			&i.MembershipPlanID,
 			&i.MembershipPlanName,
@@ -418,6 +440,57 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]G
 			&i.Rebounds,
 			&i.Steals,
 			&i.PhotoUrl,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listArchivedCustomers = `-- name: ListArchivedCustomers :many
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived
+FROM users.users u
+WHERE u.is_archived = TRUE
+LIMIT $2 OFFSET $1
+`
+
+type ListArchivedCustomersParams struct {
+	Offset int32 `json:"offset"`
+	Limit  int32 `json:"limit"`
+}
+
+func (q *Queries) ListArchivedCustomers(ctx context.Context, arg ListArchivedCustomersParams) ([]UsersUser, error) {
+	rows, err := q.db.QueryContext(ctx, listArchivedCustomers, arg.Offset, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UsersUser
+	for rows.Next() {
+		var i UsersUser
+		if err := rows.Scan(
+			&i.ID,
+			&i.HubspotID,
+			&i.CountryAlpha2Code,
+			&i.Gender,
+			&i.FirstName,
+			&i.LastName,
+			&i.ParentID,
+			&i.Phone,
+			&i.Email,
+			&i.HasMarketingEmailConsent,
+			&i.HasSmsConsent,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Dob,
+			&i.IsArchived,
 		); err != nil {
 			return nil, err
 		}
@@ -514,6 +587,21 @@ func (q *Queries) ListMembershipHistory(ctx context.Context, customerID uuid.UUI
 		return nil, err
 	}
 	return items, nil
+}
+
+const unarchiveCustomer = `-- name: UnarchiveCustomer :execrows
+UPDATE users.users
+SET is_archived = FALSE,
+    updated_at = current_timestamp
+WHERE id = $1
+`
+
+func (q *Queries) UnarchiveCustomer(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, unarchiveCustomer, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const updateAthleteStats = `-- name: UpdateAthleteStats :execrows

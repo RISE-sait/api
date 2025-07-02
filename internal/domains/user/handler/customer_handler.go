@@ -404,3 +404,96 @@ func (h *CustomersHandler) GetUserMembershipHistory(w http.ResponseWriter, r *ht
 
 	responseHandlers.RespondWithSuccess(w, responses, http.StatusOK)
 }
+
+// ArchiveCustomer archives a customer by ID.
+// @Tags customers
+// @Accept json
+// @Produce json
+// @Param id path string true "Customer ID"
+// @Success 204 "No Content: Customer archived"
+// @Failure 400 {object} map[string]interface{} "Bad Request"
+// @Failure 404 {object} map[string]interface{} "Not Found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /customers/{id}/archive [post]
+func (h *CustomersHandler) ArchiveCustomer(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	customerID, err := validators.ParseUUID(idStr)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+	if err = h.CustomerRepo.ArchiveCustomer(r.Context(), customerID); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
+}
+
+// UnarchiveCustomer unarchives a customer by ID.
+// @Tags customers
+// @Accept json
+// @Produce json
+// @Param id path string true "Customer ID"
+// @Success 204 "No Content: Customer unarchived"
+// @Failure 400 {object} map[string]interface{} "Bad Request"
+// @Failure 404 {object} map[string]interface{} "Not Found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /customers/{id}/unarchive [post]
+func (h *CustomersHandler) UnarchiveCustomer(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	customerID, err := validators.ParseUUID(idStr)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+	if err = h.CustomerRepo.UnarchiveCustomer(r.Context(), customerID); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
+}
+
+// ListArchivedCustomers returns archived customers.
+// @Tags customers
+// @Accept json
+// @Produce json
+// @Param limit query int false "Number of customers to retrieve (default: 20, max: 20)"
+// @Param offset query int false "Number of customers to skip (default: 0)"
+// @Success 200 {array} customer.Response "List of archived customers"
+// @Failure 400 "Bad Request"
+// @Failure 500 "Internal Server Error"
+// @Router /customers/archived [get]
+func (h *CustomersHandler) ListArchivedCustomers(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	limit := 20
+	offset := 0
+	if limitStr := query.Get("limit"); limitStr != "" {
+		if v, err := strconv.Atoi(limitStr); err == nil && v > 0 {
+			limit = v
+			if limit > 20 {
+				limit = 20
+			}
+		} else {
+			responseHandlers.RespondWithError(w, errLib.New("invalid limit", http.StatusBadRequest))
+			return
+		}
+	}
+	if offsetStr := query.Get("offset"); offsetStr != "" {
+		if v, err := strconv.Atoi(offsetStr); err == nil && v >= 0 {
+			offset = v
+		} else {
+			responseHandlers.RespondWithError(w, errLib.New("invalid offset", http.StatusBadRequest))
+			return
+		}
+	}
+	customers, err := h.CustomerRepo.ListArchivedCustomers(r.Context(), int32(limit), int32(offset))
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+	responses := make([]customerDto.Response, len(customers))
+	for i, c := range customers {
+		responses[i] = customerDto.UserReadValueToResponse(c)
+	}
+	responseHandlers.RespondWithSuccess(w, responses, http.StatusOK)
+}

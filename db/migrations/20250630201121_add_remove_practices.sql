@@ -47,8 +47,19 @@ $$;
 ALTER TABLE program.programs
 DROP CONSTRAINT IF EXISTS programs_name_key;
 
-ALTER TABLE program.programs
-ADD CONSTRAINT unique_program_name UNIQUE (name);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 
+        FROM pg_constraint
+        WHERE conname = 'unique_program_name'
+        AND conrelid = 'program.programs'::regclass
+    ) THEN
+        ALTER TABLE program.programs
+        ADD CONSTRAINT unique_program_name UNIQUE (name);
+    END IF;
+END
+$$;
 
 -- Step 6: Create practice schema and practices table
 CREATE SCHEMA IF NOT EXISTS practice;

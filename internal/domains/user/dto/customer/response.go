@@ -18,6 +18,7 @@ type Response struct {
 	HubspotId      *string                `json:"hubspot_id,omitempty"`
 	CountryCode    string                 `json:"country_code"`
 	MembershipInfo *MembershipResponseDto `json:"membership_info,omitempty"`
+	IsArchived     bool                   `json:"is_archived"`
 }
 
 type MembershipResponseDto struct {
@@ -38,6 +39,7 @@ func UserReadValueToResponse(customer values.ReadValue) Response {
 		Phone:       customer.Phone,
 		CountryCode: customer.CountryCode,
 		HubspotId:   customer.HubspotID,
+		IsArchived:  customer.IsArchived,
 	}
 
 	if customer.MembershipInfo != nil {
@@ -57,7 +59,7 @@ type MembershipHistoryResponse struct {
 	MembershipName        string     `json:"membership_name"`
 	MembershipDescription string     `json:"membership_description"`
 	MembershipPlanName    string     `json:"membership_plan_name"`
-	MembsershipBenefits  string    `json:"membership_benefits"`
+	MembsershipBenefits   string     `json:"membership_benefits"`
 	Price                 string     `json:"price"`
 	StartDate             time.Time  `json:"start_date"`
 	RenewalDate           *time.Time `json:"renewal_date,omitempty"`
@@ -74,6 +76,6 @@ func MembershipHistoryValueToResponse(v values.MembershipHistoryValue) Membershi
 		StartDate:             v.StartDate,
 		RenewalDate:           v.RenewalDate,
 		Status:                v.Status,
-		MembsershipBenefits: v.MembershipBenefits,
+		MembsershipBenefits:   v.MembershipBenefits,
 	}
 }

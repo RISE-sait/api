@@ -102,6 +102,9 @@ func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 		r.Get("/email/{email}", h.GetCustomerByEmail)
 		r.Get("/checkin/{id}", h.CheckinCustomer)
 		r.Get("/{id}/memberships", h.GetMembershipHistory)
+		r.Post("/{id}/archive", h.ArchiveCustomer)
+		r.Post("/{id}/unarchive", h.UnarchiveCustomer)
+		r.Get("/archived", h.ListArchivedCustomers)
 	}
 }
 

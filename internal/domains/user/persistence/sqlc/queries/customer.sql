@@ -38,7 +38,8 @@ FROM users.users u
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
          LEFT JOIN athletic.athletes a ON u.id = a.id
-WHERE (u.parent_id = $1 OR $1 IS NULL)
+WHERE u.is_archived = FALSE
+  AND (u.parent_id = $1 OR $1 IS NULL)
   AND (sqlc.narg('search')::varchar IS NULL
   OR u.first_name ILIKE sqlc.narg('search') || '%'
   OR u.last_name ILIKE sqlc.narg('search') || '%' 
@@ -73,7 +74,8 @@ FROM users.users u
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
          LEFT JOIN athletic.athletes a ON u.id = a.id
-WHERE (u.id = sqlc.narg('id') OR sqlc.narg('id') IS NULL)
+WHERE u.is_archived = FALSE
+  AND (u.id = sqlc.narg('id') OR sqlc.narg('id') IS NULL)
   AND (u.email = sqlc.narg('email') OR sqlc.narg('email') IS NULL)
   AND NOT EXISTS (SELECT 1
                   FROM staff.staff s
@@ -113,7 +115,8 @@ FROM users.users u
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
          LEFT JOIN athletic.athletes a ON u.id = a.id
-WHERE (u.parent_id = $1 OR $1 IS NULL)
+WHERE u.is_archived = FALSE
+  AND (u.parent_id = $1 OR $1 IS NULL)
   AND (sqlc.narg('search')::varchar IS NULL
   OR u.first_name ILIKE sqlc.narg('search') || '%'
   OR u.last_name ILIKE sqlc.narg('search') || '%'
@@ -166,3 +169,21 @@ FROM users.customer_membership_plans cmp
     JOIN membership.memberships m ON m.id = mp.membership_id
 WHERE cmp.customer_id = $1
 ORDER BY cmp.start_date DESC;
+
+-- name: ArchiveCustomer :execrows
+UPDATE users.users
+SET is_archived = TRUE,
+    updated_at = current_timestamp
+WHERE id = sqlc.arg('id');
+
+-- name: UnarchiveCustomer :execrows
+UPDATE users.users
+SET is_archived = FALSE,
+    updated_at = current_timestamp
+WHERE id = sqlc.arg('id');
+
+-- name: ListArchivedCustomers :many
+SELECT u.*
+FROM users.users u
+WHERE u.is_archived = TRUE
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');

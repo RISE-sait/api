@@ -1,8 +1,9 @@
 package user
 
 import (
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type ReadValue struct {
@@ -16,6 +17,7 @@ type ReadValue struct {
 	Phone          *string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+	IsArchived     bool
 	MembershipInfo *MembershipReadValue
 	AthleteInfo    *AthleteReadValue
 }

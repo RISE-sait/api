@@ -19,7 +19,7 @@ import (
 	membership "api/internal/domains/membership/handler"
 	payment "api/internal/domains/payment/handler"
 	playground "api/internal/domains/playground/handler"
-	practice "api/internal/domains/practice"
+	practice "api/internal/domains/practice/handler"
 	programHandler "api/internal/domains/program"
 	teamsHandler "api/internal/domains/team"
 	userHandler "api/internal/domains/user/handler"

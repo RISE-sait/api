@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.29.0
 
-package db_seed
+package db_practice
 
 import (
 	"database/sql"
@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 )
 
 type AuditAuditStatus string
@@ -55,24 +54,6 @@ func (ns NullAuditAuditStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.AuditAuditStatus), nil
-}
-
-func (e AuditAuditStatus) Valid() bool {
-	switch e {
-	case AuditAuditStatusPENDING,
-		AuditAuditStatusCOMPLETED,
-		AuditAuditStatusFAILED:
-		return true
-	}
-	return false
-}
-
-func AllAuditAuditStatusValues() []AuditAuditStatus {
-	return []AuditAuditStatus{
-		AuditAuditStatusPENDING,
-		AuditAuditStatusCOMPLETED,
-		AuditAuditStatusFAILED,
-	}
 }
 
 type MembershipMembershipStatus string
@@ -119,26 +100,6 @@ func (ns NullMembershipMembershipStatus) Value() (driver.Value, error) {
 	return string(ns.MembershipMembershipStatus), nil
 }
 
-func (e MembershipMembershipStatus) Valid() bool {
-	switch e {
-	case MembershipMembershipStatusActive,
-		MembershipMembershipStatusInactive,
-		MembershipMembershipStatusCanceled,
-		MembershipMembershipStatusExpired:
-		return true
-	}
-	return false
-}
-
-func AllMembershipMembershipStatusValues() []MembershipMembershipStatus {
-	return []MembershipMembershipStatus{
-		MembershipMembershipStatusActive,
-		MembershipMembershipStatusInactive,
-		MembershipMembershipStatusCanceled,
-		MembershipMembershipStatusExpired,
-	}
-}
-
 type PaymentStatus string
 
 const (
@@ -180,24 +141,6 @@ func (ns NullPaymentStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.PaymentStatus), nil
-}
-
-func (e PaymentStatus) Valid() bool {
-	switch e {
-	case PaymentStatusPending,
-		PaymentStatusPaid,
-		PaymentStatusFailed:
-		return true
-	}
-	return false
-}
-
-func AllPaymentStatusValues() []PaymentStatus {
-	return []PaymentStatus{
-		PaymentStatusPending,
-		PaymentStatusPaid,
-		PaymentStatusFailed,
-	}
 }
 
 type ProgramProgramLevel string
@@ -244,26 +187,6 @@ func (ns NullProgramProgramLevel) Value() (driver.Value, error) {
 	return string(ns.ProgramProgramLevel), nil
 }
 
-func (e ProgramProgramLevel) Valid() bool {
-	switch e {
-	case ProgramProgramLevelBeginner,
-		ProgramProgramLevelIntermediate,
-		ProgramProgramLevelAdvanced,
-		ProgramProgramLevelAll:
-		return true
-	}
-	return false
-}
-
-func AllProgramProgramLevelValues() []ProgramProgramLevel {
-	return []ProgramProgramLevel{
-		ProgramProgramLevelBeginner,
-		ProgramProgramLevelIntermediate,
-		ProgramProgramLevelAdvanced,
-		ProgramProgramLevelAll,
-	}
-}
-
 type ProgramProgramType string
 
 const (
@@ -305,24 +228,6 @@ func (ns NullProgramProgramType) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.ProgramProgramType), nil
-}
-
-func (e ProgramProgramType) Valid() bool {
-	switch e {
-	case ProgramProgramTypePractice,
-		ProgramProgramTypeCourse,
-		ProgramProgramTypeOther:
-		return true
-	}
-	return false
-}
-
-func AllProgramProgramTypeValues() []ProgramProgramType {
-	return []ProgramProgramType{
-		ProgramProgramTypePractice,
-		ProgramProgramTypeCourse,
-		ProgramProgramTypeOther,
-	}
 }
 
 type AthleticAthlete struct {
@@ -463,13 +368,13 @@ type HaircutEvent struct {
 }
 
 type HaircutHaircutService struct {
-	ID            uuid.UUID       `json:"id"`
-	Name          string          `json:"name"`
-	Description   sql.NullString  `json:"description"`
-	Price         decimal.Decimal `json:"price"`
-	DurationInMin int32           `json:"duration_in_min"`
-	CreatedAt     time.Time       `json:"created_at"`
-	UpdatedAt     time.Time       `json:"updated_at"`
+	ID            uuid.UUID      `json:"id"`
+	Name          string         `json:"name"`
+	Description   sql.NullString `json:"description"`
+	Price         string         `json:"price"`
+	DurationInMin int32          `json:"duration_in_min"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
 }
 
 type LocationCourt struct {

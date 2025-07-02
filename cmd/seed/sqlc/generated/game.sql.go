@@ -22,7 +22,7 @@ INSERT INTO game.games (
 VALUES (
   gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8
 )
-RETURNING id, home_team_id, away_team_id, home_score, away_score, start_time, end_time, location_id, status, created_at, updated_at
+RETURNING id, home_team_id, away_team_id, home_score, away_score, start_time, end_time, location_id, status, created_at, updated_at, court_id
 `
 
 type CreateGameParams struct {
@@ -60,6 +60,7 @@ func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (GameGam
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CourtID,
 	)
 	return i, err
 }

@@ -9,22 +9,22 @@ import (
 
 	enrollmentHandler "api/internal/domains/enrollment/handler"
 
-	"api/internal/domains/game"
-	programHandler "api/internal/domains/program"
-	contextUtils "api/utils/context"
-
-	eventHandler "api/internal/domains/event/handler"
-	playground "api/internal/domains/playground/handler"
-	teamsHandler "api/internal/domains/team"
-	userHandler "api/internal/domains/user/handler"
 	courtHandler "api/internal/domains/court/handler"
 	discountHandler "api/internal/domains/discount/handler"
+	eventHandler "api/internal/domains/event/handler"
+	"api/internal/domains/game"
 	"api/internal/domains/identity/handler/authentication"
 	"api/internal/domains/identity/handler/registration"
 	locationsHandler "api/internal/domains/location/handler"
 	membership "api/internal/domains/membership/handler"
 	payment "api/internal/domains/payment/handler"
+	playground "api/internal/domains/playground/handler"
+	practice "api/internal/domains/practice/handler"
+	programHandler "api/internal/domains/program"
+	teamsHandler "api/internal/domains/team"
+	userHandler "api/internal/domains/user/handler"
 	"api/internal/middlewares"
+	contextUtils "api/utils/context"
 
 	contactHandler "api/internal/domains/contact/handler"
 	"time"
@@ -55,6 +55,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		"/playground": RegisterPlaygroundRoutes,
 		"/discounts":  RegisterDiscountRoutes,
 		"/courts":     RegisterCourtsRoutes,
+		"/practices":  RegisterPracticesRoutes,
 
 		// Users & Staff routes
 		"/users":     RegisterUserRoutes,
@@ -184,6 +185,19 @@ func RegisterGamesRoutes(container *di.Container) func(chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", h.DeleteGame)
 	}
 }
+
+func RegisterPracticesRoutes(container *di.Container) func(chi.Router) {
+	h := practice.NewHandler(container)
+	return func(r chi.Router) {
+		r.Get("/", h.GetPractices)
+		r.Get("/{id}", h.GetPractice)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/", h.CreatePractice)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}", h.UpdatePractice)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", h.DeletePractice)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/recurring", h.CreateRecurringPractices)
+	}
+}
+
 func RegisterPlaygroundRoutes(container *di.Container) func(chi.Router) {
 	h := playground.NewHandler(container)
 	systemHandlers := playground.NewSystemsHandlers(container)

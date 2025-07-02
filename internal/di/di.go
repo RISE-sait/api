@@ -3,11 +3,11 @@ package di
 import (
 	"api/config"
 	staffActivityLogsDb "api/internal/domains/audit/staff_activity_logs/persistence/sqlc/generated"
+	courtDb "api/internal/domains/court/persistence/sqlc/generated"
 	discountDb "api/internal/domains/discount/persistence/sqlc/generated"
 	enrollmentDb "api/internal/domains/enrollment/persistence/sqlc/generated"
 	eventDb "api/internal/domains/event/persistence/sqlc/generated"
 	gameDb "api/internal/domains/game/persistence/sqlc/generated"
-	courtDb "api/internal/domains/court/persistence/sqlc/generated"
 	haircutEventDb "api/internal/domains/haircut/event/persistence/sqlc/generated"
 	haircutServiceDb "api/internal/domains/haircut/haircut_service/persistence/sqlc/generated"
 	identityDb "api/internal/domains/identity/persistence/sqlc/generated"
@@ -15,6 +15,7 @@ import (
 	membershipDb "api/internal/domains/membership/persistence/sqlc/generated"
 	purchaseDb "api/internal/domains/payment/persistence/sqlc/generated"
 	playgroundDb "api/internal/domains/playground/persistence/sqlc/generated"
+	practiceDb "api/internal/domains/practice/persistence/sqlc/generated"
 	programDb "api/internal/domains/program/persistence/sqlc/generated"
 	teamDb "api/internal/domains/team/persistence/sqlc/generated"
 
@@ -57,6 +58,7 @@ type QueriesType struct {
 	StaffActivityLogsDb *staffActivityLogsDb.Queries
 	DiscountDb          *discountDb.Queries
 	CourtDb             *courtDb.Queries
+	PracticeDb          *practiceDb.Queries
 }
 
 // NewContainer initializes and returns a Container with database, queries, HubSpot, Firebase, and Square services.
@@ -120,6 +122,7 @@ func initializeQueries(db *sql.DB) *QueriesType {
 		StaffActivityLogsDb: staffActivityLogsDb.New(db),
 		DiscountDb:          discountDb.New(db),
 		CourtDb:             courtDb.New(db),
+		PracticeDb:          practiceDb.New(db),
 	}
 }
 

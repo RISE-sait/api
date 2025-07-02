@@ -617,12 +617,10 @@ func main() {
 		log.Println("-", t)
 	}
 
-	practiceEvents := seedFakeEvents(ctx, db, []string{"practice"}, locations, true)
-
 	courseEvents := seedFakeEvents(ctx, db, []string{"course"}, locations, true)
 
 	var allEventIds []uuid.UUID
-	allEventIds = append(allEventIds, practiceEvents...)
+
 	allEventIds = append(allEventIds, courseEvents...)
 
 	// Convert locations from []string to []uuid.UUID

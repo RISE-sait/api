@@ -194,10 +194,10 @@ func RegisterPracticesRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Get("/", h.GetPractices)
 		r.Get("/{id}", h.GetPractice)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/", h.CreatePractice)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}", h.UpdatePractice)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", h.DeletePractice)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/recurring", h.CreateRecurringPractices)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleCoach)).Post("/", h.CreatePractice)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleCoach)).Put("/{id}", h.UpdatePractice)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleCoach)).Delete("/{id}", h.DeletePractice)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleCoach)).Post("/recurring", h.CreateRecurringPractices)
 	}
 }
 

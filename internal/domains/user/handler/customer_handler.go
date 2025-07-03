@@ -101,6 +101,34 @@ func (h *CustomersHandler) UpdateAthletesTeam(w http.ResponseWriter, r *http.Req
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
+// RemoveAthleteFromTeam removes an athlete from a team.
+// @Tags athletes
+// @Accept json
+// @Produce json
+// @Param athlete_id path string true "Athlete ID"
+// @Security Bearer
+// @Success 204 "No Content: Athlete removed from team"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
+// @Failure 404 {object} map[string]interface{} "Not Found: Athlete not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /athletes/{athlete_id}/team [delete]
+func (h *CustomersHandler) RemoveAthleteFromTeam(w http.ResponseWriter, r *http.Request) {
+	athleteIdStr := chi.URLParam(r, "athlete_id")
+
+	athleteID, err := validators.ParseUUID(athleteIdStr)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	if err = h.CustomerRepo.UpdateAthleteTeam(r.Context(), athleteID, uuid.Nil); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
+}
+
 // GetCustomers retrieves a list of customers with optional filtering and pagination.
 // @Summary Get customers
 // @Description Retrieves a list of customers, optionally filtered by fields like parent ID, name, email, phone, and ID, with pagination support.

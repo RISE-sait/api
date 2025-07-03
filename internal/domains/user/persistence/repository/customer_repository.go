@@ -187,7 +187,7 @@ func (r *CustomerRepository) UpdateAthleteTeam(ctx context.Context, athleteID, t
 		AthleteID: athleteID,
 		TeamID: uuid.NullUUID{
 			UUID:  teamID,
-			Valid: true,
+			Valid: teamID != uuid.Nil,
 		},
 	}
 

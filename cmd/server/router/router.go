@@ -328,7 +328,7 @@ func RegisterWebhooksRoutes(container *di.Container) func(chi.Router) {
 	h := payment.NewWebhookHandlers(container)
 
 	return func(r chi.Router) {
-		r.Post("/stripe", h.HandleStripeWebhook)
+		r.Post("/stripe", h.HandleSquareWebhook)
 	}
 }
 

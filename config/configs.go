@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/stripe/stripe-go/v81"
 
 	_ "github.com/lib/pq"
 )
@@ -29,8 +28,6 @@ type config struct {
 	GmailSmtpPassword                string
 	GcpServiceAccountCredentialsJSON string
 	SquareAccessToken                string
-	StripeSecretKey                  string
-	StripeWebhookSecret              string
 }
 
 var Env = initConfig()
@@ -46,9 +43,7 @@ var Env = initConfig()
 //
 //	cfg := initConfig()  // Initializes the configuration with environment variables.
 func initConfig() *config {
-	stripeApiKey := os.Getenv("STRIPE_API_KEY")
 
-	stripe.Key = stripeApiKey
 
 	return &config{
 		DbConnUrl:     getEnv("DATABASE_URL"),
@@ -60,8 +55,7 @@ func initConfig() *config {
 		GmailSmtpPassword:                getEnv("GMAIL_SMTP_PWD"),
 		GcpServiceAccountCredentialsJSON: getEnv("GCP_SERVICE_ACCOUNT_CREDENTIALS"),
 		SquareAccessToken:                getEnv("SQUARE_ACCESS_TOKEN"),
-		StripeSecretKey:                  getEnv("STRIPE_SECRET_KEY"),
-		StripeWebhookSecret:              getEnv("STRIPE_WEBHOOK_SECRET"),
+
 	}
 }
 

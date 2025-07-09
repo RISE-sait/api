@@ -25,3 +25,22 @@ services:
     env_file:
       - ./config/.env
       - ./config/.env.local
+    environment:
+      SQUARE_SERVICE_URL: 'http://square-service:8000'
+    depends_on:
+      - db
+      - square-service
+
+  square-service:
+    build:
+      context: ./square_service
+    container_name: '${COMPOSE_PROJECT_NAME}_square_service'
+    ports:
+      - '8000:8000'
+    env_file:
+      - ./config/.env
+      - ./config/.env.local
+    environment:
+      GO_BACKEND_URL: 'http://go-server:80'
+    depends_on:
+      - db

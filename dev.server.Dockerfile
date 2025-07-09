@@ -1,5 +1,5 @@
 # Use the official Golang image as a base image
-FROM golang:1.23.4-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 RUN go install github.com/air-verse/air@latest && \
     apk add --no-cache coreutils && \

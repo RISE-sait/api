@@ -33,7 +33,7 @@ services:
 
   square-service:
     build:
-      context: ./square_service
+      context: ./python/square_service
     container_name: '${COMPOSE_PROJECT_NAME}_square_service'
     ports:
       - '8000:8000'

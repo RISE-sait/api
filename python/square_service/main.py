@@ -1,19 +1,34 @@
 import os
 import uuid
-from flask import Flask, request, jsonify
-from square.client import Client
 import requests
+import hmac
+import hashlib
+import base64
+from flask import Flask, request, jsonify
+from dotenv import load_dotenv
 
-# Initialize Square client using environment variables
-client = Client(
-    access_token=os.getenv("SQUARE_ACCESS_TOKEN"),
-    environment=os.getenv("SQUARE_ENVIRONMENT", "sandbox")
+load_dotenv()
+
+ENVIRONMENT = os.getenv("SQUARE_ENVIRONMENT", "sandbox").lower()
+BASE_URL = (
+    "https://connect.squareupsandbox.com"
+    if ENVIRONMENT == "sandbox"
+    else "https://connect.squareup.com"
 )
+ACCESS_TOKEN = os.getenv("SQUARE_ACCESS_TOKEN")
+
+HEADERS = {
+    "Authorization": f"Bearer {ACCESS_TOKEN}",
+    "Content-Type": "application/json",
+    "Square-Version": os.getenv("SQUARE_VERSION", "2024-04-17"),
+}
 
 app = Flask(__name__)
 
 BACKEND_CALLBACK_URL = os.getenv("GO_BACKEND_URL")
 LOCATION_ID = os.getenv("SQUARE_LOCATION_ID")
+WEBHOOK_SIGNATURE_KEY = os.getenv("SQUARE_WEBHOOK_SIGNATURE_KEY")
+WEBHOOK_URL = os.getenv("SQUARE_WEBHOOK_URL")
 
 
 def notify_backend(payload):
@@ -42,11 +57,16 @@ def create_payment():
         },
     }
 
-    result = client.checkout.create_payment_link(body)
-    if result.is_success():
-        notify_backend(result.body)
-        return jsonify(result.body)
-    return jsonify(result.errors), 400
+    resp = requests.post(
+        f"{BASE_URL}/v2/online-checkout/payment-links",
+        headers=HEADERS,
+        json=body,
+    )
+    if resp.ok:
+        payload = resp.json()
+        notify_backend(payload)
+        return jsonify(payload)
+    return jsonify({"error": resp.text}), resp.status_code
 
 
 @app.route("/checkout/subscription", methods=["POST"])
@@ -64,16 +84,39 @@ def create_subscription():
         "customer_id": customer_id,
     }
 
-    result = client.subscriptions.create_subscription(body)
-    if result.is_success():
-        notify_backend(result.body)
-        return jsonify(result.body)
-    return jsonify(result.errors), 400
+    start_date = data.get("start_date") or os.getenv("SQUARE_START_DATE")
+    if start_date:
+        body["start_date"] = start_date
+
+    resp = requests.post(
+        f"{BASE_URL}/v2/subscriptions",
+        headers=HEADERS,
+        json=body,
+    )
+    if resp.ok:
+        payload = resp.json()
+        notify_backend(payload)
+        return jsonify(payload)
+    return jsonify({"error": resp.text}), resp.status_code
 
 
 @app.route("/webhook", methods=["POST"])
 def handle_webhook():
-    event = request.json or {}
+    raw_body = request.get_data(as_text=True)
+
+    if WEBHOOK_SIGNATURE_KEY:
+        signature = request.headers.get("x-square-hmacsha256-signature", "")
+        payload_to_sign = (WEBHOOK_URL or request.url) + raw_body
+        digest = hmac.new(
+            WEBHOOK_SIGNATURE_KEY.encode(),
+            payload_to_sign.encode(),
+            hashlib.sha256,
+        ).digest()
+        expected = base64.b64encode(digest).decode()
+        if not hmac.compare_digest(expected, signature):
+            return "invalid signature", 400
+
+    event = request.get_json(silent=True) or {}
     notify_backend(event)
     return "", 200
 

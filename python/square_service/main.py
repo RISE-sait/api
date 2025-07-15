@@ -52,7 +52,7 @@ def create_payment():
         "idempotency_key": str(uuid.uuid4()),
         "quick_pay": {
             "name": data.get("description", "Payment"),
-            "price_money": {"amount": amount, "currency": "USD"},
+            "price_money": {"amount": amount, "currency": "CAD"},
             "location_id": LOCATION_ID,
         },
     }

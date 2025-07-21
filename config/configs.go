@@ -31,6 +31,7 @@ type config struct {
 	SquareAccessToken                string
 	StripeSecretKey                  string
 	StripeWebhookSecret              string
+	ChatBotServiceUrl                string
 }
 
 var Env = initConfig()
@@ -62,6 +63,7 @@ func initConfig() *config {
 		SquareAccessToken:                getEnv("SQUARE_ACCESS_TOKEN"),
 		StripeSecretKey:                  getEnv("STRIPE_SECRET_KEY"),
 		StripeWebhookSecret:              getEnv("STRIPE_WEBHOOK_SECRET"),
+		ChatBotServiceUrl:                getEnv("CHAT_BOT_SERVICE_URL"),
 	}
 }
 

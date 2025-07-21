@@ -26,6 +26,7 @@ import (
 	"api/internal/middlewares"
 	contextUtils "api/utils/context"
 
+	aiHandler "api/internal/domains/ai/handler"
 	contactHandler "api/internal/domains/contact/handler"
 	"time"
 
@@ -78,6 +79,9 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 
 		//Secure routes
 		"/secure": RegisterSecureRoutes,
+
+		// AI proxy route
+		"/ai": RegisterAIRoutes,
 	}
 
 	for path, handler := range routeMappings {
@@ -412,5 +416,13 @@ func RegisterSecureCustomerRoutes(container *di.Container) func(chi.Router) {
 	h := userHandler.NewCustomersHandler(container)
 	return func(r chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(true)).Get("/memberships", h.GetUserMembershipHistory)
+	}
+}
+
+// RegisterAIRoutes registers the AI proxy route with rate limiting.
+func RegisterAIRoutes(_ *di.Container) func(chi.Router) {
+	h := aiHandler.NewHandler()
+	return func(r chi.Router) {
+		r.With(middlewares.RateLimitMiddleware(0.2, 1, time.Minute)).Post("/chat", h.ProxyMessage)
 	}
 }

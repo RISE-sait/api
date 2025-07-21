@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"log"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -26,7 +27,15 @@ var (
 func getRealIP(r *http.Request) string {
 	if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
 		parts := strings.Split(forwarded, ",")
-		return strings.TrimSpace(parts[0])
+		ip := strings.TrimSpace(parts[0])
+		if host, _, err := net.SplitHostPort(ip); err == nil {
+			return host
+		}
+		return ip
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err == nil {
+		return host
 	}
 	return r.RemoteAddr
 }
@@ -55,7 +64,7 @@ func RateLimitMiddleware(rps float64, burst int, cleanupInterval time.Duration) 
 			mu.Unlock()
 		}
 	}()
-		// Return the middleware function
+	// Return the middleware function
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ip := getRealIP(r)

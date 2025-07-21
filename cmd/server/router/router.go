@@ -26,8 +26,8 @@ import (
 	"api/internal/middlewares"
 	contextUtils "api/utils/context"
 
-	contactHandler "api/internal/domains/contact/handler"
 	aiHandler "api/internal/domains/ai/handler"
+	contactHandler "api/internal/domains/contact/handler"
 	"time"
 
 	"github.com/go-chi/chi"

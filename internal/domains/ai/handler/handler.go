@@ -47,7 +47,7 @@ func (h *Handler) ProxyMessage(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("AI chat request: %s", req.Message)
 
-	reply, err := h.svc.Chat(req.Message, req.Context)
+	reply, err := h.svc.Chat(req.Message, req.Context, req.ChatHistory)
 	if err != nil {
 		responses.RespondWithError(w, err)
 		return

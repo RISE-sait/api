@@ -21,14 +21,14 @@ func NewService() *Service {
 	}
 }
 
-func (s *Service) Chat(message, context string) (string, *errLib.CommonError) {
+func (s *Service) Chat(message, context string, chatHistory [][]string) (string, *errLib.CommonError) {
 	if s.BaseURL == "" {
 		return "", errLib.New("chatbot service URL not configured", http.StatusInternalServerError)
 	}
 
-	reqBody := map[string]string{"message": message}
-	if context != "" {
-		reqBody["context"] = context
+	reqBody := map[string]interface{}{
+		"query":        message,
+		"chat_history": chatHistory,
 	}
 
 	buf, err := json.Marshal(reqBody)
@@ -53,11 +53,12 @@ func (s *Service) Chat(message, context string) (string, *errLib.CommonError) {
 	}
 
 	var res struct {
-		Reply string `json:"reply"`
+		Answer string `json:"answer"`
 	}
+
 	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
 		return "", errLib.New("invalid chat response", http.StatusInternalServerError)
 	}
 
-	return res.Reply, nil
+	return res.Answer, nil
 }

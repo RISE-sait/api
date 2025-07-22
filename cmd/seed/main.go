@@ -564,7 +564,7 @@ func seedBuiltInPrograms(ctx context.Context, db *sql.DB) {
 	if err := queries.InsertBuiltInPrograms(ctx); err != nil {
 		log.Fatalf("Failed to insert built-in programs: %v", err)
 	} else {
-		fmt.Println("Inserted built-in programs: Game, Practice, Course, Other")
+		fmt.Println("Inserted built-in programs: Course, Other, Tournament, Tryouts, Event")
 	}
 }
 func seedGames(ctx context.Context, db *sql.DB, teamIDs []uuid.UUID, locationNames []string) {

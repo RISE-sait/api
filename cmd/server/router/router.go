@@ -424,7 +424,7 @@ func RegisterSecureCustomerRoutes(container *di.Container) func(chi.Router) {
 func RegisterAIRoutes(_ *di.Container) func(chi.Router) {
 	h := aiHandler.NewHandler()
 	return func(r chi.Router) {
-		r.With(middlewares.RateLimitMiddleware(0.2, 1, time.Minute)).Post("/chat", h.ProxyMessage)
+		r.With(middlewares.RateLimitMiddleware(1.0, 4, time.Minute)).Post("/chat", h.ProxyMessage)
 	}
 }
 // RegisterBookingsRoutes registers the bookings routes.

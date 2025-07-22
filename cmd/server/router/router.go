@@ -7,10 +7,10 @@ import (
 	barberServicesHandler "api/internal/domains/haircut/haircut_service"
 	haircut "api/internal/domains/haircut/portfolio"
 
-	enrollmentHandler "api/internal/domains/enrollment/handler"
-
-	courtHandler "api/internal/domains/court/handler"
+	bookingsHandler "api/internal/domains/booking/handler"
+	courtHandler "api/internal/domains/court/handler" 
 	discountHandler "api/internal/domains/discount/handler"
+	enrollmentHandler "api/internal/domains/enrollment/handler"
 	eventHandler "api/internal/domains/event/handler"
 	"api/internal/domains/game"
 	"api/internal/domains/identity/handler/authentication"
@@ -57,6 +57,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		"/discounts":  RegisterDiscountRoutes,
 		"/courts":     RegisterCourtsRoutes,
 		"/practices":  RegisterPracticesRoutes,
+		"/bookings":   RegisterBookingsRoutes,
 
 		// Users & Staff routes
 		"/users":     RegisterUserRoutes,
@@ -424,5 +425,12 @@ func RegisterAIRoutes(_ *di.Container) func(chi.Router) {
 	h := aiHandler.NewHandler()
 	return func(r chi.Router) {
 		r.With(middlewares.RateLimitMiddleware(0.2, 1, time.Minute)).Post("/chat", h.ProxyMessage)
+	}
+}
+// RegisterBookingsRoutes registers the bookings routes.
+func RegisterBookingsRoutes(container *di.Container) func(chi.Router) {
+	h := bookingsHandler.NewHandler(container)
+	return func(r chi.Router) {
+		r.With(middlewares.JWTAuthMiddleware(true)).Get("/upcoming", h.GetMyUpcomingBookings)
 	}
 }

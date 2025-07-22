@@ -37,17 +37,17 @@ func (h *Handler) ProxyMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req.Message = strings.TrimSpace(req.Message)
+	req.Query = strings.TrimSpace(req.Query)
 	req.Context = strings.TrimSpace(req.Context)
-	req.Message = html.EscapeString(req.Message)
-	if req.Message == "" {
-		responses.RespondWithError(w, errLib.New("message is required", http.StatusBadRequest))
+	req.Query = html.EscapeString(req.Query)
+	if req.Query == "" {
+		responses.RespondWithError(w, errLib.New("query is required", http.StatusBadRequest))
 		return
 	}
 
-	log.Printf("AI chat request: %s", req.Message)
+	log.Printf("AI chat request: %s", req.Query)
 
-	reply, err := h.svc.Chat(req.Message, req.Context, req.ChatHistory)
+	reply, err := h.svc.Chat(req.Query, req.Context, req.ChatHistory)
 	if err != nil {
 		responses.RespondWithError(w, err)
 		return

@@ -427,7 +427,7 @@ func RegisterAIRoutes(_ *di.Container) func(chi.Router) {
 		r.With(middlewares.RateLimitMiddleware(0.2, 1, time.Minute)).Post("/chat", h.ProxyMessage)
 	}
 }
-
+// RegisterBookingsRoutes registers the bookings routes.
 func RegisterBookingsRoutes(container *di.Container) func(chi.Router) {
 	h := bookingsHandler.NewHandler(container)
 	return func(r chi.Router) {

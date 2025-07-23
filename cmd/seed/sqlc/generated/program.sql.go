@@ -39,7 +39,10 @@ const insertBuiltInPrograms = `-- name: InsertBuiltInPrograms :exec
 INSERT INTO program.programs (id, name, type, description)
 VALUES
     (gen_random_uuid(), 'Course', 'course'::program.program_type, 'Default program for courses'),
-    (gen_random_uuid(), 'Other', 'other'::program.program_type, 'Default program for other events')
+    (gen_random_uuid(), 'Other', 'other'::program.program_type, 'Default program for other events'),
+    (gen_random_uuid(), 'Tournament', 'tournament'::program.program_type, 'Default program for tournaments'),
+    (gen_random_uuid(), 'Tryouts', 'tryouts'::program.program_type, 'Default program for tryouts'),
+    (gen_random_uuid(), 'Event', 'event'::program.program_type, 'Default program for events')
 ON CONFLICT (name) DO UPDATE
 SET type = EXCLUDED.type,
     description = EXCLUDED.description

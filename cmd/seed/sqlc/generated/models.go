@@ -267,9 +267,12 @@ func AllProgramProgramLevelValues() []ProgramProgramLevel {
 type ProgramProgramType string
 
 const (
-	ProgramProgramTypePractice ProgramProgramType = "practice"
-	ProgramProgramTypeCourse   ProgramProgramType = "course"
-	ProgramProgramTypeOther    ProgramProgramType = "other"
+	ProgramProgramTypePractice   ProgramProgramType = "practice"
+	ProgramProgramTypeCourse     ProgramProgramType = "course"
+	ProgramProgramTypeOther      ProgramProgramType = "other"
+	ProgramProgramTypeTournament ProgramProgramType = "tournament"
+	ProgramProgramTypeTryouts    ProgramProgramType = "tryouts"
+	ProgramProgramTypeEvent      ProgramProgramType = "event"
 )
 
 func (e *ProgramProgramType) Scan(src interface{}) error {
@@ -311,7 +314,10 @@ func (e ProgramProgramType) Valid() bool {
 	switch e {
 	case ProgramProgramTypePractice,
 		ProgramProgramTypeCourse,
-		ProgramProgramTypeOther:
+		ProgramProgramTypeOther,
+		ProgramProgramTypeTournament,
+		ProgramProgramTypeTryouts,
+		ProgramProgramTypeEvent:
 		return true
 	}
 	return false
@@ -322,6 +328,9 @@ func AllProgramProgramTypeValues() []ProgramProgramType {
 		ProgramProgramTypePractice,
 		ProgramProgramTypeCourse,
 		ProgramProgramTypeOther,
+		ProgramProgramTypeTournament,
+		ProgramProgramTypeTryouts,
+		ProgramProgramTypeEvent,
 	}
 }
 
@@ -654,6 +663,7 @@ type UsersUser struct {
 	CreatedAt                time.Time      `json:"created_at"`
 	UpdatedAt                time.Time      `json:"updated_at"`
 	Dob                      time.Time      `json:"dob"`
+	IsArchived               bool           `json:"is_archived"`
 }
 
 type WaiverWaiver struct {

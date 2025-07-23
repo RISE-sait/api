@@ -53,7 +53,7 @@ func (h *Handler) CreateProgram(w http.ResponseWriter, r *http.Request) {
 
 // GetPrograms retrieves a list of programs.
 // @Tags programs
-// @Param type query string false "Program Type (game, practice, course, others)"
+// @Param type query string false "Program Type (practice, course, game, other, others, tournament, event, tryouts)"
 // @Accept json
 // @Produce json
 // @Success 200 {array} dto.Response "Programs retrieved successfully"

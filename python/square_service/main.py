@@ -72,15 +72,15 @@ def create_payment():
 @app.route("/checkout/subscription", methods=["POST"])
 def create_subscription():
     data = request.json or {}
-    plan_id = data.get("plan_id")
+    plan_variation_id = data.get("plan_variation_id") or data.get("plan_id")
     customer_id = data.get("customer_id")
-    if not plan_id or not customer_id:
-        return jsonify({"error": "missing plan_id or customer_id"}), 400
+    if not plan_variation_id or not customer_id:
+        return jsonify({"error": "missing plan_variation_id or customer_id"}), 400
 
     body = {
         "idempotency_key": str(uuid.uuid4()),
         "location_id": LOCATION_ID,
-        "plan_id": plan_id,
+        "plan_variation_id": plan_variation_id,
         "customer_id": customer_id,
     }
 

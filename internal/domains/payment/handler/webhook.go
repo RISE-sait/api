@@ -2,6 +2,7 @@ package payment
 
 import (
 	"api/internal/di"
+	service "api/internal/domains/payment/services"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"io"
@@ -9,10 +10,14 @@ import (
 	"net/http"
 )
 
-type WebhookHandlers struct{}
+type WebhookHandlers struct {
+	Service *service.WebhookService
+}
 
 func NewWebhookHandlers(container *di.Container) *WebhookHandlers {
-	return &WebhookHandlers{}
+	return &WebhookHandlers{
+		Service: service.NewWebhookService(container),
+	}
 }
 
 // HandleSquareWebhook accepts incoming Square webhook events.
@@ -32,9 +37,13 @@ func (h *WebhookHandlers) HandleSquareWebhook(w http.ResponseWriter, r *http.Req
 	}
 
 	log.Println(">>> Incoming Square webhook")
-	log.Println("Payload:", string(payload))
+
+	if svcErr := h.Service.HandleSquareWebhook(payload); svcErr != nil {
+		responseHandlers.RespondWithError(w, svcErr)
+		return
+	}
 
 	// If verification or signature checking is needed, it can be added here later.
 
-	w.WriteHeader(http.StatusOK)
+	responseHandlers.RespondWithSuccess(w, map[string]string{"status": "ok"}, http.StatusOK)
 }

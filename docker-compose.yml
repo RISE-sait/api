@@ -41,6 +41,6 @@ services:
       - ./config/.env
       - ./config/.env.local
     environment:
-      GO_BACKEND_URL: 'http://go-server:80'
+      GO_BACKEND_URL: 'http://go-server:80/webhooks/square'
     depends_on:
       - db

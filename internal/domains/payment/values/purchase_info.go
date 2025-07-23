@@ -1,13 +1,15 @@
 package payment
 
 import (
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type MembershipPlanJoiningRequirement struct {
 	ID                 uuid.UUID
 	Name               string
+	SquarePlanID       string
 	StripePriceID      string
 	StripeJoiningFeeID string
 	MembershipID       uuid.UUID

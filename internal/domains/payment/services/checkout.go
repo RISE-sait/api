@@ -25,7 +25,7 @@ import (
 type Service struct {
 	CheckoutRepo        *repository.CheckoutRepository
 	MembershipPlansRepo *membership.PlansRepository
-	SquareClient        *squareClient.Client // deprecated
+	SquareClient        *squareClient.Client 
 	SquareServiceURL    string
 	DiscountService     *discountService.Service
 	EnrollmentService   *enrollment.CustomerEnrollmentService
@@ -79,8 +79,8 @@ func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID u
 	}
 
 	payload := map[string]interface{}{
-		"plan_id":     requirements.StripePriceID,
-		"customer_id": userID.String(),
+		"plan_variation_id": requirements.StripePriceID,
+		"customer_id":       userID.String(),
 	}
 
 	return s.postToSquare("/checkout/subscription", payload)
@@ -139,5 +139,6 @@ func (s *Service) CheckoutEvent(ctx context.Context, eventID uuid.UUID) (string,
 	payload := map[string]interface{}{
 		"plan_id": priceID,
 	}
+	
 	return s.postToSquare("/checkout/payment", payload)
 }

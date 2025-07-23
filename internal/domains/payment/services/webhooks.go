@@ -323,3 +323,34 @@ func (s *WebhookService) sendMembershipPurchaseEmail(userID, planID uuid.UUID) {
 
 	email.SendMembershipPurchaseEmail(*userInfo.Email, userInfo.FirstName, plan.Name)
 }
+
+type squareWebhookEvent struct {
+	Data struct {
+		Object map[string]interface{} `json:"object"`
+	} `json:"data"`
+}
+
+// HandleSquareWebhook processes Square webhook payloads sent from the Python service.
+// It extracts the plan variation identifier for future processing.
+func (s *WebhookService) HandleSquareWebhook(payload []byte) *errLib.CommonError {
+	var event squareWebhookEvent
+	if err := json.Unmarshal(payload, &event); err != nil {
+		return errLib.New("failed to parse Square webhook: "+err.Error(), http.StatusBadRequest)
+	}
+
+	obj := event.Data.Object
+
+	var planVariationID string
+	if v, ok := obj["plan_variation_id"].(string); ok && v != "" {
+		planVariationID = v
+	} else if v, ok := obj["plan_id"].(string); ok && v != "" {
+		planVariationID = v
+	}
+
+	if planVariationID == "" {
+		return errLib.New("plan_variation_id cannot be empty", http.StatusBadRequest)
+	}
+
+	log.Println("Square webhook plan variation id:", planVariationID)
+	return nil
+}

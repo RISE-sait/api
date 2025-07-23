@@ -581,7 +581,10 @@
                             "game",
                             "practice",
                             "course",
-                            "others"
+                            "others",
+                            "tournament",
+                            "event",
+                            "tryouts"
                         ],
                         "type": "string",
                         "example": "game",
@@ -2458,7 +2461,7 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Program Type (game, practice, course, others)",
+                        "description": "Program Type (practice, course, game, other, others, tournament, event, tryouts)",
                         "name": "type",
                         "in": "query"
                     }

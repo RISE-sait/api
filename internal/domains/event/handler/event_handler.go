@@ -38,7 +38,7 @@ func NewEventsHandler(container *di.Container) *EventsHandler {
 // @Param participant_id query string false "Filter by participant ID" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")
 // @Param team_id query string false "Filter by team ID" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")
 // @Param location_id query string false "Filter by location ID" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")
-// @Param program_type query string false "Filter by program type" Enums(game,practice,course,others) example(practice)
+// @Param program_type query string false "Filter by program type" Enums(practice,course,game,other,others,tournament,event,tryouts) example(practice)
 // @Param response_type query string false "Response format type" Enums(date,day) default(date) example(date)
 // @Param created_by query string false "ID of person who created the event" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")
 // @Param updated_by query string false "ID of person who updated the event" Format(uuid) example("550e8400-e29b-41d4-a716-446655440000")

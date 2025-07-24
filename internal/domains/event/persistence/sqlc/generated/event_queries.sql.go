@@ -40,7 +40,7 @@ INTO events.events (location_id,
                     is_cancelled,
                     cancellation_reason)
 SELECT location_id,
-         court_id,
+        NULLIF(court_id, '00000000-0000-0000-0000-000000000000'::uuid),
        program_id,
        NULLIF(team_id, '00000000-0000-0000-0000-000000000000'::uuid),
        start_at,

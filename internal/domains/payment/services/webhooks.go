@@ -4,20 +4,22 @@ import (
 	"api/internal/di"
 	dbEnrollment "api/internal/domains/enrollment/persistence/sqlc/generated"
 	enrollment "api/internal/domains/enrollment/service"
+	identityRepo "api/internal/domains/identity/persistence/repository/user"
+	membershipRepo "api/internal/domains/membership/persistence/repositories"
 	repository "api/internal/domains/payment/persistence/repositories"
 	errLib "api/internal/libs/errors"
+	"api/utils/email"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
-	identityRepo "api/internal/domains/identity/persistence/repository/user"
-	membershipRepo "api/internal/domains/membership/persistence/repositories"
-	"api/utils/email"
-
 	"github.com/google/uuid"
+
 	"github.com/stripe/stripe-go/v81"
 	"github.com/stripe/stripe-go/v81/checkout/session"
 	"github.com/stripe/stripe-go/v81/subscription"
@@ -28,6 +30,7 @@ type WebhookService struct {
 	EnrollmentService      *enrollment.CustomerEnrollmentService
 	UserRepo               *identityRepo.UsersRepository
 	PlansRepo              *membershipRepo.PlansRepository
+	SquareServiceURL       string
 }
 
 func NewWebhookService(container *di.Container) *WebhookService {
@@ -36,6 +39,7 @@ func NewWebhookService(container *di.Container) *WebhookService {
 		EnrollmentService:      enrollment.NewCustomerEnrollmentService(container),
 		UserRepo:               identityRepo.NewUserRepository(container),
 		PlansRepo:              membershipRepo.NewMembershipPlansRepository(container),
+		SquareServiceURL:       os.Getenv("SQUARE_SERVICE_URL"),
 	}
 }
 
@@ -350,6 +354,62 @@ func (s *WebhookService) HandleSquareWebhook(payload []byte) *errLib.CommonError
 	if planVariationID == "" {
 		return errLib.New("plan_variation_id cannot be empty", http.StatusBadRequest)
 	}
+
+	customerID, _ := obj["customer_id"].(string)
+	if customerID == "" {
+		return errLib.New("customer_id cannot be empty", http.StatusBadRequest)
+	}
+
+	// Retrieve Square customer via the Python service
+	ctx := context.Background()
+	if s.SquareServiceURL == "" {
+		return errLib.New("square service url not configured", http.StatusInternalServerError)
+	}
+	resp, err := http.Get(s.SquareServiceURL + "/customers/" + customerID)
+	if err != nil {
+		log.Printf("failed to fetch Square customer %s: %v", customerID, err)
+		return errLib.New("failed to fetch Square customer", http.StatusInternalServerError)
+	}
+	defer resp.Body.Close()
+	data, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 300 {
+		return errLib.New(string(data), resp.StatusCode)
+	}
+
+	type customerResp struct {
+		Customer struct {
+			ReferenceID *string `json:"reference_id"`
+		} `json:"customer"`
+	}
+	var custResp customerResp
+	json.Unmarshal(data, &custResp)
+	var referenceID string
+	if custResp.Customer.ReferenceID != nil {
+		referenceID = *custResp.Customer.ReferenceID
+	}
+
+	if referenceID == "" {
+		return errLib.New("reference_id missing in customer", http.StatusBadRequest)
+	}
+
+	userUUID, uuidErr := uuid.Parse(referenceID)
+	if uuidErr != nil {
+		return errLib.New("invalid reference_id format", http.StatusBadRequest)
+	}
+
+	planID, _, err := s.PostCheckoutRepository.GetMembershipPlanByStripePriceID(ctx, planVariationID)
+	if planID == uuid.Nil {
+		if commonErr, ok := err.(*errLib.CommonError); ok {
+			return commonErr
+		}
+		return errLib.New("membership plan not found for given plan_variation_id", http.StatusNotFound)
+	}
+
+	if err := s.EnrollmentService.EnrollCustomerInMembershipPlan(ctx, userUUID, planID, time.Time{}); err != nil {
+		return err
+	}
+
+	s.sendMembershipPurchaseEmail(userUUID, planID)
 
 	log.Println("Square webhook plan variation id:", planVariationID)
 	return nil

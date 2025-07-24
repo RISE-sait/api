@@ -68,15 +68,49 @@ def create_payment():
         return jsonify(payload)
     return jsonify({"error": resp.text}), resp.status_code
 
+def resolve_customer_id(ref_id: str) -> str | None:
+    """Return the Square customer ID for the given internal reference."""
+    search_payload = {
+        "query": {
+            "filter": {"reference_id": {"exact": ref_id}}
+        }
+    }
+    resp = requests.post(
+        f"{BASE_URL}/v2/customers/search",
+        headers=HEADERS,
+        json=search_payload,
+    )
+    if resp.ok:
+        customers = resp.json().get("customers") or []
+        if customers:
+            return customers[0]["id"]
+
+    create_body = {
+        "idempotency_key": str(uuid.uuid4()),
+        "reference_id": ref_id,
+    }
+    resp = requests.post(
+        f"{BASE_URL}/v2/customers",
+        headers=HEADERS,
+        json=create_body,
+    )
+    if resp.ok:
+        return resp.json().get("customer", {}).get("id")
+    return None
+
 
 @app.route("/checkout/subscription", methods=["POST"])
 def create_subscription():
     data = request.json or {}
     plan_variation_id = data.get("plan_variation_id") or data.get("plan_id")
-    customer_id = data.get("customer_id")
-    if not plan_variation_id or not customer_id:
+    ref_id = data.get("customer_id")
+    if not plan_variation_id or not ref_id:
         return jsonify({"error": "missing plan_variation_id or customer_id"}), 400
 
+    customer_id = resolve_customer_id(ref_id)
+    if not customer_id:
+        return jsonify({"error": "failed to resolve customer"}), 400
+    
     body = {
         "idempotency_key": str(uuid.uuid4()),
         "location_id": LOCATION_ID,
@@ -95,10 +129,21 @@ def create_subscription():
     )
     if resp.ok:
         payload = resp.json()
+        payload["internal_customer_id"] = ref_id
         notify_backend(payload)
         return jsonify(payload)
     return jsonify({"error": resp.text}), resp.status_code
 
+@app.route("/customers/<customer_id>", methods=["GET"])
+def get_customer(customer_id):
+    """Retrieve a Square customer by ID."""
+    resp = requests.get(
+        f"{BASE_URL}/v2/customers/{customer_id}",
+        headers=HEADERS,
+    )
+    if resp.ok:
+        return jsonify(resp.json())
+    return jsonify({"error": resp.text}), resp.status_code
 
 @app.route("/webhook", methods=["POST"])
 def handle_webhook():

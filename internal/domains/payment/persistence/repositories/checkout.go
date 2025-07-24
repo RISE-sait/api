@@ -12,9 +12,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"log"
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
 type CheckoutRepository struct {
@@ -40,6 +41,12 @@ func (r *CheckoutRepository) GetMembershipPlanJoiningRequirement(ctx context.Con
 			return values.MembershipPlanJoiningRequirement{}, errLib.New(fmt.Sprintf("membership plan not found for plan id: %v", planID), http.StatusBadRequest)
 		}
 	} else {
+		if requirements.StripePriceID == "" {
+			return values.MembershipPlanJoiningRequirement{}, errLib.New(
+				"membership plan is missing a square plan variation id",
+				http.StatusBadRequest,
+			)
+		}
 		response := values.MembershipPlanJoiningRequirement{
 			ID:            requirements.ID,
 			Name:          requirements.Name,

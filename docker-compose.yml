@@ -25,3 +25,16 @@ services:
     env_file:
       - ./config/.env
       - ./config/.env.local
+
+  square-service:
+    build:
+      context: ./square_service
+      dockerfile: Dockerfile
+    container_name: '${COMPOSE_PROJECT_NAME}_square_service'
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./square_service:/app
+    env_file:
+      - ./config/.env
+      - ./config/.env.local

@@ -30,3 +30,7 @@ qodana.yaml
 server.log
 
 cmd/seed/clients.csv
+
+# Python
+__pycache__/
+*.pyc

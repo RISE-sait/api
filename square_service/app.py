@@ -22,9 +22,9 @@ from slowapi import Limiter
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
-# —————————————————————————————
-# 1) Load + enforce required env vars
-# —————————————————————————————
+
+# Load + enforce required env vars
+
 load_dotenv()
 REQUIRED_ENVS = [
     "DATABASE_URL",
@@ -42,12 +42,11 @@ if _missing:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# —————————————————————————————
-# 2) FastAPI app & middleware
-# —————————————————————————————
+# 
+#  FastAPI app & middleware
 app = FastAPI()
 
-# 2a) CORS: only your frontend
+#  CORS: only your frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[os.getenv("FRONTEND_URL")],
@@ -56,12 +55,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 2b) Rate limiting
+# Rate limiting
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
 
-# 2c) Security headers
+# Security headers
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
     response = await call_next(request)
@@ -72,9 +71,9 @@ async def security_headers(request: Request, call_next):
     response.headers["Permissions-Policy"] = "geolocation=()"
     return response
 
-# —————————————————————————————
-# 3) Square API configuration
-# —————————————————————————————
+
+# Square API configuration
+
 SQUARE_BASE_URL = (
     "https://connect.squareupsandbox.com"
     if os.getenv("SQUARE_ENV") != "production"
@@ -86,17 +85,17 @@ HEADERS = {
     "Content-Type": "application/json"
 }
 
-# —————————————————————————————
-# 4) JWT & Webhook keys
-# —————————————————————————————
+
+# JWT & Webhook keys
+
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = "HS256"
 WEBHOOK_SIGNATURE_KEY = os.getenv("SQUARE_WEBHOOK_SIGNATURE_KEY")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
-# —————————————————————————————
-# 5) Models
-# —————————————————————————————
+
+# Models
+
 class CheckoutRequest(BaseModel):
     membership_plan_id: str
     discount_code: Optional[str] = None
@@ -107,15 +106,14 @@ class ProgramCheckoutRequest(BaseModel):
 class EventCheckoutRequest(BaseModel):
     event_id: str
 
-# —————————————————————————————
-# 6) DB helper
-# —————————————————————————————
+
+#  DB helper
+
 def get_db_conn():
     return psycopg2.connect(os.getenv("DATABASE_URL"))
 
-# —————————————————————————————
-# 7) JWT decode helper (with explicit expiry handling)
-# —————————————————————————————
+# JWT decode helper (with explicit expiry handling)
+
 def get_user_id(creds: HTTPAuthorizationCredentials) -> str:
     token = creds.credentials
     try:
@@ -123,7 +121,7 @@ def get_user_id(creds: HTTPAuthorizationCredentials) -> str:
             token,
             JWT_SECRET,
             algorithms=[JWT_ALGORITHM],
-            options={"require": ["exp"]},  # ensure exp claim
+            options={"require": ["exp"]},  
         )
         return payload.get("user_id") or payload.get("sub")
     except jwt.ExpiredSignatureError:
@@ -133,9 +131,9 @@ def get_user_id(creds: HTTPAuthorizationCredentials) -> str:
         logger.error(f"JWT invalid: {e}")
         raise HTTPException(status_code=401, detail="Invalid token")
 
-# —————————————————————————————
-# 8) Signature verification (use canonical URL)
-# —————————————————————————————
+
+# Signature verification (use canonical URL)
+
 def verify_signature(signature_header: str, body: bytes) -> bool:
     # use the exact URL Square registered (must match protocol, host, port, path)
     msg = WEBHOOK_URL.encode("utf-8") + body
@@ -150,9 +148,9 @@ def verify_signature(signature_header: str, body: bytes) -> bool:
     logger.debug(f"[WEBHOOK] Computed signature: {computed}")
     return hmac.compare_digest(signature_header, computed)
 
-# —————————————————————————————
-# 9) Payload generator
-# —————————————————————————————
+
+# Payload generator
+
 def generate_checkout_payload(location_id, catalog_ids, metadata):
     return {
         "idempotency_key": os.urandom(16).hex(),
@@ -164,9 +162,9 @@ def generate_checkout_payload(location_id, catalog_ids, metadata):
         "ask_for_shipping_address": False,
     }
 
-# —————————————————————————————
-# 10) Membership checkout endpoint
-# —————————————————————————————
+
+# Membership checkout endpoint
+
 @app.post("/checkout/membership")
 @limiter.limit("10/minute")
 async def checkout_membership(
@@ -205,9 +203,8 @@ async def checkout_membership(
             raise HTTPException(status_code=500, detail=resp.text)
         return {"checkout_url": resp.json()["payment_link"]["url"]}
 
-# —————————————————————————————
-# 11) Webhook endpoint
-# —————————————————————————————
+
+# Webhook endpoint
 @app.post("/webhook")
 @limiter.limit("60/minute")
 async def handle_webhook(request: Request):

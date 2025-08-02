@@ -1,12 +1,6 @@
 package practice
 
 import (
-	"context"
-	"database/sql"
-	"fmt"
-	"net/http"
-	"time"
-
 	"api/internal/di"
 	staffActivityLogs "api/internal/domains/audit/staff_activity_logs/service"
 	repo "api/internal/domains/practice/persistence"
@@ -14,6 +8,12 @@ import (
 	errLib "api/internal/libs/errors"
 	contextUtils "api/utils/context"
 	txUtils "api/utils/db"
+	"context"
+	"database/sql"
+	"fmt"
+	"net/http"
+	"sort"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -137,4 +137,61 @@ func generatePracticesFromRecurrence(rec values.RecurrenceValues, base values.Cr
 		}
 	}
 	return practices, nil
+}
+
+// GetUserPractices retrieves practices for the teams associated with the given user.
+// Coaches see practices for teams they coach, athletes for the team they belong to.
+func (s *Service) GetUserPractices(ctx context.Context, userID uuid.UUID, role contextUtils.CtxRole, limit, offset int32) ([]values.ReadPracticeValue, *errLib.CommonError) {
+	teamIDs, err := s.getUserTeamIDs(ctx, userID, role)
+	if err != nil {
+		return nil, err
+	}
+	if len(teamIDs) == 0 {
+		return []values.ReadPracticeValue{}, nil
+	}
+	var result []values.ReadPracticeValue
+	for _, id := range teamIDs {
+		practices, err := s.repo.List(ctx, id, limit, offset)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, practices...)
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].StartTime.Before(result[j].StartTime) })
+	return result, nil
+}
+
+func (s *Service) getUserTeamIDs(ctx context.Context, userID uuid.UUID, role contextUtils.CtxRole) ([]uuid.UUID, *errLib.CommonError) {
+	switch role {
+	case contextUtils.RoleCoach:
+		rows, err := s.db.QueryContext(ctx, `SELECT id FROM athletic.teams WHERE coach_id = $1`, userID)
+		if err != nil {
+			return nil, errLib.New("failed to get coach teams", http.StatusInternalServerError)
+		}
+		defer rows.Close()
+		var ids []uuid.UUID
+		for rows.Next() {
+			var id uuid.UUID
+			if err := rows.Scan(&id); err != nil {
+				return nil, errLib.New("failed to scan team id", http.StatusInternalServerError)
+			}
+			ids = append(ids, id)
+		}
+		return ids, nil
+	case contextUtils.RoleAthlete:
+		var id uuid.UUID
+		err := s.db.QueryRowContext(ctx, `SELECT team_id FROM athletic.athletes WHERE id = $1`, userID).Scan(&id)
+		if err == sql.ErrNoRows {
+			return []uuid.UUID{}, nil
+		}
+		if err != nil {
+			return nil, errLib.New("failed to get athlete team", http.StatusInternalServerError)
+		}
+		if id == uuid.Nil {
+			return []uuid.UUID{}, nil
+		}
+		return []uuid.UUID{id}, nil
+	default:
+		return nil, errLib.New("role not supported", http.StatusForbidden)
+	}
 }

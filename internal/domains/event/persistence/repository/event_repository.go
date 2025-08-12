@@ -73,13 +73,18 @@ var constraintErrors = map[string]struct {
 		Message: "An event is already scheduled at this time and location",
 		Status:  http.StatusConflict,
 	},
+	"fk_required_membership_plan": {
+		Message: "The referenced membership plan doesn't exist",
+		Status:  http.StatusBadRequest,
+	},
 }
 
 func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []values.CreateEventValues) *errLib.CommonError {
 	var (
-		locationIDs, programIDs, courtIDs, teamIDs, createdByIds, recurrenceIds []uuid.UUID
-		startAtArray, endAtArray                                      []time.Time
-		isCancelledArray, isDateTimeModifiedArray                     []bool
+		locationIDs, programIDs, courtIDs, teamIDs, createdByIds, recurrenceIds, membershipPlanIDs []uuid.UUID
+		startAtArray, endAtArray                                                                   []time.Time
+		isCancelledArray, isDateTimeModifiedArray                                                  []bool
+		priceIDs                                                                                   []string
 	)
 
 	recurrenceId := uuid.Nil
@@ -99,20 +104,24 @@ func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []valu
 		createdByIds = append(createdByIds, event.CreatedBy)
 		isCancelledArray = append(isCancelledArray, false)
 		isDateTimeModifiedArray = append(isDateTimeModifiedArray, false)
+		membershipPlanIDs = append(membershipPlanIDs, event.RequiredMembershipPlanID)
+		priceIDs = append(priceIDs, event.PriceID)
 	}
 
 	dbParams := db.CreateEventsParams{
-		LocationIds:             locationIDs,
-		ProgramIds:              programIDs,
-		CourtIds:                courtIDs,
-		TeamIds:                 teamIDs,
-		StartAtArray:            startAtArray,
-		EndAtArray:              endAtArray,
-		CreatedByIds:            createdByIds,
-		RecurrenceIds:           recurrenceIds,
-		IsCancelledArray:        isCancelledArray,
-		IsDateTimeModifiedArray: isDateTimeModifiedArray,
-		CancellationReasons:     nil,
+		LocationIds:               locationIDs,
+		ProgramIds:                programIDs,
+		CourtIds:                  courtIDs,
+		TeamIds:                   teamIDs,
+		StartAtArray:              startAtArray,
+		EndAtArray:                endAtArray,
+		CreatedByIds:              createdByIds,
+		RecurrenceIds:             recurrenceIds,
+		IsCancelledArray:          isCancelledArray,
+		IsDateTimeModifiedArray:   isDateTimeModifiedArray,
+		CancellationReasons:       nil,
+		RequiredMembershipPlanIds: membershipPlanIDs,
+		PriceIds:                  priceIDs,
 	}
 
 	impactedRows, dbErr := r.Queries.CreateEvents(ctx, dbParams)
@@ -334,9 +343,8 @@ func (r *EventsRepository) UpdateEvent(ctx context.Context, event values.UpdateE
 	dbEventParams := db.UpdateEventParams{
 		StartAt:    event.StartAt,
 		EndAt:      event.EndAt,
-		UpdatedBy:  userID,
-		ID:         event.ID,
 		LocationID: event.LocationID,
+		ProgramID:  event.ProgramID,
 		CourtID: uuid.NullUUID{
 			UUID:  event.CourtID,
 			Valid: event.CourtID != uuid.Nil,
@@ -345,7 +353,18 @@ func (r *EventsRepository) UpdateEvent(ctx context.Context, event values.UpdateE
 			UUID:  event.TeamID,
 			Valid: event.TeamID != uuid.Nil,
 		},
-		ProgramID: event.ProgramID,
+		IsCancelled:        false,
+		CancellationReason: sql.NullString{},
+		ID:                 event.ID,
+		RequiredMembershipPlanID: uuid.NullUUID{
+			UUID:  event.RequiredMembershipPlanID,
+			Valid: event.RequiredMembershipPlanID != uuid.Nil,
+		},
+		PriceID: sql.NullString{
+			String: event.PriceID,
+			Valid:  event.PriceID != "",
+		},
+		UpdatedBy: userID,
 	}
 
 	_, dbErr := r.Queries.UpdateEvent(ctx, dbEventParams)

@@ -8,13 +8,15 @@ import (
 
 //goland:noinspection GoNameStartsWithPackageName
 type EventDetails struct {
-	CreatedBy  uuid.UUID
-	StartAt    time.Time
-	EndAt      time.Time
-	ProgramID  uuid.UUID
-	LocationID uuid.UUID
-	CourtID    uuid.UUID
-	TeamID     uuid.UUID
+	CreatedBy                uuid.UUID
+	StartAt                  time.Time
+	EndAt                    time.Time
+	ProgramID                uuid.UUID
+	LocationID               uuid.UUID
+	CourtID                  uuid.UUID
+	TeamID                   uuid.UUID
+	RequiredMembershipPlanID uuid.UUID
+	PriceID                  string
 }
 
 type CreateEventValues struct {

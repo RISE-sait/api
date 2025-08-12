@@ -14,25 +14,29 @@ import (
 )
 
 type RecurrenceRequestDto struct {
-	Day               string    `json:"day" example:"THURSDAY"`
-	RecurrenceStartAt string    `json:"recurrence_start_at" validate:"required" example:"2023-10-05T07:00:00Z"`
-	RecurrenceEndAt   string    `json:"recurrence_end_at" validate:"required" example:"2023-10-05T07:00:00Z"`
-	EventStartTime    string    `json:"event_start_at" validate:"required" example:"23:00:00+00:00"`
-	EventEndTime      string    `json:"event_end_at" validate:"required" example:"23:00:00+00:00"`
-	ProgramID         uuid.UUID `json:"program_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
-	LocationID        uuid.UUID `json:"location_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
-	CourtId 		 uuid.UUID `json:"court_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
-	TeamID            uuid.UUID `json:"team_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
+	Day                      string    `json:"day" example:"THURSDAY"`
+	RecurrenceStartAt        string    `json:"recurrence_start_at" validate:"required" example:"2023-10-05T07:00:00Z"`
+	RecurrenceEndAt          string    `json:"recurrence_end_at" validate:"required" example:"2023-10-05T07:00:00Z"`
+	EventStartTime           string    `json:"event_start_at" validate:"required" example:"23:00:00+00:00"`
+	EventEndTime             string    `json:"event_end_at" validate:"required" example:"23:00:00+00:00"`
+	ProgramID                uuid.UUID `json:"program_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
+	LocationID               uuid.UUID `json:"location_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
+	CourtId                  uuid.UUID `json:"court_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
+	TeamID                   uuid.UUID `json:"team_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
+	RequiredMembershipPlanID uuid.UUID `json:"required_membership_plan_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
+	PriceID                  string    `json:"price_id" example:"price_123"`
 }
 
 //goland:noinspection GoNameStartsWithPackageName
 type EventRequestDto struct {
-	StartAt    string    `json:"start_at" validate:"required" example:"2023-10-05T07:00:00Z"`
-	EndAt      string    `json:"end_at" validate:"required" example:"2023-10-05T07:00:00Z"`
-	ProgramID  uuid.UUID `json:"program_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
-	LocationID uuid.UUID `json:"location_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
-	CourtID    uuid.UUID `json:"court_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a111"`
-	TeamID     uuid.UUID `json:"team_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
+	StartAt                  string    `json:"start_at" validate:"required" example:"2023-10-05T07:00:00Z"`
+	EndAt                    string    `json:"end_at" validate:"required" example:"2023-10-05T07:00:00Z"`
+	ProgramID                uuid.UUID `json:"program_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
+	LocationID               uuid.UUID `json:"location_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
+	CourtID                  uuid.UUID `json:"court_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a111"`
+	TeamID                   uuid.UUID `json:"team_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
+	RequiredMembershipPlanID uuid.UUID `json:"required_membership_plan_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
+	PriceID                  string    `json:"price_id" example:"price_123"`
 }
 
 type DeleteRequestDto struct {
@@ -74,12 +78,14 @@ func (dto RecurrenceRequestDto) ToCreateRecurrenceValues(creator uuid.UUID) (val
 	}
 
 	createRecurrenceValues := values.CreateRecurrenceValues{
-		CreatedBy:            creator,
-		BaseRecurrenceValues: recurrence,
-		TeamID:               dto.TeamID,
-		LocationID:           dto.LocationID,
-		CourtID:             dto.CourtId,
-		ProgramID:            dto.ProgramID,
+		CreatedBy:                creator,
+		BaseRecurrenceValues:     recurrence,
+		TeamID:                   dto.TeamID,
+		LocationID:               dto.LocationID,
+		CourtID:                  dto.CourtId,
+		ProgramID:                dto.ProgramID,
+		RequiredMembershipPlanID: dto.RequiredMembershipPlanID,
+		PriceID:                  dto.PriceID,
 	}
 
 	return createRecurrenceValues, nil
@@ -92,13 +98,15 @@ func (dto RecurrenceRequestDto) ToUpdateRecurrenceValues(updater, recurrenceID u
 	}
 
 	updateRecurrenceValues := values.UpdateRecurrenceValues{
-		UpdatedBy:            updater,
-		BaseRecurrenceValues: recurrence,
-		ID:                   recurrenceID,
-		TeamID:               dto.TeamID,
-		LocationID:           dto.LocationID,
-		CourtID:             dto.CourtId,
-		ProgramID:            dto.ProgramID,
+		UpdatedBy:                updater,
+		BaseRecurrenceValues:     recurrence,
+		ID:                       recurrenceID,
+		TeamID:                   dto.TeamID,
+		LocationID:               dto.LocationID,
+		CourtID:                  dto.CourtId,
+		ProgramID:                dto.ProgramID,
+		RequiredMembershipPlanID: dto.RequiredMembershipPlanID,
+		PriceID:                  dto.PriceID,
 	}
 
 	return updateRecurrenceValues, nil
@@ -177,12 +185,14 @@ func (dto EventRequestDto) ToCreateEventValues(creator uuid.UUID) (values.Create
 	v := values.CreateEventValues{
 		CreatedBy: creator,
 		EventDetails: values.EventDetails{
-			StartAt:    startAt,
-			EndAt:      endAt,
-			ProgramID:  dto.ProgramID,
-			LocationID: dto.LocationID,
-			CourtID:    dto.CourtID,
-			TeamID:     dto.TeamID,
+			StartAt:                  startAt,
+			EndAt:                    endAt,
+			ProgramID:                dto.ProgramID,
+			LocationID:               dto.LocationID,
+			CourtID:                  dto.CourtID,
+			TeamID:                   dto.TeamID,
+			RequiredMembershipPlanID: dto.RequiredMembershipPlanID,
+			PriceID:                  dto.PriceID,
 		},
 	}
 
@@ -204,12 +214,14 @@ func (dto EventRequestDto) ToUpdateEventValues(idStr string, updater uuid.UUID) 
 		ID:        id,
 		UpdatedBy: updater,
 		EventDetails: values.EventDetails{
-			StartAt:    startAt,
-			EndAt:      endAt,
-			ProgramID:  dto.ProgramID,
-			LocationID: dto.LocationID,
-			CourtID:    dto.CourtID,
-			TeamID:     dto.TeamID,
+			StartAt:                  startAt,
+			EndAt:                    endAt,
+			ProgramID:                dto.ProgramID,
+			LocationID:               dto.LocationID,
+			CourtID:                  dto.CourtID,
+			TeamID:                   dto.TeamID,
+			RequiredMembershipPlanID: dto.RequiredMembershipPlanID,
+			PriceID:                  dto.PriceID,
 		},
 	}
 

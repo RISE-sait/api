@@ -12,8 +12,8 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy app code
-COPY . .
+# Copy app code preserving package structure
+COPY . /app/square_service
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
@@ -22,4 +22,4 @@ ENV PYTHONUNBUFFERED=1
 EXPOSE 8000
 
 # Start the FastAPI app
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+CMD ["uvicorn", "square_service.app:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]

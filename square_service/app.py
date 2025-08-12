@@ -4,7 +4,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
-
+import psycopg2
 import httpx
 from typing import Optional
 from dotenv import load_dotenv
@@ -16,7 +16,6 @@ import hashlib
 import base64
 from contextlib import closing
 import logging
-from square_service import db
 
 # Security / rate-limit imports
 from slowapi import Limiter
@@ -108,7 +107,10 @@ class EventCheckoutRequest(BaseModel):
     event_id: str
 
 
+#  DB helper
 
+def get_db_conn():
+    return psycopg2.connect(os.getenv("DATABASE_URL"))
 
 # JWT decode helper (with explicit expiry handling)
 
@@ -150,7 +152,7 @@ def verify_signature(signature_header: str, body: bytes) -> bool:
 # Payload generator
 
 def generate_checkout_payload(location_id, catalog_ids, metadata):
-    return {
+    payload = {
         "idempotency_key": os.urandom(16).hex(),
         "order": {
             "location_id": location_id,
@@ -159,7 +161,7 @@ def generate_checkout_payload(location_id, catalog_ids, metadata):
         },
         "ask_for_shipping_address": False,
     }
-
+    return payload
 
 # Membership checkout endpoint
 
@@ -173,7 +175,7 @@ async def checkout_membership(
     customer_id = get_user_id(creds)
     logger.info(f"Received membership checkout for user: {customer_id}, plan: {req.membership_plan_id}")
 
-    with closing(db.get_db_conn()) as conn, conn.cursor() as cur:
+    with closing(get_db_conn()) as conn, conn.cursor() as cur:
         cur.execute(
             "SELECT stripe_price_id, stripe_joining_fee_id, amt_periods "
             "FROM membership.membership_plans WHERE id = %s",
@@ -183,6 +185,18 @@ async def checkout_membership(
         if not row:
             raise HTTPException(status_code=404, detail="membership plan not found")
         price_id, joining_fee_id, amt_periods = row
+
+        renewal_date = None
+        if amt_periods is not None:
+            renewal_date = datetime.utcnow() + relativedelta(months=amt_periods)
+
+        cur.execute(
+            "INSERT INTO users.customer_membership_plans "
+            "(customer_id, membership_plan_id, renewal_date, status) "
+            "VALUES (%s,%s,%s,'inactive')",
+            (customer_id, req.membership_plan_id, renewal_date),
+        )
+        conn.commit()
 
     metadata = {"user_id": customer_id, "membership_plan_id": req.membership_plan_id}
     if amt_periods is not None:
@@ -201,6 +215,7 @@ async def checkout_membership(
             raise HTTPException(status_code=500, detail=resp.text)
         return {"checkout_url": resp.json()["payment_link"]["url"]}
 
+
 # Event checkout endpoint
 
 @app.post("/checkout/event")
@@ -211,36 +226,67 @@ async def checkout_event(
     creds: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
 ):
     customer_id = get_user_id(creds)
-    logger.info(f"Received event checkout for user: {customer_id}, event: {req.event_id}")
+    logger.info(
+        f"Received event checkout for user: {customer_id}, event: {req.event_id}"
+    )
 
-    with closing(db.get_db_conn()) as conn, conn.cursor() as cur:
-        # Retrieve membership requirement and price for the event
-        cur.execute(
-            "SELECT required_membership_plan_id, price_id FROM events.events WHERE id = %s",
-            (req.event_id,),
-        )
+    with closing(get_db_conn()) as conn, conn.cursor() as cur:
+        # Get program for the event
+        cur.execute("SELECT program_id FROM events.events WHERE id = %s", (req.event_id,))
         row = cur.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="event not found")
-        required_membership, price_id = row
+        program_id = row[0]
 
-        has_membership = False
-        if required_membership:
-            cur.execute(
-                "SELECT 1 FROM users.customer_membership_plans WHERE customer_id=%s AND membership_plan_id=%s",
-                (customer_id, required_membership),
+        # Reserve a seat for the user
+        cur.execute(
+            """
+            INSERT INTO events.customer_enrollment
+                (customer_id, event_id, payment_expired_at, payment_status)
+            VALUES (%s, %s, CURRENT_TIMESTAMP + interval '10 minute', 'pending')
+            ON CONFLICT (customer_id, event_id) DO UPDATE
+                SET payment_expired_at = EXCLUDED.payment_expired_at,
+                    payment_status = EXCLUDED.payment_status
+            WHERE events.customer_enrollment.payment_status != 'paid'
+            """,
+            (customer_id, req.event_id),
+        )
+
+        # Determine price for customer's membership
+        cur.execute(
+            """
+            SELECT f.stripe_price_id, p.pay_per_event
+            FROM program.fees f
+            JOIN program.programs p ON p.id = f.program_id
+            WHERE f.membership_id = (
+                SELECT mp.membership_id
+                FROM users.customer_membership_plans cmp
+                         LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
+                WHERE customer_id = %s
+                  AND status = 'active'
+                ORDER BY cmp.start_date DESC
+                LIMIT 1
             )
-            has_membership = cur.fetchone() is not None
+              AND f.program_id = %s
+            """,
+            (customer_id, program_id),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="price not found")
 
-        if has_membership:
-            # Free enrollment for members
+        price_id, pay_per_event = row
+
+        # Free enrollment if membership covers it
+        if not pay_per_event or not price_id:
             cur.execute(
-                "INSERT INTO events.customer_enrollment (customer_id, event_id, payment_status) VALUES (%s,%s,'paid') "
-                "ON CONFLICT DO NOTHING",
+                "UPDATE events.customer_enrollment SET payment_status='paid' WHERE customer_id=%s AND event_id=%s",
                 (customer_id, req.event_id),
             )
             conn.commit()
             return {"checkout_url": None}
+
+        conn.commit()
 
     metadata = {"user_id": customer_id, "event_id": req.event_id}
     payload = generate_checkout_payload(os.getenv("SQUARE_LOCATION_ID"), [price_id], metadata)
@@ -253,19 +299,7 @@ async def checkout_event(
         )
         if resp.status_code >= 400:
             raise HTTPException(status_code=500, detail=resp.text)
-
-        with closing(db.get_db_conn()) as conn, conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO events.customer_enrollment (customer_id, event_id, payment_status) VALUES (%s,%s,'pending') "
-                "ON CONFLICT DO NOTHING",
-                (customer_id, req.event_id),
-            )
-            conn.commit()
-
         return {"checkout_url": resp.json()["payment_link"]["url"]}
-
-
-
 
 
 # Webhook endpoint
@@ -292,44 +326,3 @@ async def handle_webhook(request: Request):
                 resp = await client.get(f"{SQUARE_BASE_URL}/v2/orders/{order_id}", headers=HEADERS)
                 resp.raise_for_status()
                 metadata = resp.json()["order"].get("metadata", {})
-
-
-            customer_id = metadata.get("user_id")
-            if not customer_id or customer_id.lower() == "none":
-                logger.warning(f"Webhook metadata missing user_id, skipping DB: {metadata}")
-                return {"status": "ok"}
-
-            plan_id = metadata.get("membership_plan_id")
-            program_id = metadata.get("program_id")
-            event_id = metadata.get("event_id")
-
-            with closing(db.get_db_conn()) as conn, conn.cursor() as cur:
-                if customer_id and plan_id:
-                    cur.execute("SELECT 1 FROM users.users WHERE id = %s", (customer_id,))
-                    if cur.fetchone():
-                        renewal_date = None
-                        amt = metadata.get("amt_periods")
-                        if amt and amt.isdigit():
-                            renewal_date = datetime.utcnow() + relativedelta(months=int(amt))
-                        cur.execute(
-                            "INSERT INTO users.customer_membership_plans "
-                            "(customer_id, membership_plan_id, renewal_date) VALUES (%s,%s,%s)",
-                            (customer_id, plan_id, renewal_date),
-                        )
-                    else:
-                        logger.warning(f"Unknown customer_id={customer_id}; skipping membership insert")
-                elif customer_id and program_id:
-                    cur.execute(
-                        "UPDATE program.customer_enrollment SET payment_status='paid' "
-                        "WHERE customer_id=%s AND program_id=%s",
-                        (customer_id, program_id),
-                    )
-                elif customer_id and event_id:
-                    cur.execute(
-                        "UPDATE events.customer_enrollment SET payment_status='paid' "
-                        "WHERE customer_id=%s AND event_id=%s",
-                        (customer_id, event_id),
-                    )
-                conn.commit()
-
-    return {"status": "ok"}

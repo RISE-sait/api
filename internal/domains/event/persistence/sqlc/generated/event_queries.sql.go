@@ -49,7 +49,7 @@ INSERT INTO events.events (
 )
 SELECT
     location_id,
-    NULLIF(court_id, '00000000-0000-0000-0000-000000000000'::uuid),  -- <- change this
+    NULLIF(court_id, '00000000-0000-0000-0000-000000000000'::uuid),
     program_id,
     NULLIF(team_id, '00000000-0000-0000-0000-000000000000'::uuid),
     start_at,

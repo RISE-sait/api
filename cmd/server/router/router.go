@@ -8,7 +8,7 @@ import (
 	haircut "api/internal/domains/haircut/portfolio"
 
 	bookingsHandler "api/internal/domains/booking/handler"
-	courtHandler "api/internal/domains/court/handler" 
+	courtHandler "api/internal/domains/court/handler"
 	discountHandler "api/internal/domains/discount/handler"
 	enrollmentHandler "api/internal/domains/enrollment/handler"
 	eventHandler "api/internal/domains/event/handler"
@@ -21,6 +21,7 @@ import (
 	playground "api/internal/domains/playground/handler"
 	practice "api/internal/domains/practice/handler"
 	programHandler "api/internal/domains/program"
+	schedule "api/internal/domains/schedule/handler"
 	teamsHandler "api/internal/domains/team"
 	userHandler "api/internal/domains/user/handler"
 	"api/internal/middlewares"
@@ -393,6 +394,7 @@ func RegisterSecureRoutes(container *di.Container) func(chi.Router) {
 		r.Route("/events", RegisterSecureEventRoutes(container))
 		r.Route("/games", RegisterSecureGameRoutes(container))
 		r.Route("/customers", RegisterSecureCustomerRoutes(container))
+		r.Route("/schedule", RegisterSecureScheduleRoutes(container))
 	}
 }
 
@@ -420,6 +422,14 @@ func RegisterSecureCustomerRoutes(container *di.Container) func(chi.Router) {
 	}
 }
 
+// RegisterSecureScheduleRoutes registers the consolidated schedule route.
+func RegisterSecureScheduleRoutes(container *di.Container) func(chi.Router) {
+	h := schedule.NewHandler(container)
+	return func(r chi.Router) {
+		r.With(middlewares.JWTAuthMiddleware(true)).Get("/", h.GetMySchedule)
+	}
+}
+
 // RegisterAIRoutes registers the AI proxy route with rate limiting.
 func RegisterAIRoutes(_ *di.Container) func(chi.Router) {
 	h := aiHandler.NewHandler()
@@ -427,6 +437,7 @@ func RegisterAIRoutes(_ *di.Container) func(chi.Router) {
 		r.With(middlewares.RateLimitMiddleware(1.0, 4, time.Minute)).Post("/chat", h.ProxyMessage)
 	}
 }
+
 // RegisterBookingsRoutes registers the bookings routes.
 func RegisterBookingsRoutes(container *di.Container) func(chi.Router) {
 	h := bookingsHandler.NewHandler(container)

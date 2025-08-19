@@ -50,6 +50,7 @@ FROM unnested_data
 ON CONFLICT ON CONSTRAINT no_overlapping_events DO NOTHING;
 
 
+
 -- name: GetEvents :many
 SELECT DISTINCT e.*,
 

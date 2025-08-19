@@ -16,19 +16,20 @@ import (
 
 const createEvents = `-- name: CreateEvents :execrows
 WITH unnested_data AS (
-    SELECT unnest($1::uuid[])                AS location_id,
-           unnest($2::uuid[])                 AS program_id,
-           unnest($3::uuid[])                   AS court_id,
-           unnest($4::uuid[])                    AS team_id,
-           unnest($5::timestamptz[])       AS start_at,
-           unnest($6::timestamptz[])         AS end_at,
-           unnest($7::bool[]) AS is_date_time_modified,
-           unnest($8::uuid[])              AS recurrence_id,
-           unnest($9::uuid[])              AS created_by,
-           unnest($10::bool[])          AS is_cancelled,
-           unnest($11::text[])        AS cancellation_reason,
-           unnest($12::uuid[]) AS required_membership_plan_id,
-           unnest($13::text[])                    AS price_id
+    SELECT
+        unnest($1::uuid[])                 AS location_id,
+        unnest($2::uuid[])                  AS program_id,
+        unnest($3::uuid[])                    AS court_id,
+        unnest($4::uuid[])                     AS team_id,
+        unnest($5::timestamptz[])        AS start_at,
+        unnest($6::timestamptz[])          AS end_at,
+        unnest($7::bool[])  AS is_date_time_modified,
+        unnest($8::uuid[])               AS recurrence_id,
+        unnest($9::uuid[])               AS created_by,
+        unnest($10::bool[])           AS is_cancelled,
+        unnest($11::text[])         AS cancellation_reason,
+        unnest($12::uuid[]) AS required_membership_plan_id,
+        unnest($13::text[])                    AS price_id
 )
 INSERT INTO events.events (
     location_id,
@@ -48,7 +49,7 @@ INSERT INTO events.events (
 )
 SELECT
     location_id,
-    court_id,
+    NULLIF(court_id, '00000000-0000-0000-0000-000000000000'::uuid),  -- <- change this
     program_id,
     NULLIF(team_id, '00000000-0000-0000-0000-000000000000'::uuid),
     start_at,

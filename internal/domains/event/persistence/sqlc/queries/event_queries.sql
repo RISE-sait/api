@@ -1,18 +1,19 @@
 -- name: CreateEvents :execrows
 WITH unnested_data AS (
-    SELECT unnest(sqlc.arg('location_ids')::uuid[])                AS location_id,
-           unnest(sqlc.arg('program_ids')::uuid[])                 AS program_id,
-           unnest(sqlc.arg('court_ids')::uuid[])                   AS court_id,
-           unnest(sqlc.arg('team_ids')::uuid[])                    AS team_id,
-           unnest(sqlc.arg('start_at_array')::timestamptz[])       AS start_at,
-           unnest(sqlc.arg('end_at_array')::timestamptz[])         AS end_at,
-           unnest(sqlc.arg('is_date_time_modified_array')::bool[]) AS is_date_time_modified,
-           unnest(sqlc.arg('recurrence_ids')::uuid[])              AS recurrence_id,
-           unnest(sqlc.arg('created_by_ids')::uuid[])              AS created_by,
-           unnest(sqlc.arg('is_cancelled_array')::bool[])          AS is_cancelled,
-           unnest(sqlc.arg('cancellation_reasons')::text[])        AS cancellation_reason,
-           unnest(sqlc.arg('required_membership_plan_ids')::uuid[]) AS required_membership_plan_id,
-           unnest(sqlc.arg('price_ids')::text[])                    AS price_id
+    SELECT
+        unnest(sqlc.arg('location_ids')::uuid[])                 AS location_id,
+        unnest(sqlc.arg('program_ids')::uuid[])                  AS program_id,
+        unnest(sqlc.arg('court_ids')::uuid[])                    AS court_id,
+        unnest(sqlc.arg('team_ids')::uuid[])                     AS team_id,
+        unnest(sqlc.arg('start_at_array')::timestamptz[])        AS start_at,
+        unnest(sqlc.arg('end_at_array')::timestamptz[])          AS end_at,
+        unnest(sqlc.arg('is_date_time_modified_array')::bool[])  AS is_date_time_modified,
+        unnest(sqlc.arg('recurrence_ids')::uuid[])               AS recurrence_id,
+        unnest(sqlc.arg('created_by_ids')::uuid[])               AS created_by,
+        unnest(sqlc.arg('is_cancelled_array')::bool[])           AS is_cancelled,
+        unnest(sqlc.arg('cancellation_reasons')::text[])         AS cancellation_reason,
+        unnest(sqlc.arg('required_membership_plan_ids')::uuid[]) AS required_membership_plan_id,
+        unnest(sqlc.arg('price_ids')::text[])                    AS price_id
 )
 INSERT INTO events.events (
     location_id,
@@ -32,7 +33,7 @@ INSERT INTO events.events (
 )
 SELECT
     location_id,
-    court_id,
+    NULLIF(court_id, '00000000-0000-0000-0000-000000000000'::uuid),  -- <- change this
     program_id,
     NULLIF(team_id, '00000000-0000-0000-0000-000000000000'::uuid),
     start_at,
@@ -47,6 +48,7 @@ SELECT
     NULLIF(price_id, '')
 FROM unnested_data
 ON CONFLICT ON CONSTRAINT no_overlapping_events DO NOTHING;
+
 
 -- name: GetEvents :many
 SELECT DISTINCT e.*,

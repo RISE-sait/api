@@ -1,6 +1,9 @@
 # Python Square Service
 
-This microservice provides Square checkout functionality using FastAPI.
+This microservice provides Square checkout functionality using FastAPI. It is
+the authoritative service for all Square operations; legacy Go helpers under
+`internal/services/square` and associated webhook handlers are retained only for
+historical reference.
 
 ## Endpoints
 

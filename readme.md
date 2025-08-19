@@ -118,4 +118,9 @@ which would fuck things out.
 
 Thats why we use our db as the source of truth, and use hubspot as like an external CRM tool.
 
-rest is pretty self explanatory imo, ask me if u run into anything.
+### Square integration
+
+All Square checkout and webhook processing now lives in the Python
+`square_service` microservice. The Go code under `internal/services/square` and
+`internal/domains/payment/services/square_webhooks.go` is legacy and kept only
+for reference.

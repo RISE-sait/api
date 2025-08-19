@@ -1,43 +1,55 @@
 -- name: CreateEvents :execrows
-WITH unnested_data AS (SELECT unnest(sqlc.arg('location_ids')::uuid[])                AS location_id,
-                              unnest(sqlc.arg('program_ids')::uuid[])                 AS program_id,
-                              unnest(sqlc.arg('court_ids')::uuid[]) AS court_id,
-                              unnest(sqlc.arg('team_ids')::uuid[])                    AS team_id,
-                              unnest(sqlc.arg('start_at_array')::timestamptz[])       AS start_at,
-                              unnest(sqlc.arg('end_at_array')::timestamptz[])         AS end_at,
-                              unnest(sqlc.arg('is_date_time_modified_array')::bool[]) AS is_date_time_modified,
-                              unnest(sqlc.arg('recurrence_ids')::uuid[])              AS recurrence_id,
-                              unnest(sqlc.arg('created_by_ids')::uuid[])              AS created_by,
-                              unnest(sqlc.arg('is_cancelled_array')::bool[])          AS is_cancelled,
-                              unnest(sqlc.arg('cancellation_reasons')::text[])        AS cancellation_reason)
-INSERT
-INTO events.events (location_id,
-                    court_id,
-                    program_id,
-                    team_id,
-                    start_at,
-                    end_at,
-                    is_date_time_modified,
-                    recurrence_id,
-                    created_by,
-                    updated_by,
-                    is_cancelled,
-                    cancellation_reason)
-SELECT location_id,
-        NULLIF(court_id, '00000000-0000-0000-0000-000000000000'::uuid),
-       program_id,
-       NULLIF(team_id, '00000000-0000-0000-0000-000000000000'::uuid),
-       start_at,
-       end_at,
-       is_date_time_modified,
-       NULLIF(recurrence_id, '00000000-0000-0000-0000-000000000000'::uuid),
-       created_by,
-       created_by,
-       is_cancelled,
-       NULLIF(cancellation_reason, '')
+WITH unnested_data AS (
+    SELECT
+        unnest(sqlc.arg('location_ids')::uuid[])                 AS location_id,
+        unnest(sqlc.arg('program_ids')::uuid[])                  AS program_id,
+        unnest(sqlc.arg('court_ids')::uuid[])                    AS court_id,
+        unnest(sqlc.arg('team_ids')::uuid[])                     AS team_id,
+        unnest(sqlc.arg('start_at_array')::timestamptz[])        AS start_at,
+        unnest(sqlc.arg('end_at_array')::timestamptz[])          AS end_at,
+        unnest(sqlc.arg('is_date_time_modified_array')::bool[])  AS is_date_time_modified,
+        unnest(sqlc.arg('recurrence_ids')::uuid[])               AS recurrence_id,
+        unnest(sqlc.arg('created_by_ids')::uuid[])               AS created_by,
+        unnest(sqlc.arg('is_cancelled_array')::bool[])           AS is_cancelled,
+        unnest(sqlc.arg('cancellation_reasons')::text[])         AS cancellation_reason,
+        unnest(sqlc.arg('required_membership_plan_ids')::uuid[]) AS required_membership_plan_id,
+        unnest(sqlc.arg('price_ids')::text[])                    AS price_id
+)
+INSERT INTO events.events (
+    location_id,
+    court_id,
+    program_id,
+    team_id,
+    start_at,
+    end_at,
+    is_date_time_modified,
+    recurrence_id,
+    created_by,
+    updated_by,
+    is_cancelled,
+    cancellation_reason,
+    required_membership_plan_id,
+    price_id
+)
+SELECT
+    location_id,
+    NULLIF(court_id, '00000000-0000-0000-0000-000000000000'::uuid),
+    program_id,
+    NULLIF(team_id, '00000000-0000-0000-0000-000000000000'::uuid),
+    start_at,
+    end_at,
+    is_date_time_modified,
+    NULLIF(recurrence_id, '00000000-0000-0000-0000-000000000000'::uuid),
+    created_by,
+    created_by,
+    is_cancelled,
+    NULLIF(cancellation_reason, ''),
+    NULLIF(required_membership_plan_id, '00000000-0000-0000-0000-000000000000'::uuid),
+    NULLIF(price_id, '')
 FROM unnested_data
-ON CONFLICT ON CONSTRAINT no_overlapping_events
-    DO NOTHING;
+ON CONFLICT ON CONSTRAINT no_overlapping_events DO NOTHING;
+
+
 
 -- name: GetEvents :many
 SELECT DISTINCT e.*,
@@ -136,19 +148,19 @@ WHERE e.id = $1;
 
 -- name: UpdateEvent :one
 UPDATE events.events
-SET start_at              = $1,
-    end_at                = $2,
-    location_id           = $3,
-    program_id            = $4,
-    court_id              = $5,
-    team_id               = $6,
-    is_cancelled          = $7,
-    cancellation_reason   = $8,
-    updated_at            = current_timestamp,
-    updated_by            = sqlc.arg('updated_by')::uuid,
-    is_date_time_modified = (
-        recurrence_id IS NOT NULL
-        )
+SET start_at                    = $1,
+    end_at                      = $2,
+    location_id                 = $3,
+    program_id                  = $4,
+    court_id                    = $5,
+    team_id                     = $6,
+    is_cancelled                = $7,
+    cancellation_reason         = $8,
+    updated_at                  = current_timestamp,
+    updated_by                  = sqlc.arg('updated_by')::uuid,
+    is_date_time_modified       = (recurrence_id IS NOT NULL),
+    required_membership_plan_id = $10,
+    price_id                    = $11
 WHERE id = $9
 RETURNING *;
 

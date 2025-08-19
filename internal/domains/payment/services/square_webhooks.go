@@ -1,3 +1,8 @@
+// Package payment contains legacy Square webhook handlers.
+//
+// Deprecated: Square webhook processing now lives in the square_service
+// microservice. This code remains for reference and will be removed after
+// migration.
 package payment
 
 import (
@@ -18,7 +23,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// SquareWebhookService handles incoming Square webhook events.
+// SquareWebhookService handled Square webhook events in the legacy Go API.
+//
+// Deprecated: use the square_service microservice for Square webhook
+// processing.
 type SquareWebhookService struct {
 	PostCheckoutRepository *repository.PostCheckoutRepository
 	EnrollmentService      *enrollment.CustomerEnrollmentService

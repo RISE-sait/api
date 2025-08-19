@@ -77,6 +77,8 @@ func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurre
 		details.LocationID,
 		details.CourtID,
 		details.TeamID,
+		details.RequiredMembershipPlanID,
+		details.PriceID,
 		details.DayOfWeek,
 	)
 	if err != nil {
@@ -166,6 +168,8 @@ func (s *Service) UpdateRecurringEvents(ctx context.Context, details values.Upda
 			details.LocationID,
 			details.CourtID,
 			details.TeamID,
+			details.RequiredMembershipPlanID,
+			details.PriceID,
 			details.DayOfWeek,
 		)
 		if err != nil {
@@ -244,7 +248,8 @@ func (s *Service) GetEventsRecurrences(ctx context.Context, filter values.GetEve
 func generateEventsFromRecurrence(
 	firstOccurrence, lastOccurrence time.Time,
 	startTimeStr, endTimeStr string,
-	mutater, programID, locationID, courtID, teamID uuid.UUID,
+	mutater, programID, locationID, courtID, teamID, membershipPlanID uuid.UUID,
+	priceID string,
 	day time.Weekday,
 ) ([]values.CreateEventValues, *errLib.CommonError) {
 	const timeLayout = "15:04:05Z07:00"
@@ -282,12 +287,14 @@ func generateEventsFromRecurrence(
 		events = append(events, values.CreateEventValues{
 			CreatedBy: mutater,
 			EventDetails: values.EventDetails{
-				StartAt:    start,
-				EndAt:      end,
-				ProgramID:  programID,
-				LocationID: locationID,
-				CourtID:    courtID,
-				TeamID:     teamID,
+				StartAt:                  start,
+				EndAt:                    end,
+				ProgramID:                programID,
+				LocationID:               locationID,
+				CourtID:                  courtID,
+				TeamID:                   teamID,
+				RequiredMembershipPlanID: membershipPlanID,
+				PriceID:                  priceID,
 			},
 		})
 	}

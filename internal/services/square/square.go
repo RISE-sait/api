@@ -1,12 +1,18 @@
+// Package square contains legacy helpers for interacting with the Square API.
+//
+// Deprecated: Square integrations have moved to the Python-based
+// square_service. New development should use that service instead and this
+// package will be removed once the migration is complete.
 package square
 
 import (
 	"api/config"
 	errLib "api/internal/libs/errors"
+	"net/http"
+
 	"github.com/square/square-go-sdk"
 	"github.com/square/square-go-sdk/client"
 	"github.com/square/square-go-sdk/option"
-	"net/http"
 )
 
 func GetSquareClient() (*client.Client, *errLib.CommonError) {

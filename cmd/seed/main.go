@@ -583,75 +583,81 @@ func main() {
 	db := config.GetDBConnection()
 	defer db.Close()
 
-	clearTables(ctx, db)
+	if os.Getenv("ENVIRONMENT") != "production" {
+		clearTables(ctx, db)
 
-	seedStaffRoles(ctx, db)
-	seedFakeWaivers(ctx, db)
+		seedStaffRoles(ctx, db)
+		seedFakeWaivers(ctx, db)
 
-	clientIds := seedUsers(ctx, db)
-	staffIds := seedStaff(ctx, db)
-	seedFakeCoachStats(ctx, db)
+		clientIds := seedUsers(ctx, db)
+		staffIds := seedStaff(ctx, db)
+		seedFakeCoachStats(ctx, db)
 
-	teamIds := seedFakeTeams(ctx, db)
-	log.Printf("Seeded %d teams", len(teamIds))
+		teamIds := seedFakeTeams(ctx, db)
+		log.Printf("Seeded %d teams", len(teamIds))
 
-	// seedPractices(ctx, db)
-	// courses := seedFakeCourses(ctx, db)
+		// seedPractices(ctx, db)
+		// courses := seedFakeCourses(ctx, db)
 
-	locations := seedLocations(ctx, db)
+		locations := seedLocations(ctx, db)
 
-	seedBuiltInPrograms(ctx, db)
+		seedBuiltInPrograms(ctx, db)
 
-	rows, err := db.QueryContext(ctx, `SELECT type FROM program.programs`)
-	if err != nil {
-		log.Fatalf("Failed to query program types: %v", err)
-	}
-	defer rows.Close()
-
-	log.Println("Available program types in DB:")
-	for rows.Next() {
-		var t string
-		if err := rows.Scan(&t); err != nil {
-			log.Fatalf("Failed to scan type: %v", err)
+		rows, err := db.QueryContext(ctx, `SELECT type FROM program.programs`)
+		if err != nil {
+			log.Fatalf("Failed to query program types: %v", err)
 		}
-		log.Println("-", t)
+		defer rows.Close()
+
+		log.Println("Available program types in DB:")
+		for rows.Next() {
+			var t string
+			if err := rows.Scan(&t); err != nil {
+				log.Fatalf("Failed to scan type: %v", err)
+			}
+			log.Println("-", t)
+		}
+
+		courseEvents := seedFakeEvents(ctx, db, []string{"course"}, locations, true)
+
+		var allEventIds []uuid.UUID
+
+		allEventIds = append(allEventIds, courseEvents...)
+
+		// Convert locations from []string to []uuid.UUID
+		var locationNames []string
+		for _, loc := range data.Locations {
+			locationNames = append(locationNames, loc.Name)
+		}
+
+		seedGames(ctx, db, teamIds, locationNames)
+
+		seedMemberships(ctx, db)
+
+		seedMembershipPlans(ctx, db)
+
+		seedProgramsFees(ctx, db)
+
+		updateFakeParents(ctx, db)
+
+		seedFakeAthletes(ctx, db, clientIds)
+
+		seedClientsMembershipPlans(ctx, db)
+
+		seedFakeClientsEnrollments(ctx, db, clientIds, allEventIds)
+
+		seedFakeEventStaff(ctx, db, allEventIds, staffIds)
+
+		seedHaircutServices(ctx, db)
+
+		seedFakeBarberServices(ctx, db)
+
+		seedFakeHaircutEvents(ctx, db, clientIds)
+
+		syncStripePrices(ctx, db)
+
+		log.Println("Database seeding completed successfully")
+	} else {
+		log.Println("Skipping database seeding in production environment")
 	}
-
-	courseEvents := seedFakeEvents(ctx, db, []string{"course"}, locations, true)
-
-	var allEventIds []uuid.UUID
-
-	allEventIds = append(allEventIds, courseEvents...)
-
-	// Convert locations from []string to []uuid.UUID
-	var locationNames []string
-	for _, loc := range data.Locations {
-		locationNames = append(locationNames, loc.Name)
-	}
-
-	seedGames(ctx, db, teamIds, locationNames)
-
-	seedMemberships(ctx, db)
-
-	seedMembershipPlans(ctx, db)
-
-	seedProgramsFees(ctx, db)
-
-	updateFakeParents(ctx, db)
-
-	seedFakeAthletes(ctx, db, clientIds)
-
-	seedClientsMembershipPlans(ctx, db)
-
-	seedFakeClientsEnrollments(ctx, db, clientIds, allEventIds)
-
-	seedFakeEventStaff(ctx, db, allEventIds, staffIds)
-
-	seedHaircutServices(ctx, db)
-
-	seedFakeBarberServices(ctx, db)
-
-	seedFakeHaircutEvents(ctx, db, clientIds)
-
-	syncStripePrices(ctx, db)
 }

@@ -583,7 +583,11 @@ func main() {
 	db := config.GetDBConnection()
 	defer db.Close()
 
-	clearTables(ctx, db)
+	if os.Getenv("ENVIRONMENT") != "production" {
+		clearTables(ctx, db)
+	} else {
+		log.Println("Skipping table truncation in production")
+	}
 
 	seedStaffRoles(ctx, db)
 	seedFakeWaivers(ctx, db)

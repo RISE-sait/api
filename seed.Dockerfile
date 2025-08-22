@@ -14,4 +14,6 @@ COPY ./config ./config
 COPY ./internal/libs/validators ./internal/libs/validators
 COPY ./internal/libs/errors ./internal/libs/errors
 
+ENV ENVIRONMENT=production
+
 ENTRYPOINT ["go", "run", "cmd/seed/main.go"]

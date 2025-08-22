@@ -47,5 +47,4 @@ jobs:
             --image us-west2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/rise-api:$GITHUB_SHA \
             --region us-west2 \
             --platform managed \
-            --allow-unauthenticated \
-            --set-env-vars ENVIRONMENT=production
+            --allow-unauthenticated 

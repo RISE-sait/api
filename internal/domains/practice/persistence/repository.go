@@ -50,6 +50,20 @@ func toNullString(s string) sql.NullString {
 	return sql.NullString{Valid: false}
 }
 
+func toNullUUID(u *uuid.UUID) uuid.NullUUID {
+	if u != nil {
+		return uuid.NullUUID{UUID: *u, Valid: true}
+	}
+	return uuid.NullUUID{Valid: false}
+}
+
+func unwrapNullUUID(nu uuid.NullUUID) *uuid.UUID {
+	if nu.Valid {
+		return &nu.UUID
+	}
+	return nil
+}
+
 func unwrapNullTime(nt sql.NullTime) *time.Time {
 	if nt.Valid {
 		return &nt.Time
@@ -64,6 +78,16 @@ func unwrapNullString(ns sql.NullString) string {
 	return ""
 }
 
+func unwrapInterfaceToString(i interface{}) string {
+	if i == nil {
+		return ""
+	}
+	if str, ok := i.(string); ok {
+		return str
+	}
+	return ""
+}
+
 // Create inserts a new practice.
 func (r *Repository) Create(ctx context.Context, val values.CreatePracticeValue) *errLib.CommonError {
 	params := db.CreatePracticeParams{
@@ -73,6 +97,7 @@ func (r *Repository) Create(ctx context.Context, val values.CreatePracticeValue)
 		CourtID:    val.CourtID,
 		LocationID: val.LocationID,
 		Status:     toNullString(val.Status),
+		BookedBy:   toNullUUID(val.BookedBy),
 	}
 	if err := r.Queries.CreatePractice(ctx, params); err != nil {
 		return errLib.New("failed to create practice", http.StatusInternalServerError)
@@ -89,6 +114,7 @@ func (r *Repository) Update(ctx context.Context, val values.UpdatePracticeValue)
 		CourtID:    val.CourtID,
 		LocationID: val.LocationID,
 		Status:     toNullString(val.Status),
+		BookedBy:   toNullUUID(val.BookedBy),
 		ID:         val.ID,
 	}
 	if err := r.Queries.UpdatePractice(ctx, params); err != nil {
@@ -130,6 +156,8 @@ func mapDbPracticeToValue(row db.GetPracticeByIDRow) values.ReadPracticeValue {
 		CourtID:      row.CourtID,
 		CourtName:    row.CourtName,
 		Status:       unwrapNullString(row.Status),
+		BookedBy:     unwrapNullUUID(row.BookedBy),
+		BookedByName: unwrapInterfaceToString(row.BookedByName),
 		CreatedAt:    unwrapNullTime(row.CreatedAt),
 		UpdatedAt:    unwrapNullTime(row.UpdatedAt),
 	}

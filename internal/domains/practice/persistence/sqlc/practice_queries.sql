@@ -1,8 +1,8 @@
 -- name: CreatePractice :exec
 INSERT INTO practice.practices (
-    team_id, start_time, end_time, court_id, location_id, status
+    team_id, start_time, end_time, court_id, location_id, status, booked_by
 ) VALUES (
-    $1, $2, $3, $4, $5, $6
+    $1, $2, $3, $4, $5, $6, $7
 );
 
 -- name: UpdatePractice :exec
@@ -13,8 +13,9 @@ SET team_id=$1,
     court_id=$4,
     location_id=$5,
     status=$6,
+    booked_by=$7,
     updated_at=now()
-WHERE id=$7;
+WHERE id=$8;
 
 -- name: DeletePractice :exec
 DELETE FROM practice.practices WHERE id=$1;
@@ -31,12 +32,15 @@ SELECT p.id,
        p.court_id,
        c.name AS court_name,
        p.status,
+       p.booked_by,
+       u.first_name || ' ' || u.last_name AS booked_by_name,
        p.created_at,
        p.updated_at
 FROM practice.practices p
          JOIN athletic.teams t ON p.team_id = t.id
          JOIN location.locations l ON p.location_id = l.id
          JOIN location.courts c ON p.court_id = c.id
+         LEFT JOIN users.users u ON p.booked_by = u.id
 WHERE p.id = $1;
 
 -- name: ListPractices :many
@@ -51,12 +55,15 @@ SELECT p.id,
        p.court_id,
        c.name AS court_name,
        p.status,
+       p.booked_by,
+       u.first_name || ' ' || u.last_name AS booked_by_name,
        p.created_at,
        p.updated_at
 FROM practice.practices p
          JOIN athletic.teams t ON p.team_id = t.id
          JOIN location.locations l ON p.location_id = l.id
          JOIN location.courts c ON p.court_id = c.id
+         LEFT JOIN users.users u ON p.booked_by = u.id
 WHERE (
     sqlc.narg('team_id')::uuid IS NULL
     OR p.team_id = sqlc.narg('team_id')::uuid

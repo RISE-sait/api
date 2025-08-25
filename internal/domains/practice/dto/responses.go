@@ -8,19 +8,21 @@ import (
 )
 
 type ResponseDto struct {
-	ID           uuid.UUID  `json:"id"`
-	TeamID       uuid.UUID  `json:"team_id"`
-	TeamName     string     `json:"team_name"`
-	TeamLogoUrl  string     `json:"team_logo_url"`
-	StartTime    time.Time  `json:"start_time"`
-	EndTime      *time.Time `json:"end_time,omitempty"`
-	LocationID   uuid.UUID  `json:"location_id"`
-	LocationName string     `json:"location_name"`
-	CourtID      uuid.UUID  `json:"court_id"`
-	CourtName    string     `json:"court_name"`
-	Status       string     `json:"status"`
-	CreatedAt    *time.Time `json:"created_at,omitempty"`
-	UpdatedAt    *time.Time `json:"updated_at,omitempty"`
+	ID           uuid.UUID   `json:"id"`
+	TeamID       uuid.UUID   `json:"team_id"`
+	TeamName     string      `json:"team_name"`
+	TeamLogoUrl  string      `json:"team_logo_url"`
+	StartTime    time.Time   `json:"start_time"`
+	EndTime      *time.Time  `json:"end_time,omitempty"`
+	LocationID   uuid.UUID   `json:"location_id"`
+	LocationName string      `json:"location_name"`
+	CourtID      uuid.UUID   `json:"court_id"`
+	CourtName    string      `json:"court_name"`
+	Status       string      `json:"status"`
+	BookedBy     *uuid.UUID  `json:"booked_by,omitempty"`
+	BookedByName string      `json:"booked_by_name,omitempty"`
+	CreatedAt    *time.Time  `json:"created_at,omitempty"`
+	UpdatedAt    *time.Time  `json:"updated_at,omitempty"`
 }
 
 func NewResponse(v values.ReadPracticeValue) ResponseDto {
@@ -36,6 +38,8 @@ func NewResponse(v values.ReadPracticeValue) ResponseDto {
 		CourtID:      v.CourtID,
 		CourtName:    v.CourtName,
 		Status:       v.Status,
+		BookedBy:     v.BookedBy,
+		BookedByName: v.BookedByName,
 		CreatedAt:    v.CreatedAt,
 		UpdatedAt:    v.UpdatedAt,
 	}

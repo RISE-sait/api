@@ -12,12 +12,13 @@ import (
 )
 
 type RequestDto struct {
-	TeamID     uuid.UUID  `json:"team_id" validate:"required"`
-	StartTime  time.Time  `json:"start_time" validate:"required"`
-	EndTime    *time.Time `json:"end_time"`
-	LocationID uuid.UUID  `json:"location_id" validate:"required"`
-	CourtID    uuid.UUID  `json:"court_id" validate:"required"`
-	Status     string     `json:"status" validate:"oneof=scheduled completed canceled"`
+	TeamID     uuid.UUID   `json:"team_id" validate:"required"`
+	StartTime  time.Time   `json:"start_time" validate:"required"`
+	EndTime    *time.Time  `json:"end_time"`
+	LocationID uuid.UUID   `json:"location_id" validate:"required"`
+	CourtID    uuid.UUID   `json:"court_id" validate:"required"`
+	Status     string      `json:"status" validate:"oneof=scheduled completed canceled"`
+	BookedBy   *uuid.UUID  `json:"booked_by"`
 }
 
 func (dto *RequestDto) ToCreateValue() (values.CreatePracticeValue, *errLib.CommonError) {
@@ -31,6 +32,7 @@ func (dto *RequestDto) ToCreateValue() (values.CreatePracticeValue, *errLib.Comm
 		LocationID: dto.LocationID,
 		CourtID:    dto.CourtID,
 		Status:     dto.Status,
+		BookedBy:   dto.BookedBy,
 	}, nil
 }
 
@@ -51,6 +53,7 @@ func (dto *RequestDto) ToUpdateValue(idStr string) (values.UpdatePracticeValue, 
 			LocationID: dto.LocationID,
 			CourtID:    dto.CourtID,
 			Status:     dto.Status,
+			BookedBy:   dto.BookedBy,
 		},
 	}, nil
 }

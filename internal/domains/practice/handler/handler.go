@@ -7,6 +7,7 @@ import (
 	values "api/internal/domains/practice/values"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
+	contextUtils "api/utils/context"
 	"net/http"
 	"strconv"
 
@@ -45,6 +46,14 @@ func (h *Handler) CreatePractice(w http.ResponseWriter, r *http.Request) {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
+	
+	// Auto-populate booked_by with logged-in user if not provided
+	if val.BookedBy == nil {
+		if userID, err := contextUtils.GetUserID(r.Context()); err == nil {
+			val.BookedBy = &userID
+		}
+	}
+	
 	if err = h.Service.CreatePractice(r.Context(), val); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return

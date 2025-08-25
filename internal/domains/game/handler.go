@@ -35,6 +35,7 @@ func NewHandler(container *di.Container) *Handler {
 // @Security Bearer
 // @Success 201 {object} nil "Game created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 403 {object} map[string]interface{} "Forbidden: Insufficient permissions"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /games [post]
 func (h *Handler) CreateGame(w http.ResponseWriter, r *http.Request) {
@@ -49,6 +50,33 @@ func (h *Handler) CreateGame(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
+	}
+
+	// Check if user has permission to create games
+	role, err := contextUtils.GetUserRole(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Only admins and coaches can create games
+	if role != contextUtils.RoleAdmin && role != contextUtils.RoleSuperAdmin && role != contextUtils.RoleCoach {
+		responseHandlers.RespondWithError(w, errLib.New("Insufficient permissions to create games", http.StatusForbidden))
+		return
+	}
+
+	// If coach, verify they coach one of the teams in the game
+	if role == contextUtils.RoleCoach {
+		userID, err := contextUtils.GetUserID(r.Context())
+		if err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		}
+
+		if err := h.Service.ValidateCoachTeamAccess(r.Context(), userID, []uuid.UUID{value.HomeTeamID, value.AwayTeamID}); err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		}
 	}
 
 	if err = h.Service.CreateGame(r.Context(), value); err != nil {
@@ -236,6 +264,7 @@ func (h *Handler) GetRoleGames(w http.ResponseWriter, r *http.Request) {
 // @Security Bearer
 // @Success 204 "Game updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 403 {object} map[string]interface{} "Forbidden: Insufficient permissions"
 // @Failure 404 {object} map[string]interface{} "Not Found: Game not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /games/{id} [put]
@@ -252,6 +281,33 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
+	}
+
+	// Check if user has permission to update games
+	role, err := contextUtils.GetUserRole(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Only admins and coaches can update games
+	if role != contextUtils.RoleAdmin && role != contextUtils.RoleSuperAdmin && role != contextUtils.RoleCoach {
+		responseHandlers.RespondWithError(w, errLib.New("Insufficient permissions to update games", http.StatusForbidden))
+		return
+	}
+
+	// If coach, verify they coach one of the teams in the game
+	if role == contextUtils.RoleCoach {
+		userID, err := contextUtils.GetUserID(r.Context())
+		if err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		}
+
+		if err := h.Service.ValidateCoachTeamAccess(r.Context(), userID, []uuid.UUID{value.HomeTeamID, value.AwayTeamID}); err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		}
 	}
 
 	if err = h.Service.UpdateGame(r.Context(), value); err != nil {
@@ -272,6 +328,7 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request) {
 // @Security Bearer
 // @Success 204 "Game deleted successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
+// @Failure 403 {object} map[string]interface{} "Forbidden: Insufficient permissions"
 // @Failure 404 {object} map[string]interface{} "Not Found: Game not found"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /games/{id} [delete]
@@ -281,6 +338,40 @@ func (h *Handler) DeleteGame(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
+	}
+
+	// Check if user has permission to delete games
+	role, err := contextUtils.GetUserRole(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Only admins and coaches can delete games
+	if role != contextUtils.RoleAdmin && role != contextUtils.RoleSuperAdmin && role != contextUtils.RoleCoach {
+		responseHandlers.RespondWithError(w, errLib.New("Insufficient permissions to delete games", http.StatusForbidden))
+		return
+	}
+
+	// If coach, verify they coach one of the teams in the game
+	if role == contextUtils.RoleCoach {
+		userID, err := contextUtils.GetUserID(r.Context())
+		if err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		}
+
+		// Get the game first to check team access
+		game, err := h.Service.GetGameById(r.Context(), id)
+		if err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		}
+
+		if err := h.Service.ValidateCoachTeamAccess(r.Context(), userID, []uuid.UUID{game.HomeTeamID, game.AwayTeamID}); err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		}
 	}
 
 	if err = h.Service.DeleteGame(r.Context(), id); err != nil {

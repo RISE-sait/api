@@ -87,7 +87,7 @@ func (r *Repository) UpdateAthletesTeam(ctx context.Context, athleteID, teamID u
 			UUID:  teamID,
 			Valid: teamID != uuid.Nil,
 		},
-		AthleteID: athleteID,
+		ID: athleteID,
 	}
 
 	impactedRows, err := r.Queries.UpdateAthleteTeam(ctx, params)
@@ -140,6 +140,41 @@ func (r *Repository) List(ctx context.Context) ([]values.GetTeamValues, *errLib.
 			team.TeamDetails.CoachID = dbPractice.CoachID.UUID
 			team.TeamDetails.CoachName = dbPractice.CoachName
 			team.TeamDetails.CoachEmail = dbPractice.CoachEmail.String
+		}
+
+		teams[i] = team
+	}
+
+	return teams, nil
+}
+
+func (r *Repository) ListByCoach(ctx context.Context, coachID uuid.UUID) ([]values.GetTeamValues, *errLib.CommonError) {
+
+	dbTeams, err := r.Queries.GetTeamsByCoach(ctx, uuid.NullUUID{UUID: coachID, Valid: true})
+
+	if err != nil {
+		log.Println("Error getting teams by coach: ", err)
+		dbErr := errLib.New("Internal server error", http.StatusInternalServerError)
+		return nil, dbErr
+	}
+
+	teams := make([]values.GetTeamValues, len(dbTeams))
+
+	for i, dbTeam := range dbTeams {
+		team := values.GetTeamValues{
+			ID:        dbTeam.ID,
+			CreatedAt: dbTeam.CreatedAt,
+			UpdatedAt: dbTeam.UpdatedAt,
+			TeamDetails: values.Details{
+				Name:     dbTeam.Name,
+				Capacity: dbTeam.Capacity,
+			},
+		}
+
+		if dbTeam.CoachID.Valid {
+			team.TeamDetails.CoachID = dbTeam.CoachID.UUID
+			team.TeamDetails.CoachName = dbTeam.CoachName
+			team.TeamDetails.CoachEmail = dbTeam.CoachEmail.String
 		}
 
 		teams[i] = team

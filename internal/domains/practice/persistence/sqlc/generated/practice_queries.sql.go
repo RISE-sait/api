@@ -15,9 +15,9 @@ import (
 
 const createPractice = `-- name: CreatePractice :exec
 INSERT INTO practice.practices (
-    team_id, start_time, end_time, court_id, location_id, status
+    team_id, start_time, end_time, court_id, location_id, status, booked_by
 ) VALUES (
-    $1, $2, $3, $4, $5, $6
+    $1, $2, $3, $4, $5, $6, $7
 )
 `
 
@@ -28,6 +28,7 @@ type CreatePracticeParams struct {
 	CourtID    uuid.UUID      `json:"court_id"`
 	LocationID uuid.UUID      `json:"location_id"`
 	Status     sql.NullString `json:"status"`
+	BookedBy   uuid.NullUUID  `json:"booked_by"`
 }
 
 func (q *Queries) CreatePractice(ctx context.Context, arg CreatePracticeParams) error {
@@ -38,6 +39,7 @@ func (q *Queries) CreatePractice(ctx context.Context, arg CreatePracticeParams) 
 		arg.CourtID,
 		arg.LocationID,
 		arg.Status,
+		arg.BookedBy,
 	)
 	return err
 }
@@ -63,12 +65,15 @@ SELECT p.id,
        p.court_id,
        c.name AS court_name,
        p.status,
+       p.booked_by,
+       u.first_name || ' ' || u.last_name AS booked_by_name,
        p.created_at,
        p.updated_at
 FROM practice.practices p
          JOIN athletic.teams t ON p.team_id = t.id
          JOIN location.locations l ON p.location_id = l.id
          JOIN location.courts c ON p.court_id = c.id
+         LEFT JOIN users.users u ON p.booked_by = u.id
 WHERE p.id = $1
 `
 
@@ -84,6 +89,8 @@ type GetPracticeByIDRow struct {
 	CourtID      uuid.UUID      `json:"court_id"`
 	CourtName    string         `json:"court_name"`
 	Status       sql.NullString `json:"status"`
+	BookedBy     uuid.NullUUID  `json:"booked_by"`
+	BookedByName interface{}    `json:"booked_by_name"`
 	CreatedAt    sql.NullTime   `json:"created_at"`
 	UpdatedAt    sql.NullTime   `json:"updated_at"`
 }
@@ -103,6 +110,8 @@ func (q *Queries) GetPracticeByID(ctx context.Context, id uuid.UUID) (GetPractic
 		&i.CourtID,
 		&i.CourtName,
 		&i.Status,
+		&i.BookedBy,
+		&i.BookedByName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -121,12 +130,15 @@ SELECT p.id,
        p.court_id,
        c.name AS court_name,
        p.status,
+       p.booked_by,
+       u.first_name || ' ' || u.last_name AS booked_by_name,
        p.created_at,
        p.updated_at
 FROM practice.practices p
          JOIN athletic.teams t ON p.team_id = t.id
          JOIN location.locations l ON p.location_id = l.id
          JOIN location.courts c ON p.court_id = c.id
+         LEFT JOIN users.users u ON p.booked_by = u.id
 WHERE (
     $1::uuid IS NULL
     OR p.team_id = $1::uuid
@@ -153,6 +165,8 @@ type ListPracticesRow struct {
 	CourtID      uuid.UUID      `json:"court_id"`
 	CourtName    string         `json:"court_name"`
 	Status       sql.NullString `json:"status"`
+	BookedBy     uuid.NullUUID  `json:"booked_by"`
+	BookedByName interface{}    `json:"booked_by_name"`
 	CreatedAt    sql.NullTime   `json:"created_at"`
 	UpdatedAt    sql.NullTime   `json:"updated_at"`
 }
@@ -178,6 +192,8 @@ func (q *Queries) ListPractices(ctx context.Context, arg ListPracticesParams) ([
 			&i.CourtID,
 			&i.CourtName,
 			&i.Status,
+			&i.BookedBy,
+			&i.BookedByName,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -202,8 +218,9 @@ SET team_id=$1,
     court_id=$4,
     location_id=$5,
     status=$6,
+    booked_by=$7,
     updated_at=now()
-WHERE id=$7
+WHERE id=$8
 `
 
 type UpdatePracticeParams struct {
@@ -213,6 +230,7 @@ type UpdatePracticeParams struct {
 	CourtID    uuid.UUID      `json:"court_id"`
 	LocationID uuid.UUID      `json:"location_id"`
 	Status     sql.NullString `json:"status"`
+	BookedBy   uuid.NullUUID  `json:"booked_by"`
 	ID         uuid.UUID      `json:"id"`
 }
 
@@ -224,6 +242,7 @@ func (q *Queries) UpdatePractice(ctx context.Context, arg UpdatePracticeParams) 
 		arg.CourtID,
 		arg.LocationID,
 		arg.Status,
+		arg.BookedBy,
 		arg.ID,
 	)
 	return err

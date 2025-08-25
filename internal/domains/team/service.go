@@ -46,6 +46,11 @@ func (s *Service) GetTeams(ctx context.Context) ([]values.GetTeamValues, *errLib
 	return s.repo.List(ctx)
 }
 
+func (s *Service) GetTeamsByCoach(ctx context.Context, coachID uuid.UUID) ([]values.GetTeamValues, *errLib.CommonError) {
+
+	return s.repo.ListByCoach(ctx, coachID)
+}
+
 func (s *Service) Create(ctx context.Context, details values.CreateTeamValues) *errLib.CommonError {
 
 	var (

@@ -13,6 +13,7 @@ type CreatePracticeValue struct {
 	LocationID uuid.UUID
 	CourtID    uuid.UUID
 	Status     string
+	BookedBy   *uuid.UUID
 }
 
 type UpdatePracticeValue struct {
@@ -21,19 +22,21 @@ type UpdatePracticeValue struct {
 }
 
 type ReadPracticeValue struct {
-	ID           uuid.UUID
-	TeamID       uuid.UUID
-	TeamName     string
-	TeamLogoUrl  string
-	StartTime    time.Time
-	EndTime      *time.Time
-	LocationID   uuid.UUID
-	LocationName string
-	CourtID      uuid.UUID
-	CourtName    string
-	Status       string
-	CreatedAt    *time.Time
-	UpdatedAt    *time.Time
+	ID             uuid.UUID
+	TeamID         uuid.UUID
+	TeamName       string
+	TeamLogoUrl    string
+	StartTime      time.Time
+	EndTime        *time.Time
+	LocationID     uuid.UUID
+	LocationName   string
+	CourtID        uuid.UUID
+	CourtName      string
+	Status         string
+	BookedBy       *uuid.UUID
+	BookedByName   string
+	CreatedAt      *time.Time
+	UpdatedAt      *time.Time
 }
 
 type RecurrenceValues struct {

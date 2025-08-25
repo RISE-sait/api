@@ -190,9 +190,9 @@ func RegisterGamesRoutes(container *di.Container) func(chi.Router) {
 		r.Get("/", h.GetGames)
 		r.Get("/{id}", h.GetGameById)
 
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/", h.CreateGame)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}", h.UpdateGame)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", h.DeleteGame)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleCoach)).Post("/", h.CreateGame)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleCoach)).Put("/{id}", h.UpdateGame)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleCoach)).Delete("/{id}", h.DeleteGame)
 	}
 }
 
@@ -394,6 +394,7 @@ func RegisterSecureRoutes(container *di.Container) func(chi.Router) {
 		r.Route("/events", RegisterSecureEventRoutes(container))
 		r.Route("/games", RegisterSecureGameRoutes(container))
 		r.Route("/customers", RegisterSecureCustomerRoutes(container))
+		r.Route("/teams", RegisterSecureTeamRoutes(container))
 		r.Route("/schedule", RegisterSecureScheduleRoutes(container))
 	}
 }
@@ -419,6 +420,14 @@ func RegisterSecureCustomerRoutes(container *di.Container) func(chi.Router) {
 	h := userHandler.NewCustomersHandler(container)
 	return func(r chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(true)).Get("/memberships", h.GetUserMembershipHistory)
+	}
+}
+
+// RegisterSecureTeamRoutes registers secure team routes that require authentication.
+func RegisterSecureTeamRoutes(container *di.Container) func(chi.Router) {
+	h := teamsHandler.NewHandler(container)
+	return func(r chi.Router) {
+		r.With(middlewares.JWTAuthMiddleware(true)).Get("/", h.GetMyTeams)
 	}
 }
 

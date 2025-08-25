@@ -190,9 +190,12 @@ func (ns NullProgramProgramLevel) Value() (driver.Value, error) {
 type ProgramProgramType string
 
 const (
-	ProgramProgramTypePractice ProgramProgramType = "practice"
-	ProgramProgramTypeCourse   ProgramProgramType = "course"
-	ProgramProgramTypeOther    ProgramProgramType = "other"
+	ProgramProgramTypePractice   ProgramProgramType = "practice"
+	ProgramProgramTypeCourse     ProgramProgramType = "course"
+	ProgramProgramTypeOther      ProgramProgramType = "other"
+	ProgramProgramTypeTournament ProgramProgramType = "tournament"
+	ProgramProgramTypeTryouts    ProgramProgramType = "tryouts"
+	ProgramProgramTypeEvent      ProgramProgramType = "event"
 )
 
 func (e *ProgramProgramType) Scan(src interface{}) error {
@@ -311,21 +314,23 @@ type EventsCustomerEnrollment struct {
 }
 
 type EventsEvent struct {
-	ID                 uuid.UUID      `json:"id"`
-	LocationID         uuid.UUID      `json:"location_id"`
-	ProgramID          uuid.UUID      `json:"program_id"`
-	TeamID             uuid.NullUUID  `json:"team_id"`
-	StartAt            time.Time      `json:"start_at"`
-	EndAt              time.Time      `json:"end_at"`
-	CreatedBy          uuid.UUID      `json:"created_by"`
-	UpdatedBy          uuid.UUID      `json:"updated_by"`
-	IsCancelled        bool           `json:"is_cancelled"`
-	CancellationReason sql.NullString `json:"cancellation_reason"`
-	CreatedAt          time.Time      `json:"created_at"`
-	UpdatedAt          time.Time      `json:"updated_at"`
-	IsDateTimeModified bool           `json:"is_date_time_modified"`
-	RecurrenceID       uuid.NullUUID  `json:"recurrence_id"`
-	CourtID            uuid.NullUUID  `json:"court_id"`
+	ID                       uuid.UUID      `json:"id"`
+	LocationID               uuid.UUID      `json:"location_id"`
+	ProgramID                uuid.UUID      `json:"program_id"`
+	TeamID                   uuid.NullUUID  `json:"team_id"`
+	StartAt                  time.Time      `json:"start_at"`
+	EndAt                    time.Time      `json:"end_at"`
+	CreatedBy                uuid.UUID      `json:"created_by"`
+	UpdatedBy                uuid.UUID      `json:"updated_by"`
+	IsCancelled              bool           `json:"is_cancelled"`
+	CancellationReason       sql.NullString `json:"cancellation_reason"`
+	CreatedAt                time.Time      `json:"created_at"`
+	UpdatedAt                time.Time      `json:"updated_at"`
+	IsDateTimeModified       bool           `json:"is_date_time_modified"`
+	RecurrenceID             uuid.NullUUID  `json:"recurrence_id"`
+	CourtID                  uuid.NullUUID  `json:"court_id"`
+	RequiredMembershipPlanID uuid.NullUUID  `json:"required_membership_plan_id"`
+	PriceID                  sql.NullString `json:"price_id"`
 }
 
 type EventsStaff struct {
@@ -449,6 +454,7 @@ type PracticePractice struct {
 	Status     sql.NullString `json:"status"`
 	CreatedAt  sql.NullTime   `json:"created_at"`
 	UpdatedAt  sql.NullTime   `json:"updated_at"`
+	BookedBy   uuid.NullUUID  `json:"booked_by"`
 }
 
 type ProgramCustomerEnrollment struct {
@@ -559,6 +565,7 @@ type UsersUser struct {
 	CreatedAt                time.Time      `json:"created_at"`
 	UpdatedAt                time.Time      `json:"updated_at"`
 	Dob                      time.Time      `json:"dob"`
+	IsArchived               bool           `json:"is_archived"`
 }
 
 type WaiverWaiver struct {

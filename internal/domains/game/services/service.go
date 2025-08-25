@@ -191,3 +191,26 @@ func (s *Service) getUserTeamIDs(ctx context.Context, userID uuid.UUID, role con
 		return nil, errLib.New("role not supported", http.StatusForbidden)
 	}
 }
+
+// ValidateCoachTeamAccess checks if a coach has access to the specified teams
+func (s *Service) ValidateCoachTeamAccess(ctx context.Context, coachID uuid.UUID, teamIDs []uuid.UUID) *errLib.CommonError {
+	coachTeamIDs, err := s.getUserTeamIDs(ctx, coachID, contextUtils.RoleCoach)
+	if err != nil {
+		return err
+	}
+
+	// Create a map for quick lookup of coach's teams
+	coachTeams := make(map[uuid.UUID]bool)
+	for _, teamID := range coachTeamIDs {
+		coachTeams[teamID] = true
+	}
+
+	// Check if coach has access to at least one of the teams in the game
+	for _, teamID := range teamIDs {
+		if coachTeams[teamID] {
+			return nil // Coach has access to this team
+		}
+	}
+
+	return errLib.New("Coach does not have access to the specified teams", http.StatusForbidden)
+}

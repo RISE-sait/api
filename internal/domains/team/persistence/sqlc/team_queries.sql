@@ -8,6 +8,12 @@ SELECT t.*, u.email AS coach_email, (u.first_name || ' ' || u.last_name)::varcha
 FROM athletic.teams t
          JOIN users.users u ON t.coach_id = u.id;
 
+-- name: GetTeamsByCoach :many
+SELECT t.*, u.email AS coach_email, (u.first_name || ' ' || u.last_name)::varchar AS coach_name
+FROM athletic.teams t
+         JOIN users.users u ON t.coach_id = u.id
+WHERE t.coach_id = $1;
+
 -- name: GetTeamById :one
 SELECT t.*, u.email AS coach_email, (u.first_name || ' ' || u.last_name)::varchar AS coach_name
 FROM athletic.teams t
@@ -29,6 +35,11 @@ FROM athletic.teams t
          JOIN athletic.athletes a ON t.id = a.team_id
          JOIN users.users u ON a.id = u.id
 WHERE t.id = $1;
+
+-- name: UpdateAthleteTeam :execrows
+UPDATE athletic.athletes
+SET team_id = $1
+WHERE id = $2;
 
 -- name: UpdateTeam :one
 UPDATE athletic.teams

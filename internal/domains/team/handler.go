@@ -3,8 +3,10 @@ package team
 import (
 	"api/internal/di"
 	dto "api/internal/domains/team/dto"
+	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
+	contextUtils "api/utils/context"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -93,6 +95,74 @@ func (h *Handler) GetTeams(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
+}
+
+// GetMyTeams retrieves teams based on user role - coaches see only their teams.
+// @Summary Get my teams (role-based)
+// @Description Retrieves teams based on user role. Coaches see only teams they coach, admins see all teams.
+// @Tags teams
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Success 200 {array} dto.Response "Teams retrieved successfully"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden: Role not supported"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /secure/teams [get]
+func (h *Handler) GetMyTeams(w http.ResponseWriter, r *http.Request) {
+	role, err := contextUtils.GetUserRole(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Admins can view all teams
+	if role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin {
+		h.GetTeams(w, r)
+		return
+	}
+
+	// Coaches can view only their teams
+	if role == contextUtils.RoleCoach {
+		userID, err := contextUtils.GetUserID(r.Context())
+		if err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		}
+
+		teams, err := h.Service.GetTeamsByCoach(r.Context(), userID)
+		if err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		}
+
+		result := make([]dto.Response, len(teams))
+
+		for i, team := range teams {
+			response := dto.Response{
+				ID:        team.ID,
+				Name:      team.TeamDetails.Name,
+				Capacity:  team.TeamDetails.Capacity,
+				CreatedAt: team.CreatedAt,
+				UpdatedAt: team.UpdatedAt,
+			}
+
+			if team.TeamDetails.CoachID != uuid.Nil {
+				response.Coach = &dto.Coach{
+					ID:    team.TeamDetails.CoachID,
+					Name:  team.TeamDetails.CoachName,
+					Email: team.TeamDetails.CoachEmail,
+				}
+			}
+
+			result[i] = response
+		}
+
+		responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
+		return
+	}
+
+	responseHandlers.RespondWithError(w, errLib.New("Role not supported for team access", http.StatusForbidden))
 }
 
 // GetTeamByID retrieves team by ID.

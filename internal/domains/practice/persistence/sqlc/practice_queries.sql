@@ -39,7 +39,7 @@ SELECT p.id,
 FROM practice.practices p
          JOIN athletic.teams t ON p.team_id = t.id
          JOIN location.locations l ON p.location_id = l.id
-         JOIN location.courts c ON p.court_id = c.id
+         LEFT JOIN location.courts c ON p.court_id = c.id
          LEFT JOIN users.users u ON p.booked_by = u.id
 WHERE p.id = $1;
 
@@ -62,7 +62,7 @@ SELECT p.id,
 FROM practice.practices p
          JOIN athletic.teams t ON p.team_id = t.id
          JOIN location.locations l ON p.location_id = l.id
-         JOIN location.courts c ON p.court_id = c.id
+         LEFT JOIN location.courts c ON p.court_id = c.id
          LEFT JOIN users.users u ON p.booked_by = u.id
 WHERE (
     sqlc.narg('team_id')::uuid IS NULL

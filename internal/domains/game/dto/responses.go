@@ -24,6 +24,8 @@ type ResponseDto struct {
 	EndTime         *time.Time `json:"end_time,omitempty"`
 	LocationID      uuid.UUID  `json:"location_id"`
 	LocationName    string     `json:"location_name"`
+	CourtID         uuid.UUID  `json:"court_id"`
+	CourtName       string     `json:"court_name"`
 	Status          string     `json:"status"`
 	CreatedAt       *time.Time `json:"created_at,omitempty"`
 	UpdatedAt       *time.Time `json:"updated_at,omitempty"`
@@ -46,6 +48,8 @@ func NewGameResponse(details values.ReadGameValue) ResponseDto {
 		EndTime:      details.EndTime,
 		LocationID:   details.LocationID,
 		LocationName: details.LocationName,
+		CourtID:      details.CourtID,
+		CourtName:    details.CourtName,
 		Status:       details.Status,
 		CreatedAt:    details.CreatedAt,
 		UpdatedAt:    details.UpdatedAt,

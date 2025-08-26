@@ -52,8 +52,8 @@ type ReadGameValue struct {
 
 // GetGamesFilter defines optional filters for querying games.
 type GetGamesFilter struct {
-	CourtID    uuid.UUID
-	LocationID uuid.UUID
+	CourtID    *uuid.UUID
+	LocationID *uuid.UUID
 	Limit      int32
 	Offset     int32
 }

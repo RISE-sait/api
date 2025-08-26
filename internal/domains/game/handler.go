@@ -119,11 +119,15 @@ func (h *Handler) GetGameById(w http.ResponseWriter, r *http.Request) {
 
 // GetGames returns games, optionally filtered by 'upcoming' or 'past'.
 // @Summary List games (all, upcoming, or past)
-// @Description Retrieves a list of games with optional time-based filtering.
+// @Description Retrieves a list of games with optional time-based filtering and location/court filtering.
 // @Tags games
 // @Accept json
 // @Produce json
 // @Param filter query string false "Filter by time: upcoming or past"
+// @Param court_id query string false "Filter by court ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
+// @Param location_id query string false "Filter by location ID (UUID format)" example("550e8400-e29b-41d4-a716-446655440000")
+// @Param page query int false "Page number for pagination (default: 1)" example(1)
+// @Param limit query int false "Number of records per page (default: 10, max: 100)" example(10)
 // @Success 200 {array} dto.ResponseDto "List of games"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /games [get]
@@ -142,14 +146,14 @@ func (h *Handler) GetGames(w http.ResponseWriter, r *http.Request) {
 
 	filter := query.Get("filter")
 
-	var courtID, locationID uuid.UUID
+	var courtID, locationID *uuid.UUID
 	if val := query.Get("court_id"); val != "" {
 		id, err := validators.ParseUUID(val)
 		if err != nil {
 			responseHandlers.RespondWithError(w, err)
 			return
 		}
-		courtID = id
+		courtID = &id
 	}
 	if val := query.Get("location_id"); val != "" {
 		id, err := validators.ParseUUID(val)
@@ -157,7 +161,7 @@ func (h *Handler) GetGames(w http.ResponseWriter, r *http.Request) {
 			responseHandlers.RespondWithError(w, err)
 			return
 		}
-		locationID = id
+		locationID = &id
 	}
 	var games []values.ReadGameValue
 

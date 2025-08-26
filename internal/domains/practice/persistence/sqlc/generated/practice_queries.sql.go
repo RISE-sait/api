@@ -25,7 +25,7 @@ type CreatePracticeParams struct {
 	TeamID     uuid.UUID      `json:"team_id"`
 	StartTime  time.Time      `json:"start_time"`
 	EndTime    sql.NullTime   `json:"end_time"`
-	CourtID    uuid.UUID      `json:"court_id"`
+	CourtID    uuid.NullUUID  `json:"court_id"`
 	LocationID uuid.UUID      `json:"location_id"`
 	Status     sql.NullString `json:"status"`
 	BookedBy   uuid.NullUUID  `json:"booked_by"`
@@ -72,7 +72,7 @@ SELECT p.id,
 FROM practice.practices p
          JOIN athletic.teams t ON p.team_id = t.id
          JOIN location.locations l ON p.location_id = l.id
-         JOIN location.courts c ON p.court_id = c.id
+         LEFT JOIN location.courts c ON p.court_id = c.id
          LEFT JOIN users.users u ON p.booked_by = u.id
 WHERE p.id = $1
 `
@@ -86,8 +86,8 @@ type GetPracticeByIDRow struct {
 	EndTime      sql.NullTime   `json:"end_time"`
 	LocationID   uuid.UUID      `json:"location_id"`
 	LocationName string         `json:"location_name"`
-	CourtID      uuid.UUID      `json:"court_id"`
-	CourtName    string         `json:"court_name"`
+	CourtID      uuid.NullUUID  `json:"court_id"`
+	CourtName    sql.NullString `json:"court_name"`
 	Status       sql.NullString `json:"status"`
 	BookedBy     uuid.NullUUID  `json:"booked_by"`
 	BookedByName interface{}    `json:"booked_by_name"`
@@ -137,7 +137,7 @@ SELECT p.id,
 FROM practice.practices p
          JOIN athletic.teams t ON p.team_id = t.id
          JOIN location.locations l ON p.location_id = l.id
-         JOIN location.courts c ON p.court_id = c.id
+         LEFT JOIN location.courts c ON p.court_id = c.id
          LEFT JOIN users.users u ON p.booked_by = u.id
 WHERE (
     $1::uuid IS NULL
@@ -162,8 +162,8 @@ type ListPracticesRow struct {
 	EndTime      sql.NullTime   `json:"end_time"`
 	LocationID   uuid.UUID      `json:"location_id"`
 	LocationName string         `json:"location_name"`
-	CourtID      uuid.UUID      `json:"court_id"`
-	CourtName    string         `json:"court_name"`
+	CourtID      uuid.NullUUID  `json:"court_id"`
+	CourtName    sql.NullString `json:"court_name"`
 	Status       sql.NullString `json:"status"`
 	BookedBy     uuid.NullUUID  `json:"booked_by"`
 	BookedByName interface{}    `json:"booked_by_name"`
@@ -227,7 +227,7 @@ type UpdatePracticeParams struct {
 	TeamID     uuid.UUID      `json:"team_id"`
 	StartTime  time.Time      `json:"start_time"`
 	EndTime    sql.NullTime   `json:"end_time"`
-	CourtID    uuid.UUID      `json:"court_id"`
+	CourtID    uuid.NullUUID  `json:"court_id"`
 	LocationID uuid.UUID      `json:"location_id"`
 	Status     sql.NullString `json:"status"`
 	BookedBy   uuid.NullUUID  `json:"booked_by"`

@@ -164,11 +164,13 @@ SELECT
     g.end_time,
     g.location_id,
     loc.name AS location_name,
+    g.court_id,
+    c.name AS court_name,
     g.status,
     g.created_at,
     g.updated_at
 FROM game.games g
-JOIN location.courts c ON g.court_id = c.id
+LEFT JOIN location.courts c ON g.court_id = c.id
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 JOIN location.locations loc ON g.location_id = loc.id
@@ -179,10 +181,10 @@ LIMIT $4 OFFSET $3
 `
 
 type GetGamesParams struct {
-	CourtID    uuid.UUID `json:"court_id"`
-	LocationID uuid.UUID `json:"location_id"`
-	Offset     int32     `json:"offset"`
-	Limit      int32     `json:"limit"`
+	CourtID    uuid.NullUUID `json:"court_id"`
+	LocationID uuid.NullUUID `json:"location_id"`
+	Offset     int32         `json:"offset"`
+	Limit      int32         `json:"limit"`
 }
 
 type GetGamesRow struct {
@@ -199,6 +201,8 @@ type GetGamesRow struct {
 	EndTime         sql.NullTime   `json:"end_time"`
 	LocationID      uuid.UUID      `json:"location_id"`
 	LocationName    string         `json:"location_name"`
+	CourtID         uuid.NullUUID  `json:"court_id"`
+	CourtName       sql.NullString `json:"court_name"`
 	Status          sql.NullString `json:"status"`
 	CreatedAt       sql.NullTime   `json:"created_at"`
 	UpdatedAt       sql.NullTime   `json:"updated_at"`
@@ -233,6 +237,8 @@ func (q *Queries) GetGames(ctx context.Context, arg GetGamesParams) ([]GetGamesR
 			&i.EndTime,
 			&i.LocationID,
 			&i.LocationName,
+			&i.CourtID,
+			&i.CourtName,
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,

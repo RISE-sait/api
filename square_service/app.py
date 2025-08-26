@@ -594,7 +594,7 @@ async def handle_webhook(request: Request):
                 return {"status": "ignored"}
 
             try:
-                with closing(get_db_conn()) as conn, conn.cursor() as cur:
+                with get_db_conn() as conn, conn.cursor() as cur:
                     did_anything = False
 
                     # Membership activation 

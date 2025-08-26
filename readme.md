@@ -1,57 +1,57 @@
-Production deployed on https://api-461776259687.us-west2.run.app/
+# Rise Sports Management API
 
-## Google drive, get env files
+**Production**: https://api-461776259687.us-west2.run.app/  
+**Square Service**: https://rise-square-service-461776259687.us-west2.run.app/
 
-To run the API, you need the .env, .env.local, and gcp-service-account.json
-from https://drive.google.com/drive/folders/1t8biv_HS9dFArP6afGniQWkeuxIXu32p?usp=sharing
+A sports management platform with Go and Python microservices handling team management, practice booking, events, and Square payment processing.
 
-If you cant access the files, lemme know @ klintlee1@gmail.com.
+## Configuration Files
 
-Download the files into the config folder, which contains configs.go and goose.yaml. If you can't find those files, try
-searching for them, and let me know if the issue persists.
+You need these files from Google Drive to run the API:
+- `.env`, `.env.local`, `gcp-service-account.json`
 
-## Running the server
+Download them into the `config/` folder (same location as `configs.go` and `goose.yaml`).
 
-1. You need Docker. If you don't have it, install it.
+## Local Development
 
-2. In the API folder that you just cloned ( google how to clone if you dk how ), run `docker compose up`, or optionally
-   `docker compose up -d`.
-   If it's your first time doing it, or if youre uncomfortable, I recommend using the former ( without the -d ). The -d
-   essentially hides docker log.
-   Having the log may ease things for ya.
+### Prerequisites
+- Docker and Docker Compose installed
+- Configuration files in `config/` folder
 
-3. Now your database and API should be running, and you can confirm this either via Docker Desktop or by running
-   `docker ps`. If no, lemme know.
+### Starting the Services
 
-4. You should also see this
+```bash
+# Start all services (shows logs)
+docker compose up
 
+# Or run in background
+docker compose up -d
+
+# Check services are running
+docker ps
 ```
-api_go_server  | 2025/03/13 22:58:34 postgresql://postgres:root@api_db:5432/mydatabase?sslmode=disable
-api_go_server  | 2025/03/13 22:58:34 Server starting on :80
+
+You should see output like:
+```
+api_go_server  | Server starting on :80
+api_go_server  | postgresql://postgres:root@api_db:5432/mydatabase?sslmode=disable
 ```
 
-5. Go to `localhost`, it's optional to specify the port since we are using port 80, which is the default port. You
-   should see something like "Welcome to Rise API". Congrats, it works. Else, youre cooked.
-   At this stage, attempts to get data from the database will result in errors since the db setup is still incomplete.
+Visit `http://localhost` - you should see "Welcome to Rise API".
 
-## Complete db setup
+### Database Setup
 
-1. Now your db is running but its got no data, no tables at all. So, run
-   `docker compose -f docker-compose.tasks.yml run --rm --build migrate up`, this setups the schemas and tables.
+After starting the services, set up the database:
 
-2. Now u got your db schemas and tables but still no data. So, run
-   `docker compose -f tasks.docker-compose.tasks.yml run --rm --build seed`.
+```bash
+# Create tables and schemas
+docker compose -f docker-compose.tasks.yml run --rm --build migrate up
 
-3. Now everything should work just fine.
+# Add initial data
+docker compose -f docker-compose.tasks.yml run --rm --build seed
+```
 
-## How to use the backend
-
-The backend is currently running on `localhost:80`, but 80 is the default port for HTTP, so feel free to omit the 80,
-making it `localhost`. Instead of sending requests to `localhost:80/programs`, u would send to `localhost/programs`.
-The backend is currently running there just like any other applications, so dont worry bout any different setup just cuz
-of Docker. It's just like your typical websites, so just send the request to `localhost` 
-
-A lot of the following concepts can be explained much better by LLMs, so I will just explain how they're implemented specific to this project.
+Now everything should work. The API runs on `http://localhost` (port 80).
 
 ### Migrations
 
@@ -78,7 +78,7 @@ This is the layer between the persistence ( database ) and handlers ( handle HTT
 
 ### di
 
-This is just dependency injection, googleable.
+This is just dependency injection
 
 ### utils/test_utils
 
@@ -113,14 +113,87 @@ are swagger docs.
 stuff like user info like dob, email etc are stored in our db as the source of truth,
 even though we could use hubspot to store those info but it makes CRUD operations more difficult.
 
-Like if u wanna register a user, but u successfully store some user data in our db but not hubspot,
-which would fuck things out.
+Like if u wanna register a user, but u successfully store some user data in our db but not hubspot
 
 Thats why we use our db as the source of truth, and use hubspot as like an external CRM tool.
 
 ### Square integration
 
-All Square checkout and webhook processing now lives in the Python
+All Square checkout and webhook processing is handled by the Python
 `square_service` microservice. The Go code under `internal/services/square` and
-`internal/domains/payment/services/square_webhooks.go` is legacy and kept only
-for reference.
+`internal/domains/payment/services/square_webhooks.go` is legacy.
+
+## Production Deployment
+
+### Go API Service
+
+```bash
+# Deploy main API
+gcloud run deploy rise-web \
+  --source . \
+  --platform managed \
+  --region us-west2 \
+  --allow-unauthenticated \
+  --project sacred-armor-452904-c0
+```
+
+### Python Square Service
+
+```bash
+# Go to square service directory
+cd square_service
+
+# Build the image
+gcloud builds submit --config=cloudbuild.yaml .
+
+# Deploy square service
+gcloud run deploy rise-square-service \
+  --image gcr.io/sacred-armor-452904-c0/rise-square-service \
+  --platform managed \
+  --region us-west2 \
+  --allow-unauthenticated \
+  --project sacred-armor-452904-c0
+```
+
+### Database Migrations
+
+Migrations run automatically when you merge to `main` branch. For local testing:
+
+```bash
+docker compose -f docker-compose.tasks.yml run --rm --build migrate up
+```
+
+Migration files go in `db/migrations/` with this format:
+
+```sql
+-- +goose Up
+-- +goose StatementBegin
+ALTER TABLE example ADD COLUMN new_field VARCHAR(100);
+-- +goose StatementEnd
+
+-- +goose Down  
+-- +goose StatementBegin
+ALTER TABLE example DROP COLUMN IF EXISTS new_field;
+-- +goose StatementEnd
+```
+
+### Environment Variables
+
+Set environment variables in Google Cloud Run console for both services. Contact the team for the required values.
+
+### Health Checks
+
+- **Go API**: https://rise-web-461776259687.us-west2.run.app/health
+- **Square Service**: https://rise-square-service-461776259687.us-west2.run.app/health
+
+### Monitoring
+
+Check logs in Google Cloud Console:
+
+```bash
+# Go API logs
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=rise-web" --project=sacred-armor-452904-c0
+
+# Square service logs
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=rise-square-service" --project=sacred-armor-452904-c0
+```

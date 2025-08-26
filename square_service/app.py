@@ -620,31 +620,46 @@ async def handle_webhook(request: Request):
                             rc, user_id, membership_plan_id
                         )
                         if rc == 0:
-                            # If no row yet, insert as active (with renewal if provided)
-                            if periods:
-                                cur.execute("SELECT NOW() + INTERVAL %s", (f"{periods} months",))
-                                renewal_date = cur.fetchone()[0]
-                                cur.execute(
-                                    """
-                                    INSERT INTO users.customer_membership_plans
-                                        (customer_id, membership_plan_id, renewal_date, status)
-                                    VALUES (%s, %s, %s, 'active')
-                                    """,
-                                    (user_id, membership_plan_id, renewal_date),
-                                )
-                                logger.info("[WEBHOOK] membership inserted ACTIVE with renewal user=%s plan=%s renewal=%s",
-                                            user_id, membership_plan_id, renewal_date)
+                            # Check if record already exists and is active
+                            cur.execute(
+                                """SELECT status FROM users.customer_membership_plans 
+                                   WHERE customer_id = %s AND membership_plan_id = %s""",
+                                (user_id, membership_plan_id)
+                            )
+                            existing = cur.fetchone()
+                            
+                            if existing and existing[0] == 'active':
+                                logger.info("[WEBHOOK] membership already ACTIVE user=%s plan=%s", 
+                                           user_id, membership_plan_id)
+                            elif existing:
+                                logger.warning("[WEBHOOK] membership exists but not active, status=%s user=%s plan=%s", 
+                                              existing[0], user_id, membership_plan_id)
                             else:
-                                cur.execute(
-                                    """
-                                    INSERT INTO users.customer_membership_plans
-                                        (customer_id, membership_plan_id, status)
-                                    VALUES (%s, %s, 'active')
-                                    """,
-                                    (user_id, membership_plan_id),
-                                )
-                                logger.info("[WEBHOOK] membership inserted ACTIVE (no renewal) user=%s plan=%s",
-                                            user_id, membership_plan_id)
+                                # No record exists, insert as active (with renewal if provided)
+                                if periods:
+                                    cur.execute("SELECT NOW() + INTERVAL %s", (f"{periods} months",))
+                                    renewal_date = cur.fetchone()[0]
+                                    cur.execute(
+                                        """
+                                        INSERT INTO users.customer_membership_plans
+                                            (customer_id, membership_plan_id, renewal_date, status)
+                                        VALUES (%s, %s, %s, 'active')
+                                        """,
+                                        (user_id, membership_plan_id, renewal_date),
+                                    )
+                                    logger.info("[WEBHOOK] membership inserted ACTIVE with renewal user=%s plan=%s renewal=%s",
+                                                user_id, membership_plan_id, renewal_date)
+                                else:
+                                    cur.execute(
+                                        """
+                                        INSERT INTO users.customer_membership_plans
+                                            (customer_id, membership_plan_id, status)
+                                        VALUES (%s, %s, 'active')
+                                        """,
+                                        (user_id, membership_plan_id),
+                                    )
+                                    logger.info("[WEBHOOK] membership inserted ACTIVE (no renewal) user=%s plan=%s",
+                                                user_id, membership_plan_id)
                         did_anything = True
 
                     # --- Event enrollment paid ---

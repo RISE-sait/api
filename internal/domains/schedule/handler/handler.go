@@ -84,7 +84,10 @@ func (h *Handler) GetMySchedule(w http.ResponseWriter, r *http.Request) {
 	// Games
 	var gameRecords []gameValues.ReadGameValue
 	if role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin {
-		gameRecords, err = h.gameSvc.GetGames(ctx, gameValues.GetGamesFilter{})
+		gameRecords, err = h.gameSvc.GetGames(ctx, gameValues.GetGamesFilter{
+			Limit:  1000,
+			Offset: 0,
+		})
 	} else {
 		gameRecords, err = h.gameSvc.GetUserGames(ctx, userID, role, 1000, 0)
 	}

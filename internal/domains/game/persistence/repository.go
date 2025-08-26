@@ -146,18 +146,32 @@ func (r *Repository) UpdateGame(ctx context.Context, value values.UpdateGameValu
 
 // GetGames fetches all games and maps them to domain values.
 func (r *Repository) GetGames(ctx context.Context, filter values.GetGamesFilter) ([]values.ReadGameValue, *errLib.CommonError) {
+	var courtID, locationID uuid.NullUUID
+	
+	if filter.CourtID != nil {
+		courtID = uuid.NullUUID{UUID: *filter.CourtID, Valid: true}
+	}
+	if filter.LocationID != nil {
+		locationID = uuid.NullUUID{UUID: *filter.LocationID, Valid: true}
+	}
+	
 	params := db.GetGamesParams{
-		CourtID:    filter.CourtID,
-		LocationID: filter.LocationID,
+		CourtID:    courtID,
+		LocationID: locationID,
 		Limit:      filter.Limit,
 		Offset:     filter.Offset,
 	}
 
+	log.Printf("DEBUG: GetGames params - CourtID: %v, LocationID: %v, Limit: %d, Offset: %d", 
+		params.CourtID, params.LocationID, params.Limit, params.Offset)
+	
 	dbGames, err := r.Queries.GetGames(ctx, params)
 	if err != nil {
 		log.Println("Error getting games:", err)
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
+	
+	log.Printf("DEBUG: Retrieved %d games from database", len(dbGames))
 
 	games := make([]values.ReadGameValue, len(dbGames))
 	for i, dbGame := range dbGames {
@@ -175,6 +189,8 @@ func (r *Repository) GetGames(ctx context.Context, filter values.GetGamesFilter)
 			EndTime:         nullableTimeToPtr(dbGame.EndTime),
 			LocationID:      dbGame.LocationID,
 			LocationName:    dbGame.LocationName,
+			CourtID:         dbGame.CourtID.UUID,
+			CourtName:       unwrapNullableString(dbGame.CourtName),
 			Status:          dbGame.Status.String,
 			CreatedAt:       nullableTimeToPtr(dbGame.CreatedAt),
 			UpdatedAt:       nullableTimeToPtr(dbGame.UpdatedAt),

@@ -59,16 +59,18 @@ SELECT
     g.end_time,
     g.location_id,
     loc.name AS location_name,
+    g.court_id,
+    c.name AS court_name,
     g.status,
     g.created_at,
     g.updated_at
 FROM game.games g
-JOIN location.courts c ON g.court_id = c.id
+LEFT JOIN location.courts c ON g.court_id = c.id
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 JOIN location.locations loc ON g.location_id = loc.id
-WHERE (sqlc.arg('court_id')::uuid IS NULL OR g.court_id = sqlc.arg('court_id'))
-  AND (sqlc.arg('location_id')::uuid IS NULL OR g.location_id = sqlc.arg('location_id'))
+WHERE (sqlc.narg('court_id')::uuid IS NULL OR g.court_id = sqlc.narg('court_id'))
+  AND (sqlc.narg('location_id')::uuid IS NULL OR g.location_id = sqlc.narg('location_id'))
 ORDER BY g.start_time ASC
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 

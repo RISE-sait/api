@@ -450,7 +450,7 @@ type PracticePractice struct {
 	StartTime  time.Time      `json:"start_time"`
 	EndTime    sql.NullTime   `json:"end_time"`
 	LocationID uuid.UUID      `json:"location_id"`
-	CourtID    uuid.UUID      `json:"court_id"`
+	CourtID    uuid.NullUUID  `json:"court_id"`
 	Status     sql.NullString `json:"status"`
 	CreatedAt  sql.NullTime   `json:"created_at"`
 	UpdatedAt  sql.NullTime   `json:"updated_at"`

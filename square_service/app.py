@@ -1,11 +1,12 @@
-from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi import FastAPI, HTTPException, Request, Depends, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, validator, Field
 import os
 import psycopg2
+from psycopg2 import pool
 import httpx
-from typing import Optional
+from typing import Optional, Dict, Any
 from dotenv import load_dotenv
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -13,11 +14,14 @@ import jwt
 import hmac
 import hashlib
 import base64
-from contextlib import closing
+from contextlib import closing, contextmanager
 import logging
+import uuid
 from slowapi import Limiter
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
+import asyncio
+from functools import wraps
 
 # Load + enforce required env vars
 
@@ -45,9 +49,43 @@ logger = logging.getLogger(__name__)
 logger.debug("[BOOT] log level=%s", LOG_LEVEL)
 
 
+# Database connection pool
+db_pool = None
+
+def init_db_pool():
+    global db_pool
+    db_pool = psycopg2.pool.ThreadedConnectionPool(
+        minconn=1,
+        maxconn=20,
+        dsn=os.getenv("DATABASE_URL")
+    )
+    logger.info("[DB] Connection pool initialized")
+
+@contextmanager
+def get_db_conn():
+    """Get database connection from pool with proper error handling."""
+    conn = None
+    try:
+        conn = db_pool.getconn()
+        yield conn
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        logger.error(f"[DB] Database error: {e}")
+        raise
+    finally:
+        if conn:
+            db_pool.putconn(conn)
+
 # FastAPI app & middleware
 
-app = FastAPI()
+app = FastAPI(
+    title="Rise Square Payment Service",
+    description="Production-grade Square payment processing service",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
 
 # CORS: only your frontend
 app.add_middleware(
@@ -95,28 +133,58 @@ WEBHOOK_SIGNATURE_KEY = os.getenv("SQUARE_WEBHOOK_SIGNATURE_KEY")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
 
-# Models
+# Enhanced Models with Validation
 
 class CheckoutRequest(BaseModel):
-    membership_plan_id: str
-    discount_code: Optional[str] = None
+    membership_plan_id: str = Field(..., min_length=1, max_length=100, description="Valid membership plan UUID")
+    discount_code: Optional[str] = Field(None, max_length=50, description="Optional discount code")
+    
+    @validator('membership_plan_id')
+    def validate_membership_plan_id(cls, v):
+        try:
+            uuid.UUID(v)
+            return v
+        except ValueError:
+            raise ValueError('membership_plan_id must be a valid UUID')
 
 class ProgramCheckoutRequest(BaseModel):
-    program_id: str
+    program_id: str = Field(..., min_length=1, max_length=100, description="Valid program UUID")
+    
+    @validator('program_id')
+    def validate_program_id(cls, v):
+        try:
+            uuid.UUID(v)
+            return v
+        except ValueError:
+            raise ValueError('program_id must be a valid UUID')
 
 class EventCheckoutRequest(BaseModel):
-    event_id: str
+    event_id: str = Field(..., min_length=1, max_length=100, description="Valid event UUID")
+    
+    @validator('event_id')
+    def validate_event_id(cls, v):
+        try:
+            uuid.UUID(v)
+            return v
+        except ValueError:
+            raise ValueError('event_id must be a valid UUID')
+
+class ErrorResponse(BaseModel):
+    error: str
+    detail: Optional[str] = None
+    code: Optional[str] = None
+
+class CheckoutResponse(BaseModel):
+    checkout_url: Optional[str] = Field(None, description="Square checkout URL or null if free")
+    status: str = Field(default="success", description="Transaction status")
 
 
-# DB helper
-
-def get_db_conn():
-    return psycopg2.connect(os.getenv("DATABASE_URL"))
+# Production DB helpers
 
 def _warn_if_db_superuser():
     """Best-effort warning if connected as a superuser (least-privilege reminder)."""
     try:
-        with closing(get_db_conn()) as conn, conn.cursor() as cur:
+        with get_db_conn() as conn, conn.cursor() as cur:
             cur.execute("SELECT current_user")
             user = cur.fetchone()[0]
             if user == "postgres":
@@ -127,7 +195,27 @@ def _warn_if_db_superuser():
     except Exception as e:
         logger.debug("[SECURITY] DB user check skipped: %s", e)
 
-_warn_if_db_superuser()
+# Retry decorator for database operations
+def db_retry(max_retries: int = 3, delay: float = 0.1):
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            last_exception = None
+            for attempt in range(max_retries):
+                try:
+                    return await func(*args, **kwargs)
+                except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
+                    last_exception = e
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(delay * (2 ** attempt))  # exponential backoff
+                        logger.warning(f"[DB] Retry {attempt + 1}/{max_retries} for {func.__name__}: {e}")
+                    continue
+                except Exception as e:
+                    # Don't retry non-connection errors
+                    raise e
+            raise last_exception
+        return wrapper
+    return decorator
 
 
 # JWT decode helper
@@ -187,63 +275,112 @@ def generate_checkout_payload(location_id, catalog_ids, metadata):
     }
     return payload
 
-# Membership checkout endpoint
+# Production-grade membership checkout endpoint
 
-@app.post("/checkout/membership")
+@app.post("/checkout/membership", response_model=CheckoutResponse)
 @limiter.limit("10/minute")
 async def checkout_membership(
     request: Request,
     req: CheckoutRequest,
     creds: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
-):
+) -> CheckoutResponse:
     customer_id = get_user_id(creds)
-    logger.info(f"Received membership checkout for user: {customer_id}, plan: {req.membership_plan_id}")
-
-    with closing(get_db_conn()) as conn, conn.cursor() as cur:
-        cur.execute(
-            "SELECT stripe_price_id, stripe_joining_fee_id, amt_periods "
-            "FROM membership.membership_plans WHERE id = %s",
-            (req.membership_plan_id,),
-        )
-        row = cur.fetchone()
-        if not row:
-            raise HTTPException(status_code=404, detail="membership plan not found")
-        price_id, joining_fee_id, amt_periods = row
-
-        renewal_date = None
-        if amt_periods is not None:
-            renewal_date = datetime.utcnow() + relativedelta(months=amt_periods)
-
-        # webhook sets to 'active' on payment completion.
-        cur.execute(
-            "INSERT INTO users.customer_membership_plans "
-            "(customer_id, membership_plan_id, renewal_date, status) "
-            "VALUES (%s,%s,%s,'inactive')",
-            (customer_id, req.membership_plan_id, renewal_date),
-        )
-        conn.commit()
-
-    metadata = {"user_id": customer_id, "membership_plan_id": req.membership_plan_id}
-    if amt_periods is not None:
-        metadata["amt_periods"] = str(amt_periods)
-
-    catalog_ids = [price_id] + ([joining_fee_id] if joining_fee_id else [])
-    payload = generate_checkout_payload(os.getenv("SQUARE_LOCATION_ID"), catalog_ids, metadata)
+    logger.info(f"[CHECKOUT] Membership checkout user={customer_id} plan={req.membership_plan_id}")
 
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        with get_db_conn() as conn:
+            with conn.cursor() as cur:
+                # Check for existing active membership (prevent duplicates)
+                cur.execute(
+                    """SELECT 1 FROM users.customer_membership_plans 
+                       WHERE customer_id = %s AND membership_plan_id = %s 
+                       AND status = 'active' AND (renewal_date IS NULL OR renewal_date > NOW())""",
+                    (customer_id, req.membership_plan_id)
+                )
+                if cur.fetchone():
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Active membership already exists for this plan"
+                    )
+
+                # Get membership plan details  
+                cur.execute(
+                    """SELECT stripe_price_id, stripe_joining_fee_id, amt_periods 
+                       FROM membership.membership_plans WHERE id = %s""",
+                    (req.membership_plan_id,)
+                )
+                row = cur.fetchone()
+                if not row:
+                    raise HTTPException(status_code=404, detail="Membership plan not found")
+                
+                catalog_id, joining_fee_id, amt_periods = row
+                if not catalog_id:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Membership plan missing Square catalog configuration"
+                    )
+
+                # Calculate renewal date safely
+                renewal_date = None
+                if amt_periods is not None and amt_periods > 0:
+                    cur.execute("SELECT NOW() + INTERVAL %s", (f"{amt_periods} months",))
+                    renewal_date = cur.fetchone()[0]
+
+                # Upsert membership record (handles race conditions)
+                cur.execute(
+                    """
+                    INSERT INTO users.customer_membership_plans 
+                    (customer_id, membership_plan_id, renewal_date, status) 
+                    VALUES (%s, %s, %s, 'inactive')
+                    ON CONFLICT (customer_id, membership_plan_id) 
+                    DO UPDATE SET 
+                        renewal_date = EXCLUDED.renewal_date,
+                        status = 'inactive'
+                    WHERE customer_membership_plans.status != 'active'
+                    """,
+                    (customer_id, req.membership_plan_id, renewal_date)
+                )
+                
+                conn.commit()
+                logger.info(f"[CHECKOUT] Membership record created/updated user={customer_id}")
+
+        # Prepare Square checkout
+        metadata = {"user_id": customer_id, "membership_plan_id": req.membership_plan_id}
+        if amt_periods is not None:
+            metadata["amt_periods"] = str(amt_periods)
+
+        catalog_ids = [catalog_id] + ([joining_fee_id] if joining_fee_id else [])
+        payload = generate_checkout_payload(os.getenv("SQUARE_LOCATION_ID"), catalog_ids, metadata)
+
+        # Square API call with proper timeout and error handling
+        async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(
                 f"{SQUARE_BASE_URL}/v2/online-checkout/payment-links",
                 headers=HEADERS,
                 json=payload,
             )
+            
             if resp.status_code >= 400:
-                logger.error("[SQUARE] checkout_membership error %s: %s", resp.status_code, resp.text)
+                error_detail = resp.text
+                logger.error(f"[SQUARE] Checkout failed {resp.status_code}: {error_detail}")
                 raise HTTPException(status_code=502, detail="Payment provider error")
-            return {"checkout_url": resp.json()["payment_link"]["url"]}
+            
+            checkout_url = resp.json().get("payment_link", {}).get("url")
+            if not checkout_url:
+                logger.error("[SQUARE] Missing checkout URL in response")
+                raise HTTPException(status_code=502, detail="Payment provider error")
+            
+            logger.info(f"[CHECKOUT] Success user={customer_id}")
+            return CheckoutResponse(checkout_url=checkout_url)
+            
+    except HTTPException:
+        raise
     except httpx.RequestError as e:
-        logger.exception("[SQUARE] checkout_membership request failed: %s", e)
-        raise HTTPException(status_code=502, detail="Payment provider error")
+        logger.exception(f"[SQUARE] Network error: {e}")
+        raise HTTPException(status_code=502, detail="Payment service temporarily unavailable")
+    except Exception as e:
+        logger.exception(f"[CHECKOUT] Unexpected error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # Event checkout endpoint
@@ -485,7 +622,7 @@ async def handle_webhook(request: Request):
                         if rc == 0:
                             # If no row yet, insert as active (with renewal if provided)
                             if periods:
-                                cur.execute("SELECT NOW() + (%s || ' months')::interval", (str(periods),))
+                                cur.execute("SELECT NOW() + INTERVAL %s", (f"{periods} months",))
                                 renewal_date = cur.fetchone()[0]
                                 cur.execute(
                                     """
@@ -561,3 +698,51 @@ async def expire_memberships():
         conn.commit()
     logger.info(f"[ADMIN] expired {changed} memberships")
     return {"expired": changed}
+
+
+# Health check and startup events
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup."""
+    init_db_pool()
+    _warn_if_db_superuser()
+    logger.info("[STARTUP] Rise Square Payment Service ready")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown."""
+    if db_pool:
+        db_pool.closeall()
+    logger.info("[SHUTDOWN] Rise Square Payment Service stopped")
+
+
+@app.get("/health", include_in_schema=False)
+async def health_check():
+    """Health check endpoint for load balancers."""
+    try:
+        with get_db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+                cur.fetchone()
+        return {"status": "healthy", "service": "rise-square-payment", "timestamp": datetime.utcnow().isoformat()}
+    except Exception as e:
+        logger.error(f"[HEALTH] Health check failed: {e}")
+        raise HTTPException(status_code=503, detail="Service unavailable")
+
+@app.get("/", include_in_schema=False)
+async def root():
+    """Root endpoint."""
+    return {"service": "Rise Square Payment Service", "status": "running", "docs": "/docs"}
+
+# Server startup
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", "8080"))
+    uvicorn.run(
+        app, 
+        host="0.0.0.0", 
+        port=port,
+        log_level="info",
+        access_log=True
+    )

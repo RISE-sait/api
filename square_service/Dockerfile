@@ -18,17 +18,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev \
 # Create non-root user
 RUN useradd -ms /bin/bash appuser
 
-# Copy app code preserving package structure
-COPY --chown=appuser:appuser . /app/square_service
+# Copy app code 
+COPY --chown=appuser:appuser . /app
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 
-# Expose port
-EXPOSE 8000
+# Expose port (Cloud Run uses PORT env var)
+EXPOSE 8080
 
 # Run as non-root user
 USER appuser
 
-# Start the FastAPI app
-CMD ["uvicorn", "square_service.app:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+# Start the FastAPI app using our custom startup code
+CMD ["python", "app.py"]

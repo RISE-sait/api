@@ -30,5 +30,5 @@ EXPOSE 8080
 # Run as non-root user
 USER appuser
 
-# Start the FastAPI app using our custom startup code
-CMD ["python", "app.py"]
+# Start the FastAPI app on the port specified by Cloud Run
+CMD ["python", "-c", "import os; import uvicorn; uvicorn.run('app:app', host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))"]

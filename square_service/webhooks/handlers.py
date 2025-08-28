@@ -411,7 +411,7 @@ class WebhookHandler:
                             (subscription_id,)
                         )
                 
-                elif evt_type == "invoice.failed":
+                elif evt_type == "invoice.scheduled_charge_failed":
                     # Payment failed - mark as delinquent
                     cur.execute(
                         """

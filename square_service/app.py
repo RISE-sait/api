@@ -212,7 +212,7 @@ async def handle_webhook(request: Request):
             return await webhook_handler.handle_subscription_webhook(event)
         
         # Handle invoice events for subscriptions  
-        if evt_type in ["invoice.created", "invoice.payment_made", "invoice.failed"]:
+        if evt_type in ["invoice.created", "invoice.payment_made", "invoice.scheduled_charge_failed"]:
             return await webhook_handler.handle_invoice_webhook(event)
         
         # Handle payment events
@@ -277,66 +277,6 @@ async def retry_failed_webhooks():
         logger.error(f"[WEBHOOK_RETRY] Error: {e}")
         raise HTTPException(status_code=500, detail="Failed to start webhook retry")
 
-# === API KEY MANAGEMENT ROUTES ===
-
-@app.post("/admin/api-keys")
-async def create_api_key(
-    request: Request,
-    body: dict,
-    creds: HTTPAuthorizationCredentials = Depends(HTTPBearer())
-):
-    """Create a new API key."""
-    from utils.api_keys import api_key_manager, ApiKeyScope
-    
-    user_id = get_user_id(creds)
-    name = body.get("name")
-    scopes = body.get("scopes", [])
-    description = body.get("description")
-    
-    if not name:
-        raise HTTPException(status_code=400, detail="Name is required")
-    
-    if not scopes:
-        raise HTTPException(status_code=400, detail="At least one scope is required")
-    
-    try:
-        scope_objects = [ApiKeyScope(scope) for scope in scopes]
-        result = api_key_manager.generate_api_key(
-            name=name,
-            scopes=scope_objects,
-            description=description,
-            created_by=user_id
-        )
-        return result
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid scope: {e}")
-    except Exception as e:
-        logger.error(f"Failed to create API key: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create API key")
-
-@app.get("/admin/api-keys")
-async def list_api_keys(
-    request: Request,
-    creds: HTTPAuthorizationCredentials = Depends(HTTPBearer())
-):
-    """List all API keys."""
-    from utils.api_keys import api_key_manager
-    return {"api_keys": api_key_manager.list_api_keys()}
-
-@app.delete("/admin/api-keys/{key_id}")
-async def revoke_api_key(
-    key_id: str,
-    request: Request,
-    creds: HTTPAuthorizationCredentials = Depends(HTTPBearer())
-):
-    """Revoke an API key."""
-    from utils.api_keys import api_key_manager
-    
-    success = api_key_manager.revoke_api_key(key_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="API key not found")
-    
-    return {"status": "revoked", "key_id": key_id}
 
 # === HEALTH & MONITORING ROUTES ===
 

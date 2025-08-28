@@ -1,0 +1,29 @@
+# Environment Variables Template for GCP Cloud Run
+# Copy this to your Cloud Run service environment variables
+
+# Database Configuration
+DATABASE_URL: "postgresql://username:password@host:port/database"
+
+# Square API Configuration  
+SQUARE_ACCESS_TOKEN: "YOUR_SQUARE_ACCESS_TOKEN"
+SQUARE_LOCATION_ID: "YOUR_SQUARE_LOCATION_ID"
+SQUARE_ENV: "production"  # or "sandbox" for testing
+SQUARE_VERSION: "2025-07-16"
+SQUARE_WEBHOOK_SIGNATURE_KEY: "YOUR_WEBHOOK_SIGNATURE_KEY"
+
+# JWT Configuration
+JWT_SECRET: "YOUR_JWT_SECRET_KEY"
+JWT_ALGORITHM: "HS256"
+
+# Service URLs
+FRONTEND_URL: "https://your-frontend-domain.com"
+WEBHOOK_URL: "https://rise-square-service-XXXX-uc.a.run.app/webhook"
+
+# Logging
+LOG_LEVEL: "INFO"
+
+# IMPORTANT SECURITY NOTES:
+# 1. Replace ALL placeholder values with your actual secrets
+# 2. Use GCP Secret Manager for sensitive values in production
+# 3. Never commit actual secrets to version control
+# 4. Set SQUARE_ENV=production for live payments

@@ -205,23 +205,85 @@ async def handle_webhook(request: Request):
     webhook_events.labels(event_type=evt_type).inc()
     logger.info(f"[WEBHOOK] received event type={evt_type}")
     
+    # LOG ALL WEBHOOK DATA FOR DEBUGGING
+    logger.info(f"[WEBHOOK_DEBUG] Full event data: {event}")
+    
     # Enhanced webhook processing with failure recovery
     try:
         # Handle subscription events
         if evt_type in ["subscription.created", "subscription.updated"]:
+            logger.info(f"[WEBHOOK] Processing subscription event: {evt_type}")
             return await webhook_handler.handle_subscription_webhook(event)
         
         # Handle invoice events for subscriptions  
         if evt_type in ["invoice.created", "invoice.payment_made", "invoice.scheduled_charge_failed"]:
+            logger.info(f"[WEBHOOK] Processing invoice event: {evt_type}")
             return await webhook_handler.handle_invoice_webhook(event)
         
         # Handle payment events
         if evt_type == "payment.updated":
-            return await webhook_handler.handle_payment_webhook(event)
+            logger.info(f"[WEBHOOK] Processing payment event: {evt_type}")
+            result = await webhook_handler.handle_payment_webhook(event)
+            
+            # Check if payment is completed for subscription activation
+            payment_data = event.get("data", {}).get("object", {}).get("payment", {})
+            order_id = payment_data.get("order_id")
+            
+            if order_id and payment_data.get("status") == "COMPLETED":
+                try:
+                    # Get order details to find associated subscription
+                    order_response = await square_client.make_request("GET", f"/v2/orders/{order_id}")
+                    if order_response.status_code == 200:
+                        order_data = order_response.json().get("order", {})
+                        metadata = order_data.get("metadata", {})
+                        
+                        # Check if this is for subscription setup (new payment-first flow)
+                        if metadata.get("subscription_setup") == "true":
+                            logger.info(f"[WEBHOOK] Payment completed for subscription setup, creating subscription")
+                            await subscription_service.complete_subscription_after_payment(metadata)
+                        
+                        # Check if this payment is for an existing subscription (current flow)
+                        # Look for subscription ID in metadata or customer orders
+                        customer_id = order_data.get("customer_id")
+                        if customer_id:
+                            # Find the subscription by customer and activate membership
+                            with get_db_conn() as conn, conn.cursor() as cur:
+                                cur.execute(
+                                    """
+                                    SELECT square_subscription_id FROM users.customer_membership_plans 
+                                    WHERE status = 'inactive'::membership.membership_status
+                                    AND created_at > NOW() - INTERVAL '1 hour'
+                                    ORDER BY created_at DESC LIMIT 1
+                                    """
+                                )
+                                result_row = cur.fetchone()
+                                if result_row:
+                                    square_subscription_id = result_row[0]
+                                    logger.info(f"[WEBHOOK] Activating membership for subscription: {square_subscription_id}")
+                                    await subscription_service.activate_membership_after_payment(square_subscription_id)
+                        
+                except Exception as e:
+                    logger.error(f"[WEBHOOK] Error processing payment completion: {e}")
+            
+            return result
+        
+        # Handle checkout events (might be relevant for debugging)
+        if evt_type in ["checkout.created", "checkout.completed", "checkout.failed"]:
+            logger.info(f"[WEBHOOK] Processing checkout event: {evt_type}")
+            return {"status": "checkout_event_received"}
+        
+        # Handle order events
+        if evt_type in ["order.created", "order.updated", "order.fulfillment.updated"]:
+            logger.info(f"[WEBHOOK] Processing order event: {evt_type}")
+            return {"status": "order_event_received"}
+            
+        # Log unknown events
+        logger.warning(f"[WEBHOOK] Unknown event type: {evt_type}")
             
     except Exception as e:
         # Store failed webhook for later retry
         logger.error(f"[WEBHOOK] Error processing {evt_type}: {e}")
+        logger.error(f"[WEBHOOK] Full error event: {event}")
         await sync_service.store_failed_webhook(event, str(e))
         # Don't raise - return success to prevent Square from retrying immediately
         return {"status": "error_stored_for_retry"}
@@ -297,6 +359,32 @@ async def get_rate_limiter_status(
     """Get rate limiter status for monitoring."""
     from utils.rate_limiter import get_rate_limiter_status
     return get_rate_limiter_status()
+
+@app.get("/debug/checkout/{checkout_id}", dependencies=only_authenticated)
+async def debug_checkout_status(checkout_id: str):
+    """Debug checkout session status to see why payment failed."""
+    try:
+        # Get checkout session details
+        response = await square_client.make_request(
+            "GET", 
+            f"/v2/online-checkout/payment-links/{checkout_id}"
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            return {
+                "checkout_id": checkout_id,
+                "status": data.get("payment_link", {}).get("status"),
+                "full_response": data
+            }
+        else:
+            return {
+                "error": f"Failed to get checkout: {response.status_code}",
+                "response": response.text
+            }
+    except Exception as e:
+        logger.error(f"[DEBUG] Error getting checkout {checkout_id}: {e}")
+        return {"error": str(e)}
 
 @app.get("/health", include_in_schema=False)
 async def health_check():

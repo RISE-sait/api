@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from database.connection import get_db_conn
 from services.square_client import SquareAPIClient
 from utils.billing import calculate_next_billing_date
-from utils.duplicate_prevention import is_duplicate_payment_webhook
+from utils.duplicate_prevention import is_duplicate_payment_webhook, mark_payment_webhook_processed
 
 logger = logging.getLogger(__name__)
 
@@ -38,34 +38,117 @@ class WebhookHandler:
         return {"status": "ok"}
     
     async def _process_completed_payment(self, order_id: str, payment_id: str) -> Dict[str, str]:
-        """Process completed payment and create subscription if needed."""
+        """Process completed payment and activate subscription if needed."""
         try:
-            # Get order details from Square
+            # Get order details from Square  
             order_response = await self.square_client.make_request("GET", f"/v2/orders/{order_id}")
             order_data = order_response.json().get("order", {})
             
-            # Extract metadata from order
-            metadata_source = "order"
+            # Extract metadata from order (legacy flow)
             metadata = order_data.get("metadata", {})
             
-            if not metadata:
-                logger.warning(f"[WEBHOOK] No metadata found in order {order_id}")
-                return {"status": "no_metadata"}
+            if metadata:
+                # Legacy metadata-based flow
+                user_id = metadata.get("user_id")
+                membership_plan_id = metadata.get("membership_plan_id")
+                
+                if user_id and membership_plan_id:
+                    logger.info(f"[WEBHOOK] Processing metadata payment user={user_id} plan={membership_plan_id}")
+                    return await self._activate_membership_and_create_subscription(user_id, membership_plan_id)
             
-            logger.info(f"[WEBHOOK] order_id={order_id} metadata_source={metadata_source} metadata={metadata}")
-            
-            user_id = metadata.get("user_id")
-            membership_plan_id = metadata.get("membership_plan_id")
-            
-            if not user_id or not membership_plan_id:
-                logger.error(f"[WEBHOOK] Missing user_id or membership_plan_id in metadata: {metadata}")
-                return {"status": "invalid_metadata"}
-            
-            return await self._activate_membership_and_create_subscription(user_id, membership_plan_id)
+            # New subscription flow - find subscription by customer_id
+            logger.warning(f"[WEBHOOK] No metadata found in order {order_id}, checking for subscription payment")
+            return await self._handle_subscription_payment_activation(payment_id)
             
         except Exception as e:
             logger.exception(f"[WEBHOOK] Error processing payment {payment_id}: {e}")
             raise HTTPException(status_code=500, detail="Payment processing error")
+    
+    async def _handle_subscription_payment_activation(self, payment_id: str) -> Dict[str, str]:
+        """Handle subscription payment activation by customer lookup."""
+        try:
+            # Get payment details to find customer_id
+            payment_response = await self.square_client.make_request("GET", f"/v2/payments/{payment_id}")
+            payment_data = payment_response.json().get("payment", {})
+            customer_id = payment_data.get("customer_id")
+            
+            if not customer_id:
+                logger.warning(f"[WEBHOOK] No customer_id found in payment {payment_id}")
+                return {"status": "no_customer"}
+            
+            # Find user by square_customer_id or by email if customer ID doesn't match
+            with get_db_conn() as conn, conn.cursor() as cur:
+                cur.execute(
+                    "SELECT id FROM users.users WHERE square_customer_id = %s",
+                    (customer_id,)
+                )
+                user_result = cur.fetchone()
+                
+                if not user_result:
+                    # Fallback: get customer email from Square and find user by email
+                    logger.info(f"[WEBHOOK] Customer ID {customer_id} not found, trying email lookup")
+                    try:
+                        customer_response = await self.square_client.make_request("GET", f"/v2/customers/{customer_id}")
+                        customer_data = customer_response.json().get("customer", {})
+                        email = customer_data.get("email_address")
+                        
+                        if email:
+                            cur.execute(
+                                "SELECT id FROM users.users WHERE email = %s",
+                                (email,)
+                            )
+                            user_result = cur.fetchone()
+                            
+                            if user_result:
+                                # Update the user's square_customer_id to the new one
+                                logger.info(f"[WEBHOOK] Found user by email {email}, updating customer ID to {customer_id}")
+                                cur.execute(
+                                    "UPDATE users.users SET square_customer_id = %s WHERE email = %s",
+                                    (customer_id, email)
+                                )
+                                conn.commit()
+                            else:
+                                logger.warning(f"[WEBHOOK] No user found for email {email}")
+                                return {"status": "no_user"}
+                        else:
+                            logger.warning(f"[WEBHOOK] No email found for Square customer {customer_id}")
+                            return {"status": "no_email"}
+                    except Exception as e:
+                        logger.error(f"[WEBHOOK] Error looking up customer by email: {e}")
+                        return {"status": "lookup_error"}
+                
+                if not user_result:
+                    logger.warning(f"[WEBHOOK] No user found for Square customer {customer_id} even after email lookup")
+                    return {"status": "no_user"}
+                
+                user_id = user_result[0]
+                
+                # Activate subscription for this user
+                cur.execute(
+                    """
+                    UPDATE users.customer_membership_plans 
+                    SET status = 'active'::membership.membership_status
+                    WHERE customer_id = %s 
+                    AND subscription_source = 'subscription'
+                    AND status = 'inactive'::membership.membership_status
+                    """,
+                    (user_id,)
+                )
+                
+                updated_rows = cur.rowcount
+                conn.commit()
+                
+                if updated_rows > 0:
+                    logger.info(f"[WEBHOOK] Activated subscription for user {user_id} via payment {payment_id}")
+                    mark_payment_webhook_processed(payment_id)  # Only mark as processed after successful activation
+                    return {"status": "activated"}
+                else:
+                    logger.warning(f"[WEBHOOK] No inactive subscription found for user {user_id}")
+                    return {"status": "no_subscription"}
+                    
+        except Exception as e:
+            logger.exception(f"[WEBHOOK] Error handling subscription payment activation: {e}")
+            return {"status": "error"}
     
     async def _activate_membership_and_create_subscription(self, user_id: str, membership_plan_id: str) -> Dict[str, str]:
         """Activate membership and create Square subscription."""
@@ -274,10 +357,40 @@ class WebhookHandler:
                         )
                         user_result = cur.fetchone()
                         
+                        if not user_result:
+                            # Fallback: get customer email from Square and find user by email
+                            logger.info(f"[WEBHOOK] Customer ID {customer_id} not found, trying email lookup for subscription")
+                            try:
+                                customer_response = await self.square_client.make_request("GET", f"/v2/customers/{customer_id}")
+                                customer_data = customer_response.json().get("customer", {})
+                                email = customer_data.get("email_address")
+                                
+                                if email:
+                                    cur.execute(
+                                        "SELECT id FROM users.users WHERE email = %s",
+                                        (email,)
+                                    )
+                                    user_result = cur.fetchone()
+                                    
+                                    if user_result:
+                                        # Update the user's square_customer_id to the new one
+                                        logger.info(f"[WEBHOOK] Found user by email {email}, updating customer ID to {customer_id}")
+                                        cur.execute(
+                                            "UPDATE users.users SET square_customer_id = %s WHERE email = %s",
+                                            (customer_id, email)
+                                        )
+                                        conn.commit()
+                                    else:
+                                        logger.warning(f"[WEBHOOK] No user found for email {email}")
+                                else:
+                                    logger.warning(f"[WEBHOOK] No email found for Square customer {customer_id}")
+                            except Exception as e:
+                                logger.error(f"[WEBHOOK] Error looking up customer by email for subscription: {e}")
+                        
                         if user_result:
                             user_id = user_result[0]
                             
-                            # Update the most recent inactive subscription record for this user
+                            # Update the subscription record for this user (either existing or create new)
                             cur.execute(
                                 """
                                 UPDATE users.customer_membership_plans 
@@ -286,15 +399,12 @@ class WebhookHandler:
                                     subscription_source = 'subscription',
                                     next_billing_date = %s,
                                     subscription_created_at = %s,
-                                    status = CASE 
-                                        WHEN %s = 'ACTIVE' THEN 'active'::membership.membership_status
-                                        ELSE 'inactive'::membership.membership_status
-                                    END
+                                    status = 'inactive'::membership.membership_status
                                 WHERE customer_id = %s 
                                 AND subscription_source = 'subscription'
-                                AND square_subscription_id IS NULL
+                                AND (square_subscription_id IS NULL OR square_subscription_id = %s)
                                 """,
-                                (subscription_id, status, next_billing_date, subscription_created_at, status, user_id)
+                                (subscription_id, status, next_billing_date, subscription_created_at, user_id, subscription_id)
                             )
                             
                             updated_rows = cur.rowcount

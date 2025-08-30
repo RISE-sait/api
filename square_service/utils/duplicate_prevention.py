@@ -97,16 +97,21 @@ def is_duplicate_checkout_request(user_id: str, plan_id: str) -> bool:
     return False
 
 def is_duplicate_payment_webhook(payment_id: str) -> bool:
-    """Check if payment webhook has already been processed."""
+    """Check if payment webhook has already been processed successfully."""
     webhook_cache_key = f"payment-{payment_id}"
     current_time = time.time()
     
     if webhook_cache_key in payment_cache:
         return True
     
-    # Cache this payment processing (expires after 1 hour)
-    payment_cache[webhook_cache_key] = current_time
+    # Don't cache yet - cache only after successful processing
     return False
+
+def mark_payment_webhook_processed(payment_id: str) -> None:
+    """Mark payment webhook as successfully processed."""
+    webhook_cache_key = f"payment-{payment_id}"
+    current_time = time.time()
+    payment_cache[webhook_cache_key] = current_time
 
 def cleanup_caches():
     """Clean up expired cache entries."""

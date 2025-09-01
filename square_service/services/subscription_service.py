@@ -98,9 +98,17 @@ class SubscriptionService:
                 # Weekly: start next week
                 start_date = now + timedelta(days=7 * frequency)
             elif period == "MONTHLY":
-                # Monthly: start next month
-                # Add 30 days per month (approximate)
-                start_date = now + timedelta(days=30 * frequency)
+                # Monthly: start next month (use actual month calculation)
+                import calendar
+                if frequency == 1:
+                    # Next month
+                    if now.month == 12:
+                        start_date = now.replace(year=now.year + 1, month=1)
+                    else:
+                        start_date = now.replace(month=now.month + 1)
+                else:
+                    # Multiple months - use approximate for simplicity
+                    start_date = now + timedelta(days=30 * frequency)
             elif period == "ANNUAL":
                 # Yearly: start next year
                 start_date = now + timedelta(days=365 * frequency)
@@ -488,6 +496,9 @@ class SubscriptionService:
                     }
                 ]
             }
+            
+            # TODO: Add card_id from initial payment to enable auto-charging
+            # This will be set after the customer completes their first payment
             
             subscription_response = await self.square_client.create_subscription(subscription_data)
             logger.info(f"[SUBSCRIPTION] Direct subscription response: {subscription_response}")

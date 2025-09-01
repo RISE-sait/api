@@ -129,6 +129,18 @@ class SquareAPIClient:
         )
         return response.json()
     
+    async def create_card_on_file(self, customer_id: str, source_id: str) -> dict:
+        """Create a card-on-file from a payment source for auto-charging."""
+        card_data = {
+            "idempotency_key": f"card-{customer_id}-{source_id[-8:]}",
+            "source_id": source_id,
+            "card": {
+                "customer_id": customer_id
+            }
+        }
+        response = await self.make_request("POST", "/v2/cards", json=card_data)
+        return response.json()
+    
     async def pause_subscription(self, subscription_id: str, pause_data: dict) -> dict:
         """Pause Square subscription."""
         response = await self.make_request(

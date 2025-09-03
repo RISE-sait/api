@@ -19,8 +19,6 @@ import (
 	programDb "api/internal/domains/program/persistence/sqlc/generated"
 	teamDb "api/internal/domains/team/persistence/sqlc/generated"
 
-	"api/internal/services/square"
-
 	outboxDb "api/internal/services/outbox/generated"
 
 	userDb "api/internal/domains/user/persistence/sqlc/generated"
@@ -28,8 +26,6 @@ import (
 	"api/internal/services/gcp"
 	"api/internal/services/hubspot"
 	"database/sql"
-
-	squareClient "github.com/square/square-go-sdk/client"
 )
 
 type Container struct {
@@ -37,7 +33,6 @@ type Container struct {
 	Queries         *QueriesType
 	HubspotService  *hubspot.Service
 	FirebaseService *gcp.Service
-	SquareClient    *squareClient.Client
 }
 
 type QueriesType struct {
@@ -61,7 +56,7 @@ type QueriesType struct {
 	PracticeDb          *practiceDb.Queries
 }
 
-// NewContainer initializes and returns a Container with database, queries, HubSpot, Firebase, and Square services.
+// NewContainer initializes and returns a Container with database, queries, HubSpot, and Firebase services.
 // Panics if any initialization fails.
 //
 // Returns:
@@ -80,18 +75,11 @@ func NewContainer() *Container {
 		panic(err.Error())
 	}
 
-	localSquareClient, err := square.GetSquareClient()
-
-	if err != nil {
-		panic(err.Error())
-	}
-
 	return &Container{
 		DB:              db,
 		Queries:         queries,
 		HubspotService:  hubspotService,
 		FirebaseService: firebaseService,
-		SquareClient:    localSquareClient,
 	}
 }
 

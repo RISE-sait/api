@@ -4,6 +4,7 @@ import (
 	"api/config"
 	"api/internal/di"
 	service "api/internal/domains/payment/services"
+	stripeService "api/internal/domains/payment/services/stripe"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"io"
@@ -12,15 +13,23 @@ import (
 	"strings"
 
 	"github.com/stripe/stripe-go/v81"
-	"github.com/stripe/stripe-go/v81/webhook"
 )
 
 type WebhookHandlers struct {
-	Service *service.WebhookService
+	Service      *service.WebhookService
+	RetryService *service.WebhookRetryService
 }
 
 func NewWebhookHandlers(container *di.Container) *WebhookHandlers {
-	return &WebhookHandlers{Service: service.NewWebhookService(container)}
+	webhookService := service.NewWebhookService(container)
+	retryService := service.NewWebhookRetryService(webhookService)
+	
+
+	
+	return &WebhookHandlers{
+		Service:      webhookService,
+		RetryService: retryService,
+	}
 }
 
 // HandleStripeWebhook processes incoming Stripe webhook payment events.
@@ -52,22 +61,18 @@ func (h *WebhookHandlers) HandleStripeWebhook(w http.ResponseWriter, r *http.Req
 	}
 
 	log.Println(">>> Incoming Stripe webhook")
-	log.Println("Stripe-Signature:", r.Header.Get("Stripe-Signature"))
-	log.Println("Webhook Secret:", stripeWebhookSecret)
-	log.Println("Payload:", string(payload))
+	log.Printf("[STRIPE] Event type: %s", string(payload)[:200]) // Log first 200 chars for debugging
 
-	event, err := webhook.ConstructEventWithOptions(
+	// Use the enhanced signature validation
+	event, validationErr := stripeService.ValidateWebhookSignature(
 		payload,
 		r.Header.Get("Stripe-Signature"),
 		stripeWebhookSecret,
-		webhook.ConstructEventOptions{
-			IgnoreAPIVersionMismatch: true,
-		},
 	)
 
-	if err != nil {
-		log.Println("Signature verification failed:", err)
-		responseHandlers.RespondWithError(w, errLib.New("Signature verification failed", http.StatusBadRequest))
+	if validationErr != nil {
+		log.Printf("[STRIPE] Webhook signature validation failed: %v", validationErr)
+		responseHandlers.RespondWithError(w, validationErr)
 		return
 	}
 
@@ -76,13 +81,40 @@ func (h *WebhookHandlers) HandleStripeWebhook(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Process the webhook event and handle retries on failure
+	var webhookErr *errLib.CommonError
+	
 	switch event.Type {
 	case "checkout.session.completed":
-		if sessionErr := h.Service.HandleCheckoutSessionCompleted(event); sessionErr != nil {
-			responseHandlers.RespondWithError(w, sessionErr)
-			return
-		}
+		webhookErr = h.Service.HandleCheckoutSessionCompleted(*event)
+	case "customer.subscription.created":
+		webhookErr = h.Service.HandleSubscriptionCreated(*event)
+	case "customer.subscription.updated":
+		webhookErr = h.Service.HandleSubscriptionUpdated(*event)
+	case "customer.subscription.deleted":
+		webhookErr = h.Service.HandleSubscriptionDeleted(*event)
+	case "invoice.payment_succeeded":
+		webhookErr = h.Service.HandleInvoicePaymentSucceeded(*event)
+	case "invoice.payment_failed":
+		webhookErr = h.Service.HandleInvoicePaymentFailed(*event)
+	default:
+		log.Printf("[STRIPE] Unhandled webhook event type: %s", event.Type)
+		w.WriteHeader(http.StatusOK)
+		return
 	}
+	
+	if webhookErr != nil {
+		// Schedule for retry with exponential backoff
+		h.RetryService.ScheduleRetry(*event, webhookErr)
+		
+		// Return 500 to tell Stripe to retry (though we handle our own retries)
+		// Stripe will also retry on 5xx responses which provides additional redundancy
+		responseHandlers.RespondWithError(w, errLib.New("Webhook processing failed, scheduled for retry", http.StatusInternalServerError))
+		return
+	}
+	
+	// Successfully processed - remove from retry queue if it was there
+	h.RetryService.RemoveRetry(event.ID)
 
 	w.WriteHeader(http.StatusOK)
 }

@@ -18,6 +18,7 @@ import (
 	locationsHandler "api/internal/domains/location/handler"
 	membership "api/internal/domains/membership/handler"
 	payment "api/internal/domains/payment/handler"
+	paymentMiddleware "api/internal/domains/payment/middleware"
 	playground "api/internal/domains/playground/handler"
 	practice "api/internal/domains/practice/handler"
 	programHandler "api/internal/domains/program"
@@ -72,6 +73,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 
 		// Purchase-related routes
 		"/checkout": RegisterCheckoutRoutes,
+		"/subscriptions": RegisterSubscriptionRoutes,
 
 		// Webhooks
 		"/webhooks": RegisterWebhooksRoutes,
@@ -322,8 +324,18 @@ func RegisterEventStaffRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterCheckoutRoutes(container *di.Container) func(chi.Router) {
 	h := payment.NewCheckoutHandlers(container)
+	securityMw := paymentMiddleware.NewSecurityMiddleware()
+	pciMw := paymentMiddleware.NewPCIComplianceMiddleware()
 
 	return func(r chi.Router) {
+		// Apply comprehensive security to all checkout endpoints
+		r.Use(securityMw.SecurePaymentEndpoints)
+		r.Use(pciMw.EnforcePCICompliance)
+		r.Use(pciMw.DataMaskingMiddleware)
+		
+		// Rate limit checkout endpoints - 10 requests per minute per user
+		r.Use(middlewares.RateLimitMiddleware(10.0/60.0, 3, time.Minute))
+		
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/membership_plans/{id}", h.CheckoutMembership)
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/programs/{id}", h.CheckoutProgram)
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/events/{id}", h.CheckoutEvent)
@@ -332,8 +344,15 @@ func RegisterCheckoutRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterWebhooksRoutes(container *di.Container) func(chi.Router) {
 	h := payment.NewWebhookHandlers(container)
+	securityMw := paymentMiddleware.NewSecurityMiddleware()
 
 	return func(r chi.Router) {
+		// Apply webhook-specific security
+		r.Use(securityMw.WebhookSecurityMiddleware)
+		
+		// Rate limit webhook endpoints - 1000 per hour (Stripe can send many)
+		r.Use(middlewares.RateLimitMiddleware(1000.0/3600.0, 10, time.Hour))
+		
 		r.Post("/stripe", h.HandleStripeWebhook)
 	}
 }
@@ -452,5 +471,42 @@ func RegisterBookingsRoutes(container *di.Container) func(chi.Router) {
 	h := bookingsHandler.NewHandler(container)
 	return func(r chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(true)).Get("/upcoming", h.GetMyUpcomingBookings)
+	}
+}
+
+// RegisterSubscriptionRoutes registers subscription management routes.
+func RegisterSubscriptionRoutes(container *di.Container) func(chi.Router) {
+	h := payment.NewSubscriptionHandlers(container)
+	securityMw := paymentMiddleware.NewSecurityMiddleware()
+	pciMw := paymentMiddleware.NewPCIComplianceMiddleware()
+
+	return func(r chi.Router) {
+		// Apply security to subscription endpoints
+		r.Use(securityMw.SecurePaymentEndpoints)
+		r.Use(pciMw.EnforcePCICompliance)
+		
+		// Rate limit subscription endpoints - 30 requests per minute per user
+		r.Use(middlewares.RateLimitMiddleware(30.0/60.0, 5, time.Minute))
+		
+		// All subscription endpoints require authentication
+		r.Use(middlewares.JWTAuthMiddleware(true))
+
+		// Get all user subscriptions
+		r.Get("/", h.GetCustomerSubscriptions)
+		
+		// Get specific subscription
+		r.Get("/{id}", h.GetSubscription)
+		
+		// Cancel subscription
+		r.Post("/{id}/cancel", h.CancelSubscription)
+		
+		// Pause subscription
+		r.Post("/{id}/pause", h.PauseSubscription)
+		
+		// Resume subscription  
+		r.Post("/{id}/resume", h.ResumeSubscription)
+		
+		// Create customer portal session
+		r.Post("/portal", h.CreatePortalSession)
 	}
 }

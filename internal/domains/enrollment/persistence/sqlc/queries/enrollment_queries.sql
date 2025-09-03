@@ -15,8 +15,8 @@ INTO program.customer_enrollment(customer_id, program_id, is_cancelled)
 VALUES ($2, $1, false);
 
 -- name: EnrollCustomerInMembershipPlan :exec
-INSERT INTO users.customer_membership_plans (customer_id, membership_plan_id, status, start_date, renewal_date)
-VALUES ($1, $2, $3, $4, $5);
+INSERT INTO users.customer_membership_plans (customer_id, membership_plan_id, status, start_date, renewal_date, subscription_source)
+VALUES ($1, $2, $3, $4, $5, $6);
 
 -- name: UnEnrollCustomerFromEvent :execrows
 UPDATE events.customer_enrollment
@@ -100,3 +100,25 @@ SELECT t.id
 FROM events.events e
          LEFT JOIN athletic.teams t ON e.team_id = t.id
 WHERE e.id = sqlc.arg('event_id');
+
+-- name: UpdateMembershipPlanStatus :execrows
+UPDATE users.customer_membership_plans 
+SET status = $1, updated_at = CURRENT_TIMESTAMP
+WHERE customer_id = $2 AND membership_plan_id = $3;
+
+-- name: UpdateMembershipPlanStatusByStripeSubscription :execrows
+UPDATE users.customer_membership_plans 
+SET status = $1, updated_at = CURRENT_TIMESTAMP
+WHERE customer_id = $2 AND subscription_source = 'stripe';
+
+-- name: GetMembershipPlanByCustomerId :one
+SELECT customer_id, membership_plan_id, status
+FROM users.customer_membership_plans
+WHERE customer_id = $1 AND subscription_source = 'stripe'
+ORDER BY created_at DESC
+LIMIT 1;
+
+-- name: UpdateMembershipPlanByCustomerId :execrows
+UPDATE users.customer_membership_plans 
+SET status = $1, updated_at = CURRENT_TIMESTAMP
+WHERE customer_id = $2 AND subscription_source = 'stripe';

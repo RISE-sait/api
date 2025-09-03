@@ -13,6 +13,7 @@ import (
 
 	"api/cmd/server/router"
 	"api/internal/di"
+	healthHandler "api/internal/domains/health/handler"
 
 	"github.com/go-chi/cors"
 
@@ -98,6 +99,9 @@ func setupServer(container *di.Container, swaggerUrl string) http.Handler {
 		httpSwagger.URL(swaggerUrl), // Use the dynamic host
 	))
 
+	// Register health check endpoints at root level for load balancers
+	setupHealthCheckRoutes(r, container)
+
 	router.RegisterRoutes(r, container)
 	return r
 }
@@ -125,4 +129,31 @@ func setupMiddlewares(router *chi.Mux) {
 		AllowCredentials: true,
 		Debug:            true,
 	}).Handler)
+}
+
+// setupHealthCheckRoutes configures health check endpoints for load balancer integration
+// These endpoints are available at the root level without authentication:
+//   - GET /health - Comprehensive health check with database and external service status
+//   - GET /ready - Kubernetes readiness probe
+//   - GET /live - Kubernetes liveness probe
+func setupHealthCheckRoutes(router *chi.Mux, container *di.Container) {
+	h := healthHandler.NewHealthHandler(container)
+	
+	// Comprehensive health check endpoint
+	router.Get("/health", h.HealthCheck)
+	
+	// Kubernetes probes
+	router.Get("/ready", h.ReadinessCheck)
+	router.Get("/live", h.LivenessCheck)
+	
+	// Additional monitoring endpoints
+	router.Get("/health/webhook-retries", h.WebhookRetryStats)
+	router.Get("/health/security-audit", h.SecurityAudit)
+	
+	log.Println("Health check endpoints registered:")
+	log.Println("  - GET /health - Comprehensive health status")
+	log.Println("  - GET /ready - Readiness check for Kubernetes")
+	log.Println("  - GET /live - Liveness check for Kubernetes")
+	log.Println("  - GET /health/webhook-retries - Webhook retry statistics")
+	log.Println("  - GET /health/security-audit - Comprehensive security assessment")
 }

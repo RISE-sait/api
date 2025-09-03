@@ -50,7 +50,7 @@ func TestCreateOneTimePayment(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			paymentLink, err := payment.CreateOneTimePayment(ctx, tt.priceID, tt.quantity)
+			paymentLink, err := payment.CreateOneTimePayment(ctx, tt.priceID, tt.quantity, nil)
 
 			if tt.wantErr {
 				if err == nil {

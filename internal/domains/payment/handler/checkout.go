@@ -1,10 +1,12 @@
 package payment
 
 import (
+	"fmt"
 	"api/internal/di"
 	dto "api/internal/domains/payment/dto"
 	service "api/internal/domains/payment/services"
 	errLib "api/internal/libs/errors"
+	"api/internal/libs/logger"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"github.com/go-chi/chi"
@@ -138,4 +140,17 @@ func (h *CheckoutHandlers) CheckoutEvent(w http.ResponseWriter, r *http.Request)
 		responseDto.PaymentURL = paymentLink
 		responseHandlers.RespondWithSuccess(w, responseDto, http.StatusOK)
 	}
+}
+
+// TestSlackAlert manually triggers a Slack alert for testing
+func (h *CheckoutHandlers) TestSlackAlert(w http.ResponseWriter, r *http.Request) {
+	// Use structured logger to trigger Slack alert with critical component
+	testLogger := logger.WithComponent("checkout-service")
+	testLogger.Error("TEST: Payment processing failed", fmt.Errorf("this is a test error to verify Slack integration timing"))
+	
+	response := map[string]interface{}{
+		"message": "Test Slack alert sent - check your Slack channel with optimized timing!",
+		"status": "sent",
+	}
+	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 }

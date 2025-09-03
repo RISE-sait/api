@@ -14,13 +14,11 @@ import (
 	contextUtils "api/utils/context"
 	discountService "api/internal/domains/discount/service"
 	"github.com/google/uuid"
-	squareClient "github.com/square/square-go-sdk/client"
 )
 
 type Service struct {
 	CheckoutRepo        *repository.CheckoutRepository
 	MembershipPlansRepo *membership.PlansRepository
-	SquareClient        *squareClient.Client
 	DiscountService     *discountService.Service
 	EnrollmentService   *enrollment.CustomerEnrollmentService
 }
@@ -31,11 +29,26 @@ func NewPurchaseService(container *di.Container) *Service {
 		MembershipPlansRepo: membership.NewMembershipPlansRepository(container),
 		DiscountService:     discountService.NewService(container),
 		EnrollmentService:   enrollment.NewCustomerEnrollmentService(container),
-		SquareClient:        container.SquareClient,
 	}
 }
 
 func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID uuid.UUID, discountCode *string) (string, *errLib.CommonError) {
+	// Get customer ID from context
+	customerID, ctxErr := contextUtils.GetUserID(ctx)
+	if ctxErr != nil {
+		return "", ctxErr
+	}
+	
+	// SECURITY: Check if customer already has an active membership for this plan
+	hasActiveMembership, err := s.CheckoutRepo.CheckCustomerHasActiveMembership(ctx, customerID, membershipPlanID)
+	if err != nil {
+		return "", err
+	}
+	
+	if hasActiveMembership {
+		return "", errLib.New("Customer already has an active membership for this plan", http.StatusConflict)
+	}
+	
 	requirements, err := s.CheckoutRepo.GetMembershipPlanJoiningRequirement(ctx, membershipPlanID)
 	if err != nil {
 		return "", err
@@ -79,7 +92,8 @@ func (s *Service) CheckoutProgram(ctx context.Context, programID uuid.UUID) (str
 		return "", err
 	}
 
-	return stripe.CreateOneTimePayment(ctx, priceID, 1)
+	programIDStr := programID.String()
+	return stripe.CreateOneTimePayment(ctx, priceID, 1, &programIDStr)
 }
 
 func (s *Service) CheckoutEvent(ctx context.Context, eventID uuid.UUID) (string, *errLib.CommonError) {
@@ -113,5 +127,6 @@ func (s *Service) CheckoutEvent(ctx context.Context, eventID uuid.UUID) (string,
 		return "", err
 	}
 
-	return stripe.CreateOneTimePayment(ctx, priceID, 1)
+	eventIDStr := eventID.String()
+	return stripe.CreateOneTimePayment(ctx, priceID, 1, &eventIDStr)
 }

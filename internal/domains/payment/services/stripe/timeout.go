@@ -18,6 +18,9 @@ const (
 
 // withStripeTimeout creates a context with timeout for Stripe operations
 func withStripeTimeout(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if timeout <= 0 {
 		timeout = DefaultStripeTimeout
 	}

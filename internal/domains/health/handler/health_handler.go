@@ -291,7 +291,7 @@ func (h *HealthHandler) WebhookRetryStats(w http.ResponseWriter, r *http.Request
 // @Tags security
 // @Accept json
 // @Produce json
-// @Success 200 {object} security.AuditResult "Security audit results"
+// @Success 200 {object} map[string]interface{} "Security audit results"
 // @Router /health/security-audit [get]
 func (h *HealthHandler) SecurityAudit(w http.ResponseWriter, r *http.Request) {
 	audit := security.NewSecurityAudit()

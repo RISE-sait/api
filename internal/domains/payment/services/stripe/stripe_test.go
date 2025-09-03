@@ -180,18 +180,18 @@ func TestCreateSubscription_Context(t *testing.T) {
 		httpCode int    // Expected HTTP status code
 	}{
 		{
-			name:     "nil context (handled as Background)",
+			name:     "nil context",
 			ctx:      nil,
 			wantErr:  true,
-			errMsg:   func() string { if expectStripeError { return "Stripe not initialized" } else { return "user ID not found in context" } }(),
-			httpCode: func() int { if expectStripeError { return http.StatusInternalServerError } else { return http.StatusUnauthorized } }(),
+			errMsg:   "context cannot be nil",
+			httpCode: http.StatusBadRequest,
 		},
 		{
 			name:     "missing user ID",
 			ctx:      context.Background(),
 			wantErr:  true,
-			errMsg:   func() string { if expectStripeError { return "Stripe not initialized" } else { return "user ID not found in context" } }(),
-			httpCode: func() int { if expectStripeError { return http.StatusInternalServerError } else { return http.StatusUnauthorized } }(),
+			errMsg:   "user ID not found in context",
+			httpCode: http.StatusUnauthorized,
 		},
 		{
 			name:    "valid context",

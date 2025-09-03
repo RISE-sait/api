@@ -95,16 +95,17 @@ func (q *Queries) EnrollCustomerInEvent(ctx context.Context, arg EnrollCustomerI
 }
 
 const enrollCustomerInMembershipPlan = `-- name: EnrollCustomerInMembershipPlan :exec
-INSERT INTO users.customer_membership_plans (customer_id, membership_plan_id, status, start_date, renewal_date)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO users.customer_membership_plans (customer_id, membership_plan_id, status, start_date, renewal_date, subscription_source)
+VALUES ($1, $2, $3, $4, $5, $6)
 `
 
 type EnrollCustomerInMembershipPlanParams struct {
-	CustomerID       uuid.UUID                  `json:"customer_id"`
-	MembershipPlanID uuid.UUID                  `json:"membership_plan_id"`
-	Status           MembershipMembershipStatus `json:"status"`
-	StartDate        time.Time                  `json:"start_date"`
-	RenewalDate      sql.NullTime               `json:"renewal_date"`
+	CustomerID         uuid.UUID                  `json:"customer_id"`
+	MembershipPlanID   uuid.UUID                  `json:"membership_plan_id"`
+	Status             MembershipMembershipStatus `json:"status"`
+	StartDate          time.Time                  `json:"start_date"`
+	RenewalDate        sql.NullTime               `json:"renewal_date"`
+	SubscriptionSource sql.NullString             `json:"subscription_source"`
 }
 
 func (q *Queries) EnrollCustomerInMembershipPlan(ctx context.Context, arg EnrollCustomerInMembershipPlanParams) error {
@@ -114,6 +115,7 @@ func (q *Queries) EnrollCustomerInMembershipPlan(ctx context.Context, arg Enroll
 		arg.Status,
 		arg.StartDate,
 		arg.RenewalDate,
+		arg.SubscriptionSource,
 	)
 	return err
 }

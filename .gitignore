@@ -70,3 +70,7 @@ yarn-error.log*
 # Build artifacts
 dist/
 build/
+
+# Deprecated services
+square_service/
+python/

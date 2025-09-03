@@ -103,7 +103,6 @@ require (
 )
 
 require (
-	cloud.google.com/go/recaptchaenterprise/v2 v2.20.4
 	cloud.google.com/go/storage v1.50.0
 	firebase.google.com/go v3.13.0+incompatible
 	github.com/biter777/countries v1.7.5
@@ -115,7 +114,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/pressly/goose v2.7.0+incompatible
 	github.com/shopspring/decimal v1.4.0
-	github.com/square/square-go-sdk v1.4.0
+	github.com/square/square-go-sdk v1.5.0
 	github.com/stretchr/testify v1.10.0
 	github.com/stripe/stripe-go/v81 v81.4.0
 	github.com/swaggo/http-swagger v1.3.4

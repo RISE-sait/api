@@ -73,8 +73,30 @@ func (r *CustomerEnrollmentRepository) EnrollCustomerInMembershipPlan(ctx contex
 			Time:  cancelAtDateTime,
 			Valid: !cancelAtDateTime.IsZero(),
 		},
+		SubscriptionSource: sql.NullString{
+			String: "subscription",
+			Valid:  true,
+		},
 	}); err != nil {
-		return errLib.New(fmt.Sprintf("error enrolling customer in membership plan: %v", err), http.StatusBadRequest)
+		// Handle PostgreSQL constraint violations
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			switch pqErr.Code {
+			case databaseErrors.UniqueViolation:
+				// Check if it's the unique_customer_membership_plan constraint
+				if pqErr.Constraint == "unique_customer_membership_plan" {
+					return errLib.New("Customer is already enrolled in this membership plan", http.StatusConflict)
+				}
+				return errLib.New("Duplicate enrollment detected", http.StatusConflict)
+			case databaseErrors.TxSerializationError:
+				return errLib.New("Too many enrollment requests at the same time. Please try again.", http.StatusConflict)
+			case databaseErrors.ForeignKeyViolation:
+				return errLib.New("Invalid customer or membership plan ID", http.StatusBadRequest)
+			}
+		}
+		
+		log.Printf("error enrolling customer %s in membership plan %s: %v", customerID, planID, err)
+		return errLib.New("Failed to enroll in membership plan", http.StatusInternalServerError)
 	}
 	return nil
 }

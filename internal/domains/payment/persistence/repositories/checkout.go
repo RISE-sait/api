@@ -109,3 +109,17 @@ func (r *CheckoutRepository) GetProgramIDOfEvent(ctx context.Context, eventID uu
 
 	return retrievedEvent.Program.ID, nil
 }
+
+// CheckCustomerHasActiveMembership checks if customer already has an active membership for the given plan
+func (r *CheckoutRepository) CheckCustomerHasActiveMembership(ctx context.Context, customerID uuid.UUID, membershipPlanID uuid.UUID) (bool, *errLib.CommonError) {
+	count, err := r.paymentQueries.CheckCustomerActiveMembership(ctx, db.CheckCustomerActiveMembershipParams{
+		CustomerID:       customerID,
+		MembershipPlanID: membershipPlanID,
+	})
+	if err != nil {
+		log.Printf("Error checking customer active membership: %v", err)
+		return false, errLib.New("failed to check existing membership", http.StatusInternalServerError)
+	}
+	
+	return count > 0, nil
+}

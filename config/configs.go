@@ -28,7 +28,6 @@ type config struct {
 	HubSpotApiKey                    string
 	GmailSmtpPassword                string
 	GcpServiceAccountCredentialsJSON string
-	SquareAccessToken                string
 	StripeSecretKey                  string
 	StripeWebhookSecret              string
 	ChatBotServiceUrl                string
@@ -47,7 +46,7 @@ var Env = initConfig()
 //
 //	cfg := initConfig()  // Initializes the configuration with environment variables.
 func initConfig() *config {
-	stripeApiKey := os.Getenv("STRIPE_API_KEY")
+	stripeApiKey := getEnv("STRIPE_SECRET_KEY")
 
 	stripe.Key = stripeApiKey
 
@@ -60,7 +59,6 @@ func initConfig() *config {
 		},
 		GmailSmtpPassword:                getEnv("GMAIL_SMTP_PWD"),
 		GcpServiceAccountCredentialsJSON: getEnv("GCP_SERVICE_ACCOUNT_CREDENTIALS"),
-		SquareAccessToken:                getEnv("SQUARE_ACCESS_TOKEN"),
 		StripeSecretKey:                  getEnv("STRIPE_SECRET_KEY"),
 		StripeWebhookSecret:              getEnv("STRIPE_WEBHOOK_SECRET"),
 		ChatBotServiceUrl:                getEnv("CHAT_BOT_SERVICE_URL"),

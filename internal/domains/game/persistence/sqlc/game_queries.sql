@@ -174,3 +174,61 @@ WHERE g.home_team_id = ANY(sqlc.arg('team_ids')::uuid[])
    OR g.away_team_id = ANY(sqlc.arg('team_ids')::uuid[])
 ORDER BY g.start_time ASC
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
+
+-- name: GetUpcomingGamesByTeams :many
+-- Retrieves upcoming games for specific teams.
+SELECT
+    g.id,
+    g.home_team_id,
+    ht.name AS home_team_name,
+    ht.logo_url AS home_team_logo_url,
+    g.away_team_id,
+    at.name AS away_team_name,
+    at.logo_url AS away_team_logo_url,
+    g.home_score,
+    g.away_score,
+    g.start_time,
+    g.end_time,
+    g.location_id,
+    loc.name AS location_name,
+    g.status,
+    g.created_at,
+    g.updated_at
+FROM game.games g
+JOIN athletic.teams ht ON g.home_team_id = ht.id
+JOIN athletic.teams at ON g.away_team_id = at.id
+JOIN location.locations loc ON g.location_id = loc.id
+WHERE (g.home_team_id = ANY(sqlc.arg('team_ids')::uuid[])
+   OR g.away_team_id = ANY(sqlc.arg('team_ids')::uuid[]))
+   AND g.end_time >= NOW()
+ORDER BY g.start_time ASC
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
+
+-- name: GetPastGamesByTeams :many
+-- Retrieves past games for specific teams.
+SELECT
+    g.id,
+    g.home_team_id,
+    ht.name AS home_team_name,
+    ht.logo_url AS home_team_logo_url,
+    g.away_team_id,
+    at.name AS away_team_name,
+    at.logo_url AS away_team_logo_url,
+    g.home_score,
+    g.away_score,
+    g.start_time,
+    g.end_time,
+    g.location_id,
+    loc.name AS location_name,
+    g.status,
+    g.created_at,
+    g.updated_at
+FROM game.games g
+JOIN athletic.teams ht ON g.home_team_id = ht.id
+JOIN athletic.teams at ON g.away_team_id = at.id
+JOIN location.locations loc ON g.location_id = loc.id
+WHERE (g.home_team_id = ANY(sqlc.arg('team_ids')::uuid[])
+   OR g.away_team_id = ANY(sqlc.arg('team_ids')::uuid[]))
+   AND g.start_time < NOW()
+ORDER BY g.start_time DESC
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');

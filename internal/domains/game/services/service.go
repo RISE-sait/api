@@ -157,6 +157,40 @@ func (s *Service) GetUserGames(ctx context.Context, userID uuid.UUID, role conte
 	return games, nil
 }
 
+// GetUserUpcomingGames retrieves upcoming games for a specific user based on their role.
+func (s *Service) GetUserUpcomingGames(ctx context.Context, userID uuid.UUID, role contextUtils.CtxRole, limit, offset int32) ([]values.ReadGameValue, *errLib.CommonError) {
+	teamIDs, err := s.getUserTeamIDs(ctx, userID, role)
+	if err != nil {
+		return nil, err
+	}
+	if len(teamIDs) == 0 {
+		return []values.ReadGameValue{}, nil
+	}
+
+	games, err := s.repo.GetUpcomingGamesByTeams(ctx, teamIDs, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	return games, nil
+}
+
+// GetUserPastGames retrieves past games for a specific user based on their role.
+func (s *Service) GetUserPastGames(ctx context.Context, userID uuid.UUID, role contextUtils.CtxRole, limit, offset int32) ([]values.ReadGameValue, *errLib.CommonError) {
+	teamIDs, err := s.getUserTeamIDs(ctx, userID, role)
+	if err != nil {
+		return nil, err
+	}
+	if len(teamIDs) == 0 {
+		return []values.ReadGameValue{}, nil
+	}
+
+	games, err := s.repo.GetPastGamesByTeams(ctx, teamIDs, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	return games, nil
+}
+
 func (s *Service) getUserTeamIDs(ctx context.Context, userID uuid.UUID, role contextUtils.CtxRole) ([]uuid.UUID, *errLib.CommonError) {
 	switch role {
 	case contextUtils.RoleCoach:

@@ -209,6 +209,7 @@ func (h *Handler) GetGames(w http.ResponseWriter, r *http.Request) {
 // @Tags games
 // @Security Bearer
 // @Produce json
+// @Param filter query string false "Filter by time: upcoming or past"
 // @Success 200 {array} dto.ResponseDto "List of games for the current user"
 // @Failure 401 {object} map[string]interface{} "Unauthorized"
 // @Router /secure/games [get]
@@ -231,8 +232,10 @@ func (h *Handler) GetRoleGames(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	query := r.URL.Query()
+	page, _ := strconv.Atoi(query.Get("page"))
+	limit, _ := strconv.Atoi(query.Get("limit"))
+	filter := query.Get("filter")
 
 	if page < 1 {
 		page = 1
@@ -241,9 +244,20 @@ func (h *Handler) GetRoleGames(w http.ResponseWriter, r *http.Request) {
 		limit = 10
 	}
 	offset := (page - 1) * limit
-	// Fetch games based on user role
-	// Coaches see games for teams they coach, athletes see games for their team
-	games, errC := h.Service.GetUserGames(r.Context(), userID, role, int32(limit), int32(offset))
+
+	var games []values.ReadGameValue
+	var errC *errLib.CommonError
+
+	// Fetch games based on user role and filter
+	switch filter {
+	case "upcoming":
+		games, errC = h.Service.GetUserUpcomingGames(r.Context(), userID, role, int32(limit), int32(offset))
+	case "past":
+		games, errC = h.Service.GetUserPastGames(r.Context(), userID, role, int32(limit), int32(offset))
+	default:
+		games, errC = h.Service.GetUserGames(r.Context(), userID, role, int32(limit), int32(offset))
+	}
+
 	if errC != nil {
 		responseHandlers.RespondWithError(w, errC)
 		return

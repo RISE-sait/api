@@ -441,6 +441,101 @@ func (q *Queries) GetPastGames(ctx context.Context, arg GetPastGamesParams) ([]G
 	return items, nil
 }
 
+const getPastGamesByTeams = `-- name: GetPastGamesByTeams :many
+SELECT
+    g.id,
+    g.home_team_id,
+    ht.name AS home_team_name,
+    ht.logo_url AS home_team_logo_url,
+    g.away_team_id,
+    at.name AS away_team_name,
+    at.logo_url AS away_team_logo_url,
+    g.home_score,
+    g.away_score,
+    g.start_time,
+    g.end_time,
+    g.location_id,
+    loc.name AS location_name,
+    g.status,
+    g.created_at,
+    g.updated_at
+FROM game.games g
+JOIN athletic.teams ht ON g.home_team_id = ht.id
+JOIN athletic.teams at ON g.away_team_id = at.id
+JOIN location.locations loc ON g.location_id = loc.id
+WHERE (g.home_team_id = ANY($1::uuid[])
+   OR g.away_team_id = ANY($1::uuid[]))
+   AND g.start_time < NOW()
+ORDER BY g.start_time DESC
+LIMIT $3 OFFSET $2
+`
+
+type GetPastGamesByTeamsParams struct {
+	TeamIds []uuid.UUID `json:"team_ids"`
+	Offset  int32       `json:"offset"`
+	Limit   int32       `json:"limit"`
+}
+
+type GetPastGamesByTeamsRow struct {
+	ID              uuid.UUID      `json:"id"`
+	HomeTeamID      uuid.UUID      `json:"home_team_id"`
+	HomeTeamName    string         `json:"home_team_name"`
+	HomeTeamLogoUrl sql.NullString `json:"home_team_logo_url"`
+	AwayTeamID      uuid.UUID      `json:"away_team_id"`
+	AwayTeamName    string         `json:"away_team_name"`
+	AwayTeamLogoUrl sql.NullString `json:"away_team_logo_url"`
+	HomeScore       sql.NullInt32  `json:"home_score"`
+	AwayScore       sql.NullInt32  `json:"away_score"`
+	StartTime       time.Time      `json:"start_time"`
+	EndTime         sql.NullTime   `json:"end_time"`
+	LocationID      uuid.UUID      `json:"location_id"`
+	LocationName    string         `json:"location_name"`
+	Status          sql.NullString `json:"status"`
+	CreatedAt       sql.NullTime   `json:"created_at"`
+	UpdatedAt       sql.NullTime   `json:"updated_at"`
+}
+
+// Retrieves past games for specific teams.
+func (q *Queries) GetPastGamesByTeams(ctx context.Context, arg GetPastGamesByTeamsParams) ([]GetPastGamesByTeamsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPastGamesByTeams, pq.Array(arg.TeamIds), arg.Offset, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPastGamesByTeamsRow
+	for rows.Next() {
+		var i GetPastGamesByTeamsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.HomeTeamID,
+			&i.HomeTeamName,
+			&i.HomeTeamLogoUrl,
+			&i.AwayTeamID,
+			&i.AwayTeamName,
+			&i.AwayTeamLogoUrl,
+			&i.HomeScore,
+			&i.AwayScore,
+			&i.StartTime,
+			&i.EndTime,
+			&i.LocationID,
+			&i.LocationName,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUpcomingGames = `-- name: GetUpcomingGames :many
 SELECT 
     g.id,
@@ -503,6 +598,101 @@ func (q *Queries) GetUpcomingGames(ctx context.Context, arg GetUpcomingGamesPara
 	var items []GetUpcomingGamesRow
 	for rows.Next() {
 		var i GetUpcomingGamesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.HomeTeamID,
+			&i.HomeTeamName,
+			&i.HomeTeamLogoUrl,
+			&i.AwayTeamID,
+			&i.AwayTeamName,
+			&i.AwayTeamLogoUrl,
+			&i.HomeScore,
+			&i.AwayScore,
+			&i.StartTime,
+			&i.EndTime,
+			&i.LocationID,
+			&i.LocationName,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUpcomingGamesByTeams = `-- name: GetUpcomingGamesByTeams :many
+SELECT
+    g.id,
+    g.home_team_id,
+    ht.name AS home_team_name,
+    ht.logo_url AS home_team_logo_url,
+    g.away_team_id,
+    at.name AS away_team_name,
+    at.logo_url AS away_team_logo_url,
+    g.home_score,
+    g.away_score,
+    g.start_time,
+    g.end_time,
+    g.location_id,
+    loc.name AS location_name,
+    g.status,
+    g.created_at,
+    g.updated_at
+FROM game.games g
+JOIN athletic.teams ht ON g.home_team_id = ht.id
+JOIN athletic.teams at ON g.away_team_id = at.id
+JOIN location.locations loc ON g.location_id = loc.id
+WHERE (g.home_team_id = ANY($1::uuid[])
+   OR g.away_team_id = ANY($1::uuid[]))
+   AND g.end_time >= NOW()
+ORDER BY g.start_time ASC
+LIMIT $3 OFFSET $2
+`
+
+type GetUpcomingGamesByTeamsParams struct {
+	TeamIds []uuid.UUID `json:"team_ids"`
+	Offset  int32       `json:"offset"`
+	Limit   int32       `json:"limit"`
+}
+
+type GetUpcomingGamesByTeamsRow struct {
+	ID              uuid.UUID      `json:"id"`
+	HomeTeamID      uuid.UUID      `json:"home_team_id"`
+	HomeTeamName    string         `json:"home_team_name"`
+	HomeTeamLogoUrl sql.NullString `json:"home_team_logo_url"`
+	AwayTeamID      uuid.UUID      `json:"away_team_id"`
+	AwayTeamName    string         `json:"away_team_name"`
+	AwayTeamLogoUrl sql.NullString `json:"away_team_logo_url"`
+	HomeScore       sql.NullInt32  `json:"home_score"`
+	AwayScore       sql.NullInt32  `json:"away_score"`
+	StartTime       time.Time      `json:"start_time"`
+	EndTime         sql.NullTime   `json:"end_time"`
+	LocationID      uuid.UUID      `json:"location_id"`
+	LocationName    string         `json:"location_name"`
+	Status          sql.NullString `json:"status"`
+	CreatedAt       sql.NullTime   `json:"created_at"`
+	UpdatedAt       sql.NullTime   `json:"updated_at"`
+}
+
+// Retrieves upcoming games for specific teams.
+func (q *Queries) GetUpcomingGamesByTeams(ctx context.Context, arg GetUpcomingGamesByTeamsParams) ([]GetUpcomingGamesByTeamsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUpcomingGamesByTeams, pq.Array(arg.TeamIds), arg.Offset, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUpcomingGamesByTeamsRow
+	for rows.Next() {
+		var i GetUpcomingGamesByTeamsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.HomeTeamID,

@@ -450,7 +450,7 @@ type PracticePractice struct {
 	StartTime  time.Time      `json:"start_time"`
 	EndTime    sql.NullTime   `json:"end_time"`
 	LocationID uuid.UUID      `json:"location_id"`
-	CourtID    uuid.UUID      `json:"court_id"`
+	CourtID    uuid.NullUUID  `json:"court_id"`
 	Status     sql.NullString `json:"status"`
 	CreatedAt  sql.NullTime   `json:"created_at"`
 	UpdatedAt  sql.NullTime   `json:"updated_at"`
@@ -539,15 +539,35 @@ type UsersCustomerDiscountUsage struct {
 }
 
 type UsersCustomerMembershipPlan struct {
-	ID               uuid.UUID                  `json:"id"`
-	CustomerID       uuid.UUID                  `json:"customer_id"`
-	MembershipPlanID uuid.UUID                  `json:"membership_plan_id"`
-	StartDate        time.Time                  `json:"start_date"`
-	RenewalDate      sql.NullTime               `json:"renewal_date"`
-	Status           MembershipMembershipStatus `json:"status"`
-	CreatedAt        time.Time                  `json:"created_at"`
-	UpdatedAt        time.Time                  `json:"updated_at"`
-	PhotoUrl         sql.NullString             `json:"photo_url"`
+	ID                    uuid.UUID                  `json:"id"`
+	CustomerID            uuid.UUID                  `json:"customer_id"`
+	MembershipPlanID      uuid.UUID                  `json:"membership_plan_id"`
+	StartDate             time.Time                  `json:"start_date"`
+	RenewalDate           sql.NullTime               `json:"renewal_date"`
+	Status                MembershipMembershipStatus `json:"status"`
+	CreatedAt             time.Time                  `json:"created_at"`
+	UpdatedAt             time.Time                  `json:"updated_at"`
+	PhotoUrl              sql.NullString             `json:"photo_url"`
+	SquareSubscriptionID  sql.NullString             `json:"square_subscription_id"`
+	SubscriptionStatus    sql.NullString             `json:"subscription_status"`
+	NextBillingDate       sql.NullTime               `json:"next_billing_date"`
+	SubscriptionCreatedAt sql.NullTime               `json:"subscription_created_at"`
+	SubscriptionSource    sql.NullString             `json:"subscription_source"`
+}
+
+type UsersSubscriptionAutoCharging struct {
+	ID                       uuid.UUID      `json:"id"`
+	CustomerMembershipPlanID uuid.UUID      `json:"customer_membership_plan_id"`
+	SquareSubscriptionID     sql.NullString `json:"square_subscription_id"`
+	Enabled                  sql.NullBool   `json:"enabled"`
+	CardID                   sql.NullString `json:"card_id"`
+	LastPaymentID            sql.NullString `json:"last_payment_id"`
+	ErrorType                sql.NullString `json:"error_type"`
+	ErrorDetails             sql.NullString `json:"error_details"`
+	RetryCount               sql.NullInt32  `json:"retry_count"`
+	PermanentlyFailed        sql.NullBool   `json:"permanently_failed"`
+	CreatedAt                sql.NullTime   `json:"created_at"`
+	UpdatedAt                sql.NullTime   `json:"updated_at"`
 }
 
 type UsersUser struct {
@@ -566,6 +586,7 @@ type UsersUser struct {
 	UpdatedAt                time.Time      `json:"updated_at"`
 	Dob                      time.Time      `json:"dob"`
 	IsArchived               bool           `json:"is_archived"`
+	SquareCustomerID         sql.NullString `json:"square_customer_id"`
 }
 
 type WaiverWaiver struct {

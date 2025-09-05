@@ -268,6 +268,36 @@ func (r *Repository) GetGamesByTeams(ctx context.Context, teamIDs []uuid.UUID, l
 	return games, nil
 }
 
+// GetUpcomingGamesByTeams fetches upcoming games involving any of the provided team IDs.
+func (r *Repository) GetUpcomingGamesByTeams(ctx context.Context, teamIDs []uuid.UUID, limit, offset int32) ([]values.ReadGameValue, *errLib.CommonError) {
+	params := db.GetUpcomingGamesByTeamsParams{
+		TeamIds: teamIDs,
+		Limit:   limit,
+		Offset:  offset,
+	}
+	dbGames, err := r.Queries.GetUpcomingGamesByTeams(ctx, params)
+	if err != nil {
+		log.Println("Error getting upcoming games by teams:", err)
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+	return mapDbUpcomingGamesByTeamsToValues(dbGames), nil
+}
+
+// GetPastGamesByTeams fetches past games involving any of the provided team IDs.
+func (r *Repository) GetPastGamesByTeams(ctx context.Context, teamIDs []uuid.UUID, limit, offset int32) ([]values.ReadGameValue, *errLib.CommonError) {
+	params := db.GetPastGamesByTeamsParams{
+		TeamIds: teamIDs,
+		Limit:   limit,
+		Offset:  offset,
+	}
+	dbGames, err := r.Queries.GetPastGamesByTeams(ctx, params)
+	if err != nil {
+		log.Println("Error getting past games by teams:", err)
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+	return mapDbPastGamesByTeamsToValues(dbGames), nil
+}
+
 func mapDbPastGamesToValues(dbGames []db.GetPastGamesRow) []values.ReadGameValue {
 	games := make([]values.ReadGameValue, len(dbGames))
 	for i, dbGame := range dbGames {
@@ -356,4 +386,54 @@ func (r *Repository) CreateGame(ctx context.Context, details values.CreateGameVa
 	}
 
 	return nil
+}
+
+func mapDbUpcomingGamesByTeamsToValues(dbGames []db.GetUpcomingGamesByTeamsRow) []values.ReadGameValue {
+	games := make([]values.ReadGameValue, len(dbGames))
+	for i, dbGame := range dbGames {
+		games[i] = values.ReadGameValue{
+			ID:              dbGame.ID,
+			HomeTeamID:      dbGame.HomeTeamID,
+			HomeTeamName:    dbGame.HomeTeamName,
+			HomeTeamLogoUrl: unwrapNullableString(dbGame.HomeTeamLogoUrl),
+			AwayTeamID:      dbGame.AwayTeamID,
+			AwayTeamName:    dbGame.AwayTeamName,
+			AwayTeamLogoUrl: unwrapNullableString(dbGame.AwayTeamLogoUrl),
+			HomeScore:       nullableInt32ToPtr(dbGame.HomeScore),
+			AwayScore:       nullableInt32ToPtr(dbGame.AwayScore),
+			StartTime:       dbGame.StartTime,
+			EndTime:         nullableTimeToPtr(dbGame.EndTime),
+			LocationID:      dbGame.LocationID,
+			LocationName:    dbGame.LocationName,
+			Status:          dbGame.Status.String,
+			CreatedAt:       nullableTimeToPtr(dbGame.CreatedAt),
+			UpdatedAt:       nullableTimeToPtr(dbGame.UpdatedAt),
+		}
+	}
+	return games
+}
+
+func mapDbPastGamesByTeamsToValues(dbGames []db.GetPastGamesByTeamsRow) []values.ReadGameValue {
+	games := make([]values.ReadGameValue, len(dbGames))
+	for i, dbGame := range dbGames {
+		games[i] = values.ReadGameValue{
+			ID:              dbGame.ID,
+			HomeTeamID:      dbGame.HomeTeamID,
+			HomeTeamName:    dbGame.HomeTeamName,
+			HomeTeamLogoUrl: unwrapNullableString(dbGame.HomeTeamLogoUrl),
+			AwayTeamID:      dbGame.AwayTeamID,
+			AwayTeamName:    dbGame.AwayTeamName,
+			AwayTeamLogoUrl: unwrapNullableString(dbGame.AwayTeamLogoUrl),
+			HomeScore:       nullableInt32ToPtr(dbGame.HomeScore),
+			AwayScore:       nullableInt32ToPtr(dbGame.AwayScore),
+			StartTime:       dbGame.StartTime,
+			EndTime:         nullableTimeToPtr(dbGame.EndTime),
+			LocationID:      dbGame.LocationID,
+			LocationName:    dbGame.LocationName,
+			Status:          dbGame.Status.String,
+			CreatedAt:       nullableTimeToPtr(dbGame.CreatedAt),
+			UpdatedAt:       nullableTimeToPtr(dbGame.UpdatedAt),
+		}
+	}
+	return games
 }

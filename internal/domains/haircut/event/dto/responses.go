@@ -8,8 +8,8 @@ import (
 
 type EventResponseDto struct {
 	ID            uuid.UUID `json:"id"`
-	BeginDateTime string    `json:"start_at"`
-	EndDateTime   string    `json:"end_at"`
+	BeginDateTime time.Time `json:"start_at"`
+	EndDateTime   time.Time `json:"end_at"`
 	BarberID      uuid.UUID `json:"barber_id"`
 	BarberName    string    `json:"barber_name"`
 	CustomerName  string    `json:"customer_name"`
@@ -21,8 +21,8 @@ type EventResponseDto struct {
 func NewEventResponse(event values.EventReadValues) EventResponseDto {
 	return EventResponseDto{
 		ID:            event.ID,
-		BeginDateTime: event.BeginDateTime.String(),
-		EndDateTime:   event.EndDateTime.String(),
+		BeginDateTime: event.BeginDateTime,
+		EndDateTime:   event.EndDateTime,
 		BarberID:      event.BarberID,
 		BarberName:    event.BarberName,
 		CustomerName:  event.CustomerName,

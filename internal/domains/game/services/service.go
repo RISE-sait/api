@@ -191,6 +191,23 @@ func (s *Service) GetUserPastGames(ctx context.Context, userID uuid.UUID, role c
 	return games, nil
 }
 
+// GetUserLiveGames retrieves live games (currently in progress) for a specific user based on their role.
+func (s *Service) GetUserLiveGames(ctx context.Context, userID uuid.UUID, role contextUtils.CtxRole, limit, offset int32) ([]values.ReadGameValue, *errLib.CommonError) {
+	teamIDs, err := s.getUserTeamIDs(ctx, userID, role)
+	if err != nil {
+		return nil, err
+	}
+	if len(teamIDs) == 0 {
+		return []values.ReadGameValue{}, nil
+	}
+
+	games, err := s.repo.GetLiveGamesByTeams(ctx, teamIDs, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	return games, nil
+}
+
 func (s *Service) getUserTeamIDs(ctx context.Context, userID uuid.UUID, role contextUtils.CtxRole) ([]uuid.UUID, *errLib.CommonError) {
 	switch role {
 	case contextUtils.RoleCoach:

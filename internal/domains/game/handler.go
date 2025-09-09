@@ -209,7 +209,7 @@ func (h *Handler) GetGames(w http.ResponseWriter, r *http.Request) {
 // @Tags games
 // @Security Bearer
 // @Produce json
-// @Param filter query string false "Filter by time: upcoming or past"
+// @Param filter query string false "Filter by time: upcoming, past, or live"
 // @Success 200 {array} dto.ResponseDto "List of games for the current user"
 // @Failure 401 {object} map[string]interface{} "Unauthorized"
 // @Router /secure/games [get]
@@ -254,6 +254,8 @@ func (h *Handler) GetRoleGames(w http.ResponseWriter, r *http.Request) {
 		games, errC = h.Service.GetUserUpcomingGames(r.Context(), userID, role, int32(limit), int32(offset))
 	case "past":
 		games, errC = h.Service.GetUserPastGames(r.Context(), userID, role, int32(limit), int32(offset))
+	case "live":
+		games, errC = h.Service.GetUserLiveGames(r.Context(), userID, role, int32(limit), int32(offset))
 	default:
 		games, errC = h.Service.GetUserGames(r.Context(), userID, role, int32(limit), int32(offset))
 	}

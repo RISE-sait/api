@@ -298,6 +298,21 @@ func (r *Repository) GetPastGamesByTeams(ctx context.Context, teamIDs []uuid.UUI
 	return mapDbPastGamesByTeamsToValues(dbGames), nil
 }
 
+// GetLiveGamesByTeams fetches live games (currently in progress) involving any of the provided team IDs.
+func (r *Repository) GetLiveGamesByTeams(ctx context.Context, teamIDs []uuid.UUID, limit, offset int32) ([]values.ReadGameValue, *errLib.CommonError) {
+	params := db.GetLiveGamesByTeamsParams{
+		TeamIds: teamIDs,
+		Limit:   limit,
+		Offset:  offset,
+	}
+	dbGames, err := r.Queries.GetLiveGamesByTeams(ctx, params)
+	if err != nil {
+		log.Println("Error getting live games by teams:", err)
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+	return mapDbLiveGamesByTeamsToValues(dbGames), nil
+}
+
 func mapDbPastGamesToValues(dbGames []db.GetPastGamesRow) []values.ReadGameValue {
 	games := make([]values.ReadGameValue, len(dbGames))
 	for i, dbGame := range dbGames {
@@ -414,6 +429,31 @@ func mapDbUpcomingGamesByTeamsToValues(dbGames []db.GetUpcomingGamesByTeamsRow) 
 }
 
 func mapDbPastGamesByTeamsToValues(dbGames []db.GetPastGamesByTeamsRow) []values.ReadGameValue {
+	games := make([]values.ReadGameValue, len(dbGames))
+	for i, dbGame := range dbGames {
+		games[i] = values.ReadGameValue{
+			ID:              dbGame.ID,
+			HomeTeamID:      dbGame.HomeTeamID,
+			HomeTeamName:    dbGame.HomeTeamName,
+			HomeTeamLogoUrl: unwrapNullableString(dbGame.HomeTeamLogoUrl),
+			AwayTeamID:      dbGame.AwayTeamID,
+			AwayTeamName:    dbGame.AwayTeamName,
+			AwayTeamLogoUrl: unwrapNullableString(dbGame.AwayTeamLogoUrl),
+			HomeScore:       nullableInt32ToPtr(dbGame.HomeScore),
+			AwayScore:       nullableInt32ToPtr(dbGame.AwayScore),
+			StartTime:       dbGame.StartTime,
+			EndTime:         nullableTimeToPtr(dbGame.EndTime),
+			LocationID:      dbGame.LocationID,
+			LocationName:    dbGame.LocationName,
+			Status:          dbGame.Status.String,
+			CreatedAt:       nullableTimeToPtr(dbGame.CreatedAt),
+			UpdatedAt:       nullableTimeToPtr(dbGame.UpdatedAt),
+		}
+	}
+	return games
+}
+
+func mapDbLiveGamesByTeamsToValues(dbGames []db.GetLiveGamesByTeamsRow) []values.ReadGameValue {
 	games := make([]values.ReadGameValue, len(dbGames))
 	for i, dbGame := range dbGames {
 		games[i] = values.ReadGameValue{

@@ -272,3 +272,4 @@ func (s *Service) UpdateGameStatuses(ctx context.Context) *errLib.CommonError {
 		return txRepo.UpdateGameStatuses(ctx)
 	})
 }
+

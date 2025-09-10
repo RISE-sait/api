@@ -86,6 +86,9 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 
 		// AI proxy route
 		"/ai": RegisterAIRoutes,
+
+		// Admin routes  
+		"/admin": RegisterAdminRoutes,
 	}
 
 	for path, handler := range routeMappings {
@@ -339,6 +342,8 @@ func RegisterCheckoutRoutes(container *di.Container) func(chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/membership_plans/{id}", h.CheckoutMembership)
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/programs/{id}", h.CheckoutProgram)
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/events/{id}", h.CheckoutEvent)
+		r.With(middlewares.JWTAuthMiddleware(true)).Get("/events/{id}/options", h.GetEventEnrollmentOptions)
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/events/{id}/enhanced", h.CheckoutEventEnhanced)
 	}
 }
 
@@ -415,6 +420,7 @@ func RegisterSecureRoutes(container *di.Container) func(chi.Router) {
 		r.Route("/customers", RegisterSecureCustomerRoutes(container))
 		r.Route("/teams", RegisterSecureTeamRoutes(container))
 		r.Route("/schedule", RegisterSecureScheduleRoutes(container))
+		r.Route("/credits", RegisterSecureCreditRoutes(container))
 	}
 }
 
@@ -466,6 +472,15 @@ func RegisterAIRoutes(_ *di.Container) func(chi.Router) {
 	}
 }
 
+// RegisterSecureCreditRoutes registers secure credit routes for customers
+func RegisterSecureCreditRoutes(container *di.Container) func(chi.Router) {
+	h := userHandler.NewCreditHandler(container)
+	return func(r chi.Router) {
+		r.With(middlewares.JWTAuthMiddleware(true)).Get("/", h.GetCustomerCredits)
+		r.With(middlewares.JWTAuthMiddleware(true)).Get("/transactions", h.GetCustomerCreditTransactions)
+	}
+}
+
 // RegisterBookingsRoutes registers the bookings routes.
 func RegisterBookingsRoutes(container *di.Container) func(chi.Router) {
 	h := bookingsHandler.NewHandler(container)
@@ -508,5 +523,21 @@ func RegisterSubscriptionRoutes(container *di.Container) func(chi.Router) {
 		
 		// Create customer portal session
 		r.Post("/portal", h.CreatePortalSession)
+	}
+}
+
+// RegisterAdminRoutes registers admin routes requiring admin authentication
+func RegisterAdminRoutes(container *di.Container) func(chi.Router) {
+	creditHandler := userHandler.NewCreditHandler(container)
+	
+	return func(r chi.Router) {
+		// Apply admin authentication to all routes
+		r.Use(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin))
+		
+		// Credit management routes
+		r.Post("/customers/{id}/credits/add", creditHandler.AddCustomerCredits)
+		r.Post("/customers/{id}/credits/deduct", creditHandler.DeductCustomerCredits)
+		r.Get("/events/{id}/credit-transactions", creditHandler.GetEventCreditTransactions)
+		r.Put("/events/{id}/credit-cost", creditHandler.UpdateEventCreditCost)
 	}
 }

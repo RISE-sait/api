@@ -192,6 +192,9 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 			FirstName: dbEvent.UpdaterFirstName,
 			LastName:  dbEvent.UpdaterLastName,
 		},
+		RequiredMembershipPlanID: nullUUIDToPtr(dbEvent.RequiredMembershipPlanID),
+		PriceID:                  nullStringToPtr(dbEvent.PriceID),
+		CreditCost:               nullInt32ToPtr(dbEvent.CreditCost),
 	}
 
 	dbStaffs, err := r.Queries.GetEventStaffs(ctx, id)
@@ -309,6 +312,9 @@ func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEvent
 				Description: string(row.ProgramDescription),
 				Type:        string(row.ProgramType),
 			},
+			RequiredMembershipPlanID: nullUUIDToPtr(row.RequiredMembershipPlanID),
+			PriceID:                  nullStringToPtr(row.PriceID),
+			CreditCost:               nullInt32ToPtr(row.CreditCost),
 		}
 
 		if row.TeamID.Valid && row.TeamName.Valid {
@@ -330,6 +336,30 @@ func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEvent
 func stringToPtr(s sql.NullString) *string {
 	if s.Valid {
 		return &s.String
+	}
+	return nil
+}
+
+// Helper function to convert sql.NullString to *string
+func nullStringToPtr(s sql.NullString) *string {
+	if s.Valid {
+		return &s.String
+	}
+	return nil
+}
+
+// Helper function to convert uuid.NullUUID to *uuid.UUID
+func nullUUIDToPtr(u uuid.NullUUID) *uuid.UUID {
+	if u.Valid {
+		return &u.UUID
+	}
+	return nil
+}
+
+// Helper function to convert sql.NullInt32 to *int32
+func nullInt32ToPtr(i sql.NullInt32) *int32 {
+	if i.Valid {
+		return &i.Int32
 	}
 	return nil
 }

@@ -116,7 +116,7 @@ func (q *Queries) DeleteEventsByIds(ctx context.Context, ids []uuid.UUID) error 
 }
 
 const getEventById = `-- name: GetEventById :one
-SELECT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.is_cancelled, e.cancellation_reason, e.created_at, e.updated_at, e.is_date_time_modified, e.recurrence_id, e.court_id, e.required_membership_plan_id, e.price_id,
+SELECT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.is_cancelled, e.cancellation_reason, e.created_at, e.updated_at, e.is_date_time_modified, e.recurrence_id, e.court_id, e.required_membership_plan_id, e.price_id, e.credit_cost,
 
        creator.first_name AS creator_first_name,
        creator.last_name  AS creator_last_name,
@@ -159,6 +159,7 @@ type GetEventByIdRow struct {
 	CourtID                  uuid.NullUUID      `json:"court_id"`
 	RequiredMembershipPlanID uuid.NullUUID      `json:"required_membership_plan_id"`
 	PriceID                  sql.NullString     `json:"price_id"`
+	CreditCost               sql.NullInt32      `json:"credit_cost"`
 	CreatorFirstName         string             `json:"creator_first_name"`
 	CreatorLastName          string             `json:"creator_last_name"`
 	UpdaterFirstName         string             `json:"updater_first_name"`
@@ -193,6 +194,7 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdR
 		&i.CourtID,
 		&i.RequiredMembershipPlanID,
 		&i.PriceID,
+		&i.CreditCost,
 		&i.CreatorFirstName,
 		&i.CreatorLastName,
 		&i.UpdaterFirstName,
@@ -321,7 +323,7 @@ func (q *Queries) GetEventStaffs(ctx context.Context, eventID uuid.UUID) ([]GetE
 }
 
 const getEvents = `-- name: GetEvents :many
-SELECT DISTINCT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.is_cancelled, e.cancellation_reason, e.created_at, e.updated_at, e.is_date_time_modified, e.recurrence_id, e.court_id, e.required_membership_plan_id, e.price_id,
+SELECT DISTINCT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.is_cancelled, e.cancellation_reason, e.created_at, e.updated_at, e.is_date_time_modified, e.recurrence_id, e.court_id, e.required_membership_plan_id, e.price_id, e.credit_cost,
 
                 creator.first_name AS creator_first_name,
                 creator.last_name  AS creator_last_name,
@@ -396,6 +398,7 @@ type GetEventsRow struct {
 	CourtID                  uuid.NullUUID      `json:"court_id"`
 	RequiredMembershipPlanID uuid.NullUUID      `json:"required_membership_plan_id"`
 	PriceID                  sql.NullString     `json:"price_id"`
+	CreditCost               sql.NullInt32      `json:"credit_cost"`
 	CreatorFirstName         string             `json:"creator_first_name"`
 	CreatorLastName          string             `json:"creator_last_name"`
 	UpdaterFirstName         string             `json:"updater_first_name"`
@@ -450,6 +453,7 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 			&i.CourtID,
 			&i.RequiredMembershipPlanID,
 			&i.PriceID,
+			&i.CreditCost,
 			&i.CreatorFirstName,
 			&i.CreatorLastName,
 			&i.UpdaterFirstName,
@@ -491,7 +495,7 @@ SET start_at                    = $1,
     required_membership_plan_id = $10,
     price_id                    = $11
 WHERE id = $9
-RETURNING id, location_id, program_id, team_id, start_at, end_at, created_by, updated_by, is_cancelled, cancellation_reason, created_at, updated_at, is_date_time_modified, recurrence_id, court_id, required_membership_plan_id, price_id
+RETURNING id, location_id, program_id, team_id, start_at, end_at, created_by, updated_by, is_cancelled, cancellation_reason, created_at, updated_at, is_date_time_modified, recurrence_id, court_id, required_membership_plan_id, price_id, credit_cost
 `
 
 type UpdateEventParams struct {
@@ -543,6 +547,7 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 		&i.CourtID,
 		&i.RequiredMembershipPlanID,
 		&i.PriceID,
+		&i.CreditCost,
 	)
 	return i, err
 }

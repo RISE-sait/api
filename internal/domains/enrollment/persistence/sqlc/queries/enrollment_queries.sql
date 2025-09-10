@@ -30,7 +30,7 @@ FROM program.programs p
 WHERE p.id = $1;
 
 -- name: CheckEventCapacityExists :one
-SELECT (coalesce(e.capacity, t.capacity, p.capacity) IS NOT NULL)::boolean
+SELECT (coalesce(t.capacity, p.capacity) IS NOT NULL)::boolean
 FROM events.events e
          LEFT JOIN athletic.teams t ON e.team_id = t.id
          LEFT JOIN program.programs p ON e.program_id = p.id
@@ -78,13 +78,13 @@ WHERE customer_id = $2
 SELECT COUNT(ce.id) FILTER (
     WHERE ce.payment_status = 'paid'
         OR (ce.payment_status = 'pending' AND ce.payment_expired_at > NOW())
-    ) >= COALESCE(e.capacity, p.capacity, t.capacity) AS is_full
+    ) >= COALESCE(p.capacity, t.capacity) AS is_full
 FROM events.events e
          LEFT JOIN program.programs p ON e.program_id = p.id
          LEFT JOIN athletic.teams t ON e.team_id = t.id
          LEFT JOIN events.customer_enrollment ce ON e.id = ce.event_id
 WHERE e.id = $1
-GROUP BY e.capacity, p.capacity, t.capacity;
+GROUP BY p.capacity, t.capacity;
 
 -- name: ReserveSeatInEvent :execrows
 INSERT INTO events.customer_enrollment

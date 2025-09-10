@@ -7,9 +7,12 @@ import (
 
 	"api/internal/di"
 	enrollment "api/internal/domains/enrollment/service"
+	dbEnrollment "api/internal/domains/enrollment/persistence/sqlc/generated"
+	eventService "api/internal/domains/event/service"
 	membership "api/internal/domains/membership/persistence/repositories"
 	repository "api/internal/domains/payment/persistence/repositories"
 	"api/internal/domains/payment/services/stripe"
+	userServices "api/internal/domains/user/services"
 	errLib "api/internal/libs/errors"
 	contextUtils "api/utils/context"
 	discountService "api/internal/domains/discount/service"
@@ -21,6 +24,8 @@ type Service struct {
 	MembershipPlansRepo *membership.PlansRepository
 	DiscountService     *discountService.Service
 	EnrollmentService   *enrollment.CustomerEnrollmentService
+	EventService        *eventService.Service
+	CreditService       *userServices.CustomerCreditService
 }
 
 func NewPurchaseService(container *di.Container) *Service {
@@ -29,6 +34,8 @@ func NewPurchaseService(container *di.Container) *Service {
 		MembershipPlansRepo: membership.NewMembershipPlansRepository(container),
 		DiscountService:     discountService.NewService(container),
 		EnrollmentService:   enrollment.NewCustomerEnrollmentService(container),
+		EventService:        eventService.NewEventService(container),
+		CreditService:       userServices.NewCustomerCreditService(container),
 	}
 }
 
@@ -129,4 +136,157 @@ func (s *Service) CheckoutEvent(ctx context.Context, eventID uuid.UUID) (string,
 
 	eventIDStr := eventID.String()
 	return stripe.CreateOneTimePayment(ctx, priceID, 1, &eventIDStr)
+}
+
+// CheckEventEnrollmentOptions returns available enrollment options for a customer and event
+type EventEnrollmentOptions struct {
+	CanEnrollFree    bool    `json:"can_enroll_free"`
+	StripePriceID    *string `json:"stripe_price_id"`
+	CreditCost       *int32  `json:"credit_cost"`
+	MembershipPlanID *string `json:"membership_plan_id"`
+	HasSufficientCredits bool `json:"has_sufficient_credits"`
+}
+
+func (s *Service) CheckEventEnrollmentOptions(ctx context.Context, eventID uuid.UUID) (*EventEnrollmentOptions, *errLib.CommonError) {
+	customerID, ctxErr := contextUtils.GetUserID(ctx)
+	if ctxErr != nil {
+		return nil, ctxErr
+	}
+
+	// Get event details including membership requirements
+	event, err := s.EventService.GetEvent(ctx, eventID)
+	if err != nil {
+		return nil, err
+	}
+
+	options := &EventEnrollmentOptions{}
+	
+	// Check if event has required membership
+	if event.RequiredMembershipPlanID != nil {
+		membershipPlanID := event.RequiredMembershipPlanID.String()
+		options.MembershipPlanID = &membershipPlanID
+		
+		// Check if customer has this membership
+		hasActiveMembership, err := s.CheckoutRepo.CheckCustomerHasActiveMembership(ctx, customerID, *event.RequiredMembershipPlanID)
+		if err != nil {
+			return nil, err
+		}
+		
+		if hasActiveMembership {
+			// Customer has required membership, can enroll for free
+			options.CanEnrollFree = true
+			return options, nil
+		}
+		// Customer doesn't have required membership, need to check payment options
+	} else {
+		// No membership requirement, check if event is free
+		if event.PriceID == nil && event.CreditCost == nil {
+			// Event is completely free
+			options.CanEnrollFree = true
+			return options, nil
+		}
+	}
+
+	// Event requires payment - check available payment methods
+	if event.PriceID != nil {
+		options.StripePriceID = event.PriceID
+	}
+	
+	if event.CreditCost != nil {
+		options.CreditCost = event.CreditCost
+		
+		// Check if customer has sufficient credits
+		err := s.CreditService.ValidateEventCreditPayment(ctx, eventID, customerID)
+		options.HasSufficientCredits = (err == nil)
+	}
+
+	return options, nil
+}
+
+// CheckoutEventWithCredits handles credit-based event enrollment
+func (s *Service) CheckoutEventWithCredits(ctx context.Context, eventID uuid.UUID) *errLib.CommonError {
+	customerID, ctxErr := contextUtils.GetUserID(ctx)
+	if ctxErr != nil {
+		return ctxErr
+	}
+
+	// Check enrollment options
+	options, err := s.CheckEventEnrollmentOptions(ctx, eventID)
+	if err != nil {
+		return err
+	}
+
+	// Validate credit payment is available
+	if options.CreditCost == nil {
+		return errLib.New("Event does not accept credit payments", http.StatusBadRequest)
+	}
+	
+	if !options.HasSufficientCredits {
+		return errLib.New("Insufficient credits", http.StatusBadRequest)
+	}
+
+	// If customer can enroll for free (has membership), they shouldn't use credits
+	if options.CanEnrollFree {
+		return errLib.New("Event is free for your membership level", http.StatusBadRequest)
+	}
+
+	// Reserve seat first (same as existing logic)
+	if err := s.EnrollmentService.ReserveSeatInEvent(ctx, eventID, customerID); err != nil {
+		return err
+	}
+
+	// Process credit payment and complete enrollment
+	if err := s.CreditService.EnrollWithCredits(ctx, eventID, customerID); err != nil {
+		log.Printf("Credit enrollment failed for customer %s, event %s: %v", customerID, eventID, err)
+		return err
+	}
+
+	// Update payment status to 'paid' since credit payment was successful
+	if err := s.EnrollmentService.UpdateReservationStatusInEvent(ctx, eventID, customerID, dbEnrollment.PaymentStatusPaid); err != nil {
+		log.Printf("Failed to update reservation status after credit payment: %v", err)
+		// Don't return error here since the payment already went through
+	}
+
+	return nil
+}
+
+// Enhanced CheckoutEvent with membership validation
+func (s *Service) CheckoutEventEnhanced(ctx context.Context, eventID uuid.UUID) (string, *errLib.CommonError) {
+	customerID, ctxErr := contextUtils.GetUserID(ctx)
+	if ctxErr != nil {
+		return "", ctxErr
+	}
+
+	// Check enrollment options
+	options, err := s.CheckEventEnrollmentOptions(ctx, eventID)
+	if err != nil {
+		return "", err
+	}
+
+	// If customer can enroll for free, complete enrollment without payment
+	if options.CanEnrollFree {
+		if err := s.EnrollmentService.ReserveSeatInEvent(ctx, eventID, customerID); err != nil {
+			return "", err
+		}
+		
+		// Mark as paid since it's free for this customer
+		if err := s.EnrollmentService.UpdateReservationStatusInEvent(ctx, eventID, customerID, dbEnrollment.PaymentStatusPaid); err != nil {
+			log.Printf("Failed to update reservation status for free enrollment: %v", err)
+		}
+		
+		return "", nil // No payment URL needed
+	}
+
+	// Event requires payment - must have Stripe price ID
+	if options.StripePriceID == nil {
+		return "", errLib.New("Event requires membership or is not available for purchase", http.StatusBadRequest)
+	}
+
+	// Proceed with existing Stripe checkout logic
+	if err := s.EnrollmentService.ReserveSeatInEvent(ctx, eventID, customerID); err != nil {
+		return "", err
+	}
+
+	eventIDStr := eventID.String()
+	return stripe.CreateOneTimePayment(ctx, *options.StripePriceID, 1, &eventIDStr)
 }

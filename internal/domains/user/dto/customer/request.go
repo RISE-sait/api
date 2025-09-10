@@ -38,3 +38,26 @@ func (dto StatsUpdateRequestDto) ToUpdateValue(idStr string) (values.StatsUpdate
 	}, nil
 
 }
+
+type AthleteProfileUpdateRequestDto struct {
+	PhotoURL *string `json:"photo_url,omitempty"`
+}
+
+func (dto AthleteProfileUpdateRequestDto) ToUpdateValue(idStr string) (values.AthleteProfileUpdateValue, *errLib.CommonError) {
+
+	id, err := validators.ParseUUID(idStr)
+
+	if err != nil {
+		return values.AthleteProfileUpdateValue{}, err
+	}
+
+	if err := validators.ValidateDto(dto); err != nil {
+		return values.AthleteProfileUpdateValue{}, err
+	}
+
+	return values.AthleteProfileUpdateValue{
+		ID:       id,
+		PhotoURL: dto.PhotoURL,
+	}, nil
+
+}

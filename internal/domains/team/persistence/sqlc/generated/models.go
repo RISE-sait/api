@@ -74,6 +74,70 @@ func AllAuditAuditStatusValues() []AuditAuditStatus {
 	}
 }
 
+type CreditTransactionType string
+
+const (
+	CreditTransactionTypeEnrollment      CreditTransactionType = "enrollment"
+	CreditTransactionTypeRefund          CreditTransactionType = "refund"
+	CreditTransactionTypePurchase        CreditTransactionType = "purchase"
+	CreditTransactionTypeAdminAdjustment CreditTransactionType = "admin_adjustment"
+)
+
+func (e *CreditTransactionType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = CreditTransactionType(s)
+	case string:
+		*e = CreditTransactionType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for CreditTransactionType: %T", src)
+	}
+	return nil
+}
+
+type NullCreditTransactionType struct {
+	CreditTransactionType CreditTransactionType `json:"credit_transaction_type"`
+	Valid                 bool                  `json:"valid"` // Valid is true if CreditTransactionType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullCreditTransactionType) Scan(value interface{}) error {
+	if value == nil {
+		ns.CreditTransactionType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.CreditTransactionType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullCreditTransactionType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.CreditTransactionType), nil
+}
+
+func (e CreditTransactionType) Valid() bool {
+	switch e {
+	case CreditTransactionTypeEnrollment,
+		CreditTransactionTypeRefund,
+		CreditTransactionTypePurchase,
+		CreditTransactionTypeAdminAdjustment:
+		return true
+	}
+	return false
+}
+
+func AllCreditTransactionTypeValues() []CreditTransactionType {
+	return []CreditTransactionType{
+		CreditTransactionTypeEnrollment,
+		CreditTransactionTypeRefund,
+		CreditTransactionTypePurchase,
+		CreditTransactionTypeAdminAdjustment,
+	}
+}
+
 type MembershipMembershipStatus string
 
 const (
@@ -431,6 +495,7 @@ type EventsEvent struct {
 	CourtID                  uuid.NullUUID  `json:"court_id"`
 	RequiredMembershipPlanID uuid.NullUUID  `json:"required_membership_plan_id"`
 	PriceID                  sql.NullString `json:"price_id"`
+	CreditCost               sql.NullInt32  `json:"credit_cost"`
 }
 
 type EventsStaff struct {
@@ -550,7 +615,7 @@ type PracticePractice struct {
 	StartTime  time.Time      `json:"start_time"`
 	EndTime    sql.NullTime   `json:"end_time"`
 	LocationID uuid.UUID      `json:"location_id"`
-	CourtID    uuid.UUID      `json:"court_id"`
+	CourtID    uuid.NullUUID  `json:"court_id"`
 	Status     sql.NullString `json:"status"`
 	CreatedAt  sql.NullTime   `json:"created_at"`
 	UpdatedAt  sql.NullTime   `json:"updated_at"`
@@ -626,6 +691,16 @@ type StaffStaffRole struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+type UsersCreditTransaction struct {
+	ID              uuid.UUID             `json:"id"`
+	CustomerID      uuid.UUID             `json:"customer_id"`
+	Amount          int32                 `json:"amount"`
+	TransactionType CreditTransactionType `json:"transaction_type"`
+	EventID         uuid.NullUUID         `json:"event_id"`
+	Description     sql.NullString        `json:"description"`
+	CreatedAt       sql.NullTime          `json:"created_at"`
+}
+
 type UsersCustomerCredit struct {
 	CustomerID uuid.UUID `json:"customer_id"`
 	Credits    int32     `json:"credits"`
@@ -639,15 +714,35 @@ type UsersCustomerDiscountUsage struct {
 }
 
 type UsersCustomerMembershipPlan struct {
-	ID               uuid.UUID                  `json:"id"`
-	CustomerID       uuid.UUID                  `json:"customer_id"`
-	MembershipPlanID uuid.UUID                  `json:"membership_plan_id"`
-	StartDate        time.Time                  `json:"start_date"`
-	RenewalDate      sql.NullTime               `json:"renewal_date"`
-	Status           MembershipMembershipStatus `json:"status"`
-	CreatedAt        time.Time                  `json:"created_at"`
-	UpdatedAt        time.Time                  `json:"updated_at"`
-	PhotoUrl         sql.NullString             `json:"photo_url"`
+	ID                    uuid.UUID                  `json:"id"`
+	CustomerID            uuid.UUID                  `json:"customer_id"`
+	MembershipPlanID      uuid.UUID                  `json:"membership_plan_id"`
+	StartDate             time.Time                  `json:"start_date"`
+	RenewalDate           sql.NullTime               `json:"renewal_date"`
+	Status                MembershipMembershipStatus `json:"status"`
+	CreatedAt             time.Time                  `json:"created_at"`
+	UpdatedAt             time.Time                  `json:"updated_at"`
+	PhotoUrl              sql.NullString             `json:"photo_url"`
+	SquareSubscriptionID  sql.NullString             `json:"square_subscription_id"`
+	SubscriptionStatus    sql.NullString             `json:"subscription_status"`
+	NextBillingDate       sql.NullTime               `json:"next_billing_date"`
+	SubscriptionCreatedAt sql.NullTime               `json:"subscription_created_at"`
+	SubscriptionSource    sql.NullString             `json:"subscription_source"`
+}
+
+type UsersSubscriptionAutoCharging struct {
+	ID                       uuid.UUID      `json:"id"`
+	CustomerMembershipPlanID uuid.UUID      `json:"customer_membership_plan_id"`
+	SquareSubscriptionID     sql.NullString `json:"square_subscription_id"`
+	Enabled                  sql.NullBool   `json:"enabled"`
+	CardID                   sql.NullString `json:"card_id"`
+	LastPaymentID            sql.NullString `json:"last_payment_id"`
+	ErrorType                sql.NullString `json:"error_type"`
+	ErrorDetails             sql.NullString `json:"error_details"`
+	RetryCount               sql.NullInt32  `json:"retry_count"`
+	PermanentlyFailed        sql.NullBool   `json:"permanently_failed"`
+	CreatedAt                sql.NullTime   `json:"created_at"`
+	UpdatedAt                sql.NullTime   `json:"updated_at"`
 }
 
 type UsersUser struct {
@@ -666,6 +761,7 @@ type UsersUser struct {
 	UpdatedAt                time.Time      `json:"updated_at"`
 	Dob                      time.Time      `json:"dob"`
 	IsArchived               bool           `json:"is_archived"`
+	SquareCustomerID         sql.NullString `json:"square_customer_id"`
 }
 
 type WaiverWaiver struct {

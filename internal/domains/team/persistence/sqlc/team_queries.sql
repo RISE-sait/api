@@ -1,6 +1,6 @@
 -- name: CreateTeam :one
-INSERT INTO athletic.teams (name, capacity, coach_id)
-VALUES ($1, $2, $3)
+INSERT INTO athletic.teams (name, capacity, coach_id, logo_url)
+VALUES ($1, $2, $3, $4)
 RETURNING *;
 
 -- name: GetTeams :many
@@ -46,8 +46,9 @@ UPDATE athletic.teams
 SET name       = $1,
     coach_id   = $2,
     capacity   = $3,
+    logo_url   = $4,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $4
+WHERE id = $5
 RETURNING *;
 
 -- name: DeleteTeam :execrows

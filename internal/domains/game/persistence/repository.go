@@ -338,6 +338,25 @@ func mapDbPastGamesToValues(dbGames []db.GetPastGamesRow) []values.ReadGameValue
 	return games
 }
 
+// UpdateGameStatuses updates game statuses based on current time
+func (r *Repository) UpdateGameStatuses(ctx context.Context) *errLib.CommonError {
+	// Update games to 'in_progress' if current time is after start_time but before end_time (or end_time is null)
+	_, err := r.Queries.UpdateGameStatusToInProgress(ctx)
+	if err != nil {
+		log.Println("Error updating games to in_progress:", err)
+		return errLib.New("Failed to update game statuses to in_progress", http.StatusInternalServerError)
+	}
+
+	// Update games to 'completed' if current time is after end_time
+	_, err = r.Queries.UpdateGameStatusToCompleted(ctx)
+	if err != nil {
+		log.Println("Error updating games to completed:", err)
+		return errLib.New("Failed to update game statuses to completed", http.StatusInternalServerError)
+	}
+
+	return nil
+}
+
 func mapDbUpcomingGamesToValues(dbGames []db.GetUpcomingGamesRow) []values.ReadGameValue {
 	games := make([]values.ReadGameValue, len(dbGames))
 	for i, dbGame := range dbGames {

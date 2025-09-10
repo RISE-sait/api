@@ -11,6 +11,7 @@ type Details struct {
 	CoachID    uuid.UUID
 	CoachName  string
 	CoachEmail string
+	LogoURL    *string
 }
 
 type CreateTeamValues struct {

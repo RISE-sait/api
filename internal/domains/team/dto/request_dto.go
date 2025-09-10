@@ -11,6 +11,7 @@ type RequestDto struct {
 	Name     string    `json:"name" validate:"required,notwhitespace"`
 	Capacity int32     `json:"capacity" validate:"required,gt=0"`
 	CoachID  uuid.UUID `json:"coach_id" example:"faae4b3a-ad9f-463c-ae4b-3aad9fb63c9b"`
+	LogoURL  *string   `json:"logo_url,omitempty"`
 }
 
 func (dto RequestDto) ToCreateValueObjects() (values.CreateTeamValues, *errLib.CommonError) {
@@ -24,6 +25,7 @@ func (dto RequestDto) ToCreateValueObjects() (values.CreateTeamValues, *errLib.C
 			Name:     dto.Name,
 			Capacity: dto.Capacity,
 			CoachID:  dto.CoachID,
+			LogoURL:  dto.LogoURL,
 		},
 	}, nil
 }
@@ -46,6 +48,7 @@ func (dto RequestDto) ToUpdateValueObjects(idStr string) (values.UpdateTeamValue
 			Name:     dto.Name,
 			Capacity: dto.Capacity,
 			CoachID:  dto.CoachID,
+			LogoURL:  dto.LogoURL,
 		},
 	}, nil
 }

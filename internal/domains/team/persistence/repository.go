@@ -53,6 +53,11 @@ func NewTeamRepository(container *di.Container) *Repository {
 
 func (r *Repository) Update(ctx context.Context, team values.UpdateTeamValues) *errLib.CommonError {
 
+	var logoURL sql.NullString
+	if team.TeamDetails.LogoURL != nil {
+		logoURL = sql.NullString{String: *team.TeamDetails.LogoURL, Valid: true}
+	}
+
 	params := db.UpdateTeamParams{
 		ID:       team.ID,
 		Name:     team.TeamDetails.Name,
@@ -61,6 +66,7 @@ func (r *Repository) Update(ctx context.Context, team values.UpdateTeamValues) *
 			UUID:  team.TeamDetails.CoachID,
 			Valid: team.TeamDetails.CoachID != uuid.Nil,
 		},
+		LogoUrl: logoURL,
 	}
 
 	_, err := r.Queries.UpdateTeam(ctx, params)
@@ -126,6 +132,11 @@ func (r *Repository) List(ctx context.Context) ([]values.GetTeamValues, *errLib.
 	teams := make([]values.GetTeamValues, len(dbTeams))
 
 	for i, dbPractice := range dbTeams {
+		var logoURL *string
+		if dbPractice.LogoUrl.Valid {
+			logoURL = &dbPractice.LogoUrl.String
+		}
+
 		team := values.GetTeamValues{
 			ID:        dbPractice.ID,
 			CreatedAt: dbPractice.CreatedAt,
@@ -133,6 +144,7 @@ func (r *Repository) List(ctx context.Context) ([]values.GetTeamValues, *errLib.
 			TeamDetails: values.Details{
 				Name:     dbPractice.Name,
 				Capacity: dbPractice.Capacity,
+				LogoURL:  logoURL,
 			},
 		}
 
@@ -161,6 +173,11 @@ func (r *Repository) ListByCoach(ctx context.Context, coachID uuid.UUID) ([]valu
 	teams := make([]values.GetTeamValues, len(dbTeams))
 
 	for i, dbTeam := range dbTeams {
+		var logoURL *string
+		if dbTeam.LogoUrl.Valid {
+			logoURL = &dbTeam.LogoUrl.String
+		}
+
 		team := values.GetTeamValues{
 			ID:        dbTeam.ID,
 			CreatedAt: dbTeam.CreatedAt,
@@ -168,6 +185,7 @@ func (r *Repository) ListByCoach(ctx context.Context, coachID uuid.UUID) ([]valu
 			TeamDetails: values.Details{
 				Name:     dbTeam.Name,
 				Capacity: dbTeam.Capacity,
+				LogoURL:  logoURL,
 			},
 		}
 
@@ -228,6 +246,11 @@ func (r *Repository) getRosterMembers(ctx context.Context, teamID uuid.UUID) ([]
 
 func (r *Repository) Create(c context.Context, teamDetails values.CreateTeamValues) *errLib.CommonError {
 
+	var logoURL sql.NullString
+	if teamDetails.LogoURL != nil {
+		logoURL = sql.NullString{String: *teamDetails.LogoURL, Valid: true}
+	}
+
 	params := db.CreateTeamParams{
 		Name:     teamDetails.Name,
 		Capacity: teamDetails.Capacity,
@@ -235,6 +258,7 @@ func (r *Repository) Create(c context.Context, teamDetails values.CreateTeamValu
 			UUID:  teamDetails.CoachID,
 			Valid: teamDetails.CoachID != uuid.Nil,
 		},
+		LogoUrl: logoURL,
 	}
 
 	_, err := r.Queries.CreateTeam(c, params)
@@ -269,6 +293,11 @@ func (r *Repository) GetByID(ctx context.Context, id uuid.UUID) (values.GetTeamV
 		return values.GetTeamValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
+	var logoURL *string
+	if dbTeam.LogoUrl.Valid {
+		logoURL = &dbTeam.LogoUrl.String
+	}
+
 	team := values.GetTeamValues{
 		ID:        dbTeam.ID,
 		CreatedAt: dbTeam.CreatedAt,
@@ -276,6 +305,7 @@ func (r *Repository) GetByID(ctx context.Context, id uuid.UUID) (values.GetTeamV
 		TeamDetails: values.Details{
 			Name:     dbTeam.Name,
 			Capacity: dbTeam.Capacity,
+			LogoURL:  logoURL,
 		},
 	}
 

@@ -262,3 +262,19 @@ WHERE (g.home_team_id = ANY(sqlc.arg('team_ids')::uuid[])
    AND (g.end_time > NOW() OR g.end_time IS NULL)
 ORDER BY g.start_time ASC
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
+
+-- name: UpdateGameStatusToInProgress :execrows
+-- Updates games from 'scheduled' to 'in_progress' when they should be active
+UPDATE game.games 
+SET status = 'in_progress', updated_at = NOW()
+WHERE status = 'scheduled' 
+AND start_time <= NOW() 
+AND (end_time IS NULL OR end_time > NOW());
+
+-- name: UpdateGameStatusToCompleted :execrows  
+-- Updates games from 'scheduled' or 'in_progress' to 'completed' when they should be finished
+UPDATE game.games 
+SET status = 'completed', updated_at = NOW()
+WHERE status IN ('scheduled', 'in_progress') 
+AND end_time IS NOT NULL 
+AND end_time <= NOW();

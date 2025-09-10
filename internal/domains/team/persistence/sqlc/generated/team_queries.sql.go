@@ -14,19 +14,25 @@ import (
 )
 
 const createTeam = `-- name: CreateTeam :one
-INSERT INTO athletic.teams (name, capacity, coach_id)
-VALUES ($1, $2, $3)
+INSERT INTO athletic.teams (name, capacity, coach_id, logo_url)
+VALUES ($1, $2, $3, $4)
 RETURNING id, name, capacity, created_at, updated_at, coach_id, logo_url
 `
 
 type CreateTeamParams struct {
-	Name     string        `json:"name"`
-	Capacity int32         `json:"capacity"`
-	CoachID  uuid.NullUUID `json:"coach_id"`
+	Name     string         `json:"name"`
+	Capacity int32          `json:"capacity"`
+	CoachID  uuid.NullUUID  `json:"coach_id"`
+	LogoUrl  sql.NullString `json:"logo_url"`
 }
 
 func (q *Queries) CreateTeam(ctx context.Context, arg CreateTeamParams) (AthleticTeam, error) {
-	row := q.db.QueryRowContext(ctx, createTeam, arg.Name, arg.Capacity, arg.CoachID)
+	row := q.db.QueryRowContext(ctx, createTeam,
+		arg.Name,
+		arg.Capacity,
+		arg.CoachID,
+		arg.LogoUrl,
+	)
 	var i AthleticTeam
 	err := row.Scan(
 		&i.ID,
@@ -281,16 +287,18 @@ UPDATE athletic.teams
 SET name       = $1,
     coach_id   = $2,
     capacity   = $3,
+    logo_url   = $4,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $4
+WHERE id = $5
 RETURNING id, name, capacity, created_at, updated_at, coach_id, logo_url
 `
 
 type UpdateTeamParams struct {
-	Name     string        `json:"name"`
-	CoachID  uuid.NullUUID `json:"coach_id"`
-	Capacity int32         `json:"capacity"`
-	ID       uuid.UUID     `json:"id"`
+	Name     string         `json:"name"`
+	CoachID  uuid.NullUUID  `json:"coach_id"`
+	Capacity int32          `json:"capacity"`
+	LogoUrl  sql.NullString `json:"logo_url"`
+	ID       uuid.UUID      `json:"id"`
 }
 
 func (q *Queries) UpdateTeam(ctx context.Context, arg UpdateTeamParams) (AthleticTeam, error) {
@@ -298,6 +306,7 @@ func (q *Queries) UpdateTeam(ctx context.Context, arg UpdateTeamParams) (Athleti
 		arg.Name,
 		arg.CoachID,
 		arg.Capacity,
+		arg.LogoUrl,
 		arg.ID,
 	)
 	var i AthleticTeam

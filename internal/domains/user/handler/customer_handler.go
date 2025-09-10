@@ -101,6 +101,42 @@ func (h *CustomersHandler) UpdateAthletesTeam(w http.ResponseWriter, r *http.Req
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
 
+// UpdateAthleteProfile updates athlete profile information like photo URL.
+// @Tags athletes
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path string true "Athlete ID" // Athlete ID to update profile for
+// @Param update_body body customerDto.AthleteProfileUpdateRequestDto true "Athlete profile update data including photo_url"
+// @Success 204 {object} map[string]interface{} "Athlete profile updated successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid parameters"
+// @Failure 404 {object} map[string]interface{} "Not Found: Athlete not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /athletes/{id}/profile [patch]
+func (h *CustomersHandler) UpdateAthleteProfile(w http.ResponseWriter, r *http.Request) {
+	athleteIdStr := chi.URLParam(r, "id")
+
+	var requestDto customerDto.AthleteProfileUpdateRequestDto
+
+	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	details, err := requestDto.ToUpdateValue(athleteIdStr)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	if err = h.CustomerRepo.UpdateAthleteProfile(r.Context(), details); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
+}
+
 // RemoveAthleteFromTeam removes an athlete from a team.
 // @Tags athletes
 // @Accept json

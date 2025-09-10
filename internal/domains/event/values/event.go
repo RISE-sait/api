@@ -68,6 +68,10 @@ type ReadEventValues struct {
 		Name string
 	}
 
+	RequiredMembershipPlanID *uuid.UUID
+	PriceID                  *string
+	CreditCost               *int32
+
 	Customers []Customer
 
 	Staffs []Staff

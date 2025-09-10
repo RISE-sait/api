@@ -132,6 +132,13 @@ func (h *Handler) GetGameById(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /games [get]
 func (h *Handler) GetGames(w http.ResponseWriter, r *http.Request) {
+	// Auto-update game statuses before returning games
+	if err := h.Service.UpdateGameStatuses(r.Context()); err != nil {
+		// Log the error but continue - don't fail the request if status update fails
+		// This ensures GetGames still works even if status updates fail
+		// TODO: Consider adding logging here in production
+	}
+
 	query := r.URL.Query()
 	page, _ := strconv.Atoi(query.Get("page"))
 	limit, _ := strconv.Atoi(query.Get("limit"))

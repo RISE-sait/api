@@ -265,3 +265,10 @@ func (s *Service) ValidateCoachTeamAccess(ctx context.Context, coachID uuid.UUID
 
 	return errLib.New("Coach does not have access to the specified teams", http.StatusForbidden)
 }
+
+// UpdateGameStatuses automatically updates game statuses based on current time
+func (s *Service) UpdateGameStatuses(ctx context.Context) *errLib.CommonError {
+	return s.executeInTx(ctx, func(txRepo *repo.Repository) *errLib.CommonError {
+		return txRepo.UpdateGameStatuses(ctx)
+	})
+}

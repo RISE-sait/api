@@ -861,3 +861,37 @@ func (q *Queries) UpdateGame(ctx context.Context, arg UpdateGameParams) (int64, 
 	}
 	return result.RowsAffected()
 }
+
+const updateGameStatusToCompleted = `-- name: UpdateGameStatusToCompleted :execrows
+UPDATE game.games 
+SET status = 'completed', updated_at = NOW()
+WHERE status IN ('scheduled', 'in_progress') 
+AND end_time IS NOT NULL 
+AND end_time <= NOW()
+`
+
+// Updates games from 'scheduled' or 'in_progress' to 'completed' when they should be finished
+func (q *Queries) UpdateGameStatusToCompleted(ctx context.Context) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateGameStatusToCompleted)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateGameStatusToInProgress = `-- name: UpdateGameStatusToInProgress :execrows
+UPDATE game.games 
+SET status = 'in_progress', updated_at = NOW()
+WHERE status = 'scheduled' 
+AND start_time <= NOW() 
+AND (end_time IS NULL OR end_time > NOW())
+`
+
+// Updates games from 'scheduled' to 'in_progress' when they should be active
+func (q *Queries) UpdateGameStatusToInProgress(ctx context.Context) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateGameStatusToInProgress)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}

@@ -28,7 +28,7 @@ func NewHandler(container *di.Container) *Handler {
 // @Tags teams
 // @Accept json
 // @Produce json
-// @Param team body dto.RequestDto true "Team details"
+// @Param team body dto.RequestDto true "Team details including name, capacity, coach_id, and optional logo_url"
 // @Security Bearer
 // @Success 201 {object} map[string]interface{} "Team created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
@@ -79,6 +79,7 @@ func (h *Handler) GetTeams(w http.ResponseWriter, r *http.Request) {
 			ID:        team.ID,
 			Name:      team.TeamDetails.Name,
 			Capacity:  team.TeamDetails.Capacity,
+			LogoURL:   team.TeamDetails.LogoURL,
 			CreatedAt: team.CreatedAt,
 			UpdatedAt: team.UpdatedAt,
 		}
@@ -143,6 +144,7 @@ func (h *Handler) GetMyTeams(w http.ResponseWriter, r *http.Request) {
 				ID:        team.ID,
 				Name:      team.TeamDetails.Name,
 				Capacity:  team.TeamDetails.Capacity,
+				LogoURL:   team.TeamDetails.LogoURL,
 				CreatedAt: team.CreatedAt,
 				UpdatedAt: team.UpdatedAt,
 			}
@@ -196,6 +198,7 @@ func (h *Handler) GetTeamByID(w http.ResponseWriter, r *http.Request) {
 		ID:        team.ID,
 		Name:      team.TeamDetails.Name,
 		Capacity:  team.TeamDetails.Capacity,
+		LogoURL:   team.TeamDetails.LogoURL,
 		CreatedAt: team.CreatedAt,
 		UpdatedAt: team.UpdatedAt,
 	}
@@ -236,7 +239,7 @@ func (h *Handler) GetTeamByID(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param id path string true "Team ID"
-// @Param team body dto.RequestDto true "Team details"
+// @Param team body dto.RequestDto true "Team details including name, capacity, coach_id, and optional logo_url"
 // @Security Bearer
 // @Success 204 "No Content: Team updated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"

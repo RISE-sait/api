@@ -274,6 +274,32 @@ func (r *CustomerRepository) UpdateStats(ctx context.Context, valuesToUpdate use
 
 	return nil
 }
+
+func (r *CustomerRepository) UpdateAthleteProfile(ctx context.Context, valuesToUpdate userValues.AthleteProfileUpdateValue) *errLib.CommonError {
+
+	var photoURL sql.NullString
+	if valuesToUpdate.PhotoURL != nil {
+		photoURL = sql.NullString{String: *valuesToUpdate.PhotoURL, Valid: true}
+	}
+
+	args := db.UpdateAthleteProfileParams{
+		ID:       valuesToUpdate.ID,
+		PhotoUrl: photoURL,
+	}
+
+	updatedRows, err := r.Queries.UpdateAthleteProfile(ctx, args)
+
+	if err != nil {
+		log.Printf("Unhandled error: %v", err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	if updatedRows == 0 {
+		return errLib.New("Athlete with the associated ID not found", http.StatusNotFound)
+	}
+
+	return nil
+}
 func (r *CustomerRepository) ListAthletes(ctx context.Context, limit, offset int32) ([]userValues.AthleteReadValue, *errLib.CommonError) {
 	dbAthletes, err := r.Queries.GetAthletes(ctx, db.GetAthletesParams{
 		Limit:  limit,

@@ -14,6 +14,12 @@ UPDATE athletic.athletes
 SET team_id = $1
 WHERE id = sqlc.arg('athlete_id');
 
+-- name: UpdateAthleteProfile :execrows
+UPDATE athletic.athletes
+SET photo_url  = sqlc.narg('photo_url'),
+    updated_at = current_timestamp
+WHERE id = sqlc.arg('id');
+
 -- name: GetCustomers :many
 SELECT u.*,
        m.name           AS membership_name,

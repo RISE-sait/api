@@ -39,6 +39,11 @@ type StatsUpdateValue struct {
 	Rebounds *int32
 }
 
+type AthleteProfileUpdateValue struct {
+	ID       uuid.UUID
+	PhotoURL *string
+}
+
 type AthleteReadValue struct {
 	ID        uuid.UUID
 	FirstName string

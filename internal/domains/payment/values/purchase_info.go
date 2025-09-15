@@ -10,6 +10,7 @@ type MembershipPlanJoiningRequirement struct {
 	Name               string
 	StripePriceID      string
 	StripeJoiningFeeID string
+	JoiningFee         int
 	MembershipID       uuid.UUID
 	AmtPeriods         *int32
 	CreatedAt          time.Time

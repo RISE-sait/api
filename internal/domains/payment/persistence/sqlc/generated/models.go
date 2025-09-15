@@ -75,6 +75,70 @@ func AllAuditAuditStatusValues() []AuditAuditStatus {
 	}
 }
 
+type CreditTransactionType string
+
+const (
+	CreditTransactionTypeEnrollment      CreditTransactionType = "enrollment"
+	CreditTransactionTypeRefund          CreditTransactionType = "refund"
+	CreditTransactionTypePurchase        CreditTransactionType = "purchase"
+	CreditTransactionTypeAdminAdjustment CreditTransactionType = "admin_adjustment"
+)
+
+func (e *CreditTransactionType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = CreditTransactionType(s)
+	case string:
+		*e = CreditTransactionType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for CreditTransactionType: %T", src)
+	}
+	return nil
+}
+
+type NullCreditTransactionType struct {
+	CreditTransactionType CreditTransactionType `json:"credit_transaction_type"`
+	Valid                 bool                  `json:"valid"` // Valid is true if CreditTransactionType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullCreditTransactionType) Scan(value interface{}) error {
+	if value == nil {
+		ns.CreditTransactionType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.CreditTransactionType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullCreditTransactionType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.CreditTransactionType), nil
+}
+
+func (e CreditTransactionType) Valid() bool {
+	switch e {
+	case CreditTransactionTypeEnrollment,
+		CreditTransactionTypeRefund,
+		CreditTransactionTypePurchase,
+		CreditTransactionTypeAdminAdjustment:
+		return true
+	}
+	return false
+}
+
+func AllCreditTransactionTypeValues() []CreditTransactionType {
+	return []CreditTransactionType{
+		CreditTransactionTypeEnrollment,
+		CreditTransactionTypeRefund,
+		CreditTransactionTypePurchase,
+		CreditTransactionTypeAdminAdjustment,
+	}
+}
+
 type MembershipMembershipStatus string
 
 const (
@@ -432,6 +496,7 @@ type EventsEvent struct {
 	CourtID                  uuid.NullUUID  `json:"court_id"`
 	RequiredMembershipPlanID uuid.NullUUID  `json:"required_membership_plan_id"`
 	PriceID                  sql.NullString `json:"price_id"`
+	CreditCost               sql.NullInt32  `json:"credit_cost"`
 }
 
 type EventsStaff struct {
@@ -526,6 +591,8 @@ type MembershipMembershipPlan struct {
 	UnitAmount         sql.NullInt32  `json:"unit_amount"`
 	Currency           sql.NullString `json:"currency"`
 	Interval           sql.NullString `json:"interval"`
+	// One-time joining fee in cents (e.g., 13000 = $130.00). Applied as Stripe setup fee on first payment only.
+	JoiningFee int32 `json:"joining_fee"`
 }
 
 type PlaygroundSession struct {
@@ -625,6 +692,16 @@ type StaffStaffRole struct {
 	RoleName  string    `json:"role_name"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type UsersCreditTransaction struct {
+	ID              uuid.UUID             `json:"id"`
+	CustomerID      uuid.UUID             `json:"customer_id"`
+	Amount          int32                 `json:"amount"`
+	TransactionType CreditTransactionType `json:"transaction_type"`
+	EventID         uuid.NullUUID         `json:"event_id"`
+	Description     sql.NullString        `json:"description"`
+	CreatedAt       sql.NullTime          `json:"created_at"`
 }
 
 type UsersCustomerCredit struct {

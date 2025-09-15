@@ -68,7 +68,17 @@ func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID u
 		return stripe.CreateSubscriptionWithDiscountPercent(ctx, requirements.StripePriceID, requirements.StripeJoiningFeeID, applied.DiscountPercent)
 	}
 
-	return stripe.CreateSubscription(ctx, requirements.StripePriceID, requirements.StripeJoiningFeeID)
+	// Check if membership has any joining fee
+	if requirements.StripeJoiningFeeID != "" {
+		// Use recurring joining fee (annual/monthly) - existing function handles this
+		return stripe.CreateSubscription(ctx, requirements.StripePriceID, requirements.StripeJoiningFeeID)
+	} else if requirements.JoiningFee > 0 {
+		// Use one-time setup fee
+		return stripe.CreateSubscriptionWithSetupFee(ctx, requirements.StripePriceID, requirements.JoiningFee)
+	} else {
+		// No joining fee - just regular subscription
+		return stripe.CreateSubscription(ctx, requirements.StripePriceID, "")
+	}
 }
 
 func (s *Service) CheckoutProgram(ctx context.Context, programID uuid.UUID) (string, *errLib.CommonError) {

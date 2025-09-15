@@ -78,7 +78,7 @@ func (q *Queries) GetMembershipPlanByStripePriceId(ctx context.Context, stripePr
 }
 
 const getMembershipPlanJoiningRequirements = `-- name: GetMembershipPlanJoiningRequirements :one
-SELECT id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at, unit_amount, currency, interval
+SELECT id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at, unit_amount, currency, interval, joining_fee
 FROM membership.membership_plans
 WHERE id = $1
 `
@@ -98,6 +98,7 @@ func (q *Queries) GetMembershipPlanJoiningRequirements(ctx context.Context, id u
 		&i.UnitAmount,
 		&i.Currency,
 		&i.Interval,
+		&i.JoiningFee,
 	)
 	return i, err
 }

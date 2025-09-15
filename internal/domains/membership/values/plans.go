@@ -12,6 +12,7 @@ type PlanDetails struct {
 	AmtPeriods          *int32
 	StripeJoiningFeesID string
 	StripePriceID       string
+	JoiningFee          int
 }
 
 type PlanCreateValues struct {

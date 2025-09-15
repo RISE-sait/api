@@ -1,6 +1,6 @@
 -- name: CreateMembershipPlan :one
-INSERT INTO membership.membership_plans (membership_id, name, stripe_joining_fee_id, stripe_price_id, amt_periods)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO membership.membership_plans (membership_id, name, stripe_joining_fee_id, stripe_price_id, amt_periods, joining_fee)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 -- name: GetMembershipPlanById :one
@@ -19,6 +19,7 @@ SELECT
   mp.unit_amount,
   mp.currency,
   mp.interval,
+  mp.joining_fee,
   mp.created_at,
   mp.updated_at
 FROM membership.membership_plans mp
@@ -32,8 +33,9 @@ SET name              = $1,
     stripe_joining_fee_id = $3,
     amt_periods       = $4,
     membership_id     = $5,
+    joining_fee       = $6,
     updated_at        = CURRENT_TIMESTAMP
-WHERE id = $6
+WHERE id = $7
 RETURNING *;
 
 -- name: DeleteMembershipPlan :execrows

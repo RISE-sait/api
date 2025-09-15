@@ -14,9 +14,9 @@ import (
 )
 
 const createMembershipPlan = `-- name: CreateMembershipPlan :one
-INSERT INTO membership.membership_plans (membership_id, name, stripe_joining_fee_id, stripe_price_id, amt_periods)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at, unit_amount, currency, interval
+INSERT INTO membership.membership_plans (membership_id, name, stripe_joining_fee_id, stripe_price_id, amt_periods, joining_fee)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at, unit_amount, currency, interval, joining_fee
 `
 
 type CreateMembershipPlanParams struct {
@@ -25,6 +25,7 @@ type CreateMembershipPlanParams struct {
 	StripeJoiningFeeID sql.NullString `json:"stripe_joining_fee_id"`
 	StripePriceID      string         `json:"stripe_price_id"`
 	AmtPeriods         sql.NullInt32  `json:"amt_periods"`
+	JoiningFee         int32          `json:"joining_fee"`
 }
 
 func (q *Queries) CreateMembershipPlan(ctx context.Context, arg CreateMembershipPlanParams) (MembershipMembershipPlan, error) {
@@ -34,6 +35,7 @@ func (q *Queries) CreateMembershipPlan(ctx context.Context, arg CreateMembership
 		arg.StripeJoiningFeeID,
 		arg.StripePriceID,
 		arg.AmtPeriods,
+		arg.JoiningFee,
 	)
 	var i MembershipMembershipPlan
 	err := row.Scan(
@@ -48,6 +50,7 @@ func (q *Queries) CreateMembershipPlan(ctx context.Context, arg CreateMembership
 		&i.UnitAmount,
 		&i.Currency,
 		&i.Interval,
+		&i.JoiningFee,
 	)
 	return i, err
 }
@@ -65,7 +68,7 @@ func (q *Queries) DeleteMembershipPlan(ctx context.Context, id uuid.UUID) (int64
 }
 
 const getMembershipPlanById = `-- name: GetMembershipPlanById :one
-SELECT id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at, unit_amount, currency, interval
+SELECT id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at, unit_amount, currency, interval, joining_fee
 FROM membership.membership_plans
 WHERE id = $1
 `
@@ -85,6 +88,7 @@ func (q *Queries) GetMembershipPlanById(ctx context.Context, id uuid.UUID) (Memb
 		&i.UnitAmount,
 		&i.Currency,
 		&i.Interval,
+		&i.JoiningFee,
 	)
 	return i, err
 }
@@ -100,6 +104,7 @@ SELECT
   mp.unit_amount,
   mp.currency,
   mp.interval,
+  mp.joining_fee,
   mp.created_at,
   mp.updated_at
 FROM membership.membership_plans mp
@@ -116,6 +121,7 @@ type GetMembershipPlansRow struct {
 	UnitAmount         sql.NullInt32  `json:"unit_amount"`
 	Currency           sql.NullString `json:"currency"`
 	Interval           sql.NullString `json:"interval"`
+	JoiningFee         int32          `json:"joining_fee"`
 	CreatedAt          time.Time      `json:"created_at"`
 	UpdatedAt          time.Time      `json:"updated_at"`
 }
@@ -139,6 +145,7 @@ func (q *Queries) GetMembershipPlans(ctx context.Context, membershipID uuid.UUID
 			&i.UnitAmount,
 			&i.Currency,
 			&i.Interval,
+			&i.JoiningFee,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -162,9 +169,10 @@ SET name              = $1,
     stripe_joining_fee_id = $3,
     amt_periods       = $4,
     membership_id     = $5,
+    joining_fee       = $6,
     updated_at        = CURRENT_TIMESTAMP
-WHERE id = $6
-RETURNING id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at, unit_amount, currency, interval
+WHERE id = $7
+RETURNING id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at, unit_amount, currency, interval, joining_fee
 `
 
 type UpdateMembershipPlanParams struct {
@@ -173,6 +181,7 @@ type UpdateMembershipPlanParams struct {
 	StripeJoiningFeeID sql.NullString `json:"stripe_joining_fee_id"`
 	AmtPeriods         sql.NullInt32  `json:"amt_periods"`
 	MembershipID       uuid.UUID      `json:"membership_id"`
+	JoiningFee         int32          `json:"joining_fee"`
 	ID                 uuid.UUID      `json:"id"`
 }
 
@@ -183,6 +192,7 @@ func (q *Queries) UpdateMembershipPlan(ctx context.Context, arg UpdateMembership
 		arg.StripeJoiningFeeID,
 		arg.AmtPeriods,
 		arg.MembershipID,
+		arg.JoiningFee,
 		arg.ID,
 	)
 	var i MembershipMembershipPlan
@@ -198,6 +208,7 @@ func (q *Queries) UpdateMembershipPlan(ctx context.Context, arg UpdateMembership
 		&i.UnitAmount,
 		&i.Currency,
 		&i.Interval,
+		&i.JoiningFee,
 	)
 	return i, err
 }

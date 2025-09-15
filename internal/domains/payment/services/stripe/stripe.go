@@ -2,6 +2,7 @@ package stripe
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -138,6 +139,108 @@ func CreateOneTimePayment(
 			return "", errLib.New("Payment session failed: "+result.err.Error(), http.StatusInternalServerError)
 		}
 		return result.session.URL, nil
+	}
+}
+
+// CreateSubscriptionWithSetupFee creates a Stripe Checkout Session for a recurring subscription with optional setup fee
+func CreateSubscriptionWithSetupFee(
+	ctx context.Context,
+	stripePlanPriceID string, // Stripe Price ID for the recurring plan
+	setupFeeAmount int,       // Setup fee amount in cents (0 for no fee)
+) (string, *errLib.CommonError) {
+	// Create a timeout context for this operation
+	timeoutCtx, cancel := withCriticalTimeout(ctx)
+	defer cancel()
+
+	// Extract user ID from context
+	userID, err := contextUtils.GetUserID(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	// Check if Stripe is initialized
+	if strings.ReplaceAll(stripe.Key, " ", "") == "" {
+		return "", errLib.New("Stripe not initialized", http.StatusInternalServerError)
+	}
+
+	// Check if context is already cancelled or timed out
+	select {
+	case <-timeoutCtx.Done():
+		if timeoutCtx.Err() == context.DeadlineExceeded {
+			return "", errLib.New("Request timeout while creating subscription", http.StatusRequestTimeout)
+		}
+		return "", errLib.New("Request cancelled", http.StatusRequestTimeout)
+	default:
+		// Continue with the operation
+	}
+
+	// Validate input
+	if stripePlanPriceID == "" {
+		return "", errLib.New("item stripe price ID cannot be empty", http.StatusBadRequest)
+	}
+
+	// Set up Checkout session with subscription mode
+	params := &stripe.CheckoutSessionParams{
+		Metadata: map[string]string{
+			"userID": userID.String(),
+		},
+		SubscriptionData: &stripe.CheckoutSessionSubscriptionDataParams{
+			Metadata: map[string]string{
+				"userID": userID.String(),
+			},
+		},
+		LineItems: []*stripe.CheckoutSessionLineItemParams{
+			{
+				Price:    stripe.String(stripePlanPriceID), // Main subscription plan
+				Quantity: stripe.Int64(1),
+			},
+		},
+		Mode:       stripe.String("subscription"), // Subscription mode
+		SuccessURL: stripe.String("https://example.com/success"),
+	}
+
+	// Add setup fee if specified
+	if setupFeeAmount > 0 {
+		// Store setup fee amount in metadata for webhook processing
+		params.SubscriptionData.Metadata["setup_fee_amount"] = fmt.Sprintf("%d", setupFeeAmount)
+		params.Metadata["setup_fee_amount"] = fmt.Sprintf("%d", setupFeeAmount)
+		
+		// Add payment intent data to handle the setup fee on first payment
+		params.PaymentIntentData = &stripe.CheckoutSessionPaymentIntentDataParams{
+			Metadata: map[string]string{
+				"setup_fee_amount": fmt.Sprintf("%d", setupFeeAmount),
+			},
+		}
+	}
+
+	// Ask Stripe to expand line item pricing and subscription in response
+	params.AddExpand("line_items.data.price")
+	params.AddExpand("subscription")
+
+	// Create Stripe session with timeout handling
+	type subscriptionResult struct {
+		session *stripe.CheckoutSession
+		err     error
+	}
+
+	resultChan := make(chan subscriptionResult, 1)
+	
+	go func() {
+		s, err := session.New(params)
+		resultChan <- subscriptionResult{session: s, err: err}
+	}()
+
+	select {
+	case result := <-resultChan:
+		if result.err != nil {
+			return "", errLib.New("Failed to create Stripe session", http.StatusInternalServerError)
+		}
+		return result.session.URL, nil
+	case <-timeoutCtx.Done():
+		if timeoutCtx.Err() == context.DeadlineExceeded {
+			return "", errLib.New("Timeout while creating subscription session", http.StatusRequestTimeout)
+		}
+		return "", errLib.New("Request cancelled", http.StatusRequestTimeout)
 	}
 }
 

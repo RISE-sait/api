@@ -46,6 +46,7 @@ func (r *PlansRepository) CreateMembershipPlan(c context.Context, membershipPlan
 			Valid:  membershipPlan.StripeJoiningFeesID != "",
 		},
 		StripePriceID: membershipPlan.StripePriceID,
+		JoiningFee:    int32(membershipPlan.JoiningFee),
 	}
 
 	if membershipPlan.AmtPeriods != nil {
@@ -95,6 +96,7 @@ func (r *PlansRepository) GetMembershipPlanById(ctx context.Context, id uuid.UUI
 			Name:                dbPlan.Name,
 			StripeJoiningFeesID: dbPlan.StripeJoiningFeeID.String,
 			StripePriceID:       dbPlan.StripePriceID,
+			JoiningFee:          int(dbPlan.JoiningFee),
 		},
 		CreatedAt: dbPlan.CreatedAt,
 		UpdatedAt: dbPlan.UpdatedAt,
@@ -127,6 +129,7 @@ func (r *PlansRepository) GetMembershipPlans(ctx context.Context, membershipId u
 				Name:                dbPlan.Name,
 				StripeJoiningFeesID: dbPlan.StripeJoiningFeeID.String,
 				StripePriceID:       dbPlan.StripePriceID,
+				JoiningFee:          int(dbPlan.JoiningFee),
 			},
 			CreatedAt: dbPlan.CreatedAt,
 			UpdatedAt: dbPlan.UpdatedAt,
@@ -164,6 +167,7 @@ func (r *PlansRepository) UpdateMembershipPlan(c context.Context, plan values.Pl
 			Valid:  plan.StripeJoiningFeesID != "",
 		},
 		StripePriceID: plan.StripePriceID,
+		JoiningFee:    int32(plan.JoiningFee),
 	}
 
 	if plan.AmtPeriods != nil {

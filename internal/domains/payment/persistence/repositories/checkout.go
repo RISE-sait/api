@@ -44,6 +44,7 @@ func (r *CheckoutRepository) GetMembershipPlanJoiningRequirement(ctx context.Con
 			ID:            requirements.ID,
 			Name:          requirements.Name,
 			StripePriceID: requirements.StripePriceID,
+			JoiningFee:    int(requirements.JoiningFee),
 			MembershipID:  requirements.MembershipID,
 			CreatedAt:     requirements.CreatedAt,
 			UpdatedAt:     requirements.UpdatedAt,

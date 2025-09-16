@@ -127,7 +127,7 @@ func RegisterAthleteRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Get("/", h.GetAthletes)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Patch("/{id}/stats", h.UpdateAthleteStats)
-		r.With(middlewares.JWTAuthMiddleware(false)).Patch("/{id}/profile", h.UpdateAthleteProfile)
+		r.With(middlewares.JWTAuthMiddleware(true)).Patch("/{id}/profile", h.UpdateAthleteProfile)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{athlete_id}/team/{team_id}", h.UpdateAthletesTeam)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{athlete_id}/team", h.RemoveAthleteFromTeam)
 	}
@@ -289,7 +289,7 @@ func RegisterStaffRoutes(container *di.Container) func(chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Get("/logs", staffLogsHandlers.GetStaffActivityLogs)
 
 		r.With(middlewares.JWTAuthMiddleware(false)).Put("/{id}", staffHandlers.UpdateStaff)
-		r.With(middlewares.JWTAuthMiddleware(false)).Patch("/{id}/profile", staffHandlers.UpdateStaffProfile)
+		r.With(middlewares.JWTAuthMiddleware(true)).Patch("/{id}/profile", staffHandlers.UpdateStaffProfile)
 		r.With(middlewares.JWTAuthMiddleware(false)).Delete("/{id}", staffHandlers.DeleteStaff)
 	}
 }

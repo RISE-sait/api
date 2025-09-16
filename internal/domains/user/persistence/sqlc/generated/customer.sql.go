@@ -611,18 +611,18 @@ func (q *Queries) UnarchiveCustomer(ctx context.Context, id uuid.UUID) (int64, e
 
 const updateAthleteProfile = `-- name: UpdateAthleteProfile :execrows
 UPDATE athletic.athletes
-SET photo_url  = $1,
+SET photo_url  = $2,
     updated_at = current_timestamp
-WHERE id = $2
+WHERE id = $1
 `
 
 type UpdateAthleteProfileParams struct {
-	PhotoUrl sql.NullString `json:"photo_url"`
 	ID       uuid.UUID      `json:"id"`
+	PhotoUrl sql.NullString `json:"photo_url"`
 }
 
 func (q *Queries) UpdateAthleteProfile(ctx context.Context, arg UpdateAthleteProfileParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateAthleteProfile, arg.PhotoUrl, arg.ID)
+	result, err := q.db.ExecContext(ctx, updateAthleteProfile, arg.ID, arg.PhotoUrl)
 	if err != nil {
 		return 0, err
 	}

@@ -16,9 +16,9 @@ WHERE id = sqlc.arg('athlete_id');
 
 -- name: UpdateAthleteProfile :execrows
 UPDATE athletic.athletes
-SET photo_url  = sqlc.narg('photo_url'),
+SET photo_url  = $2,
     updated_at = current_timestamp
-WHERE id = sqlc.arg('id');
+WHERE id = $1;
 
 -- name: GetCustomers :many
 SELECT u.*,

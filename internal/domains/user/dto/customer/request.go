@@ -51,9 +51,6 @@ func (dto AthleteProfileUpdateRequestDto) ToUpdateValue(idStr string) (values.At
 		return values.AthleteProfileUpdateValue{}, err
 	}
 
-	if err := validators.ValidateDto(dto); err != nil {
-		return values.AthleteProfileUpdateValue{}, err
-	}
 
 	return values.AthleteProfileUpdateValue{
 		ID:       id,

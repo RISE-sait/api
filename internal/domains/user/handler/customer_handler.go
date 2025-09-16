@@ -129,6 +129,27 @@ func (h *CustomersHandler) UpdateAthleteProfile(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	// Security check: Only admins or the athlete themselves can update the profile
+	userRole, roleErr := contextUtils.GetUserRole(r.Context())
+	if roleErr != nil {
+		responseHandlers.RespondWithError(w, roleErr)
+		return
+	}
+
+	// If not admin, check if user is updating their own profile
+	if userRole != contextUtils.RoleAdmin && userRole != contextUtils.RoleSuperAdmin {
+		currentUserID, userErr := contextUtils.GetUserID(r.Context())
+		if userErr != nil {
+			responseHandlers.RespondWithError(w, userErr)
+			return
+		}
+
+		if currentUserID != details.ID {
+			responseHandlers.RespondWithError(w, errLib.New("You can only update your own profile", http.StatusForbidden))
+			return
+		}
+	}
+
 	if err = h.CustomerRepo.UpdateAthleteProfile(r.Context(), details); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return

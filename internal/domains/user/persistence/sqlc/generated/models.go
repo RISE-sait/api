@@ -590,6 +590,8 @@ type MembershipMembershipPlan struct {
 	UnitAmount         sql.NullInt32  `json:"unit_amount"`
 	Currency           sql.NullString `json:"currency"`
 	Interval           sql.NullString `json:"interval"`
+	// One-time joining fee in cents (e.g., 13000 = $130.00). Applied as Stripe setup fee on first payment only.
+	JoiningFee int32 `json:"joining_fee"`
 }
 
 type PlaygroundSession struct {

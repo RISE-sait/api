@@ -24,6 +24,7 @@ import (
 	programHandler "api/internal/domains/program"
 	schedule "api/internal/domains/schedule/handler"
 	teamsHandler "api/internal/domains/team"
+	uploadHandler "api/internal/domains/upload/handler"
 	userHandler "api/internal/domains/user/handler"
 	"api/internal/middlewares"
 	contextUtils "api/utils/context"
@@ -66,6 +67,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		"/customers": RegisterCustomerRoutes,
 		"/athletes":  RegisterAthleteRoutes,
 		"/staffs":    RegisterStaffRoutes,
+		"/upload":    RegisterUploadRoutes,
 
 		// Haircut routes
 		"/haircuts":         RegisterHaircutRoutes,
@@ -125,7 +127,7 @@ func RegisterAthleteRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Get("/", h.GetAthletes)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Patch("/{id}/stats", h.UpdateAthleteStats)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Patch("/{id}/profile", h.UpdateAthleteProfile)
+		r.With(middlewares.JWTAuthMiddleware(false)).Patch("/{id}/profile", h.UpdateAthleteProfile)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{athlete_id}/team/{team_id}", h.UpdateAthletesTeam)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{athlete_id}/team", h.RemoveAthleteFromTeam)
 	}
@@ -287,6 +289,7 @@ func RegisterStaffRoutes(container *di.Container) func(chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Get("/logs", staffLogsHandlers.GetStaffActivityLogs)
 
 		r.With(middlewares.JWTAuthMiddleware(false)).Put("/{id}", staffHandlers.UpdateStaff)
+		r.With(middlewares.JWTAuthMiddleware(false)).Patch("/{id}/profile", staffHandlers.UpdateStaffProfile)
 		r.With(middlewares.JWTAuthMiddleware(false)).Delete("/{id}", staffHandlers.DeleteStaff)
 	}
 }
@@ -540,5 +543,13 @@ func RegisterAdminRoutes(container *di.Container) func(chi.Router) {
 		r.Post("/customers/{id}/credits/deduct", creditHandler.DeductCustomerCredits)
 		r.Get("/events/{id}/credit-transactions", creditHandler.GetEventCreditTransactions)
 		r.Put("/events/{id}/credit-cost", creditHandler.UpdateEventCreditCost)
+	}
+}
+
+func RegisterUploadRoutes(container *di.Container) func(chi.Router) {
+	uploadHandlers := uploadHandler.NewUploadHandler(container)
+
+	return func(r chi.Router) {
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/image", uploadHandlers.UploadImage)
 	}
 }

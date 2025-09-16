@@ -136,7 +136,27 @@ func (r *StaffRepository) Update(ctx context.Context, staffFields values.UpdateS
 	}
 
 	return nil
+}
 
+func (r *StaffRepository) UpdateStaffProfile(ctx context.Context, staffProfile values.UpdateStaffProfileValues) *errLib.CommonError {
+	var photoURL sql.NullString
+	if staffProfile.PhotoURL != nil {
+		photoURL = sql.NullString{String: *staffProfile.PhotoURL, Valid: true}
+	}
+
+	dbStaffProfileParams := db.UpdateStaffProfileParams{
+		ID:       staffProfile.ID,
+		PhotoUrl: photoURL,
+	}
+
+	if affectedRows, err := r.Queries.UpdateStaffProfile(ctx, dbStaffProfileParams); err != nil {
+		log.Printf("Failed to update staff profile %+v. Error: %v", staffProfile.ID, err.Error())
+		return errLib.New("Internal server error", http.StatusInternalServerError)
+	} else if affectedRows == 0 {
+		return errLib.New("Staff not found", http.StatusNotFound)
+	}
+
+	return nil
 }
 
 func (r *StaffRepository) Delete(c context.Context, id uuid.UUID) *errLib.CommonError {

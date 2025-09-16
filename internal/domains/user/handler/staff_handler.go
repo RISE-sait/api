@@ -8,6 +8,7 @@ import (
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 	"api/internal/services/hubspot"
+	contextUtils "api/utils/context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -147,6 +148,63 @@ func (h *StaffHandler) DeleteStaff(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = h.StaffRepo.Delete(r.Context(), id); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
+}
+
+// UpdateStaffProfile updates staff profile information like photo URL.
+// @Tags staff
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path string true "Staff ID" // Staff ID to update profile for
+// @Param update_body body dto.StaffProfileUpdateRequestDto true "Staff profile update data including photo_url"
+// @Success 204 {object} map[string]interface{} "Staff profile updated successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid parameters"
+// @Failure 404 {object} map[string]interface{} "Not Found: Staff not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /staff/{id}/profile [patch]
+func (h *StaffHandler) UpdateStaffProfile(w http.ResponseWriter, r *http.Request) {
+	staffIdStr := chi.URLParam(r, "id")
+
+	var requestDto dto.StaffProfileUpdateRequestDto
+
+	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	details, err := requestDto.ToUpdateValue(staffIdStr)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Security check: Only admins or the staff member themselves can update the profile
+	userRole, roleErr := contextUtils.GetUserRole(r.Context())
+	if roleErr != nil {
+		responseHandlers.RespondWithError(w, roleErr)
+		return
+	}
+
+	// If not admin, check if user is updating their own profile
+	if userRole != contextUtils.RoleAdmin && userRole != contextUtils.RoleSuperAdmin {
+		currentUserID, userErr := contextUtils.GetUserID(r.Context())
+		if userErr != nil {
+			responseHandlers.RespondWithError(w, userErr)
+			return
+		}
+
+		if currentUserID != details.ID {
+			responseHandlers.RespondWithError(w, errLib.New("You can only update your own profile", http.StatusForbidden))
+			return
+		}
+	}
+
+	if err = h.StaffRepo.UpdateStaffProfile(r.Context(), details); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

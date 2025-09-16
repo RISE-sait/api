@@ -199,3 +199,23 @@ func (q *Queries) UpdateStaff(ctx context.Context, arg UpdateStaffParams) (int64
 	}
 	return result.RowsAffected()
 }
+
+const updateStaffProfile = `-- name: UpdateStaffProfile :execrows
+UPDATE staff.staff
+SET photo_url = $2,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+`
+
+type UpdateStaffProfileParams struct {
+	ID       uuid.UUID      `json:"id"`
+	PhotoUrl sql.NullString `json:"photo_url"`
+}
+
+func (q *Queries) UpdateStaffProfile(ctx context.Context, arg UpdateStaffProfileParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateStaffProfile, arg.ID, arg.PhotoUrl)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}

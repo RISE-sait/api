@@ -20,6 +20,12 @@ UPDATE staff.staff s
         updated_at = CURRENT_TIMESTAMP
 WHERE s.id = $3;
 
+-- name: UpdateStaffProfile :execrows
+UPDATE staff.staff
+SET photo_url = $2,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1;
+
 -- name: DeleteStaff :execrows
 DELETE
 FROM staff.staff

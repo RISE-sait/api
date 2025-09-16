@@ -40,3 +40,8 @@ type UpdateStaffValues struct {
 	IsActive bool
 	RoleName string
 }
+
+type UpdateStaffProfileValues struct {
+	ID       uuid.UUID
+	PhotoURL *string
+}

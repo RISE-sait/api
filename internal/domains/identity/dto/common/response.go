@@ -34,6 +34,7 @@ type UserAuthenticationResponseDto struct {
 	Phone          *string                    `json:"phone,omitempty"`
 	DOB            string                     `json:"age"`
 	CountryCode    string                     `json:"country_code,omitempty"`
+	PhotoURL       *string                    `json:"photo_url,omitempty"`
 	MembershipInfo *MembershipReadResponseDto `json:"membership_info,omitempty"`
 	AthleteInfo    *AthleteResponseDto        `json:"athlete_info,omitempty"`
 }

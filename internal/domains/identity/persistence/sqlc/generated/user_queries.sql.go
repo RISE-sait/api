@@ -28,7 +28,7 @@ INSERT INTO users.users (hubspot_id, country_alpha2_code, email, dob, phone, has
                          has_sms_consent, parent_id, first_name, last_name)
 VALUES ($1, $2, $3, $4, $5,
         $6, $7, (SELECT pu.id from users.users pu WHERE $10 = pu.email), $8, $9)
-RETURNING id, hubspot_id, country_alpha2_code, gender, first_name, last_name, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at, dob
+RETURNING id, hubspot_id, country_alpha2_code, gender, first_name, last_name, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at, dob, is_archived, square_customer_id
 `
 
 type CreateUserParams struct {
@@ -73,6 +73,8 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (UsersUs
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Dob,
+		&i.IsArchived,
+		&i.SquareCustomerID,
 	)
 	return i, err
 }
@@ -111,16 +113,16 @@ func (q *Queries) GetIsUserAParent(ctx context.Context, parentID uuid.NullUUID) 
 
 const getUserByIdOrEmail = `-- name: GetUserByIdOrEmail :one
 WITH u
-         as (SELECT id, hubspot_id, country_alpha2_code, gender, first_name, last_name, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at, dob
+         as (SELECT id, hubspot_id, country_alpha2_code, gender, first_name, last_name, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at, dob, is_archived, square_customer_id
              FROM users.users u2
              WHERE (u2.id = $1 OR $1 IS NULL)
                AND (u2.email = $2 OR $2 IS NULL)
              LIMIT 1),
-     latest_cmp AS (SELECT DISTINCT ON (customer_id) id, customer_id, membership_plan_id, start_date, renewal_date, status, created_at, updated_at, photo_url
+     latest_cmp AS (SELECT DISTINCT ON (customer_id) id, customer_id, membership_plan_id, start_date, renewal_date, status, created_at, updated_at, photo_url, square_subscription_id, subscription_status, next_billing_date, subscription_created_at, subscription_source
                     FROM users.customer_membership_plans
                     WHERE customer_id = (SELECT id FROM u)
                     ORDER BY customer_id, start_date DESC)
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob,
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id,
        mp.name          as membership_plan_name,
        cmp.start_date   as membership_plan_start_date,
        cmp.renewal_date as membership_plan_renewal_date,
@@ -133,7 +135,8 @@ SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last
        a.losses,
        a.assists,
        a.rebounds,
-       a.steals
+       a.steals,
+       a.photo_url as athlete_photo_url
 from u
          LEFT JOIN
      latest_cmp cmp ON cmp.customer_id = u.id
@@ -162,6 +165,8 @@ type GetUserByIdOrEmailRow struct {
 	CreatedAt                 time.Time      `json:"created_at"`
 	UpdatedAt                 time.Time      `json:"updated_at"`
 	Dob                       time.Time      `json:"dob"`
+	IsArchived                bool           `json:"is_archived"`
+	SquareCustomerID          sql.NullString `json:"square_customer_id"`
 	MembershipPlanName        sql.NullString `json:"membership_plan_name"`
 	MembershipPlanStartDate   sql.NullTime   `json:"membership_plan_start_date"`
 	MembershipPlanRenewalDate sql.NullTime   `json:"membership_plan_renewal_date"`
@@ -174,6 +179,7 @@ type GetUserByIdOrEmailRow struct {
 	Assists                   sql.NullInt32  `json:"assists"`
 	Rebounds                  sql.NullInt32  `json:"rebounds"`
 	Steals                    sql.NullInt32  `json:"steals"`
+	AthletePhotoUrl           sql.NullString `json:"athlete_photo_url"`
 }
 
 func (q *Queries) GetUserByIdOrEmail(ctx context.Context, arg GetUserByIdOrEmailParams) (GetUserByIdOrEmailRow, error) {
@@ -194,6 +200,8 @@ func (q *Queries) GetUserByIdOrEmail(ctx context.Context, arg GetUserByIdOrEmail
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Dob,
+		&i.IsArchived,
+		&i.SquareCustomerID,
 		&i.MembershipPlanName,
 		&i.MembershipPlanStartDate,
 		&i.MembershipPlanRenewalDate,
@@ -206,6 +214,7 @@ func (q *Queries) GetUserByIdOrEmail(ctx context.Context, arg GetUserByIdOrEmail
 		&i.Assists,
 		&i.Rebounds,
 		&i.Steals,
+		&i.AthletePhotoUrl,
 	)
 	return i, err
 }

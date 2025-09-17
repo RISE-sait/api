@@ -127,6 +127,12 @@ func (s *CustomerCreditService) RefundCreditsForCancellation(ctx context.Context
 // AddCredits adds credits to a customer's account (admin function)
 func (s *CustomerCreditService) AddCredits(ctx context.Context, customerID uuid.UUID, amount int32, description string) *errLib.CommonError {
 	return s.repo.ExecuteInTransaction(ctx, func(txRepo *repositories.CustomerCreditRepository) *errLib.CommonError {
+		// Ensure customer credit record exists (will create with 0 balance if not exists)
+		_, err := txRepo.GetCustomerCredits(ctx, customerID)
+		if err != nil {
+			return err
+		}
+		
 		// Add credits (using refund method for positive addition)
 		if err := txRepo.RefundCredits(ctx, customerID, amount); err != nil {
 			return err

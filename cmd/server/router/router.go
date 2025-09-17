@@ -540,6 +540,9 @@ func RegisterAdminRoutes(container *di.Container) func(chi.Router) {
 		r.Use(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin))
 		
 		// Credit management routes
+		r.Get("/customers/{id}/credits", creditHandler.GetAnyCustomerCredits)
+		r.Get("/customers/{id}/credits/transactions", creditHandler.GetAnyCustomerCreditTransactions)
+		r.Get("/customers/{id}/credits/weekly-usage", creditHandler.GetAnyCustomerWeeklyUsage)
 		r.Post("/customers/{id}/credits/add", creditHandler.AddCustomerCredits)
 		r.Post("/customers/{id}/credits/deduct", creditHandler.DeductCustomerCredits)
 		r.Get("/events/{id}/credit-transactions", creditHandler.GetEventCreditTransactions)

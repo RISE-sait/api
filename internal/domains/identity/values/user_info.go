@@ -44,6 +44,7 @@ type UserReadInfo struct {
 	Role           string
 	IsActiveStaff  *bool
 	Phone          *string
+	PhotoURL       *string
 	MembershipInfo *MembershipReadInfo
 	AthleteInfo    *AthleteInfo
 }

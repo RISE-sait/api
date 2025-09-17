@@ -101,6 +101,7 @@ func (r *UsersRepository) buildUserResponse(ctx context.Context, user dbIdentity
 	addMembershipInfo(&response, user)
 	addAthleteInfo(&response, user)
 	setUserRole(ctx, r, &response, user)
+	addPhotoURL(ctx, r, &response, user)
 
 	return response
 }
@@ -157,5 +158,18 @@ func determineStaffOrParentRole(ctx context.Context, r *UsersRepository, respons
 
 	if isParent, err := r.IdentityQueries.GetIsUserAParent(ctx, uuid.NullUUID{UUID: user.ID, Valid: true}); err == nil && isParent {
 		response.Role = "parent"
+	}
+}
+
+func addPhotoURL(ctx context.Context, r *UsersRepository, response *values.UserReadInfo, user dbIdentity.GetUserByIdOrEmailRow) {
+	// Try to get photo URL from staff table first (for staff members)
+	if staffInfo, err := r.IdentityQueries.GetStaffById(ctx, user.ID); err == nil && staffInfo.PhotoUrl.Valid {
+		response.PhotoURL = &staffInfo.PhotoUrl.String
+		return
+	}
+
+	// For athletes, the photo URL is already included in the main query
+	if user.AthletePhotoUrl.Valid {
+		response.PhotoURL = &user.AthletePhotoUrl.String
 	}
 }

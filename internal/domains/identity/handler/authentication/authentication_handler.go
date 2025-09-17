@@ -113,6 +113,7 @@ func mapReadValueToResponse(userInfo identity.UserReadInfo) dto.UserAuthenticati
 		Phone:       userInfo.Phone,
 		DOB:         userInfo.DOB.Format("2006-01-02"),
 		CountryCode: userInfo.CountryCode,
+		PhotoURL:    userInfo.PhotoURL,
 	}
 
 	if userInfo.MembershipInfo != nil {

@@ -182,7 +182,7 @@ func (h *CheckoutHandlers) GetEventEnrollmentOptions(w http.ResponseWriter, r *h
 // @Accept json
 // @Produce json
 // @Param id path string true "Event ID" format(uuid)
-// @Param request body map[string]interface{} false "Payment method request" example({"payment_method":"stripe"})
+// @Param request body map[string]interface{} false "Payment method request" example({"payment_method":"stripe"}) enum("stripe","credits")
 // @Success 200 {object} dto.CheckoutResponseDto "Payment link generated or free enrollment completed"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input or missing event ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Event not found"

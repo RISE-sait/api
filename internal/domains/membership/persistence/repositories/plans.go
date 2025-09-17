@@ -55,6 +55,20 @@ func (r *PlansRepository) CreateMembershipPlan(c context.Context, membershipPlan
 			Valid: true,
 		}
 	}
+	
+	if membershipPlan.CreditAllocation != nil {
+		dbParams.CreditAllocation = sql.NullInt32{
+			Int32: *membershipPlan.CreditAllocation,
+			Valid: true,
+		}
+	}
+	
+	if membershipPlan.WeeklyCreditLimit != nil {
+		dbParams.WeeklyCreditLimit = sql.NullInt32{
+			Int32: *membershipPlan.WeeklyCreditLimit,
+			Valid: true,
+		}
+	}
 
 	_, err := r.Queries.CreateMembershipPlan(c, dbParams)
 
@@ -105,6 +119,12 @@ func (r *PlansRepository) GetMembershipPlanById(ctx context.Context, id uuid.UUI
 	if dbPlan.AmtPeriods.Valid {
 		plan.AmtPeriods = &dbPlan.AmtPeriods.Int32
 	}
+	if dbPlan.CreditAllocation.Valid {
+		plan.CreditAllocation = &dbPlan.CreditAllocation.Int32
+	}
+	if dbPlan.WeeklyCreditLimit.Valid {
+		plan.WeeklyCreditLimit = &dbPlan.WeeklyCreditLimit.Int32
+	}
 
 	return plan, nil
 }
@@ -137,6 +157,12 @@ func (r *PlansRepository) GetMembershipPlans(ctx context.Context, membershipId u
 
 		if dbPlan.AmtPeriods.Valid {
 			plan.AmtPeriods = &dbPlan.AmtPeriods.Int32
+		}
+		if dbPlan.CreditAllocation.Valid {
+			plan.CreditAllocation = &dbPlan.CreditAllocation.Int32
+		}
+		if dbPlan.WeeklyCreditLimit.Valid {
+			plan.WeeklyCreditLimit = &dbPlan.WeeklyCreditLimit.Int32
 		}
 		if dbPlan.UnitAmount.Valid {
 			plan.UnitAmount = int(dbPlan.UnitAmount.Int32)
@@ -173,6 +199,20 @@ func (r *PlansRepository) UpdateMembershipPlan(c context.Context, plan values.Pl
 	if plan.AmtPeriods != nil {
 		dbMembershipParams.AmtPeriods = sql.NullInt32{
 			Int32: *plan.AmtPeriods,
+			Valid: true,
+		}
+	}
+	
+	if plan.CreditAllocation != nil {
+		dbMembershipParams.CreditAllocation = sql.NullInt32{
+			Int32: *plan.CreditAllocation,
+			Valid: true,
+		}
+	}
+	
+	if plan.WeeklyCreditLimit != nil {
+		dbMembershipParams.WeeklyCreditLimit = sql.NullInt32{
+			Int32: *plan.WeeklyCreditLimit,
 			Valid: true,
 		}
 	}

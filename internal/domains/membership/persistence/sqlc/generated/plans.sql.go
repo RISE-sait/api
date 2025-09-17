@@ -14,9 +14,9 @@ import (
 )
 
 const createMembershipPlan = `-- name: CreateMembershipPlan :one
-INSERT INTO membership.membership_plans (membership_id, name, stripe_joining_fee_id, stripe_price_id, amt_periods, joining_fee)
-VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at, unit_amount, currency, interval, joining_fee
+INSERT INTO membership.membership_plans (membership_id, name, stripe_joining_fee_id, stripe_price_id, amt_periods, joining_fee, credit_allocation, weekly_credit_limit)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at, unit_amount, currency, interval, joining_fee, credit_allocation, weekly_credit_limit
 `
 
 type CreateMembershipPlanParams struct {
@@ -26,6 +26,8 @@ type CreateMembershipPlanParams struct {
 	StripePriceID      string         `json:"stripe_price_id"`
 	AmtPeriods         sql.NullInt32  `json:"amt_periods"`
 	JoiningFee         int32          `json:"joining_fee"`
+	CreditAllocation   sql.NullInt32  `json:"credit_allocation"`
+	WeeklyCreditLimit  sql.NullInt32  `json:"weekly_credit_limit"`
 }
 
 func (q *Queries) CreateMembershipPlan(ctx context.Context, arg CreateMembershipPlanParams) (MembershipMembershipPlan, error) {
@@ -36,6 +38,8 @@ func (q *Queries) CreateMembershipPlan(ctx context.Context, arg CreateMembership
 		arg.StripePriceID,
 		arg.AmtPeriods,
 		arg.JoiningFee,
+		arg.CreditAllocation,
+		arg.WeeklyCreditLimit,
 	)
 	var i MembershipMembershipPlan
 	err := row.Scan(
@@ -51,6 +55,8 @@ func (q *Queries) CreateMembershipPlan(ctx context.Context, arg CreateMembership
 		&i.Currency,
 		&i.Interval,
 		&i.JoiningFee,
+		&i.CreditAllocation,
+		&i.WeeklyCreditLimit,
 	)
 	return i, err
 }
@@ -68,7 +74,7 @@ func (q *Queries) DeleteMembershipPlan(ctx context.Context, id uuid.UUID) (int64
 }
 
 const getMembershipPlanById = `-- name: GetMembershipPlanById :one
-SELECT id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at, unit_amount, currency, interval, joining_fee
+SELECT id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at, unit_amount, currency, interval, joining_fee, credit_allocation, weekly_credit_limit
 FROM membership.membership_plans
 WHERE id = $1
 `
@@ -89,6 +95,8 @@ func (q *Queries) GetMembershipPlanById(ctx context.Context, id uuid.UUID) (Memb
 		&i.Currency,
 		&i.Interval,
 		&i.JoiningFee,
+		&i.CreditAllocation,
+		&i.WeeklyCreditLimit,
 	)
 	return i, err
 }
@@ -105,6 +113,8 @@ SELECT
   mp.currency,
   mp.interval,
   mp.joining_fee,
+  mp.credit_allocation,
+  mp.weekly_credit_limit,
   mp.created_at,
   mp.updated_at
 FROM membership.membership_plans mp
@@ -122,6 +132,8 @@ type GetMembershipPlansRow struct {
 	Currency           sql.NullString `json:"currency"`
 	Interval           sql.NullString `json:"interval"`
 	JoiningFee         int32          `json:"joining_fee"`
+	CreditAllocation   sql.NullInt32  `json:"credit_allocation"`
+	WeeklyCreditLimit  sql.NullInt32  `json:"weekly_credit_limit"`
 	CreatedAt          time.Time      `json:"created_at"`
 	UpdatedAt          time.Time      `json:"updated_at"`
 }
@@ -146,6 +158,8 @@ func (q *Queries) GetMembershipPlans(ctx context.Context, membershipID uuid.UUID
 			&i.Currency,
 			&i.Interval,
 			&i.JoiningFee,
+			&i.CreditAllocation,
+			&i.WeeklyCreditLimit,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -170,9 +184,11 @@ SET name              = $1,
     amt_periods       = $4,
     membership_id     = $5,
     joining_fee       = $6,
+    credit_allocation = $7,
+    weekly_credit_limit = $8,
     updated_at        = CURRENT_TIMESTAMP
-WHERE id = $7
-RETURNING id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at, unit_amount, currency, interval, joining_fee
+WHERE id = $9
+RETURNING id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at, unit_amount, currency, interval, joining_fee, credit_allocation, weekly_credit_limit
 `
 
 type UpdateMembershipPlanParams struct {
@@ -182,6 +198,8 @@ type UpdateMembershipPlanParams struct {
 	AmtPeriods         sql.NullInt32  `json:"amt_periods"`
 	MembershipID       uuid.UUID      `json:"membership_id"`
 	JoiningFee         int32          `json:"joining_fee"`
+	CreditAllocation   sql.NullInt32  `json:"credit_allocation"`
+	WeeklyCreditLimit  sql.NullInt32  `json:"weekly_credit_limit"`
 	ID                 uuid.UUID      `json:"id"`
 }
 
@@ -193,6 +211,8 @@ func (q *Queries) UpdateMembershipPlan(ctx context.Context, arg UpdateMembership
 		arg.AmtPeriods,
 		arg.MembershipID,
 		arg.JoiningFee,
+		arg.CreditAllocation,
+		arg.WeeklyCreditLimit,
 		arg.ID,
 	)
 	var i MembershipMembershipPlan
@@ -209,6 +229,8 @@ func (q *Queries) UpdateMembershipPlan(ctx context.Context, arg UpdateMembership
 		&i.Currency,
 		&i.Interval,
 		&i.JoiningFee,
+		&i.CreditAllocation,
+		&i.WeeklyCreditLimit,
 	)
 	return i, err
 }

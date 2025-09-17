@@ -482,6 +482,7 @@ func RegisterSecureCreditRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(true)).Get("/", h.GetCustomerCredits)
 		r.With(middlewares.JWTAuthMiddleware(true)).Get("/transactions", h.GetCustomerCreditTransactions)
+		r.With(middlewares.JWTAuthMiddleware(true)).Get("/weekly-usage", h.GetWeeklyUsage)
 	}
 }
 

@@ -13,6 +13,8 @@ type PlanRequestDto struct {
 	AmtPeriods          *int32    `json:"amt_periods" validate:"omitempty,gt=0"`
 	StripePriceID       string    `json:"stripe_price_id" validate:"required,notwhitespace"`
 	StripeJoiningFeesID string    `json:"stripe_joining_fees_id"`
+	CreditAllocation    *int32    `json:"credit_allocation" validate:"omitempty,gte=0"`
+	WeeklyCreditLimit   *int32    `json:"weekly_credit_limit" validate:"omitempty,gte=0"`
 }
 
 func (dto PlanRequestDto) ToCreateValueObjects() (values.PlanCreateValues, *errLib.CommonError) {
@@ -31,6 +33,8 @@ func (dto PlanRequestDto) ToCreateValueObjects() (values.PlanCreateValues, *errL
 			AmtPeriods:          dto.AmtPeriods,
 			StripeJoiningFeesID: dto.StripeJoiningFeesID,
 			StripePriceID:       dto.StripePriceID,
+			CreditAllocation:    dto.CreditAllocation,
+			WeeklyCreditLimit:   dto.WeeklyCreditLimit,
 		},
 	}
 
@@ -60,6 +64,8 @@ func (dto PlanRequestDto) ToUpdateValueObjects(planIdStr string) (values.PlanUpd
 			AmtPeriods:          dto.AmtPeriods,
 			StripeJoiningFeesID: dto.StripeJoiningFeesID,
 			StripePriceID:       dto.StripePriceID,
+			CreditAllocation:    dto.CreditAllocation,
+			WeeklyCreditLimit:   dto.WeeklyCreditLimit,
 		},
 	}, nil
 }

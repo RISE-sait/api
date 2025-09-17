@@ -6,6 +6,7 @@ import (
 	enrollment "api/internal/domains/enrollment/service"
 	enrollmentRepo "api/internal/domains/enrollment/persistence/repository"
 	repository "api/internal/domains/payment/persistence/repositories"
+	userServices "api/internal/domains/user/services"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/logger"
 	"context"
@@ -31,6 +32,7 @@ type WebhookService struct {
 	EnrollmentRepo         *enrollmentRepo.CustomerEnrollmentRepository
 	UserRepo               *identityRepo.UsersRepository
 	PlansRepo              *membershipRepo.PlansRepository
+	CreditService          *userServices.CreditService
 	Idempotency            *WebhookIdempotency
 	logger                 *logger.StructuredLogger
 }
@@ -42,6 +44,7 @@ func NewWebhookService(container *di.Container) *WebhookService {
 		EnrollmentRepo:         enrollmentRepo.NewEnrollmentRepository(container),
 		UserRepo:               identityRepo.NewUserRepository(container),
 		PlansRepo:              membershipRepo.NewMembershipPlansRepository(container),
+		CreditService:          userServices.NewCreditService(container),
 		Idempotency:            NewWebhookIdempotency(24*time.Hour, 10000), // Store events for 24 hours, max 10k events
 		logger:                 logger.WithComponent("stripe-webhooks"),
 	}
@@ -248,6 +251,14 @@ func (s *WebhookService) handleSubscriptionCheckoutComplete(checkoutSession stri
 		}
 		log.Printf("Successfully enrolled customer %s in membership plan %s", userID, planID)
 	}
+	
+	// Allocate credits if this is a credit-based membership plan
+	log.Printf("Checking credit allocation for membership plan %s", planID)
+	if creditErr := s.allocateCreditsForMembership(context.Background(), userID, planID); creditErr != nil {
+		log.Printf("WARNING: Credit allocation failed for user %s, plan %s: %v", userID, planID, creditErr)
+		// Don't fail the entire webhook for credit allocation failures
+	}
+	
 	s.sendMembershipPurchaseEmail(userID, planID)
 	return nil
 }
@@ -305,6 +316,13 @@ func (s *WebhookService) processSubscriptionWithEndDate(subscriptionID string, t
 	if err = s.EnrollmentService.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, cancelAtDateTime); err != nil {
 		log.Printf("ERROR: EnrollCustomerInMembershipPlan failed in processSubscriptionWithEndDate: %v", err)
 		return err
+	}
+
+	// Allocate credits if this is a credit-based membership plan
+	log.Printf("Checking credit allocation for membership plan %s", planID)
+	if creditErr := s.allocateCreditsForMembership(context.Background(), userID, planID); creditErr != nil {
+		log.Printf("WARNING: Credit allocation failed for user %s, plan %s: %v", userID, planID, creditErr)
+		// Don't fail the entire webhook for credit allocation failures
 	}
 
 	s.sendMembershipPurchaseEmail(userID, planID)
@@ -648,4 +666,12 @@ func (s *WebhookService) HandleInvoicePaymentFailed(event stripe.Event) *errLib.
 	// Mark as processed
 	s.Idempotency.MarkAsProcessed(event.ID)
 	return nil
+}
+
+// allocateCreditsForMembership allocates credits to a customer when they purchase a credit-based membership
+func (s *WebhookService) allocateCreditsForMembership(ctx context.Context, customerID, membershipPlanID uuid.UUID) *errLib.CommonError {
+	log.Printf("Allocating credits for customer %s with membership plan %s", customerID, membershipPlanID)
+	
+	// Use the credit service to handle allocation logic
+	return s.CreditService.AllocateCreditsOnMembershipPurchase(ctx, customerID, membershipPlanID)
 }

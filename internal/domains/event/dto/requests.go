@@ -37,6 +37,7 @@ type EventRequestDto struct {
 	TeamID                   uuid.UUID `json:"team_id" example:"0bab3927-50eb-42b3-9d6b-2350dd00a100"`
 	RequiredMembershipPlanID uuid.UUID `json:"required_membership_plan_id" example:"f0e21457-75d4-4de6-b765-5ee13221fd72"`
 	PriceID                  string    `json:"price_id" example:"price_123"`
+	CreditCost               *int32    `json:"credit_cost" validate:"omitempty,gte=0" example:"5"`
 }
 
 type DeleteRequestDto struct {
@@ -193,6 +194,7 @@ func (dto EventRequestDto) ToCreateEventValues(creator uuid.UUID) (values.Create
 			TeamID:                   dto.TeamID,
 			RequiredMembershipPlanID: dto.RequiredMembershipPlanID,
 			PriceID:                  dto.PriceID,
+			CreditCost:               dto.CreditCost,
 		},
 	}
 
@@ -222,6 +224,7 @@ func (dto EventRequestDto) ToUpdateEventValues(idStr string, updater uuid.UUID) 
 			TeamID:                   dto.TeamID,
 			RequiredMembershipPlanID: dto.RequiredMembershipPlanID,
 			PriceID:                  dto.PriceID,
+			CreditCost:               dto.CreditCost,
 		},
 	}
 

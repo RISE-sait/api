@@ -16,6 +16,8 @@ type PlanResponse struct {
 	StripePriceID       string    `json:"stripe_price_id"`
 	StripeJoiningFeesID *string   `json:"stripe_joining_fees_id,omitempty"`
 	AmtPeriods          *int32    `json:"amt_periods,omitempty"`
+	CreditAllocation    *int32    `json:"credit_allocation,omitempty"`
+	WeeklyCreditLimit   *int32    `json:"weekly_credit_limit,omitempty"`
 	UnitAmount          int       `json:"unit_amount"`
 	Currency            string    `json:"currency"`
 	Interval            string    `json:"interval"`
@@ -37,6 +39,8 @@ func NewPlanResponse(plan values.PlanReadValues) PlanResponse {
 		StripePriceID:       plan.StripePriceID,
 		StripeJoiningFeesID: getPtrIfNotEmpty(plan.StripeJoiningFeesID),
 		AmtPeriods:          plan.AmtPeriods,
+		CreditAllocation:    plan.CreditAllocation,
+		WeeklyCreditLimit:   plan.WeeklyCreditLimit,
 		UnitAmount:          plan.UnitAmount,
 		Currency:            strings.ToUpper(plan.Currency), // e.g. "USD", "CAD"
 		Interval:            plan.Interval, // e.g. "month", "year", weekly, etc.

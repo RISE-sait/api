@@ -28,7 +28,7 @@ func NewStaffHandlers(container *di.Container) *StaffHandler {
 }
 
 // GetStaffs retrieves a list of staff members based on optional role filter.
-// @Tags staff
+// @Tags staffs
 // @Accept json
 // @Produce json
 // @Param role query string false "Role name to filter staff" example("Coach")
@@ -64,7 +64,7 @@ func (h *StaffHandler) GetStaffs(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateStaff updates an existing staff member.
-// @Tags staff
+// @Tags staffs
 // @Accept json
 // @Produce json
 // @Param id path string true "Staff ID" example("f47ac10b-58cc-4372-a567-0e02b2c3d479")
@@ -128,7 +128,7 @@ func (h *StaffHandler) UpdateStaff(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteStaff deletes a staff member by ID.
-// @Tags staff
+// @Tags staffs
 // @Accept json
 // @Produce json
 // @Param id path string true "Staff ID" example("f47ac10b-58cc-4372-a567-0e02b2c3d479")
@@ -156,7 +156,7 @@ func (h *StaffHandler) DeleteStaff(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateStaffProfile updates staff profile information like photo URL.
-// @Tags staff
+// @Tags staffs
 // @Accept json
 // @Produce json
 // @Security Bearer

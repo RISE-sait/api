@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"log"
 	"net/http"
+	"time"
 )
 
 type CustomerCreditRepository struct {
@@ -217,4 +218,54 @@ func (r *CustomerCreditRepository) ExecuteInTransaction(ctx context.Context, fn 
 		return errLib.New("Failed to commit transaction", http.StatusInternalServerError)
 	}
 	return nil
+}
+
+// UpdateWeeklyUsage updates the weekly credit usage tracking
+func (r *CustomerCreditRepository) UpdateWeeklyUsage(ctx context.Context, customerID uuid.UUID, creditsUsed int32) *errLib.CommonError {
+	// Calculate current week start (Monday of the current week)
+	now := time.Now()
+	weekday := now.Weekday()
+	daysSinceMonday := int(weekday-time.Monday) % 7
+	if daysSinceMonday < 0 {
+		daysSinceMonday += 7
+	}
+	monday := now.AddDate(0, 0, -daysSinceMonday)
+	weekStart := time.Date(monday.Year(), monday.Month(), monday.Day(), 0, 0, 0, 0, monday.Location())
+
+	err := r.queries.UpdateWeeklyCreditsUsed(ctx, dbUser.UpdateWeeklyCreditsUsedParams{
+		CustomerID:    customerID,
+		WeekStartDate: weekStart,
+		CreditsUsed:   creditsUsed,
+	})
+
+	if err != nil {
+		return errLib.New("Failed to update weekly usage", http.StatusInternalServerError)
+	}
+
+	return nil
+}
+
+// CanUseCreditsWithinWeeklyLimit checks if customer can use credits without exceeding weekly limit
+func (r *CustomerCreditRepository) CanUseCreditsWithinWeeklyLimit(ctx context.Context, customerID uuid.UUID, creditsToUse int32) (bool, *errLib.CommonError) {
+	// Calculate current week start (Monday of the current week)
+	now := time.Now()
+	weekday := now.Weekday()
+	daysSinceMonday := int(weekday-time.Monday) % 7
+	if daysSinceMonday < 0 {
+		daysSinceMonday += 7
+	}
+	monday := now.AddDate(0, 0, -daysSinceMonday)
+	weekStart := time.Date(monday.Year(), monday.Month(), monday.Day(), 0, 0, 0, 0, monday.Location())
+
+	result, err := r.queries.CheckWeeklyCreditLimit(ctx, dbUser.CheckWeeklyCreditLimitParams{
+		CustomerID:    customerID,
+		WeekStartDate: weekStart,
+		CreditsUsed:   creditsToUse,
+	})
+
+	if err != nil {
+		return false, errLib.New("Failed to check weekly credit limit", http.StatusInternalServerError)
+	}
+
+	return result.CanUseCredits, nil
 }

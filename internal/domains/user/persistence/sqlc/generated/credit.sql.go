@@ -8,6 +8,7 @@ package db_user
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -29,6 +30,48 @@ func (q *Queries) CheckCustomerHasSufficientCredits(ctx context.Context, arg Che
 	var has_sufficient bool
 	err := row.Scan(&has_sufficient)
 	return has_sufficient, err
+}
+
+const checkWeeklyCreditLimit = `-- name: CheckWeeklyCreditLimit :one
+SELECT 
+    COALESCE(wcu.credits_used, 0) as current_usage,
+    mp.weekly_credit_limit,
+    CASE 
+        WHEN mp.weekly_credit_limit IS NULL THEN true  -- Non-credit membership
+        WHEN mp.weekly_credit_limit = 0 THEN true      -- Unlimited credits
+        WHEN COALESCE(wcu.credits_used, 0) + $3 <= mp.weekly_credit_limit THEN true
+        ELSE false
+    END as can_use_credits
+FROM users.customer_membership_plans cmp
+JOIN membership.membership_plans mp ON cmp.membership_plan_id = mp.id
+LEFT JOIN users.weekly_credit_usage wcu ON (
+    wcu.customer_id = $1 AND 
+    wcu.week_start_date = $2
+)
+WHERE cmp.customer_id = $1 
+  AND cmp.status = 'active'
+ORDER BY cmp.created_at DESC
+LIMIT 1
+`
+
+type CheckWeeklyCreditLimitParams struct {
+	CustomerID    uuid.UUID `json:"customer_id"`
+	WeekStartDate time.Time `json:"week_start_date"`
+	CreditsUsed   int32     `json:"credits_used"`
+}
+
+type CheckWeeklyCreditLimitRow struct {
+	CurrentUsage      int32         `json:"current_usage"`
+	WeeklyCreditLimit sql.NullInt32 `json:"weekly_credit_limit"`
+	CanUseCredits     bool          `json:"can_use_credits"`
+}
+
+// Check if customer can use specified credits without exceeding weekly limit
+func (q *Queries) CheckWeeklyCreditLimit(ctx context.Context, arg CheckWeeklyCreditLimitParams) (CheckWeeklyCreditLimitRow, error) {
+	row := q.db.QueryRowContext(ctx, checkWeeklyCreditLimit, arg.CustomerID, arg.WeekStartDate, arg.CreditsUsed)
+	var i CheckWeeklyCreditLimitRow
+	err := row.Scan(&i.CurrentUsage, &i.WeeklyCreditLimit, &i.CanUseCredits)
+	return i, err
 }
 
 const createCustomerCredits = `-- name: CreateCustomerCredits :exec
@@ -66,6 +109,23 @@ func (q *Queries) DeductCredits(ctx context.Context, arg DeductCreditsParams) (i
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const getActiveCustomerMembershipPlanID = `-- name: GetActiveCustomerMembershipPlanID :one
+SELECT membership_plan_id
+FROM users.customer_membership_plans
+WHERE customer_id = $1 
+  AND status = 'active'
+ORDER BY created_at DESC
+LIMIT 1
+`
+
+// Get customer's active membership plan ID
+func (q *Queries) GetActiveCustomerMembershipPlanID(ctx context.Context, customerID uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, getActiveCustomerMembershipPlanID, customerID)
+	var membership_plan_id uuid.UUID
+	err := row.Scan(&membership_plan_id)
+	return membership_plan_id, err
 }
 
 const getCustomerCreditTransactions = `-- name: GetCustomerCreditTransactions :many
@@ -128,6 +188,29 @@ func (q *Queries) GetCustomerCredits(ctx context.Context, customerID uuid.UUID) 
 	var credits int32
 	err := row.Scan(&credits)
 	return credits, err
+}
+
+const getCustomerMembershipPlan = `-- name: GetCustomerMembershipPlan :one
+SELECT mp.credit_allocation, mp.weekly_credit_limit
+FROM users.customer_membership_plans cmp
+JOIN membership.membership_plans mp ON cmp.membership_plan_id = mp.id
+WHERE cmp.customer_id = $1 
+  AND cmp.status = 'active'
+ORDER BY cmp.created_at DESC
+LIMIT 1
+`
+
+type GetCustomerMembershipPlanRow struct {
+	CreditAllocation  sql.NullInt32 `json:"credit_allocation"`
+	WeeklyCreditLimit sql.NullInt32 `json:"weekly_credit_limit"`
+}
+
+// Get customer's current membership plan with credit info
+func (q *Queries) GetCustomerMembershipPlan(ctx context.Context, customerID uuid.UUID) (GetCustomerMembershipPlanRow, error) {
+	row := q.db.QueryRowContext(ctx, getCustomerMembershipPlan, customerID)
+	var i GetCustomerMembershipPlanRow
+	err := row.Scan(&i.CreditAllocation, &i.WeeklyCreditLimit)
+	return i, err
 }
 
 const getEventCreditCost = `-- name: GetEventCreditCost :one
@@ -199,6 +282,28 @@ func (q *Queries) GetEventCreditTransactions(ctx context.Context, eventID uuid.N
 		return nil, err
 	}
 	return items, nil
+}
+
+const getWeeklyCreditsUsed = `-- name: GetWeeklyCreditsUsed :one
+
+SELECT COALESCE(credits_used, 0) as credits_used
+FROM users.weekly_credit_usage
+WHERE customer_id = $1 
+  AND week_start_date = $2
+`
+
+type GetWeeklyCreditsUsedParams struct {
+	CustomerID    uuid.UUID `json:"customer_id"`
+	WeekStartDate time.Time `json:"week_start_date"`
+}
+
+// Weekly Credit Usage Queries
+// Get customer's credit usage for the current week
+func (q *Queries) GetWeeklyCreditsUsed(ctx context.Context, arg GetWeeklyCreditsUsedParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, getWeeklyCreditsUsed, arg.CustomerID, arg.WeekStartDate)
+	var credits_used int32
+	err := row.Scan(&credits_used)
+	return credits_used, err
 }
 
 const logCreditTransaction = `-- name: LogCreditTransaction :exec
@@ -286,4 +391,25 @@ func (q *Queries) UpdateEventCreditCost(ctx context.Context, arg UpdateEventCred
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const updateWeeklyCreditsUsed = `-- name: UpdateWeeklyCreditsUsed :exec
+INSERT INTO users.weekly_credit_usage (customer_id, week_start_date, credits_used, updated_at)
+VALUES ($1, $2, $3, NOW())
+ON CONFLICT (customer_id, week_start_date) 
+DO UPDATE SET 
+    credits_used = users.weekly_credit_usage.credits_used + EXCLUDED.credits_used,
+    updated_at = NOW()
+`
+
+type UpdateWeeklyCreditsUsedParams struct {
+	CustomerID    uuid.UUID `json:"customer_id"`
+	WeekStartDate time.Time `json:"week_start_date"`
+	CreditsUsed   int32     `json:"credits_used"`
+}
+
+// Update (or insert) weekly credit usage for a customer
+func (q *Queries) UpdateWeeklyCreditsUsed(ctx context.Context, arg UpdateWeeklyCreditsUsedParams) error {
+	_, err := q.db.ExecContext(ctx, updateWeeklyCreditsUsed, arg.CustomerID, arg.WeekStartDate, arg.CreditsUsed)
+	return err
 }

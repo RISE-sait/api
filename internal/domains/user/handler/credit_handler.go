@@ -16,12 +16,14 @@ import (
 )
 
 type CreditHandler struct {
-	CreditService *services.CustomerCreditService
+	CreditService       *services.CustomerCreditService
+	WeeklyCreditService *services.CreditService
 }
 
 func NewCreditHandler(container *di.Container) *CreditHandler {
 	return &CreditHandler{
-		CreditService: services.NewCustomerCreditService(container),
+		CreditService:       services.NewCustomerCreditService(container),
+		WeeklyCreditService: services.NewCreditService(container),
 	}
 }
 
@@ -99,6 +101,46 @@ func (h *CreditHandler) GetCustomerCreditTransactions(w http.ResponseWriter, r *
 		}
 		responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 	}
+}
+
+// GetWeeklyUsage retrieves the current weekly credit usage and limits for the authenticated user
+// @Tags credits
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{} "Weekly usage retrieved successfully" example({"customer_id":"uuid","current_week_usage":1,"weekly_limit":2,"remaining_credits":1})
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Security Bearer
+// @Router /secure/credits/weekly-usage [get]
+func (h *CreditHandler) GetWeeklyUsage(w http.ResponseWriter, r *http.Request) {
+	customerID, err := contextUtils.GetUserID(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	currentUsage, weeklyLimit, err := h.WeeklyCreditService.GetWeeklyUsage(r.Context(), customerID)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	response := map[string]interface{}{
+		"customer_id":         customerID,
+		"current_week_usage":  currentUsage,
+		"weekly_limit":        weeklyLimit,
+		"remaining_credits":   nil,
+	}
+
+	if weeklyLimit != nil {
+		remaining := *weeklyLimit - currentUsage
+		if remaining < 0 {
+			remaining = 0
+		}
+		response["remaining_credits"] = remaining
+	}
+
+	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 }
 
 // AddCustomerCredits adds credits to a customer's account (admin only)
@@ -310,3 +352,4 @@ func (h *CreditHandler) UpdateEventCreditCost(w http.ResponseWriter, r *http.Req
 		responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 	}
 }
+

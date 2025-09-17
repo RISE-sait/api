@@ -13,6 +13,8 @@ type PlanDetails struct {
 	StripeJoiningFeesID string
 	StripePriceID       string
 	JoiningFee          int
+	CreditAllocation    *int32
+	WeeklyCreditLimit   *int32
 }
 
 type PlanCreateValues struct {

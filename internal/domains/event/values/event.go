@@ -17,6 +17,7 @@ type EventDetails struct {
 	TeamID                   uuid.UUID
 	RequiredMembershipPlanID uuid.UUID
 	PriceID                  string
+	CreditCost               *int32
 }
 
 type CreateEventValues struct {

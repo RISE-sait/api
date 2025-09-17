@@ -47,6 +47,15 @@ func (s *CustomerCreditService) EnrollWithCredits(ctx context.Context, eventID, 
 			return errLib.New("Insufficient credits", http.StatusBadRequest)
 		}
 
+		// Check weekly credit limit
+		canUseCredits, err := txRepo.CanUseCreditsWithinWeeklyLimit(ctx, customerID, *creditCost)
+		if err != nil {
+			return err
+		}
+		if !canUseCredits {
+			return errLib.New("Weekly credit limit exceeded", http.StatusBadRequest)
+		}
+
 		// Deduct credits
 		if err := txRepo.DeductCredits(ctx, customerID, *creditCost); err != nil {
 			return err
@@ -64,6 +73,15 @@ func (s *CustomerCreditService) EnrollWithCredits(ctx context.Context, eventID, 
 		); err != nil {
 			log.Printf("Failed to log credit transaction: %v", err)
 			// Continue even if logging fails - the main operation succeeded
+		}
+
+		// Update weekly usage tracking
+		log.Printf("Updating weekly usage for customer %s, credits: %d", customerID, *creditCost)
+		if err := txRepo.UpdateWeeklyUsage(ctx, customerID, *creditCost); err != nil {
+			log.Printf("Failed to update weekly usage tracking: %v", err)
+			// Continue even if weekly tracking fails - the main operation succeeded
+		} else {
+			log.Printf("Successfully updated weekly usage")
 		}
 
 		return nil

@@ -135,3 +135,36 @@ func GeneratePublicFileURL(fileName string) string {
 	encodedFileName = strings.ReplaceAll(encodedFileName, "+", "%20") // Fix space encoding
 	return fmt.Sprintf("https://storage.googleapis.com/%s/%s", bucketName, encodedFileName)
 }
+
+// DeleteOldProfileImages deletes all existing profile images in a user's folder
+// to prevent accumulation of old profile photos
+func DeleteOldProfileImages(userFolder string, folder string) *errLib.CommonError {
+	client, gcpClientErr := getGCPClient()
+	if gcpClientErr != nil {
+		return gcpClientErr
+	}
+	
+	bucket := client.Bucket(bucketName)
+	
+	// List all files in the user's profile folder
+	it := bucket.Objects(context.Background(), &storage.Query{
+		Prefix: fmt.Sprintf("%s/%s/profile", folder, userFolder),
+	})
+	
+	// Delete each existing profile image
+	for {
+		objAttrs, err := it.Next()
+		if err != nil {
+			break // No more objects or error occurred
+		}
+		
+		// Delete the object
+		obj := bucket.Object(objAttrs.Name)
+		if deleteErr := obj.Delete(context.Background()); deleteErr != nil {
+			log.Printf("Failed to delete old profile image %s: %v", objAttrs.Name, deleteErr)
+			// Continue deleting other files even if one fails
+		}
+	}
+	
+	return nil
+}

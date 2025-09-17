@@ -16,13 +16,15 @@ INSERT INTO game.games (
 );
 
 -- name: GetGameById :one
--- Retrieves a specific game along with team names and location name.
+-- Retrieves a specific game along with team names, logo URLs, and location name.
 SELECT 
     g.id,
     g.home_team_id,
     ht.name AS home_team_name,
+    ht.logo_url AS home_team_logo_url,
     g.away_team_id,
     at.name AS away_team_name,
+    at.logo_url AS away_team_logo_url,
     g.home_score,
     g.away_score,
     g.start_time,
@@ -31,15 +33,13 @@ SELECT
     loc.name AS location_name,
     g.court_id,
     c.name AS court_name,
-    g.court_id,
-    c.name AS court_name,
     g.status,
     g.created_at,
     g.updated_at
 FROM game.games g
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
-JOIN location.courts c ON g.court_id = c.id
+LEFT JOIN location.courts c ON g.court_id = c.id
 JOIN location.locations loc ON g.location_id = loc.id
 WHERE g.id = $1;
 

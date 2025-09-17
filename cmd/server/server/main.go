@@ -122,8 +122,8 @@ func setupMiddlewares(router *chi.Mux) {
 	router.Use(middlewares.SetJSONContentType)
 
 	router.Use(cors.New(cors.Options{
-		AllowedOrigins:   []string{"https://rise-web-461776259687.us-west2.run.app", "*"}, // * is used but should be replaced when going to prod
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedOrigins:   []string{"https://rise-web-461776259687.us-west2.run.app", "http://localhost:3000"}, // Added localhost:3000 for frontend development
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"}, // Added PATCH method
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		ExposedHeaders:   []string{"Authorization"},
 		AllowCredentials: true,

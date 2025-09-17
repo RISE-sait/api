@@ -353,3 +353,155 @@ func (h *CreditHandler) UpdateEventCreditCost(w http.ResponseWriter, r *http.Req
 	}
 }
 
+// GetAnyCustomerCredits retrieves credit balance for any customer by ID (admin only)
+// @Tags credits
+// @Accept json
+// @Produce json
+// @Param id path string true "Customer ID" format(uuid)
+// @Success 200 {object} map[string]interface{} "Credit balance retrieved successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid customer ID"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden: Admin access required"
+// @Failure 404 {object} map[string]interface{} "Not Found: Customer not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Security Bearer
+// @Router /admin/customers/{id}/credits [get]
+func (h *CreditHandler) GetAnyCustomerCredits(w http.ResponseWriter, r *http.Request) {
+	// Parse customer ID from URL
+	var customerID uuid.UUID
+	if idStr := chi.URLParam(r, "id"); idStr != "" {
+		if id, err := validators.ParseUUID(idStr); err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		} else {
+			customerID = id
+		}
+	} else {
+		responseHandlers.RespondWithError(w, errLib.New("customer id must be provided", http.StatusBadRequest))
+		return
+	}
+
+	if credits, err := h.CreditService.GetCustomerCredits(r.Context(), customerID); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	} else {
+		response := map[string]interface{}{
+			"customer_id": customerID,
+			"credits":     credits,
+		}
+		responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
+	}
+}
+
+// GetAnyCustomerCreditTransactions retrieves credit transaction history for any customer by ID (admin only)
+// @Tags credits
+// @Accept json
+// @Produce json
+// @Param id path string true "Customer ID" format(uuid)
+// @Param limit query int false "Number of items per page" minimum(1) maximum(100) default(20)
+// @Param offset query int false "Number of items to skip" minimum(0) default(0)
+// @Success 200 {object} map[string]interface{} "Credit transaction history retrieved successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid customer ID"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden: Admin access required"
+// @Failure 404 {object} map[string]interface{} "Not Found: Customer not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Security Bearer
+// @Router /admin/customers/{id}/credits/transactions [get]
+func (h *CreditHandler) GetAnyCustomerCreditTransactions(w http.ResponseWriter, r *http.Request) {
+	// Parse customer ID from URL
+	var customerID uuid.UUID
+	if idStr := chi.URLParam(r, "id"); idStr != "" {
+		if id, err := validators.ParseUUID(idStr); err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		} else {
+			customerID = id
+		}
+	} else {
+		responseHandlers.RespondWithError(w, errLib.New("customer id must be provided", http.StatusBadRequest))
+		return
+	}
+
+	// Parse pagination parameters
+	limit := 20
+	offset := 0
+
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if parsed, parseErr := strconv.Atoi(limitStr); parseErr == nil && parsed > 0 && parsed <= 100 {
+			limit = parsed
+		}
+	}
+
+	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
+		if parsed, parseErr := strconv.Atoi(offsetStr); parseErr == nil && parsed >= 0 {
+			offset = parsed
+		}
+	}
+
+	if transactions, err := h.CreditService.GetCustomerCreditTransactions(r.Context(), customerID, int32(limit), int32(offset)); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	} else {
+		response := map[string]interface{}{
+			"customer_id":  customerID,
+			"transactions": transactions,
+			"limit":        limit,
+			"offset":       offset,
+		}
+		responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
+	}
+}
+
+// GetAnyCustomerWeeklyUsage retrieves weekly credit usage for any customer by ID (admin only)
+// @Tags credits
+// @Accept json
+// @Produce json
+// @Param id path string true "Customer ID" format(uuid)
+// @Success 200 {object} map[string]interface{} "Weekly usage retrieved successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid customer ID"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden: Admin access required"
+// @Failure 404 {object} map[string]interface{} "Not Found: Customer not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Security Bearer
+// @Router /admin/customers/{id}/credits/weekly-usage [get]
+func (h *CreditHandler) GetAnyCustomerWeeklyUsage(w http.ResponseWriter, r *http.Request) {
+	// Parse customer ID from URL
+	var customerID uuid.UUID
+	if idStr := chi.URLParam(r, "id"); idStr != "" {
+		if id, err := validators.ParseUUID(idStr); err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		} else {
+			customerID = id
+		}
+	} else {
+		responseHandlers.RespondWithError(w, errLib.New("customer id must be provided", http.StatusBadRequest))
+		return
+	}
+
+	currentUsage, weeklyLimit, err := h.WeeklyCreditService.GetWeeklyUsage(r.Context(), customerID)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	response := map[string]interface{}{
+		"customer_id":         customerID,
+		"current_week_usage":  currentUsage,
+		"weekly_limit":        weeklyLimit,
+		"remaining_credits":   nil,
+	}
+
+	if weeklyLimit != nil {
+		remaining := *weeklyLimit - currentUsage
+		if remaining < 0 {
+			remaining = 0
+		}
+		response["remaining_credits"] = remaining
+	}
+
+	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
+}
+

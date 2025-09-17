@@ -78,8 +78,10 @@ SELECT
     g.id,
     g.home_team_id,
     ht.name AS home_team_name,
+    ht.logo_url AS home_team_logo_url,
     g.away_team_id,
     at.name AS away_team_name,
+    at.logo_url AS away_team_logo_url,
     g.home_score,
     g.away_score,
     g.start_time,
@@ -88,41 +90,39 @@ SELECT
     loc.name AS location_name,
     g.court_id,
     c.name AS court_name,
-    g.court_id,
-    c.name AS court_name,
     g.status,
     g.created_at,
     g.updated_at
 FROM game.games g
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
-JOIN location.courts c ON g.court_id = c.id
+LEFT JOIN location.courts c ON g.court_id = c.id
 JOIN location.locations loc ON g.location_id = loc.id
 WHERE g.id = $1
 `
 
 type GetGameByIdRow struct {
-	ID           uuid.UUID      `json:"id"`
-	HomeTeamID   uuid.UUID      `json:"home_team_id"`
-	HomeTeamName string         `json:"home_team_name"`
-	AwayTeamID   uuid.UUID      `json:"away_team_id"`
-	AwayTeamName string         `json:"away_team_name"`
-	HomeScore    sql.NullInt32  `json:"home_score"`
-	AwayScore    sql.NullInt32  `json:"away_score"`
-	StartTime    time.Time      `json:"start_time"`
-	EndTime      sql.NullTime   `json:"end_time"`
-	LocationID   uuid.UUID      `json:"location_id"`
-	LocationName string         `json:"location_name"`
-	CourtID      uuid.NullUUID  `json:"court_id"`
-	CourtName    string         `json:"court_name"`
-	CourtID_2    uuid.NullUUID  `json:"court_id_2"`
-	CourtName_2  string         `json:"court_name_2"`
-	Status       sql.NullString `json:"status"`
-	CreatedAt    sql.NullTime   `json:"created_at"`
-	UpdatedAt    sql.NullTime   `json:"updated_at"`
+	ID              uuid.UUID      `json:"id"`
+	HomeTeamID      uuid.UUID      `json:"home_team_id"`
+	HomeTeamName    string         `json:"home_team_name"`
+	HomeTeamLogoUrl sql.NullString `json:"home_team_logo_url"`
+	AwayTeamID      uuid.UUID      `json:"away_team_id"`
+	AwayTeamName    string         `json:"away_team_name"`
+	AwayTeamLogoUrl sql.NullString `json:"away_team_logo_url"`
+	HomeScore       sql.NullInt32  `json:"home_score"`
+	AwayScore       sql.NullInt32  `json:"away_score"`
+	StartTime       time.Time      `json:"start_time"`
+	EndTime         sql.NullTime   `json:"end_time"`
+	LocationID      uuid.UUID      `json:"location_id"`
+	LocationName    string         `json:"location_name"`
+	CourtID         uuid.NullUUID  `json:"court_id"`
+	CourtName       sql.NullString `json:"court_name"`
+	Status          sql.NullString `json:"status"`
+	CreatedAt       sql.NullTime   `json:"created_at"`
+	UpdatedAt       sql.NullTime   `json:"updated_at"`
 }
 
-// Retrieves a specific game along with team names and location name.
+// Retrieves a specific game along with team names, logo URLs, and location name.
 func (q *Queries) GetGameById(ctx context.Context, id uuid.UUID) (GetGameByIdRow, error) {
 	row := q.db.QueryRowContext(ctx, getGameById, id)
 	var i GetGameByIdRow
@@ -130,8 +130,10 @@ func (q *Queries) GetGameById(ctx context.Context, id uuid.UUID) (GetGameByIdRow
 		&i.ID,
 		&i.HomeTeamID,
 		&i.HomeTeamName,
+		&i.HomeTeamLogoUrl,
 		&i.AwayTeamID,
 		&i.AwayTeamName,
+		&i.AwayTeamLogoUrl,
 		&i.HomeScore,
 		&i.AwayScore,
 		&i.StartTime,
@@ -140,8 +142,6 @@ func (q *Queries) GetGameById(ctx context.Context, id uuid.UUID) (GetGameByIdRow
 		&i.LocationName,
 		&i.CourtID,
 		&i.CourtName,
-		&i.CourtID_2,
-		&i.CourtName_2,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,

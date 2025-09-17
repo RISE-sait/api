@@ -59,6 +59,14 @@ func nullableInt32ToPtr(n sql.NullInt32) *int32 {
 	return nil
 }
 
+// Helper: Converts sql.NullString to string.
+func nullableStringToPtr(ns sql.NullString) string {
+	if ns.Valid {
+		return ns.String
+	}
+	return ""
+}
+
 // Helper: Converts *int32 to sql.NullInt32.
 func toNullInt32(ptr *int32) sql.NullInt32 {
 	if ptr != nil {
@@ -102,20 +110,24 @@ func (r *Repository) GetGameById(ctx context.Context, id uuid.UUID) (values.Read
 	}
 
 	return values.ReadGameValue{
-		ID:           dbGame.ID,
-		HomeTeamID:   dbGame.HomeTeamID,
-		HomeTeamName: dbGame.HomeTeamName,
-		AwayTeamID:   dbGame.AwayTeamID,
-		AwayTeamName: dbGame.AwayTeamName,
-		HomeScore:    nullableInt32ToPtr(dbGame.HomeScore),
-		AwayScore:    nullableInt32ToPtr(dbGame.AwayScore),
-		StartTime:    dbGame.StartTime,
-		EndTime:      nullableTimeToPtr(dbGame.EndTime),
-		LocationID:   dbGame.LocationID,
-		LocationName: dbGame.LocationName,
-		Status:       dbGame.Status.String,
-		CreatedAt:    nullableTimeToPtr(dbGame.CreatedAt),
-		UpdatedAt:    nullableTimeToPtr(dbGame.UpdatedAt),
+		ID:              dbGame.ID,
+		HomeTeamID:      dbGame.HomeTeamID,
+		HomeTeamName:    dbGame.HomeTeamName,
+		HomeTeamLogoUrl: nullableStringToPtr(dbGame.HomeTeamLogoUrl),
+		AwayTeamID:      dbGame.AwayTeamID,
+		AwayTeamName:    dbGame.AwayTeamName,
+		AwayTeamLogoUrl: nullableStringToPtr(dbGame.AwayTeamLogoUrl),
+		HomeScore:       nullableInt32ToPtr(dbGame.HomeScore),
+		AwayScore:       nullableInt32ToPtr(dbGame.AwayScore),
+		StartTime:       dbGame.StartTime,
+		EndTime:         nullableTimeToPtr(dbGame.EndTime),
+		LocationID:      dbGame.LocationID,
+		LocationName:    dbGame.LocationName,
+		CourtID:         dbGame.CourtID.UUID,
+		CourtName:       nullableStringToPtr(dbGame.CourtName),
+		Status:          dbGame.Status.String,
+		CreatedAt:       nullableTimeToPtr(dbGame.CreatedAt),
+		UpdatedAt:       nullableTimeToPtr(dbGame.UpdatedAt),
 	}, nil
 }
 

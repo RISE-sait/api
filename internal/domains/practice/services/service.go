@@ -69,20 +69,12 @@ func (s *Service) CreatePractice(ctx context.Context, val values.CreatePracticeV
 
 func (s *Service) sendPracticeNotification(ctx context.Context, practice values.CreatePracticeValue) {
 	startTime := "TBD"
+	startTimeISO := ""
 	if !practice.StartTime.IsZero() {
-		// Assume database time is MST and format accordingly
-		mstLoc, _ := time.LoadLocation("America/Denver")
-		mstTime := time.Date(
-			practice.StartTime.Year(),
-			practice.StartTime.Month(),
-			practice.StartTime.Day(),
-			practice.StartTime.Hour(),
-			practice.StartTime.Minute(),
-			practice.StartTime.Second(),
-			practice.StartTime.Nanosecond(),
-			mstLoc,
-		)
-		startTime = mstTime.Format("January 2, 2006 at 3:04 PM MST")
+		// Format as MST string for display
+		startTime = practice.StartTime.Format("January 2, 2006 at 3:04 PM MST")
+		// Send ISO string in MST timezone for data
+		startTimeISO = practice.StartTime.Format("2006-01-02T15:04:05-07:00")
 	}
 	
 	notification := notificationValues.TeamNotification{
@@ -93,7 +85,7 @@ func (s *Service) sendPracticeNotification(ctx context.Context, practice values.
 		Data: map[string]interface{}{
 			"practiceId": "new-practice",  // CreatePracticeValue doesn't have ID yet
 			"type":       "practice",
-			"startAt":    practice.StartTime,
+			"startAt":    startTimeISO,
 		},
 	}
 	

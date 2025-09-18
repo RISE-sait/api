@@ -17,6 +17,7 @@ import (
 	"github.com/stripe/stripe-go/v81/checkout/session"
 	"github.com/stripe/stripe-go/v81/coupon"
 	"github.com/stripe/stripe-go/v81/customer"
+	"github.com/stripe/stripe-go/v81/price"
 	"github.com/stripe/stripe-go/v81/subscription"
 	"github.com/stripe/stripe-go/v81/webhook"
 )
@@ -707,4 +708,27 @@ func ValidateWebhookSignature(payload []byte, signature, secret string) (*stripe
 	}
 
 	return &event, nil
+}
+
+// PriceService handles Stripe price operations
+type PriceService struct{}
+
+// NewPriceService creates a new price service instance
+func NewPriceService() *PriceService {
+	return &PriceService{}
+}
+
+// GetPrice retrieves a price from Stripe by price ID
+func (s *PriceService) GetPrice(priceID string) (*stripe.Price, *errLib.CommonError) {
+	if strings.TrimSpace(priceID) == "" {
+		return nil, errLib.New("price ID cannot be empty", http.StatusBadRequest)
+	}
+
+	stripePrice, err := price.Get(priceID, nil)
+	if err != nil {
+		log.Printf("[STRIPE] Failed to get price %s: %v", priceID, err)
+		return nil, errLib.New("Failed to retrieve price from Stripe: "+err.Error(), http.StatusInternalServerError)
+	}
+
+	return stripePrice, nil
 }

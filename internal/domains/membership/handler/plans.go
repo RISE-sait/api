@@ -77,7 +77,7 @@ func (h *PlansHandlers) GetMembershipPlans(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	plans, err := h.Service.GetPlans(r.Context(), membershipId)
+	plans, err := h.Service.GetPlansWithStripeData(r.Context(), membershipId)
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)

@@ -70,7 +70,19 @@ func (s *Service) CreatePractice(ctx context.Context, val values.CreatePracticeV
 func (s *Service) sendPracticeNotification(ctx context.Context, practice values.CreatePracticeValue) {
 	startTime := "TBD"
 	if !practice.StartTime.IsZero() {
-		startTime = practice.StartTime.Format("January 2, 2006 at 3:04 PM")
+		// Assume database time is MST and format accordingly
+		mstLoc, _ := time.LoadLocation("America/Denver")
+		mstTime := time.Date(
+			practice.StartTime.Year(),
+			practice.StartTime.Month(),
+			practice.StartTime.Day(),
+			practice.StartTime.Hour(),
+			practice.StartTime.Minute(),
+			practice.StartTime.Second(),
+			practice.StartTime.Nanosecond(),
+			mstLoc,
+		)
+		startTime = mstTime.Format("January 2, 2006 at 3:04 PM MST")
 	}
 	
 	notification := notificationValues.TeamNotification{

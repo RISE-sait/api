@@ -22,15 +22,14 @@ type PlanResponse struct {
 	Currency            string    `json:"currency"`
 	Interval            string    `json:"interval"`
 	Price               string    `json:"price"`
-	JoiningFee          int       `json:"joining_fee"`
-	JoiningFeeDisplay   string    `json:"joining_fee_display"`
+	JoiningFeePrice     string    `json:"joining_fee_price"`
 	CreatedAt           time.Time `json:"created_at"`
 	UpdatedAt           time.Time `json:"updated_at"`
 }
 
 func NewPlanResponse(plan values.PlanReadValues) PlanResponse {
 	displayPrice := fmt.Sprintf("$%.2f", float64(plan.UnitAmount)/100) // convert unit_amount to dollars and format as string
-	joiningFeeDisplay := fmt.Sprintf("$%.2f", float64(plan.JoiningFee)/100) // convert joining_fee to dollars and format as string
+	joiningFeePrice := fmt.Sprintf("$%.2f", float64(plan.JoiningFee)/100) // convert joining_fee to dollars and format as string
 
 	return PlanResponse{
 		MembershipID:        plan.MembershipID,
@@ -45,8 +44,7 @@ func NewPlanResponse(plan values.PlanReadValues) PlanResponse {
 		Currency:            strings.ToUpper(plan.Currency), // e.g. "USD", "CAD"
 		Interval:            plan.Interval, // e.g. "month", "year", weekly, etc.
 		Price:               displayPrice, // e.g. "$10.00" display price
-		JoiningFee:          plan.JoiningFee,
-		JoiningFeeDisplay:   joiningFeeDisplay, // e.g. "$130.00" display price
+		JoiningFeePrice:     joiningFeePrice, // e.g. "$130.00" display price
 		CreatedAt:           plan.CreatedAt,
 		UpdatedAt:           plan.UpdatedAt,
 	}

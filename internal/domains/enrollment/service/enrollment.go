@@ -161,6 +161,25 @@ func (s *CustomerEnrollmentService) UpdateReservationStatusInEvent(ctx context.C
 			log.Printf("WARNING: Event %s not found when updating reservation for customer %s - event may have been deleted", eventID, customerID)
 			return nil // Don't fail webhook for missing events
 		}
+		// Check if no reservation exists to update (0 affected rows)
+		if err.HTTPCode == 500 && strings.Contains(err.Message, "Error confirming customer's reservation status") {
+			log.Printf("WARNING: No reservation found for customer %s in event %s - creating reservation", customerID, eventID)
+			
+			// Try to create the reservation first, then update status
+			if createErr := s.ReserveSeatInEvent(ctx, eventID, customerID); createErr != nil {
+				log.Printf("ERROR: Failed to create reservation for customer %s in event %s: %v", customerID, eventID, createErr)
+				return nil // Don't fail webhook even if creation fails
+			}
+			
+			// Now try to update the status again
+			if updateErr := s.repo.UpdateReservationStatusInEvent(ctx, eventID, customerID, status); updateErr != nil {
+				log.Printf("ERROR: Failed to update reservation status after creation for customer %s in event %s: %v", customerID, eventID, updateErr)
+				return nil // Don't fail webhook
+			}
+			
+			log.Printf("SUCCESS: Created and updated reservation for customer %s in event %s", customerID, eventID)
+			return nil
+		}
 		return err
 	}
 	

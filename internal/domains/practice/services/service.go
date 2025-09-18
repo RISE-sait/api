@@ -3,6 +3,8 @@ package practice
 import (
 	"api/internal/di"
 	staffActivityLogs "api/internal/domains/audit/staff_activity_logs/service"
+	notificationService "api/internal/domains/notification/services"
+	notificationValues "api/internal/domains/notification/values"
 	repo "api/internal/domains/practice/persistence"
 	values "api/internal/domains/practice/values"
 	errLib "api/internal/libs/errors"
@@ -21,6 +23,7 @@ import (
 type Service struct {
 	repo                     *repo.Repository
 	staffActivityLogsService *staffActivityLogs.Service
+	notificationService      *notificationService.NotificationService
 	db                       *sql.DB
 }
 
@@ -28,6 +31,7 @@ func NewService(container *di.Container) *Service {
 	return &Service{
 		repo:                     repo.NewRepository(container),
 		staffActivityLogsService: staffActivityLogs.NewService(container),
+		notificationService:      notificationService.NewNotificationService(container),
 		db:                       container.DB,
 	}
 }
@@ -48,8 +52,41 @@ func (s *Service) CreatePractice(ctx context.Context, val values.CreatePracticeV
 		if err != nil {
 			return err
 		}
-		return s.staffActivityLogsService.InsertStaffActivity(ctx, r.GetTx(), staffID, fmt.Sprintf("Created practice %+v", val))
+		
+		// Log the activity
+		if err := s.staffActivityLogsService.InsertStaffActivity(ctx, r.GetTx(), staffID, fmt.Sprintf("Created practice %+v", val)); err != nil {
+			return err
+		}
+		
+		// Send automatic notification to team if TeamID is provided
+		if val.TeamID != uuid.Nil {
+			go s.sendPracticeNotification(context.Background(), val)
+		}
+		
+		return nil
 	})
+}
+
+func (s *Service) sendPracticeNotification(ctx context.Context, practice values.CreatePracticeValue) {
+	startTime := "TBD"
+	if !practice.StartTime.IsZero() {
+		startTime = practice.StartTime.Format("January 2, 2006 at 3:04 PM")
+	}
+	
+	notification := notificationValues.TeamNotification{
+		Type:   "practice",
+		Title:  "New Practice Scheduled",
+		Body:   fmt.Sprintf("Practice on %s", startTime),
+		TeamID: practice.TeamID,
+		Data: map[string]interface{}{
+			"practiceId": "new-practice",  // CreatePracticeValue doesn't have ID yet
+			"type":       "practice",
+			"startAt":    practice.StartTime,
+		},
+	}
+	
+	// Send notification (errors are logged by the notification service)
+	s.notificationService.SendTeamNotification(ctx, practice.TeamID, notification)
 }
 
 func (s *Service) UpdatePractice(ctx context.Context, val values.UpdatePracticeValue) *errLib.CommonError {

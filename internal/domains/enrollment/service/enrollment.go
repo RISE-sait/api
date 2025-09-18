@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	databaseErrors "api/internal/constants"
@@ -151,9 +152,17 @@ func (s *CustomerEnrollmentService) UpdateReservationStatusInProgram(ctx context
 }
 
 func (s *CustomerEnrollmentService) UpdateReservationStatusInEvent(ctx context.Context, eventID, customerID uuid.UUID, status dbEnrollment.PaymentStatus) *errLib.CommonError {
-	if _, err := s.eventService.GetEvent(ctx, eventID); err != nil {
+	// Try to update the reservation first - if it fails due to foreign key constraint,
+	// then we know the event doesn't exist. This avoids potential isolation level issues.
+	err := s.repo.UpdateReservationStatusInEvent(ctx, eventID, customerID, status)
+	if err != nil {
+		// Check if this is a foreign key constraint error (event doesn't exist)
+		if err.HTTPCode == 400 && (strings.Contains(err.Message, "event") || strings.Contains(err.Message, "foreign key")) {
+			log.Printf("WARNING: Event %s not found when updating reservation for customer %s - event may have been deleted", eventID, customerID)
+			return nil // Don't fail webhook for missing events
+		}
 		return err
 	}
-
-	return s.repo.UpdateReservationStatusInEvent(ctx, eventID, customerID, status)
+	
+	return nil
 }

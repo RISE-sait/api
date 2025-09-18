@@ -17,6 +17,7 @@ import (
 	"api/internal/domains/identity/handler/registration"
 	locationsHandler "api/internal/domains/location/handler"
 	membership "api/internal/domains/membership/handler"
+	notificationHandler "api/internal/domains/notification/handler"
 	payment "api/internal/domains/payment/handler"
 	paymentMiddleware "api/internal/domains/payment/middleware"
 	playground "api/internal/domains/playground/handler"
@@ -425,6 +426,7 @@ func RegisterSecureRoutes(container *di.Container) func(chi.Router) {
 		r.Route("/teams", RegisterSecureTeamRoutes(container))
 		r.Route("/schedule", RegisterSecureScheduleRoutes(container))
 		r.Route("/credits", RegisterSecureCreditRoutes(container))
+		r.Route("/notifications", RegisterSecureNotificationRoutes(container))
 	}
 }
 
@@ -555,5 +557,14 @@ func RegisterUploadRoutes(container *di.Container) func(chi.Router) {
 
 	return func(r chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/image", uploadHandlers.UploadImage)
+	}
+}
+
+// RegisterSecureNotificationRoutes registers secure notification routes that require authentication.
+func RegisterSecureNotificationRoutes(container *di.Container) func(chi.Router) {
+	h := notificationHandler.NewNotificationHandler(container)
+	return func(r chi.Router) {
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/register", h.RegisterPushToken)
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/send", h.SendTeamNotification)
 	}
 }

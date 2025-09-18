@@ -5,6 +5,8 @@ import (
 	staffActivityLogs "api/internal/domains/audit/staff_activity_logs/service"
 	repo "api/internal/domains/game/persistence"
 	values "api/internal/domains/game/values"
+	notificationService "api/internal/domains/notification/services"
+	notificationValues "api/internal/domains/notification/values"
 	errLib "api/internal/libs/errors"
 	contextUtils "api/utils/context"
 	txUtils "api/utils/db"
@@ -19,9 +21,10 @@ import (
 // Service acts as the business logic layer for game operations.
 // It coordinates between the repository and audit logging.
 type Service struct {
-	repo                     *repo.Repository           // Game repository
-	staffActivityLogsService *staffActivityLogs.Service // Service to log staff activities
-	db                       *sql.DB                    // Database connection for transactions
+	repo                     *repo.Repository                        // Game repository
+	staffActivityLogsService *staffActivityLogs.Service              // Service to log staff activities
+	notificationService      *notificationService.NotificationService // Service to send notifications
+	db                       *sql.DB                                 // Database connection for transactions
 }
 
 // NewService constructs a new Game Service using the DI container.
@@ -29,6 +32,7 @@ func NewService(container *di.Container) *Service {
 	return &Service{
 		repo:                     repo.NewGameRepository(container),
 		staffActivityLogsService: staffActivityLogs.NewService(container),
+		notificationService:      notificationService.NewNotificationService(container),
 		db:                       container.DB,
 	}
 }
@@ -86,8 +90,52 @@ func (s *Service) CreateGame(ctx context.Context, details values.CreateGameValue
 			return err
 		}
 
+		// Send automatic notification to teams
+		go s.sendGameNotification(context.Background(), details)
+
 		return nil
 	})
+}
+
+func (s *Service) sendGameNotification(ctx context.Context, game values.CreateGameValue) {
+	gameTime := "TBD"
+	if !game.StartTime.IsZero() {
+		gameTime = game.StartTime.Format("January 2, 2006 at 3:04 PM")
+	}
+	
+	// Send notification to home team
+	if game.HomeTeamID != uuid.Nil {
+		notification := notificationValues.TeamNotification{
+			Type:   "game",
+			Title:  "New Game Scheduled",
+			Body:   fmt.Sprintf("Game on %s vs opponent", gameTime),
+			TeamID: game.HomeTeamID,
+			Data: map[string]interface{}{
+				"gameId":   "new-game",  // CreateGameValue doesn't have ID yet
+				"type":     "game",
+				"startAt":  game.StartTime,
+				"role":     "home",
+			},
+		}
+		s.notificationService.SendTeamNotification(ctx, game.HomeTeamID, notification)
+	}
+	
+	// Send notification to away team
+	if game.AwayTeamID != uuid.Nil {
+		notification := notificationValues.TeamNotification{
+			Type:   "game",
+			Title:  "New Game Scheduled",
+			Body:   fmt.Sprintf("Game on %s vs opponent", gameTime),
+			TeamID: game.AwayTeamID,
+			Data: map[string]interface{}{
+				"gameId":   "new-game",  // CreateGameValue doesn't have ID yet
+				"type":     "game",
+				"startAt":  game.StartTime,
+				"role":     "away",
+			},
+		}
+		s.notificationService.SendTeamNotification(ctx, game.AwayTeamID, notification)
+	}
 }
 
 // UpdateGame updates an existing game and logs the modification.

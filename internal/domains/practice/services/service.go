@@ -71,10 +71,10 @@ func (s *Service) sendPracticeNotification(ctx context.Context, practice values.
 	startTime := "TBD"
 	startTimeISO := ""
 	if !practice.StartTime.IsZero() {
-		// Format as MST string for display
+		// Use the time as-is since it already has correct timezone from database
 		startTime = practice.StartTime.Format("January 2, 2006 at 3:04 PM MST")
-		// Send ISO string in MST timezone for data
-		startTimeISO = practice.StartTime.Format("2006-01-02T15:04:05-07:00")
+		// Send the exact timestamp from database (preserves -06 or -07 offset)
+		startTimeISO = practice.StartTime.Format(time.RFC3339)
 	}
 	
 	notification := notificationValues.TeamNotification{

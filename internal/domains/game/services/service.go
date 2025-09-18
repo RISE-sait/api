@@ -14,7 +14,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
-	
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -102,10 +102,10 @@ func (s *Service) sendGameNotification(ctx context.Context, game values.CreateGa
 	gameTime := "TBD"
 	gameTimeISO := ""
 	if !game.StartTime.IsZero() {
-		// Format as MST string for display
+		// Use the time as-is since it already has correct timezone from database  
 		gameTime = game.StartTime.Format("January 2, 2006 at 3:04 PM MST")
-		// Send ISO string in MST timezone for data
-		gameTimeISO = game.StartTime.Format("2006-01-02T15:04:05-07:00")
+		// Send the exact timestamp from database (preserves -06 or -07 offset)
+		gameTimeISO = game.StartTime.Format(time.RFC3339)
 	}
 	
 	// Send notification to home team

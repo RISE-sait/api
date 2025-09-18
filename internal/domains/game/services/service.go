@@ -14,6 +14,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -100,7 +101,19 @@ func (s *Service) CreateGame(ctx context.Context, details values.CreateGameValue
 func (s *Service) sendGameNotification(ctx context.Context, game values.CreateGameValue) {
 	gameTime := "TBD"
 	if !game.StartTime.IsZero() {
-		gameTime = game.StartTime.Format("January 2, 2006 at 3:04 PM")
+		// Assume database time is MST and format accordingly
+		mstLoc, _ := time.LoadLocation("America/Denver")
+		mstTime := time.Date(
+			game.StartTime.Year(),
+			game.StartTime.Month(),
+			game.StartTime.Day(),
+			game.StartTime.Hour(),
+			game.StartTime.Minute(),
+			game.StartTime.Second(),
+			game.StartTime.Nanosecond(),
+			mstLoc,
+		)
+		gameTime = mstTime.Format("January 2, 2006 at 3:04 PM MST")
 	}
 	
 	// Send notification to home team

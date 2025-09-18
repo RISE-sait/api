@@ -14,7 +14,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
-	"time"
+	
 
 	"github.com/google/uuid"
 )
@@ -100,20 +100,12 @@ func (s *Service) CreateGame(ctx context.Context, details values.CreateGameValue
 
 func (s *Service) sendGameNotification(ctx context.Context, game values.CreateGameValue) {
 	gameTime := "TBD"
+	gameTimeISO := ""
 	if !game.StartTime.IsZero() {
-		// Assume database time is MST and format accordingly
-		mstLoc, _ := time.LoadLocation("America/Denver")
-		mstTime := time.Date(
-			game.StartTime.Year(),
-			game.StartTime.Month(),
-			game.StartTime.Day(),
-			game.StartTime.Hour(),
-			game.StartTime.Minute(),
-			game.StartTime.Second(),
-			game.StartTime.Nanosecond(),
-			mstLoc,
-		)
-		gameTime = mstTime.Format("January 2, 2006 at 3:04 PM MST")
+		// Format as MST string for display
+		gameTime = game.StartTime.Format("January 2, 2006 at 3:04 PM MST")
+		// Send ISO string in MST timezone for data
+		gameTimeISO = game.StartTime.Format("2006-01-02T15:04:05-07:00")
 	}
 	
 	// Send notification to home team
@@ -126,7 +118,7 @@ func (s *Service) sendGameNotification(ctx context.Context, game values.CreateGa
 			Data: map[string]interface{}{
 				"gameId":   "new-game",  // CreateGameValue doesn't have ID yet
 				"type":     "game",
-				"startAt":  game.StartTime,
+				"startAt":  gameTimeISO,
 				"role":     "home",
 			},
 		}
@@ -143,7 +135,7 @@ func (s *Service) sendGameNotification(ctx context.Context, game values.CreateGa
 			Data: map[string]interface{}{
 				"gameId":   "new-game",  // CreateGameValue doesn't have ID yet
 				"type":     "game",
-				"startAt":  game.StartTime,
+				"startAt":  gameTimeISO,
 				"role":     "away",
 			},
 		}

@@ -27,7 +27,7 @@ func NewNotificationHandler(container *di.Container) *NotificationHandler {
 // @Tags notifications
 // @Accept json
 // @Produce json
-// @Param request body dto.RegisterPushTokenRequest true "Push token registration details"
+// @Param request body dto.RegisterPushTokenRequestDto true "Push token registration details"
 // @Security Bearer
 // @Success 200 {object} map[string]interface{} "Token registered successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
@@ -74,7 +74,7 @@ func (h *NotificationHandler) RegisterPushToken(w http.ResponseWriter, r *http.R
 // @Tags notifications
 // @Accept json
 // @Produce json
-// @Param request body dto.SendNotificationRequest true "Notification details"
+// @Param request body dto.SendNotificationRequestDto true "Notification details"
 // @Security Bearer
 // @Success 200 {object} map[string]interface{} "Notification sent successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"

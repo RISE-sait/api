@@ -102,9 +102,17 @@ func (s *Service) sendGameNotification(ctx context.Context, game values.CreateGa
 	gameTime := "TBD"
 	gameTimeISO := ""
 	if !game.StartTime.IsZero() {
-		// Use the EXACT time from database - it's already in MST
-		gameTime = game.StartTime.Format("January 2, 2006 at 3:04 PM MST")
+		// Log the raw time from database for debugging
+		fmt.Printf("[GAME NOTIFICATION DEBUG] Raw time from DB: %s\n", game.StartTime.String())
+		fmt.Printf("[GAME NOTIFICATION DEBUG] Raw time timezone: %s\n", game.StartTime.Location().String())
+		fmt.Printf("[GAME NOTIFICATION DEBUG] Raw time Unix: %d\n", game.StartTime.Unix())
+		
+		// Use the raw time from database and just append MST label  
+		gameTime = game.StartTime.Format("January 2, 2006 at 3:04 PM") + " MST"
 		gameTimeISO = game.StartTime.Format(time.RFC3339)
+		
+		fmt.Printf("[GAME NOTIFICATION DEBUG] Formatted time for notification: %s\n", gameTime)
+		fmt.Printf("[GAME NOTIFICATION DEBUG] ISO time for data: %s\n", gameTimeISO)
 	}
 	
 	// Send notification to home team

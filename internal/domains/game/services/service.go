@@ -102,31 +102,9 @@ func (s *Service) sendGameNotification(ctx context.Context, game values.CreateGa
 	gameTime := "TBD"
 	gameTimeISO := ""
 	if !game.StartTime.IsZero() {
-		// Deployed database stores MST times, but Go reads them as UTC
-		// Convert back to MST for display
-		mstLoc, _ := time.LoadLocation("America/Denver")
-		
-		// If database time has no timezone (reads as UTC), interpret as MST
-		var mstTime time.Time
-		if game.StartTime.Location().String() == "UTC" {
-			// Database time is actually MST but Go thinks it's UTC
-			mstTime = time.Date(
-				game.StartTime.Year(),
-				game.StartTime.Month(), 
-				game.StartTime.Day(),
-				game.StartTime.Hour(),
-				game.StartTime.Minute(),
-				game.StartTime.Second(),
-				game.StartTime.Nanosecond(),
-				mstLoc,
-			)
-		} else {
-			// Time already has correct timezone
-			mstTime = game.StartTime.In(mstLoc)
-		}
-		
-		gameTime = mstTime.Format("January 2, 2006 at 3:04 PM MST")
-		gameTimeISO = mstTime.Format(time.RFC3339)
+		// Use the EXACT time from database - it's already in MST
+		gameTime = game.StartTime.Format("January 2, 2006 at 3:04 PM MST")
+		gameTimeISO = game.StartTime.Format(time.RFC3339)
 	}
 	
 	// Send notification to home team

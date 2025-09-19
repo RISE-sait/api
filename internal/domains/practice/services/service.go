@@ -13,7 +13,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	
+
 	"net/http"
 	"sort"
 	"time"
@@ -72,31 +72,9 @@ func (s *Service) sendPracticeNotification(ctx context.Context, practice values.
 	startTime := "TBD"
 	startTimeISO := ""
 	if !practice.StartTime.IsZero() {
-		// Deployed database stores MST times, but Go reads them as UTC
-		// Convert back to MST for display
-		mstLoc, _ := time.LoadLocation("America/Denver")
-		
-		// If database time has no timezone (reads as UTC), interpret as MST
-		var mstTime time.Time
-		if practice.StartTime.Location().String() == "UTC" {
-			// Database time is actually MST but Go thinks it's UTC
-			mstTime = time.Date(
-				practice.StartTime.Year(),
-				practice.StartTime.Month(), 
-				practice.StartTime.Day(),
-				practice.StartTime.Hour(),
-				practice.StartTime.Minute(),
-				practice.StartTime.Second(),
-				practice.StartTime.Nanosecond(),
-				mstLoc,
-			)
-		} else {
-			// Time already has correct timezone
-			mstTime = practice.StartTime.In(mstLoc)
-		}
-		
-		startTime = mstTime.Format("January 2, 2006 at 3:04 PM MST")
-		startTimeISO = mstTime.Format(time.RFC3339)
+		// Use the EXACT time from database - it's already in MST
+		startTime = practice.StartTime.Format("January 2, 2006 at 3:04 PM MST")
+		startTimeISO = practice.StartTime.Format(time.RFC3339)
 	}
 	
 	notification := notificationValues.TeamNotification{

@@ -4,6 +4,7 @@ import (
 	"api/internal/di"
 	dto "api/internal/domains/haircut/event/dto"
 	repository "api/internal/domains/haircut/event/persistence"
+	db "api/internal/domains/haircut/event/persistence/sqlc/generated"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
@@ -280,4 +281,316 @@ func (h *EventsHandler) GetAvailableTimeSlots(w http.ResponseWriter, r *http.Req
 	}
 
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
+}
+
+// ===== BARBER AVAILABILITY MANAGEMENT ENDPOINTS =====
+
+// GetMyAvailability retrieves the current barber's availability schedule.
+// @Summary Get my availability schedule  
+// @Description Get all availability records for the authenticated barber
+// @Tags barber-availability
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Success 200 {object} dto.WeeklyAvailabilityResponseDto "Barber availability schedule"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /haircuts/barbers/me/availability [get]
+func (h *EventsHandler) GetMyAvailability(w http.ResponseWriter, r *http.Request) {
+	barberID, err := contextUtils.GetUserID(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	availability, repoErr := h.Repo.GetBarberFullAvailability(r.Context(), barberID)
+	if repoErr != nil {
+		responseHandlers.RespondWithError(w, repoErr)
+		return
+	}
+
+	// Convert to response DTOs
+	availabilityDtos := make([]dto.AvailabilityResponseDto, len(availability))
+	for i, avail := range availability {
+		availabilityDtos[i] = dto.NewAvailabilityResponse(
+			avail.ID, avail.DayOfWeek, avail.StartTime, avail.EndTime,
+			avail.IsActive, avail.CreatedAt, avail.UpdatedAt,
+		)
+	}
+
+	result := dto.WeeklyAvailabilityResponseDto{
+		BarberID:     barberID,
+		Availability: availabilityDtos,
+	}
+
+	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
+}
+
+// SetMyAvailability sets availability for a specific day.
+// @Summary Set availability for a day
+// @Description Set working hours for a specific day of the week
+// @Tags barber-availability
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param availability body dto.SetAvailabilityDto true "Availability details"
+// @Success 201 {object} dto.AvailabilityResponseDto "Availability created successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 409 {object} map[string]interface{} "Conflict: Availability already exists"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /haircuts/barbers/me/availability [post]
+func (h *EventsHandler) SetMyAvailability(w http.ResponseWriter, r *http.Request) {
+	barberID, err := contextUtils.GetUserID(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	var requestDto dto.SetAvailabilityDto
+	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	if err := requestDto.Validate(); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Convert to repository parameters
+	startTime, _ := time.Parse("15:04", requestDto.StartTime)
+	endTime, _ := time.Parse("15:04", requestDto.EndTime)
+	
+	isActive := true
+	if requestDto.IsActive != nil {
+		isActive = *requestDto.IsActive
+	}
+
+	params := db.InsertBarberAvailabilityParams{
+		BarberID:  barberID,
+		DayOfWeek: int32(requestDto.DayOfWeek),
+		StartTime: startTime,
+		EndTime:   endTime,
+		IsActive:  isActive,
+	}
+
+	createdAvailability, repoErr := h.Repo.CreateBarberAvailability(r.Context(), params)
+	if repoErr != nil {
+		responseHandlers.RespondWithError(w, repoErr)
+		return
+	}
+
+	result := dto.NewAvailabilityResponse(
+		createdAvailability.ID, createdAvailability.DayOfWeek,
+		createdAvailability.StartTime, createdAvailability.EndTime,
+		createdAvailability.IsActive, createdAvailability.CreatedAt, createdAvailability.UpdatedAt,
+	)
+
+	responseHandlers.RespondWithSuccess(w, result, http.StatusCreated)
+}
+
+// BulkSetMyAvailability sets availability for multiple days at once.
+// @Summary Set availability for multiple days
+// @Description Set working hours for multiple days of the week in one request
+// @Tags barber-availability
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param availability body dto.BulkSetAvailabilityDto true "Multiple availability records"
+// @Success 200 {object} dto.WeeklyAvailabilityResponseDto "All availability set successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /haircuts/barbers/me/availability/bulk [post]
+func (h *EventsHandler) BulkSetMyAvailability(w http.ResponseWriter, r *http.Request) {
+	barberID, err := contextUtils.GetUserID(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	var requestDto dto.BulkSetAvailabilityDto
+	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	if err := requestDto.Validate(); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Use upsert for bulk operations to avoid conflicts
+	var createdAvailability []db.HaircutBarberAvailability
+	for _, avail := range requestDto.Availability {
+		startTime, _ := time.Parse("15:04", avail.StartTime)
+		endTime, _ := time.Parse("15:04", avail.EndTime)
+		
+		isActive := true
+		if avail.IsActive != nil {
+			isActive = *avail.IsActive
+		}
+
+		params := db.UpsertBarberAvailabilityParams{
+			BarberID:  barberID,
+			DayOfWeek: int32(avail.DayOfWeek),
+			StartTime: startTime,
+			EndTime:   endTime,
+			IsActive:  isActive,
+		}
+
+		result, repoErr := h.Repo.UpsertBarberAvailability(r.Context(), params)
+		if repoErr != nil {
+			responseHandlers.RespondWithError(w, repoErr)
+			return
+		}
+		createdAvailability = append(createdAvailability, result)
+	}
+
+	// Convert to response DTOs
+	availabilityDtos := make([]dto.AvailabilityResponseDto, len(createdAvailability))
+	for i, avail := range createdAvailability {
+		availabilityDtos[i] = dto.NewAvailabilityResponse(
+			avail.ID, avail.DayOfWeek, avail.StartTime, avail.EndTime,
+			avail.IsActive, avail.CreatedAt, avail.UpdatedAt,
+		)
+	}
+
+	result := dto.WeeklyAvailabilityResponseDto{
+		BarberID:     barberID,
+		Availability: availabilityDtos,
+	}
+
+	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
+}
+
+// UpdateMyAvailability updates a specific availability record.
+// @Summary Update availability record
+// @Description Update an existing availability record by ID
+// @Tags barber-availability
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path string true "Availability ID"
+// @Param availability body dto.UpdateAvailabilityDto true "Updated availability details"
+// @Success 200 {object} dto.AvailabilityResponseDto "Availability updated successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 404 {object} map[string]interface{} "Not Found: Availability record not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /haircuts/barbers/me/availability/{id} [put]
+func (h *EventsHandler) UpdateMyAvailability(w http.ResponseWriter, r *http.Request) {
+	barberID, err := contextUtils.GetUserID(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	idStr := chi.URLParam(r, "id")
+	id, err := validators.ParseUUID(idStr)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	var requestDto dto.UpdateAvailabilityDto
+	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	if err := requestDto.Validate(); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Verify ownership
+	existing, repoErr := h.Repo.GetBarberAvailabilityByID(r.Context(), id)
+	if repoErr != nil {
+		responseHandlers.RespondWithError(w, repoErr)
+		return
+	}
+
+	if existing.BarberID != barberID {
+		responseHandlers.RespondWithError(w, errLib.New("You can only update your own availability", http.StatusForbidden))
+		return
+	}
+
+	// Convert to repository parameters
+	startTime, _ := time.Parse("15:04", requestDto.StartTime)
+	endTime, _ := time.Parse("15:04", requestDto.EndTime)
+	
+	isActive := existing.IsActive
+	if requestDto.IsActive != nil {
+		isActive = *requestDto.IsActive
+	}
+
+	params := db.UpdateBarberAvailabilityParams{
+		ID:        id,
+		StartTime: startTime,
+		EndTime:   endTime,
+		IsActive:  isActive,
+	}
+
+	updatedAvailability, repoErr := h.Repo.UpdateBarberAvailability(r.Context(), params)
+	if repoErr != nil {
+		responseHandlers.RespondWithError(w, repoErr)
+		return
+	}
+
+	result := dto.NewAvailabilityResponse(
+		updatedAvailability.ID, updatedAvailability.DayOfWeek,
+		updatedAvailability.StartTime, updatedAvailability.EndTime,
+		updatedAvailability.IsActive, updatedAvailability.CreatedAt, updatedAvailability.UpdatedAt,
+	)
+
+	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
+}
+
+// DeleteMyAvailability deletes a specific availability record.
+// @Summary Delete availability record
+// @Description Delete an existing availability record by ID
+// @Tags barber-availability
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path string true "Availability ID"
+// @Success 204 "No Content: Availability deleted successfully"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 404 {object} map[string]interface{} "Not Found: Availability record not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /haircuts/barbers/me/availability/{id} [delete]
+func (h *EventsHandler) DeleteMyAvailability(w http.ResponseWriter, r *http.Request) {
+	barberID, err := contextUtils.GetUserID(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	idStr := chi.URLParam(r, "id")
+	id, err := validators.ParseUUID(idStr)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Verify ownership
+	existing, repoErr := h.Repo.GetBarberAvailabilityByID(r.Context(), id)
+	if repoErr != nil {
+		responseHandlers.RespondWithError(w, repoErr)
+		return
+	}
+
+	if existing.BarberID != barberID {
+		responseHandlers.RespondWithError(w, errLib.New("You can only delete your own availability", http.StatusForbidden))
+		return
+	}
+
+	if repoErr := h.Repo.DeleteBarberAvailability(r.Context(), id); repoErr != nil {
+		responseHandlers.RespondWithError(w, repoErr)
+		return
+	}
+
+	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }

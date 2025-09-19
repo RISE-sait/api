@@ -74,3 +74,45 @@ WHERE barber_id = $1
   AND day_of_week = $2 
   AND is_active = true
 ORDER BY start_time;
+
+-- name: GetBarberAvailabilityByID :one
+SELECT *
+FROM haircut.barber_availability
+WHERE id = $1;
+
+-- name: GetBarberFullAvailability :many
+SELECT *
+FROM haircut.barber_availability
+WHERE barber_id = $1
+ORDER BY day_of_week, start_time;
+
+-- name: UpsertBarberAvailability :one
+INSERT INTO haircut.barber_availability (barber_id, day_of_week, start_time, end_time, is_active)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (barber_id, day_of_week, start_time, end_time)
+DO UPDATE SET 
+    is_active = EXCLUDED.is_active,
+    updated_at = CURRENT_TIMESTAMP
+RETURNING *;
+
+-- name: UpdateBarberAvailability :one
+UPDATE haircut.barber_availability
+SET start_time = $2,
+    end_time = $3,
+    is_active = $4,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING *;
+
+-- name: DeleteBarberAvailability :execrows
+DELETE FROM haircut.barber_availability
+WHERE id = $1;
+
+-- name: DeleteBarberAvailabilityByDay :execrows
+DELETE FROM haircut.barber_availability
+WHERE barber_id = $1 AND day_of_week = $2;
+
+-- name: InsertBarberAvailability :one
+INSERT INTO haircut.barber_availability (barber_id, day_of_week, start_time, end_time, is_active)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING *;

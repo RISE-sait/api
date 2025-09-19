@@ -100,6 +100,37 @@ func (q *Queries) CreateHaircutEvent(ctx context.Context, arg CreateHaircutEvent
 	return i, err
 }
 
+const deleteBarberAvailability = `-- name: DeleteBarberAvailability :execrows
+DELETE FROM haircut.barber_availability
+WHERE id = $1
+`
+
+func (q *Queries) DeleteBarberAvailability(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteBarberAvailability, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const deleteBarberAvailabilityByDay = `-- name: DeleteBarberAvailabilityByDay :execrows
+DELETE FROM haircut.barber_availability
+WHERE barber_id = $1 AND day_of_week = $2
+`
+
+type DeleteBarberAvailabilityByDayParams struct {
+	BarberID  uuid.UUID `json:"barber_id"`
+	DayOfWeek int32     `json:"day_of_week"`
+}
+
+func (q *Queries) DeleteBarberAvailabilityByDay(ctx context.Context, arg DeleteBarberAvailabilityByDayParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteBarberAvailabilityByDay, arg.BarberID, arg.DayOfWeek)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const deleteEvent = `-- name: DeleteEvent :execrows
 DELETE
 FROM haircut.events
@@ -150,6 +181,28 @@ func (q *Queries) GetBarberAvailability(ctx context.Context, barberID uuid.UUID)
 	return items, nil
 }
 
+const getBarberAvailabilityByID = `-- name: GetBarberAvailabilityByID :one
+SELECT id, barber_id, day_of_week, start_time, end_time, is_active, created_at, updated_at
+FROM haircut.barber_availability
+WHERE id = $1
+`
+
+func (q *Queries) GetBarberAvailabilityByID(ctx context.Context, id uuid.UUID) (HaircutBarberAvailability, error) {
+	row := q.db.QueryRowContext(ctx, getBarberAvailabilityByID, id)
+	var i HaircutBarberAvailability
+	err := row.Scan(
+		&i.ID,
+		&i.BarberID,
+		&i.DayOfWeek,
+		&i.StartTime,
+		&i.EndTime,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getBarberBookingsForDate = `-- name: GetBarberBookingsForDate :many
 SELECT begin_date_time, end_date_time
 FROM haircut.events
@@ -178,6 +231,45 @@ func (q *Queries) GetBarberBookingsForDate(ctx context.Context, arg GetBarberBoo
 	for rows.Next() {
 		var i GetBarberBookingsForDateRow
 		if err := rows.Scan(&i.BeginDateTime, &i.EndDateTime); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getBarberFullAvailability = `-- name: GetBarberFullAvailability :many
+SELECT id, barber_id, day_of_week, start_time, end_time, is_active, created_at, updated_at
+FROM haircut.barber_availability
+WHERE barber_id = $1
+ORDER BY day_of_week, start_time
+`
+
+func (q *Queries) GetBarberFullAvailability(ctx context.Context, barberID uuid.UUID) ([]HaircutBarberAvailability, error) {
+	rows, err := q.db.QueryContext(ctx, getBarberFullAvailability, barberID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []HaircutBarberAvailability
+	for rows.Next() {
+		var i HaircutBarberAvailability
+		if err := rows.Scan(
+			&i.ID,
+			&i.BarberID,
+			&i.DayOfWeek,
+			&i.StartTime,
+			&i.EndTime,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -416,6 +508,80 @@ func (q *Queries) GetHaircutEvents(ctx context.Context, arg GetHaircutEventsPara
 	return items, nil
 }
 
+const insertBarberAvailability = `-- name: InsertBarberAvailability :one
+INSERT INTO haircut.barber_availability (barber_id, day_of_week, start_time, end_time, is_active)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, barber_id, day_of_week, start_time, end_time, is_active, created_at, updated_at
+`
+
+type InsertBarberAvailabilityParams struct {
+	BarberID  uuid.UUID `json:"barber_id"`
+	DayOfWeek int32     `json:"day_of_week"`
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
+	IsActive  bool      `json:"is_active"`
+}
+
+func (q *Queries) InsertBarberAvailability(ctx context.Context, arg InsertBarberAvailabilityParams) (HaircutBarberAvailability, error) {
+	row := q.db.QueryRowContext(ctx, insertBarberAvailability,
+		arg.BarberID,
+		arg.DayOfWeek,
+		arg.StartTime,
+		arg.EndTime,
+		arg.IsActive,
+	)
+	var i HaircutBarberAvailability
+	err := row.Scan(
+		&i.ID,
+		&i.BarberID,
+		&i.DayOfWeek,
+		&i.StartTime,
+		&i.EndTime,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateBarberAvailability = `-- name: UpdateBarberAvailability :one
+UPDATE haircut.barber_availability
+SET start_time = $2,
+    end_time = $3,
+    is_active = $4,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING id, barber_id, day_of_week, start_time, end_time, is_active, created_at, updated_at
+`
+
+type UpdateBarberAvailabilityParams struct {
+	ID        uuid.UUID `json:"id"`
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
+	IsActive  bool      `json:"is_active"`
+}
+
+func (q *Queries) UpdateBarberAvailability(ctx context.Context, arg UpdateBarberAvailabilityParams) (HaircutBarberAvailability, error) {
+	row := q.db.QueryRowContext(ctx, updateBarberAvailability,
+		arg.ID,
+		arg.StartTime,
+		arg.EndTime,
+		arg.IsActive,
+	)
+	var i HaircutBarberAvailability
+	err := row.Scan(
+		&i.ID,
+		&i.BarberID,
+		&i.DayOfWeek,
+		&i.StartTime,
+		&i.EndTime,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const updateEvent = `-- name: UpdateEvent :one
 UPDATE haircut.events
 SET
@@ -452,6 +618,46 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Hairc
 		&i.CustomerID,
 		&i.BarberID,
 		&i.ServiceTypeID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const upsertBarberAvailability = `-- name: UpsertBarberAvailability :one
+INSERT INTO haircut.barber_availability (barber_id, day_of_week, start_time, end_time, is_active)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (barber_id, day_of_week, start_time, end_time)
+DO UPDATE SET 
+    is_active = EXCLUDED.is_active,
+    updated_at = CURRENT_TIMESTAMP
+RETURNING id, barber_id, day_of_week, start_time, end_time, is_active, created_at, updated_at
+`
+
+type UpsertBarberAvailabilityParams struct {
+	BarberID  uuid.UUID `json:"barber_id"`
+	DayOfWeek int32     `json:"day_of_week"`
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
+	IsActive  bool      `json:"is_active"`
+}
+
+func (q *Queries) UpsertBarberAvailability(ctx context.Context, arg UpsertBarberAvailabilityParams) (HaircutBarberAvailability, error) {
+	row := q.db.QueryRowContext(ctx, upsertBarberAvailability,
+		arg.BarberID,
+		arg.DayOfWeek,
+		arg.StartTime,
+		arg.EndTime,
+		arg.IsActive,
+	)
+	var i HaircutBarberAvailability
+	err := row.Scan(
+		&i.ID,
+		&i.BarberID,
+		&i.DayOfWeek,
+		&i.StartTime,
+		&i.EndTime,
+		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

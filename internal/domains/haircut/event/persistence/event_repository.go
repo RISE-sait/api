@@ -332,3 +332,115 @@ func (r *Repository) GetAvailableTimeSlots(ctx context.Context, barberID uuid.UU
 func timesOverlap(start1, end1, start2, end2 time.Time) bool {
 	return start1.Before(end2) && start2.Before(end1)
 }
+
+// ===== BARBER AVAILABILITY MANAGEMENT METHODS =====
+
+// GetBarberFullAvailability returns all availability for a barber
+func (r *Repository) GetBarberFullAvailability(ctx context.Context, barberID uuid.UUID) ([]db.HaircutBarberAvailability, *errLib.CommonError) {
+	availability, err := r.Queries.GetBarberFullAvailability(ctx, barberID)
+	if err != nil {
+		log.Printf("Failed to get barber availability: %v", err)
+		return nil, errLib.New("Failed to get barber availability", http.StatusInternalServerError)
+	}
+	return availability, nil
+}
+
+// GetBarberAvailabilityByID returns a specific availability record
+func (r *Repository) GetBarberAvailabilityByID(ctx context.Context, id uuid.UUID) (db.HaircutBarberAvailability, *errLib.CommonError) {
+	availability, err := r.Queries.GetBarberAvailabilityByID(ctx, id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return db.HaircutBarberAvailability{}, errLib.New("Availability record not found", http.StatusNotFound)
+		}
+		log.Printf("Failed to get availability by ID: %v", err)
+		return db.HaircutBarberAvailability{}, errLib.New("Failed to get availability", http.StatusInternalServerError)
+	}
+	return availability, nil
+}
+
+// CreateBarberAvailability creates a new availability record
+func (r *Repository) CreateBarberAvailability(ctx context.Context, params db.InsertBarberAvailabilityParams) (db.HaircutBarberAvailability, *errLib.CommonError) {
+	availability, err := r.Queries.InsertBarberAvailability(ctx, params)
+	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			if pqErr.Constraint == "unique_barber_day_time" {
+				return db.HaircutBarberAvailability{}, errLib.New("Availability for this time slot already exists", http.StatusConflict)
+			}
+			if pqErr.Constraint == "fk_barber_availability" {
+				return db.HaircutBarberAvailability{}, errLib.New("Barber not found", http.StatusNotFound)
+			}
+			if pqErr.Constraint == "check_time_order" {
+				return db.HaircutBarberAvailability{}, errLib.New("End time must be after start time", http.StatusBadRequest)
+			}
+		}
+		log.Printf("Failed to create availability: %v", err)
+		return db.HaircutBarberAvailability{}, errLib.New("Failed to create availability", http.StatusInternalServerError)
+	}
+	return availability, nil
+}
+
+// UpsertBarberAvailability creates or updates availability record
+func (r *Repository) UpsertBarberAvailability(ctx context.Context, params db.UpsertBarberAvailabilityParams) (db.HaircutBarberAvailability, *errLib.CommonError) {
+	availability, err := r.Queries.UpsertBarberAvailability(ctx, params)
+	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			if pqErr.Constraint == "fk_barber_availability" {
+				return db.HaircutBarberAvailability{}, errLib.New("Barber not found", http.StatusNotFound)
+			}
+			if pqErr.Constraint == "check_time_order" {
+				return db.HaircutBarberAvailability{}, errLib.New("End time must be after start time", http.StatusBadRequest)
+			}
+		}
+		log.Printf("Failed to upsert availability: %v", err)
+		return db.HaircutBarberAvailability{}, errLib.New("Failed to save availability", http.StatusInternalServerError)
+	}
+	return availability, nil
+}
+
+// UpdateBarberAvailability updates an existing availability record
+func (r *Repository) UpdateBarberAvailability(ctx context.Context, params db.UpdateBarberAvailabilityParams) (db.HaircutBarberAvailability, *errLib.CommonError) {
+	availability, err := r.Queries.UpdateBarberAvailability(ctx, params)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return db.HaircutBarberAvailability{}, errLib.New("Availability record not found", http.StatusNotFound)
+		}
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			if pqErr.Constraint == "check_time_order" {
+				return db.HaircutBarberAvailability{}, errLib.New("End time must be after start time", http.StatusBadRequest)
+			}
+		}
+		log.Printf("Failed to update availability: %v", err)
+		return db.HaircutBarberAvailability{}, errLib.New("Failed to update availability", http.StatusInternalServerError)
+	}
+	return availability, nil
+}
+
+// DeleteBarberAvailability deletes an availability record
+func (r *Repository) DeleteBarberAvailability(ctx context.Context, id uuid.UUID) *errLib.CommonError {
+	rowsAffected, err := r.Queries.DeleteBarberAvailability(ctx, id)
+	if err != nil {
+		log.Printf("Failed to delete availability: %v", err)
+		return errLib.New("Failed to delete availability", http.StatusInternalServerError)
+	}
+	if rowsAffected == 0 {
+		return errLib.New("Availability record not found", http.StatusNotFound)
+	}
+	return nil
+}
+
+// DeleteBarberAvailabilityByDay deletes all availability for a specific day
+func (r *Repository) DeleteBarberAvailabilityByDay(ctx context.Context, barberID uuid.UUID, dayOfWeek int32) *errLib.CommonError {
+	params := db.DeleteBarberAvailabilityByDayParams{
+		BarberID:  barberID,
+		DayOfWeek: dayOfWeek,
+	}
+	_, err := r.Queries.DeleteBarberAvailabilityByDay(ctx, params)
+	if err != nil {
+		log.Printf("Failed to delete availability by day: %v", err)
+		return errLib.New("Failed to delete availability", http.StatusInternalServerError)
+	}
+	return nil
+}

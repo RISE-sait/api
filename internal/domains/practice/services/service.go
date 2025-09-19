@@ -77,10 +77,15 @@ func (s *Service) sendPracticeNotification(ctx context.Context, practice values.
 		fmt.Printf("[PRACTICE NOTIFICATION DEBUG] Raw time timezone: %s\n", practice.StartTime.Location().String())
 		fmt.Printf("[PRACTICE NOTIFICATION DEBUG] Raw time Unix: %d\n", practice.StartTime.Unix())
 		
-		// Use the raw time from database and just append MST label
-		startTime = practice.StartTime.Format("January 2, 2006 at 3:04 PM") + " MST"
-		startTimeISO = practice.StartTime.Format(time.RFC3339)
+		// Convert UTC time from database to Mountain Time (MST/MDT)
+		// Use fixed zone MDT (UTC-6) since we're currently in daylight saving time
+		mdt := time.FixedZone("MDT", -6*3600) // MDT is UTC-6
+		mountainTime := practice.StartTime.In(mdt)
 		
+		startTime = mountainTime.Format("January 2, 2006 at 3:04 PM MST")
+		startTimeISO = mountainTime.Format(time.RFC3339)
+		
+		fmt.Printf("[PRACTICE NOTIFICATION DEBUG] Converted to Mountain Time: %s\n", mountainTime.String())
 		fmt.Printf("[PRACTICE NOTIFICATION DEBUG] Formatted time for notification: %s\n", startTime)
 		fmt.Printf("[PRACTICE NOTIFICATION DEBUG] ISO time for data: %s\n", startTimeISO)
 	}

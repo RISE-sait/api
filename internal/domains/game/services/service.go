@@ -107,10 +107,15 @@ func (s *Service) sendGameNotification(ctx context.Context, game values.CreateGa
 		fmt.Printf("[GAME NOTIFICATION DEBUG] Raw time timezone: %s\n", game.StartTime.Location().String())
 		fmt.Printf("[GAME NOTIFICATION DEBUG] Raw time Unix: %d\n", game.StartTime.Unix())
 		
-		// Use the raw time from database and just append MST label  
-		gameTime = game.StartTime.Format("January 2, 2006 at 3:04 PM") + " MST"
-		gameTimeISO = game.StartTime.Format(time.RFC3339)
+		// Convert UTC time from database to Mountain Time (MST/MDT)
+		// Use fixed zone MDT (UTC-6) since we're currently in daylight saving time
+		mdt := time.FixedZone("MDT", -6*3600) // MDT is UTC-6
+		mountainTime := game.StartTime.In(mdt)
 		
+		gameTime = mountainTime.Format("January 2, 2006 at 3:04 PM MST")
+		gameTimeISO = mountainTime.Format(time.RFC3339)
+		
+		fmt.Printf("[GAME NOTIFICATION DEBUG] Converted to Mountain Time: %s\n", mountainTime.String())
 		fmt.Printf("[GAME NOTIFICATION DEBUG] Formatted time for notification: %s\n", gameTime)
 		fmt.Printf("[GAME NOTIFICATION DEBUG] ISO time for data: %s\n", gameTimeISO)
 	}

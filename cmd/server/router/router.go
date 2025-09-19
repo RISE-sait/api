@@ -141,6 +141,7 @@ func RegisterHaircutRoutes(container *di.Container) func(chi.Router) {
 
 		r.Route("/events", RegisterHaircutEventsRoutes(container))
 		r.Route("/services", RegisterBarberServicesRoutes(container))
+		r.Route("/barbers", RegisterBarberAvailabilityRoutes(container))
 	}
 }
 
@@ -162,6 +163,25 @@ func RegisterHaircutEventsRoutes(container *di.Container) func(chi.Router) {
 		r.Get("/{id}", h.GetEvent)
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/", h.CreateEvent)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", h.DeleteEvent)
+	}
+}
+
+func RegisterBarberAvailabilityRoutes(container *di.Container) func(chi.Router) {
+	h := haircutEvents.NewEventsHandler(container)
+
+	return func(r chi.Router) {
+		// Public endpoint - get available time slots for any barber
+		r.Get("/{barber_id}/availability", h.GetAvailableTimeSlots)
+		
+		// Authenticated barber endpoints - manage own availability
+		r.Route("/me", func(r chi.Router) {
+			r.Use(middlewares.JWTAuthMiddleware(false, contextUtils.RoleBarber))
+			r.Get("/availability", h.GetMyAvailability)
+			r.Post("/availability", h.SetMyAvailability)
+			r.Post("/availability/bulk", h.BulkSetMyAvailability)
+			r.Put("/availability/{id}", h.UpdateMyAvailability)
+			r.Delete("/availability/{id}", h.DeleteMyAvailability)
+		})
 	}
 }
 

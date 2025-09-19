@@ -32,6 +32,17 @@ func (dto RequestDto) validate() (time.Time, time.Time, *errLib.CommonError) {
 		return time.Time{}, time.Time{}, err
 	}
 
+	// Validate that booking is not in the past
+	now := time.Now()
+	if beginDateTime.Before(now) {
+		return time.Time{}, time.Time{}, errLib.New("cannot book appointments in the past", 400)
+	}
+
+	// Validate that end time is after begin time
+	if !endTime.After(beginDateTime) {
+		return time.Time{}, time.Time{}, errLib.New("end time must be after begin time", 400)
+	}
+
 	return beginDateTime, endTime, nil
 }
 

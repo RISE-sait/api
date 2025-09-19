@@ -141,6 +141,7 @@ func RegisterHaircutRoutes(container *di.Container) func(chi.Router) {
 
 		r.Route("/events", RegisterHaircutEventsRoutes(container))
 		r.Route("/services", RegisterBarberServicesRoutes(container))
+		r.Route("/barbers", RegisterBarberAvailabilityRoutes(container))
 	}
 }
 
@@ -162,6 +163,14 @@ func RegisterHaircutEventsRoutes(container *di.Container) func(chi.Router) {
 		r.Get("/{id}", h.GetEvent)
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/", h.CreateEvent)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", h.DeleteEvent)
+	}
+}
+
+func RegisterBarberAvailabilityRoutes(container *di.Container) func(chi.Router) {
+	h := haircutEvents.NewEventsHandler(container)
+
+	return func(r chi.Router) {
+		r.Get("/{barber_id}/availability", h.GetAvailableTimeSlots)
 	}
 }
 

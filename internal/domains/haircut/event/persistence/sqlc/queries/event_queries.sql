@@ -48,3 +48,29 @@ RETURNING *;
 DELETE
 FROM haircut.events
 WHERE id = $1;
+
+-- name: GetBarberAvailability :many
+SELECT day_of_week, start_time, end_time
+FROM haircut.barber_availability
+WHERE barber_id = $1 AND is_active = true
+ORDER BY day_of_week, start_time;
+
+-- name: GetBarberBookingsForDate :many
+SELECT begin_date_time, end_date_time
+FROM haircut.events
+WHERE barber_id = $1 
+  AND DATE(begin_date_time) = $2
+ORDER BY begin_date_time;
+
+-- name: CreateBarberAvailability :one
+INSERT INTO haircut.barber_availability (barber_id, day_of_week, start_time, end_time)
+VALUES ($1, $2, $3, $4)
+RETURNING *;
+
+-- name: GetBarberWorkingHoursForDay :many
+SELECT start_time, end_time
+FROM haircut.barber_availability
+WHERE barber_id = $1 
+  AND day_of_week = $2 
+  AND is_active = true
+ORDER BY start_time;

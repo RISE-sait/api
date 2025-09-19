@@ -217,3 +217,67 @@ func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 
 	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusOK)
 }
+
+// GetAvailableTimeSlots retrieves available time slots for a barber on a specific date.
+// @Summary Get available time slots for a barber
+// @Description Get available booking slots for a specific barber on a given date, considering their working hours and existing bookings.
+// @Tags haircuts
+// @Accept json
+// @Produce json
+// @Param barber_id path string true "Barber ID"
+// @Param date query string true "Date in YYYY-MM-DD format" example("2025-09-20")
+// @Param service_duration query int false "Service duration in minutes (default: 30)" example(30)
+// @Success 200 {object} map[string]interface{} "Available time slots"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /haircuts/barbers/{barber_id}/availability [get]
+func (h *EventsHandler) GetAvailableTimeSlots(w http.ResponseWriter, r *http.Request) {
+	barberIDStr := chi.URLParam(r, "barber_id")
+	barberID, err := validators.ParseUUID(barberIDStr)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	dateStr := r.URL.Query().Get("date")
+	if dateStr == "" {
+		responseHandlers.RespondWithError(w, errLib.New("date parameter is required", http.StatusBadRequest))
+		return
+	}
+
+	date, parseErr := time.Parse("2006-01-02", dateStr)
+	if parseErr != nil {
+		responseHandlers.RespondWithError(w, errLib.New("invalid date format, expected YYYY-MM-DD", http.StatusBadRequest))
+		return
+	}
+
+	// Validate date is not in the past
+	today := time.Now().Truncate(24 * time.Hour)
+	if date.Before(today) {
+		responseHandlers.RespondWithError(w, errLib.New("cannot get availability for past dates", http.StatusBadRequest))
+		return
+	}
+
+	// Get service duration (default 30 minutes)
+	serviceDuration := 30
+	if durationStr := r.URL.Query().Get("service_duration"); durationStr != "" {
+		if duration, parseErr := time.ParseDuration(durationStr + "m"); parseErr == nil {
+			serviceDuration = int(duration.Minutes())
+		}
+	}
+
+	availableSlots, repoErr := h.Repo.GetAvailableTimeSlots(r.Context(), barberID, date, serviceDuration)
+	if repoErr != nil {
+		responseHandlers.RespondWithError(w, repoErr)
+		return
+	}
+
+	result := map[string]interface{}{
+		"barber_id":        barberID,
+		"date":            date.Format("2006-01-02"),
+		"service_duration": serviceDuration,
+		"available_slots":  availableSlots,
+	}
+
+	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
+}

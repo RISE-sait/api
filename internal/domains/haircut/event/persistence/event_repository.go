@@ -258,3 +258,77 @@ func (r *Repository) GetEvent(ctx context.Context, id uuid.UUID) (values.EventRe
 
 	return event, nil
 }
+
+// GetAvailableTimeSlots returns available time slots for a barber on a specific date
+func (r *Repository) GetAvailableTimeSlots(ctx context.Context, barberID uuid.UUID, date time.Time, serviceDurationMinutes int) ([]string, *errLib.CommonError) {
+	// Get the day of week (0=Sunday, 6=Saturday)
+	dayOfWeek := int32(date.Weekday())
+
+	// Get barber's working hours for this day
+	workingHours, err := r.Queries.GetBarberWorkingHoursForDay(ctx, db.GetBarberWorkingHoursForDayParams{
+		BarberID:  barberID,
+		DayOfWeek: dayOfWeek,
+	})
+
+	if err != nil {
+		log.Printf("Failed to get barber working hours: %v", err)
+		return nil, errLib.New("Failed to get barber availability", http.StatusInternalServerError)
+	}
+
+	if len(workingHours) == 0 {
+		// Barber doesn't work on this day
+		return []string{}, nil
+	}
+
+	// Get existing bookings for this date
+	bookings, err := r.Queries.GetBarberBookingsForDate(ctx, db.GetBarberBookingsForDateParams{
+		BarberID:      barberID,
+		BeginDateTime: date,
+	})
+
+	if err != nil {
+		log.Printf("Failed to get barber bookings: %v", err)
+		return nil, errLib.New("Failed to get existing bookings", http.StatusInternalServerError)
+	}
+
+	var availableSlots []string
+	serviceDuration := time.Duration(serviceDurationMinutes) * time.Minute
+
+	// For each working time period
+	for _, workHours := range workingHours {
+		// Convert times to datetime for this date
+		startTime := time.Date(date.Year(), date.Month(), date.Day(), 
+			workHours.StartTime.Hour(), workHours.StartTime.Minute(), 0, 0, date.Location())
+		endTime := time.Date(date.Year(), date.Month(), date.Day(), 
+			workHours.EndTime.Hour(), workHours.EndTime.Minute(), 0, 0, date.Location())
+
+		// Generate time slots every 15 minutes within working hours
+		current := startTime
+		for current.Add(serviceDuration).Before(endTime) || current.Add(serviceDuration).Equal(endTime) {
+			slotEnd := current.Add(serviceDuration)
+			
+			// Check if this slot conflicts with any existing booking
+			isAvailable := true
+			for _, booking := range bookings {
+				if timesOverlap(current, slotEnd, booking.BeginDateTime, booking.EndDateTime) {
+					isAvailable = false
+					break
+				}
+			}
+
+			if isAvailable {
+				availableSlots = append(availableSlots, current.Format("15:04"))
+			}
+
+			// Move to next 15-minute slot
+			current = current.Add(15 * time.Minute)
+		}
+	}
+
+	return availableSlots, nil
+}
+
+// timesOverlap checks if two time ranges overlap
+func timesOverlap(start1, end1, start2, end2 time.Time) bool {
+	return start1.Before(end2) && start2.Before(end1)
+}

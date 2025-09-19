@@ -72,9 +72,17 @@ func (s *Service) sendPracticeNotification(ctx context.Context, practice values.
 	startTime := "TBD"
 	startTimeISO := ""
 	if !practice.StartTime.IsZero() {
-		// Use the EXACT time from database - it's already in MST
-		startTime = practice.StartTime.Format("January 2, 2006 at 3:04 PM MST")
+		// Log the raw time from database for debugging
+		fmt.Printf("[PRACTICE NOTIFICATION DEBUG] Raw time from DB: %s\n", practice.StartTime.String())
+		fmt.Printf("[PRACTICE NOTIFICATION DEBUG] Raw time timezone: %s\n", practice.StartTime.Location().String())
+		fmt.Printf("[PRACTICE NOTIFICATION DEBUG] Raw time Unix: %d\n", practice.StartTime.Unix())
+		
+		// Use the raw time from database and just append MST label
+		startTime = practice.StartTime.Format("January 2, 2006 at 3:04 PM") + " MST"
 		startTimeISO = practice.StartTime.Format(time.RFC3339)
+		
+		fmt.Printf("[PRACTICE NOTIFICATION DEBUG] Formatted time for notification: %s\n", startTime)
+		fmt.Printf("[PRACTICE NOTIFICATION DEBUG] ISO time for data: %s\n", startTimeISO)
 	}
 	
 	notification := notificationValues.TeamNotification{

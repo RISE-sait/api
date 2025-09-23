@@ -518,6 +518,17 @@ type GameGame struct {
 	CourtID    uuid.NullUUID  `json:"court_id"`
 }
 
+type HaircutBarberAvailability struct {
+	ID        uuid.UUID `json:"id"`
+	BarberID  uuid.UUID `json:"barber_id"`
+	DayOfWeek int32     `json:"day_of_week"`
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 type HaircutBarberService struct {
 	ID        uuid.UUID `json:"id"`
 	BarberID  uuid.UUID `json:"barber_id"`
@@ -596,6 +607,15 @@ type MembershipMembershipPlan struct {
 	CreditAllocation sql.NullInt32 `json:"credit_allocation"`
 	// Maximum credits that can be used per week with this membership plan (NULL for non-credit memberships, 0 = unlimited credits)
 	WeeklyCreditLimit sql.NullInt32 `json:"weekly_credit_limit"`
+}
+
+type NotificationsPushToken struct {
+	ID            int32          `json:"id"`
+	UserID        uuid.UUID      `json:"user_id"`
+	ExpoPushToken string         `json:"expo_push_token"`
+	DeviceType    sql.NullString `json:"device_type"`
+	CreatedAt     sql.NullTime   `json:"created_at"`
+	UpdatedAt     sql.NullTime   `json:"updated_at"`
 }
 
 type PlaygroundSession struct {

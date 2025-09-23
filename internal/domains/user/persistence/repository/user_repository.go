@@ -8,7 +8,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"log"
@@ -68,7 +67,7 @@ func (r *UsersRepository) UpdateUser(ctx context.Context, details values.UpdateV
 				return errLib.New("hubspot id already exists", http.StatusConflict)
 			}
 		}
-		log.Println(fmt.Sprintf("Error updating user: %s", err))
+		log.Printf("Error updating user: %s", err)
 		return errLib.New("internal error while updating user", http.StatusInternalServerError)
 	}
 

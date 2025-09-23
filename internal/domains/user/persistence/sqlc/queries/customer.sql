@@ -193,3 +193,20 @@ SELECT u.*
 FROM users.users u
 WHERE u.is_archived = TRUE
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
+
+-- name: DeleteCustomerAccount :execrows
+DELETE FROM users.users WHERE id = $1;
+
+-- name: DeleteCustomerMemberships :execrows
+DELETE FROM users.customer_membership_plans WHERE customer_id = $1;
+
+-- name: DeleteCustomerEnrollments :execrows
+DELETE FROM program.customer_enrollment WHERE customer_id = $1;
+
+-- name: DeleteCustomerEventEnrollments :execrows  
+DELETE FROM events.customer_enrollment WHERE customer_id = $1;
+
+-- Note: credit_transactions has ON DELETE CASCADE, so it will be cleaned automatically
+
+-- name: DeleteAthleteData :execrows
+DELETE FROM athletic.athletes WHERE id = $1;

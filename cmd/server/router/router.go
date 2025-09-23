@@ -119,6 +119,7 @@ func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 		r.Post("/{id}/archive", h.ArchiveCustomer)
 		r.Post("/{id}/unarchive", h.UnarchiveCustomer)
 		r.Get("/archived", h.ListArchivedCustomers)
+		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/delete-account", h.DeleteMyAccount)
 	}
 }
 
@@ -471,6 +472,7 @@ func RegisterSecureCustomerRoutes(container *di.Container) func(chi.Router) {
 	h := userHandler.NewCustomersHandler(container)
 	return func(r chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(true)).Get("/memberships", h.GetUserMembershipHistory)
+		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/delete-account", h.DeleteMyAccount)
 	}
 }
 

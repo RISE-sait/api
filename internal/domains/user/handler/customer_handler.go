@@ -1,10 +1,12 @@
 package user
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"api/internal/di"
 	athleteDto "api/internal/domains/user/dto/athlete"
@@ -12,6 +14,8 @@ import (
 	contextUtils "api/utils/context"
 
 	customerRepo "api/internal/domains/user/persistence/repository"
+	firebaseService "api/internal/domains/identity/service/firebase"
+	stripeService "api/internal/domains/payment/services/stripe"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
@@ -21,12 +25,16 @@ import (
 )
 
 type CustomersHandler struct {
-	CustomerRepo *customerRepo.CustomerRepository
+	CustomerRepo     *customerRepo.CustomerRepository
+	FirebaseService  *firebaseService.Service
+	StripeService    *stripeService.SubscriptionService
 }
 
 func NewCustomersHandler(container *di.Container) *CustomersHandler {
 	return &CustomersHandler{
-		CustomerRepo: customerRepo.NewCustomerRepository(container),
+		CustomerRepo:    customerRepo.NewCustomerRepository(container),
+		FirebaseService: firebaseService.NewFirebaseService(container),
+		StripeService:   stripeService.NewSubscriptionService(),
 	}
 }
 
@@ -581,4 +589,98 @@ func (h *CustomersHandler) ListArchivedCustomers(w http.ResponseWriter, r *http.
 		responses[i] = customerDto.UserReadValueToResponse(c)
 	}
 	responseHandlers.RespondWithSuccess(w, responses, http.StatusOK)
+}
+
+// DeleteMyAccount allows a customer to permanently delete their own account
+// @Summary Delete customer account
+// @Description Permanently deletes the authenticated customer's account including all data from database, Firebase, and cancels Stripe subscriptions
+// @Tags customers
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param confirmation body customerDto.AccountDeletionRequest true "Account deletion confirmation"
+// @Success 200 {object} map[string]interface{} "Account deleted successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Missing confirmation"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /secure/customers/delete-account [delete]
+func (h *CustomersHandler) DeleteMyAccount(w http.ResponseWriter, r *http.Request) {
+	// Get authenticated user ID
+	customerID, err := contextUtils.GetUserID(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Parse confirmation request
+	var requestDto customerDto.AccountDeletionRequest
+	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Validate confirmation
+	if !requestDto.ConfirmDeletion {
+		responseHandlers.RespondWithError(w, errLib.New("Account deletion must be confirmed", http.StatusBadRequest))
+		return
+	}
+
+	log.Printf("Starting account deletion process for customer: %s", customerID)
+
+	// 1. Get user email for Firebase cleanup (query users table directly)
+	var userEmail string
+	if dbErr := h.CustomerRepo.Db.QueryRowContext(r.Context(), "SELECT email FROM users.users WHERE id = $1", customerID).Scan(&userEmail); dbErr != nil {
+		if dbErr == sql.ErrNoRows {
+			responseHandlers.RespondWithError(w, errLib.New("User not found", http.StatusNotFound))
+		} else {
+			responseHandlers.RespondWithError(w, errLib.New("Failed to get user info", http.StatusInternalServerError))
+		}
+		return
+	}
+
+	// 2. Cancel all Stripe subscriptions
+	log.Printf("Cancelling Stripe subscriptions for customer: %s", customerID)
+	subscriptions, stripeErr := h.StripeService.GetCustomerSubscriptions(r.Context())
+	if stripeErr == nil {
+		for _, subscription := range subscriptions {
+			if subscription.Status == "active" || subscription.Status == "trialing" {
+				_, cancelErr := h.StripeService.CancelSubscription(r.Context(), subscription.ID, true) // Cancel immediately
+				if cancelErr != nil {
+					log.Printf("WARNING: Failed to cancel Stripe subscription %s: %v", subscription.ID, cancelErr)
+					// Don't fail the entire process for subscription cancellation failures
+				} else {
+					log.Printf("Successfully cancelled Stripe subscription: %s", subscription.ID)
+				}
+			}
+		}
+	} else {
+		log.Printf("WARNING: Could not retrieve Stripe subscriptions for customer %s: %v", customerID, stripeErr)
+		// Continue with deletion even if we can't cancel subscriptions
+	}
+
+	// 3. Delete all customer data from database
+	log.Printf("Deleting customer data from database: %s", customerID)
+	if err := h.CustomerRepo.DeleteCustomerAccountCompletely(r.Context(), customerID); err != nil {
+		log.Printf("Failed to delete customer from database: %v", err)
+		responseHandlers.RespondWithError(w, errLib.New("Failed to delete account data", http.StatusInternalServerError))
+		return
+	}
+
+	// 4. Delete from Firebase (if email exists)
+	if userEmail != "" {
+		log.Printf("Deleting user from Firebase: %s", userEmail)
+		if firebaseErr := h.FirebaseService.DeleteUser(r.Context(), userEmail); firebaseErr != nil {
+			log.Printf("WARNING: Failed to delete from Firebase: %v", firebaseErr)
+			// Don't fail the process if Firebase deletion fails since database is already cleaned
+		} else {
+			log.Printf("Successfully deleted Firebase user: %s", userEmail)
+		}
+	}
+
+	log.Printf("Account deletion completed successfully for customer: %s", customerID)
+
+	responseHandlers.RespondWithSuccess(w, map[string]interface{}{
+		"message": "Your account has been permanently deleted",
+		"deleted_at": fmt.Sprintf("%s", time.Now().UTC().Format(time.RFC3339)),
+	}, http.StatusOK)
 }

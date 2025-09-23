@@ -91,6 +91,68 @@ func (q *Queries) CreateAthleteInfo(ctx context.Context, arg CreateAthleteInfoPa
 	return result.RowsAffected()
 }
 
+const deleteAthleteData = `-- name: DeleteAthleteData :execrows
+
+DELETE FROM athletic.athletes WHERE id = $1
+`
+
+// Note: credit_transactions has ON DELETE CASCADE, so it will be cleaned automatically
+func (q *Queries) DeleteAthleteData(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteAthleteData, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const deleteCustomerAccount = `-- name: DeleteCustomerAccount :execrows
+DELETE FROM users.users WHERE id = $1
+`
+
+func (q *Queries) DeleteCustomerAccount(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteCustomerAccount, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const deleteCustomerEnrollments = `-- name: DeleteCustomerEnrollments :execrows
+DELETE FROM program.customer_enrollment WHERE customer_id = $1
+`
+
+func (q *Queries) DeleteCustomerEnrollments(ctx context.Context, customerID uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteCustomerEnrollments, customerID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const deleteCustomerEventEnrollments = `-- name: DeleteCustomerEventEnrollments :execrows
+DELETE FROM events.customer_enrollment WHERE customer_id = $1
+`
+
+func (q *Queries) DeleteCustomerEventEnrollments(ctx context.Context, customerID uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteCustomerEventEnrollments, customerID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const deleteCustomerMemberships = `-- name: DeleteCustomerMemberships :execrows
+DELETE FROM users.customer_membership_plans WHERE customer_id = $1
+`
+
+func (q *Queries) DeleteCustomerMemberships(ctx context.Context, customerID uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteCustomerMemberships, customerID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const getActiveMembershipInfo = `-- name: GetActiveMembershipInfo :one
 SELECT
     cmp.id,

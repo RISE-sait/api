@@ -19,7 +19,7 @@ type SubscriptionHandlers struct {
 
 func NewSubscriptionHandlers(container *di.Container) *SubscriptionHandlers {
 	return &SubscriptionHandlers{
-		StripeService: stripeService.NewSubscriptionService(),
+		StripeService: stripeService.NewSubscriptionService(container),
 	}
 }
 

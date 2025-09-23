@@ -10,6 +10,7 @@ import (
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/logger"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -35,6 +36,7 @@ type WebhookService struct {
 	CreditService          *userServices.CreditService
 	Idempotency            *WebhookIdempotency
 	logger                 *logger.StructuredLogger
+	db                     *sql.DB
 }
 
 func NewWebhookService(container *di.Container) *WebhookService {
@@ -47,6 +49,7 @@ func NewWebhookService(container *di.Container) *WebhookService {
 		CreditService:          userServices.NewCreditService(container),
 		Idempotency:            NewWebhookIdempotency(24*time.Hour, 10000), // Store events for 24 hours, max 10k events
 		logger:                 logger.WithComponent("stripe-webhooks"),
+		db:                     container.DB,
 	}
 }
 
@@ -233,6 +236,16 @@ func (s *WebhookService) handleSubscriptionCheckoutComplete(checkoutSession stri
 	}
 
 	log.Printf("Found planID: %s, amtPeriods: %v for priceID: %s", planID, amtPeriods, priceID)
+
+	// Store Stripe customer ID in database for future reference
+	if fullSession.Customer != nil && fullSession.Customer.ID != "" {
+		if err := s.storeStripeCustomerID(userID, fullSession.Customer.ID); err != nil {
+			log.Printf("WARNING: Failed to store Stripe customer ID: %v", err)
+			// Don't fail the entire process for this
+		} else {
+			log.Printf("Successfully stored Stripe customer ID %s for user %s", fullSession.Customer.ID, userID)
+		}
+	}
 
 	if amtPeriods != nil {
 		if err := s.processSubscriptionWithEndDate(
@@ -674,4 +687,27 @@ func (s *WebhookService) allocateCreditsForMembership(ctx context.Context, custo
 	
 	// Use the credit service to handle allocation logic
 	return s.CreditService.AllocateCreditsOnMembershipPurchase(ctx, customerID, membershipPlanID)
+}
+
+// storeStripeCustomerID stores the Stripe customer ID in the database for future reference
+func (s *WebhookService) storeStripeCustomerID(userID uuid.UUID, stripeCustomerID string) *errLib.CommonError {
+	query := "UPDATE users.users SET stripe_customer_id = $1 WHERE id = $2"
+	result, err := s.db.Exec(query, stripeCustomerID, userID)
+	if err != nil {
+		log.Printf("Failed to store Stripe customer ID %s for user %s: %v", stripeCustomerID, userID, err)
+		return errLib.New("Failed to store customer ID", http.StatusInternalServerError)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("Failed to check rows affected for user %s: %v", userID, err)
+		return errLib.New("Failed to verify update", http.StatusInternalServerError)
+	}
+
+	if rowsAffected == 0 {
+		log.Printf("No user found with ID %s to update Stripe customer ID", userID)
+		return errLib.New("User not found", http.StatusNotFound)
+	}
+
+	return nil
 }

@@ -40,3 +40,22 @@ func (s *Service) GetUserEmail(ctx context.Context, firebaseIdToken string) (str
 
 	return user.Email, nil
 }
+
+func (s *Service) DeleteUser(ctx context.Context, userEmail string) *errLib.CommonError {
+	// Get user by email first
+	user, firebaseErr := s.FirebaseAuthClient.GetUserByEmail(ctx, userEmail)
+	if firebaseErr != nil {
+		log.Printf("Failed to get Firebase user by email %s: %v", userEmail, firebaseErr)
+		return errLib.New("Firebase user not found", http.StatusNotFound)
+	}
+
+	// Delete the user from Firebase
+	firebaseErr = s.FirebaseAuthClient.DeleteUser(ctx, user.UID)
+	if firebaseErr != nil {
+		log.Printf("Failed to delete Firebase user %s: %v", user.UID, firebaseErr)
+		return errLib.New("Failed to delete Firebase user", http.StatusInternalServerError)
+	}
+
+	log.Printf("Successfully deleted Firebase user: %s (%s)", user.UID, userEmail)
+	return nil
+}

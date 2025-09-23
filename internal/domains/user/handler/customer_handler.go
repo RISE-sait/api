@@ -34,7 +34,7 @@ func NewCustomersHandler(container *di.Container) *CustomersHandler {
 	return &CustomersHandler{
 		CustomerRepo:    customerRepo.NewCustomerRepository(container),
 		FirebaseService: firebaseService.NewFirebaseService(container),
-		StripeService:   stripeService.NewSubscriptionService(),
+		StripeService:   stripeService.NewSubscriptionService(container),
 	}
 }
 

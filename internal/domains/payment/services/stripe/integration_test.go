@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 	
-
+	"api/internal/di"
 	"api/internal/domains/payment/services/stripe"
 	contextUtils "api/utils/context"
 	errLib "api/internal/libs/errors"
@@ -129,7 +129,9 @@ func TestSubscriptionService(t *testing.T) {
 	}
 
 	stripeAPI.Key = os.Getenv("STRIPE_SECRET_KEY")
-	service := stripe.NewSubscriptionService()
+	// Create mock container for testing - tests don't need real DB
+	container := &di.Container{DB: nil}
+	service := stripe.NewSubscriptionService(container)
 
 	userID := uuid.New()
 	ctx := context.WithValue(context.Background(), contextUtils.UserIDKey, userID)

@@ -2,13 +2,14 @@ package stripe
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
 	"time"
 
-	_ "api/internal/di"
+	"api/internal/di"
 	errLib "api/internal/libs/errors"
 	contextUtils "api/utils/context"
 
@@ -16,7 +17,6 @@ import (
 	billingportal "github.com/stripe/stripe-go/v81/billingportal/session"
 	"github.com/stripe/stripe-go/v81/checkout/session"
 	"github.com/stripe/stripe-go/v81/coupon"
-	"github.com/stripe/stripe-go/v81/customer"
 	"github.com/stripe/stripe-go/v81/price"
 	"github.com/stripe/stripe-go/v81/subscription"
 	"github.com/stripe/stripe-go/v81/webhook"
@@ -415,11 +415,20 @@ func CreateSubscriptionWithDiscountPercent(
 }
 
 // SubscriptionService provides secure subscription management operations
-type SubscriptionService struct{}
+type SubscriptionService struct {
+	db *sql.DB
+}
 
 // NewSubscriptionService creates a new instance of SubscriptionService
-func NewSubscriptionService() *SubscriptionService {
-	return &SubscriptionService{}
+func NewSubscriptionService(container *di.Container) *SubscriptionService {
+	return &SubscriptionService{
+		db: container.DB,
+	}
+}
+
+// getDB returns the database connection
+func (s *SubscriptionService) getDB() *sql.DB {
+	return s.db
 }
 
 // GetSubscription retrieves a subscription by ID with security validation
@@ -453,12 +462,32 @@ func (s *SubscriptionService) GetSubscription(ctx context.Context, subscriptionI
 		return nil, errLib.New("Failed to retrieve subscription: "+stripeErr.Error(), http.StatusInternalServerError)
 	}
 
-	// Verify ownership by checking customer metadata
-	if sub.Customer != nil && sub.Customer.Metadata != nil {
-		if customerUserID, exists := sub.Customer.Metadata["userID"]; !exists || customerUserID != userID.String() {
-			log.Printf("[STRIPE] Security violation: User %s attempted to access subscription %s owned by %s", userID, subscriptionID, customerUserID)
+	// Verify ownership by checking if user has this Stripe customer ID in database
+	var stripeCustomerID sql.NullString
+	query := "SELECT stripe_customer_id FROM users.users WHERE id = $1"
+	if dbErr := s.getDB().QueryRowContext(ctx, query, userID).Scan(&stripeCustomerID); dbErr != nil {
+		if dbErr == sql.ErrNoRows {
+			log.Printf("[STRIPE] Security violation: User %s not found in database", userID)
 			return nil, errLib.New("Access denied", http.StatusForbidden)
 		}
+		log.Printf("[STRIPE] Database error during security check for user %s: %v", userID, dbErr)
+		return nil, errLib.New("Security validation failed", http.StatusInternalServerError)
+	}
+	
+	// Check if user has a Stripe customer ID and if it matches the subscription's customer
+	if !stripeCustomerID.Valid || stripeCustomerID.String == "" {
+		log.Printf("[STRIPE] Security violation: User %s has no Stripe customer ID but tried to access subscription %s", userID, subscriptionID)
+		return nil, errLib.New("Access denied", http.StatusForbidden)
+	}
+	
+	// Verify the subscription belongs to this user's Stripe customer
+	if sub.Customer == nil || sub.Customer.ID != stripeCustomerID.String {
+		var actualCustomerID string
+		if sub.Customer != nil {
+			actualCustomerID = sub.Customer.ID
+		}
+		log.Printf("[STRIPE] Security violation: User %s (customer %s) attempted to access subscription %s owned by customer %s", userID, stripeCustomerID.String, subscriptionID, actualCustomerID)
+		return nil, errLib.New("Access denied", http.StatusForbidden)
 	}
 
 	return sub, nil
@@ -482,26 +511,34 @@ func (s *SubscriptionService) CancelSubscription(ctx context.Context, subscripti
 	}
 
 	// Cancel subscription
-	params := &stripe.SubscriptionParams{
-		Metadata: map[string]string{
-			"cancelled_by": "user",
-			"cancelled_at": time.Now().UTC().Format(time.RFC3339),
-		},
-	}
+	var cancelledSub *stripe.Subscription
+	var stripeErr error
 
 	if cancelImmediately {
-		params.CancelAtPeriodEnd = stripe.Bool(false)
+		// For immediate cancellation, use subscription.Cancel()
+		log.Printf("[STRIPE] Attempting to cancel subscription %s immediately", subscriptionID)
+		params := &stripe.SubscriptionCancelParams{}
+		cancelledSub, stripeErr = subscription.Cancel(subscriptionID, params)
+		if stripeErr == nil {
+			log.Printf("[STRIPE] Stripe API returned cancelled subscription with status: %s", cancelledSub.Status)
+		}
 	} else {
-		params.CancelAtPeriodEnd = stripe.Bool(true)
+		// For end-of-period cancellation, use subscription.Update()
+		params := &stripe.SubscriptionParams{
+			CancelAtPeriodEnd: stripe.Bool(true),
+			Metadata: map[string]string{
+				"cancelled_by": "user",
+				"cancelled_at": time.Now().UTC().Format(time.RFC3339),
+			},
+		}
+		cancelledSub, stripeErr = subscription.Update(subscriptionID, params)
 	}
-
-	cancelledSub, stripeErr := subscription.Update(subscriptionID, params)
 	if stripeErr != nil {
 		log.Printf("[STRIPE] Failed to cancel subscription %s: %v", subscriptionID, stripeErr)
 		return nil, errLib.New("Failed to cancel subscription: "+stripeErr.Error(), http.StatusInternalServerError)
 	}
 
-	log.Printf("[STRIPE] Successfully cancelled subscription %s (immediate: %v)", subscriptionID, cancelImmediately)
+	log.Printf("[STRIPE] Successfully cancelled subscription %s (immediate: %v) - New status: %s", subscriptionID, cancelImmediately, cancelledSub.Status)
 	return cancelledSub, nil
 }
 
@@ -595,30 +632,29 @@ func (s *SubscriptionService) GetCustomerSubscriptions(ctx context.Context) ([]*
 		return nil, errLib.New("Stripe not initialized", http.StatusInternalServerError)
 	}
 
-	// Find customer by metadata
-	customerParams := &stripe.CustomerListParams{
-		Expand: []*string{stripe.String("data.subscriptions")},
-	}
-	customerParams.Filters.AddFilter("metadata[userID]", "", userID.String())
-
-	customers := customer.List(customerParams)
-	var customerID string
-
-	for customers.Next() {
-		customerID = customers.Customer().ID
-		break
+	// Get Stripe customer ID from database
+	var stripeCustomerID sql.NullString
+	query := "SELECT stripe_customer_id FROM users.users WHERE id = $1"
+	if dbErr := s.getDB().QueryRowContext(ctx, query, userID).Scan(&stripeCustomerID); dbErr != nil {
+		if dbErr == sql.ErrNoRows {
+			log.Printf("User %s not found in database", userID)
+			return []*stripe.Subscription{}, nil
+		}
+		log.Printf("Database error getting user %s: %v", userID, dbErr)
+		return nil, errLib.New("Failed to lookup user", http.StatusInternalServerError)
 	}
 
-	if customerID == "" {
-		return []*stripe.Subscription{}, nil // No subscriptions found
+	// If no Stripe customer ID is stored, return empty subscriptions
+	if !stripeCustomerID.Valid || stripeCustomerID.String == "" {
+		log.Printf("No Stripe customer ID found for user %s", userID)
+		return []*stripe.Subscription{}, nil
 	}
 
 	// Get subscriptions for this customer
 	params := &stripe.SubscriptionListParams{
-		Customer: stripe.String(customerID),
+		Customer: stripe.String(stripeCustomerID.String),
 		Expand: []*string{
 			stripe.String("data.items.data.price"),
-			stripe.String("data.items.data.price.product"),
 			stripe.String("data.latest_invoice"),
 		},
 	}
@@ -630,7 +666,7 @@ func (s *SubscriptionService) GetCustomerSubscriptions(ctx context.Context) ([]*
 	}
 
 	if iter.Err() != nil {
-		log.Printf("[STRIPE] Failed to list subscriptions for customer %s: %v", customerID, iter.Err())
+		log.Printf("[STRIPE] Failed to list subscriptions for customer %s: %v", stripeCustomerID.String, iter.Err())
 		return nil, errLib.New("Failed to retrieve subscriptions: "+iter.Err().Error(), http.StatusInternalServerError)
 	}
 
@@ -653,35 +689,37 @@ func (s *SubscriptionService) CreateCustomerPortalSession(ctx context.Context, r
 		return "", errLib.New("return URL cannot be empty", http.StatusBadRequest)
 	}
 
-	// Find customer by metadata
-	customerParams := &stripe.CustomerListParams{}
-	customerParams.Filters.AddFilter("metadata[userID]", "", userID.String())
-
-	customers := customer.List(customerParams)
-	var customerID string
-
-	for customers.Next() {
-		customerID = customers.Customer().ID
-		break
+	// Get Stripe customer ID from database
+	var stripeCustomerID sql.NullString
+	query := "SELECT stripe_customer_id FROM users.users WHERE id = $1"
+	if dbErr := s.getDB().QueryRowContext(ctx, query, userID).Scan(&stripeCustomerID); dbErr != nil {
+		if err == sql.ErrNoRows {
+			log.Printf("User %s not found in database", userID)
+			return "", errLib.New("User not found", http.StatusNotFound)
+		}
+		log.Printf("Database error getting user %s: %v", userID, err)
+		return "", errLib.New("Failed to lookup user", http.StatusInternalServerError)
 	}
 
-	if customerID == "" {
-		return "", errLib.New("Customer not found", http.StatusNotFound)
+	// If no Stripe customer ID is stored, return error
+	if !stripeCustomerID.Valid || stripeCustomerID.String == "" {
+		log.Printf("No Stripe customer ID found for user %s", userID)
+		return "", errLib.New("No subscription found - please contact support", http.StatusNotFound)
 	}
 
 	// Create billing portal session
 	params := &stripe.BillingPortalSessionParams{
-		Customer:  stripe.String(customerID),
+		Customer:  stripe.String(stripeCustomerID.String),
 		ReturnURL: stripe.String(returnURL),
 	}
 
 	session, stripeErr := billingportal.New(params)
 	if stripeErr != nil {
-		log.Printf("[STRIPE] Failed to create portal session for customer %s: %v", customerID, stripeErr)
+		log.Printf("[STRIPE] Failed to create portal session for customer %s: %v", stripeCustomerID.String, stripeErr)
 		return "", errLib.New("Failed to create portal session: "+stripeErr.Error(), http.StatusInternalServerError)
 	}
 
-	log.Printf("[STRIPE] Successfully created portal session for customer %s", customerID)
+	log.Printf("[STRIPE] Successfully created portal session for customer %s", stripeCustomerID.String)
 	return session.URL, nil
 }
 

@@ -446,6 +446,7 @@ func (r *CustomerRepository) ListMembershipHistory(ctx context.Context, customer
 				}
 				return ""
 			}(row.Interval),
+			StripePriceID: row.StripePriceID,
 		}
 	}
 

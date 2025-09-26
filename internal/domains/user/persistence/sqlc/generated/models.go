@@ -788,6 +788,7 @@ type UsersUser struct {
 	Dob                      time.Time      `json:"dob"`
 	IsArchived               bool           `json:"is_archived"`
 	SquareCustomerID         sql.NullString `json:"square_customer_id"`
+	StripeCustomerID         sql.NullString `json:"stripe_customer_id"`
 }
 
 // Tracks weekly credit consumption per customer for membership limit enforcement

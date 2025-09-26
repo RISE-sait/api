@@ -28,6 +28,7 @@ type CustomersHandler struct {
 	CustomerRepo     *customerRepo.CustomerRepository
 	FirebaseService  *firebaseService.Service
 	StripeService    *stripeService.SubscriptionService
+	PriceService     *stripeService.PriceService
 }
 
 func NewCustomersHandler(container *di.Container) *CustomersHandler {
@@ -35,6 +36,7 @@ func NewCustomersHandler(container *di.Container) *CustomersHandler {
 		CustomerRepo:    customerRepo.NewCustomerRepository(container),
 		FirebaseService: firebaseService.NewFirebaseService(container),
 		StripeService:   stripeService.NewSubscriptionService(container),
+		PriceService:    stripeService.NewPriceService(),
 	}
 }
 
@@ -488,6 +490,32 @@ func (h *CustomersHandler) GetUserMembershipHistory(w http.ResponseWriter, r *ht
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
+	}
+
+	// Enrich history with live Stripe data before converting to responses
+	for i, hst := range history {
+		if hst.Status == "active" && hst.StripePriceID != "" {
+			if stripePrice, stripeErr := h.PriceService.GetPrice(hst.StripePriceID); stripeErr == nil {
+				// Update with live Stripe price data
+				history[i].UnitAmount = int(stripePrice.UnitAmount)
+				history[i].Currency = string(stripePrice.Currency)
+				history[i].Interval = string(stripePrice.Recurring.Interval)
+			}
+			
+			// Get live Stripe subscription next payment date
+			if subscriptions, subErr := h.StripeService.GetCustomerSubscriptions(r.Context()); subErr == nil {
+				for _, subscription := range subscriptions {
+					if subscription.Status == "active" || subscription.Status == "trialing" {
+						// Set next payment date from Stripe's current period end
+						if subscription.CurrentPeriodEnd > 0 {
+							nextPaymentDate := time.Unix(subscription.CurrentPeriodEnd, 0)
+							history[i].NextPaymentDate = &nextPaymentDate
+						}
+						break // Use first active subscription
+					}
+				}
+			}
+		}
 	}
 
 	responses := make([]customerDto.MembershipHistoryResponse, len(history))

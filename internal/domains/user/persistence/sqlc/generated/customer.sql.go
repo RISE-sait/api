@@ -285,7 +285,7 @@ func (q *Queries) GetAthletes(ctx context.Context, arg GetAthletesParams) ([]Get
 }
 
 const getCustomer = `-- name: GetCustomer :one
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id,
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id,
        m.name           AS membership_name,
        mp.id            AS membership_plan_id,
        mp.name          AS membership_plan_name,
@@ -338,6 +338,7 @@ type GetCustomerRow struct {
 	Dob                       time.Time      `json:"dob"`
 	IsArchived                bool           `json:"is_archived"`
 	SquareCustomerID          sql.NullString `json:"square_customer_id"`
+	StripeCustomerID          sql.NullString `json:"stripe_customer_id"`
 	MembershipName            sql.NullString `json:"membership_name"`
 	MembershipPlanID          uuid.NullUUID  `json:"membership_plan_id"`
 	MembershipPlanName        sql.NullString `json:"membership_plan_name"`
@@ -372,6 +373,7 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 		&i.Dob,
 		&i.IsArchived,
 		&i.SquareCustomerID,
+		&i.StripeCustomerID,
 		&i.MembershipName,
 		&i.MembershipPlanID,
 		&i.MembershipPlanName,
@@ -389,7 +391,7 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 }
 
 const getCustomers = `-- name: GetCustomers :many
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id,
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id,
        m.name           AS membership_name,
        mp.id            AS membership_plan_id,
        mp.name          AS membership_plan_name,
@@ -449,6 +451,7 @@ type GetCustomersRow struct {
 	Dob                       time.Time      `json:"dob"`
 	IsArchived                bool           `json:"is_archived"`
 	SquareCustomerID          sql.NullString `json:"square_customer_id"`
+	StripeCustomerID          sql.NullString `json:"stripe_customer_id"`
 	MembershipName            sql.NullString `json:"membership_name"`
 	MembershipPlanID          uuid.NullUUID  `json:"membership_plan_id"`
 	MembershipPlanName        sql.NullString `json:"membership_plan_name"`
@@ -494,6 +497,7 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]G
 			&i.Dob,
 			&i.IsArchived,
 			&i.SquareCustomerID,
+			&i.StripeCustomerID,
 			&i.MembershipName,
 			&i.MembershipPlanID,
 			&i.MembershipPlanName,
@@ -521,7 +525,7 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]G
 }
 
 const listArchivedCustomers = `-- name: ListArchivedCustomers :many
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id
 FROM users.users u
 WHERE u.is_archived = TRUE
 LIMIT $2 OFFSET $1
@@ -558,6 +562,7 @@ func (q *Queries) ListArchivedCustomers(ctx context.Context, arg ListArchivedCus
 			&i.Dob,
 			&i.IsArchived,
 			&i.SquareCustomerID,
+			&i.StripeCustomerID,
 		); err != nil {
 			return nil, err
 		}
@@ -589,7 +594,8 @@ SELECT
     mp.name AS membership_plan_name,
     mp.unit_amount,
     mp.currency,
-    mp.interval
+    mp.interval,
+    mp.stripe_price_id
 FROM users.customer_membership_plans cmp
     JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
     JOIN membership.memberships m ON m.id = mp.membership_id
@@ -614,6 +620,7 @@ type ListMembershipHistoryRow struct {
 	UnitAmount            sql.NullInt32              `json:"unit_amount"`
 	Currency              sql.NullString             `json:"currency"`
 	Interval              sql.NullString             `json:"interval"`
+	StripePriceID         string                     `json:"stripe_price_id"`
 }
 
 func (q *Queries) ListMembershipHistory(ctx context.Context, customerID uuid.UUID) ([]ListMembershipHistoryRow, error) {
@@ -642,6 +649,7 @@ func (q *Queries) ListMembershipHistory(ctx context.Context, customerID uuid.UUI
 			&i.UnitAmount,
 			&i.Currency,
 			&i.Interval,
+			&i.StripePriceID,
 		); err != nil {
 			return nil, err
 		}

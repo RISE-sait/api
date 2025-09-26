@@ -169,7 +169,8 @@ SELECT
     mp.name AS membership_plan_name,
     mp.unit_amount,
     mp.currency,
-    mp.interval
+    mp.interval,
+    mp.stripe_price_id
 FROM users.customer_membership_plans cmp
     JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
     JOIN membership.memberships m ON m.id = mp.membership_id

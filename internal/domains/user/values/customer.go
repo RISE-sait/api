@@ -63,6 +63,7 @@ type MembershipHistoryValue struct {
 	CustomerID            uuid.UUID
 	StartDate             time.Time
 	RenewalDate           *time.Time
+	NextPaymentDate       *time.Time
 	Status                string
 	CreatedAt             time.Time
 	UpdatedAt             time.Time
@@ -75,4 +76,5 @@ type MembershipHistoryValue struct {
 	UnitAmount            int
 	Currency              string
 	Interval              string
+	StripePriceID         string
 }

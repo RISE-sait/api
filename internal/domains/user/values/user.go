@@ -15,6 +15,7 @@ type ReadValue struct {
 	LastName       string
 	Email          *string
 	Phone          *string
+	Notes          *string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 	IsArchived     bool

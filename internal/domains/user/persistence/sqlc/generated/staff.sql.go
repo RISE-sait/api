@@ -79,7 +79,7 @@ func (q *Queries) GetAvailableStaffRoles(ctx context.Context) ([]StaffStaffRole,
 }
 
 const getStaffs = `-- name: GetStaffs :many
-SELECT s.is_active, u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, sr.role_name, cs.wins, cs.losses, s.photo_url
+SELECT s.is_active, u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, sr.role_name, cs.wins, cs.losses, s.photo_url
 FROM staff.staff s
 JOIN users.users u ON u.id = s.id
 JOIN staff.staff_roles sr ON s.role_id = sr.id
@@ -106,6 +106,7 @@ type GetStaffsRow struct {
 	IsArchived               bool           `json:"is_archived"`
 	SquareCustomerID         sql.NullString `json:"square_customer_id"`
 	StripeCustomerID         sql.NullString `json:"stripe_customer_id"`
+	Notes                    sql.NullString `json:"notes"`
 	RoleName                 string         `json:"role_name"`
 	Wins                     sql.NullInt32  `json:"wins"`
 	Losses                   sql.NullInt32  `json:"losses"`
@@ -140,6 +141,7 @@ func (q *Queries) GetStaffs(ctx context.Context, roleName sql.NullString) ([]Get
 			&i.IsArchived,
 			&i.SquareCustomerID,
 			&i.StripeCustomerID,
+			&i.Notes,
 			&i.RoleName,
 			&i.Wins,
 			&i.Losses,

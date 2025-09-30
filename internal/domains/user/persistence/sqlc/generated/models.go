@@ -789,6 +789,8 @@ type UsersUser struct {
 	IsArchived               bool           `json:"is_archived"`
 	SquareCustomerID         sql.NullString `json:"square_customer_id"`
 	StripeCustomerID         sql.NullString `json:"stripe_customer_id"`
+	// Staff notes about the customer for internal reference
+	Notes sql.NullString `json:"notes"`
 }
 
 // Tracks weekly credit consumption per customer for membership limit enforcement

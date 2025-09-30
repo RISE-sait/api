@@ -23,7 +23,7 @@ type CustomerEnrollmentRepository struct {
 	Queries        *dbEnrollment.Queries
 	ProgramService *program.Service
 	EventService   *service.Service
-	Db             *sql.DB
+	Db             *sql.DB // Add the Db field here
 }
 
 func NewEnrollmentRepository(container *di.Container) *CustomerEnrollmentRepository {
@@ -62,13 +62,13 @@ func (r *CustomerEnrollmentRepository) UnEnrollCustomerFromEvent(c context.Conte
 	return nil
 }
 
-func (r *CustomerEnrollmentRepository) EnrollCustomerInMembershipPlan(ctx context.Context, customerID, planID uuid.UUID, cancelAtDateTime time.Time) *errLib.CommonError {
+func (r *CustomerEnrollmentRepository) EnrollCustomerInMembershipPlan(ctx context.Context, customerID, planID uuid.UUID, cancelAtDateTime time.Time, startTime time.Time) *errLib.CommonError {
 
 	if err := r.Queries.EnrollCustomerInMembershipPlan(ctx, dbEnrollment.EnrollCustomerInMembershipPlanParams{
 		CustomerID:       customerID,
 		MembershipPlanID: planID,
 		Status:           dbEnrollment.MembershipMembershipStatusActive,
-		StartDate:        time.Now(),
+		StartDate:        startTime,
 		RenewalDate: sql.NullTime{
 			Time:  cancelAtDateTime,
 			Valid: !cancelAtDateTime.IsZero(),

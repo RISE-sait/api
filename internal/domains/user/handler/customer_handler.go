@@ -708,7 +708,73 @@ func (h *CustomersHandler) DeleteMyAccount(w http.ResponseWriter, r *http.Reques
 	log.Printf("Account deletion completed successfully for customer: %s", customerID)
 
 	responseHandlers.RespondWithSuccess(w, map[string]interface{}{
-		"message": "Your account has been permanently deleted",
-		"deleted_at": fmt.Sprintf("%s", time.Now().UTC().Format(time.RFC3339)),
+		"message":   "Your account has been permanently deleted",
+		"deleted_at": time.Now().UTC().Format(time.RFC3339),
+	}, http.StatusOK)
+}
+
+// UpdateCustomerNotes updates notes for a customer.
+// @Tags customers
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path string true "Customer ID"
+// @Param notes_body body customerDto.NotesUpdateRequestDto true "Customer notes update data"
+// @Success 200 {object} map[string]interface{} "Notes updated successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 403 {object} map[string]interface{} "Forbidden: Insufficient permissions"
+// @Failure 404 {object} map[string]interface{} "Not Found: Customer not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /customers/{id}/notes [put]
+func (h *CustomersHandler) UpdateCustomerNotes(w http.ResponseWriter, r *http.Request) {
+	// Get customer ID from URL
+	customerIDStr := chi.URLParam(r, "id")
+	customerID, parseErr := uuid.Parse(customerIDStr)
+	if parseErr != nil {
+		responseHandlers.RespondWithError(w, errLib.New("Invalid customer ID format", http.StatusBadRequest))
+		return
+	}
+
+	// Check authorization - only admin can update notes for now
+	userRole, roleErr := contextUtils.GetUserRole(r.Context())
+	if roleErr != nil {
+		responseHandlers.RespondWithError(w, errLib.New("Authentication required", http.StatusUnauthorized))
+		return
+	}
+
+	if userRole != contextUtils.RoleAdmin && userRole != contextUtils.RoleSuperAdmin {
+		responseHandlers.RespondWithError(w, errLib.New("Insufficient permissions to update notes", http.StatusForbidden))
+		return
+	}
+
+	// Parse request body for notes update
+	var requestDto customerDto.NotesUpdateRequestDto
+	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Convert to value object
+	updateValue, conversionErr := requestDto.ToUpdateValue(customerIDStr)
+	if conversionErr != nil {
+		responseHandlers.RespondWithError(w, conversionErr)
+		return
+	}
+
+	// Update notes in database
+	rowsAffected, updateErr := h.CustomerRepo.UpdateCustomerNotes(r.Context(), updateValue)
+	if updateErr != nil {
+		responseHandlers.RespondWithError(w, updateErr)
+		return
+	}
+
+	if rowsAffected == 0 {
+		responseHandlers.RespondWithError(w, errLib.New("Customer not found", http.StatusNotFound))
+		return
+	}
+
+	responseHandlers.RespondWithSuccess(w, map[string]interface{}{
+		"message": "Notes updated successfully",
+		"customer_id": customerID,
 	}, http.StatusOK)
 }

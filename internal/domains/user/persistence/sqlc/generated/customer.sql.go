@@ -46,7 +46,8 @@ WHERE u.is_archived = FALSE
   OR u.first_name ILIKE $2 || '%'
   OR u.last_name ILIKE $2 || '%'
   OR u.email ILIKE $2 || '%'
-  OR u.phone ILIKE $2 || '%')
+  OR u.phone ILIKE $2 || '%'
+  OR u.notes ILIKE $2 || '%')
   AND NOT EXISTS (SELECT 1 FROM staff.staff s WHERE s.id = u.id)
 `
 
@@ -285,7 +286,7 @@ func (q *Queries) GetAthletes(ctx context.Context, arg GetAthletesParams) ([]Get
 }
 
 const getCustomer = `-- name: GetCustomer :one
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id,
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes,
        m.name           AS membership_name,
        mp.id            AS membership_plan_id,
        mp.name          AS membership_plan_name,
@@ -339,6 +340,7 @@ type GetCustomerRow struct {
 	IsArchived                bool           `json:"is_archived"`
 	SquareCustomerID          sql.NullString `json:"square_customer_id"`
 	StripeCustomerID          sql.NullString `json:"stripe_customer_id"`
+	Notes                     sql.NullString `json:"notes"`
 	MembershipName            sql.NullString `json:"membership_name"`
 	MembershipPlanID          uuid.NullUUID  `json:"membership_plan_id"`
 	MembershipPlanName        sql.NullString `json:"membership_plan_name"`
@@ -374,6 +376,7 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 		&i.IsArchived,
 		&i.SquareCustomerID,
 		&i.StripeCustomerID,
+		&i.Notes,
 		&i.MembershipName,
 		&i.MembershipPlanID,
 		&i.MembershipPlanName,
@@ -391,7 +394,7 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 }
 
 const getCustomers = `-- name: GetCustomers :many
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id,
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes,
        m.name           AS membership_name,
        mp.id            AS membership_plan_id,
        mp.name          AS membership_plan_name,
@@ -418,9 +421,10 @@ WHERE u.is_archived = FALSE
   AND (u.parent_id = $1 OR $1 IS NULL)
   AND ($2::varchar IS NULL
   OR u.first_name ILIKE $2 || '%'
-  OR u.last_name ILIKE $2 || '%' 
-  OR u.email ILIKE $2 || '%' 
-  OR u.phone ILIKE $2 || '%')
+  OR u.last_name ILIKE $2 || '%'
+  OR u.email ILIKE $2 || '%'
+  OR u.phone ILIKE $2 || '%'
+  OR u.notes ILIKE $2 || '%')
   AND NOT EXISTS (SELECT 1
                   FROM staff.staff s
                   WHERE s.id = u.id)
@@ -452,6 +456,7 @@ type GetCustomersRow struct {
 	IsArchived                bool           `json:"is_archived"`
 	SquareCustomerID          sql.NullString `json:"square_customer_id"`
 	StripeCustomerID          sql.NullString `json:"stripe_customer_id"`
+	Notes                     sql.NullString `json:"notes"`
 	MembershipName            sql.NullString `json:"membership_name"`
 	MembershipPlanID          uuid.NullUUID  `json:"membership_plan_id"`
 	MembershipPlanName        sql.NullString `json:"membership_plan_name"`
@@ -498,6 +503,7 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]G
 			&i.IsArchived,
 			&i.SquareCustomerID,
 			&i.StripeCustomerID,
+			&i.Notes,
 			&i.MembershipName,
 			&i.MembershipPlanID,
 			&i.MembershipPlanName,
@@ -525,7 +531,7 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]G
 }
 
 const listArchivedCustomers = `-- name: ListArchivedCustomers :many
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes
 FROM users.users u
 WHERE u.is_archived = TRUE
 LIMIT $2 OFFSET $1
@@ -563,6 +569,7 @@ func (q *Queries) ListArchivedCustomers(ctx context.Context, arg ListArchivedCus
 			&i.IsArchived,
 			&i.SquareCustomerID,
 			&i.StripeCustomerID,
+			&i.Notes,
 		); err != nil {
 			return nil, err
 		}
@@ -750,6 +757,26 @@ type UpdateAthleteTeamParams struct {
 
 func (q *Queries) UpdateAthleteTeam(ctx context.Context, arg UpdateAthleteTeamParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateAthleteTeam, arg.TeamID, arg.AthleteID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateCustomerNotes = `-- name: UpdateCustomerNotes :execrows
+UPDATE users.users
+SET notes = $1,
+    updated_at = current_timestamp
+WHERE id = $2
+`
+
+type UpdateCustomerNotesParams struct {
+	Notes      sql.NullString `json:"notes"`
+	CustomerID uuid.UUID      `json:"customer_id"`
+}
+
+func (q *Queries) UpdateCustomerNotes(ctx context.Context, arg UpdateCustomerNotesParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateCustomerNotes, arg.Notes, arg.CustomerID)
 	if err != nil {
 		return 0, err
 	}

@@ -44,6 +44,11 @@ type AthleteProfileUpdateValue struct {
 	PhotoURL *string
 }
 
+type NotesUpdateValue struct {
+	CustomerID uuid.UUID
+	Notes      *string
+}
+
 type AthleteReadValue struct {
 	ID        uuid.UUID
 	FirstName string

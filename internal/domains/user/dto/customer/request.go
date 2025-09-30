@@ -58,3 +58,26 @@ func (dto AthleteProfileUpdateRequestDto) ToUpdateValue(idStr string) (values.At
 	}, nil
 
 }
+
+type NotesUpdateRequestDto struct {
+	Notes *string `json:"notes" validate:"omitempty,max=5000"`
+}
+
+func (dto NotesUpdateRequestDto) ToUpdateValue(idStr string) (values.NotesUpdateValue, *errLib.CommonError) {
+
+	id, err := validators.ParseUUID(idStr)
+
+	if err != nil {
+		return values.NotesUpdateValue{}, err
+	}
+
+	if err := validators.ValidateDto(&dto); err != nil {
+		return values.NotesUpdateValue{}, err
+	}
+
+	return values.NotesUpdateValue{
+		CustomerID: id,
+		Notes:      dto.Notes,
+	}, nil
+
+}

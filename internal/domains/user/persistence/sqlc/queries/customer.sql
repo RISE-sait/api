@@ -48,9 +48,10 @@ WHERE u.is_archived = FALSE
   AND (u.parent_id = $1 OR $1 IS NULL)
   AND (sqlc.narg('search')::varchar IS NULL
   OR u.first_name ILIKE sqlc.narg('search') || '%'
-  OR u.last_name ILIKE sqlc.narg('search') || '%' 
-  OR u.email ILIKE sqlc.narg('search') || '%' 
-  OR u.phone ILIKE sqlc.narg('search') || '%')
+  OR u.last_name ILIKE sqlc.narg('search') || '%'
+  OR u.email ILIKE sqlc.narg('search') || '%'
+  OR u.phone ILIKE sqlc.narg('search') || '%'
+  OR u.notes ILIKE sqlc.narg('search') || '%')
   AND NOT EXISTS (SELECT 1
                   FROM staff.staff s
                   WHERE s.id = u.id)
@@ -127,7 +128,8 @@ WHERE u.is_archived = FALSE
   OR u.first_name ILIKE sqlc.narg('search') || '%'
   OR u.last_name ILIKE sqlc.narg('search') || '%'
   OR u.email ILIKE sqlc.narg('search') || '%'
-  OR u.phone ILIKE sqlc.narg('search') || '%')
+  OR u.phone ILIKE sqlc.narg('search') || '%'
+  OR u.notes ILIKE sqlc.narg('search') || '%')
   AND NOT EXISTS (SELECT 1 FROM staff.staff s WHERE s.id = u.id);
 
 -- name: GetActiveMembershipInfo :one
@@ -211,3 +213,9 @@ DELETE FROM events.customer_enrollment WHERE customer_id = $1;
 
 -- name: DeleteAthleteData :execrows
 DELETE FROM athletic.athletes WHERE id = $1;
+
+-- name: UpdateCustomerNotes :execrows
+UPDATE users.users
+SET notes = sqlc.arg('notes'),
+    updated_at = current_timestamp
+WHERE id = sqlc.arg('customer_id');

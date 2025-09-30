@@ -17,6 +17,7 @@ type Response struct {
 	Phone          *string                `json:"phone,omitempty"`
 	HubspotId      *string                `json:"hubspot_id,omitempty"`
 	CountryCode    string                 `json:"country_code"`
+	Notes          *string                `json:"notes,omitempty"`
 	MembershipInfo *MembershipResponseDto `json:"membership_info,omitempty"`
 	IsArchived     bool                   `json:"is_archived"`
 }
@@ -39,6 +40,7 @@ func UserReadValueToResponse(customer values.ReadValue) Response {
 		Phone:       customer.Phone,
 		CountryCode: customer.CountryCode,
 		HubspotId:   customer.HubspotID,
+		Notes:       customer.Notes,
 		IsArchived:  customer.IsArchived,
 	}
 

@@ -81,6 +81,10 @@ func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int
 			customer.Email = &dbCustomer.Email.String
 		}
 
+		if dbCustomer.Notes.Valid {
+			customer.Notes = &dbCustomer.Notes.String
+		}
+
 		if dbCustomer.MembershipName.Valid && dbCustomer.MembershipPlanName.Valid && dbCustomer.MembershipStartDate.Valid && dbCustomer.MembershipPlanID.Valid {
 
 			customer.MembershipInfo = &userValues.MembershipReadValue{
@@ -157,6 +161,10 @@ func (r *CustomerRepository) GetCustomer(ctx context.Context, id uuid.UUID, emai
 
 	if dbCustomer.Email.Valid {
 		customer.Email = &dbCustomer.Email.String
+	}
+
+	if dbCustomer.Notes.Valid {
+		customer.Notes = &dbCustomer.Notes.String
 	}
 
 	if dbCustomer.MembershipName.Valid && dbCustomer.MembershipPlanName.Valid && dbCustomer.MembershipStartDate.Valid && dbCustomer.MembershipPlanID.Valid {
@@ -584,4 +592,26 @@ func (r *CustomerRepository) DeleteCustomerAccountCompletely(ctx context.Context
 	
 	log.Printf("Successfully completed account deletion for customer: %s", customerID)
 	return nil
+}
+
+// UpdateCustomerNotes updates the notes for a customer
+func (r *CustomerRepository) UpdateCustomerNotes(ctx context.Context, updateValue userValues.NotesUpdateValue) (int64, *errLib.CommonError) {
+	var notes sql.NullString
+	if updateValue.Notes != nil {
+		notes = sql.NullString{String: *updateValue.Notes, Valid: true}
+	} else {
+		notes = sql.NullString{Valid: false}
+	}
+
+	rowsAffected, err := r.Queries.UpdateCustomerNotes(ctx, db.UpdateCustomerNotesParams{
+		CustomerID: updateValue.CustomerID,
+		Notes:      notes,
+	})
+
+	if err != nil {
+		log.Printf("Failed to update customer notes for customer %s: %v", updateValue.CustomerID, err)
+		return 0, errLib.New("Failed to update customer notes", http.StatusInternalServerError)
+	}
+
+	return rowsAffected, nil
 }

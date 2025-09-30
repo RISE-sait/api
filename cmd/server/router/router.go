@@ -120,6 +120,7 @@ func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 		r.Post("/{id}/unarchive", h.UnarchiveCustomer)
 		r.Get("/archived", h.ListArchivedCustomers)
 		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/delete-account", h.DeleteMyAccount)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}/notes", h.UpdateCustomerNotes)
 	}
 }
 

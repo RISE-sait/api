@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	identityRepo "api/internal/domains/identity/persistence/repository/user"
@@ -54,6 +55,9 @@ func NewWebhookService(container *di.Container) *WebhookService {
 }
 
 func (s *WebhookService) HandleCheckoutSessionCompleted(event stripe.Event) *errLib.CommonError {
+	// Get event creation time for consistent timestamps
+	eventCreatedAt := time.Unix(event.Created, 0)
+
 	webhookLogger := s.logger.WithFields(map[string]interface{}{
 		"event_id":   event.ID,
 		"event_type": event.Type,
@@ -82,9 +86,9 @@ func (s *WebhookService) HandleCheckoutSessionCompleted(event stripe.Event) *err
 	var err *errLib.CommonError
 	switch checkSession.Mode {
 	case stripe.CheckoutSessionModePayment:
-		err = s.handleItemCheckoutComplete(checkSession, webhookLogger)
+		err = s.handleItemCheckoutComplete(checkSession, webhookLogger, eventCreatedAt)
 	case stripe.CheckoutSessionModeSubscription:
-		err = s.handleSubscriptionCheckoutComplete(checkSession)
+		err = s.handleSubscriptionCheckoutComplete(checkSession, eventCreatedAt)
 	default:
 		webhookLogger.Warn("Unhandled session mode received")
 		return nil
@@ -96,12 +100,15 @@ func (s *WebhookService) HandleCheckoutSessionCompleted(event stripe.Event) *err
 		webhookLogger.Info("Webhook event processed successfully")
 	} else {
 		webhookLogger.Error("Webhook processing failed", err)
+		
+		// Send comprehensive Slack alert for debugging
+		s.sendEnhancedWebhookAlert(event, checkSession, err)
 	}
 
 	return err
 }
 
-func (s *WebhookService) handleItemCheckoutComplete(checkoutSession stripe.CheckoutSession, parentLogger *logger.StructuredLogger) *errLib.CommonError {
+func (s *WebhookService) handleItemCheckoutComplete(checkoutSession stripe.CheckoutSession, parentLogger *logger.StructuredLogger, eventCreatedAt time.Time) *errLib.CommonError {
 	itemLogger := parentLogger.WithFields(map[string]interface{}{
 		"handler": "item_checkout_complete",
 	})
@@ -200,42 +207,65 @@ func (s *WebhookService) handleItemCheckoutComplete(checkoutSession stripe.Check
 	return nil
 }
 
-func (s *WebhookService) handleSubscriptionCheckoutComplete(checkoutSession stripe.CheckoutSession) *errLib.CommonError {
+func (s *WebhookService) handleSubscriptionCheckoutComplete(checkoutSession stripe.CheckoutSession, eventCreatedAt time.Time) *errLib.CommonError {
+	webhookLogger := s.logger.WithFields(map[string]interface{}{
+		"handler":    "subscription_checkout_complete",
+		"session_id": checkoutSession.ID,
+	})
+	
+	webhookLogger.Info("Starting subscription checkout completion processing")
+	
 	// 1. Validate and expand session
 	fullSession, err := s.getExpandedSession(checkoutSession.ID)
 	if err != nil {
+		webhookLogger.Error("Failed to expand checkout session", err)
 		return err
 	}
 
 	// 2. Validate line items and get price ID
 	priceIDs, err := s.validateLineItems(fullSession.LineItems)
 	if err != nil {
+		webhookLogger.Error("Failed to validate line items", err)
 		return err
 	}
 
 	priceID := priceIDs[0]
+	webhookLogger = webhookLogger.WithFields(map[string]interface{}{
+		"stripe_price_id": priceID,
+	})
+	
+	webhookLogger.Info("Processing subscription for price ID")
 
 	// 3. Parse metadata
 	userIdStr := fullSession.Metadata["userID"]
 
 	if userIdStr == "" {
+		webhookLogger.Error("userID not found in metadata", nil)
 		return errLib.New("userID not found in metadata", http.StatusBadRequest)
 	}
 
 	userID, uuidErr := uuid.Parse(userIdStr)
-
 	if uuidErr != nil {
+		webhookLogger.Error("Invalid user ID format", uuidErr)
 		return errLib.New("Invalid user ID format", http.StatusBadRequest)
 	}
+	
+	webhookLogger = webhookLogger.WithFields(map[string]interface{}{
+		"customer_id": userID,
+	})
 
 	planID, amtPeriods, err := s.PostCheckoutRepository.GetMembershipPlanByStripePriceID(context.Background(), priceID)
-
 	if err != nil {
-		log.Printf("ERROR: GetMembershipPlanByStripePriceID failed for priceID %s: %v", priceID, err)
+		webhookLogger.Error("Failed to get membership plan by Stripe price ID", err)
 		return err
 	}
 
-	log.Printf("Found planID: %s, amtPeriods: %v for priceID: %s", planID, amtPeriods, priceID)
+	webhookLogger = webhookLogger.WithFields(map[string]interface{}{
+		"membership_plan_id": planID,
+		"amt_periods": amtPeriods,
+	})
+	
+	webhookLogger.Info("Retrieved membership plan details")
 
 	// Store Stripe customer ID in database for future reference
 	if fullSession.Customer != nil && fullSession.Customer.ID != "" {
@@ -253,16 +283,27 @@ func (s *WebhookService) handleSubscriptionCheckoutComplete(checkoutSession stri
 			*amtPeriods,
 			userID,
 			planID,
+			eventCreatedAt,
 		); err != nil {
 			return err
 		}
 	} else {
-		log.Printf("Enrolling customer %s in membership plan %s", userID, planID)
-		if err := s.EnrollmentService.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, time.Time{}); err != nil {
-			log.Printf("ERROR: EnrollCustomerInMembershipPlan failed: %v", err)
-			return err
+		log.Printf("Checking existing enrollment for customer %s in plan %s", userID, planID)
+		
+		// Check if customer is already enrolled to handle webhook retries gracefully
+		if isAlreadyEnrolled, checkErr := s.isCustomerAlreadyEnrolled(context.Background(), userID, planID); checkErr != nil {
+			log.Printf("ERROR: Failed to check existing enrollment: %v", checkErr)
+			return checkErr
+		} else if isAlreadyEnrolled {
+			log.Printf("🚫 SKIPPING ENROLLMENT - Customer %s is already enrolled in plan %s", userID, planID)
+		} else {
+			log.Printf("🚀 STARTING ENROLLMENT - Customer %s in membership plan %s with start time %s", userID, planID, eventCreatedAt.Format(time.RFC3339))
+			if err := s.EnrollmentService.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, time.Time{}, eventCreatedAt); err != nil {
+				log.Printf("❌ ERROR: EnrollCustomerInMembershipPlan failed: %v", err)
+				return err
+			}
+			log.Printf("✅ SUCCESS: Enrolled customer %s in membership plan %s", userID, planID)
 		}
-		log.Printf("Successfully enrolled customer %s in membership plan %s", userID, planID)
 	}
 	
 	// Allocate credits if this is a credit-based membership plan
@@ -310,7 +351,7 @@ func (s *WebhookService) validateLineItems(lineItems *stripe.LineItemList) ([]st
 	return priceIds, nil
 }
 
-func (s *WebhookService) processSubscriptionWithEndDate(subscriptionID string, totalBillingPeriods int32, userID, planID uuid.UUID) *errLib.CommonError {
+func (s *WebhookService) processSubscriptionWithEndDate(subscriptionID string, totalBillingPeriods int32, userID, planID uuid.UUID, eventCreatedAt time.Time) *errLib.CommonError {
 	log.Printf("Processing subscription with end date: %s, periods: %d, user: %s, plan: %s", subscriptionID, totalBillingPeriods, userID, planID)
 	
 	sub, err := s.getExpandedSubscription(subscriptionID)
@@ -319,16 +360,27 @@ func (s *WebhookService) processSubscriptionWithEndDate(subscriptionID string, t
 		return err
 	}
 
-	cancelAtUnix, cancelAtDateTime, err := s.calculateCancelAt(sub, int(totalBillingPeriods))
+	cancelAtUnix, cancelAtDateTime, err := s.calculateCancelAt(sub, int(totalBillingPeriods), eventCreatedAt)
 	if err != nil {
 		log.Printf("ERROR: calculateCancelAt failed: %v", err)
 		return err
 	}
 
-	log.Printf("Enrolling customer %s in plan %s with end date: %s", userID, planID, cancelAtDateTime)
-	if err = s.EnrollmentService.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, cancelAtDateTime); err != nil {
-		log.Printf("ERROR: EnrollCustomerInMembershipPlan failed in processSubscriptionWithEndDate: %v", err)
-		return err
+	log.Printf("Checking existing enrollment for customer %s in plan %s", userID, planID)
+	
+	// Check if customer is already enrolled to handle webhook retries gracefully
+	if isAlreadyEnrolled, checkErr := s.isCustomerAlreadyEnrolled(context.Background(), userID, planID); checkErr != nil {
+		log.Printf("ERROR: Failed to check existing enrollment: %v", checkErr)
+		return checkErr
+	} else if isAlreadyEnrolled {
+		log.Printf("🚫 SKIPPING ENROLLMENT - Customer %s is already enrolled in plan %s", userID, planID)
+	} else {
+		log.Printf("🚀 STARTING ENROLLMENT - Customer %s in plan %s with end date: %s, start time: %s", userID, planID, cancelAtDateTime.Format(time.RFC3339), eventCreatedAt.Format(time.RFC3339))
+		if err = s.EnrollmentService.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, cancelAtDateTime, eventCreatedAt); err != nil {
+			log.Printf("❌ ERROR: EnrollCustomerInMembershipPlan failed in processSubscriptionWithEndDate: %v", err)
+			return err
+		}
+		log.Printf("✅ SUCCESS: Enrolled customer %s in plan %s", userID, planID)
 	}
 
 	// Allocate credits if this is a credit-based membership plan
@@ -340,7 +392,17 @@ func (s *WebhookService) processSubscriptionWithEndDate(subscriptionID string, t
 
 	s.sendMembershipPurchaseEmail(userID, planID)
 
-	return s.updateSubscriptionCancelAt(sub.ID, cancelAtUnix)
+	// Update Stripe subscription cancel date - don't fail webhook if this fails
+	// The critical enrollment has already succeeded
+	if stripeErr := s.updateSubscriptionCancelAt(sub.ID, cancelAtUnix); stripeErr != nil {
+		log.Printf("WARNING: Failed to update subscription cancel date for %s: %v", sub.ID, stripeErr)
+		log.Printf("WARNING: Enrollment succeeded but Stripe subscription cancel date could not be set")
+		// Consider implementing a background retry job for this
+	} else {
+		log.Printf("Successfully set cancel date for subscription %s", sub.ID)
+	}
+
+	return nil
 }
 
 func (s *WebhookService) getExpandedSubscription(subscriptionID string) (*stripe.Subscription, *errLib.CommonError) {
@@ -372,25 +434,24 @@ func (s *WebhookService) getExpandedSubscription(subscriptionID string) (*stripe
 	return sub, nil
 }
 
-func (s *WebhookService) calculateCancelAt(sub *stripe.Subscription, periods int) (cancelAtUnix int64, cancelAtDate time.Time, error *errLib.CommonError) {
+func (s *WebhookService) calculateCancelAt(sub *stripe.Subscription, periods int, baseTime time.Time) (cancelAtUnix int64, cancelAtDate time.Time, error *errLib.CommonError) {
 	item := sub.Items.Data[0]
 	interval := item.Price.Recurring.Interval
 	intervalCount := int(item.Price.Recurring.IntervalCount)
 
 	log.Printf("calculateCancelAt: interval=%s, intervalCount=%d, periods=%d", interval, intervalCount, periods)
 
-	now := time.Now()
 	var cancelTime time.Time
 
 	switch interval {
 	case stripe.PriceRecurringIntervalMonth:
-		cancelTime = now.AddDate(0, intervalCount*periods, 0)
+		cancelTime = baseTime.AddDate(0, intervalCount*periods, 0)
 	case stripe.PriceRecurringIntervalYear:
-		cancelTime = now.AddDate(intervalCount*periods, 0, 0)
+		cancelTime = baseTime.AddDate(intervalCount*periods, 0, 0)
 	case stripe.PriceRecurringIntervalWeek:
-		cancelTime = now.AddDate(0, 0, 7*intervalCount*periods)
+		cancelTime = baseTime.AddDate(0, 0, 7*intervalCount*periods)
 	case stripe.PriceRecurringIntervalDay:
-		cancelTime = now.AddDate(0, 0, intervalCount*periods)
+		cancelTime = baseTime.AddDate(0, 0, intervalCount*periods)
 	default:
 		log.Printf("ERROR: Unsupported billing interval: %s", interval)
 		return 0, time.Time{}, errLib.New("invalid billing interval: " + string(interval), http.StatusBadRequest)
@@ -401,17 +462,45 @@ func (s *WebhookService) calculateCancelAt(sub *stripe.Subscription, periods int
 }
 
 func (s *WebhookService) updateSubscriptionCancelAt(subscriptionID string, cancelAt int64) *errLib.CommonError {
-	_, err := subscription.Update(
-		subscriptionID,
-		&stripe.SubscriptionParams{
-			CancelAt: stripe.Int64(cancelAt),
-		},
-	)
-	if err != nil {
-		log.Printf("Failed to update subscription: %v", err)
-		return errLib.New("Failed to set cancel date: "+err.Error(), http.StatusInternalServerError)
+	// Retry logic for Stripe API calls
+	maxRetries := 3
+	retryDelay := time.Second
+	var lastErr error
+	
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		_, err := subscription.Update(
+			subscriptionID,
+			&stripe.SubscriptionParams{
+				CancelAt: stripe.Int64(cancelAt),
+			},
+		)
+		
+		if err == nil {
+			if attempt > 1 {
+				log.Printf("Successfully updated subscription %s on attempt %d", subscriptionID, attempt)
+			}
+			return nil
+		}
+		
+		lastErr = err
+		log.Printf("Attempt %d/%d failed to update subscription %s: %v", attempt, maxRetries, subscriptionID, err)
+		
+		// Don't retry on client errors (4xx), only on server errors and network issues
+		if stripeErr, ok := err.(*stripe.Error); ok {
+			if stripeErr.HTTPStatusCode < 500 && stripeErr.HTTPStatusCode >= 400 {
+				log.Printf("Client error, not retrying: HTTP %d", stripeErr.HTTPStatusCode)
+				break
+			}
+		}
+		
+		if attempt < maxRetries {
+			log.Printf("Retrying in %v...", retryDelay)
+			time.Sleep(retryDelay)
+			retryDelay *= 2 // Exponential backoff
+		}
 	}
-	return nil
+	
+	return errLib.New("Failed to set cancel date after retries: "+lastErr.Error(), http.StatusInternalServerError)
 }
 
 func (s *WebhookService) sendMembershipPurchaseEmail(userID, planID uuid.UUID) {
@@ -689,6 +778,37 @@ func (s *WebhookService) allocateCreditsForMembership(ctx context.Context, custo
 	return s.CreditService.AllocateCreditsOnMembershipPurchase(ctx, customerID, membershipPlanID)
 }
 
+// isCustomerAlreadyEnrolled checks if a customer is already enrolled in a membership plan
+func (s *WebhookService) isCustomerAlreadyEnrolled(ctx context.Context, customerID, planID uuid.UUID) (bool, *errLib.CommonError) {
+	query := "SELECT id, created_at, start_date, status FROM users.customer_membership_plans WHERE customer_id = $1 AND membership_plan_id = $2 AND status = 'active'"
+
+	rows, err := s.db.QueryContext(ctx, query, customerID, planID)
+	if err != nil {
+		log.Printf("Failed to check enrollment status for customer %s, plan %s: %v", customerID, planID, err)
+		return false, errLib.New("Failed to check enrollment status", http.StatusInternalServerError)
+	}
+	defer rows.Close()
+
+	var foundRecords []string
+	for rows.Next() {
+		var id string
+		var createdAt, startDate time.Time
+		var status string
+		if err := rows.Scan(&id, &createdAt, &startDate, &status); err == nil {
+			foundRecords = append(foundRecords, fmt.Sprintf("ID: %s, CreatedAt: %s, StartDate: %s, Status: %s", id, createdAt.Format(time.RFC3339), startDate.Format(time.RFC3339), status))
+		}
+	}
+
+	exists := len(foundRecords) > 0
+	if exists {
+		log.Printf("🚫 FOUND EXISTING MEMBERSHIP - Customer %s already enrolled in plan %s. Found records: %v", customerID, planID, foundRecords)
+	} else {
+		log.Printf("✅ NO EXISTING MEMBERSHIP - Customer %s not enrolled in plan %s, proceeding with enrollment", customerID, planID)
+	}
+
+	return exists, nil
+}
+
 // storeStripeCustomerID stores the Stripe customer ID in the database for future reference
 func (s *WebhookService) storeStripeCustomerID(userID uuid.UUID, stripeCustomerID string) *errLib.CommonError {
 	query := "UPDATE users.users SET stripe_customer_id = $1 WHERE id = $2"
@@ -710,4 +830,83 @@ func (s *WebhookService) storeStripeCustomerID(userID uuid.UUID, stripeCustomerI
 	}
 
 	return nil
+}
+
+// sendEnhancedWebhookAlert sends comprehensive debugging information to Slack
+func (s *WebhookService) sendEnhancedWebhookAlert(event stripe.Event, checkSession stripe.CheckoutSession, webhookError *errLib.CommonError) {
+	// Gather comprehensive context
+	var customerID, userEmail, stripePriceID, planID, subscriptionID string
+	var failureStep string
+	
+	// Try to extract session data for context
+	if fullSession, err := s.getExpandedSession(checkSession.ID); err == nil {
+		if fullSession.Metadata != nil {
+			customerID = fullSession.Metadata["userID"]
+		}
+		
+		if fullSession.LineItems != nil && len(fullSession.LineItems.Data) > 0 {
+			stripePriceID = fullSession.LineItems.Data[0].Price.ID
+		}
+		
+		if fullSession.Subscription != nil {
+			subscriptionID = fullSession.Subscription.ID
+		}
+		
+		// Try to get plan ID from price ID
+		if stripePriceID != "" {
+			if planUUID, _, planErr := s.PostCheckoutRepository.GetMembershipPlanByStripePriceID(context.Background(), stripePriceID); planErr == nil {
+				planID = planUUID.String()
+			}
+		}
+		
+		// Get user email if we have customer ID
+		if customerID != "" {
+			userEmail = logger.GetUserEmailFromID(customerID)
+		}
+	}
+	
+	// Classify the error and get troubleshooting steps
+	errorType, troubleshootingSteps := logger.ClassifyWebhookError(webhookError.Error())
+	
+	// Determine failure step based on error message
+	errorMsg := webhookError.Error()
+	if strings.Contains(strings.ToLower(errorMsg), "expand") || strings.Contains(strings.ToLower(errorMsg), "session") {
+		failureStep = "Session Expansion"
+	} else if strings.Contains(strings.ToLower(errorMsg), "line items") {
+		failureStep = "Line Item Validation"
+	} else if strings.Contains(strings.ToLower(errorMsg), "membership plan") {
+		failureStep = "Plan Lookup"
+	} else if strings.Contains(strings.ToLower(errorMsg), "enrollment") || strings.Contains(strings.ToLower(errorMsg), "already enrolled") {
+		failureStep = "Customer Enrollment"
+	} else if strings.Contains(strings.ToLower(errorMsg), "subscription") || strings.Contains(strings.ToLower(errorMsg), "cancel") {
+		failureStep = "Subscription Update"
+	} else if strings.Contains(strings.ToLower(errorMsg), "credit") {
+		failureStep = "Credit Allocation"
+	} else {
+		failureStep = "Unknown Step"
+	}
+	
+	// Build comprehensive alert details
+	alertDetails := logger.WebhookAlertDetails{
+		EventID:              event.ID,
+		EventType:            string(event.Type),
+		SessionID:            checkSession.ID,
+		CustomerID:           customerID,
+		StripePriceID:        stripePriceID,
+		PlanID:              planID,
+		UserEmail:           userEmail,
+		ErrorType:           errorType,
+		ErrorMessage:        webhookError.Error(),
+		FailureStep:         failureStep,
+		RetryAttempt:        1, // Could be enhanced to track actual retry count
+		SessionStatus:       string(checkSession.Status),
+		PaymentStatus:       string(checkSession.PaymentStatus),
+		SubscriptionID:      subscriptionID,
+		TroubleshootingSteps: troubleshootingSteps,
+	}
+	
+	// Send the enhanced alert
+	logger.SendWebhookFailureAlert(alertDetails)
+	
+	log.Printf("Enhanced webhook failure alert sent for event %s", event.ID)
 }

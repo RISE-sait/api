@@ -85,6 +85,7 @@ func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []valu
 		startAtArray, endAtArray                                                                   []time.Time
 		isCancelledArray, isDateTimeModifiedArray                                                  []bool
 		priceIDs                                                                                   []string
+		creditCosts                                                                                []int32
 	)
 
 	recurrenceId := uuid.Nil
@@ -106,6 +107,13 @@ func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []valu
 		isDateTimeModifiedArray = append(isDateTimeModifiedArray, false)
 		membershipPlanIDs = append(membershipPlanIDs, event.RequiredMembershipPlanID)
 		priceIDs = append(priceIDs, event.PriceID)
+
+		// Handle credit cost - sqlc doesn't support nullable arrays, so use 0 for null
+		if event.CreditCost != nil {
+			creditCosts = append(creditCosts, *event.CreditCost)
+		} else {
+			creditCosts = append(creditCosts, 0)
+		}
 	}
 
 	dbParams := db.CreateEventsParams{
@@ -122,6 +130,7 @@ func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []valu
 		CancellationReasons:       nil,
 		RequiredMembershipPlanIds: membershipPlanIDs,
 		PriceIds:                  priceIDs,
+		CreditCosts:               creditCosts,
 	}
 
 	impactedRows, dbErr := r.Queries.CreateEvents(ctx, dbParams)
@@ -393,6 +402,15 @@ func (r *EventsRepository) UpdateEvent(ctx context.Context, event values.UpdateE
 		PriceID: sql.NullString{
 			String: event.PriceID,
 			Valid:  event.PriceID != "",
+		},
+		CreditCost: sql.NullInt32{
+			Int32: func() int32 {
+				if event.CreditCost != nil {
+					return *event.CreditCost
+				}
+				return 0
+			}(),
+			Valid: event.CreditCost != nil,
 		},
 		UpdatedBy: userID,
 	}

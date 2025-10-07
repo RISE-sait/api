@@ -46,6 +46,7 @@ type CreateRecurrenceValues struct {
 	TeamID                   uuid.UUID
 	RequiredMembershipPlanID uuid.UUID
 	PriceID                  string
+	CreditCost               *int32
 }
 
 type UpdateRecurrenceValues struct {
@@ -58,4 +59,5 @@ type UpdateRecurrenceValues struct {
 	UpdatedBy                uuid.UUID
 	RequiredMembershipPlanID uuid.UUID
 	PriceID                  string
+	CreditCost               *int32
 }

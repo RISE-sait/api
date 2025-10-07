@@ -13,7 +13,8 @@ WITH unnested_data AS (
         unnest(sqlc.arg('is_cancelled_array')::bool[])           AS is_cancelled,
         unnest(sqlc.arg('cancellation_reasons')::text[])         AS cancellation_reason,
         unnest(sqlc.arg('required_membership_plan_ids')::uuid[]) AS required_membership_plan_id,
-        unnest(sqlc.arg('price_ids')::text[])                    AS price_id
+        unnest(sqlc.arg('price_ids')::text[])                    AS price_id,
+        unnest(sqlc.arg('credit_costs')::int[])                  AS credit_cost
 )
 INSERT INTO events.events (
     location_id,
@@ -29,7 +30,8 @@ INSERT INTO events.events (
     is_cancelled,
     cancellation_reason,
     required_membership_plan_id,
-    price_id
+    price_id,
+    credit_cost
 )
 SELECT
     location_id,
@@ -45,7 +47,8 @@ SELECT
     is_cancelled,
     NULLIF(cancellation_reason, ''),
     NULLIF(required_membership_plan_id, '00000000-0000-0000-0000-000000000000'::uuid),
-    NULLIF(price_id, '')
+    NULLIF(price_id, ''),
+    NULLIF(credit_cost, 0)
 FROM unnested_data
 ON CONFLICT ON CONSTRAINT no_overlapping_events DO NOTHING;
 
@@ -160,7 +163,8 @@ SET start_at                    = $1,
     updated_by                  = sqlc.arg('updated_by')::uuid,
     is_date_time_modified       = (recurrence_id IS NOT NULL),
     required_membership_plan_id = $10,
-    price_id                    = $11
+    price_id                    = $11,
+    credit_cost                 = $12
 WHERE id = $9
 RETURNING *;
 

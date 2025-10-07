@@ -29,7 +29,8 @@ WITH unnested_data AS (
         unnest($10::bool[])           AS is_cancelled,
         unnest($11::text[])         AS cancellation_reason,
         unnest($12::uuid[]) AS required_membership_plan_id,
-        unnest($13::text[])                    AS price_id
+        unnest($13::text[])                    AS price_id,
+        unnest($14::int[])                  AS credit_cost
 )
 INSERT INTO events.events (
     location_id,
@@ -45,7 +46,8 @@ INSERT INTO events.events (
     is_cancelled,
     cancellation_reason,
     required_membership_plan_id,
-    price_id
+    price_id,
+    credit_cost
 )
 SELECT
     location_id,
@@ -61,7 +63,8 @@ SELECT
     is_cancelled,
     NULLIF(cancellation_reason, ''),
     NULLIF(required_membership_plan_id, '00000000-0000-0000-0000-000000000000'::uuid),
-    NULLIF(price_id, '')
+    NULLIF(price_id, ''),
+    NULLIF(credit_cost, 0)
 FROM unnested_data
 ON CONFLICT ON CONSTRAINT no_overlapping_events DO NOTHING
 `
@@ -80,6 +83,7 @@ type CreateEventsParams struct {
 	CancellationReasons       []string    `json:"cancellation_reasons"`
 	RequiredMembershipPlanIds []uuid.UUID `json:"required_membership_plan_ids"`
 	PriceIds                  []string    `json:"price_ids"`
+	CreditCosts               []int32     `json:"credit_costs"`
 }
 
 func (q *Queries) CreateEvents(ctx context.Context, arg CreateEventsParams) (int64, error) {
@@ -97,6 +101,7 @@ func (q *Queries) CreateEvents(ctx context.Context, arg CreateEventsParams) (int
 		pq.Array(arg.CancellationReasons),
 		pq.Array(arg.RequiredMembershipPlanIds),
 		pq.Array(arg.PriceIds),
+		pq.Array(arg.CreditCosts),
 	)
 	if err != nil {
 		return 0, err
@@ -490,10 +495,11 @@ SET start_at                    = $1,
     is_cancelled                = $7,
     cancellation_reason         = $8,
     updated_at                  = current_timestamp,
-    updated_by                  = $12::uuid,
+    updated_by                  = $13::uuid,
     is_date_time_modified       = (recurrence_id IS NOT NULL),
     required_membership_plan_id = $10,
-    price_id                    = $11
+    price_id                    = $11,
+    credit_cost                 = $12
 WHERE id = $9
 RETURNING id, location_id, program_id, team_id, start_at, end_at, created_by, updated_by, is_cancelled, cancellation_reason, created_at, updated_at, is_date_time_modified, recurrence_id, court_id, required_membership_plan_id, price_id, credit_cost
 `
@@ -510,6 +516,7 @@ type UpdateEventParams struct {
 	ID                       uuid.UUID      `json:"id"`
 	RequiredMembershipPlanID uuid.NullUUID  `json:"required_membership_plan_id"`
 	PriceID                  sql.NullString `json:"price_id"`
+	CreditCost               sql.NullInt32  `json:"credit_cost"`
 	UpdatedBy                uuid.UUID      `json:"updated_by"`
 }
 
@@ -526,6 +533,7 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 		arg.ID,
 		arg.RequiredMembershipPlanID,
 		arg.PriceID,
+		arg.CreditCost,
 		arg.UpdatedBy,
 	)
 	var i EventsEvent

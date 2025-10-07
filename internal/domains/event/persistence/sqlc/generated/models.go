@@ -518,6 +518,17 @@ type GameGame struct {
 	CourtID    uuid.NullUUID  `json:"court_id"`
 }
 
+type HaircutBarberAvailability struct {
+	ID        uuid.UUID `json:"id"`
+	BarberID  uuid.UUID `json:"barber_id"`
+	DayOfWeek int32     `json:"day_of_week"`
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 type HaircutBarberService struct {
 	ID        uuid.UUID `json:"id"`
 	BarberID  uuid.UUID `json:"barber_id"`
@@ -590,6 +601,21 @@ type MembershipMembershipPlan struct {
 	UnitAmount         sql.NullInt32  `json:"unit_amount"`
 	Currency           sql.NullString `json:"currency"`
 	Interval           sql.NullString `json:"interval"`
+	// One-time joining fee in cents (e.g., 13000 = $130.00). Applied as Stripe setup fee on first payment only.
+	JoiningFee int32 `json:"joining_fee"`
+	// Number of credits awarded when purchasing this membership plan (NULL for non-credit memberships)
+	CreditAllocation sql.NullInt32 `json:"credit_allocation"`
+	// Maximum credits that can be used per week with this membership plan (NULL for non-credit memberships, 0 = unlimited credits)
+	WeeklyCreditLimit sql.NullInt32 `json:"weekly_credit_limit"`
+}
+
+type NotificationsPushToken struct {
+	ID            int32          `json:"id"`
+	UserID        uuid.UUID      `json:"user_id"`
+	ExpoPushToken string         `json:"expo_push_token"`
+	DeviceType    sql.NullString `json:"device_type"`
+	CreatedAt     sql.NullTime   `json:"created_at"`
+	UpdatedAt     sql.NullTime   `json:"updated_at"`
 }
 
 type PlaygroundSession struct {
@@ -762,6 +788,21 @@ type UsersUser struct {
 	Dob                      time.Time      `json:"dob"`
 	IsArchived               bool           `json:"is_archived"`
 	SquareCustomerID         sql.NullString `json:"square_customer_id"`
+	StripeCustomerID         sql.NullString `json:"stripe_customer_id"`
+	// Staff notes about the customer for internal reference
+	Notes sql.NullString `json:"notes"`
+}
+
+// Tracks weekly credit consumption per customer for membership limit enforcement
+type UsersWeeklyCreditUsage struct {
+	ID         uuid.UUID `json:"id"`
+	CustomerID uuid.UUID `json:"customer_id"`
+	// Monday of the ISO week (e.g., 2024-01-15 for week starting Jan 15)
+	WeekStartDate time.Time `json:"week_start_date"`
+	// Total credits consumed during this week
+	CreditsUsed int32        `json:"credits_used"`
+	CreatedAt   sql.NullTime `json:"created_at"`
+	UpdatedAt   sql.NullTime `json:"updated_at"`
 }
 
 type WaiverWaiver struct {

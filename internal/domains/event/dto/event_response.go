@@ -58,6 +58,11 @@ type (
 		Name string    `json:"name"`
 	}
 
+	CourtInfo struct {
+		ID   uuid.UUID `json:"id"`
+		Name string    `json:"name"`
+	}
+
 	EventResponseDto struct {
 		ID                       uuid.UUID         `json:"id"`
 		Program                  ProgramInfo       `json:"program"`
@@ -66,6 +71,7 @@ type (
 		CreatedBy                PersonResponseDto `json:"created_by"`
 		UpdatedBy                PersonResponseDto `json:"updated_by"`
 		Team                     *TeamInfo         `json:"team,omitempty"`
+		Court                    *CourtInfo        `json:"court,omitempty"`
 		RequiredMembershipPlanID *uuid.UUID        `json:"required_membership_plan_id,omitempty"`
 		PriceID                  *string           `json:"price_id,omitempty"`
 		CreditCost               *int32            `json:"credit_cost,omitempty"`
@@ -104,6 +110,13 @@ func NewEventResponseDto(event values.ReadEventValues, includePeople bool) Event
 		response.Team = &TeamInfo{
 			ID:   event.Team.ID,
 			Name: event.Team.Name,
+		}
+	}
+
+	if event.Court != nil {
+		response.Court = &CourtInfo{
+			ID:   event.Court.ID,
+			Name: event.Court.Name,
 		}
 	}
 

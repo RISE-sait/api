@@ -114,6 +114,9 @@ func CreateOneTimePayment(
 		},
 		Mode:       stripe.String("payment"),                     // One-time payment mode
 		SuccessURL: stripe.String("https://example.com/success"), // Redirect URL after success
+		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
+			Enabled: stripe.Bool(true),
+		},
 	}
 
 	// Create Stripe session with timeout handling
@@ -198,6 +201,9 @@ func CreateSubscriptionWithSetupFee(
 		},
 		Mode:       stripe.String("subscription"), // Subscription mode
 		SuccessURL: stripe.String("https://example.com/success"),
+		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
+			Enabled: stripe.Bool(true),
+		},
 	}
 
 	// Add setup fee if specified
@@ -205,7 +211,7 @@ func CreateSubscriptionWithSetupFee(
 		// Store setup fee amount in metadata for webhook processing
 		params.SubscriptionData.Metadata["setup_fee_amount"] = fmt.Sprintf("%d", setupFeeAmount)
 		params.Metadata["setup_fee_amount"] = fmt.Sprintf("%d", setupFeeAmount)
-		
+
 		// Add payment intent data to handle the setup fee on first payment
 		params.PaymentIntentData = &stripe.CheckoutSessionPaymentIntentDataParams{
 			Metadata: map[string]string{
@@ -300,6 +306,9 @@ func CreateSubscription(
 		},
 		Mode:       stripe.String("subscription"), // Subscription mode
 		SuccessURL: stripe.String("https://example.com/success"),
+		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
+			Enabled: stripe.Bool(true),
+		},
 	}
 
 	// Ask Stripe to expand line item pricing and subscription in response
@@ -393,6 +402,9 @@ func CreateSubscriptionWithDiscountPercent(
 		SuccessURL: stripe.String("https://example.com/success"),
 		Discounts: []*stripe.CheckoutSessionDiscountParams{
 			{Coupon: stripe.String(c.ID)},
+		},
+		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
+			Enabled: stripe.Bool(true),
 		},
 	}
 

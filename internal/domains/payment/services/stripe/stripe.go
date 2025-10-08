@@ -113,7 +113,7 @@ func CreateOneTimePayment(
 			},
 		},
 		Mode:       stripe.String("payment"),                     // One-time payment mode
-		SuccessURL: stripe.String("https://example.com/success"), // Redirect URL after success
+		SuccessURL: stripe.String("https://www.rise-basketball.com/success"), // Redirect URL after success
 		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
 			Enabled: stripe.Bool(true),
 		},
@@ -200,7 +200,7 @@ func CreateSubscriptionWithSetupFee(
 			},
 		},
 		Mode:       stripe.String("subscription"), // Subscription mode
-		SuccessURL: stripe.String("https://example.com/success"),
+		SuccessURL: stripe.String("https://www.rise-basketball.com/success"),
 		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
 			Enabled: stripe.Bool(true),
 		},
@@ -305,7 +305,7 @@ func CreateSubscription(
 			},
 		},
 		Mode:       stripe.String("subscription"), // Subscription mode
-		SuccessURL: stripe.String("https://example.com/success"),
+		SuccessURL: stripe.String("https://www.rise-basketball.com/success"),
 		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
 			Enabled: stripe.Bool(true),
 		},
@@ -399,7 +399,7 @@ func CreateSubscriptionWithDiscountPercent(
 			},
 		},
 		Mode:       stripe.String("subscription"),
-		SuccessURL: stripe.String("https://example.com/success"),
+		SuccessURL: stripe.String("https://www.rise-basketball.com/success"),
 		Discounts: []*stripe.CheckoutSessionDiscountParams{
 			{Coupon: stripe.String(c.ID)},
 		},

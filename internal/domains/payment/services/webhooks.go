@@ -197,23 +197,23 @@ func (s *WebhookService) handleItemCheckoutComplete(checkoutSession stripe.Check
 		return errLib.New("price ID maps to both program and event", http.StatusConflict)
 	case creditPackage != nil && creditErr == nil:
 		// This is a credit package purchase
-		log.Printf("✅ CREDIT PACKAGE PURCHASE DETECTED - Customer: %s, Package: %s (%s)", customerID, creditPackage.ID, creditPackage.Name)
+		log.Printf("CREDIT PACKAGE PURCHASE DETECTED - Customer: %s, Package: %s (%s)", customerID, creditPackage.ID, creditPackage.Name)
 
 		// Add credits to customer balance
 		log.Printf("Adding %d credits to customer %s balance", creditPackage.CreditAllocation, customerID)
 		if err := s.CustomerCreditService.AddCredits(context.Background(), customerID, creditPackage.CreditAllocation, "Credit package purchase"); err != nil {
-			log.Printf("❌ FAILED to add credits to customer %s: %v", customerID, err)
+			log.Printf("FAILED to add credits to customer %s: %v", customerID, err)
 			return errLib.New(fmt.Sprintf("failed to add credits: %v", err), http.StatusInternalServerError)
 		}
 
 		// Set active credit package (overwrites previous package)
 		log.Printf("Setting active credit package for customer %s: weekly limit=%d", customerID, creditPackage.WeeklyCreditLimit)
 		if err := s.CreditPackageRepo.SetCustomerActivePackage(context.Background(), customerID, creditPackage.ID, creditPackage.WeeklyCreditLimit); err != nil {
-			log.Printf("❌ FAILED to set active credit package for customer %s: %v", customerID, err)
+			log.Printf("FAILED to set active credit package for customer %s: %v", customerID, err)
 			return errLib.New(fmt.Sprintf("failed to set active package: %v", err), http.StatusInternalServerError)
 		}
 
-		log.Printf("🎉 CREDIT PACKAGE PURCHASE COMPLETE - Customer %s: +%d credits, %d/week limit", customerID, creditPackage.CreditAllocation, creditPackage.WeeklyCreditLimit)
+		log.Printf("CREDIT PACKAGE PURCHASE COMPLETE - Customer %s: +%d credits, %d/week limit", customerID, creditPackage.CreditAllocation, creditPackage.WeeklyCreditLimit)
 		return nil
 	case programID == uuid.Nil && eventID == uuid.Nil:
 		return errLib.New("price ID doesn't map to any program, event, or credit package", http.StatusNotFound)

@@ -160,3 +160,47 @@ func (h *PlansHandlers) DeleteMembershipPlan(w http.ResponseWriter, r *http.Requ
 
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
 }
+
+// ToggleMembershipPlanVisibility toggles the visibility of a membership plan.
+// @Tags admin-membership-plans
+// @Accept json
+// @Produce json
+// @Param id path string true "Plan ID"
+// @Param visibility body map[string]bool true "Visibility status" example({"is_visible": true})
+// @Security Bearer
+// @Success 200 {object} membership_plan.PlanResponse "Membership plan visibility updated successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 404 {object} map[string]interface{} "Not Found: Membership plan not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /memberships/plans/{id}/visibility [patch]
+func (h *PlansHandlers) ToggleMembershipPlanVisibility(w http.ResponseWriter, r *http.Request) {
+
+	idStr := chi.URLParam(r, "id")
+
+	id, err := validators.ParseUUID(idStr)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	var body struct {
+		IsVisible bool `json:"is_visible"`
+	}
+
+	if err := validators.ParseJSON(r.Body, &body); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	plan, err := h.Service.ToggleMembershipPlanVisibility(r.Context(), id, body.IsVisible)
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	responseBody := membership_plan.NewPlanResponse(plan)
+
+	responseHandlers.RespondWithSuccess(w, responseBody, http.StatusOK)
+}

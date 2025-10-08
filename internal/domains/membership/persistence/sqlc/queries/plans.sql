@@ -9,7 +9,7 @@ FROM membership.membership_plans
 WHERE id = $1;
 
 -- name: GetMembershipPlans :many
-SELECT 
+SELECT
   mp.id,
   mp.membership_id,
   mp.name,
@@ -22,10 +22,12 @@ SELECT
   mp.joining_fee,
   mp.credit_allocation,
   mp.weekly_credit_limit,
+  mp.is_visible,
   mp.created_at,
   mp.updated_at
 FROM membership.membership_plans mp
-WHERE mp.membership_id = $1;
+WHERE mp.membership_id = $1
+  AND mp.is_visible = true;
 
 
 -- name: UpdateMembershipPlan :one
@@ -44,3 +46,30 @@ RETURNING *;
 
 -- name: DeleteMembershipPlan :execrows
 DELETE FROM membership.membership_plans WHERE id = $1;
+
+-- name: ToggleMembershipPlanVisibility :one
+UPDATE membership.membership_plans
+SET is_visible = $2,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING *;
+
+-- name: GetAllMembershipPlansAdmin :many
+SELECT
+  mp.id,
+  mp.membership_id,
+  mp.name,
+  mp.stripe_price_id,
+  mp.stripe_joining_fee_id,
+  mp.amt_periods,
+  mp.unit_amount,
+  mp.currency,
+  mp.interval,
+  mp.joining_fee,
+  mp.credit_allocation,
+  mp.weekly_credit_limit,
+  mp.is_visible,
+  mp.created_at,
+  mp.updated_at
+FROM membership.membership_plans mp
+WHERE mp.membership_id = $1;

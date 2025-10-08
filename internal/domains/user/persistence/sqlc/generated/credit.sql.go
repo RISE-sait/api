@@ -33,23 +33,35 @@ func (q *Queries) CheckCustomerHasSufficientCredits(ctx context.Context, arg Che
 }
 
 const checkWeeklyCreditLimit = `-- name: CheckWeeklyCreditLimit :one
-SELECT 
+SELECT
     COALESCE(wcu.credits_used, 0) as current_usage,
-    mp.weekly_credit_limit,
-    CASE 
-        WHEN mp.weekly_credit_limit IS NULL THEN true  -- Non-credit membership
-        WHEN mp.weekly_credit_limit = 0 THEN true      -- Unlimited credits
-        WHEN COALESCE(wcu.credits_used, 0) + $3 <= mp.weekly_credit_limit THEN true
-        ELSE false
+    COALESCE(cacp.weekly_credit_limit, mp.weekly_credit_limit) as weekly_credit_limit,
+    CASE
+        -- First check if they have an active credit package
+        WHEN cacp.weekly_credit_limit IS NOT NULL THEN
+            CASE
+                WHEN cacp.weekly_credit_limit = 0 THEN true  -- Unlimited credits
+                WHEN COALESCE(wcu.credits_used, 0) + $3 <= cacp.weekly_credit_limit THEN true
+                ELSE false
+            END
+        -- Otherwise check membership plan
+        WHEN mp.weekly_credit_limit IS NOT NULL THEN
+            CASE
+                WHEN mp.weekly_credit_limit = 0 THEN true  -- Unlimited credits
+                WHEN COALESCE(wcu.credits_used, 0) + $3 <= mp.weekly_credit_limit THEN true
+                ELSE false
+            END
+        -- No active package or plan - allow usage (no limit)
+        ELSE true
     END as can_use_credits
-FROM users.customer_membership_plans cmp
-JOIN membership.membership_plans mp ON cmp.membership_plan_id = mp.id
+FROM (SELECT 1) AS dummy  -- Dummy table to ensure we always get a row
+LEFT JOIN users.customer_active_credit_package cacp ON cacp.customer_id = $1
+LEFT JOIN users.customer_membership_plans cmp ON (cmp.customer_id = $1 AND cmp.status = 'active')
+LEFT JOIN membership.membership_plans mp ON cmp.membership_plan_id = mp.id
 LEFT JOIN users.weekly_credit_usage wcu ON (
-    wcu.customer_id = $1 AND 
+    wcu.customer_id = $1 AND
     wcu.week_start_date = $2
 )
-WHERE cmp.customer_id = $1 
-  AND cmp.status = 'active'
 ORDER BY cmp.created_at DESC
 LIMIT 1
 `
@@ -61,12 +73,13 @@ type CheckWeeklyCreditLimitParams struct {
 }
 
 type CheckWeeklyCreditLimitRow struct {
-	CurrentUsage      int32         `json:"current_usage"`
-	WeeklyCreditLimit sql.NullInt32 `json:"weekly_credit_limit"`
-	CanUseCredits     bool          `json:"can_use_credits"`
+	CurrentUsage      int32 `json:"current_usage"`
+	WeeklyCreditLimit int32 `json:"weekly_credit_limit"`
+	CanUseCredits     bool  `json:"can_use_credits"`
 }
 
 // Check if customer can use specified credits without exceeding weekly limit
+// Prioritizes active credit package over membership plan
 func (q *Queries) CheckWeeklyCreditLimit(ctx context.Context, arg CheckWeeklyCreditLimitParams) (CheckWeeklyCreditLimitRow, error) {
 	row := q.db.QueryRowContext(ctx, checkWeeklyCreditLimit, arg.CustomerID, arg.WeekStartDate, arg.CreditsUsed)
 	var i CheckWeeklyCreditLimitRow

@@ -9,6 +9,7 @@ import (
 
 	bookingsHandler "api/internal/domains/booking/handler"
 	courtHandler "api/internal/domains/court/handler"
+	creditPackageHandler "api/internal/domains/credit_package/handler"
 	discountHandler "api/internal/domains/discount/handler"
 	enrollmentHandler "api/internal/domains/enrollment/handler"
 	eventHandler "api/internal/domains/event/handler"
@@ -77,6 +78,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		// Purchase-related routes
 		"/checkout": RegisterCheckoutRoutes,
 		"/subscriptions": RegisterSubscriptionRoutes,
+		"/credit_packages": RegisterCreditPackageRoutes,
 
 		// Webhooks
 		"/webhooks": RegisterWebhooksRoutes,
@@ -354,6 +356,7 @@ func RegisterEventStaffRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterCheckoutRoutes(container *di.Container) func(chi.Router) {
 	h := payment.NewCheckoutHandlers(container)
+	creditPkgHandler := creditPackageHandler.NewCreditPackageHandler(container)
 	securityMw := paymentMiddleware.NewSecurityMiddleware()
 	pciMw := paymentMiddleware.NewPCIComplianceMiddleware()
 
@@ -362,11 +365,12 @@ func RegisterCheckoutRoutes(container *di.Container) func(chi.Router) {
 		r.Use(securityMw.SecurePaymentEndpoints)
 		r.Use(pciMw.EnforcePCICompliance)
 		r.Use(pciMw.DataMaskingMiddleware)
-		
+
 		// Rate limit checkout endpoints - 10 requests per minute per user
 		r.Use(middlewares.RateLimitMiddleware(10.0/60.0, 3, time.Minute))
-		
+
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/membership_plans/{id}", h.CheckoutMembership)
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/credit_packages/{id}", creditPkgHandler.CheckoutCreditPackage)
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/programs/{id}", h.CheckoutProgram)
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/events/{id}", h.CheckoutEvent)
 		r.With(middlewares.JWTAuthMiddleware(true)).Get("/events/{id}/options", h.GetEventEnrollmentOptions)
@@ -589,5 +593,20 @@ func RegisterSecureNotificationRoutes(container *di.Container) func(chi.Router) 
 	return func(r chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/register", h.RegisterPushToken)
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/send", h.SendTeamNotification)
+	}
+}
+
+// RegisterCreditPackageRoutes registers credit package routes (public viewing, admin management)
+func RegisterCreditPackageRoutes(container *di.Container) func(chi.Router) {
+	h := creditPackageHandler.NewCreditPackageHandler(container)
+	return func(r chi.Router) {
+		// Public routes - anyone can view available credit packages
+		r.Get("/", h.GetAllCreditPackages)
+		r.Get("/{id}", h.GetCreditPackageByID)
+
+		// Admin routes - managing credit packages
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/", h.CreateCreditPackage)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}", h.UpdateCreditPackage)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", h.DeleteCreditPackage)
 	}
 }

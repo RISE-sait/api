@@ -69,6 +69,11 @@ type ReadEventValues struct {
 		Name string
 	}
 
+	Court *struct {
+		ID   uuid.UUID
+		Name string
+	}
+
 	RequiredMembershipPlanID *uuid.UUID
 	PriceID                  *string
 	CreditCost               *int32

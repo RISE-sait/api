@@ -206,6 +206,26 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 		CreditCost:               nullInt32ToPtr(dbEvent.CreditCost),
 	}
 
+	if dbEvent.CourtID.Valid && dbEvent.CourtName.Valid {
+		eventValue.Court = &struct {
+			ID   uuid.UUID
+			Name string
+		}{
+			ID:   dbEvent.CourtID.UUID,
+			Name: dbEvent.CourtName.String,
+		}
+	}
+
+	if dbEvent.TeamID.Valid && dbEvent.TeamName.Valid {
+		eventValue.Team = &struct {
+			ID   uuid.UUID
+			Name string
+		}{
+			ID:   dbEvent.TeamID.UUID,
+			Name: dbEvent.TeamName.String,
+		}
+	}
+
 	dbStaffs, err := r.Queries.GetEventStaffs(ctx, id)
 	if err != nil {
 		log.Println("Failed to get event staffs from db: ", err.Error())
@@ -333,6 +353,16 @@ func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEvent
 			}{
 				ID:   row.TeamID.UUID,
 				Name: row.TeamName.String,
+			}
+		}
+
+		if row.CourtID.Valid && row.CourtName.Valid {
+			event.Court = &struct {
+				ID   uuid.UUID
+				Name string
+			}{
+				ID:   row.CourtID.UUID,
+				Name: row.CourtName.String,
 			}
 		}
 

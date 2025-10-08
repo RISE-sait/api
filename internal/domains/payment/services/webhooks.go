@@ -2,6 +2,7 @@ package payment
 
 import (
 	"api/internal/di"
+	creditPackageRepo "api/internal/domains/credit_package/persistence/repository"
 	dbEnrollment "api/internal/domains/enrollment/persistence/sqlc/generated"
 	enrollment "api/internal/domains/enrollment/service"
 	enrollmentRepo "api/internal/domains/enrollment/persistence/repository"
@@ -35,6 +36,8 @@ type WebhookService struct {
 	UserRepo               *identityRepo.UsersRepository
 	PlansRepo              *membershipRepo.PlansRepository
 	CreditService          *userServices.CreditService
+	CustomerCreditService  *userServices.CustomerCreditService
+	CreditPackageRepo      *creditPackageRepo.CreditPackageRepository
 	Idempotency            *WebhookIdempotency
 	logger                 *logger.StructuredLogger
 	db                     *sql.DB
@@ -48,6 +51,8 @@ func NewWebhookService(container *di.Container) *WebhookService {
 		UserRepo:               identityRepo.NewUserRepository(container),
 		PlansRepo:              membershipRepo.NewMembershipPlansRepository(container),
 		CreditService:          userServices.NewCreditService(container),
+		CustomerCreditService:  userServices.NewCustomerCreditService(container),
+		CreditPackageRepo:      creditPackageRepo.NewCreditPackageRepository(container),
 		Idempotency:            NewWebhookIdempotency(24*time.Hour, 10000), // Store events for 24 hours, max 10k events
 		logger:                 logger.WithComponent("stripe-webhooks"),
 		db:                     container.DB,
@@ -184,11 +189,34 @@ func (s *WebhookService) handleItemCheckoutComplete(checkoutSession stripe.Check
 	log.Println("Final ProgramID:", programID)
 	log.Println("Final EventID:", eventID)
 
+	// Check if this is a credit package purchase
+	creditPackage, creditErr := s.CreditPackageRepo.GetByStripePriceID(context.Background(), priceID)
+
 	switch {
 	case programID != uuid.Nil && eventID != uuid.Nil:
 		return errLib.New("price ID maps to both program and event", http.StatusConflict)
+	case creditPackage != nil && creditErr == nil:
+		// This is a credit package purchase
+		log.Printf("CREDIT PACKAGE PURCHASE DETECTED - Customer: %s, Package: %s (%s)", customerID, creditPackage.ID, creditPackage.Name)
+
+		// Add credits to customer balance
+		log.Printf("Adding %d credits to customer %s balance", creditPackage.CreditAllocation, customerID)
+		if err := s.CustomerCreditService.AddCredits(context.Background(), customerID, creditPackage.CreditAllocation, "Credit package purchase"); err != nil {
+			log.Printf("FAILED to add credits to customer %s: %v", customerID, err)
+			return errLib.New(fmt.Sprintf("failed to add credits: %v", err), http.StatusInternalServerError)
+		}
+
+		// Set active credit package (overwrites previous package)
+		log.Printf("Setting active credit package for customer %s: weekly limit=%d", customerID, creditPackage.WeeklyCreditLimit)
+		if err := s.CreditPackageRepo.SetCustomerActivePackage(context.Background(), customerID, creditPackage.ID, creditPackage.WeeklyCreditLimit); err != nil {
+			log.Printf("FAILED to set active credit package for customer %s: %v", customerID, err)
+			return errLib.New(fmt.Sprintf("failed to set active package: %v", err), http.StatusInternalServerError)
+		}
+
+		log.Printf("CREDIT PACKAGE PURCHASE COMPLETE - Customer %s: +%d credits, %d/week limit", customerID, creditPackage.CreditAllocation, creditPackage.WeeklyCreditLimit)
+		return nil
 	case programID == uuid.Nil && eventID == uuid.Nil:
-		return errLib.New("price ID doesn't map to any program or event", http.StatusNotFound)
+		return errLib.New("price ID doesn't map to any program, event, or credit package", http.StatusNotFound)
 	case programID != uuid.Nil:
 		log.Printf("Updating program reservation for user %s and program %s", customerID, programID)
 		if err = s.EnrollmentService.UpdateReservationStatusInProgram(context.Background(), programID, customerID, dbEnrollment.PaymentStatusPaid); err != nil {

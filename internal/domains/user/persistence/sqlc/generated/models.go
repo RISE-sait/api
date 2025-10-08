@@ -717,6 +717,21 @@ type StaffStaffRole struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// Available credit packages for one-time purchase
+type UsersCreditPackage struct {
+	ID          uuid.UUID      `json:"id"`
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	// Stripe price ID for one-time payment checkout
+	StripePriceID string `json:"stripe_price_id"`
+	// Number of credits awarded when purchasing this package
+	CreditAllocation int32 `json:"credit_allocation"`
+	// Maximum credits that can be used per week (0 = unlimited)
+	WeeklyCreditLimit int32     `json:"weekly_credit_limit"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
+}
+
 type UsersCreditTransaction struct {
 	ID              uuid.UUID             `json:"id"`
 	CustomerID      uuid.UUID             `json:"customer_id"`
@@ -725,6 +740,19 @@ type UsersCreditTransaction struct {
 	EventID         uuid.NullUUID         `json:"event_id"`
 	Description     sql.NullString        `json:"description"`
 	CreatedAt       sql.NullTime          `json:"created_at"`
+}
+
+// Tracks each customer's currently active credit package and their weekly limit
+type UsersCustomerActiveCreditPackage struct {
+	// Customer who purchased the package (PRIMARY KEY ensures one package per customer)
+	CustomerID uuid.UUID `json:"customer_id"`
+	// The credit package they purchased
+	CreditPackageID uuid.UUID `json:"credit_package_id"`
+	// Weekly credit limit from the package (copied here for performance)
+	WeeklyCreditLimit int32 `json:"weekly_credit_limit"`
+	// When this package was purchased
+	PurchasedAt time.Time `json:"purchased_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type UsersCustomerCredit struct {

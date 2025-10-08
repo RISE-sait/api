@@ -29,6 +29,7 @@ type PlanUpdateValues struct {
 type PlanReadValues struct {
 	ID uuid.UUID
 	PlanDetails
+	IsVisible  bool
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 	UnitAmount int

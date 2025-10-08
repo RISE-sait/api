@@ -250,3 +250,56 @@ func (r *PlansRepository) DeleteMembershipPlan(c context.Context, id uuid.UUID) 
 
 	return nil
 }
+
+func (r *PlansRepository) ToggleMembershipPlanVisibility(ctx context.Context, id uuid.UUID, isVisible bool) (values.PlanReadValues, *errLib.CommonError) {
+
+	dbPlan, err := r.Queries.ToggleMembershipPlanVisibility(ctx, db.ToggleMembershipPlanVisibilityParams{
+		ID:        id,
+		IsVisible: isVisible,
+	})
+
+	var response values.PlanReadValues
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return response, errLib.New("Plan not found", http.StatusNotFound)
+		}
+		log.Printf("Failed to toggle visibility for plan %s: %v", id, err)
+		return response, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	plan := values.PlanReadValues{
+		ID: dbPlan.ID,
+		PlanDetails: values.PlanDetails{
+			MembershipID:        dbPlan.MembershipID,
+			Name:                dbPlan.Name,
+			StripeJoiningFeesID: dbPlan.StripeJoiningFeeID.String,
+			StripePriceID:       dbPlan.StripePriceID,
+			JoiningFee:          int(dbPlan.JoiningFee),
+		},
+		IsVisible: dbPlan.IsVisible,
+		CreatedAt: dbPlan.CreatedAt,
+		UpdatedAt: dbPlan.UpdatedAt,
+	}
+
+	if dbPlan.AmtPeriods.Valid {
+		plan.AmtPeriods = &dbPlan.AmtPeriods.Int32
+	}
+	if dbPlan.CreditAllocation.Valid {
+		plan.CreditAllocation = &dbPlan.CreditAllocation.Int32
+	}
+	if dbPlan.WeeklyCreditLimit.Valid {
+		plan.WeeklyCreditLimit = &dbPlan.WeeklyCreditLimit.Int32
+	}
+	if dbPlan.UnitAmount.Valid {
+		plan.UnitAmount = int(dbPlan.UnitAmount.Int32)
+	}
+	if dbPlan.Currency.Valid {
+		plan.Currency = dbPlan.Currency.String
+	}
+	if dbPlan.Interval.Valid {
+		plan.Interval = dbPlan.Interval.String
+	}
+
+	return plan, nil
+}

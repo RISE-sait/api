@@ -155,3 +155,36 @@ func (s *PlanService) DeleteMembershipPlan(ctx context.Context, id uuid.UUID) *e
 		)
 	})
 }
+
+func (s *PlanService) ToggleMembershipPlanVisibility(ctx context.Context, id uuid.UUID, isVisible bool) (values.PlanReadValues, *errLib.CommonError) {
+
+	var plan values.PlanReadValues
+
+	err := s.executeInTx(ctx, func(txRepo *repo.PlansRepository) *errLib.CommonError {
+		result, err := txRepo.ToggleMembershipPlanVisibility(ctx, id, isVisible)
+		if err != nil {
+			return err
+		}
+
+		plan = result
+
+		staffID, err := contextUtils.GetUserID(ctx)
+		if err != nil {
+			return err
+		}
+
+		visibilityStatus := "hidden"
+		if isVisible {
+			visibilityStatus = "visible"
+		}
+
+		return s.staffActivityLogsService.InsertStaffActivity(
+			ctx,
+			txRepo.GetTx(),
+			staffID,
+			fmt.Sprintf("Set membership plan %s visibility to %s", id, visibilityStatus),
+		)
+	})
+
+	return plan, err
+}

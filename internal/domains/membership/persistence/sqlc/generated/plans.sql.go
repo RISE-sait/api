@@ -16,7 +16,7 @@ import (
 const createMembershipPlan = `-- name: CreateMembershipPlan :one
 INSERT INTO membership.membership_plans (membership_id, name, stripe_joining_fee_id, stripe_price_id, amt_periods, joining_fee, credit_allocation, weekly_credit_limit)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at, unit_amount, currency, interval, joining_fee, credit_allocation, weekly_credit_limit
+RETURNING id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at, unit_amount, currency, interval, joining_fee, credit_allocation, weekly_credit_limit, is_visible
 `
 
 type CreateMembershipPlanParams struct {
@@ -57,6 +57,7 @@ func (q *Queries) CreateMembershipPlan(ctx context.Context, arg CreateMembership
 		&i.JoiningFee,
 		&i.CreditAllocation,
 		&i.WeeklyCreditLimit,
+		&i.IsVisible,
 	)
 	return i, err
 }
@@ -73,8 +74,86 @@ func (q *Queries) DeleteMembershipPlan(ctx context.Context, id uuid.UUID) (int64
 	return result.RowsAffected()
 }
 
+const getAllMembershipPlansAdmin = `-- name: GetAllMembershipPlansAdmin :many
+SELECT
+  mp.id,
+  mp.membership_id,
+  mp.name,
+  mp.stripe_price_id,
+  mp.stripe_joining_fee_id,
+  mp.amt_periods,
+  mp.unit_amount,
+  mp.currency,
+  mp.interval,
+  mp.joining_fee,
+  mp.credit_allocation,
+  mp.weekly_credit_limit,
+  mp.is_visible,
+  mp.created_at,
+  mp.updated_at
+FROM membership.membership_plans mp
+WHERE mp.membership_id = $1
+`
+
+type GetAllMembershipPlansAdminRow struct {
+	ID                 uuid.UUID      `json:"id"`
+	MembershipID       uuid.UUID      `json:"membership_id"`
+	Name               string         `json:"name"`
+	StripePriceID      string         `json:"stripe_price_id"`
+	StripeJoiningFeeID sql.NullString `json:"stripe_joining_fee_id"`
+	AmtPeriods         sql.NullInt32  `json:"amt_periods"`
+	UnitAmount         sql.NullInt32  `json:"unit_amount"`
+	Currency           sql.NullString `json:"currency"`
+	Interval           sql.NullString `json:"interval"`
+	JoiningFee         int32          `json:"joining_fee"`
+	CreditAllocation   sql.NullInt32  `json:"credit_allocation"`
+	WeeklyCreditLimit  sql.NullInt32  `json:"weekly_credit_limit"`
+	IsVisible          bool           `json:"is_visible"`
+	CreatedAt          time.Time      `json:"created_at"`
+	UpdatedAt          time.Time      `json:"updated_at"`
+}
+
+func (q *Queries) GetAllMembershipPlansAdmin(ctx context.Context, membershipID uuid.UUID) ([]GetAllMembershipPlansAdminRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllMembershipPlansAdmin, membershipID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllMembershipPlansAdminRow
+	for rows.Next() {
+		var i GetAllMembershipPlansAdminRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.MembershipID,
+			&i.Name,
+			&i.StripePriceID,
+			&i.StripeJoiningFeeID,
+			&i.AmtPeriods,
+			&i.UnitAmount,
+			&i.Currency,
+			&i.Interval,
+			&i.JoiningFee,
+			&i.CreditAllocation,
+			&i.WeeklyCreditLimit,
+			&i.IsVisible,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getMembershipPlanById = `-- name: GetMembershipPlanById :one
-SELECT id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at, unit_amount, currency, interval, joining_fee, credit_allocation, weekly_credit_limit
+SELECT id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at, unit_amount, currency, interval, joining_fee, credit_allocation, weekly_credit_limit, is_visible
 FROM membership.membership_plans
 WHERE id = $1
 `
@@ -97,12 +176,13 @@ func (q *Queries) GetMembershipPlanById(ctx context.Context, id uuid.UUID) (Memb
 		&i.JoiningFee,
 		&i.CreditAllocation,
 		&i.WeeklyCreditLimit,
+		&i.IsVisible,
 	)
 	return i, err
 }
 
 const getMembershipPlans = `-- name: GetMembershipPlans :many
-SELECT 
+SELECT
   mp.id,
   mp.membership_id,
   mp.name,
@@ -115,10 +195,12 @@ SELECT
   mp.joining_fee,
   mp.credit_allocation,
   mp.weekly_credit_limit,
+  mp.is_visible,
   mp.created_at,
   mp.updated_at
 FROM membership.membership_plans mp
 WHERE mp.membership_id = $1
+  AND mp.is_visible = true
 `
 
 type GetMembershipPlansRow struct {
@@ -134,6 +216,7 @@ type GetMembershipPlansRow struct {
 	JoiningFee         int32          `json:"joining_fee"`
 	CreditAllocation   sql.NullInt32  `json:"credit_allocation"`
 	WeeklyCreditLimit  sql.NullInt32  `json:"weekly_credit_limit"`
+	IsVisible          bool           `json:"is_visible"`
 	CreatedAt          time.Time      `json:"created_at"`
 	UpdatedAt          time.Time      `json:"updated_at"`
 }
@@ -160,6 +243,7 @@ func (q *Queries) GetMembershipPlans(ctx context.Context, membershipID uuid.UUID
 			&i.JoiningFee,
 			&i.CreditAllocation,
 			&i.WeeklyCreditLimit,
+			&i.IsVisible,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -176,6 +260,42 @@ func (q *Queries) GetMembershipPlans(ctx context.Context, membershipID uuid.UUID
 	return items, nil
 }
 
+const toggleMembershipPlanVisibility = `-- name: ToggleMembershipPlanVisibility :one
+UPDATE membership.membership_plans
+SET is_visible = $2,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at, unit_amount, currency, interval, joining_fee, credit_allocation, weekly_credit_limit, is_visible
+`
+
+type ToggleMembershipPlanVisibilityParams struct {
+	ID        uuid.UUID `json:"id"`
+	IsVisible bool      `json:"is_visible"`
+}
+
+func (q *Queries) ToggleMembershipPlanVisibility(ctx context.Context, arg ToggleMembershipPlanVisibilityParams) (MembershipMembershipPlan, error) {
+	row := q.db.QueryRowContext(ctx, toggleMembershipPlanVisibility, arg.ID, arg.IsVisible)
+	var i MembershipMembershipPlan
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.StripePriceID,
+		&i.StripeJoiningFeeID,
+		&i.MembershipID,
+		&i.AmtPeriods,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UnitAmount,
+		&i.Currency,
+		&i.Interval,
+		&i.JoiningFee,
+		&i.CreditAllocation,
+		&i.WeeklyCreditLimit,
+		&i.IsVisible,
+	)
+	return i, err
+}
+
 const updateMembershipPlan = `-- name: UpdateMembershipPlan :one
 UPDATE membership.membership_plans
 SET name              = $1,
@@ -188,7 +308,7 @@ SET name              = $1,
     weekly_credit_limit = $8,
     updated_at        = CURRENT_TIMESTAMP
 WHERE id = $9
-RETURNING id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at, unit_amount, currency, interval, joining_fee, credit_allocation, weekly_credit_limit
+RETURNING id, name, stripe_price_id, stripe_joining_fee_id, membership_id, amt_periods, created_at, updated_at, unit_amount, currency, interval, joining_fee, credit_allocation, weekly_credit_limit, is_visible
 `
 
 type UpdateMembershipPlanParams struct {
@@ -231,6 +351,7 @@ func (q *Queries) UpdateMembershipPlan(ctx context.Context, arg UpdateMembership
 		&i.JoiningFee,
 		&i.CreditAllocation,
 		&i.WeeklyCreditLimit,
+		&i.IsVisible,
 	)
 	return i, err
 }

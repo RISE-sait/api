@@ -182,6 +182,60 @@ func (r *PlansRepository) GetMembershipPlans(ctx context.Context, membershipId u
 	return plans, nil
 }
 
+func (r *PlansRepository) GetAllMembershipPlansAdmin(ctx context.Context, membershipId uuid.UUID) ([]values.PlanReadValues, *errLib.CommonError) {
+
+	dbPlans, err := r.Queries.GetAllMembershipPlansAdmin(ctx, membershipId)
+
+	if err != nil {
+		log.Printf("Failed to get all membership plans (admin): %+v. Error: %v", membershipId, err.Error())
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	plans := make([]values.PlanReadValues, len(dbPlans))
+
+	for i, dbPlan := range dbPlans {
+
+		plan := values.PlanReadValues{
+			ID: dbPlan.ID,
+			PlanDetails: values.PlanDetails{
+				MembershipID:        dbPlan.MembershipID,
+				Name:                dbPlan.Name,
+				StripeJoiningFeesID: dbPlan.StripeJoiningFeeID.String,
+				StripePriceID:       dbPlan.StripePriceID,
+				JoiningFee:          int(dbPlan.JoiningFee),
+			},
+			IsVisible: dbPlan.IsVisible,
+			CreatedAt: dbPlan.CreatedAt,
+			UpdatedAt: dbPlan.UpdatedAt,
+		}
+
+		if dbPlan.AmtPeriods.Valid {
+			plan.AmtPeriods = &dbPlan.AmtPeriods.Int32
+		}
+		if dbPlan.CreditAllocation.Valid {
+			plan.CreditAllocation = &dbPlan.CreditAllocation.Int32
+		}
+		if dbPlan.WeeklyCreditLimit.Valid {
+			plan.WeeklyCreditLimit = &dbPlan.WeeklyCreditLimit.Int32
+		}
+		if dbPlan.UnitAmount.Valid {
+			plan.UnitAmount = int(dbPlan.UnitAmount.Int32)
+		}
+
+		if dbPlan.Currency.Valid {
+			plan.Currency = dbPlan.Currency.String
+		}
+
+		if dbPlan.Interval.Valid {
+			plan.Interval = dbPlan.Interval.String
+		}
+
+		plans[i] = plan
+	}
+
+	return plans, nil
+}
+
 func (r *PlansRepository) UpdateMembershipPlan(c context.Context, plan values.PlanUpdateValues) *errLib.CommonError {
 
 	dbMembershipParams := db.UpdateMembershipPlanParams{

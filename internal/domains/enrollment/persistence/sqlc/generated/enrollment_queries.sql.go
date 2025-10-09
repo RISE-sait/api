@@ -97,6 +97,13 @@ func (q *Queries) EnrollCustomerInEvent(ctx context.Context, arg EnrollCustomerI
 const enrollCustomerInMembershipPlan = `-- name: EnrollCustomerInMembershipPlan :exec
 INSERT INTO users.customer_membership_plans (customer_id, membership_plan_id, status, start_date, renewal_date, subscription_source)
 VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (customer_id, membership_plan_id)
+DO UPDATE SET
+    status = EXCLUDED.status,
+    start_date = EXCLUDED.start_date,
+    renewal_date = EXCLUDED.renewal_date,
+    subscription_source = EXCLUDED.subscription_source,
+    updated_at = CURRENT_TIMESTAMP
 `
 
 type EnrollCustomerInMembershipPlanParams struct {

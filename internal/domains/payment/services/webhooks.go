@@ -532,17 +532,28 @@ func (s *WebhookService) updateSubscriptionCancelAt(subscriptionID string, cance
 }
 
 func (s *WebhookService) sendMembershipPurchaseEmail(userID, planID uuid.UUID) {
+	log.Printf("[EMAIL] Attempting to send membership purchase email for user %s, plan %s", userID, planID)
+
 	userInfo, err := s.UserRepo.GetUserInfo(context.Background(), "", userID)
-	if err != nil || userInfo.Email == nil {
+	if err != nil {
+		log.Printf("[EMAIL] Failed to get user info for %s: %v", userID, err)
+		return
+	}
+
+	if userInfo.Email == nil {
+		log.Printf("[EMAIL] User %s has no email address", userID)
 		return
 	}
 
 	plan, pErr := s.PlansRepo.GetMembershipPlanById(context.Background(), planID)
 	if pErr != nil {
+		log.Printf("[EMAIL] Failed to get membership plan %s: %v", planID, pErr)
 		return
 	}
 
+	log.Printf("[EMAIL] Sending membership purchase email to %s for plan %s", *userInfo.Email, plan.Name)
 	email.SendMembershipPurchaseEmail(*userInfo.Email, userInfo.FirstName, plan.Name)
+	log.Printf("[EMAIL] Membership purchase email sent successfully to %s", *userInfo.Email)
 }
 
 // HandleSubscriptionCreated processes subscription.created events

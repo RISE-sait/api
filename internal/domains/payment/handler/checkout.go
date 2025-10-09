@@ -5,6 +5,7 @@ import (
 	"api/internal/di"
 	dto "api/internal/domains/payment/dto"
 	service "api/internal/domains/payment/services"
+	"api/internal/domains/payment/services/stripe"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/logger"
 	responseHandlers "api/internal/libs/responses"
@@ -57,7 +58,10 @@ func (h *CheckoutHandlers) CheckoutMembership(w http.ResponseWriter, r *http.Req
 		discountCode = &code
 	}
 
-	if paymentLink, err := h.Service.CheckoutMembershipPlan(r.Context(), membershipPlanId, discountCode); err != nil {
+	// Get success URL based on request origin
+	successURL := stripe.GetSuccessURLFromRequest(r)
+
+	if paymentLink, err := h.Service.CheckoutMembershipPlan(r.Context(), membershipPlanId, discountCode, successURL); err != nil {
 		responseDto.PaymentURL = paymentLink
 		responseHandlers.RespondWithError(w, err)
 	} else {
@@ -94,7 +98,10 @@ func (h *CheckoutHandlers) CheckoutProgram(w http.ResponseWriter, r *http.Reques
 
 	var responseDto dto.CheckoutResponseDto
 
-	if paymentLink, err := h.Service.CheckoutProgram(r.Context(), programID); err != nil {
+	// Get success URL based on request origin
+	successURL := stripe.GetSuccessURLFromRequest(r)
+
+	if paymentLink, err := h.Service.CheckoutProgram(r.Context(), programID, successURL); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {
@@ -133,7 +140,10 @@ func (h *CheckoutHandlers) CheckoutEvent(w http.ResponseWriter, r *http.Request)
 
 	var responseDto dto.CheckoutResponseDto
 
-	if paymentLink, err := h.Service.CheckoutEvent(r.Context(), eventID); err != nil {
+	// Get success URL based on request origin
+	successURL := stripe.GetSuccessURLFromRequest(r)
+
+	if paymentLink, err := h.Service.CheckoutEvent(r.Context(), eventID, successURL); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {
@@ -244,7 +254,10 @@ func (h *CheckoutHandlers) CheckoutEventEnhanced(w http.ResponseWriter, r *http.
 	}
 
 	// Handle stripe payment (default)
-	if paymentLink, err := h.Service.CheckoutEventEnhanced(r.Context(), eventID); err != nil {
+	// Get success URL based on request origin
+	successURL := stripe.GetSuccessURLFromRequest(r)
+
+	if paymentLink, err := h.Service.CheckoutEventEnhanced(r.Context(), eventID, successURL); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {

@@ -35,8 +35,8 @@ func TestStripeIntegration(t *testing.T) {
 		t.Skip("Skipping Stripe API call - requires valid price IDs in test account")
 		
 		// Test creating a one-time payment checkout session
-		checkoutURL, err := stripe.CreateOneTimePayment(ctx, "price_test_example", 1, nil)
-		
+		checkoutURL, err := stripe.CreateOneTimePayment(ctx, "price_test_example", 1, nil, "https://www.rise-basketball.com/success")
+
 		// Should succeed with valid inputs
 		assert.NoError(t, err)
 		assert.NotEmpty(t, checkoutURL)
@@ -49,8 +49,8 @@ func TestStripeIntegration(t *testing.T) {
 		
 		// Test creating a one-time payment with event ID for event enrollment
 		eventID := uuid.New().String()
-		checkoutURL, err := stripe.CreateOneTimePayment(ctx, "price_test_example", 1, &eventID)
-		
+		checkoutURL, err := stripe.CreateOneTimePayment(ctx, "price_test_example", 1, &eventID, "https://www.rise-basketball.com/success")
+
 		// Should succeed with valid inputs including event ID
 		assert.NoError(t, err)
 		assert.NotEmpty(t, checkoutURL)
@@ -61,12 +61,17 @@ func TestStripeIntegration(t *testing.T) {
 
 	t.Run("CreateOneTimePayment_InvalidInputs", func(t *testing.T) {
 		// Test with empty price ID
-		_, err := stripe.CreateOneTimePayment(ctx, "", 1, nil)
+		_, err := stripe.CreateOneTimePayment(ctx, "", 1, nil, "https://www.rise-basketball.com/success")
 		assert.Error(t, err)
 		assert.Equal(t, 400, err.HTTPCode)
 
 		// Test with invalid quantity
-		_, err = stripe.CreateOneTimePayment(ctx, "price_test_example", 0, nil)
+		_, err = stripe.CreateOneTimePayment(ctx, "price_test_example", 0, nil, "https://www.rise-basketball.com/success")
+		assert.Error(t, err)
+		assert.Equal(t, 400, err.HTTPCode)
+
+		// Test with empty success URL
+		_, err = stripe.CreateOneTimePayment(ctx, "price_test_example", 1, nil, "")
 		assert.Error(t, err)
 		assert.Equal(t, 400, err.HTTPCode)
 	})
@@ -76,8 +81,8 @@ func TestStripeIntegration(t *testing.T) {
 		t.Skip("Skipping Stripe API call - requires valid price IDs in test account")
 		
 		// Test creating a subscription checkout session
-		checkoutURL, err := stripe.CreateSubscription(ctx, "price_test_subscription", "")
-		
+		checkoutURL, err := stripe.CreateSubscription(ctx, "price_test_subscription", "", "https://www.rise-basketball.com/success")
+
 		// Should succeed with valid inputs
 		assert.NoError(t, err)
 		assert.NotEmpty(t, checkoutURL)
@@ -89,8 +94,8 @@ func TestStripeIntegration(t *testing.T) {
 		t.Skip("Skipping Stripe API call - requires valid price IDs in test account")
 		
 		// Test creating subscription with joining fee
-		checkoutURL, err := stripe.CreateSubscription(ctx, "price_test_subscription", "price_test_joining_fee")
-		
+		checkoutURL, err := stripe.CreateSubscription(ctx, "price_test_subscription", "price_test_joining_fee", "https://www.rise-basketball.com/success")
+
 		// Should succeed with valid inputs
 		assert.NoError(t, err)
 		assert.NotEmpty(t, checkoutURL)
@@ -102,8 +107,8 @@ func TestStripeIntegration(t *testing.T) {
 		t.Skip("Skipping Stripe API call - requires valid price IDs in test account")
 		
 		// Test creating subscription with discount
-		checkoutURL, err := stripe.CreateSubscriptionWithDiscountPercent(ctx, "price_test_subscription", "", 20)
-		
+		checkoutURL, err := stripe.CreateSubscriptionWithDiscountPercent(ctx, "price_test_subscription", "", 20, "https://www.rise-basketball.com/success")
+
 		// Should succeed with valid inputs
 		assert.NoError(t, err)
 		assert.NotEmpty(t, checkoutURL)
@@ -112,11 +117,11 @@ func TestStripeIntegration(t *testing.T) {
 
 	t.Run("CreateSubscriptionWithDiscount_InvalidPercent", func(t *testing.T) {
 		// Test with invalid discount percentage
-		_, err := stripe.CreateSubscriptionWithDiscountPercent(ctx, "price_test_subscription", "", 0)
+		_, err := stripe.CreateSubscriptionWithDiscountPercent(ctx, "price_test_subscription", "", 0, "https://www.rise-basketball.com/success")
 		assert.Error(t, err)
 		assert.Equal(t, 400, err.HTTPCode)
 
-		_, err = stripe.CreateSubscriptionWithDiscountPercent(ctx, "price_test_subscription", "", 101)
+		_, err = stripe.CreateSubscriptionWithDiscountPercent(ctx, "price_test_subscription", "", 101, "https://www.rise-basketball.com/success")
 		assert.Error(t, err)
 		assert.Equal(t, 400, err.HTTPCode)
 	})
@@ -230,11 +235,11 @@ func TestStripeConfiguration(t *testing.T) {
 	t.Run("CreateOneTimePayment_NoAPIKey", func(t *testing.T) {
 		// Test with empty Stripe API key
 		stripeAPI.Key = ""
-		
+
 		userID := uuid.New()
 		ctx := context.WithValue(context.Background(), contextUtils.UserIDKey, userID)
-		
-		_, err := stripe.CreateOneTimePayment(ctx, "price_test", 1, nil)
+
+		_, err := stripe.CreateOneTimePayment(ctx, "price_test", 1, nil, "https://www.rise-basketball.com/success")
 		assert.Error(t, err)
 		assert.Equal(t, 500, err.HTTPCode)
 		assert.Contains(t, err.Message, "Stripe not initialized")
@@ -243,11 +248,11 @@ func TestStripeConfiguration(t *testing.T) {
 	t.Run("CreateSubscription_NoAPIKey", func(t *testing.T) {
 		// Test with empty Stripe API key
 		stripeAPI.Key = ""
-		
+
 		userID := uuid.New()
 		ctx := context.WithValue(context.Background(), contextUtils.UserIDKey, userID)
-		
-		_, err := stripe.CreateSubscription(ctx, "price_test", "")
+
+		_, err := stripe.CreateSubscription(ctx, "price_test", "", "https://www.rise-basketball.com/success")
 		assert.Error(t, err)
 		assert.Equal(t, 500, err.HTTPCode)
 		assert.Contains(t, err.Message, "Stripe not initialized")
@@ -270,8 +275,8 @@ func TestAuthenticationValidation(t *testing.T) {
 	t.Run("CreateOneTimePayment_NoAuth", func(t *testing.T) {
 		// Test without user ID in context
 		ctx := context.Background()
-		
-		_, err := stripe.CreateOneTimePayment(ctx, "price_test", 1, nil)
+
+		_, err := stripe.CreateOneTimePayment(ctx, "price_test", 1, nil, "https://www.rise-basketball.com/success")
 		assert.Error(t, err)
 		// Should fail with authentication error
 	})
@@ -279,8 +284,8 @@ func TestAuthenticationValidation(t *testing.T) {
 	t.Run("CreateSubscription_NoAuth", func(t *testing.T) {
 		// Test without user ID in context
 		ctx := context.Background()
-		
-		_, err := stripe.CreateSubscription(ctx, "price_test", "")
+
+		_, err := stripe.CreateSubscription(ctx, "price_test", "", "https://www.rise-basketball.com/success")
 		assert.Error(t, err)
 		// Should fail with authentication error
 	})
@@ -298,10 +303,10 @@ func BenchmarkStripeOperations(b *testing.B) {
 
 	b.Run("CreateOneTimePayment", func(b *testing.B) {
 		b.Skip("Skipping Stripe API benchmark - requires valid price IDs in test account")
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_, err := stripe.CreateOneTimePayment(ctx, "price_test_benchmark", 1, nil)
+			_, err := stripe.CreateOneTimePayment(ctx, "price_test_benchmark", 1, nil, "https://www.rise-basketball.com/success")
 			if err != nil {
 				b.Fatalf("CreateOneTimePayment failed: %v", err)
 			}
@@ -310,10 +315,10 @@ func BenchmarkStripeOperations(b *testing.B) {
 
 	b.Run("CreateSubscription", func(b *testing.B) {
 		b.Skip("Skipping Stripe API benchmark - requires valid price IDs in test account")
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_, err := stripe.CreateSubscription(ctx, "price_test_benchmark", "")
+			_, err := stripe.CreateSubscription(ctx, "price_test_benchmark", "", "https://www.rise-basketball.com/success")
 			if err != nil {
 				b.Fatalf("CreateSubscription failed: %v", err)
 			}

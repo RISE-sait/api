@@ -7,6 +7,7 @@ import (
 	dto "api/internal/domains/credit_package/dto"
 	service "api/internal/domains/credit_package/service"
 	paymentDto "api/internal/domains/payment/dto"
+	"api/internal/domains/payment/services/stripe"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 
@@ -86,7 +87,10 @@ func (h *CreditPackageHandler) CheckoutCreditPackage(w http.ResponseWriter, r *h
 		return
 	}
 
-	checkoutURL, err := h.Service.CheckoutCreditPackage(r.Context(), id)
+	// Get success URL based on request origin
+	successURL := stripe.GetSuccessURLFromRequest(r)
+
+	checkoutURL, err := h.Service.CheckoutCreditPackage(r.Context(), id, successURL)
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return

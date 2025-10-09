@@ -55,6 +55,7 @@ func CreateOneTimePayment(
 	itemStripePriceID string, // Stripe Price ID of the item being purchased
 	quantity int, // Number of items
 	eventID *string, // Optional: Event ID for event enrollment payments
+	successURL string, // Success redirect URL after payment
 ) (string, *errLib.CommonError) {
 	// Create a timeout context for this operation
 	timeoutCtx, cancel := withCriticalTimeout(ctx)
@@ -85,6 +86,10 @@ func CreateOneTimePayment(
 		return "", errLib.New("quantity must be positive", http.StatusBadRequest)
 	}
 
+	if successURL == "" {
+		return "", errLib.New("success URL cannot be empty", http.StatusBadRequest)
+	}
+
 	// Extract user ID from context (e.g. JWT or middleware-injected value)
 	userID, err := contextUtils.GetUserID(ctx)
 	if err != nil {
@@ -113,7 +118,7 @@ func CreateOneTimePayment(
 			},
 		},
 		Mode:       stripe.String("payment"),                     // One-time payment mode
-		SuccessURL: stripe.String("https://www.rise-basketball.com/success"), // Redirect URL after success
+		SuccessURL: stripe.String(successURL), // Redirect URL after success
 		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
 			Enabled: stripe.Bool(true),
 		},
@@ -151,6 +156,7 @@ func CreateSubscriptionWithSetupFee(
 	ctx context.Context,
 	stripePlanPriceID string, // Stripe Price ID for the recurring plan
 	setupFeeAmount int,       // Setup fee amount in cents (0 for no fee)
+	successURL string, // Success redirect URL after payment
 ) (string, *errLib.CommonError) {
 	// Create a timeout context for this operation
 	timeoutCtx, cancel := withCriticalTimeout(ctx)
@@ -183,6 +189,10 @@ func CreateSubscriptionWithSetupFee(
 		return "", errLib.New("item stripe price ID cannot be empty", http.StatusBadRequest)
 	}
 
+	if successURL == "" {
+		return "", errLib.New("success URL cannot be empty", http.StatusBadRequest)
+	}
+
 	// Set up Checkout session with subscription mode
 	params := &stripe.CheckoutSessionParams{
 		Metadata: map[string]string{
@@ -200,7 +210,7 @@ func CreateSubscriptionWithSetupFee(
 			},
 		},
 		Mode:       stripe.String("subscription"), // Subscription mode
-		SuccessURL: stripe.String("https://www.rise-basketball.com/success"),
+		SuccessURL: stripe.String(successURL),
 		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
 			Enabled: stripe.Bool(true),
 		},
@@ -256,6 +266,7 @@ func CreateSubscription(
 	ctx context.Context,
 	stripePlanPriceID string, // Stripe Price ID for the recurring plan
 	stripeJoiningFeesID string, // Optional one-time joining fee
+	successURL string, // Success redirect URL after payment
 ) (string, *errLib.CommonError) {
 	// Create a timeout context for this operation
 	timeoutCtx, cancel := withCriticalTimeout(ctx)
@@ -288,6 +299,10 @@ func CreateSubscription(
 		return "", errLib.New("item stripe price ID cannot be empty", http.StatusBadRequest)
 	}
 
+	if successURL == "" {
+		return "", errLib.New("success URL cannot be empty", http.StatusBadRequest)
+	}
+
 	// Set up Checkout session with subscription mode
 	params := &stripe.CheckoutSessionParams{
 		Metadata: map[string]string{
@@ -305,7 +320,7 @@ func CreateSubscription(
 			},
 		},
 		Mode:       stripe.String("subscription"), // Subscription mode
-		SuccessURL: stripe.String("https://www.rise-basketball.com/success"),
+		SuccessURL: stripe.String(successURL),
 		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
 			Enabled: stripe.Bool(true),
 		},
@@ -357,6 +372,7 @@ func CreateSubscriptionWithDiscountPercent(
 	stripePlanPriceID string,
 	stripeJoiningFeesID string,
 	discountPercent int,
+	successURL string, // Success redirect URL after payment
 ) (string, *errLib.CommonError) {
 	if discountPercent <= 0 || discountPercent > 100 {
 		return "", errLib.New("invalid discount percent", http.StatusBadRequest)
@@ -373,6 +389,10 @@ func CreateSubscriptionWithDiscountPercent(
 
 	if stripePlanPriceID == "" {
 		return "", errLib.New("item stripe price ID cannot be empty", http.StatusBadRequest)
+	}
+
+	if successURL == "" {
+		return "", errLib.New("success URL cannot be empty", http.StatusBadRequest)
 	}
 
 	c, cuErr := coupon.New(&stripe.CouponParams{
@@ -399,7 +419,7 @@ func CreateSubscriptionWithDiscountPercent(
 			},
 		},
 		Mode:       stripe.String("subscription"),
-		SuccessURL: stripe.String("https://www.rise-basketball.com/success"),
+		SuccessURL: stripe.String(successURL),
 		Discounts: []*stripe.CheckoutSessionDiscountParams{
 			{Coupon: stripe.String(c.ID)},
 		},

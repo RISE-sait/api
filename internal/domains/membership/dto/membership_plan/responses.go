@@ -23,6 +23,7 @@ type PlanResponse struct {
 	Interval            string    `json:"interval"`
 	Price               string    `json:"price"`
 	JoiningFeePrice     string    `json:"joining_fee_price"`
+	IsVisible           bool      `json:"is_visible"`
 	CreatedAt           time.Time `json:"created_at"`
 	UpdatedAt           time.Time `json:"updated_at"`
 }
@@ -45,6 +46,7 @@ func NewPlanResponse(plan values.PlanReadValues) PlanResponse {
 		Interval:            plan.Interval, // e.g. "month", "year", weekly, etc.
 		Price:               displayPrice, // e.g. "$10.00" display price
 		JoiningFeePrice:     joiningFeePrice, // e.g. "$130.00" display price
+		IsVisible:           plan.IsVisible,
 		CreatedAt:           plan.CreatedAt,
 		UpdatedAt:           plan.UpdatedAt,
 	}

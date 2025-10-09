@@ -334,12 +334,8 @@ func (s *WebhookService) handleSubscriptionCheckoutComplete(checkoutSession stri
 		}
 	}
 	
-	// Allocate credits if this is a credit-based membership plan
-	log.Printf("Checking credit allocation for membership plan %s", planID)
-	if creditErr := s.allocateCreditsForMembership(context.Background(), userID, planID); creditErr != nil {
-		log.Printf("WARNING: Credit allocation failed for user %s, plan %s: %v", userID, planID, creditErr)
-		// Don't fail the entire webhook for credit allocation failures
-	}
+	// NOTE: Credits are no longer allocated with memberships - they are only available via credit packages
+	// Credit allocation has been moved to credit package purchases
 	
 	s.sendMembershipPurchaseEmail(userID, planID)
 	return nil
@@ -411,12 +407,8 @@ func (s *WebhookService) processSubscriptionWithEndDate(subscriptionID string, t
 		log.Printf("✅ SUCCESS: Enrolled customer %s in plan %s", userID, planID)
 	}
 
-	// Allocate credits if this is a credit-based membership plan
-	log.Printf("Checking credit allocation for membership plan %s", planID)
-	if creditErr := s.allocateCreditsForMembership(context.Background(), userID, planID); creditErr != nil {
-		log.Printf("WARNING: Credit allocation failed for user %s, plan %s: %v", userID, planID, creditErr)
-		// Don't fail the entire webhook for credit allocation failures
-	}
+	// NOTE: Credits are no longer allocated with memberships - they are only available via credit packages
+	// Credit allocation has been moved to credit package purchases
 
 	s.sendMembershipPurchaseEmail(userID, planID)
 

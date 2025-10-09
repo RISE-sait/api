@@ -48,60 +48,49 @@ func (s *CreditService) GetCurrentWeekStart() time.Time {
 }
 
 // CanUseCredits checks if a customer can use the specified number of credits
-// without exceeding their membership's weekly limit
+// without exceeding their credit package's weekly limit
 func (s *CreditService) CanUseCredits(ctx context.Context, customerID uuid.UUID, creditsToUse int32) (bool, *errLib.CommonError) {
 	weekStart := s.GetCurrentWeekStart()
-	
+
 	result, err := s.UserQueries.CheckWeeklyCreditLimit(ctx, dbUser.CheckWeeklyCreditLimitParams{
 		CustomerID:    customerID,
 		WeekStartDate: weekStart,
 		CreditsUsed:   creditsToUse,
 	})
-	
+
 	if err != nil {
-		// If no membership plan found, assume they can't use credits
-		return false, errLib.New("No active membership plan found", http.StatusBadRequest)
+		// If no credit package found, assume they can't use credits
+		return false, errLib.New("No active credit package found", http.StatusBadRequest)
 	}
-	
+
 	return result.CanUseCredits, nil
 }
 
 // GetWeeklyUsage returns the customer's current weekly credit usage and their limit
 func (s *CreditService) GetWeeklyUsage(ctx context.Context, customerID uuid.UUID) (int32, *int32, *errLib.CommonError) {
 	weekStart := s.GetCurrentWeekStart()
-	
+
 	// Get current usage
 	usage, err := s.UserQueries.GetWeeklyCreditsUsed(ctx, dbUser.GetWeeklyCreditsUsedParams{
 		CustomerID:    customerID,
 		WeekStartDate: weekStart,
 	})
-	
+
 	if err != nil {
 		usage = 0 // No usage record exists yet
 	}
-	
-	// Get customer's active membership plan ID
-	membershipPlanID, err := s.getUserActiveMembershipPlanID(ctx, customerID)
+
+	// Get customer's active credit package
+	activePackage, err := s.UserQueries.GetCustomerActiveCreditPackage(ctx, customerID)
 	if err != nil {
-		log.Printf("Failed to get active membership plan ID for customer %s: %v", customerID, err)
-		return usage, nil, errLib.New("No active membership plan found", http.StatusBadRequest)
+		log.Printf("Failed to get active credit package for customer %s: %v", customerID, err)
+		return usage, nil, errLib.New("No active credit package found", http.StatusBadRequest)
 	}
-	log.Printf("Found membership plan ID %s for customer %s", membershipPlanID, customerID)
-	
-	// Get membership plan details from membership database
-	membershipPlan, err := s.MembershipQueries.GetMembershipPlanById(ctx, membershipPlanID)
-	if err != nil {
-		log.Printf("Failed to get membership plan details for plan %s: %v", membershipPlanID, err)
-		return usage, nil, errLib.New("Membership plan not found", http.StatusBadRequest)
-	}
-	log.Printf("Found membership plan: credit_allocation=%v, weekly_limit=%v", 
-		membershipPlan.CreditAllocation, membershipPlan.WeeklyCreditLimit)
-	
-	var weeklyLimit *int32
-	if membershipPlan.WeeklyCreditLimit.Valid {
-		weeklyLimit = &membershipPlan.WeeklyCreditLimit.Int32
-	}
-	
+	log.Printf("Found active credit package for customer %s: weekly_limit=%v", customerID, activePackage.WeeklyCreditLimit)
+
+	// Return usage and weekly limit from credit package
+	weeklyLimit := &activePackage.WeeklyCreditLimit
+
 	return usage, weeklyLimit, nil
 }
 

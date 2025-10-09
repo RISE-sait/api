@@ -250,12 +250,19 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// GetMyEvents retrieves events for the authenticated user by automatically
-// applying the participant_id filter based on the JWT claims.
+// GetRoleEvents retrieves events for the authenticated user by automatically
+// applying the participant_id filter based on the JWT claims. Returns events with
+// price_id (Stripe price ID), required_membership_plan_id, and credit_cost for enrollment.
 // @Tags events
 // @Security Bearer
 // @Produce json
-// @Success 200 {object} map[string]interface{} "List of user specific events"
+// @Param limit query int false "Number of results per page" default(20)
+// @Param page query int false "Page number" default(1)
+// @Param after query string false "Filter events after this date (YYYY-MM-DD)"
+// @Param before query string false "Filter events before this date (YYYY-MM-DD)"
+// @Param month query string false "Filter events by month (YYYY-MM)"
+// @Param day query string false "Filter events by day (YYYY-MM-DD)"
+// @Success 200 {object} map[string]interface{} "List of user specific events with pagination. Each event includes price_id, required_membership_plan_id, and credit_cost"
 // @Failure 401 {object} map[string]interface{} "Unauthorized"
 // @Router /secure/events [get]
 func (h *EventsHandler) GetRoleEvents(w http.ResponseWriter, r *http.Request) {

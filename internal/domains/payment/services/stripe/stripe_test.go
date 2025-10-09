@@ -60,7 +60,7 @@ func TestCreateOneTimePayment(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			paymentLink, err := payment.CreateOneTimePayment(ctx, tt.priceID, tt.quantity, nil)
+			paymentLink, err := payment.CreateOneTimePayment(ctx, tt.priceID, tt.quantity, nil, "https://www.rise-basketball.com/success")
 
 			if tt.wantErr {
 				if err == nil {
@@ -134,6 +134,7 @@ func TestCreateSubscription(t *testing.T) {
 				ctx,
 				tt.priceID,
 				tt.joiningFeesID,
+				"https://www.rise-basketball.com/success",
 			)
 
 			if tt.wantErr {
@@ -207,6 +208,7 @@ func TestCreateSubscription_Context(t *testing.T) {
 				tt.ctx,
 				"price_1RAJEOAB1pU7EbknIH4e3bBu",
 				"price_1RA7MAAB1pU7EbknpkvwLmyp",
+				"https://www.rise-basketball.com/success",
 			)
 
 			if tt.wantErr {

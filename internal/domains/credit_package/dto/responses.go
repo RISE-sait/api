@@ -12,6 +12,8 @@ type CreditPackageResponse struct {
 	StripePriceID     string    `json:"stripe_price_id"`
 	CreditAllocation  int32     `json:"credit_allocation"`
 	WeeklyCreditLimit int32     `json:"weekly_credit_limit"`
+	Price             float64   `json:"price"`              // Price in dollars (e.g., 49.99)
+	Currency          string    `json:"currency"`           // e.g., "CAD"
 	CreatedAt         time.Time `json:"created_at"`
 	UpdatedAt         time.Time `json:"updated_at"`
 }

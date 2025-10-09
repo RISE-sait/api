@@ -19,23 +19,67 @@ import (
 type CreditPackageService struct {
 	CreditPackageRepo *repo.CreditPackageRepository
 	CreditService     *userServices.CustomerCreditService
+	StripeService     *stripe.PriceService
 }
 
 func NewCreditPackageService(container *di.Container) *CreditPackageService {
 	return &CreditPackageService{
 		CreditPackageRepo: repo.NewCreditPackageRepository(container),
 		CreditService:     userServices.NewCustomerCreditService(container),
+		StripeService:     stripe.NewPriceService(),
 	}
 }
 
-// GetAllPackages returns all available credit packages
+// GetAllPackages returns all available credit packages with live Stripe pricing
 func (s *CreditPackageService) GetAllPackages(ctx context.Context) ([]dto.CreditPackageResponse, *errLib.CommonError) {
-	return s.CreditPackageRepo.GetAll(ctx)
+	packages, err := s.CreditPackageRepo.GetAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Enrich with Stripe price data
+	for i, pkg := range packages {
+		if pkg.StripePriceID != "" {
+			stripePrice, stripeErr := s.StripeService.GetPrice(pkg.StripePriceID)
+			if stripeErr != nil {
+				log.Printf("Warning: Failed to fetch Stripe price for package %s (price_id: %s): %v",
+					pkg.ID, pkg.StripePriceID, stripeErr)
+				// Continue with empty price data if Stripe fails
+				continue
+			}
+
+			// Update package with live Stripe data (convert cents to dollars)
+			packages[i].Price = float64(stripePrice.UnitAmount) / 100
+			packages[i].Currency = string(stripePrice.Currency)
+		}
+	}
+
+	return packages, nil
 }
 
-// GetPackageByID returns a specific credit package by ID
+// GetPackageByID returns a specific credit package by ID with live Stripe pricing
 func (s *CreditPackageService) GetPackageByID(ctx context.Context, id uuid.UUID) (*dto.CreditPackageResponse, *errLib.CommonError) {
-	return s.CreditPackageRepo.GetByID(ctx, id)
+	pkg, err := s.CreditPackageRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Enrich with Stripe price data
+	if pkg.StripePriceID != "" {
+		stripePrice, stripeErr := s.StripeService.GetPrice(pkg.StripePriceID)
+		if stripeErr != nil {
+			log.Printf("Warning: Failed to fetch Stripe price for package %s (price_id: %s): %v",
+				pkg.ID, pkg.StripePriceID, stripeErr)
+			// Return package with empty price data if Stripe fails
+			return pkg, nil
+		}
+
+		// Update package with live Stripe data (convert cents to dollars)
+		pkg.Price = float64(stripePrice.UnitAmount) / 100
+		pkg.Currency = string(stripePrice.Currency)
+	}
+
+	return pkg, nil
 }
 
 // CheckoutCreditPackage creates a Stripe checkout session for purchasing a credit package

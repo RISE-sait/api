@@ -4,6 +4,7 @@ import (
 	"api/internal/di"
 	"api/internal/domains/membership/dto/membership_plan"
 	membership "api/internal/domains/membership/services"
+	values "api/internal/domains/membership/values"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
@@ -60,6 +61,7 @@ func (h *PlansHandlers) CreateMembershipPlan(w http.ResponseWriter, r *http.Requ
 // @Accept json
 // @Produce json
 // @Param id path string true "Membership ID" example("f47ac10b-58cc-4372-a567-0e02b2c3d479")
+// @Param include_hidden query bool false "Include hidden plans (admin only)" default(false)
 // @Success 200 {array} membership_plan.PlanResponse "GetMemberships of membership plans retrieved successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid membership ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Membership plans not found"
@@ -77,7 +79,15 @@ func (h *PlansHandlers) GetMembershipPlans(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	plans, err := h.Service.GetPlansWithStripeData(r.Context(), membershipId)
+	// Check if request wants to include hidden plans (admin use)
+	includeHidden := r.URL.Query().Get("include_hidden") == "true"
+
+	var plans []values.PlanReadValues
+	if includeHidden {
+		plans, err = h.Service.GetAllPlansWithStripeData(r.Context(), membershipId)
+	} else {
+		plans, err = h.Service.GetPlansWithStripeData(r.Context(), membershipId)
+	}
 
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)

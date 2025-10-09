@@ -92,6 +92,48 @@ func (s *PlanService) GetPlansWithStripeData(ctx context.Context, membershipID u
 	return plans, nil
 }
 
+// GetAllPlansWithStripeData retrieves ALL membership plans (including hidden) and enriches them with live Stripe price data
+func (s *PlanService) GetAllPlansWithStripeData(ctx context.Context, membershipID uuid.UUID) ([]values.PlanReadValues, *errLib.CommonError) {
+	plans, err := s.repo.GetAllMembershipPlansAdmin(ctx, membershipID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Enrich plans with live Stripe price data
+	for i, plan := range plans {
+		if plan.StripePriceID != "" {
+			stripePrice, stripeErr := s.stripeService.GetPrice(plan.StripePriceID)
+			if stripeErr != nil {
+				log.Printf("Warning: Failed to fetch Stripe price for plan %s (price_id: %s): %v",
+					plan.ID, plan.StripePriceID, stripeErr)
+				// Continue with database values if Stripe fails
+				continue
+			}
+
+			// Update plan with live Stripe data
+			plans[i].UnitAmount = int(stripePrice.UnitAmount)
+			plans[i].Currency = string(stripePrice.Currency)
+			plans[i].Interval = string(stripePrice.Recurring.Interval)
+		}
+
+		// Fetch joining fee price from Stripe
+		if plan.StripeJoiningFeesID != "" {
+			joiningFeePrice, joiningFeeErr := s.stripeService.GetPrice(plan.StripeJoiningFeesID)
+			if joiningFeeErr != nil {
+				log.Printf("Warning: Failed to fetch Stripe joining fee price for plan %s (price_id: %s): %v",
+					plan.ID, plan.StripeJoiningFeesID, joiningFeeErr)
+				// Continue with database values if Stripe fails
+				continue
+			}
+
+			// Update plan with live Stripe joining fee data
+			plans[i].JoiningFee = int(joiningFeePrice.UnitAmount)
+		}
+	}
+
+	return plans, nil
+}
+
 func (s *PlanService) CreateMembershipPlan(ctx context.Context, details values.PlanCreateValues) *errLib.CommonError {
 
 	return s.executeInTx(ctx, func(txRepo *repo.PlansRepository) *errLib.CommonError {

@@ -621,22 +621,31 @@ func (s *WebhookService) HandleSubscriptionUpdated(event stripe.Event) *errLib.C
 
 	// Handle status changes and update database
 	var dbStatus string
-	switch sub.Status {
-	case stripe.SubscriptionStatusActive:
-		log.Printf("[WEBHOOK] Subscription %s is now active", sub.ID)
-		dbStatus = "active"
-	case stripe.SubscriptionStatusPastDue:
-		log.Printf("[WEBHOOK] Subscription %s is past due", sub.ID)
-		dbStatus = "inactive" // Map past due to inactive
-	case stripe.SubscriptionStatusCanceled:
-		log.Printf("[WEBHOOK] Subscription %s is canceled", sub.ID)
+
+	// Check if subscription is scheduled for cancellation (cancel_at is set)
+	// Stripe keeps status as "active" until the end of the billing period,
+	// but we want to mark it as canceled immediately in our database
+	if sub.CancelAt > 0 {
+		log.Printf("[WEBHOOK] Subscription %s is scheduled for cancellation at %d", sub.ID, sub.CancelAt)
 		dbStatus = "canceled"
-	case stripe.SubscriptionStatusUnpaid:
-		log.Printf("[WEBHOOK] Subscription %s is unpaid", sub.ID)
-		dbStatus = "inactive" // Map unpaid to inactive
-	default:
-		log.Printf("[WEBHOOK] Unhandled subscription status: %s for subscription %s", sub.Status, sub.ID)
-		return nil
+	} else {
+		switch sub.Status {
+		case stripe.SubscriptionStatusActive:
+			log.Printf("[WEBHOOK] Subscription %s is now active", sub.ID)
+			dbStatus = "active"
+		case stripe.SubscriptionStatusPastDue:
+			log.Printf("[WEBHOOK] Subscription %s is past due", sub.ID)
+			dbStatus = "inactive" // Map past due to inactive
+		case stripe.SubscriptionStatusCanceled:
+			log.Printf("[WEBHOOK] Subscription %s is canceled", sub.ID)
+			dbStatus = "canceled"
+		case stripe.SubscriptionStatusUnpaid:
+			log.Printf("[WEBHOOK] Subscription %s is unpaid", sub.ID)
+			dbStatus = "inactive" // Map unpaid to inactive
+		default:
+			log.Printf("[WEBHOOK] Unhandled subscription status: %s for subscription %s", sub.Status, sub.ID)
+			return nil
+		}
 	}
 
 	// Update membership status in database

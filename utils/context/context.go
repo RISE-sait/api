@@ -17,14 +17,15 @@ const (
 )
 
 const (
-	RoleSuperAdmin CtxRole = "SUPERADMIN"
-	RoleAdmin      CtxRole = "ADMIN"
-	RoleInstructor CtxRole = "INSTRUCTOR"
-	RoleParent     CtxRole = "PARENT"
-	RoleChild      CtxRole = "CHILD"
-	RoleAthlete    CtxRole = "ATHLETE"
-	RoleCoach      CtxRole = "COACH"
-	RoleBarber     CtxRole = "BARBER"
+	RoleSuperAdmin   CtxRole = "SUPERADMIN"
+	RoleAdmin        CtxRole = "ADMIN"
+	RoleInstructor   CtxRole = "INSTRUCTOR"
+	RoleParent       CtxRole = "PARENT"
+	RoleChild        CtxRole = "CHILD"
+	RoleAthlete      CtxRole = "ATHLETE"
+	RoleCoach        CtxRole = "COACH"
+	RoleBarber       CtxRole = "BARBER"
+	RoleReceptionist CtxRole = "RECEPTIONIST"
 )
 
 // GetUserID retrieves the user ID from the context. Returns an error if the context is nil
@@ -84,7 +85,7 @@ func IsStaff(ctx context.Context) (bool, *errLib.CommonError) {
 	}
 
 	switch role {
-	case RoleSuperAdmin, RoleAdmin, RoleInstructor, RoleCoach, RoleBarber:
+	case RoleSuperAdmin, RoleAdmin, RoleInstructor, RoleCoach, RoleBarber, RoleReceptionist:
 		return true, nil
 	default:
 		return false, nil

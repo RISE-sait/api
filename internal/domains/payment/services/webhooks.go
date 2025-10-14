@@ -677,30 +677,36 @@ func (s *WebhookService) HandleSubscriptionDeleted(event stripe.Event) *errLib.C
 
 	log.Printf("[WEBHOOK] Subscription deleted: %s", sub.ID)
 
-	// Extract user ID and update membership status to expired
-	if sub.Customer != nil && sub.Customer.Metadata != nil {
-		if userIDStr, exists := sub.Customer.Metadata["userID"]; exists {
-			userID, err := uuid.Parse(userIDStr)
-			if err == nil {
-				log.Printf("[WEBHOOK] Marking membership as expired for user %s", userID)
-				
-				// Update membership status to expired in database
-				if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatus(context.Background(), userID, "expired"); updateErr != nil {
-					log.Printf("[WEBHOOK] Failed to mark membership as expired: %v", updateErr)
-					return updateErr
-				}
-				
-				log.Printf("[WEBHOOK] Successfully marked subscription %s as expired for user %s", sub.ID, userID)
-			} else {
-				log.Printf("[WEBHOOK] Invalid userID format for deleted subscription %s: %v", sub.ID, err)
-				return errLib.New("Invalid user ID format", http.StatusBadRequest)
-			}
-		} else {
-			log.Printf("[WEBHOOK] No userID in customer metadata for deleted subscription %s", sub.ID)
-		}
-	} else {
-		log.Printf("[WEBHOOK] No customer metadata found for deleted subscription %s", sub.ID)
+	// Get Stripe customer ID from the Customer field
+	var stripeCustomerID string
+	if sub.Customer != nil {
+		stripeCustomerID = sub.Customer.ID
 	}
+
+	if stripeCustomerID == "" {
+		log.Printf("[WEBHOOK] No customer ID found for deleted subscription %s", sub.ID)
+		return nil
+	}
+
+	log.Printf("[WEBHOOK] Processing deletion for Stripe customer: %s", stripeCustomerID)
+
+	// Look up user by Stripe customer ID in database
+	var userID uuid.UUID
+	query := "SELECT id FROM users.users WHERE stripe_customer_id = $1"
+	if dbErr := s.db.QueryRowContext(context.Background(), query, stripeCustomerID).Scan(&userID); dbErr != nil {
+		log.Printf("[WEBHOOK] Failed to find user with Stripe customer ID %s for subscription %s: %v", stripeCustomerID, sub.ID, dbErr)
+		return nil // Don't fail webhook if user not found - subscription may have been deleted already
+	}
+
+	log.Printf("[WEBHOOK] Found user %s for Stripe customer %s, marking membership as expired", userID, stripeCustomerID)
+
+	// Update membership status to expired in database
+	if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatus(context.Background(), userID, "expired"); updateErr != nil {
+		log.Printf("[WEBHOOK] Failed to mark membership as expired: %v", updateErr)
+		return updateErr
+	}
+
+	log.Printf("[WEBHOOK] Successfully marked subscription %s as expired for user %s", sub.ID, userID)
 
 	// Mark as processed
 	s.Idempotency.MarkAsProcessed(event.ID)

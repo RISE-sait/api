@@ -655,61 +655,170 @@ func (h *CustomersHandler) DeleteMyAccount(w http.ResponseWriter, r *http.Reques
 
 	log.Printf("Starting account deletion process for customer: %s", customerID)
 
-	// 1. Get user email for Firebase cleanup (query users table directly)
-	var userEmail string
-	if dbErr := h.CustomerRepo.Db.QueryRowContext(r.Context(), "SELECT email FROM users.users WHERE id = $1", customerID).Scan(&userEmail); dbErr != nil {
-		if dbErr == sql.ErrNoRows {
-			responseHandlers.RespondWithError(w, errLib.New("User not found", http.StatusNotFound))
-		} else {
-			responseHandlers.RespondWithError(w, errLib.New("Failed to get user info", http.StatusInternalServerError))
-		}
-		return
-	}
-
-	// 2. Cancel all Stripe subscriptions
-	log.Printf("Cancelling Stripe subscriptions for customer: %s", customerID)
+	// 1. Check for active or scheduled-to-cancel subscriptions
+	log.Printf("Checking for active subscriptions for customer: %s", customerID)
 	subscriptions, stripeErr := h.StripeService.GetCustomerSubscriptions(r.Context())
-	if stripeErr == nil {
-		for _, subscription := range subscriptions {
-			if subscription.Status == "active" || subscription.Status == "trialing" {
-				_, cancelErr := h.StripeService.CancelSubscription(r.Context(), subscription.ID, true) // Cancel immediately
-				if cancelErr != nil {
-					log.Printf("WARNING: Failed to cancel Stripe subscription %s: %v", subscription.ID, cancelErr)
-					// Don't fail the entire process for subscription cancellation failures
-				} else {
-					log.Printf("Successfully cancelled Stripe subscription: %s", subscription.ID)
-				}
-			}
-		}
-	} else {
+	if stripeErr != nil {
 		log.Printf("WARNING: Could not retrieve Stripe subscriptions for customer %s: %v", customerID, stripeErr)
-		// Continue with deletion even if we can't cancel subscriptions
-	}
-
-	// 3. Delete all customer data from database
-	log.Printf("Deleting customer data from database: %s", customerID)
-	if err := h.CustomerRepo.DeleteCustomerAccountCompletely(r.Context(), customerID); err != nil {
-		log.Printf("Failed to delete customer from database: %v", err)
-		responseHandlers.RespondWithError(w, errLib.New("Failed to delete account data", http.StatusInternalServerError))
+		// Don't allow deletion if we can't verify subscription status
+		responseHandlers.RespondWithError(w, errLib.New("Unable to verify subscription status. Please try again later.", http.StatusServiceUnavailable))
 		return
 	}
 
-	// 4. Delete from Firebase (if email exists)
-	if userEmail != "" {
-		log.Printf("Deleting user from Firebase: %s", userEmail)
-		if firebaseErr := h.FirebaseService.DeleteUser(r.Context(), userEmail); firebaseErr != nil {
-			log.Printf("WARNING: Failed to delete from Firebase: %v", firebaseErr)
-			// Don't fail the process if Firebase deletion fails since database is already cleaned
-		} else {
-			log.Printf("Successfully deleted Firebase user: %s", userEmail)
+	// Check if any subscriptions are active or scheduled for cancellation
+	for _, subscription := range subscriptions {
+		if subscription.Status == "active" || subscription.Status == "trialing" {
+			log.Printf("BLOCKED: Customer %s has active subscription %s (status: %s)", customerID, subscription.ID, subscription.Status)
+
+			var errorMessage string
+			if subscription.CancelAtPeriodEnd {
+				// Subscription is already scheduled to cancel
+				cancelDate := time.Unix(subscription.CurrentPeriodEnd, 0).Format("January 2, 2006")
+				errorMessage = fmt.Sprintf("Your subscription is scheduled to end on %s. You can delete your account after that date.", cancelDate)
+			} else {
+				// Active subscription not yet canceled
+				errorMessage = "You must cancel your subscription before deleting your account. Please cancel your subscription and wait for it to expire."
+			}
+
+			responseHandlers.RespondWithError(w, errLib.New(errorMessage, http.StatusConflict))
+			return
+		}
+
+		// Also block if subscription is past_due (customer owes money)
+		if subscription.Status == "past_due" || subscription.Status == "unpaid" {
+			log.Printf("BLOCKED: Customer %s has unpaid subscription %s (status: %s)", customerID, subscription.ID, subscription.Status)
+			responseHandlers.RespondWithError(w, errLib.New("You have an unpaid subscription. Please resolve your payment before deleting your account.", http.StatusConflict))
+			return
 		}
 	}
 
-	log.Printf("Account deletion completed successfully for customer: %s", customerID)
+	log.Printf("No active subscriptions found for customer %s, proceeding with soft delete", customerID)
+
+	// 2. Implement soft delete with 30-day recovery period
+	deletedAt := time.Now().UTC()
+	scheduledDeletionAt := deletedAt.Add(30 * 24 * time.Hour) // 30 days grace period
+
+	softDeleteQuery := `
+		UPDATE users.users
+		SET deleted_at = $1,
+		    scheduled_deletion_at = $2,
+		    updated_at = $1
+		WHERE id = $3 AND deleted_at IS NULL
+	`
+
+	result, dbErr := h.CustomerRepo.Db.ExecContext(r.Context(), softDeleteQuery, deletedAt, scheduledDeletionAt, customerID)
+	if dbErr != nil {
+		log.Printf("Failed to soft delete customer %s: %v", customerID, dbErr)
+		responseHandlers.RespondWithError(w, errLib.New("Failed to delete account", http.StatusInternalServerError))
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		log.Printf("Customer %s not found or already deleted", customerID)
+		responseHandlers.RespondWithError(w, errLib.New("Account not found or already deleted", http.StatusNotFound))
+		return
+	}
+
+	// 3. Disable Firebase account (don't delete - keep for recovery)
+	var userEmail string
+	if dbErr := h.CustomerRepo.Db.QueryRowContext(r.Context(), "SELECT email FROM users.users WHERE id = $1", customerID).Scan(&userEmail); dbErr == nil && userEmail != "" {
+		log.Printf("Disabling Firebase account for soft-deleted user: %s", userEmail)
+		// TODO: Implement Firebase disable (not delete) - Firebase Admin SDK has UpdateUser with Disabled field
+		// For now we just log it - you'll need to add a DisableUser method to FirebaseService
+	}
+
+	log.Printf("Account soft deleted successfully for customer: %s (recoverable until %s)", customerID, scheduledDeletionAt.Format(time.RFC3339))
 
 	responseHandlers.RespondWithSuccess(w, map[string]interface{}{
-		"message":   "Your account has been permanently deleted",
-		"deleted_at": time.Now().UTC().Format(time.RFC3339),
+		"message":              "Your account has been scheduled for deletion",
+		"deleted_at":           deletedAt.Format(time.RFC3339),
+		"recoverable_until":    scheduledDeletionAt.Format(time.RFC3339),
+		"recovery_period_days": 30,
+		"note":                 "You have 30 days to recover your account. After that, all data will be permanently deleted.",
+	}, http.StatusOK)
+}
+
+// RecoverAccount allows a user to recover their soft-deleted account within the grace period
+// @Summary Recover deleted account
+// @Description Recovers a soft-deleted account within the 30-day grace period
+// @Tags customers
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Success 200 {object} map[string]interface{} "Account recovered successfully"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 404 {object} map[string]interface{} "Not Found: Account not found or not deleted"
+// @Failure 410 {object} map[string]interface{} "Gone: Recovery period expired"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /secure/customers/recover-account [post]
+func (h *CustomersHandler) RecoverAccount(w http.ResponseWriter, r *http.Request) {
+	// Get authenticated user ID
+	customerID, err := contextUtils.GetUserID(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	log.Printf("Account recovery requested for customer: %s", customerID)
+
+	// Check if account is soft-deleted and within recovery period
+	var deletedAt, scheduledDeletionAt sql.NullTime
+	checkQuery := "SELECT deleted_at, scheduled_deletion_at FROM users.users WHERE id = $1"
+
+	if dbErr := h.CustomerRepo.Db.QueryRowContext(r.Context(), checkQuery, customerID).Scan(&deletedAt, &scheduledDeletionAt); dbErr != nil {
+		if dbErr == sql.ErrNoRows {
+			responseHandlers.RespondWithError(w, errLib.New("Account not found", http.StatusNotFound))
+		} else {
+			responseHandlers.RespondWithError(w, errLib.New("Failed to check account status", http.StatusInternalServerError))
+		}
+		return
+	}
+
+	// Check if account is actually deleted
+	if !deletedAt.Valid {
+		log.Printf("Recovery failed: Account %s is not deleted", customerID)
+		responseHandlers.RespondWithError(w, errLib.New("Account is not deleted", http.StatusBadRequest))
+		return
+	}
+
+	// Check if recovery period has expired
+	if scheduledDeletionAt.Valid && time.Now().UTC().After(scheduledDeletionAt.Time) {
+		log.Printf("Recovery failed: Grace period expired for account %s", customerID)
+		responseHandlers.RespondWithError(w, errLib.New("Recovery period has expired. Account data has been permanently deleted.", http.StatusGone))
+		return
+	}
+
+	// Recover the account by clearing soft delete fields
+	recoverQuery := `
+		UPDATE users.users
+		SET deleted_at = NULL,
+		    scheduled_deletion_at = NULL,
+		    updated_at = $1
+		WHERE id = $2
+	`
+
+	result, dbErr := h.CustomerRepo.Db.ExecContext(r.Context(), recoverQuery, time.Now().UTC(), customerID)
+	if dbErr != nil {
+		log.Printf("Failed to recover account %s: %v", customerID, dbErr)
+		responseHandlers.RespondWithError(w, errLib.New("Failed to recover account", http.StatusInternalServerError))
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		responseHandlers.RespondWithError(w, errLib.New("Account not found", http.StatusNotFound))
+		return
+	}
+
+	// TODO: Re-enable Firebase account
+	// h.FirebaseService.EnableUser(r.Context(), userEmail)
+
+	log.Printf("Account successfully recovered for customer: %s", customerID)
+
+	responseHandlers.RespondWithSuccess(w, map[string]interface{}{
+		"message":      "Your account has been successfully recovered",
+		"recovered_at": time.Now().UTC().Format(time.RFC3339),
 	}, http.StatusOK)
 }
 

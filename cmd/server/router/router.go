@@ -479,6 +479,7 @@ func RegisterSecureCustomerRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(true)).Get("/memberships", h.GetUserMembershipHistory)
 		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/delete-account", h.DeleteMyAccount)
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/recover-account", h.RecoverAccount)
 	}
 }
 

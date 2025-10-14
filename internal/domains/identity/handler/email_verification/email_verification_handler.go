@@ -1,6 +1,7 @@
 package email_verification
 
 import (
+	"api/config"
 	"api/internal/di"
 	"api/internal/domains/identity/service/email_verification"
 	errLib "api/internal/libs/errors"
@@ -18,12 +19,9 @@ type EmailVerificationHandler struct {
 }
 
 func NewEmailVerificationHandler(container *di.Container) *EmailVerificationHandler {
-	// TODO: Move frontend URL to environment variable
-	frontendBaseURL := "https://rise-app.com" // This should come from config
-
 	return &EmailVerificationHandler{
 		VerificationService: email_verification.NewEmailVerificationService(container),
-		FrontendBaseURL:     frontendBaseURL,
+		FrontendBaseURL:     config.Env.FrontendBaseURL,
 	}
 }
 

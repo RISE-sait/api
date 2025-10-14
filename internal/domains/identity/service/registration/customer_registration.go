@@ -1,6 +1,7 @@
 package registration
 
 import (
+	"api/config"
 	"api/internal/di"
 	repo "api/internal/domains/identity/persistence/repository"
 	"api/internal/domains/identity/persistence/repository/user"
@@ -22,20 +23,15 @@ type CustomerRegistrationService struct {
 	WaiverSigningRepo   *repo.WaiverSigningRepository
 	VerificationService *email_verification.EmailVerificationService
 	DB                  *sql.DB
-	FrontendBaseURL     string
 }
 
 // NewCustomerRegistrationService initializes a new CustomerRegistrationService instance.
 func NewCustomerRegistrationService(container *di.Container) *CustomerRegistrationService {
-	// TODO: Move frontend URL to environment variable
-	frontendBaseURL := "https://rise-app.com"
-
 	return &CustomerRegistrationService{
 		UserRepo:            user.NewUserRepository(container),
 		WaiverSigningRepo:   repo.NewWaiverSigningRepository(container),
 		VerificationService: email_verification.NewEmailVerificationService(container),
 		DB:                  container.DB,
-		FrontendBaseURL:     frontendBaseURL,
 	}
 }
 
@@ -112,7 +108,7 @@ func (s *CustomerRegistrationService) RegisterAthlete(
 				log.Printf("Failed to store verification token for user %s: %v", createdUserInfo.ID, storeErr)
 			} else {
 				// Generate verification URL
-				verificationURL := s.VerificationService.GetVerificationURL(token, s.FrontendBaseURL)
+				verificationURL := s.VerificationService.GetVerificationURL(token, config.Env.FrontendBaseURL)
 
 				// Send verification email
 				if emailErr := email.SendEmailVerification(*createdUserInfo.Email, createdUserInfo.FirstName, verificationURL); emailErr != nil {
@@ -180,7 +176,7 @@ func (s *CustomerRegistrationService) RegisterParent(
 				log.Printf("Failed to store verification token for user %s: %v", userInfo.ID, storeErr)
 			} else {
 				// Generate verification URL
-				verificationURL := s.VerificationService.GetVerificationURL(token, s.FrontendBaseURL)
+				verificationURL := s.VerificationService.GetVerificationURL(token, config.Env.FrontendBaseURL)
 
 				// Send verification email
 				if emailErr := email.SendEmailVerification(*userInfo.Email, userInfo.FirstName, verificationURL); emailErr != nil {

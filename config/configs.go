@@ -31,6 +31,7 @@ type config struct {
 	StripeSecretKey                  string
 	StripeWebhookSecret              string
 	ChatBotServiceUrl                string
+	FrontendBaseURL                  string // Frontend URL for email verification (supports Universal Links for mobile app)
 }
 
 var Env = initConfig()
@@ -62,6 +63,7 @@ func initConfig() *config {
 		StripeSecretKey:                  getEnv("STRIPE_SECRET_KEY"),
 		StripeWebhookSecret:              getEnv("STRIPE_WEBHOOK_SECRET"),
 		ChatBotServiceUrl:                getEnv("CHAT_BOT_SERVICE_URL"),
+		FrontendBaseURL:                  getEnv("FRONTEND_BASE_URL"),
 	}
 }
 

@@ -50,3 +50,14 @@ func SendMembershipPurchaseEmail(to, firstName, plan string) {
 		log.Println("failed to send membership email:", err.Message)
 	}
 }
+
+// SendEmailVerification sends an email verification link to newly registered users.
+func SendEmailVerification(to, firstName, verificationURL string) *errLib.CommonError {
+	body := EmailVerificationBody(firstName, verificationURL)
+	if err := SendEmail(to, "Verify Your Email - Rise", body); err != nil {
+		log.Println("failed to send verification email:", err.Message)
+		return err
+	}
+	log.Printf("Verification email sent successfully to %s", to)
+	return nil
+}

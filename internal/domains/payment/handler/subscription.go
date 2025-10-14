@@ -65,13 +65,12 @@ func (h *SubscriptionHandlers) GetSubscription(w http.ResponseWriter, r *http.Re
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 }
 
-// CancelSubscription cancels a subscription
-// @Description Cancel a subscription immediately or at period end
+// CancelSubscription cancels a subscription at period end
+// @Description Cancel a subscription at the end of the current billing period. Immediate cancellation is not allowed to protect both customer and business.
 // @Tags subscriptions
 // @Accept json
 // @Produce json
 // @Param id path string true "Subscription ID"
-// @Param immediate query boolean false "Cancel immediately (default: false - cancel at period end)"
 // @Success 200 {object} map[string]interface{} "Cancellation successful"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 403 {object} map[string]interface{} "Forbidden: Access denied"
@@ -87,27 +86,20 @@ func (h *SubscriptionHandlers) CancelSubscription(w http.ResponseWriter, r *http
 		return
 	}
 
-	// Parse immediate cancellation parameter
-	immediate := r.URL.Query().Get("immediate") == "true"
-
-	cancelledSub, err := h.StripeService.CancelSubscription(r.Context(), subscriptionID, immediate)
+	// Always cancel at period end (immediate = false) to protect customer's paid period
+	cancelledSub, err := h.StripeService.CancelSubscription(r.Context(), subscriptionID, false)
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
 	response := map[string]interface{}{
-		"id":                  cancelledSub.ID,
-		"status":              cancelledSub.Status,
-		"canceled_at":         cancelledSub.CanceledAt,
+		"id":                   cancelledSub.ID,
+		"status":               cancelledSub.Status,
+		"canceled_at":          cancelledSub.CanceledAt,
 		"cancel_at_period_end": cancelledSub.CancelAtPeriodEnd,
 		"current_period_end":   cancelledSub.CurrentPeriodEnd,
-		"message": func() string {
-			if immediate {
-				return "Subscription cancelled immediately"
-			}
-			return "Subscription will cancel at the end of the current billing period"
-		}(),
+		"message":              "Your subscription will cancel at the end of the current billing period. You will retain access until then.",
 	}
 
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)

@@ -4,6 +4,7 @@ import (
 	"api/internal/di"
 	identityRepo "api/internal/domains/identity/persistence/repository"
 	"api/internal/domains/identity/persistence/repository/user"
+	"api/internal/domains/identity/service/email_verification"
 	"api/internal/domains/identity/service/firebase"
 	identity "api/internal/domains/identity/values"
 	errLib "api/internal/libs/errors"
@@ -16,17 +17,19 @@ import (
 )
 
 type Service struct {
-	FirebaseService *firebase.Service
-	UserRepo        *user.UsersRepository
-	StaffRepo       *identityRepo.StaffRepository
+	FirebaseService     *firebase.Service
+	UserRepo            *user.UsersRepository
+	StaffRepo           *identityRepo.StaffRepository
+	VerificationService *email_verification.EmailVerificationService
 }
 
 func NewAuthenticationService(container *di.Container) *Service {
 
 	return &Service{
-		FirebaseService: firebase.NewFirebaseService(container),
-		UserRepo:        user.NewUserRepository(container),
-		StaffRepo:       identityRepo.NewStaffRepository(container),
+		FirebaseService:     firebase.NewFirebaseService(container),
+		UserRepo:            user.NewUserRepository(container),
+		StaffRepo:           identityRepo.NewStaffRepository(container),
+		VerificationService: email_verification.NewEmailVerificationService(container),
 	}
 }
 
@@ -56,6 +59,18 @@ func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string,
 
 	if err != nil {
 		return "", responseUserInfo, err
+	}
+
+	// Check if email is verified (except for staff who may have been manually created)
+	if userInfo.Role == "customer" || userInfo.Role == "athlete" || userInfo.Role == "parent" {
+		isVerified, verifyErr := s.VerificationService.IsEmailVerified(ctx, userInfo.ID)
+		if verifyErr != nil {
+			log.Printf("Failed to check email verification status for user %s: %v", userInfo.ID, verifyErr)
+			// Continue with authentication if check fails (graceful degradation)
+		} else if !isVerified {
+			log.Printf("Login blocked for unverified user %s (email: %s)", userInfo.ID, email)
+			return "", responseUserInfo, errLib.New("Please verify your email address before logging in. Check your inbox for the verification link.", http.StatusForbidden)
+		}
 	}
 
 	jwtCustomClaims := jwtLib.CustomClaims{

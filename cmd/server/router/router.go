@@ -15,6 +15,7 @@ import (
 	eventHandler "api/internal/domains/event/handler"
 	"api/internal/domains/game"
 	"api/internal/domains/identity/handler/authentication"
+	"api/internal/domains/identity/handler/email_verification"
 	"api/internal/domains/identity/handler/registration"
 	locationsHandler "api/internal/domains/location/handler"
 	membership "api/internal/domains/membership/handler"
@@ -396,10 +397,15 @@ func RegisterWebhooksRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterAuthRoutes(container *di.Container) func(chi.Router) {
 	h := authentication.NewHandlers(container)
+	verificationHandler := email_verification.NewEmailVerificationHandler(container)
 
 	return func(r chi.Router) {
 		r.Post("/", h.Login)
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/child/{id}", h.LoginAsChild)
+
+		// Email verification routes (public endpoints)
+		r.Post("/verify-email", verificationHandler.VerifyEmail)
+		r.Post("/resend-verification", verificationHandler.ResendVerificationEmail)
 	}
 }
 

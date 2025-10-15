@@ -74,6 +74,70 @@ func AllAuditAuditStatusValues() []AuditAuditStatus {
 	}
 }
 
+type CreditTransactionType string
+
+const (
+	CreditTransactionTypeEnrollment      CreditTransactionType = "enrollment"
+	CreditTransactionTypeRefund          CreditTransactionType = "refund"
+	CreditTransactionTypePurchase        CreditTransactionType = "purchase"
+	CreditTransactionTypeAdminAdjustment CreditTransactionType = "admin_adjustment"
+)
+
+func (e *CreditTransactionType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = CreditTransactionType(s)
+	case string:
+		*e = CreditTransactionType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for CreditTransactionType: %T", src)
+	}
+	return nil
+}
+
+type NullCreditTransactionType struct {
+	CreditTransactionType CreditTransactionType `json:"credit_transaction_type"`
+	Valid                 bool                  `json:"valid"` // Valid is true if CreditTransactionType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullCreditTransactionType) Scan(value interface{}) error {
+	if value == nil {
+		ns.CreditTransactionType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.CreditTransactionType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullCreditTransactionType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.CreditTransactionType), nil
+}
+
+func (e CreditTransactionType) Valid() bool {
+	switch e {
+	case CreditTransactionTypeEnrollment,
+		CreditTransactionTypeRefund,
+		CreditTransactionTypePurchase,
+		CreditTransactionTypeAdminAdjustment:
+		return true
+	}
+	return false
+}
+
+func AllCreditTransactionTypeValues() []CreditTransactionType {
+	return []CreditTransactionType{
+		CreditTransactionTypeEnrollment,
+		CreditTransactionTypeRefund,
+		CreditTransactionTypePurchase,
+		CreditTransactionTypeAdminAdjustment,
+	}
+}
+
 type MembershipMembershipStatus string
 
 const (
@@ -364,6 +428,8 @@ type AthleticTeam struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	CoachID   uuid.NullUUID  `json:"coach_id"`
 	LogoUrl   sql.NullString `json:"logo_url"`
+	// TRUE for external/opponent teams (not RISE teams). External teams are shared across all coaches and do not require a coach_id. FALSE for internal RISE teams that must have a coach_id.
+	IsExternal bool `json:"is_external"`
 }
 
 type AuditOutbox struct {
@@ -414,21 +480,24 @@ type EventsCustomerEnrollment struct {
 }
 
 type EventsEvent struct {
-	ID                 uuid.UUID      `json:"id"`
-	LocationID         uuid.UUID      `json:"location_id"`
-	ProgramID          uuid.UUID      `json:"program_id"`
-	TeamID             uuid.NullUUID  `json:"team_id"`
-	StartAt            time.Time      `json:"start_at"`
-	EndAt              time.Time      `json:"end_at"`
-	CreatedBy          uuid.UUID      `json:"created_by"`
-	UpdatedBy          uuid.UUID      `json:"updated_by"`
-	IsCancelled        bool           `json:"is_cancelled"`
-	CancellationReason sql.NullString `json:"cancellation_reason"`
-	CreatedAt          time.Time      `json:"created_at"`
-	UpdatedAt          time.Time      `json:"updated_at"`
-	IsDateTimeModified bool           `json:"is_date_time_modified"`
-	RecurrenceID       uuid.NullUUID  `json:"recurrence_id"`
-	CourtID            uuid.NullUUID  `json:"court_id"`
+	ID                       uuid.UUID      `json:"id"`
+	LocationID               uuid.UUID      `json:"location_id"`
+	ProgramID                uuid.UUID      `json:"program_id"`
+	TeamID                   uuid.NullUUID  `json:"team_id"`
+	StartAt                  time.Time      `json:"start_at"`
+	EndAt                    time.Time      `json:"end_at"`
+	CreatedBy                uuid.UUID      `json:"created_by"`
+	UpdatedBy                uuid.UUID      `json:"updated_by"`
+	IsCancelled              bool           `json:"is_cancelled"`
+	CancellationReason       sql.NullString `json:"cancellation_reason"`
+	CreatedAt                time.Time      `json:"created_at"`
+	UpdatedAt                time.Time      `json:"updated_at"`
+	IsDateTimeModified       bool           `json:"is_date_time_modified"`
+	RecurrenceID             uuid.NullUUID  `json:"recurrence_id"`
+	CourtID                  uuid.NullUUID  `json:"court_id"`
+	RequiredMembershipPlanID uuid.NullUUID  `json:"required_membership_plan_id"`
+	PriceID                  sql.NullString `json:"price_id"`
+	CreditCost               sql.NullInt32  `json:"credit_cost"`
 }
 
 type EventsStaff struct {
@@ -449,6 +518,19 @@ type GameGame struct {
 	CreatedAt  sql.NullTime   `json:"created_at"`
 	UpdatedAt  sql.NullTime   `json:"updated_at"`
 	CourtID    uuid.NullUUID  `json:"court_id"`
+	// User (coach/admin) who created/scheduled this game
+	CreatedBy uuid.NullUUID `json:"created_by"`
+}
+
+type HaircutBarberAvailability struct {
+	ID        uuid.UUID `json:"id"`
+	BarberID  uuid.UUID `json:"barber_id"`
+	DayOfWeek int32     `json:"day_of_week"`
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type HaircutBarberService struct {
@@ -523,6 +605,22 @@ type MembershipMembershipPlan struct {
 	UnitAmount         sql.NullInt32  `json:"unit_amount"`
 	Currency           sql.NullString `json:"currency"`
 	Interval           sql.NullString `json:"interval"`
+	// One-time joining fee in cents (e.g., 13000 = $130.00). Applied as Stripe setup fee on first payment only.
+	JoiningFee int32 `json:"joining_fee"`
+	// Number of credits awarded when purchasing this membership plan (NULL for non-credit memberships)
+	CreditAllocation sql.NullInt32 `json:"credit_allocation"`
+	// Maximum credits that can be used per week with this membership plan (NULL for non-credit memberships, 0 = unlimited credits)
+	WeeklyCreditLimit sql.NullInt32 `json:"weekly_credit_limit"`
+	IsVisible         bool          `json:"is_visible"`
+}
+
+type NotificationsPushToken struct {
+	ID            int32          `json:"id"`
+	UserID        uuid.UUID      `json:"user_id"`
+	ExpoPushToken string         `json:"expo_push_token"`
+	DeviceType    sql.NullString `json:"device_type"`
+	CreatedAt     sql.NullTime   `json:"created_at"`
+	UpdatedAt     sql.NullTime   `json:"updated_at"`
 }
 
 type PlaygroundSession struct {
@@ -548,10 +646,11 @@ type PracticePractice struct {
 	StartTime  time.Time      `json:"start_time"`
 	EndTime    sql.NullTime   `json:"end_time"`
 	LocationID uuid.UUID      `json:"location_id"`
-	CourtID    uuid.UUID      `json:"court_id"`
+	CourtID    uuid.NullUUID  `json:"court_id"`
 	Status     sql.NullString `json:"status"`
 	CreatedAt  sql.NullTime   `json:"created_at"`
 	UpdatedAt  sql.NullTime   `json:"updated_at"`
+	BookedBy   uuid.NullUUID  `json:"booked_by"`
 }
 
 type ProgramCustomerEnrollment struct {
@@ -591,6 +690,7 @@ type ProgramProgram struct {
 	CreatedAt   time.Time           `json:"created_at"`
 	UpdatedAt   time.Time           `json:"updated_at"`
 	PayPerEvent bool                `json:"pay_per_event"`
+	PhotoUrl    sql.NullString      `json:"photo_url"`
 }
 
 type StaffPendingStaff struct {
@@ -623,6 +723,44 @@ type StaffStaffRole struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// Available credit packages for one-time purchase
+type UsersCreditPackage struct {
+	ID          uuid.UUID      `json:"id"`
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	// Stripe price ID for one-time payment checkout
+	StripePriceID string `json:"stripe_price_id"`
+	// Number of credits awarded when purchasing this package
+	CreditAllocation int32 `json:"credit_allocation"`
+	// Maximum credits that can be used per week (0 = unlimited)
+	WeeklyCreditLimit int32     `json:"weekly_credit_limit"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
+}
+
+type UsersCreditTransaction struct {
+	ID              uuid.UUID             `json:"id"`
+	CustomerID      uuid.UUID             `json:"customer_id"`
+	Amount          int32                 `json:"amount"`
+	TransactionType CreditTransactionType `json:"transaction_type"`
+	EventID         uuid.NullUUID         `json:"event_id"`
+	Description     sql.NullString        `json:"description"`
+	CreatedAt       sql.NullTime          `json:"created_at"`
+}
+
+// Tracks each customer's currently active credit package and their weekly limit
+type UsersCustomerActiveCreditPackage struct {
+	// Customer who purchased the package (PRIMARY KEY ensures one package per customer)
+	CustomerID uuid.UUID `json:"customer_id"`
+	// The credit package they purchased
+	CreditPackageID uuid.UUID `json:"credit_package_id"`
+	// Weekly credit limit from the package (copied here for performance)
+	WeeklyCreditLimit int32 `json:"weekly_credit_limit"`
+	// When this package was purchased
+	PurchasedAt time.Time `json:"purchased_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
 type UsersCustomerCredit struct {
 	CustomerID uuid.UUID `json:"customer_id"`
 	Credits    int32     `json:"credits"`
@@ -636,15 +774,35 @@ type UsersCustomerDiscountUsage struct {
 }
 
 type UsersCustomerMembershipPlan struct {
-	ID               uuid.UUID                  `json:"id"`
-	CustomerID       uuid.UUID                  `json:"customer_id"`
-	MembershipPlanID uuid.UUID                  `json:"membership_plan_id"`
-	StartDate        time.Time                  `json:"start_date"`
-	RenewalDate      sql.NullTime               `json:"renewal_date"`
-	Status           MembershipMembershipStatus `json:"status"`
-	CreatedAt        time.Time                  `json:"created_at"`
-	UpdatedAt        time.Time                  `json:"updated_at"`
-	PhotoUrl         sql.NullString             `json:"photo_url"`
+	ID                    uuid.UUID                  `json:"id"`
+	CustomerID            uuid.UUID                  `json:"customer_id"`
+	MembershipPlanID      uuid.UUID                  `json:"membership_plan_id"`
+	StartDate             time.Time                  `json:"start_date"`
+	RenewalDate           sql.NullTime               `json:"renewal_date"`
+	Status                MembershipMembershipStatus `json:"status"`
+	CreatedAt             time.Time                  `json:"created_at"`
+	UpdatedAt             time.Time                  `json:"updated_at"`
+	PhotoUrl              sql.NullString             `json:"photo_url"`
+	SquareSubscriptionID  sql.NullString             `json:"square_subscription_id"`
+	SubscriptionStatus    sql.NullString             `json:"subscription_status"`
+	NextBillingDate       sql.NullTime               `json:"next_billing_date"`
+	SubscriptionCreatedAt sql.NullTime               `json:"subscription_created_at"`
+	SubscriptionSource    sql.NullString             `json:"subscription_source"`
+}
+
+type UsersSubscriptionAutoCharging struct {
+	ID                       uuid.UUID      `json:"id"`
+	CustomerMembershipPlanID uuid.UUID      `json:"customer_membership_plan_id"`
+	SquareSubscriptionID     sql.NullString `json:"square_subscription_id"`
+	Enabled                  sql.NullBool   `json:"enabled"`
+	CardID                   sql.NullString `json:"card_id"`
+	LastPaymentID            sql.NullString `json:"last_payment_id"`
+	ErrorType                sql.NullString `json:"error_type"`
+	ErrorDetails             sql.NullString `json:"error_details"`
+	RetryCount               sql.NullInt32  `json:"retry_count"`
+	PermanentlyFailed        sql.NullBool   `json:"permanently_failed"`
+	CreatedAt                sql.NullTime   `json:"created_at"`
+	UpdatedAt                sql.NullTime   `json:"updated_at"`
 }
 
 type UsersUser struct {
@@ -663,6 +821,34 @@ type UsersUser struct {
 	UpdatedAt                time.Time      `json:"updated_at"`
 	Dob                      time.Time      `json:"dob"`
 	IsArchived               bool           `json:"is_archived"`
+	SquareCustomerID         sql.NullString `json:"square_customer_id"`
+	StripeCustomerID         sql.NullString `json:"stripe_customer_id"`
+	// Staff notes about the customer for internal reference
+	Notes sql.NullString `json:"notes"`
+	// Timestamp when account was soft deleted. NULL means account is active. Account data kept for recovery period (30-90 days)
+	DeletedAt sql.NullTime `json:"deleted_at"`
+	// Timestamp when account is scheduled for permanent deletion. Used for grace period recovery
+	ScheduledDeletionAt sql.NullTime `json:"scheduled_deletion_at"`
+	// Whether the user has verified their email address. Users must verify email before they can log in.
+	EmailVerified bool `json:"email_verified"`
+	// One-time token sent to user email for verification. NULL after verification.
+	EmailVerificationToken sql.NullString `json:"email_verification_token"`
+	// Expiration time for verification token. Tokens are valid for 24 hours.
+	EmailVerificationTokenExpiresAt sql.NullTime `json:"email_verification_token_expires_at"`
+	// Timestamp when the user verified their email address.
+	EmailVerifiedAt sql.NullTime `json:"email_verified_at"`
+}
+
+// Tracks weekly credit consumption per customer for membership limit enforcement
+type UsersWeeklyCreditUsage struct {
+	ID         uuid.UUID `json:"id"`
+	CustomerID uuid.UUID `json:"customer_id"`
+	// Monday of the ISO week (e.g., 2024-01-15 for week starting Jan 15)
+	WeekStartDate time.Time `json:"week_start_date"`
+	// Total credits consumed during this week
+	CreditsUsed int32        `json:"credits_used"`
+	CreatedAt   sql.NullTime `json:"created_at"`
+	UpdatedAt   sql.NullTime `json:"updated_at"`
 }
 
 type WaiverWaiver struct {

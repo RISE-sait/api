@@ -132,6 +132,7 @@ SELECT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.cre
        p.name             AS program_name,
        p.description      AS program_description,
        p."type"           AS program_type,
+       p.photo_url        AS program_photo_url,
        l.name             AS location_name,
        l.address          AS location_address,
        c.name             AS court_name,
@@ -172,6 +173,7 @@ type GetEventByIdRow struct {
 	ProgramName              string             `json:"program_name"`
 	ProgramDescription       string             `json:"program_description"`
 	ProgramType              ProgramProgramType `json:"program_type"`
+	ProgramPhotoUrl          sql.NullString     `json:"program_photo_url"`
 	LocationName             string             `json:"location_name"`
 	LocationAddress          string             `json:"location_address"`
 	CourtName                sql.NullString     `json:"court_name"`
@@ -207,6 +209,7 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdR
 		&i.ProgramName,
 		&i.ProgramDescription,
 		&i.ProgramType,
+		&i.ProgramPhotoUrl,
 		&i.LocationName,
 		&i.LocationAddress,
 		&i.CourtName,
@@ -339,6 +342,7 @@ SELECT DISTINCT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_
                 p.name             AS program_name,
                 p.description      AS program_description,
                 p."type"           AS program_type,
+                p.photo_url        AS program_photo_url,
                 l.name             AS location_name,
                 l.address          AS location_address,
                 c.name             AS court_name,
@@ -411,6 +415,7 @@ type GetEventsRow struct {
 	ProgramName              string             `json:"program_name"`
 	ProgramDescription       string             `json:"program_description"`
 	ProgramType              ProgramProgramType `json:"program_type"`
+	ProgramPhotoUrl          sql.NullString     `json:"program_photo_url"`
 	LocationName             string             `json:"location_name"`
 	LocationAddress          string             `json:"location_address"`
 	CourtName                sql.NullString     `json:"court_name"`
@@ -466,6 +471,7 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 			&i.ProgramName,
 			&i.ProgramDescription,
 			&i.ProgramType,
+			&i.ProgramPhotoUrl,
 			&i.LocationName,
 			&i.LocationAddress,
 			&i.CourtName,

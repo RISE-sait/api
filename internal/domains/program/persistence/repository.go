@@ -73,6 +73,13 @@ func (r *Repository) Update(ctx context.Context, program values.UpdateProgramVal
 		}
 	}
 
+	if program.PhotoURL != nil {
+		params.PhotoUrl = sql.NullString{
+			String: *program.PhotoURL,
+			Valid:  true,
+		}
+	}
+
 	_, err := r.Queries.UpdateProgram(ctx, params)
 	if err != nil {
 		// Check if the error is a unique violation (duplicate name)
@@ -113,6 +120,10 @@ func (r *Repository) GetProgramByID(ctx context.Context, id uuid.UUID) (values.G
 
 	if dbProgram.Capacity.Valid {
 		response.Capacity = &dbProgram.Capacity.Int32
+	}
+
+	if dbProgram.PhotoUrl.Valid {
+		response.PhotoURL = &dbProgram.PhotoUrl.String
 	}
 
 	return response, nil
@@ -164,6 +175,10 @@ func (r *Repository) List(ctx context.Context, programTypeStr string) ([]values.
 			val.Capacity = &dbProgram.Capacity.Int32
 		}
 
+		if dbProgram.PhotoUrl.Valid {
+			val.PhotoURL = &dbProgram.PhotoUrl.String
+		}
+
 		programs[i] = val
 	}
 
@@ -205,6 +220,13 @@ func (r *Repository) Create(c context.Context, details values.CreateProgramValue
 		dbPracticeParams.Capacity = sql.NullInt32{
 			Int32: *details.Capacity,
 			Valid: true,
+		}
+	}
+
+	if details.PhotoURL != nil {
+		dbPracticeParams.PhotoUrl = sql.NullString{
+			String: *details.PhotoURL,
+			Valid:  true,
 		}
 	}
 

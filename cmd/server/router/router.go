@@ -604,6 +604,7 @@ func RegisterUploadRoutes(container *di.Container) func(chi.Router) {
 
 	return func(r chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/image", uploadHandlers.UploadImage)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/program-photo", uploadHandlers.UploadProgramPhoto)
 	}
 }
 

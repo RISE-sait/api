@@ -85,6 +85,10 @@ func (h *Handler) GetPrograms(w http.ResponseWriter, r *http.Request) {
 			response.Capacity = program.ProgramDetails.Capacity
 		}
 
+		if program.ProgramDetails.PhotoURL != nil {
+			response.PhotoURL = program.ProgramDetails.PhotoURL
+		}
+
 		result[i] = response
 	}
 
@@ -130,6 +134,10 @@ func (h *Handler) GetProgram(w http.ResponseWriter, r *http.Request) {
 
 	if program.ProgramDetails.Capacity != nil {
 		result.Capacity = program.ProgramDetails.Capacity
+	}
+
+	if program.ProgramDetails.PhotoURL != nil {
+		result.PhotoURL = program.ProgramDetails.PhotoURL
 	}
 
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)

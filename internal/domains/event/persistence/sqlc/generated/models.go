@@ -428,6 +428,8 @@ type AthleticTeam struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	CoachID   uuid.NullUUID  `json:"coach_id"`
 	LogoUrl   sql.NullString `json:"logo_url"`
+	// TRUE for external/opponent teams (not RISE teams). External teams are shared across all coaches and do not require a coach_id. FALSE for internal RISE teams that must have a coach_id.
+	IsExternal bool `json:"is_external"`
 }
 
 type AuditOutbox struct {
@@ -516,6 +518,8 @@ type GameGame struct {
 	CreatedAt  sql.NullTime   `json:"created_at"`
 	UpdatedAt  sql.NullTime   `json:"updated_at"`
 	CourtID    uuid.NullUUID  `json:"court_id"`
+	// User (coach/admin) who created/scheduled this game
+	CreatedBy uuid.NullUUID `json:"created_by"`
 }
 
 type HaircutBarberAvailability struct {
@@ -607,6 +611,7 @@ type MembershipMembershipPlan struct {
 	CreditAllocation sql.NullInt32 `json:"credit_allocation"`
 	// Maximum credits that can be used per week with this membership plan (NULL for non-credit memberships, 0 = unlimited credits)
 	WeeklyCreditLimit sql.NullInt32 `json:"weekly_credit_limit"`
+	IsVisible         bool          `json:"is_visible"`
 }
 
 type NotificationsPushToken struct {
@@ -685,6 +690,7 @@ type ProgramProgram struct {
 	CreatedAt   time.Time           `json:"created_at"`
 	UpdatedAt   time.Time           `json:"updated_at"`
 	PayPerEvent bool                `json:"pay_per_event"`
+	PhotoUrl    sql.NullString      `json:"photo_url"`
 }
 
 type StaffPendingStaff struct {
@@ -717,6 +723,21 @@ type StaffStaffRole struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// Available credit packages for one-time purchase
+type UsersCreditPackage struct {
+	ID          uuid.UUID      `json:"id"`
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	// Stripe price ID for one-time payment checkout
+	StripePriceID string `json:"stripe_price_id"`
+	// Number of credits awarded when purchasing this package
+	CreditAllocation int32 `json:"credit_allocation"`
+	// Maximum credits that can be used per week (0 = unlimited)
+	WeeklyCreditLimit int32     `json:"weekly_credit_limit"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
+}
+
 type UsersCreditTransaction struct {
 	ID              uuid.UUID             `json:"id"`
 	CustomerID      uuid.UUID             `json:"customer_id"`
@@ -725,6 +746,19 @@ type UsersCreditTransaction struct {
 	EventID         uuid.NullUUID         `json:"event_id"`
 	Description     sql.NullString        `json:"description"`
 	CreatedAt       sql.NullTime          `json:"created_at"`
+}
+
+// Tracks each customer's currently active credit package and their weekly limit
+type UsersCustomerActiveCreditPackage struct {
+	// Customer who purchased the package (PRIMARY KEY ensures one package per customer)
+	CustomerID uuid.UUID `json:"customer_id"`
+	// The credit package they purchased
+	CreditPackageID uuid.UUID `json:"credit_package_id"`
+	// Weekly credit limit from the package (copied here for performance)
+	WeeklyCreditLimit int32 `json:"weekly_credit_limit"`
+	// When this package was purchased
+	PurchasedAt time.Time `json:"purchased_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type UsersCustomerCredit struct {
@@ -791,6 +825,18 @@ type UsersUser struct {
 	StripeCustomerID         sql.NullString `json:"stripe_customer_id"`
 	// Staff notes about the customer for internal reference
 	Notes sql.NullString `json:"notes"`
+	// Timestamp when account was soft deleted. NULL means account is active. Account data kept for recovery period (30-90 days)
+	DeletedAt sql.NullTime `json:"deleted_at"`
+	// Timestamp when account is scheduled for permanent deletion. Used for grace period recovery
+	ScheduledDeletionAt sql.NullTime `json:"scheduled_deletion_at"`
+	// Whether the user has verified their email address. Users must verify email before they can log in.
+	EmailVerified bool `json:"email_verified"`
+	// One-time token sent to user email for verification. NULL after verification.
+	EmailVerificationToken sql.NullString `json:"email_verification_token"`
+	// Expiration time for verification token. Tokens are valid for 24 hours.
+	EmailVerificationTokenExpiresAt sql.NullTime `json:"email_verification_token_expires_at"`
+	// Timestamp when the user verified their email address.
+	EmailVerifiedAt sql.NullTime `json:"email_verified_at"`
 }
 
 // Tracks weekly credit consumption per customer for membership limit enforcement

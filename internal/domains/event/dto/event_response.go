@@ -45,6 +45,7 @@ type (
 		Name        string    `json:"name"`
 		Type        string    `json:"type"`
 		Description *string   `json:"description,omitempty"`
+		PhotoURL    *string   `json:"photo_url,omitempty"`
 	}
 
 	LocationInfo struct {
@@ -103,6 +104,7 @@ func NewEventResponseDto(event values.ReadEventValues, includePeople bool) Event
 			Name:        event.Program.Name,
 			Type:        event.Program.Type,
 			Description: &event.Program.Description,
+			PhotoURL:    event.Program.PhotoURL,
 		},
 	}
 

@@ -67,6 +67,25 @@ func nullableStringToPtr(ns sql.NullString) string {
 	return ""
 }
 
+// Helper: Converts uuid.NullUUID to *uuid.UUID.
+func nullableUUIDToPtr(nu uuid.NullUUID) *uuid.UUID {
+	if nu.Valid {
+		return &nu.UUID
+	}
+	return nil
+}
+
+// Helper: Converts interface{} (from COALESCE) to string.
+func interfaceToString(i interface{}) string {
+	if i == nil {
+		return ""
+	}
+	if s, ok := i.(string); ok {
+		return s
+	}
+	return ""
+}
+
 // Helper: Converts *int32 to sql.NullInt32.
 func toNullInt32(ptr *int32) sql.NullInt32 {
 	if ptr != nil {
@@ -126,6 +145,8 @@ func (r *Repository) GetGameById(ctx context.Context, id uuid.UUID) (values.Read
 		CourtID:         dbGame.CourtID.UUID,
 		CourtName:       nullableStringToPtr(dbGame.CourtName),
 		Status:          dbGame.Status.String,
+		CreatedBy:       nullableUUIDToPtr(dbGame.CreatedBy),
+		CreatedByName:   interfaceToString(dbGame.CreatedByName),
 		CreatedAt:       nullableTimeToPtr(dbGame.CreatedAt),
 		UpdatedAt:       nullableTimeToPtr(dbGame.UpdatedAt),
 	}, nil
@@ -204,6 +225,8 @@ func (r *Repository) GetGames(ctx context.Context, filter values.GetGamesFilter)
 			CourtID:         dbGame.CourtID.UUID,
 			CourtName:       unwrapNullableString(dbGame.CourtName),
 			Status:          dbGame.Status.String,
+			CreatedBy:       nullableUUIDToPtr(dbGame.CreatedBy),
+			CreatedByName:   interfaceToString(dbGame.CreatedByName),
 			CreatedAt:       nullableTimeToPtr(dbGame.CreatedAt),
 			UpdatedAt:       nullableTimeToPtr(dbGame.UpdatedAt),
 		}
@@ -273,6 +296,8 @@ func (r *Repository) GetGamesByTeams(ctx context.Context, teamIDs []uuid.UUID, l
 			LocationID:      dbGame.LocationID,
 			LocationName:    dbGame.LocationName,
 			Status:          dbGame.Status.String,
+			CreatedBy:       nullableUUIDToPtr(dbGame.CreatedBy),
+			CreatedByName:   interfaceToString(dbGame.CreatedByName),
 			CreatedAt:       nullableTimeToPtr(dbGame.CreatedAt),
 			UpdatedAt:       nullableTimeToPtr(dbGame.UpdatedAt),
 		}
@@ -343,6 +368,8 @@ func mapDbPastGamesToValues(dbGames []db.GetPastGamesRow) []values.ReadGameValue
 			LocationID:      dbGame.LocationID,
 			LocationName:    dbGame.LocationName,
 			Status:          dbGame.Status.String,
+			CreatedBy:       nullableUUIDToPtr(dbGame.CreatedBy),
+			CreatedByName:   interfaceToString(dbGame.CreatedByName),
 			CreatedAt:       nullableTimeToPtr(dbGame.CreatedAt),
 			UpdatedAt:       nullableTimeToPtr(dbGame.UpdatedAt),
 		}
@@ -387,6 +414,8 @@ func mapDbUpcomingGamesToValues(dbGames []db.GetUpcomingGamesRow) []values.ReadG
 			LocationID:      dbGame.LocationID,
 			LocationName:    dbGame.LocationName,
 			Status:          dbGame.Status.String,
+			CreatedBy:       nullableUUIDToPtr(dbGame.CreatedBy),
+			CreatedByName:   interfaceToString(dbGame.CreatedByName),
 			CreatedAt:       nullableTimeToPtr(dbGame.CreatedAt),
 			UpdatedAt:       nullableTimeToPtr(dbGame.UpdatedAt),
 		}
@@ -419,6 +448,7 @@ func (r *Repository) CreateGame(ctx context.Context, details values.CreateGameVa
 		LocationID: details.LocationID,
 		CourtID:    uuid.NullUUID{UUID: details.CourtID, Valid: details.CourtID != uuid.Nil},
 		Status:     toNullString(details.Status),
+		CreatedBy:  uuid.NullUUID{UUID: details.CreatedBy, Valid: details.CreatedBy != uuid.Nil},
 	}
 
 	err := r.Queries.CreateGame(ctx, params)
@@ -452,6 +482,8 @@ func mapDbUpcomingGamesByTeamsToValues(dbGames []db.GetUpcomingGamesByTeamsRow) 
 			LocationID:      dbGame.LocationID,
 			LocationName:    dbGame.LocationName,
 			Status:          dbGame.Status.String,
+			CreatedBy:       nullableUUIDToPtr(dbGame.CreatedBy),
+			CreatedByName:   interfaceToString(dbGame.CreatedByName),
 			CreatedAt:       nullableTimeToPtr(dbGame.CreatedAt),
 			UpdatedAt:       nullableTimeToPtr(dbGame.UpdatedAt),
 		}
@@ -477,6 +509,8 @@ func mapDbPastGamesByTeamsToValues(dbGames []db.GetPastGamesByTeamsRow) []values
 			LocationID:      dbGame.LocationID,
 			LocationName:    dbGame.LocationName,
 			Status:          dbGame.Status.String,
+			CreatedBy:       nullableUUIDToPtr(dbGame.CreatedBy),
+			CreatedByName:   interfaceToString(dbGame.CreatedByName),
 			CreatedAt:       nullableTimeToPtr(dbGame.CreatedAt),
 			UpdatedAt:       nullableTimeToPtr(dbGame.UpdatedAt),
 		}
@@ -502,6 +536,8 @@ func mapDbLiveGamesByTeamsToValues(dbGames []db.GetLiveGamesByTeamsRow) []values
 			LocationID:      dbGame.LocationID,
 			LocationName:    dbGame.LocationName,
 			Status:          dbGame.Status.String,
+			CreatedBy:       nullableUUIDToPtr(dbGame.CreatedBy),
+			CreatedByName:   interfaceToString(dbGame.CreatedByName),
 			CreatedAt:       nullableTimeToPtr(dbGame.CreatedAt),
 			UpdatedAt:       nullableTimeToPtr(dbGame.UpdatedAt),
 		}

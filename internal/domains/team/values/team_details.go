@@ -18,6 +18,12 @@ type CreateTeamValues struct {
 	Details
 }
 
+type CreateExternalTeamValues struct {
+	Name     string
+	Capacity int32
+	LogoURL  *string
+}
+
 type UpdateTeamValues struct {
 	ID          uuid.UUID
 	TeamDetails Details
@@ -26,6 +32,7 @@ type UpdateTeamValues struct {
 type GetTeamValues struct {
 	TeamDetails Details
 	ID          uuid.UUID
+	IsExternal  bool
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	Roster      []RosterMemberInfo

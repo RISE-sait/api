@@ -18,6 +18,7 @@ type CreateGameValue struct {
 	LocationID uuid.UUID  // ID of the location where the game is held
 	CourtID    uuid.UUID  // ID of the court where the game is played
 	Status     string     // Status of the game (scheduled, completed, canceled)
+	CreatedBy  uuid.UUID  // ID of the user (coach/admin) who created the game
 }
 
 // UpdateGameValue represents the data required to update an existing game.
@@ -46,6 +47,8 @@ type ReadGameValue struct {
 	CourtID         uuid.UUID  // UUID of the game court
 	CourtName       string     // Name of the court
 	Status          string     // Game status
+	CreatedBy       *uuid.UUID // UUID of the user who created the game (nullable)
+	CreatedByName   string     // Name of the user who created the game
 	CreatedAt       *time.Time // Time the record was created (nullable)
 	UpdatedAt       *time.Time // Time the record was last updated (nullable)
 }

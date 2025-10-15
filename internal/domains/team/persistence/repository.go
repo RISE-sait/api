@@ -138,9 +138,10 @@ func (r *Repository) List(ctx context.Context) ([]values.GetTeamValues, *errLib.
 		}
 
 		team := values.GetTeamValues{
-			ID:        dbPractice.ID,
-			CreatedAt: dbPractice.CreatedAt,
-			UpdatedAt: dbPractice.UpdatedAt,
+			ID:         dbPractice.ID,
+			IsExternal: dbPractice.IsExternal,
+			CreatedAt:  dbPractice.CreatedAt,
+			UpdatedAt:  dbPractice.UpdatedAt,
 			TeamDetails: values.Details{
 				Name:     dbPractice.Name,
 				Capacity: dbPractice.Capacity,
@@ -150,8 +151,10 @@ func (r *Repository) List(ctx context.Context) ([]values.GetTeamValues, *errLib.
 
 		if dbPractice.CoachID.Valid {
 			team.TeamDetails.CoachID = dbPractice.CoachID.UUID
-			team.TeamDetails.CoachName = dbPractice.CoachName
-			team.TeamDetails.CoachEmail = dbPractice.CoachEmail.String
+			if coachName, ok := dbPractice.CoachName.(string); ok {
+				team.TeamDetails.CoachName = coachName
+			}
+			team.TeamDetails.CoachEmail = dbPractice.CoachEmail
 		}
 
 		teams[i] = team
@@ -179,9 +182,10 @@ func (r *Repository) ListByCoach(ctx context.Context, coachID uuid.UUID) ([]valu
 		}
 
 		team := values.GetTeamValues{
-			ID:        dbTeam.ID,
-			CreatedAt: dbTeam.CreatedAt,
-			UpdatedAt: dbTeam.UpdatedAt,
+			ID:         dbTeam.ID,
+			IsExternal: dbTeam.IsExternal,
+			CreatedAt:  dbTeam.CreatedAt,
+			UpdatedAt:  dbTeam.UpdatedAt,
 			TeamDetails: values.Details{
 				Name:     dbTeam.Name,
 				Capacity: dbTeam.Capacity,
@@ -252,13 +256,14 @@ func (r *Repository) Create(c context.Context, teamDetails values.CreateTeamValu
 	}
 
 	params := db.CreateTeamParams{
-		Name:     teamDetails.Name,
-		Capacity: teamDetails.Capacity,
-		CoachID: uuid.NullUUID{
+		Name:       teamDetails.Name,
+		Capacity:   teamDetails.Capacity,
+		CoachID:    uuid.NullUUID{
 			UUID:  teamDetails.CoachID,
 			Valid: teamDetails.CoachID != uuid.Nil,
 		},
-		LogoUrl: logoURL,
+		LogoUrl:    logoURL,
+		IsExternal: false, // Internal RISE team
 	}
 
 	_, err := r.Queries.CreateTeam(c, params)
@@ -299,9 +304,10 @@ func (r *Repository) GetByID(ctx context.Context, id uuid.UUID) (values.GetTeamV
 	}
 
 	team := values.GetTeamValues{
-		ID:        dbTeam.ID,
-		CreatedAt: dbTeam.CreatedAt,
-		UpdatedAt: dbTeam.UpdatedAt,
+		ID:         dbTeam.ID,
+		IsExternal: dbTeam.IsExternal,
+		CreatedAt:  dbTeam.CreatedAt,
+		UpdatedAt:  dbTeam.UpdatedAt,
 		TeamDetails: values.Details{
 			Name:     dbTeam.Name,
 			Capacity: dbTeam.Capacity,
@@ -311,8 +317,10 @@ func (r *Repository) GetByID(ctx context.Context, id uuid.UUID) (values.GetTeamV
 
 	if dbTeam.CoachID.Valid {
 		team.TeamDetails.CoachID = dbTeam.CoachID.UUID
-		team.TeamDetails.CoachName = dbTeam.CoachName
-		team.TeamDetails.CoachEmail = dbTeam.CoachEmail.String
+		if coachName, ok := dbTeam.CoachName.(string); ok {
+			team.TeamDetails.CoachName = coachName
+		}
+		team.TeamDetails.CoachEmail = dbTeam.CoachEmail
 	}
 
 	roster, err := r.getRosterMembers(ctx, id)
@@ -324,4 +332,176 @@ func (r *Repository) GetByID(ctx context.Context, id uuid.UUID) (values.GetTeamV
 	team.Roster = roster
 
 	return team, nil
+}
+
+func (r *Repository) CreateExternal(c context.Context, teamDetails values.CreateExternalTeamValues) *errLib.CommonError {
+
+	var logoURL sql.NullString
+	if teamDetails.LogoURL != nil {
+		logoURL = sql.NullString{String: *teamDetails.LogoURL, Valid: true}
+	}
+
+	params := db.CreateExternalTeamParams{
+		Name:     teamDetails.Name,
+		Capacity: teamDetails.Capacity,
+		LogoUrl:  logoURL,
+	}
+
+	_, err := r.Queries.CreateExternalTeam(c, params)
+
+	if err != nil {
+		var pqErr *pq.Error
+
+		if errors.As(err, &pqErr) {
+
+			if errInfo, found := constraintErrors[pqErr.Constraint]; found {
+				return errLib.New(errInfo.Message, errInfo.Status)
+			}
+		}
+
+		log.Printf("Database error when creating external team: %v", err.Error())
+		return errLib.New("Database error when creating external team:", http.StatusInternalServerError)
+	}
+
+	return nil
+}
+
+func (r *Repository) ListExternal(ctx context.Context) ([]values.GetTeamValues, *errLib.CommonError) {
+
+	dbTeams, err := r.Queries.GetExternalTeams(ctx)
+
+	if err != nil {
+		log.Println("Error getting external teams: ", err)
+		dbErr := errLib.New("Internal server error", http.StatusInternalServerError)
+		return nil, dbErr
+	}
+
+	teams := make([]values.GetTeamValues, len(dbTeams))
+
+	for i, dbTeam := range dbTeams {
+		var logoURL *string
+		if dbTeam.LogoUrl.Valid {
+			logoURL = &dbTeam.LogoUrl.String
+		}
+
+		team := values.GetTeamValues{
+			ID:         dbTeam.ID,
+			IsExternal: true, // External teams
+			CreatedAt:  dbTeam.CreatedAt,
+			UpdatedAt:  dbTeam.UpdatedAt,
+			TeamDetails: values.Details{
+				Name:     dbTeam.Name,
+				Capacity: dbTeam.Capacity,
+				LogoURL:  logoURL,
+			},
+		}
+
+		teams[i] = team
+	}
+
+	return teams, nil
+}
+
+func (r *Repository) ListInternal(ctx context.Context) ([]values.GetTeamValues, *errLib.CommonError) {
+
+	dbTeams, err := r.Queries.GetInternalTeams(ctx)
+
+	if err != nil {
+		log.Println("Error getting internal teams: ", err)
+		dbErr := errLib.New("Internal server error", http.StatusInternalServerError)
+		return nil, dbErr
+	}
+
+	teams := make([]values.GetTeamValues, len(dbTeams))
+
+	for i, dbTeam := range dbTeams {
+		var logoURL *string
+		if dbTeam.LogoUrl.Valid {
+			logoURL = &dbTeam.LogoUrl.String
+		}
+
+		team := values.GetTeamValues{
+			ID:         dbTeam.ID,
+			IsExternal: false, // Internal RISE teams
+			CreatedAt:  dbTeam.CreatedAt,
+			UpdatedAt:  dbTeam.UpdatedAt,
+			TeamDetails: values.Details{
+				Name:     dbTeam.Name,
+				Capacity: dbTeam.Capacity,
+				LogoURL:  logoURL,
+			},
+		}
+
+		if dbTeam.CoachID.Valid {
+			team.TeamDetails.CoachID = dbTeam.CoachID.UUID
+			team.TeamDetails.CoachName = dbTeam.CoachName
+			team.TeamDetails.CoachEmail = dbTeam.CoachEmail.String
+		}
+
+		teams[i] = team
+	}
+
+	return teams, nil
+}
+
+func (r *Repository) SearchByName(ctx context.Context, query string, limit int32) ([]values.GetTeamValues, *errLib.CommonError) {
+
+	// Add wildcard for LIKE query
+	searchQuery := "%" + query + "%"
+
+	dbTeams, err := r.Queries.SearchTeamsByName(ctx, db.SearchTeamsByNameParams{
+		Lower: searchQuery,
+		Limit: limit,
+	})
+
+	if err != nil {
+		log.Println("Error searching teams: ", err)
+		dbErr := errLib.New("Internal server error", http.StatusInternalServerError)
+		return nil, dbErr
+	}
+
+	teams := make([]values.GetTeamValues, len(dbTeams))
+
+	for i, dbTeam := range dbTeams {
+		var logoURL *string
+		if dbTeam.LogoUrl.Valid {
+			logoURL = &dbTeam.LogoUrl.String
+		}
+
+		team := values.GetTeamValues{
+			ID:         dbTeam.ID,
+			IsExternal: dbTeam.IsExternal,
+			CreatedAt:  dbTeam.CreatedAt,
+			UpdatedAt:  dbTeam.UpdatedAt,
+			TeamDetails: values.Details{
+				Name:     dbTeam.Name,
+				Capacity: dbTeam.Capacity,
+				LogoURL:  logoURL,
+			},
+		}
+
+		if dbTeam.CoachID.Valid {
+			team.TeamDetails.CoachID = dbTeam.CoachID.UUID
+			if coachName, ok := dbTeam.CoachName.(string); ok {
+				team.TeamDetails.CoachName = coachName
+			}
+			team.TeamDetails.CoachEmail = dbTeam.CoachEmail
+		}
+
+		teams[i] = team
+	}
+
+	return teams, nil
+}
+
+func (r *Repository) CheckNameExists(ctx context.Context, name string) (bool, *errLib.CommonError) {
+
+	exists, err := r.Queries.CheckTeamNameExists(ctx, name)
+
+	if err != nil {
+		log.Printf("Error checking team name existence: %v", err)
+		return false, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	return exists, nil
 }

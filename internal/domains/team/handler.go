@@ -8,6 +8,7 @@ import (
 	"api/internal/libs/validators"
 	contextUtils "api/utils/context"
 	"net/http"
+	"strconv"
 
 	"github.com/google/uuid"
 
@@ -76,12 +77,13 @@ func (h *Handler) GetTeams(w http.ResponseWriter, r *http.Request) {
 
 	for i, team := range teams {
 		response := dto.Response{
-			ID:        team.ID,
-			Name:      team.TeamDetails.Name,
-			Capacity:  team.TeamDetails.Capacity,
-			LogoURL:   team.TeamDetails.LogoURL,
-			CreatedAt: team.CreatedAt,
-			UpdatedAt: team.UpdatedAt,
+			ID:         team.ID,
+			Name:       team.TeamDetails.Name,
+			Capacity:   team.TeamDetails.Capacity,
+			LogoURL:    team.TeamDetails.LogoURL,
+			IsExternal: team.IsExternal,
+			CreatedAt:  team.CreatedAt,
+			UpdatedAt:  team.UpdatedAt,
 		}
 
 		if team.TeamDetails.CoachID != uuid.Nil {
@@ -141,12 +143,13 @@ func (h *Handler) GetMyTeams(w http.ResponseWriter, r *http.Request) {
 
 		for i, team := range teams {
 			response := dto.Response{
-				ID:        team.ID,
-				Name:      team.TeamDetails.Name,
-				Capacity:  team.TeamDetails.Capacity,
-				LogoURL:   team.TeamDetails.LogoURL,
-				CreatedAt: team.CreatedAt,
-				UpdatedAt: team.UpdatedAt,
+				ID:         team.ID,
+				Name:       team.TeamDetails.Name,
+				Capacity:   team.TeamDetails.Capacity,
+				LogoURL:    team.TeamDetails.LogoURL,
+				IsExternal: team.IsExternal,
+				CreatedAt:  team.CreatedAt,
+				UpdatedAt:  team.UpdatedAt,
 			}
 
 			if team.TeamDetails.CoachID != uuid.Nil {
@@ -195,12 +198,13 @@ func (h *Handler) GetTeamByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := dto.Response{
-		ID:        team.ID,
-		Name:      team.TeamDetails.Name,
-		Capacity:  team.TeamDetails.Capacity,
-		LogoURL:   team.TeamDetails.LogoURL,
-		CreatedAt: team.CreatedAt,
-		UpdatedAt: team.UpdatedAt,
+		ID:         team.ID,
+		Name:       team.TeamDetails.Name,
+		Capacity:   team.TeamDetails.Capacity,
+		LogoURL:    team.TeamDetails.LogoURL,
+		IsExternal: team.IsExternal,
+		CreatedAt:  team.CreatedAt,
+		UpdatedAt:  team.UpdatedAt,
 	}
 
 	if team.TeamDetails.CoachID != uuid.Nil {
@@ -298,4 +302,138 @@ func (h *Handler) DeleteTeam(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responseHandlers.RespondWithSuccess(w, nil, http.StatusNoContent)
+}
+
+// CreateExternalTeam creates a new external/opponent team.
+// @Summary Create external team
+// @Description Creates a new external team (opponent team not belonging to RISE). These teams are shared across all coaches.
+// @Tags teams
+// @Accept json
+// @Produce json
+// @Param team body dto.ExternalTeamRequestDto true "External team details (name, capacity, optional logo_url)"
+// @Security Bearer
+// @Success 201 {object} map[string]interface{} "External team created successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 409 {object} map[string]interface{} "Conflict: Team name already exists"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /teams/external [post]
+func (h *Handler) CreateExternalTeam(w http.ResponseWriter, r *http.Request) {
+	var requestDto dto.ExternalTeamRequestDto
+
+	if err := validators.ParseJSON(r.Body, &requestDto); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	teamCreate, err := requestDto.ToCreateValueObjects()
+
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	if err = h.Service.CreateExternalTeam(r.Context(), teamCreate); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	responseHandlers.RespondWithSuccess(w, map[string]string{
+		"message": "External team created successfully. You can now use this team when scheduling games.",
+	}, http.StatusCreated)
+}
+
+// GetExternalTeams retrieves all external/opponent teams.
+// @Summary Get external teams
+// @Description Retrieves all external teams (opponent teams). Useful for selecting opponents when creating games.
+// @Tags teams
+// @Accept json
+// @Produce json
+// @Success 200 {array} dto.Response "External teams retrieved successfully"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /teams/external [get]
+func (h *Handler) GetExternalTeams(w http.ResponseWriter, r *http.Request) {
+
+	teams, err := h.Service.GetExternalTeams(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	result := make([]dto.Response, len(teams))
+
+	for i, team := range teams {
+		response := dto.Response{
+			ID:         team.ID,
+			Name:       team.TeamDetails.Name,
+			Capacity:   team.TeamDetails.Capacity,
+			LogoURL:    team.TeamDetails.LogoURL,
+			IsExternal: true,
+			CreatedAt:  team.CreatedAt,
+			UpdatedAt:  team.UpdatedAt,
+		}
+
+		result[i] = response
+	}
+
+	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
+}
+
+// SearchTeams searches for teams by name.
+// @Summary Search teams
+// @Description Searches for teams (both RISE and external) by name. Useful for autocomplete when creating games.
+// @Tags teams
+// @Accept json
+// @Produce json
+// @Param q query string true "Search query"
+// @Param limit query int false "Max results (default 20, max 50)"
+// @Success 200 {array} dto.Response "Teams matching search query"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Missing query parameter"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /teams/search [get]
+func (h *Handler) SearchTeams(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("q")
+	if query == "" {
+		responseHandlers.RespondWithError(w, errLib.New("Search query 'q' is required", http.StatusBadRequest))
+		return
+	}
+
+	limitStr := r.URL.Query().Get("limit")
+	limit := int32(20) // default
+	if limitStr != "" {
+		if parsedLimit, err := strconv.ParseInt(limitStr, 10, 32); err == nil {
+			limit = int32(parsedLimit)
+		}
+	}
+
+	teams, err := h.Service.SearchTeamsByName(r.Context(), query, limit)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	result := make([]dto.Response, len(teams))
+
+	for i, team := range teams {
+		response := dto.Response{
+			ID:         team.ID,
+			Name:       team.TeamDetails.Name,
+			Capacity:   team.TeamDetails.Capacity,
+			LogoURL:    team.TeamDetails.LogoURL,
+			IsExternal: team.IsExternal,
+			CreatedAt:  team.CreatedAt,
+			UpdatedAt:  team.UpdatedAt,
+		}
+
+		if team.TeamDetails.CoachID != uuid.Nil {
+			response.Coach = &dto.Coach{
+				ID:    team.TeamDetails.CoachID,
+				Name:  team.TeamDetails.CoachName,
+				Email: team.TeamDetails.CoachEmail,
+			}
+		}
+
+		result[i] = response
+	}
+
+	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
 }

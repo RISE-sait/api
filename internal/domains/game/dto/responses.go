@@ -27,6 +27,8 @@ type ResponseDto struct {
 	CourtID         uuid.UUID  `json:"court_id"`
 	CourtName       string     `json:"court_name"`
 	Status          string     `json:"status"`
+	CreatedBy       *uuid.UUID `json:"created_by,omitempty"`
+	CreatedByName   string     `json:"created_by_name,omitempty"`
 	CreatedAt       *time.Time `json:"created_at,omitempty"`
 	UpdatedAt       *time.Time `json:"updated_at,omitempty"`
 }
@@ -35,23 +37,25 @@ type ResponseDto struct {
 // used for API responses. It flattens and formats data for client consumption.
 func NewGameResponse(details values.ReadGameValue) ResponseDto {
 	return ResponseDto{
-		ID:           details.ID,
-		HomeTeamID:   details.HomeTeamID,
-		HomeTeamName: details.HomeTeamName,
+		ID:              details.ID,
+		HomeTeamID:      details.HomeTeamID,
+		HomeTeamName:    details.HomeTeamName,
 		HomeTeamLogoUrl: details.HomeTeamLogoUrl,
-		AwayTeamID:   details.AwayTeamID,
-		AwayTeamName: details.AwayTeamName,
+		AwayTeamID:      details.AwayTeamID,
+		AwayTeamName:    details.AwayTeamName,
 		AwayTeamLogoUrl: details.AwayTeamLogoUrl,
-		HomeScore:    details.HomeScore,
-		AwayScore:    details.AwayScore,
-		StartTime:    details.StartTime,
-		EndTime:      details.EndTime,
-		LocationID:   details.LocationID,
-		LocationName: details.LocationName,
-		CourtID:      details.CourtID,
-		CourtName:    details.CourtName,
-		Status:       details.Status,
-		CreatedAt:    details.CreatedAt,
-		UpdatedAt:    details.UpdatedAt,
+		HomeScore:       details.HomeScore,
+		AwayScore:       details.AwayScore,
+		StartTime:       details.StartTime,
+		EndTime:         details.EndTime,
+		LocationID:      details.LocationID,
+		LocationName:    details.LocationName,
+		CourtID:         details.CourtID,
+		CourtName:       details.CourtName,
+		Status:          details.Status,
+		CreatedBy:       details.CreatedBy,
+		CreatedByName:   details.CreatedByName,
+		CreatedAt:       details.CreatedAt,
+		UpdatedAt:       details.UpdatedAt,
 	}
 }

@@ -14,6 +14,12 @@ type RequestDto struct {
 	LogoURL  *string   `json:"logo_url,omitempty"`
 }
 
+type ExternalTeamRequestDto struct {
+	Name     string  `json:"name" validate:"required,notwhitespace"`
+	Capacity int32   `json:"capacity" validate:"required,gt=0"`
+	LogoURL  *string `json:"logo_url,omitempty"`
+}
+
 func (dto RequestDto) ToCreateValueObjects() (values.CreateTeamValues, *errLib.CommonError) {
 
 	if err := validators.ValidateDto(&dto); err != nil {
@@ -50,5 +56,18 @@ func (dto RequestDto) ToUpdateValueObjects(idStr string) (values.UpdateTeamValue
 			CoachID:  dto.CoachID,
 			LogoURL:  dto.LogoURL,
 		},
+	}, nil
+}
+
+func (dto ExternalTeamRequestDto) ToCreateValueObjects() (values.CreateExternalTeamValues, *errLib.CommonError) {
+
+	if err := validators.ValidateDto(&dto); err != nil {
+		return values.CreateExternalTeamValues{}, err
+	}
+
+	return values.CreateExternalTeamValues{
+		Name:     dto.Name,
+		Capacity: dto.Capacity,
+		LogoURL:  dto.LogoURL,
 	}, nil
 }

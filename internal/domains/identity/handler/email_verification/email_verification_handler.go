@@ -45,7 +45,7 @@ type ResendVerificationRequest struct {
 // @Failure 409 {object} map[string]interface{} "Conflict: Email already verified"
 // @Failure 410 {object} map[string]interface{} "Gone: Token expired"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /verify-email [post]
+// @Router /auth/verify-email [post]
 func (h *EmailVerificationHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	var requestDto VerifyEmailRequest
 
@@ -87,7 +87,7 @@ func (h *EmailVerificationHandler) VerifyEmail(w http.ResponseWriter, r *http.Re
 // @Failure 404 {object} map[string]interface{} "Not Found: User not found"
 // @Failure 409 {object} map[string]interface{} "Conflict: Email already verified"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /resend-verification [post]
+// @Router /auth/resend-verification [post]
 func (h *EmailVerificationHandler) ResendVerificationEmail(w http.ResponseWriter, r *http.Request) {
 	var requestDto ResendVerificationRequest
 

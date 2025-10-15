@@ -199,6 +199,7 @@ func (s *EmailVerificationService) IsEmailVerified(ctx context.Context, userID u
 }
 
 // GetVerificationURL generates the full verification URL with the token
+// Uses Universal Links format that works for both web and mobile app
 func (s *EmailVerificationService) GetVerificationURL(token string, baseURL string) string {
 	return fmt.Sprintf("%s/verify-email?token=%s", baseURL, token)
 }

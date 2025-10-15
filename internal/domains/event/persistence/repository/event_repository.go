@@ -176,11 +176,13 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 			Name        string
 			Description string
 			Type        string
+			PhotoURL    *string
 		}{
 			ID:          dbEvent.ProgramID,
 			Name:        dbEvent.ProgramName,
 			Description: dbEvent.ProgramDescription,
 			Type:        string(dbEvent.ProgramType),
+			PhotoURL:    nullStringToPtr(dbEvent.ProgramPhotoUrl),
 		},
 		Location: struct {
 			ID      uuid.UUID
@@ -335,11 +337,13 @@ func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEvent
 				Name        string
 				Description string
 				Type        string
+				PhotoURL    *string
 			}{
 				ID:          row.ProgramID,
 				Name:        row.ProgramName,
 				Description: string(row.ProgramDescription),
 				Type:        string(row.ProgramType),
+				PhotoURL:    nullStringToPtr(row.ProgramPhotoUrl),
 			},
 			RequiredMembershipPlanID: nullUUIDToPtr(row.RequiredMembershipPlanID),
 			PriceID:                  nullStringToPtr(row.PriceID),

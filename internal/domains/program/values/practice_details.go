@@ -12,6 +12,7 @@ type ProgramDetails struct {
 	Level       string
 	Type        string
 	Capacity    *int32
+	PhotoURL    *string
 }
 
 type CreateProgramValues struct {

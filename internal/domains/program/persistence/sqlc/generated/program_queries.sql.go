@@ -13,9 +13,9 @@ import (
 )
 
 const createProgram = `-- name: CreateProgram :one
-INSERT INTO program.programs (name, description, level, type, capacity)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, name, description, level, type, capacity, created_at, updated_at, pay_per_event
+INSERT INTO program.programs (name, description, level, type, capacity, photo_url)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, name, description, level, type, capacity, created_at, updated_at, pay_per_event, photo_url
 `
 
 type CreateProgramParams struct {
@@ -24,6 +24,7 @@ type CreateProgramParams struct {
 	Level       ProgramProgramLevel `json:"level"`
 	Type        ProgramProgramType  `json:"type"`
 	Capacity    sql.NullInt32       `json:"capacity"`
+	PhotoUrl    sql.NullString      `json:"photo_url"`
 }
 
 // Active: 1739459832645@@127.0.0.1@5432@postgres
@@ -34,6 +35,7 @@ func (q *Queries) CreateProgram(ctx context.Context, arg CreateProgramParams) (P
 		arg.Level,
 		arg.Type,
 		arg.Capacity,
+		arg.PhotoUrl,
 	)
 	var i ProgramProgram
 	err := row.Scan(
@@ -46,6 +48,7 @@ func (q *Queries) CreateProgram(ctx context.Context, arg CreateProgramParams) (P
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.PayPerEvent,
+		&i.PhotoUrl,
 	)
 	return i, err
 }
@@ -63,7 +66,7 @@ func (q *Queries) DeleteProgram(ctx context.Context, id uuid.UUID) (int64, error
 }
 
 const getProgramById = `-- name: GetProgramById :one
-SELECT id, name, description, level, type, capacity, created_at, updated_at, pay_per_event FROM program.programs WHERE id = $1
+SELECT id, name, description, level, type, capacity, created_at, updated_at, pay_per_event, photo_url FROM program.programs WHERE id = $1
 `
 
 func (q *Queries) GetProgramById(ctx context.Context, id uuid.UUID) (ProgramProgram, error) {
@@ -79,12 +82,13 @@ func (q *Queries) GetProgramById(ctx context.Context, id uuid.UUID) (ProgramProg
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.PayPerEvent,
+		&i.PhotoUrl,
 	)
 	return i, err
 }
 
 const getProgramByType = `-- name: GetProgramByType :one
-SELECT id, name, description, level, type, capacity, created_at, updated_at, pay_per_event
+SELECT id, name, description, level, type, capacity, created_at, updated_at, pay_per_event, photo_url
 FROM program.programs
 WHERE type = $1
 LIMIT 1
@@ -103,12 +107,13 @@ func (q *Queries) GetProgramByType(ctx context.Context, type_ ProgramProgramType
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.PayPerEvent,
+		&i.PhotoUrl,
 	)
 	return i, err
 }
 
 const getPrograms = `-- name: GetPrograms :many
-SELECT id, name, description, level, type, capacity, created_at, updated_at, pay_per_event
+SELECT id, name, description, level, type, capacity, created_at, updated_at, pay_per_event, photo_url
 FROM program.programs
 WHERE type = $1
    OR $1 IS NULL
@@ -133,6 +138,7 @@ func (q *Queries) GetPrograms(ctx context.Context, type_ NullProgramProgramType)
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.PayPerEvent,
+			&i.PhotoUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -155,9 +161,10 @@ SET
     level = $3,
     type = $4,
     capacity = $5,
+    photo_url = $6,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $6
-RETURNING id, name, description, level, type, capacity, created_at, updated_at, pay_per_event
+WHERE id = $7
+RETURNING id, name, description, level, type, capacity, created_at, updated_at, pay_per_event, photo_url
 `
 
 type UpdateProgramParams struct {
@@ -166,6 +173,7 @@ type UpdateProgramParams struct {
 	Level       ProgramProgramLevel `json:"level"`
 	Type        ProgramProgramType  `json:"type"`
 	Capacity    sql.NullInt32       `json:"capacity"`
+	PhotoUrl    sql.NullString      `json:"photo_url"`
 	ID          uuid.UUID           `json:"id"`
 }
 
@@ -176,6 +184,7 @@ func (q *Queries) UpdateProgram(ctx context.Context, arg UpdateProgramParams) (P
 		arg.Level,
 		arg.Type,
 		arg.Capacity,
+		arg.PhotoUrl,
 		arg.ID,
 	)
 	var i ProgramProgram
@@ -189,6 +198,7 @@ func (q *Queries) UpdateProgram(ctx context.Context, arg UpdateProgramParams) (P
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.PayPerEvent,
+		&i.PhotoUrl,
 	)
 	return i, err
 }

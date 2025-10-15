@@ -62,6 +62,7 @@ type ReadEventValues struct {
 		Name        string
 		Description string
 		Type        string
+		PhotoURL    *string
 	}
 
 	Team *struct {

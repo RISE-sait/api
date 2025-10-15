@@ -161,11 +161,88 @@ func (h *UploadHandler) UploadImage(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 }
 
+// UploadProgramPhoto handles program photo uploads to cloud storage
+// @Summary Upload program photo to cloud storage
+// @Description Accepts an image file and uploads it to Google Cloud Storage in the programs folder, returning the public URL
+// @Tags upload
+// @Accept multipart/form-data
+// @Produce json
+// @Param image formData file true "Image file to upload (jpg, jpeg, png, gif, webp)"
+// @Param program_id query string true "Program ID for which the photo is being uploaded"
+// @Security Bearer
+// @Success 200 {object} map[string]interface{} "Image uploaded successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid file or file type"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 413 {object} map[string]interface{} "Payload Too Large: File size exceeds limit"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /upload/program-photo [post]
+func (h *UploadHandler) UploadProgramPhoto(w http.ResponseWriter, r *http.Request) {
+	// Limit file size to 10MB
+	r.ParseMultipartForm(10 << 20)
+
+	// Get the file from the request
+	file, header, err := r.FormFile("image")
+	if err != nil {
+		responseHandlers.RespondWithError(w, errLib.New("No image file provided", http.StatusBadRequest))
+		return
+	}
+	defer file.Close()
+
+	// Validate file size (10MB limit)
+	if header.Size > 10<<20 {
+		responseHandlers.RespondWithError(w, errLib.New("File size exceeds 10MB limit", http.StatusRequestEntityTooLarge))
+		return
+	}
+
+	// Validate file type
+	if !isValidImageType(header.Filename) {
+		responseHandlers.RespondWithError(w, errLib.New("Invalid file type. Only jpg, jpeg, png, gif, and webp are allowed", http.StatusBadRequest))
+		return
+	}
+
+	// Get program ID from query params
+	programID := r.URL.Query().Get("program_id")
+	if programID == "" {
+		responseHandlers.RespondWithError(w, errLib.New("program_id is required", http.StatusBadRequest))
+		return
+	}
+
+	// Validate program ID format
+	if _, parseErr := uuid.Parse(programID); parseErr != nil {
+		responseHandlers.RespondWithError(w, errLib.New("Invalid program_id format", http.StatusBadRequest))
+		return
+	}
+
+	// Create folder path: programs/{program_id}
+	folderPath := fmt.Sprintf("programs/%s", programID)
+
+	// Generate filename with timestamp for cache busting
+	fileExt := strings.ToLower(filepath.Ext(header.Filename))
+	timestamp := time.Now().Unix()
+	fileName := fmt.Sprintf("%s/program_photo_%d%s", folderPath, timestamp, fileExt)
+
+	// Upload to GCP Storage
+	publicURL, uploadErr := gcp.UploadImageToGCP(file, fileName)
+	if uploadErr != nil {
+		responseHandlers.RespondWithError(w, uploadErr)
+		return
+	}
+
+	response := map[string]interface{}{
+		"message":    "Program photo uploaded successfully",
+		"url":        publicURL,
+		"filename":   fileName,
+		"size_bytes": header.Size,
+	}
+
+	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
+}
+
 // isValidImageType checks if the file has a valid image extension
 func isValidImageType(filename string) bool {
 	ext := strings.ToLower(filepath.Ext(filename))
 	validExtensions := []string{".jpg", ".jpeg", ".png", ".gif", ".webp"}
-	
+
 	for _, validExt := range validExtensions {
 		if ext == validExt {
 			return true

@@ -10,14 +10,14 @@
 -- Inserts a single game into the game.games table using direct parameters.
 INSERT INTO game.games (
   id, home_team_id, away_team_id, home_score, away_score, start_time,
-  end_time,court_id, location_id, status
+  end_time, court_id, location_id, status, created_by
 ) VALUES (
-  gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9
+  gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 );
 
 -- name: GetGameById :one
 -- Retrieves a specific game along with team names, logo URLs, and location name.
-SELECT 
+SELECT
     g.id,
     g.home_team_id,
     ht.name AS home_team_name,
@@ -34,6 +34,8 @@ SELECT
     g.court_id,
     c.name AS court_name,
     g.status,
+    g.created_by,
+    COALESCE(u.first_name || ' ' || u.last_name, '') AS created_by_name,
     g.created_at,
     g.updated_at
 FROM game.games g
@@ -41,11 +43,12 @@ JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 LEFT JOIN location.courts c ON g.court_id = c.id
 JOIN location.locations loc ON g.location_id = loc.id
+LEFT JOIN users.users u ON g.created_by = u.id
 WHERE g.id = $1;
 
 -- name: GetGames :many
 -- Retrieves all games, with team and location names.
-SELECT 
+SELECT
     g.id,
     g.home_team_id,
     ht.name AS home_team_name,
@@ -62,6 +65,8 @@ SELECT
     g.court_id,
     c.name AS court_name,
     g.status,
+    g.created_by,
+    COALESCE(u.first_name || ' ' || u.last_name, '') AS created_by_name,
     g.created_at,
     g.updated_at
 FROM game.games g
@@ -69,6 +74,7 @@ LEFT JOIN location.courts c ON g.court_id = c.id
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 JOIN location.locations loc ON g.location_id = loc.id
+LEFT JOIN users.users u ON g.created_by = u.id
 WHERE (sqlc.narg('court_id')::uuid IS NULL OR g.court_id = sqlc.narg('court_id'))
   AND (sqlc.narg('location_id')::uuid IS NULL OR g.location_id = sqlc.narg('location_id'))
 ORDER BY g.start_time ASC
@@ -96,7 +102,7 @@ WHERE id = $1;
 -- name: GetUpcomingGames :many
 -- Retrieves games that are upcoming and ongoing.
 -- This includes games that have started but not yet ended.
-SELECT 
+SELECT
     g.id,
     g.home_team_id,
     ht.name AS home_team_name,
@@ -111,19 +117,22 @@ SELECT
     g.location_id,
     loc.name AS location_name,
     g.status,
+    g.created_by,
+    COALESCE(u.first_name || ' ' || u.last_name, '') AS created_by_name,
     g.created_at,
     g.updated_at
 FROM game.games g
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 JOIN location.locations loc ON g.location_id = loc.id
+LEFT JOIN users.users u ON g.created_by = u.id
 WHERE g.end_time >= NOW()
 ORDER BY g.start_time ASC
 LIMIT $1 OFFSET $2;
 
 -- name: GetPastGames :many
 -- Retrieves games that have already completed.
-SELECT 
+SELECT
     g.id,
     g.home_team_id,
     ht.name AS home_team_name,
@@ -138,12 +147,15 @@ SELECT
     g.location_id,
     loc.name AS location_name,
     g.status,
+    g.created_by,
+    COALESCE(u.first_name || ' ' || u.last_name, '') AS created_by_name,
     g.created_at,
     g.updated_at
 FROM game.games g
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 JOIN location.locations loc ON g.location_id = loc.id
+LEFT JOIN users.users u ON g.created_by = u.id
 WHERE g.start_time < NOW()
 ORDER BY g.start_time DESC
 LIMIT $1 OFFSET $2;
@@ -164,12 +176,15 @@ SELECT
     g.location_id,
     loc.name AS location_name,
     g.status,
+    g.created_by,
+    COALESCE(u.first_name || ' ' || u.last_name, '') AS created_by_name,
     g.created_at,
     g.updated_at
 FROM game.games g
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 JOIN location.locations loc ON g.location_id = loc.id
+LEFT JOIN users.users u ON g.created_by = u.id
 WHERE g.home_team_id = ANY(sqlc.arg('team_ids')::uuid[])
    OR g.away_team_id = ANY(sqlc.arg('team_ids')::uuid[])
 ORDER BY g.start_time ASC
@@ -192,12 +207,15 @@ SELECT
     g.location_id,
     loc.name AS location_name,
     g.status,
+    g.created_by,
+    COALESCE(u.first_name || ' ' || u.last_name, '') AS created_by_name,
     g.created_at,
     g.updated_at
 FROM game.games g
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 JOIN location.locations loc ON g.location_id = loc.id
+LEFT JOIN users.users u ON g.created_by = u.id
 WHERE (g.home_team_id = ANY(sqlc.arg('team_ids')::uuid[])
    OR g.away_team_id = ANY(sqlc.arg('team_ids')::uuid[]))
    AND g.end_time >= NOW()
@@ -221,12 +239,15 @@ SELECT
     g.location_id,
     loc.name AS location_name,
     g.status,
+    g.created_by,
+    COALESCE(u.first_name || ' ' || u.last_name, '') AS created_by_name,
     g.created_at,
     g.updated_at
 FROM game.games g
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 JOIN location.locations loc ON g.location_id = loc.id
+LEFT JOIN users.users u ON g.created_by = u.id
 WHERE (g.home_team_id = ANY(sqlc.arg('team_ids')::uuid[])
    OR g.away_team_id = ANY(sqlc.arg('team_ids')::uuid[]))
    AND g.start_time < NOW()
@@ -250,12 +271,15 @@ SELECT
     g.location_id,
     loc.name AS location_name,
     g.status,
+    g.created_by,
+    COALESCE(u.first_name || ' ' || u.last_name, '') AS created_by_name,
     g.created_at,
     g.updated_at
 FROM game.games g
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 JOIN location.locations loc ON g.location_id = loc.id
+LEFT JOIN users.users u ON g.created_by = u.id
 WHERE (g.home_team_id = ANY(sqlc.arg('team_ids')::uuid[])
    OR g.away_team_id = ANY(sqlc.arg('team_ids')::uuid[]))
    AND g.start_time <= NOW()

@@ -13,17 +13,60 @@ import (
 	"github.com/google/uuid"
 )
 
+const checkTeamNameExists = `-- name: CheckTeamNameExists :one
+SELECT EXISTS(
+    SELECT 1 FROM athletic.teams
+    WHERE LOWER(TRIM(name)) = LOWER(TRIM($1))
+) AS exists
+`
+
+func (q *Queries) CheckTeamNameExists(ctx context.Context, btrim string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkTeamNameExists, btrim)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const createExternalTeam = `-- name: CreateExternalTeam :one
+INSERT INTO athletic.teams (name, capacity, logo_url, is_external)
+VALUES ($1, $2, $3, TRUE)
+RETURNING id, name, capacity, created_at, updated_at, coach_id, logo_url, is_external
+`
+
+type CreateExternalTeamParams struct {
+	Name     string         `json:"name"`
+	Capacity int32          `json:"capacity"`
+	LogoUrl  sql.NullString `json:"logo_url"`
+}
+
+func (q *Queries) CreateExternalTeam(ctx context.Context, arg CreateExternalTeamParams) (AthleticTeam, error) {
+	row := q.db.QueryRowContext(ctx, createExternalTeam, arg.Name, arg.Capacity, arg.LogoUrl)
+	var i AthleticTeam
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Capacity,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CoachID,
+		&i.LogoUrl,
+		&i.IsExternal,
+	)
+	return i, err
+}
+
 const createTeam = `-- name: CreateTeam :one
-INSERT INTO athletic.teams (name, capacity, coach_id, logo_url)
-VALUES ($1, $2, $3, $4)
-RETURNING id, name, capacity, created_at, updated_at, coach_id, logo_url
+INSERT INTO athletic.teams (name, capacity, coach_id, logo_url, is_external)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, name, capacity, created_at, updated_at, coach_id, logo_url, is_external
 `
 
 type CreateTeamParams struct {
-	Name     string         `json:"name"`
-	Capacity int32          `json:"capacity"`
-	CoachID  uuid.NullUUID  `json:"coach_id"`
-	LogoUrl  sql.NullString `json:"logo_url"`
+	Name       string         `json:"name"`
+	Capacity   int32          `json:"capacity"`
+	CoachID    uuid.NullUUID  `json:"coach_id"`
+	LogoUrl    sql.NullString `json:"logo_url"`
+	IsExternal bool           `json:"is_external"`
 }
 
 func (q *Queries) CreateTeam(ctx context.Context, arg CreateTeamParams) (AthleticTeam, error) {
@@ -32,6 +75,7 @@ func (q *Queries) CreateTeam(ctx context.Context, arg CreateTeamParams) (Athleti
 		arg.Capacity,
 		arg.CoachID,
 		arg.LogoUrl,
+		arg.IsExternal,
 	)
 	var i AthleticTeam
 	err := row.Scan(
@@ -42,6 +86,7 @@ func (q *Queries) CreateTeam(ctx context.Context, arg CreateTeamParams) (Athleti
 		&i.UpdatedAt,
 		&i.CoachID,
 		&i.LogoUrl,
+		&i.IsExternal,
 	)
 	return i, err
 }
@@ -60,10 +105,108 @@ func (q *Queries) DeleteTeam(ctx context.Context, id uuid.UUID) (int64, error) {
 	return result.RowsAffected()
 }
 
-const getTeamById = `-- name: GetTeamById :one
-SELECT t.id, t.name, t.capacity, t.created_at, t.updated_at, t.coach_id, t.logo_url, u.email AS coach_email, (u.first_name || ' ' || u.last_name)::varchar AS coach_name
+const getExternalTeams = `-- name: GetExternalTeams :many
+SELECT t.id, t.name, t.capacity, t.created_at, t.updated_at, t.coach_id, t.logo_url, t.is_external
 FROM athletic.teams t
-         JOIN users.users u ON t.coach_id = u.id
+WHERE t.is_external = TRUE
+ORDER BY t.name ASC
+`
+
+func (q *Queries) GetExternalTeams(ctx context.Context) ([]AthleticTeam, error) {
+	rows, err := q.db.QueryContext(ctx, getExternalTeams)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AthleticTeam
+	for rows.Next() {
+		var i AthleticTeam
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Capacity,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CoachID,
+			&i.LogoUrl,
+			&i.IsExternal,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getInternalTeams = `-- name: GetInternalTeams :many
+SELECT t.id, t.name, t.capacity, t.created_at, t.updated_at, t.coach_id, t.logo_url, t.is_external,
+       u.email AS coach_email,
+       (u.first_name || ' ' || u.last_name)::varchar AS coach_name
+FROM athletic.teams t
+JOIN users.users u ON t.coach_id = u.id
+WHERE t.is_external = FALSE
+ORDER BY t.name ASC
+`
+
+type GetInternalTeamsRow struct {
+	ID         uuid.UUID      `json:"id"`
+	Name       string         `json:"name"`
+	Capacity   int32          `json:"capacity"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
+	CoachID    uuid.NullUUID  `json:"coach_id"`
+	LogoUrl    sql.NullString `json:"logo_url"`
+	IsExternal bool           `json:"is_external"`
+	CoachEmail sql.NullString `json:"coach_email"`
+	CoachName  string         `json:"coach_name"`
+}
+
+func (q *Queries) GetInternalTeams(ctx context.Context) ([]GetInternalTeamsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getInternalTeams)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetInternalTeamsRow
+	for rows.Next() {
+		var i GetInternalTeamsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Capacity,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CoachID,
+			&i.LogoUrl,
+			&i.IsExternal,
+			&i.CoachEmail,
+			&i.CoachName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTeamById = `-- name: GetTeamById :one
+SELECT t.id, t.name, t.capacity, t.created_at, t.updated_at, t.coach_id, t.logo_url, t.is_external,
+       COALESCE(u.email, '') AS coach_email,
+       COALESCE(u.first_name || ' ' || u.last_name, '') AS coach_name
+FROM athletic.teams t
+LEFT JOIN users.users u ON t.coach_id = u.id
 WHERE t.id = $1
 `
 
@@ -75,8 +218,9 @@ type GetTeamByIdRow struct {
 	UpdatedAt  time.Time      `json:"updated_at"`
 	CoachID    uuid.NullUUID  `json:"coach_id"`
 	LogoUrl    sql.NullString `json:"logo_url"`
-	CoachEmail sql.NullString `json:"coach_email"`
-	CoachName  string         `json:"coach_name"`
+	IsExternal bool           `json:"is_external"`
+	CoachEmail string         `json:"coach_email"`
+	CoachName  interface{}    `json:"coach_name"`
 }
 
 func (q *Queries) GetTeamById(ctx context.Context, id uuid.UUID) (GetTeamByIdRow, error) {
@@ -90,6 +234,7 @@ func (q *Queries) GetTeamById(ctx context.Context, id uuid.UUID) (GetTeamByIdRow
 		&i.UpdatedAt,
 		&i.CoachID,
 		&i.LogoUrl,
+		&i.IsExternal,
 		&i.CoachEmail,
 		&i.CoachName,
 	)
@@ -161,9 +306,12 @@ func (q *Queries) GetTeamRoster(ctx context.Context, id uuid.UUID) ([]GetTeamRos
 }
 
 const getTeams = `-- name: GetTeams :many
-SELECT t.id, t.name, t.capacity, t.created_at, t.updated_at, t.coach_id, t.logo_url, u.email AS coach_email, (u.first_name || ' ' || u.last_name)::varchar AS coach_name
+SELECT t.id, t.name, t.capacity, t.created_at, t.updated_at, t.coach_id, t.logo_url, t.is_external,
+       COALESCE(u.email, '') AS coach_email,
+       COALESCE(u.first_name || ' ' || u.last_name, '') AS coach_name
 FROM athletic.teams t
-         JOIN users.users u ON t.coach_id = u.id
+LEFT JOIN users.users u ON t.coach_id = u.id
+ORDER BY t.is_external ASC, t.name ASC
 `
 
 type GetTeamsRow struct {
@@ -174,8 +322,9 @@ type GetTeamsRow struct {
 	UpdatedAt  time.Time      `json:"updated_at"`
 	CoachID    uuid.NullUUID  `json:"coach_id"`
 	LogoUrl    sql.NullString `json:"logo_url"`
-	CoachEmail sql.NullString `json:"coach_email"`
-	CoachName  string         `json:"coach_name"`
+	IsExternal bool           `json:"is_external"`
+	CoachEmail string         `json:"coach_email"`
+	CoachName  interface{}    `json:"coach_name"`
 }
 
 func (q *Queries) GetTeams(ctx context.Context) ([]GetTeamsRow, error) {
@@ -195,6 +344,7 @@ func (q *Queries) GetTeams(ctx context.Context) ([]GetTeamsRow, error) {
 			&i.UpdatedAt,
 			&i.CoachID,
 			&i.LogoUrl,
+			&i.IsExternal,
 			&i.CoachEmail,
 			&i.CoachName,
 		); err != nil {
@@ -212,10 +362,13 @@ func (q *Queries) GetTeams(ctx context.Context) ([]GetTeamsRow, error) {
 }
 
 const getTeamsByCoach = `-- name: GetTeamsByCoach :many
-SELECT t.id, t.name, t.capacity, t.created_at, t.updated_at, t.coach_id, t.logo_url, u.email AS coach_email, (u.first_name || ' ' || u.last_name)::varchar AS coach_name
+SELECT t.id, t.name, t.capacity, t.created_at, t.updated_at, t.coach_id, t.logo_url, t.is_external,
+       u.email AS coach_email,
+       (u.first_name || ' ' || u.last_name)::varchar AS coach_name
 FROM athletic.teams t
-         JOIN users.users u ON t.coach_id = u.id
-WHERE t.coach_id = $1
+JOIN users.users u ON t.coach_id = u.id
+WHERE t.coach_id = $1 AND t.is_external = FALSE
+ORDER BY t.name ASC
 `
 
 type GetTeamsByCoachRow struct {
@@ -226,6 +379,7 @@ type GetTeamsByCoachRow struct {
 	UpdatedAt  time.Time      `json:"updated_at"`
 	CoachID    uuid.NullUUID  `json:"coach_id"`
 	LogoUrl    sql.NullString `json:"logo_url"`
+	IsExternal bool           `json:"is_external"`
 	CoachEmail sql.NullString `json:"coach_email"`
 	CoachName  string         `json:"coach_name"`
 }
@@ -247,6 +401,70 @@ func (q *Queries) GetTeamsByCoach(ctx context.Context, coachID uuid.NullUUID) ([
 			&i.UpdatedAt,
 			&i.CoachID,
 			&i.LogoUrl,
+			&i.IsExternal,
+			&i.CoachEmail,
+			&i.CoachName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchTeamsByName = `-- name: SearchTeamsByName :many
+SELECT t.id, t.name, t.capacity, t.created_at, t.updated_at, t.coach_id, t.logo_url, t.is_external,
+       COALESCE(u.email, '') AS coach_email,
+       COALESCE(u.first_name || ' ' || u.last_name, '') AS coach_name
+FROM athletic.teams t
+LEFT JOIN users.users u ON t.coach_id = u.id
+WHERE LOWER(t.name) LIKE LOWER($1)
+ORDER BY t.is_external ASC, t.name ASC
+LIMIT $2
+`
+
+type SearchTeamsByNameParams struct {
+	Lower string `json:"lower"`
+	Limit int32  `json:"limit"`
+}
+
+type SearchTeamsByNameRow struct {
+	ID         uuid.UUID      `json:"id"`
+	Name       string         `json:"name"`
+	Capacity   int32          `json:"capacity"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
+	CoachID    uuid.NullUUID  `json:"coach_id"`
+	LogoUrl    sql.NullString `json:"logo_url"`
+	IsExternal bool           `json:"is_external"`
+	CoachEmail string         `json:"coach_email"`
+	CoachName  interface{}    `json:"coach_name"`
+}
+
+func (q *Queries) SearchTeamsByName(ctx context.Context, arg SearchTeamsByNameParams) ([]SearchTeamsByNameRow, error) {
+	rows, err := q.db.QueryContext(ctx, searchTeamsByName, arg.Lower, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchTeamsByNameRow
+	for rows.Next() {
+		var i SearchTeamsByNameRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Capacity,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CoachID,
+			&i.LogoUrl,
+			&i.IsExternal,
 			&i.CoachEmail,
 			&i.CoachName,
 		); err != nil {
@@ -282,6 +500,44 @@ func (q *Queries) UpdateAthleteTeam(ctx context.Context, arg UpdateAthleteTeamPa
 	return result.RowsAffected()
 }
 
+const updateExternalTeam = `-- name: UpdateExternalTeam :one
+UPDATE athletic.teams
+SET name       = $1,
+    capacity   = $2,
+    logo_url   = $3,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $4 AND is_external = TRUE
+RETURNING id, name, capacity, created_at, updated_at, coach_id, logo_url, is_external
+`
+
+type UpdateExternalTeamParams struct {
+	Name     string         `json:"name"`
+	Capacity int32          `json:"capacity"`
+	LogoUrl  sql.NullString `json:"logo_url"`
+	ID       uuid.UUID      `json:"id"`
+}
+
+func (q *Queries) UpdateExternalTeam(ctx context.Context, arg UpdateExternalTeamParams) (AthleticTeam, error) {
+	row := q.db.QueryRowContext(ctx, updateExternalTeam,
+		arg.Name,
+		arg.Capacity,
+		arg.LogoUrl,
+		arg.ID,
+	)
+	var i AthleticTeam
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Capacity,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CoachID,
+		&i.LogoUrl,
+		&i.IsExternal,
+	)
+	return i, err
+}
+
 const updateTeam = `-- name: UpdateTeam :one
 UPDATE athletic.teams
 SET name       = $1,
@@ -289,8 +545,8 @@ SET name       = $1,
     capacity   = $3,
     logo_url   = $4,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $5
-RETURNING id, name, capacity, created_at, updated_at, coach_id, logo_url
+WHERE id = $5 AND is_external = FALSE
+RETURNING id, name, capacity, created_at, updated_at, coach_id, logo_url, is_external
 `
 
 type UpdateTeamParams struct {
@@ -318,6 +574,7 @@ func (q *Queries) UpdateTeam(ctx context.Context, arg UpdateTeamParams) (Athleti
 		&i.UpdatedAt,
 		&i.CoachID,
 		&i.LogoUrl,
+		&i.IsExternal,
 	)
 	return i, err
 }

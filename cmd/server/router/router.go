@@ -264,11 +264,23 @@ func RegisterTeamsRoutes(container *di.Container) func(chi.Router) {
 	h := teamsHandler.NewHandler(container)
 
 	return func(r chi.Router) {
+		// IMPORTANT: Specific routes must come before wildcard routes like /{id}
+
+		// Search route
+		r.Get("/search", h.SearchTeams)
+
+		// External teams routes
+		r.Get("/external", h.GetExternalTeams)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleCoach)).Post("/external", h.CreateExternalTeam)
+
+		// Public routes
 		r.Get("/", h.GetTeams)
 		r.Get("/{id}", h.GetTeamByID)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/", h.CreateTeam)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}", h.UpdateTeam)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", h.DeleteTeam)
+
+		// Team management - coaches and admins can create/manage teams
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleCoach)).Post("/", h.CreateTeam)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleCoach)).Put("/{id}", h.UpdateTeam)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleCoach)).Delete("/{id}", h.DeleteTeam)
 	}
 }
 

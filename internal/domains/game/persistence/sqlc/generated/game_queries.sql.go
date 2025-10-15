@@ -18,9 +18,9 @@ const createGame = `-- name: CreateGame :exec
 
 INSERT INTO game.games (
   id, home_team_id, away_team_id, home_score, away_score, start_time,
-  end_time,court_id, location_id, status
+  end_time, court_id, location_id, status, created_by
 ) VALUES (
-  gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9
+  gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 )
 `
 
@@ -34,6 +34,7 @@ type CreateGameParams struct {
 	CourtID    uuid.NullUUID  `json:"court_id"`
 	LocationID uuid.UUID      `json:"location_id"`
 	Status     sql.NullString `json:"status"`
+	CreatedBy  uuid.NullUUID  `json:"created_by"`
 }
 
 // The following SQL functions provide full CRUD support for the game.games table.
@@ -55,6 +56,7 @@ func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) error {
 		arg.CourtID,
 		arg.LocationID,
 		arg.Status,
+		arg.CreatedBy,
 	)
 	return err
 }
@@ -74,7 +76,7 @@ func (q *Queries) DeleteGame(ctx context.Context, id uuid.UUID) (int64, error) {
 }
 
 const getGameById = `-- name: GetGameById :one
-SELECT 
+SELECT
     g.id,
     g.home_team_id,
     ht.name AS home_team_name,
@@ -91,6 +93,8 @@ SELECT
     g.court_id,
     c.name AS court_name,
     g.status,
+    g.created_by,
+    COALESCE(u.first_name || ' ' || u.last_name, '') AS created_by_name,
     g.created_at,
     g.updated_at
 FROM game.games g
@@ -98,6 +102,7 @@ JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 LEFT JOIN location.courts c ON g.court_id = c.id
 JOIN location.locations loc ON g.location_id = loc.id
+LEFT JOIN users.users u ON g.created_by = u.id
 WHERE g.id = $1
 `
 
@@ -118,6 +123,8 @@ type GetGameByIdRow struct {
 	CourtID         uuid.NullUUID  `json:"court_id"`
 	CourtName       sql.NullString `json:"court_name"`
 	Status          sql.NullString `json:"status"`
+	CreatedBy       uuid.NullUUID  `json:"created_by"`
+	CreatedByName   interface{}    `json:"created_by_name"`
 	CreatedAt       sql.NullTime   `json:"created_at"`
 	UpdatedAt       sql.NullTime   `json:"updated_at"`
 }
@@ -143,6 +150,8 @@ func (q *Queries) GetGameById(ctx context.Context, id uuid.UUID) (GetGameByIdRow
 		&i.CourtID,
 		&i.CourtName,
 		&i.Status,
+		&i.CreatedBy,
+		&i.CreatedByName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -150,7 +159,7 @@ func (q *Queries) GetGameById(ctx context.Context, id uuid.UUID) (GetGameByIdRow
 }
 
 const getGames = `-- name: GetGames :many
-SELECT 
+SELECT
     g.id,
     g.home_team_id,
     ht.name AS home_team_name,
@@ -167,6 +176,8 @@ SELECT
     g.court_id,
     c.name AS court_name,
     g.status,
+    g.created_by,
+    COALESCE(u.first_name || ' ' || u.last_name, '') AS created_by_name,
     g.created_at,
     g.updated_at
 FROM game.games g
@@ -174,6 +185,7 @@ LEFT JOIN location.courts c ON g.court_id = c.id
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 JOIN location.locations loc ON g.location_id = loc.id
+LEFT JOIN users.users u ON g.created_by = u.id
 WHERE ($1::uuid IS NULL OR g.court_id = $1)
   AND ($2::uuid IS NULL OR g.location_id = $2)
 ORDER BY g.start_time ASC
@@ -204,6 +216,8 @@ type GetGamesRow struct {
 	CourtID         uuid.NullUUID  `json:"court_id"`
 	CourtName       sql.NullString `json:"court_name"`
 	Status          sql.NullString `json:"status"`
+	CreatedBy       uuid.NullUUID  `json:"created_by"`
+	CreatedByName   interface{}    `json:"created_by_name"`
 	CreatedAt       sql.NullTime   `json:"created_at"`
 	UpdatedAt       sql.NullTime   `json:"updated_at"`
 }
@@ -240,6 +254,8 @@ func (q *Queries) GetGames(ctx context.Context, arg GetGamesParams) ([]GetGamesR
 			&i.CourtID,
 			&i.CourtName,
 			&i.Status,
+			&i.CreatedBy,
+			&i.CreatedByName,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -272,12 +288,15 @@ SELECT
     g.location_id,
     loc.name AS location_name,
     g.status,
+    g.created_by,
+    COALESCE(u.first_name || ' ' || u.last_name, '') AS created_by_name,
     g.created_at,
     g.updated_at
 FROM game.games g
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 JOIN location.locations loc ON g.location_id = loc.id
+LEFT JOIN users.users u ON g.created_by = u.id
 WHERE g.home_team_id = ANY($1::uuid[])
    OR g.away_team_id = ANY($1::uuid[])
 ORDER BY g.start_time ASC
@@ -305,6 +324,8 @@ type GetGamesByTeamsRow struct {
 	LocationID      uuid.UUID      `json:"location_id"`
 	LocationName    string         `json:"location_name"`
 	Status          sql.NullString `json:"status"`
+	CreatedBy       uuid.NullUUID  `json:"created_by"`
+	CreatedByName   interface{}    `json:"created_by_name"`
 	CreatedAt       sql.NullTime   `json:"created_at"`
 	UpdatedAt       sql.NullTime   `json:"updated_at"`
 }
@@ -333,6 +354,8 @@ func (q *Queries) GetGamesByTeams(ctx context.Context, arg GetGamesByTeamsParams
 			&i.LocationID,
 			&i.LocationName,
 			&i.Status,
+			&i.CreatedBy,
+			&i.CreatedByName,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -365,12 +388,15 @@ SELECT
     g.location_id,
     loc.name AS location_name,
     g.status,
+    g.created_by,
+    COALESCE(u.first_name || ' ' || u.last_name, '') AS created_by_name,
     g.created_at,
     g.updated_at
 FROM game.games g
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 JOIN location.locations loc ON g.location_id = loc.id
+LEFT JOIN users.users u ON g.created_by = u.id
 WHERE (g.home_team_id = ANY($1::uuid[])
    OR g.away_team_id = ANY($1::uuid[]))
    AND g.start_time <= NOW()
@@ -400,6 +426,8 @@ type GetLiveGamesByTeamsRow struct {
 	LocationID      uuid.UUID      `json:"location_id"`
 	LocationName    string         `json:"location_name"`
 	Status          sql.NullString `json:"status"`
+	CreatedBy       uuid.NullUUID  `json:"created_by"`
+	CreatedByName   interface{}    `json:"created_by_name"`
 	CreatedAt       sql.NullTime   `json:"created_at"`
 	UpdatedAt       sql.NullTime   `json:"updated_at"`
 }
@@ -429,6 +457,8 @@ func (q *Queries) GetLiveGamesByTeams(ctx context.Context, arg GetLiveGamesByTea
 			&i.LocationID,
 			&i.LocationName,
 			&i.Status,
+			&i.CreatedBy,
+			&i.CreatedByName,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -446,7 +476,7 @@ func (q *Queries) GetLiveGamesByTeams(ctx context.Context, arg GetLiveGamesByTea
 }
 
 const getPastGames = `-- name: GetPastGames :many
-SELECT 
+SELECT
     g.id,
     g.home_team_id,
     ht.name AS home_team_name,
@@ -461,12 +491,15 @@ SELECT
     g.location_id,
     loc.name AS location_name,
     g.status,
+    g.created_by,
+    COALESCE(u.first_name || ' ' || u.last_name, '') AS created_by_name,
     g.created_at,
     g.updated_at
 FROM game.games g
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 JOIN location.locations loc ON g.location_id = loc.id
+LEFT JOIN users.users u ON g.created_by = u.id
 WHERE g.start_time < NOW()
 ORDER BY g.start_time DESC
 LIMIT $1 OFFSET $2
@@ -492,6 +525,8 @@ type GetPastGamesRow struct {
 	LocationID      uuid.UUID      `json:"location_id"`
 	LocationName    string         `json:"location_name"`
 	Status          sql.NullString `json:"status"`
+	CreatedBy       uuid.NullUUID  `json:"created_by"`
+	CreatedByName   interface{}    `json:"created_by_name"`
 	CreatedAt       sql.NullTime   `json:"created_at"`
 	UpdatedAt       sql.NullTime   `json:"updated_at"`
 }
@@ -521,6 +556,8 @@ func (q *Queries) GetPastGames(ctx context.Context, arg GetPastGamesParams) ([]G
 			&i.LocationID,
 			&i.LocationName,
 			&i.Status,
+			&i.CreatedBy,
+			&i.CreatedByName,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -553,12 +590,15 @@ SELECT
     g.location_id,
     loc.name AS location_name,
     g.status,
+    g.created_by,
+    COALESCE(u.first_name || ' ' || u.last_name, '') AS created_by_name,
     g.created_at,
     g.updated_at
 FROM game.games g
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 JOIN location.locations loc ON g.location_id = loc.id
+LEFT JOIN users.users u ON g.created_by = u.id
 WHERE (g.home_team_id = ANY($1::uuid[])
    OR g.away_team_id = ANY($1::uuid[]))
    AND g.start_time < NOW()
@@ -587,6 +627,8 @@ type GetPastGamesByTeamsRow struct {
 	LocationID      uuid.UUID      `json:"location_id"`
 	LocationName    string         `json:"location_name"`
 	Status          sql.NullString `json:"status"`
+	CreatedBy       uuid.NullUUID  `json:"created_by"`
+	CreatedByName   interface{}    `json:"created_by_name"`
 	CreatedAt       sql.NullTime   `json:"created_at"`
 	UpdatedAt       sql.NullTime   `json:"updated_at"`
 }
@@ -616,6 +658,8 @@ func (q *Queries) GetPastGamesByTeams(ctx context.Context, arg GetPastGamesByTea
 			&i.LocationID,
 			&i.LocationName,
 			&i.Status,
+			&i.CreatedBy,
+			&i.CreatedByName,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -633,7 +677,7 @@ func (q *Queries) GetPastGamesByTeams(ctx context.Context, arg GetPastGamesByTea
 }
 
 const getUpcomingGames = `-- name: GetUpcomingGames :many
-SELECT 
+SELECT
     g.id,
     g.home_team_id,
     ht.name AS home_team_name,
@@ -648,12 +692,15 @@ SELECT
     g.location_id,
     loc.name AS location_name,
     g.status,
+    g.created_by,
+    COALESCE(u.first_name || ' ' || u.last_name, '') AS created_by_name,
     g.created_at,
     g.updated_at
 FROM game.games g
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 JOIN location.locations loc ON g.location_id = loc.id
+LEFT JOIN users.users u ON g.created_by = u.id
 WHERE g.end_time >= NOW()
 ORDER BY g.start_time ASC
 LIMIT $1 OFFSET $2
@@ -679,6 +726,8 @@ type GetUpcomingGamesRow struct {
 	LocationID      uuid.UUID      `json:"location_id"`
 	LocationName    string         `json:"location_name"`
 	Status          sql.NullString `json:"status"`
+	CreatedBy       uuid.NullUUID  `json:"created_by"`
+	CreatedByName   interface{}    `json:"created_by_name"`
 	CreatedAt       sql.NullTime   `json:"created_at"`
 	UpdatedAt       sql.NullTime   `json:"updated_at"`
 }
@@ -709,6 +758,8 @@ func (q *Queries) GetUpcomingGames(ctx context.Context, arg GetUpcomingGamesPara
 			&i.LocationID,
 			&i.LocationName,
 			&i.Status,
+			&i.CreatedBy,
+			&i.CreatedByName,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -741,12 +792,15 @@ SELECT
     g.location_id,
     loc.name AS location_name,
     g.status,
+    g.created_by,
+    COALESCE(u.first_name || ' ' || u.last_name, '') AS created_by_name,
     g.created_at,
     g.updated_at
 FROM game.games g
 JOIN athletic.teams ht ON g.home_team_id = ht.id
 JOIN athletic.teams at ON g.away_team_id = at.id
 JOIN location.locations loc ON g.location_id = loc.id
+LEFT JOIN users.users u ON g.created_by = u.id
 WHERE (g.home_team_id = ANY($1::uuid[])
    OR g.away_team_id = ANY($1::uuid[]))
    AND g.end_time >= NOW()
@@ -775,6 +829,8 @@ type GetUpcomingGamesByTeamsRow struct {
 	LocationID      uuid.UUID      `json:"location_id"`
 	LocationName    string         `json:"location_name"`
 	Status          sql.NullString `json:"status"`
+	CreatedBy       uuid.NullUUID  `json:"created_by"`
+	CreatedByName   interface{}    `json:"created_by_name"`
 	CreatedAt       sql.NullTime   `json:"created_at"`
 	UpdatedAt       sql.NullTime   `json:"updated_at"`
 }
@@ -804,6 +860,8 @@ func (q *Queries) GetUpcomingGamesByTeams(ctx context.Context, arg GetUpcomingGa
 			&i.LocationID,
 			&i.LocationName,
 			&i.Status,
+			&i.CreatedBy,
+			&i.CreatedByName,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {

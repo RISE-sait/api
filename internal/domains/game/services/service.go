@@ -67,7 +67,30 @@ func (s *Service) GetPastGames(ctx context.Context, limit, offset int32) ([]valu
 }
 
 // CreateGame adds a new game to the database and logs the activity.
+// For coaches: validates that they coach at least one of the teams in the game.
 func (s *Service) CreateGame(ctx context.Context, details values.CreateGameValue) *errLib.CommonError {
+	// Get user role and ID from context
+	userID, err := contextUtils.GetUserID(ctx)
+	if err != nil {
+		return err
+	}
+
+	role, err := contextUtils.GetUserRole(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Validate coach can only create games for teams they coach
+	if role == contextUtils.RoleCoach {
+		teamIDs := []uuid.UUID{details.HomeTeamID, details.AwayTeamID}
+		if err := s.ValidateCoachTeamAccess(ctx, userID, teamIDs); err != nil {
+			return err
+		}
+	}
+
+	// Set the created_by field to track who scheduled the game
+	details.CreatedBy = userID
+
 	return s.executeInTx(ctx, func(txRepo *repo.Repository) *errLib.CommonError {
 		// Create the game record
 		err := txRepo.CreateGame(ctx, details)
@@ -147,7 +170,33 @@ func (s *Service) sendGameNotification(ctx context.Context, game values.CreateGa
 }
 
 // UpdateGame updates an existing game and logs the modification.
+// For coaches: validates that they coach at least one of the teams in the game.
 func (s *Service) UpdateGame(ctx context.Context, details values.UpdateGameValue) *errLib.CommonError {
+	// Get user role and ID from context
+	userID, err := contextUtils.GetUserID(ctx)
+	if err != nil {
+		return err
+	}
+
+	role, err := contextUtils.GetUserRole(ctx)
+	if err != nil {
+		return err
+	}
+
+	// For coaches, validate they have access to the game
+	if role == contextUtils.RoleCoach {
+		// First get the existing game to check team IDs
+		existingGame, err := s.repo.GetGameById(ctx, details.ID)
+		if err != nil {
+			return err
+		}
+
+		teamIDs := []uuid.UUID{existingGame.HomeTeamID, existingGame.AwayTeamID}
+		if err := s.ValidateCoachTeamAccess(ctx, userID, teamIDs); err != nil {
+			return err
+		}
+	}
+
 	return s.executeInTx(ctx, func(txRepo *repo.Repository) *errLib.CommonError {
 		// Update the game record
 		if err := txRepo.UpdateGame(ctx, details); err != nil {
@@ -171,7 +220,33 @@ func (s *Service) UpdateGame(ctx context.Context, details values.UpdateGameValue
 }
 
 // DeleteGame removes a game by ID and logs the deletion.
+// For coaches: validates that they coach at least one of the teams in the game.
 func (s *Service) DeleteGame(ctx context.Context, id uuid.UUID) *errLib.CommonError {
+	// Get user role and ID from context
+	userID, err := contextUtils.GetUserID(ctx)
+	if err != nil {
+		return err
+	}
+
+	role, err := contextUtils.GetUserRole(ctx)
+	if err != nil {
+		return err
+	}
+
+	// For coaches, validate they have access to the game
+	if role == contextUtils.RoleCoach {
+		// First get the existing game to check team IDs
+		existingGame, err := s.repo.GetGameById(ctx, id)
+		if err != nil {
+			return err
+		}
+
+		teamIDs := []uuid.UUID{existingGame.HomeTeamID, existingGame.AwayTeamID}
+		if err := s.ValidateCoachTeamAccess(ctx, userID, teamIDs); err != nil {
+			return err
+		}
+	}
+
 	return s.executeInTx(ctx, func(txRepo *repo.Repository) *errLib.CommonError {
 		// Delete the game
 		if err := txRepo.DeleteGame(ctx, id); err != nil {

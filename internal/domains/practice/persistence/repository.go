@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"api/internal/di"
@@ -100,6 +101,10 @@ func (r *Repository) Create(ctx context.Context, val values.CreatePracticeValue)
 		BookedBy:   toNullUUID(val.BookedBy),
 	}
 	if err := r.Queries.CreatePractice(ctx, params); err != nil {
+		// Check if it's an exclusion constraint violation (double booking)
+		if strings.Contains(err.Error(), "no_overlapping_practices") {
+			return errLib.New("This court is already booked during the selected time slot", http.StatusConflict)
+		}
 		return errLib.New("failed to create practice", http.StatusInternalServerError)
 	}
 	return nil
@@ -118,6 +123,10 @@ func (r *Repository) Update(ctx context.Context, val values.UpdatePracticeValue)
 		ID:         val.ID,
 	}
 	if err := r.Queries.UpdatePractice(ctx, params); err != nil {
+		// Check if it's an exclusion constraint violation (double booking)
+		if strings.Contains(err.Error(), "no_overlapping_practices") {
+			return errLib.New("This court is already booked during the selected time slot", http.StatusConflict)
+		}
 		return errLib.New("failed to update practice", http.StatusInternalServerError)
 	}
 	return nil

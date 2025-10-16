@@ -240,14 +240,20 @@ func (s *Service) CheckoutEventWithCredits(ctx context.Context, eventID uuid.UUI
 		return errLib.New("Event is free for your membership level", http.StatusBadRequest)
 	}
 
-	// Reserve seat first (same as existing logic)
-	if err := s.EnrollmentService.ReserveSeatInEvent(ctx, eventID, customerID); err != nil {
+	// CRITICAL FIX: Process credit payment FIRST (includes all validations like weekly limit)
+	// This ensures we don't reserve a seat if payment will fail
+	if err := s.CreditService.EnrollWithCredits(ctx, eventID, customerID); err != nil {
+		log.Printf("Credit enrollment failed for customer %s, event %s: %v", customerID, eventID, err)
 		return err
 	}
 
-	// Process credit payment and complete enrollment
-	if err := s.CreditService.EnrollWithCredits(ctx, eventID, customerID); err != nil {
-		log.Printf("Credit enrollment failed for customer %s, event %s: %v", customerID, eventID, err)
+	// Reserve seat AFTER credits are successfully deducted
+	if err := s.EnrollmentService.ReserveSeatInEvent(ctx, eventID, customerID); err != nil {
+		// Credits were deducted but seat reservation failed - need to refund
+		log.Printf("Seat reservation failed after credit deduction, attempting refund for customer %s, event %s", customerID, eventID)
+		if refundErr := s.CreditService.RefundCreditsForCancellation(ctx, eventID, customerID); refundErr != nil {
+			log.Printf("CRITICAL: Failed to refund credits after seat reservation failure: %v", refundErr)
+		}
 		return err
 	}
 

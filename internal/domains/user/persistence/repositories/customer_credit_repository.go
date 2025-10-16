@@ -264,6 +264,7 @@ func (r *CustomerCreditRepository) CanUseCreditsWithinWeeklyLimit(ctx context.Co
 	})
 
 	if err != nil {
+		log.Printf("Error checking weekly credit limit for customer %s: %v", customerID, err)
 		return false, errLib.New("Failed to check weekly credit limit", http.StatusInternalServerError)
 	}
 

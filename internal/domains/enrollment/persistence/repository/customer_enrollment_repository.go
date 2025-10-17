@@ -62,6 +62,24 @@ func (r *CustomerEnrollmentRepository) UnEnrollCustomerFromEvent(c context.Conte
 	return nil
 }
 
+func (r *CustomerEnrollmentRepository) RemoveCustomerFromEvent(c context.Context, eventID, customerID uuid.UUID) *errLib.CommonError {
+	row, err := r.Queries.RemoveCustomerFromEvent(c, dbEnrollment.RemoveCustomerFromEventParams{
+		CustomerID: customerID,
+		EventID:    eventID,
+	})
+
+	if err != nil {
+		log.Println("error removing customer from event: ", err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	if row == 0 {
+		return errLib.New("Enrollment not found", http.StatusNotFound)
+	}
+
+	return nil
+}
+
 func (r *CustomerEnrollmentRepository) EnrollCustomerInMembershipPlan(ctx context.Context, customerID, planID uuid.UUID, cancelAtDateTime time.Time, startTime time.Time) *errLib.CommonError {
 
 	if err := r.Queries.EnrollCustomerInMembershipPlan(ctx, dbEnrollment.EnrollCustomerInMembershipPlanParams{

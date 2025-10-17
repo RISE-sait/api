@@ -31,6 +31,11 @@ SET is_cancelled = true
 WHERE customer_id = $1
   AND event_id = $2;
 
+-- name: RemoveCustomerFromEvent :execrows
+DELETE FROM events.customer_enrollment
+WHERE customer_id = $1
+  AND event_id = $2;
+
 -- name: CheckProgramCapacityExists :one
 SELECT (capacity IS NOT NULL)::boolean
 FROM program.programs p

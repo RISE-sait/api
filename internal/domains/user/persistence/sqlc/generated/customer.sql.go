@@ -286,7 +286,7 @@ func (q *Queries) GetAthletes(ctx context.Context, arg GetAthletesParams) ([]Get
 }
 
 const getCustomer = `-- name: GetCustomer :one
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes,
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at,
        m.name           AS membership_name,
        mp.id            AS membership_plan_id,
        mp.name          AS membership_plan_name,
@@ -323,36 +323,42 @@ type GetCustomerParams struct {
 }
 
 type GetCustomerRow struct {
-	ID                        uuid.UUID      `json:"id"`
-	HubspotID                 sql.NullString `json:"hubspot_id"`
-	CountryAlpha2Code         string         `json:"country_alpha2_code"`
-	Gender                    sql.NullString `json:"gender"`
-	FirstName                 string         `json:"first_name"`
-	LastName                  string         `json:"last_name"`
-	ParentID                  uuid.NullUUID  `json:"parent_id"`
-	Phone                     sql.NullString `json:"phone"`
-	Email                     sql.NullString `json:"email"`
-	HasMarketingEmailConsent  bool           `json:"has_marketing_email_consent"`
-	HasSmsConsent             bool           `json:"has_sms_consent"`
-	CreatedAt                 time.Time      `json:"created_at"`
-	UpdatedAt                 time.Time      `json:"updated_at"`
-	Dob                       time.Time      `json:"dob"`
-	IsArchived                bool           `json:"is_archived"`
-	SquareCustomerID          sql.NullString `json:"square_customer_id"`
-	StripeCustomerID          sql.NullString `json:"stripe_customer_id"`
-	Notes                     sql.NullString `json:"notes"`
-	MembershipName            sql.NullString `json:"membership_name"`
-	MembershipPlanID          uuid.NullUUID  `json:"membership_plan_id"`
-	MembershipPlanName        sql.NullString `json:"membership_plan_name"`
-	MembershipStartDate       sql.NullTime   `json:"membership_start_date"`
-	MembershipPlanRenewalDate sql.NullTime   `json:"membership_plan_renewal_date"`
-	Points                    sql.NullInt32  `json:"points"`
-	Wins                      sql.NullInt32  `json:"wins"`
-	Losses                    sql.NullInt32  `json:"losses"`
-	Assists                   sql.NullInt32  `json:"assists"`
-	Rebounds                  sql.NullInt32  `json:"rebounds"`
-	Steals                    sql.NullInt32  `json:"steals"`
-	PhotoUrl                  sql.NullString `json:"photo_url"`
+	ID                              uuid.UUID      `json:"id"`
+	HubspotID                       sql.NullString `json:"hubspot_id"`
+	CountryAlpha2Code               string         `json:"country_alpha2_code"`
+	Gender                          sql.NullString `json:"gender"`
+	FirstName                       string         `json:"first_name"`
+	LastName                        string         `json:"last_name"`
+	ParentID                        uuid.NullUUID  `json:"parent_id"`
+	Phone                           sql.NullString `json:"phone"`
+	Email                           sql.NullString `json:"email"`
+	HasMarketingEmailConsent        bool           `json:"has_marketing_email_consent"`
+	HasSmsConsent                   bool           `json:"has_sms_consent"`
+	CreatedAt                       time.Time      `json:"created_at"`
+	UpdatedAt                       time.Time      `json:"updated_at"`
+	Dob                             time.Time      `json:"dob"`
+	IsArchived                      bool           `json:"is_archived"`
+	SquareCustomerID                sql.NullString `json:"square_customer_id"`
+	StripeCustomerID                sql.NullString `json:"stripe_customer_id"`
+	Notes                           sql.NullString `json:"notes"`
+	DeletedAt                       sql.NullTime   `json:"deleted_at"`
+	ScheduledDeletionAt             sql.NullTime   `json:"scheduled_deletion_at"`
+	EmailVerified                   bool           `json:"email_verified"`
+	EmailVerificationToken          sql.NullString `json:"email_verification_token"`
+	EmailVerificationTokenExpiresAt sql.NullTime   `json:"email_verification_token_expires_at"`
+	EmailVerifiedAt                 sql.NullTime   `json:"email_verified_at"`
+	MembershipName                  sql.NullString `json:"membership_name"`
+	MembershipPlanID                uuid.NullUUID  `json:"membership_plan_id"`
+	MembershipPlanName              sql.NullString `json:"membership_plan_name"`
+	MembershipStartDate             sql.NullTime   `json:"membership_start_date"`
+	MembershipPlanRenewalDate       sql.NullTime   `json:"membership_plan_renewal_date"`
+	Points                          sql.NullInt32  `json:"points"`
+	Wins                            sql.NullInt32  `json:"wins"`
+	Losses                          sql.NullInt32  `json:"losses"`
+	Assists                         sql.NullInt32  `json:"assists"`
+	Rebounds                        sql.NullInt32  `json:"rebounds"`
+	Steals                          sql.NullInt32  `json:"steals"`
+	PhotoUrl                        sql.NullString `json:"photo_url"`
 }
 
 func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCustomerRow, error) {
@@ -377,6 +383,12 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 		&i.SquareCustomerID,
 		&i.StripeCustomerID,
 		&i.Notes,
+		&i.DeletedAt,
+		&i.ScheduledDeletionAt,
+		&i.EmailVerified,
+		&i.EmailVerificationToken,
+		&i.EmailVerificationTokenExpiresAt,
+		&i.EmailVerifiedAt,
 		&i.MembershipName,
 		&i.MembershipPlanID,
 		&i.MembershipPlanName,
@@ -394,7 +406,7 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 }
 
 const getCustomers = `-- name: GetCustomers :many
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes,
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at,
        m.name           AS membership_name,
        mp.id            AS membership_plan_id,
        mp.name          AS membership_plan_name,
@@ -439,36 +451,42 @@ type GetCustomersParams struct {
 }
 
 type GetCustomersRow struct {
-	ID                        uuid.UUID      `json:"id"`
-	HubspotID                 sql.NullString `json:"hubspot_id"`
-	CountryAlpha2Code         string         `json:"country_alpha2_code"`
-	Gender                    sql.NullString `json:"gender"`
-	FirstName                 string         `json:"first_name"`
-	LastName                  string         `json:"last_name"`
-	ParentID                  uuid.NullUUID  `json:"parent_id"`
-	Phone                     sql.NullString `json:"phone"`
-	Email                     sql.NullString `json:"email"`
-	HasMarketingEmailConsent  bool           `json:"has_marketing_email_consent"`
-	HasSmsConsent             bool           `json:"has_sms_consent"`
-	CreatedAt                 time.Time      `json:"created_at"`
-	UpdatedAt                 time.Time      `json:"updated_at"`
-	Dob                       time.Time      `json:"dob"`
-	IsArchived                bool           `json:"is_archived"`
-	SquareCustomerID          sql.NullString `json:"square_customer_id"`
-	StripeCustomerID          sql.NullString `json:"stripe_customer_id"`
-	Notes                     sql.NullString `json:"notes"`
-	MembershipName            sql.NullString `json:"membership_name"`
-	MembershipPlanID          uuid.NullUUID  `json:"membership_plan_id"`
-	MembershipPlanName        sql.NullString `json:"membership_plan_name"`
-	MembershipStartDate       sql.NullTime   `json:"membership_start_date"`
-	MembershipPlanRenewalDate sql.NullTime   `json:"membership_plan_renewal_date"`
-	Points                    sql.NullInt32  `json:"points"`
-	Wins                      sql.NullInt32  `json:"wins"`
-	Losses                    sql.NullInt32  `json:"losses"`
-	Assists                   sql.NullInt32  `json:"assists"`
-	Rebounds                  sql.NullInt32  `json:"rebounds"`
-	Steals                    sql.NullInt32  `json:"steals"`
-	PhotoUrl                  sql.NullString `json:"photo_url"`
+	ID                              uuid.UUID      `json:"id"`
+	HubspotID                       sql.NullString `json:"hubspot_id"`
+	CountryAlpha2Code               string         `json:"country_alpha2_code"`
+	Gender                          sql.NullString `json:"gender"`
+	FirstName                       string         `json:"first_name"`
+	LastName                        string         `json:"last_name"`
+	ParentID                        uuid.NullUUID  `json:"parent_id"`
+	Phone                           sql.NullString `json:"phone"`
+	Email                           sql.NullString `json:"email"`
+	HasMarketingEmailConsent        bool           `json:"has_marketing_email_consent"`
+	HasSmsConsent                   bool           `json:"has_sms_consent"`
+	CreatedAt                       time.Time      `json:"created_at"`
+	UpdatedAt                       time.Time      `json:"updated_at"`
+	Dob                             time.Time      `json:"dob"`
+	IsArchived                      bool           `json:"is_archived"`
+	SquareCustomerID                sql.NullString `json:"square_customer_id"`
+	StripeCustomerID                sql.NullString `json:"stripe_customer_id"`
+	Notes                           sql.NullString `json:"notes"`
+	DeletedAt                       sql.NullTime   `json:"deleted_at"`
+	ScheduledDeletionAt             sql.NullTime   `json:"scheduled_deletion_at"`
+	EmailVerified                   bool           `json:"email_verified"`
+	EmailVerificationToken          sql.NullString `json:"email_verification_token"`
+	EmailVerificationTokenExpiresAt sql.NullTime   `json:"email_verification_token_expires_at"`
+	EmailVerifiedAt                 sql.NullTime   `json:"email_verified_at"`
+	MembershipName                  sql.NullString `json:"membership_name"`
+	MembershipPlanID                uuid.NullUUID  `json:"membership_plan_id"`
+	MembershipPlanName              sql.NullString `json:"membership_plan_name"`
+	MembershipStartDate             sql.NullTime   `json:"membership_start_date"`
+	MembershipPlanRenewalDate       sql.NullTime   `json:"membership_plan_renewal_date"`
+	Points                          sql.NullInt32  `json:"points"`
+	Wins                            sql.NullInt32  `json:"wins"`
+	Losses                          sql.NullInt32  `json:"losses"`
+	Assists                         sql.NullInt32  `json:"assists"`
+	Rebounds                        sql.NullInt32  `json:"rebounds"`
+	Steals                          sql.NullInt32  `json:"steals"`
+	PhotoUrl                        sql.NullString `json:"photo_url"`
 }
 
 func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]GetCustomersRow, error) {
@@ -504,6 +522,12 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]G
 			&i.SquareCustomerID,
 			&i.StripeCustomerID,
 			&i.Notes,
+			&i.DeletedAt,
+			&i.ScheduledDeletionAt,
+			&i.EmailVerified,
+			&i.EmailVerificationToken,
+			&i.EmailVerificationTokenExpiresAt,
+			&i.EmailVerifiedAt,
 			&i.MembershipName,
 			&i.MembershipPlanID,
 			&i.MembershipPlanName,
@@ -531,7 +555,7 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]G
 }
 
 const listArchivedCustomers = `-- name: ListArchivedCustomers :many
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at
 FROM users.users u
 WHERE u.is_archived = TRUE
 LIMIT $2 OFFSET $1
@@ -570,6 +594,12 @@ func (q *Queries) ListArchivedCustomers(ctx context.Context, arg ListArchivedCus
 			&i.SquareCustomerID,
 			&i.StripeCustomerID,
 			&i.Notes,
+			&i.DeletedAt,
+			&i.ScheduledDeletionAt,
+			&i.EmailVerified,
+			&i.EmailVerificationToken,
+			&i.EmailVerificationTokenExpiresAt,
+			&i.EmailVerifiedAt,
 		); err != nil {
 			return nil, err
 		}

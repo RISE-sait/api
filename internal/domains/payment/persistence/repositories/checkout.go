@@ -3,6 +3,7 @@ package payment
 import (
 	"api/internal/di"
 	"api/internal/domains/event/service"
+	eventDb "api/internal/domains/event/persistence/sqlc/generated"
 	db "api/internal/domains/payment/persistence/sqlc/generated"
 	values "api/internal/domains/payment/values"
 	"api/internal/domains/program"
@@ -19,6 +20,7 @@ import (
 
 type CheckoutRepository struct {
 	paymentQueries *db.Queries
+	eventQueries   *eventDb.Queries
 	programService *program.Service
 	eventService   *service.Service
 }
@@ -26,6 +28,7 @@ type CheckoutRepository struct {
 func NewCheckoutRepository(container *di.Container) *CheckoutRepository {
 	return &CheckoutRepository{
 		paymentQueries: container.Queries.PurchasesDb,
+		eventQueries:   container.Queries.EventDb,
 		programService: program.NewProgramService(container),
 		eventService:   service.NewEventService(container),
 	}
@@ -121,6 +124,21 @@ func (r *CheckoutRepository) CheckCustomerHasActiveMembership(ctx context.Contex
 		log.Printf("Error checking customer active membership: %v", err)
 		return false, errLib.New("failed to check existing membership", http.StatusInternalServerError)
 	}
-	
+
 	return count > 0, nil
+}
+
+// CheckCustomerHasEventMembershipAccess checks if customer has an active membership for ANY of the event's required memberships
+func (r *CheckoutRepository) CheckCustomerHasEventMembershipAccess(ctx context.Context, eventID uuid.UUID, customerID uuid.UUID) (bool, *errLib.CommonError) {
+	// Use the optimized SQL query that checks via junction table join
+	hasAccess, err := r.eventQueries.CheckCustomerHasEventMembershipAccess(ctx, eventDb.CheckCustomerHasEventMembershipAccessParams{
+		EventID:    eventID,
+		CustomerID: customerID,
+	})
+	if err != nil {
+		log.Printf("Error checking customer event membership access: %v", err)
+		return false, errLib.New("failed to check event membership access", http.StatusInternalServerError)
+	}
+
+	return hasAccess, nil
 }

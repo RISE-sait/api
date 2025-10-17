@@ -8,16 +8,16 @@ import (
 
 //goland:noinspection GoNameStartsWithPackageName
 type EventDetails struct {
-	CreatedBy                uuid.UUID
-	StartAt                  time.Time
-	EndAt                    time.Time
-	ProgramID                uuid.UUID
-	LocationID               uuid.UUID
-	CourtID                  uuid.UUID
-	TeamID                   uuid.UUID
-	RequiredMembershipPlanID uuid.UUID
-	PriceID                  string
-	CreditCost               *int32
+	CreatedBy                 uuid.UUID
+	StartAt                   time.Time
+	EndAt                     time.Time
+	ProgramID                 uuid.UUID
+	LocationID                uuid.UUID
+	CourtID                   uuid.UUID
+	TeamID                    uuid.UUID
+	RequiredMembershipPlanIDs []uuid.UUID
+	PriceID                   string
+	CreditCost                *int32
 }
 
 type CreateEventValues struct {
@@ -75,9 +75,9 @@ type ReadEventValues struct {
 		Name string
 	}
 
-	RequiredMembershipPlanID *uuid.UUID
-	PriceID                  *string
-	CreditCost               *int32
+	RequiredMembershipPlanIDs []uuid.UUID
+	PriceID                   *string
+	CreditCost                *int32
 
 	Customers []Customer
 

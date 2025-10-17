@@ -12,7 +12,6 @@ WITH unnested_data AS (
         unnest(sqlc.arg('created_by_ids')::uuid[])               AS created_by,
         unnest(sqlc.arg('is_cancelled_array')::bool[])           AS is_cancelled,
         unnest(sqlc.arg('cancellation_reasons')::text[])         AS cancellation_reason,
-        unnest(sqlc.arg('required_membership_plan_ids')::uuid[]) AS required_membership_plan_id,
         unnest(sqlc.arg('price_ids')::text[])                    AS price_id,
         unnest(sqlc.arg('credit_costs')::int[])                  AS credit_cost
 )
@@ -29,7 +28,6 @@ INSERT INTO events.events (
     updated_by,
     is_cancelled,
     cancellation_reason,
-    required_membership_plan_id,
     price_id,
     credit_cost
 )
@@ -46,7 +44,6 @@ SELECT
     created_by,
     is_cancelled,
     NULLIF(cancellation_reason, ''),
-    NULLIF(required_membership_plan_id, '00000000-0000-0000-0000-000000000000'::uuid),
     NULLIF(price_id, ''),
     NULLIF(credit_cost, 0)
 FROM unnested_data
@@ -153,20 +150,19 @@ WHERE e.id = $1;
 
 -- name: UpdateEvent :one
 UPDATE events.events
-SET start_at                    = $1,
-    end_at                      = $2,
-    location_id                 = $3,
-    program_id                  = $4,
-    court_id                    = $5,
-    team_id                     = $6,
-    is_cancelled                = $7,
-    cancellation_reason         = $8,
-    updated_at                  = current_timestamp,
-    updated_by                  = sqlc.arg('updated_by')::uuid,
-    is_date_time_modified       = (recurrence_id IS NOT NULL),
-    required_membership_plan_id = $10,
-    price_id                    = $11,
-    credit_cost                 = $12
+SET start_at              = $1,
+    end_at                = $2,
+    location_id           = $3,
+    program_id            = $4,
+    court_id              = $5,
+    team_id               = $6,
+    is_cancelled          = $7,
+    cancellation_reason   = $8,
+    updated_at            = current_timestamp,
+    updated_by            = sqlc.arg('updated_by')::uuid,
+    is_date_time_modified = (recurrence_id IS NOT NULL),
+    price_id              = $10,
+    credit_cost           = $11
 WHERE id = $9
 RETURNING *;
 
@@ -174,3 +170,41 @@ RETURNING *;
 DELETE
 FROM events.events
 WHERE id = ANY (sqlc.arg('ids')::uuid[]);
+
+-- name: AddEventMembershipAccess :exec
+INSERT INTO events.event_membership_access (event_id, membership_plan_id)
+VALUES ($1, $2)
+ON CONFLICT (event_id, membership_plan_id) DO NOTHING;
+
+-- name: RemoveEventMembershipAccess :exec
+DELETE FROM events.event_membership_access
+WHERE event_id = $1 AND membership_plan_id = $2;
+
+-- name: GetEventMembershipPlans :many
+SELECT mp.id, mp.name
+FROM events.event_membership_access ema
+JOIN membership.membership_plans mp ON ema.membership_plan_id = mp.id
+WHERE ema.event_id = $1;
+
+-- name: CheckCustomerHasEventMembershipAccess :one
+SELECT EXISTS(
+    SELECT 1
+    FROM events.event_membership_access ema
+    JOIN users.customer_membership_plans cmp ON ema.membership_plan_id = cmp.membership_plan_id
+    WHERE ema.event_id = $1
+      AND cmp.customer_id = $2
+      AND cmp.status = 'active'
+) AS has_access;
+
+-- name: ClearEventMembershipAccess :exec
+DELETE FROM events.event_membership_access
+WHERE event_id = $1;
+
+-- name: SetEventMembershipAccess :exec
+WITH deleted AS (
+    DELETE FROM events.event_membership_access
+    WHERE event_id = $1
+)
+INSERT INTO events.event_membership_access (event_id, membership_plan_id)
+SELECT $1, unnest(sqlc.arg('membership_plan_ids')::uuid[])
+ON CONFLICT (event_id, membership_plan_id) DO NOTHING;

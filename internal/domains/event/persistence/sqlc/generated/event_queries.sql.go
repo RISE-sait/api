@@ -14,6 +14,55 @@ import (
 	"github.com/lib/pq"
 )
 
+const addEventMembershipAccess = `-- name: AddEventMembershipAccess :exec
+INSERT INTO events.event_membership_access (event_id, membership_plan_id)
+VALUES ($1, $2)
+ON CONFLICT (event_id, membership_plan_id) DO NOTHING
+`
+
+type AddEventMembershipAccessParams struct {
+	EventID          uuid.UUID `json:"event_id"`
+	MembershipPlanID uuid.UUID `json:"membership_plan_id"`
+}
+
+func (q *Queries) AddEventMembershipAccess(ctx context.Context, arg AddEventMembershipAccessParams) error {
+	_, err := q.db.ExecContext(ctx, addEventMembershipAccess, arg.EventID, arg.MembershipPlanID)
+	return err
+}
+
+const checkCustomerHasEventMembershipAccess = `-- name: CheckCustomerHasEventMembershipAccess :one
+SELECT EXISTS(
+    SELECT 1
+    FROM events.event_membership_access ema
+    JOIN users.customer_membership_plans cmp ON ema.membership_plan_id = cmp.membership_plan_id
+    WHERE ema.event_id = $1
+      AND cmp.customer_id = $2
+      AND cmp.status = 'active'
+) AS has_access
+`
+
+type CheckCustomerHasEventMembershipAccessParams struct {
+	EventID    uuid.UUID `json:"event_id"`
+	CustomerID uuid.UUID `json:"customer_id"`
+}
+
+func (q *Queries) CheckCustomerHasEventMembershipAccess(ctx context.Context, arg CheckCustomerHasEventMembershipAccessParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkCustomerHasEventMembershipAccess, arg.EventID, arg.CustomerID)
+	var has_access bool
+	err := row.Scan(&has_access)
+	return has_access, err
+}
+
+const clearEventMembershipAccess = `-- name: ClearEventMembershipAccess :exec
+DELETE FROM events.event_membership_access
+WHERE event_id = $1
+`
+
+func (q *Queries) ClearEventMembershipAccess(ctx context.Context, eventID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, clearEventMembershipAccess, eventID)
+	return err
+}
+
 const createEvents = `-- name: CreateEvents :execrows
 WITH unnested_data AS (
     SELECT
@@ -28,9 +77,8 @@ WITH unnested_data AS (
         unnest($9::uuid[])               AS created_by,
         unnest($10::bool[])           AS is_cancelled,
         unnest($11::text[])         AS cancellation_reason,
-        unnest($12::uuid[]) AS required_membership_plan_id,
-        unnest($13::text[])                    AS price_id,
-        unnest($14::int[])                  AS credit_cost
+        unnest($12::text[])                    AS price_id,
+        unnest($13::int[])                  AS credit_cost
 )
 INSERT INTO events.events (
     location_id,
@@ -45,7 +93,6 @@ INSERT INTO events.events (
     updated_by,
     is_cancelled,
     cancellation_reason,
-    required_membership_plan_id,
     price_id,
     credit_cost
 )
@@ -62,7 +109,6 @@ SELECT
     created_by,
     is_cancelled,
     NULLIF(cancellation_reason, ''),
-    NULLIF(required_membership_plan_id, '00000000-0000-0000-0000-000000000000'::uuid),
     NULLIF(price_id, ''),
     NULLIF(credit_cost, 0)
 FROM unnested_data
@@ -70,20 +116,19 @@ ON CONFLICT ON CONSTRAINT no_overlapping_events DO NOTHING
 `
 
 type CreateEventsParams struct {
-	LocationIds               []uuid.UUID `json:"location_ids"`
-	ProgramIds                []uuid.UUID `json:"program_ids"`
-	CourtIds                  []uuid.UUID `json:"court_ids"`
-	TeamIds                   []uuid.UUID `json:"team_ids"`
-	StartAtArray              []time.Time `json:"start_at_array"`
-	EndAtArray                []time.Time `json:"end_at_array"`
-	IsDateTimeModifiedArray   []bool      `json:"is_date_time_modified_array"`
-	RecurrenceIds             []uuid.UUID `json:"recurrence_ids"`
-	CreatedByIds              []uuid.UUID `json:"created_by_ids"`
-	IsCancelledArray          []bool      `json:"is_cancelled_array"`
-	CancellationReasons       []string    `json:"cancellation_reasons"`
-	RequiredMembershipPlanIds []uuid.UUID `json:"required_membership_plan_ids"`
-	PriceIds                  []string    `json:"price_ids"`
-	CreditCosts               []int32     `json:"credit_costs"`
+	LocationIds             []uuid.UUID `json:"location_ids"`
+	ProgramIds              []uuid.UUID `json:"program_ids"`
+	CourtIds                []uuid.UUID `json:"court_ids"`
+	TeamIds                 []uuid.UUID `json:"team_ids"`
+	StartAtArray            []time.Time `json:"start_at_array"`
+	EndAtArray              []time.Time `json:"end_at_array"`
+	IsDateTimeModifiedArray []bool      `json:"is_date_time_modified_array"`
+	RecurrenceIds           []uuid.UUID `json:"recurrence_ids"`
+	CreatedByIds            []uuid.UUID `json:"created_by_ids"`
+	IsCancelledArray        []bool      `json:"is_cancelled_array"`
+	CancellationReasons     []string    `json:"cancellation_reasons"`
+	PriceIds                []string    `json:"price_ids"`
+	CreditCosts             []int32     `json:"credit_costs"`
 }
 
 func (q *Queries) CreateEvents(ctx context.Context, arg CreateEventsParams) (int64, error) {
@@ -99,7 +144,6 @@ func (q *Queries) CreateEvents(ctx context.Context, arg CreateEventsParams) (int
 		pq.Array(arg.CreatedByIds),
 		pq.Array(arg.IsCancelledArray),
 		pq.Array(arg.CancellationReasons),
-		pq.Array(arg.RequiredMembershipPlanIds),
 		pq.Array(arg.PriceIds),
 		pq.Array(arg.CreditCosts),
 	)
@@ -121,7 +165,7 @@ func (q *Queries) DeleteEventsByIds(ctx context.Context, ids []uuid.UUID) error 
 }
 
 const getEventById = `-- name: GetEventById :one
-SELECT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.is_cancelled, e.cancellation_reason, e.created_at, e.updated_at, e.is_date_time_modified, e.recurrence_id, e.court_id, e.required_membership_plan_id, e.price_id, e.credit_cost,
+SELECT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.is_cancelled, e.cancellation_reason, e.created_at, e.updated_at, e.is_date_time_modified, e.recurrence_id, e.court_id, e.price_id, e.credit_cost,
 
        creator.first_name AS creator_first_name,
        creator.last_name  AS creator_last_name,
@@ -148,36 +192,35 @@ WHERE e.id = $1
 `
 
 type GetEventByIdRow struct {
-	ID                       uuid.UUID          `json:"id"`
-	LocationID               uuid.UUID          `json:"location_id"`
-	ProgramID                uuid.UUID          `json:"program_id"`
-	TeamID                   uuid.NullUUID      `json:"team_id"`
-	StartAt                  time.Time          `json:"start_at"`
-	EndAt                    time.Time          `json:"end_at"`
-	CreatedBy                uuid.UUID          `json:"created_by"`
-	UpdatedBy                uuid.UUID          `json:"updated_by"`
-	IsCancelled              bool               `json:"is_cancelled"`
-	CancellationReason       sql.NullString     `json:"cancellation_reason"`
-	CreatedAt                time.Time          `json:"created_at"`
-	UpdatedAt                time.Time          `json:"updated_at"`
-	IsDateTimeModified       bool               `json:"is_date_time_modified"`
-	RecurrenceID             uuid.NullUUID      `json:"recurrence_id"`
-	CourtID                  uuid.NullUUID      `json:"court_id"`
-	RequiredMembershipPlanID uuid.NullUUID      `json:"required_membership_plan_id"`
-	PriceID                  sql.NullString     `json:"price_id"`
-	CreditCost               sql.NullInt32      `json:"credit_cost"`
-	CreatorFirstName         string             `json:"creator_first_name"`
-	CreatorLastName          string             `json:"creator_last_name"`
-	UpdaterFirstName         string             `json:"updater_first_name"`
-	UpdaterLastName          string             `json:"updater_last_name"`
-	ProgramName              string             `json:"program_name"`
-	ProgramDescription       string             `json:"program_description"`
-	ProgramType              ProgramProgramType `json:"program_type"`
-	ProgramPhotoUrl          sql.NullString     `json:"program_photo_url"`
-	LocationName             string             `json:"location_name"`
-	LocationAddress          string             `json:"location_address"`
-	CourtName                sql.NullString     `json:"court_name"`
-	TeamName                 sql.NullString     `json:"team_name"`
+	ID                 uuid.UUID          `json:"id"`
+	LocationID         uuid.UUID          `json:"location_id"`
+	ProgramID          uuid.UUID          `json:"program_id"`
+	TeamID             uuid.NullUUID      `json:"team_id"`
+	StartAt            time.Time          `json:"start_at"`
+	EndAt              time.Time          `json:"end_at"`
+	CreatedBy          uuid.UUID          `json:"created_by"`
+	UpdatedBy          uuid.UUID          `json:"updated_by"`
+	IsCancelled        bool               `json:"is_cancelled"`
+	CancellationReason sql.NullString     `json:"cancellation_reason"`
+	CreatedAt          time.Time          `json:"created_at"`
+	UpdatedAt          time.Time          `json:"updated_at"`
+	IsDateTimeModified bool               `json:"is_date_time_modified"`
+	RecurrenceID       uuid.NullUUID      `json:"recurrence_id"`
+	CourtID            uuid.NullUUID      `json:"court_id"`
+	PriceID            sql.NullString     `json:"price_id"`
+	CreditCost         sql.NullInt32      `json:"credit_cost"`
+	CreatorFirstName   string             `json:"creator_first_name"`
+	CreatorLastName    string             `json:"creator_last_name"`
+	UpdaterFirstName   string             `json:"updater_first_name"`
+	UpdaterLastName    string             `json:"updater_last_name"`
+	ProgramName        string             `json:"program_name"`
+	ProgramDescription string             `json:"program_description"`
+	ProgramType        ProgramProgramType `json:"program_type"`
+	ProgramPhotoUrl    sql.NullString     `json:"program_photo_url"`
+	LocationName       string             `json:"location_name"`
+	LocationAddress    string             `json:"location_address"`
+	CourtName          sql.NullString     `json:"court_name"`
+	TeamName           sql.NullString     `json:"team_name"`
 }
 
 func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdRow, error) {
@@ -199,7 +242,6 @@ func (q *Queries) GetEventById(ctx context.Context, id uuid.UUID) (GetEventByIdR
 		&i.IsDateTimeModified,
 		&i.RecurrenceID,
 		&i.CourtID,
-		&i.RequiredMembershipPlanID,
 		&i.PriceID,
 		&i.CreditCost,
 		&i.CreatorFirstName,
@@ -274,6 +316,41 @@ func (q *Queries) GetEventCustomers(ctx context.Context, eventID uuid.UUID) ([]G
 	return items, nil
 }
 
+const getEventMembershipPlans = `-- name: GetEventMembershipPlans :many
+SELECT mp.id, mp.name
+FROM events.event_membership_access ema
+JOIN membership.membership_plans mp ON ema.membership_plan_id = mp.id
+WHERE ema.event_id = $1
+`
+
+type GetEventMembershipPlansRow struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+func (q *Queries) GetEventMembershipPlans(ctx context.Context, eventID uuid.UUID) ([]GetEventMembershipPlansRow, error) {
+	rows, err := q.db.QueryContext(ctx, getEventMembershipPlans, eventID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetEventMembershipPlansRow
+	for rows.Next() {
+		var i GetEventMembershipPlansRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getEventStaffs = `-- name: GetEventStaffs :many
 SELECT s.id         AS staff_id,
        sr.role_name AS staff_role_name,
@@ -331,7 +408,7 @@ func (q *Queries) GetEventStaffs(ctx context.Context, eventID uuid.UUID) ([]GetE
 }
 
 const getEvents = `-- name: GetEvents :many
-SELECT DISTINCT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.is_cancelled, e.cancellation_reason, e.created_at, e.updated_at, e.is_date_time_modified, e.recurrence_id, e.court_id, e.required_membership_plan_id, e.price_id, e.credit_cost,
+SELECT DISTINCT e.id, e.location_id, e.program_id, e.team_id, e.start_at, e.end_at, e.created_by, e.updated_by, e.is_cancelled, e.cancellation_reason, e.created_at, e.updated_at, e.is_date_time_modified, e.recurrence_id, e.court_id, e.price_id, e.credit_cost,
 
                 creator.first_name AS creator_first_name,
                 creator.last_name  AS creator_last_name,
@@ -390,36 +467,35 @@ type GetEventsParams struct {
 }
 
 type GetEventsRow struct {
-	ID                       uuid.UUID          `json:"id"`
-	LocationID               uuid.UUID          `json:"location_id"`
-	ProgramID                uuid.UUID          `json:"program_id"`
-	TeamID                   uuid.NullUUID      `json:"team_id"`
-	StartAt                  time.Time          `json:"start_at"`
-	EndAt                    time.Time          `json:"end_at"`
-	CreatedBy                uuid.UUID          `json:"created_by"`
-	UpdatedBy                uuid.UUID          `json:"updated_by"`
-	IsCancelled              bool               `json:"is_cancelled"`
-	CancellationReason       sql.NullString     `json:"cancellation_reason"`
-	CreatedAt                time.Time          `json:"created_at"`
-	UpdatedAt                time.Time          `json:"updated_at"`
-	IsDateTimeModified       bool               `json:"is_date_time_modified"`
-	RecurrenceID             uuid.NullUUID      `json:"recurrence_id"`
-	CourtID                  uuid.NullUUID      `json:"court_id"`
-	RequiredMembershipPlanID uuid.NullUUID      `json:"required_membership_plan_id"`
-	PriceID                  sql.NullString     `json:"price_id"`
-	CreditCost               sql.NullInt32      `json:"credit_cost"`
-	CreatorFirstName         string             `json:"creator_first_name"`
-	CreatorLastName          string             `json:"creator_last_name"`
-	UpdaterFirstName         string             `json:"updater_first_name"`
-	UpdaterLastName          string             `json:"updater_last_name"`
-	ProgramName              string             `json:"program_name"`
-	ProgramDescription       string             `json:"program_description"`
-	ProgramType              ProgramProgramType `json:"program_type"`
-	ProgramPhotoUrl          sql.NullString     `json:"program_photo_url"`
-	LocationName             string             `json:"location_name"`
-	LocationAddress          string             `json:"location_address"`
-	CourtName                sql.NullString     `json:"court_name"`
-	TeamName                 sql.NullString     `json:"team_name"`
+	ID                 uuid.UUID          `json:"id"`
+	LocationID         uuid.UUID          `json:"location_id"`
+	ProgramID          uuid.UUID          `json:"program_id"`
+	TeamID             uuid.NullUUID      `json:"team_id"`
+	StartAt            time.Time          `json:"start_at"`
+	EndAt              time.Time          `json:"end_at"`
+	CreatedBy          uuid.UUID          `json:"created_by"`
+	UpdatedBy          uuid.UUID          `json:"updated_by"`
+	IsCancelled        bool               `json:"is_cancelled"`
+	CancellationReason sql.NullString     `json:"cancellation_reason"`
+	CreatedAt          time.Time          `json:"created_at"`
+	UpdatedAt          time.Time          `json:"updated_at"`
+	IsDateTimeModified bool               `json:"is_date_time_modified"`
+	RecurrenceID       uuid.NullUUID      `json:"recurrence_id"`
+	CourtID            uuid.NullUUID      `json:"court_id"`
+	PriceID            sql.NullString     `json:"price_id"`
+	CreditCost         sql.NullInt32      `json:"credit_cost"`
+	CreatorFirstName   string             `json:"creator_first_name"`
+	CreatorLastName    string             `json:"creator_last_name"`
+	UpdaterFirstName   string             `json:"updater_first_name"`
+	UpdaterLastName    string             `json:"updater_last_name"`
+	ProgramName        string             `json:"program_name"`
+	ProgramDescription string             `json:"program_description"`
+	ProgramType        ProgramProgramType `json:"program_type"`
+	ProgramPhotoUrl    sql.NullString     `json:"program_photo_url"`
+	LocationName       string             `json:"location_name"`
+	LocationAddress    string             `json:"location_address"`
+	CourtName          sql.NullString     `json:"court_name"`
+	TeamName           sql.NullString     `json:"team_name"`
 }
 
 func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEventsRow, error) {
@@ -461,7 +537,6 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 			&i.IsDateTimeModified,
 			&i.RecurrenceID,
 			&i.CourtID,
-			&i.RequiredMembershipPlanID,
 			&i.PriceID,
 			&i.CreditCost,
 			&i.CreatorFirstName,
@@ -490,40 +565,73 @@ func (q *Queries) GetEvents(ctx context.Context, arg GetEventsParams) ([]GetEven
 	return items, nil
 }
 
+const removeEventMembershipAccess = `-- name: RemoveEventMembershipAccess :exec
+DELETE FROM events.event_membership_access
+WHERE event_id = $1 AND membership_plan_id = $2
+`
+
+type RemoveEventMembershipAccessParams struct {
+	EventID          uuid.UUID `json:"event_id"`
+	MembershipPlanID uuid.UUID `json:"membership_plan_id"`
+}
+
+func (q *Queries) RemoveEventMembershipAccess(ctx context.Context, arg RemoveEventMembershipAccessParams) error {
+	_, err := q.db.ExecContext(ctx, removeEventMembershipAccess, arg.EventID, arg.MembershipPlanID)
+	return err
+}
+
+const setEventMembershipAccess = `-- name: SetEventMembershipAccess :exec
+WITH deleted AS (
+    DELETE FROM events.event_membership_access
+    WHERE event_id = $1
+)
+INSERT INTO events.event_membership_access (event_id, membership_plan_id)
+SELECT $1, unnest($2::uuid[])
+ON CONFLICT (event_id, membership_plan_id) DO NOTHING
+`
+
+type SetEventMembershipAccessParams struct {
+	EventID           uuid.UUID   `json:"event_id"`
+	MembershipPlanIds []uuid.UUID `json:"membership_plan_ids"`
+}
+
+func (q *Queries) SetEventMembershipAccess(ctx context.Context, arg SetEventMembershipAccessParams) error {
+	_, err := q.db.ExecContext(ctx, setEventMembershipAccess, arg.EventID, pq.Array(arg.MembershipPlanIds))
+	return err
+}
+
 const updateEvent = `-- name: UpdateEvent :one
 UPDATE events.events
-SET start_at                    = $1,
-    end_at                      = $2,
-    location_id                 = $3,
-    program_id                  = $4,
-    court_id                    = $5,
-    team_id                     = $6,
-    is_cancelled                = $7,
-    cancellation_reason         = $8,
-    updated_at                  = current_timestamp,
-    updated_by                  = $13::uuid,
-    is_date_time_modified       = (recurrence_id IS NOT NULL),
-    required_membership_plan_id = $10,
-    price_id                    = $11,
-    credit_cost                 = $12
+SET start_at              = $1,
+    end_at                = $2,
+    location_id           = $3,
+    program_id            = $4,
+    court_id              = $5,
+    team_id               = $6,
+    is_cancelled          = $7,
+    cancellation_reason   = $8,
+    updated_at            = current_timestamp,
+    updated_by            = $12::uuid,
+    is_date_time_modified = (recurrence_id IS NOT NULL),
+    price_id              = $10,
+    credit_cost           = $11
 WHERE id = $9
-RETURNING id, location_id, program_id, team_id, start_at, end_at, created_by, updated_by, is_cancelled, cancellation_reason, created_at, updated_at, is_date_time_modified, recurrence_id, court_id, required_membership_plan_id, price_id, credit_cost
+RETURNING id, location_id, program_id, team_id, start_at, end_at, created_by, updated_by, is_cancelled, cancellation_reason, created_at, updated_at, is_date_time_modified, recurrence_id, court_id, price_id, credit_cost
 `
 
 type UpdateEventParams struct {
-	StartAt                  time.Time      `json:"start_at"`
-	EndAt                    time.Time      `json:"end_at"`
-	LocationID               uuid.UUID      `json:"location_id"`
-	ProgramID                uuid.UUID      `json:"program_id"`
-	CourtID                  uuid.NullUUID  `json:"court_id"`
-	TeamID                   uuid.NullUUID  `json:"team_id"`
-	IsCancelled              bool           `json:"is_cancelled"`
-	CancellationReason       sql.NullString `json:"cancellation_reason"`
-	ID                       uuid.UUID      `json:"id"`
-	RequiredMembershipPlanID uuid.NullUUID  `json:"required_membership_plan_id"`
-	PriceID                  sql.NullString `json:"price_id"`
-	CreditCost               sql.NullInt32  `json:"credit_cost"`
-	UpdatedBy                uuid.UUID      `json:"updated_by"`
+	StartAt            time.Time      `json:"start_at"`
+	EndAt              time.Time      `json:"end_at"`
+	LocationID         uuid.UUID      `json:"location_id"`
+	ProgramID          uuid.UUID      `json:"program_id"`
+	CourtID            uuid.NullUUID  `json:"court_id"`
+	TeamID             uuid.NullUUID  `json:"team_id"`
+	IsCancelled        bool           `json:"is_cancelled"`
+	CancellationReason sql.NullString `json:"cancellation_reason"`
+	ID                 uuid.UUID      `json:"id"`
+	PriceID            sql.NullString `json:"price_id"`
+	CreditCost         sql.NullInt32  `json:"credit_cost"`
+	UpdatedBy          uuid.UUID      `json:"updated_by"`
 }
 
 func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (EventsEvent, error) {
@@ -537,7 +645,6 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 		arg.IsCancelled,
 		arg.CancellationReason,
 		arg.ID,
-		arg.RequiredMembershipPlanID,
 		arg.PriceID,
 		arg.CreditCost,
 		arg.UpdatedBy,
@@ -559,7 +666,6 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 		&i.IsDateTimeModified,
 		&i.RecurrenceID,
 		&i.CourtID,
-		&i.RequiredMembershipPlanID,
 		&i.PriceID,
 		&i.CreditCost,
 	)

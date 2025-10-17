@@ -480,24 +480,30 @@ type EventsCustomerEnrollment struct {
 }
 
 type EventsEvent struct {
-	ID                       uuid.UUID      `json:"id"`
-	LocationID               uuid.UUID      `json:"location_id"`
-	ProgramID                uuid.UUID      `json:"program_id"`
-	TeamID                   uuid.NullUUID  `json:"team_id"`
-	StartAt                  time.Time      `json:"start_at"`
-	EndAt                    time.Time      `json:"end_at"`
-	CreatedBy                uuid.UUID      `json:"created_by"`
-	UpdatedBy                uuid.UUID      `json:"updated_by"`
-	IsCancelled              bool           `json:"is_cancelled"`
-	CancellationReason       sql.NullString `json:"cancellation_reason"`
-	CreatedAt                time.Time      `json:"created_at"`
-	UpdatedAt                time.Time      `json:"updated_at"`
-	IsDateTimeModified       bool           `json:"is_date_time_modified"`
-	RecurrenceID             uuid.NullUUID  `json:"recurrence_id"`
-	CourtID                  uuid.NullUUID  `json:"court_id"`
-	RequiredMembershipPlanID uuid.NullUUID  `json:"required_membership_plan_id"`
-	PriceID                  sql.NullString `json:"price_id"`
-	CreditCost               sql.NullInt32  `json:"credit_cost"`
+	ID                 uuid.UUID      `json:"id"`
+	LocationID         uuid.UUID      `json:"location_id"`
+	ProgramID          uuid.UUID      `json:"program_id"`
+	TeamID             uuid.NullUUID  `json:"team_id"`
+	StartAt            time.Time      `json:"start_at"`
+	EndAt              time.Time      `json:"end_at"`
+	CreatedBy          uuid.UUID      `json:"created_by"`
+	UpdatedBy          uuid.UUID      `json:"updated_by"`
+	IsCancelled        bool           `json:"is_cancelled"`
+	CancellationReason sql.NullString `json:"cancellation_reason"`
+	CreatedAt          time.Time      `json:"created_at"`
+	UpdatedAt          time.Time      `json:"updated_at"`
+	IsDateTimeModified bool           `json:"is_date_time_modified"`
+	RecurrenceID       uuid.NullUUID  `json:"recurrence_id"`
+	CourtID            uuid.NullUUID  `json:"court_id"`
+	PriceID            sql.NullString `json:"price_id"`
+	CreditCost         sql.NullInt32  `json:"credit_cost"`
+}
+
+type EventsEventMembershipAccess struct {
+	ID               uuid.UUID    `json:"id"`
+	EventID          uuid.UUID    `json:"event_id"`
+	MembershipPlanID uuid.UUID    `json:"membership_plan_id"`
+	CreatedAt        sql.NullTime `json:"created_at"`
 }
 
 type EventsStaff struct {

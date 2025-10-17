@@ -37,27 +37,27 @@ type ReadRecurrenceValues struct {
 
 type CreateRecurrenceValues struct {
 	BaseRecurrenceValues
-	CreatedBy                uuid.UUID
-	StartAt                  time.Time
-	EndAt                    time.Time
-	ProgramID                uuid.UUID
-	LocationID               uuid.UUID
-	CourtID                  uuid.UUID
-	TeamID                   uuid.UUID
-	RequiredMembershipPlanID uuid.UUID
-	PriceID                  string
-	CreditCost               *int32
+	CreatedBy                 uuid.UUID
+	StartAt                   time.Time
+	EndAt                     time.Time
+	ProgramID                 uuid.UUID
+	LocationID                uuid.UUID
+	CourtID                   uuid.UUID
+	TeamID                    uuid.UUID
+	RequiredMembershipPlanIDs []uuid.UUID
+	PriceID                   string
+	CreditCost                *int32
 }
 
 type UpdateRecurrenceValues struct {
 	BaseRecurrenceValues
-	ID                       uuid.UUID
-	ProgramID                uuid.UUID
-	TeamID                   uuid.UUID
-	LocationID               uuid.UUID
-	CourtID                  uuid.UUID
-	UpdatedBy                uuid.UUID
-	RequiredMembershipPlanID uuid.UUID
-	PriceID                  string
-	CreditCost               *int32
+	ID                        uuid.UUID
+	ProgramID                 uuid.UUID
+	TeamID                    uuid.UUID
+	LocationID                uuid.UUID
+	CourtID                   uuid.UUID
+	UpdatedBy                 uuid.UUID
+	RequiredMembershipPlanIDs []uuid.UUID
+	PriceID                   string
+	CreditCost                *int32
 }

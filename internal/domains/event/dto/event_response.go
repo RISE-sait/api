@@ -65,17 +65,17 @@ type (
 	}
 
 	EventResponseDto struct {
-		ID                       uuid.UUID         `json:"id"`
-		Program                  ProgramInfo       `json:"program"`
-		Location                 LocationInfo      `json:"location"`
-		Capacity                 int32             `json:"capacity"`
-		CreatedBy                PersonResponseDto `json:"created_by"`
-		UpdatedBy                PersonResponseDto `json:"updated_by"`
-		Team                     *TeamInfo         `json:"team,omitempty"`
-		Court                    *CourtInfo        `json:"court,omitempty"`
-		RequiredMembershipPlanID *uuid.UUID        `json:"required_membership_plan_id,omitempty"`
-		PriceID                  *string           `json:"price_id,omitempty"`
-		CreditCost               *int32            `json:"credit_cost,omitempty"`
+		ID                        uuid.UUID         `json:"id"`
+		Program                   ProgramInfo       `json:"program"`
+		Location                  LocationInfo      `json:"location"`
+		Capacity                  int32             `json:"capacity"`
+		CreatedBy                 PersonResponseDto `json:"created_by"`
+		UpdatedBy                 PersonResponseDto `json:"updated_by"`
+		Team                      *TeamInfo         `json:"team,omitempty"`
+		Court                     *CourtInfo        `json:"court,omitempty"`
+		RequiredMembershipPlanIDs []uuid.UUID       `json:"required_membership_plan_ids,omitempty"`
+		PriceID                   *string           `json:"price_id,omitempty"`
+		CreditCost                *int32            `json:"credit_cost,omitempty"`
 		DateResponseDto
 		*Participants
 	}
@@ -83,13 +83,13 @@ type (
 
 func NewEventResponseDto(event values.ReadEventValues, includePeople bool) EventResponseDto {
 	response := EventResponseDto{
-		ID:                       event.ID,
-		Capacity:                 event.Capacity,
-		CreatedBy:                PersonResponseDto(event.CreatedBy),
-		UpdatedBy:                PersonResponseDto(event.UpdatedBy),
-		RequiredMembershipPlanID: event.RequiredMembershipPlanID,
-		PriceID:                  event.PriceID,
-		CreditCost:               event.CreditCost,
+		ID:                        event.ID,
+		Capacity:                  event.Capacity,
+		CreatedBy:                 PersonResponseDto(event.CreatedBy),
+		UpdatedBy:                 PersonResponseDto(event.UpdatedBy),
+		RequiredMembershipPlanIDs: event.RequiredMembershipPlanIDs,
+		PriceID:                   event.PriceID,
+		CreditCost:                event.CreditCost,
 		Location: LocationInfo{
 			ID:      event.Location.ID,
 			Name:    event.Location.Name,

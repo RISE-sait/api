@@ -38,20 +38,34 @@ func (r *CustomerCreditRepository) GetCustomerCredits(ctx context.Context, custo
 	credits, err := r.queries.GetCustomerCredits(ctx, customerID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			// Customer doesn't have credit record yet, create one with 0 balance
-			if err := r.queries.CreateCustomerCredits(ctx, dbUser.CreateCustomerCreditsParams{
-				CustomerID: customerID,
-				Credits:    0,
-			}); err != nil {
-				log.Printf("Error creating customer credits record: %v", err)
-				return 0, errLib.New("Failed to initialize customer credits", http.StatusInternalServerError)
-			}
+			// Customer doesn't have credit record yet - return 0 without creating
 			return 0, nil
 		}
 		log.Printf("Error getting customer credits: %v", err)
 		return 0, errLib.New("Failed to retrieve customer credits", http.StatusInternalServerError)
 	}
 	return credits, nil
+}
+
+// EnsureCustomerCreditsExist ensures a credit record exists for the customer, creating one with 0 balance if needed
+func (r *CustomerCreditRepository) EnsureCustomerCreditsExist(ctx context.Context, customerID uuid.UUID) *errLib.CommonError {
+	_, err := r.queries.GetCustomerCredits(ctx, customerID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			// Create record with 0 balance
+			if createErr := r.queries.CreateCustomerCredits(ctx, dbUser.CreateCustomerCreditsParams{
+				CustomerID: customerID,
+				Credits:    0,
+			}); createErr != nil {
+				log.Printf("Error creating customer credits record: %v", createErr)
+				return errLib.New("Failed to initialize customer credits", http.StatusInternalServerError)
+			}
+			return nil
+		}
+		log.Printf("Error checking customer credits: %v", err)
+		return errLib.New("Failed to check customer credits", http.StatusInternalServerError)
+	}
+	return nil
 }
 
 // HasSufficientCredits checks if customer has enough credits for a transaction

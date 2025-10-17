@@ -116,7 +116,7 @@ LIMIT 1;
 -- Prioritizes active credit package over membership plan
 SELECT
     COALESCE(wcu.credits_used, 0) as current_usage,
-    COALESCE(cacp.weekly_credit_limit, mp.weekly_credit_limit) as weekly_credit_limit,
+    COALESCE(cacp.weekly_credit_limit, mp.weekly_credit_limit, 0) as weekly_credit_limit,
     CASE
         -- First check if they have an active credit package
         WHEN cacp.weekly_credit_limit IS NOT NULL THEN

@@ -79,13 +79,49 @@ var constraintErrors = map[string]struct {
 	},
 }
 
+// SetEventMembershipPlans sets the membership plans for an event
+func (r *EventsRepository) SetEventMembershipPlans(ctx context.Context, eventID uuid.UUID, membershipPlanIDs []uuid.UUID) *errLib.CommonError {
+	if len(membershipPlanIDs) == 0 {
+		// Clear all membership plans if none provided
+		if err := r.Queries.ClearEventMembershipAccess(ctx, eventID); err != nil {
+			log.Printf("Failed to clear membership plans for event %s: %v", eventID, err)
+			return errLib.New("Failed to update event membership plans", http.StatusInternalServerError)
+		}
+		return nil
+	}
+
+	if err := r.Queries.SetEventMembershipAccess(ctx, db.SetEventMembershipAccessParams{
+		EventID:            eventID,
+		MembershipPlanIds: membershipPlanIDs,
+	}); err != nil {
+		log.Printf("Failed to set membership plans for event %s: %v", eventID, err)
+		return errLib.New("Failed to update event membership plans", http.StatusInternalServerError)
+	}
+	return nil
+}
+
+// GetEventMembershipPlanIDs retrieves the membership plan IDs for an event
+func (r *EventsRepository) GetEventMembershipPlanIDs(ctx context.Context, eventID uuid.UUID) ([]uuid.UUID, *errLib.CommonError) {
+	plans, err := r.Queries.GetEventMembershipPlans(ctx, eventID)
+	if err != nil {
+		log.Printf("Failed to get membership plans for event %s: %v", eventID, err)
+		return nil, errLib.New("Failed to retrieve event membership plans", http.StatusInternalServerError)
+	}
+
+	ids := make([]uuid.UUID, len(plans))
+	for i, plan := range plans {
+		ids[i] = plan.ID
+	}
+	return ids, nil
+}
+
 func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []values.CreateEventValues) *errLib.CommonError {
 	var (
-		locationIDs, programIDs, courtIDs, teamIDs, createdByIds, recurrenceIds, membershipPlanIDs []uuid.UUID
-		startAtArray, endAtArray                                                                   []time.Time
-		isCancelledArray, isDateTimeModifiedArray                                                  []bool
-		priceIDs                                                                                   []string
-		creditCosts                                                                                []int32
+		locationIDs, programIDs, courtIDs, teamIDs, createdByIds, recurrenceIds []uuid.UUID
+		startAtArray, endAtArray                                                []time.Time
+		isCancelledArray, isDateTimeModifiedArray                               []bool
+		priceIDs                                                                []string
+		creditCosts                                                             []int32
 	)
 
 	recurrenceId := uuid.Nil
@@ -105,7 +141,6 @@ func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []valu
 		createdByIds = append(createdByIds, event.CreatedBy)
 		isCancelledArray = append(isCancelledArray, false)
 		isDateTimeModifiedArray = append(isDateTimeModifiedArray, false)
-		membershipPlanIDs = append(membershipPlanIDs, event.RequiredMembershipPlanID)
 		priceIDs = append(priceIDs, event.PriceID)
 
 		// Handle credit cost - sqlc doesn't support nullable arrays, so use 0 for null
@@ -117,20 +152,19 @@ func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []valu
 	}
 
 	dbParams := db.CreateEventsParams{
-		LocationIds:               locationIDs,
-		ProgramIds:                programIDs,
-		CourtIds:                  courtIDs,
-		TeamIds:                   teamIDs,
-		StartAtArray:              startAtArray,
-		EndAtArray:                endAtArray,
-		CreatedByIds:              createdByIds,
-		RecurrenceIds:             recurrenceIds,
-		IsCancelledArray:          isCancelledArray,
-		IsDateTimeModifiedArray:   isDateTimeModifiedArray,
-		CancellationReasons:       nil,
-		RequiredMembershipPlanIds: membershipPlanIDs,
-		PriceIds:                  priceIDs,
-		CreditCosts:               creditCosts,
+		LocationIds:             locationIDs,
+		ProgramIds:              programIDs,
+		CourtIds:                courtIDs,
+		TeamIds:                 teamIDs,
+		StartAtArray:            startAtArray,
+		EndAtArray:              endAtArray,
+		CreatedByIds:            createdByIds,
+		RecurrenceIds:           recurrenceIds,
+		IsCancelledArray:        isCancelledArray,
+		IsDateTimeModifiedArray: isDateTimeModifiedArray,
+		CancellationReasons:     nil,
+		PriceIds:                priceIDs,
+		CreditCosts:             creditCosts,
 	}
 
 	impactedRows, dbErr := r.Queries.CreateEvents(ctx, dbParams)
@@ -162,6 +196,13 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 			return values.ReadEventValues{}, errLib.New("Event not found", http.StatusNotFound)
 		}
 		log.Println("Failed to get event from db: ", err.Error())
+		return values.ReadEventValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	// Get membership plan IDs for this event
+	membershipPlanIDs, membershipErr := r.GetEventMembershipPlanIDs(ctx, id)
+	if membershipErr != nil {
+		log.Println("Failed to get event membership plans from db: ", membershipErr.Error())
 		return values.ReadEventValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
@@ -203,9 +244,9 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 			FirstName: dbEvent.UpdaterFirstName,
 			LastName:  dbEvent.UpdaterLastName,
 		},
-		RequiredMembershipPlanID: nullUUIDToPtr(dbEvent.RequiredMembershipPlanID),
-		PriceID:                  nullStringToPtr(dbEvent.PriceID),
-		CreditCost:               nullInt32ToPtr(dbEvent.CreditCost),
+		RequiredMembershipPlanIDs: membershipPlanIDs,
+		PriceID:                   nullStringToPtr(dbEvent.PriceID),
+		CreditCost:                nullInt32ToPtr(dbEvent.CreditCost),
 	}
 
 	if dbEvent.CourtID.Valid && dbEvent.CourtName.Valid {
@@ -345,9 +386,8 @@ func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEvent
 				Type:        string(row.ProgramType),
 				PhotoURL:    nullStringToPtr(row.ProgramPhotoUrl),
 			},
-			RequiredMembershipPlanID: nullUUIDToPtr(row.RequiredMembershipPlanID),
-			PriceID:                  nullStringToPtr(row.PriceID),
-			CreditCost:               nullInt32ToPtr(row.CreditCost),
+			PriceID:    nullStringToPtr(row.PriceID),
+			CreditCost: nullInt32ToPtr(row.CreditCost),
 		}
 
 		if row.TeamID.Valid && row.TeamName.Valid {
@@ -429,10 +469,6 @@ func (r *EventsRepository) UpdateEvent(ctx context.Context, event values.UpdateE
 		IsCancelled:        false,
 		CancellationReason: sql.NullString{},
 		ID:                 event.ID,
-		RequiredMembershipPlanID: uuid.NullUUID{
-			UUID:  event.RequiredMembershipPlanID,
-			Valid: event.RequiredMembershipPlanID != uuid.Nil,
-		},
 		PriceID: sql.NullString{
 			String: event.PriceID,
 			Valid:  event.PriceID != "",

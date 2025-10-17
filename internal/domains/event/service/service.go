@@ -77,7 +77,7 @@ func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurre
 		details.LocationID,
 		details.CourtID,
 		details.TeamID,
-		details.RequiredMembershipPlanID,
+		details.RequiredMembershipPlanIDs,
 		details.PriceID,
 		details.DayOfWeek,
 		details.CreditCost,
@@ -103,9 +103,15 @@ func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurre
 
 func (s *Service) CreateEvent(ctx context.Context, details values.CreateEventValues) *errLib.CommonError {
 	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
+		// TODO: We need to get the event ID after creation to set membership plans
+		// For now, CreateEvents doesn't return IDs, so this is a limitation
+		// We'll need to update this when we add support for returning created event IDs
 		if err := txRepo.CreateEvents(ctx, []values.CreateEventValues{details}); err != nil {
 			return err
 		}
+
+		// Note: Membership plan associations need to be set separately after event creation
+		// This requires updating the CreateEvents method to return created event IDs
 
 		isStaff, err := contextUtils.IsStaff(ctx)
 		if err != nil {
@@ -127,6 +133,11 @@ func (s *Service) CreateEvent(ctx context.Context, details values.CreateEventVal
 func (s *Service) UpdateEvent(ctx context.Context, details values.UpdateEventValues) *errLib.CommonError {
 	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
 		if err := txRepo.UpdateEvent(ctx, details); err != nil {
+			return err
+		}
+
+		// Update membership plan associations
+		if err := txRepo.SetEventMembershipPlans(ctx, details.ID, details.RequiredMembershipPlanIDs); err != nil {
 			return err
 		}
 
@@ -169,7 +180,7 @@ func (s *Service) UpdateRecurringEvents(ctx context.Context, details values.Upda
 			details.LocationID,
 			details.CourtID,
 			details.TeamID,
-			details.RequiredMembershipPlanID,
+			details.RequiredMembershipPlanIDs,
 			details.PriceID,
 			details.DayOfWeek,
 			details.CreditCost,
@@ -250,7 +261,8 @@ func (s *Service) GetEventsRecurrences(ctx context.Context, filter values.GetEve
 func generateEventsFromRecurrence(
 	firstOccurrence, lastOccurrence time.Time,
 	startTimeStr, endTimeStr string,
-	mutater, programID, locationID, courtID, teamID, membershipPlanID uuid.UUID,
+	mutater, programID, locationID, courtID, teamID uuid.UUID,
+	membershipPlanIDs []uuid.UUID,
 	priceID string,
 	day time.Weekday,
 	creditCost *int32,
@@ -290,15 +302,15 @@ func generateEventsFromRecurrence(
 		events = append(events, values.CreateEventValues{
 			CreatedBy: mutater,
 			EventDetails: values.EventDetails{
-				StartAt:                  start,
-				EndAt:                    end,
-				ProgramID:                programID,
-				LocationID:               locationID,
-				CourtID:                  courtID,
-				TeamID:                   teamID,
-				RequiredMembershipPlanID: membershipPlanID,
-				PriceID:                  priceID,
-				CreditCost:               creditCost,
+				StartAt:                   start,
+				EndAt:                     end,
+				ProgramID:                 programID,
+				LocationID:                locationID,
+				CourtID:                   courtID,
+				TeamID:                    teamID,
+				RequiredMembershipPlanIDs: membershipPlanIDs,
+				PriceID:                   priceID,
+				CreditCost:                creditCost,
 			},
 		})
 	}

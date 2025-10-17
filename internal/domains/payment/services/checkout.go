@@ -170,24 +170,26 @@ func (s *Service) CheckEventEnrollmentOptions(ctx context.Context, eventID uuid.
 	}
 
 	options := &EventEnrollmentOptions{}
-	
-	// Check if event has required membership
-	if event.RequiredMembershipPlanID != nil {
-		membershipPlanID := event.RequiredMembershipPlanID.String()
-		options.MembershipPlanID = &membershipPlanID
-		
-		// Check if customer has this membership
-		hasActiveMembership, err := s.CheckoutRepo.CheckCustomerHasActiveMembership(ctx, customerID, *event.RequiredMembershipPlanID)
+
+	// Check if event has required membership plans
+	if len(event.RequiredMembershipPlanIDs) > 0 {
+		// Event requires membership - check if customer has ANY of the required memberships
+		hasAccess, err := s.CheckoutRepo.CheckCustomerHasEventMembershipAccess(ctx, eventID, customerID)
 		if err != nil {
 			return nil, err
 		}
-		
-		if hasActiveMembership {
-			// Customer has required membership, can enroll for free
+
+		if hasAccess {
+			// Customer has one of the required memberships, can enroll for free
 			options.CanEnrollFree = true
+			// Store the first membership plan ID for reference (optional)
+			if len(event.RequiredMembershipPlanIDs) > 0 {
+				membershipPlanID := event.RequiredMembershipPlanIDs[0].String()
+				options.MembershipPlanID = &membershipPlanID
+			}
 			return options, nil
 		}
-		// Customer doesn't have required membership, need to check payment options
+		// Customer doesn't have any required membership, need to check payment options
 	} else {
 		// No membership requirement, check if event is free
 		if event.PriceID == nil && event.CreditCost == nil {

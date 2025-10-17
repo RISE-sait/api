@@ -205,6 +205,25 @@ func (q *Queries) GetTeamOfEvent(ctx context.Context, eventID uuid.UUID) (uuid.N
 	return id, err
 }
 
+const removeCustomerFromEvent = `-- name: RemoveCustomerFromEvent :execrows
+DELETE FROM events.customer_enrollment
+WHERE customer_id = $1
+  AND event_id = $2
+`
+
+type RemoveCustomerFromEventParams struct {
+	CustomerID uuid.UUID `json:"customer_id"`
+	EventID    uuid.UUID `json:"event_id"`
+}
+
+func (q *Queries) RemoveCustomerFromEvent(ctx context.Context, arg RemoveCustomerFromEventParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, removeCustomerFromEvent, arg.CustomerID, arg.EventID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const reserveSeatInEvent = `-- name: ReserveSeatInEvent :execrows
 INSERT INTO events.customer_enrollment
     (customer_id, event_id, payment_expired_at, payment_status)

@@ -344,6 +344,7 @@ func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/", handler.DeleteEvents)
 
 		r.Route("/{event_id}/staffs", RegisterEventStaffRoutes(container))
+		r.Route("/{event_id}/customers", RegisterEventCustomerRoutes(container))
 
 		r.Route("/recurring", RegisterRecurringEventRoutes(container))
 	}
@@ -365,6 +366,14 @@ func RegisterEventStaffRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/{staff_id}", h.AssignStaffToEvent)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{staff_id}", h.UnassignStaffFromEvent)
+	}
+}
+
+func RegisterEventCustomerRoutes(container *di.Container) func(chi.Router) {
+	h := enrollmentHandler.NewCustomerEnrollmentHandler(container)
+
+	return func(r chi.Router) {
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{customer_id}", h.RemoveCustomerFromEvent)
 	}
 }
 

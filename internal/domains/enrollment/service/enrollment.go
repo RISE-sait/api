@@ -100,6 +100,10 @@ func (s *CustomerEnrollmentService) UnEnrollCustomerFromEvent(ctx context.Contex
 	return s.repo.UnEnrollCustomerFromEvent(ctx, eventID, customerID)
 }
 
+func (s *CustomerEnrollmentService) RemoveCustomerFromEvent(ctx context.Context, eventID, customerID uuid.UUID) *errLib.CommonError {
+	return s.repo.RemoveCustomerFromEvent(ctx, eventID, customerID)
+}
+
 func (s *CustomerEnrollmentService) ReserveSeatInEvent(ctx context.Context, eventID, customerID uuid.UUID) *errLib.CommonError {
 	return s.executeInTx(ctx, func(r *repo.CustomerEnrollmentRepository) *errLib.CommonError {
 		if _, err := s.eventService.GetEvent(ctx, eventID); err != nil {

@@ -110,7 +110,7 @@ func (s *CreditPackageService) CheckoutCreditPackage(ctx context.Context, packag
 	// Create Stripe checkout session for one-time payment
 	// Pass packageID in metadata so webhook can identify the purchase
 	packageIDStr := packageID.String()
-	checkoutURL, err := stripe.CreateOneTimePayment(ctx, pkg.StripePriceID, 1, &packageIDStr, successURL)
+	checkoutURL, err := stripe.CreateOneTimePayment(ctx, pkg.StripePriceID, 1, &packageIDStr, nil, successURL)
 	if err != nil {
 		log.Printf("Failed to create Stripe checkout session: %v", err)
 		return "", err

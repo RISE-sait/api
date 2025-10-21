@@ -45,43 +45,52 @@ func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID u
 	if ctxErr != nil {
 		return "", ctxErr
 	}
-	
+
 	// SECURITY: Check if customer already has an active membership for this plan
 	hasActiveMembership, err := s.CheckoutRepo.CheckCustomerHasActiveMembership(ctx, customerID, membershipPlanID)
 	if err != nil {
 		return "", err
 	}
-	
+
 	if hasActiveMembership {
 		return "", errLib.New("Customer already has an active membership for this plan", http.StatusConflict)
 	}
-	
+
 	requirements, err := s.CheckoutRepo.GetMembershipPlanJoiningRequirement(ctx, membershipPlanID)
 	if err != nil {
 		return "", err
 	}
-		if discountCode != nil {
+
+	// Handle discount code if provided
+	var stripeCouponID *string
+	if discountCode != nil {
 		applied, err := s.DiscountService.ApplyDiscount(ctx, *discountCode, &membershipPlanID)
 		if err != nil {
 			return "", err
 		}
-		return stripe.CreateSubscriptionWithDiscountPercent(ctx, requirements.StripePriceID, requirements.StripeJoiningFeeID, applied.DiscountPercent, successURL)
+
+		// Validate that discount applies to subscriptions
+		if applied.AppliesTo != "subscription" && applied.AppliesTo != "both" {
+			return "", errLib.New("This discount code does not apply to subscriptions", http.StatusBadRequest)
+		}
+
+		stripeCouponID = applied.StripeCouponID
 	}
 
 	// Check if membership has any joining fee
 	if requirements.StripeJoiningFeeID != "" {
 		// Use recurring joining fee (annual/monthly) - existing function handles this
-		return stripe.CreateSubscription(ctx, requirements.StripePriceID, requirements.StripeJoiningFeeID, successURL)
+		return stripe.CreateSubscription(ctx, requirements.StripePriceID, requirements.StripeJoiningFeeID, stripeCouponID, successURL)
 	} else if requirements.JoiningFee > 0 {
 		// Use one-time setup fee
 		return stripe.CreateSubscriptionWithSetupFee(ctx, requirements.StripePriceID, requirements.JoiningFee, successURL)
 	} else {
 		// No joining fee - just regular subscription
-		return stripe.CreateSubscription(ctx, requirements.StripePriceID, "", successURL)
+		return stripe.CreateSubscription(ctx, requirements.StripePriceID, "", stripeCouponID, successURL)
 	}
 }
 
-func (s *Service) CheckoutProgram(ctx context.Context, programID uuid.UUID, successURL string) (string, *errLib.CommonError) {
+func (s *Service) CheckoutProgram(ctx context.Context, programID uuid.UUID, discountCode *string, successURL string) (string, *errLib.CommonError) {
 	customerID, ctxErr := contextUtils.GetUserID(ctx)
 	if ctxErr != nil {
 		return "", ctxErr
@@ -94,6 +103,22 @@ func (s *Service) CheckoutProgram(ctx context.Context, programID uuid.UUID, succ
 
 	if isPayPerEvent {
 		return "", errLib.New("program is not pay-per-event", http.StatusBadRequest)
+	}
+
+	// Handle discount code if provided
+	var stripeCouponID *string
+	if discountCode != nil {
+		applied, err := s.DiscountService.ApplyDiscount(ctx, *discountCode, nil)
+		if err != nil {
+			return "", err
+		}
+
+		// Validate that discount applies to one-time payments
+		if applied.AppliesTo != "one_time" && applied.AppliesTo != "both" {
+			return "", errLib.New("This discount code does not apply to one-time payments", http.StatusBadRequest)
+		}
+
+		stripeCouponID = applied.StripeCouponID
 	}
 
 	// reserve seat so that the database can assume that the customer is enrolled
@@ -110,10 +135,10 @@ func (s *Service) CheckoutProgram(ctx context.Context, programID uuid.UUID, succ
 	}
 
 	programIDStr := programID.String()
-	return stripe.CreateOneTimePayment(ctx, priceID, 1, &programIDStr, successURL)
+	return stripe.CreateOneTimePayment(ctx, priceID, 1, &programIDStr, stripeCouponID, successURL)
 }
 
-func (s *Service) CheckoutEvent(ctx context.Context, eventID uuid.UUID, successURL string) (string, *errLib.CommonError) {
+func (s *Service) CheckoutEvent(ctx context.Context, eventID uuid.UUID, discountCode *string, successURL string) (string, *errLib.CommonError) {
 	customerID, ctxErr := contextUtils.GetUserID(ctx)
 	if ctxErr != nil {
 		return "", ctxErr
@@ -133,6 +158,22 @@ func (s *Service) CheckoutEvent(ctx context.Context, eventID uuid.UUID, successU
 		return "", errLib.New("event is pay-per-program", http.StatusBadRequest)
 	}
 
+	// Handle discount code if provided
+	var stripeCouponID *string
+	if discountCode != nil {
+		applied, err := s.DiscountService.ApplyDiscount(ctx, *discountCode, nil)
+		if err != nil {
+			return "", err
+		}
+
+		// Validate that discount applies to one-time payments
+		if applied.AppliesTo != "one_time" && applied.AppliesTo != "both" {
+			return "", errLib.New("This discount code does not apply to one-time payments", http.StatusBadRequest)
+		}
+
+		stripeCouponID = applied.StripeCouponID
+	}
+
 	// reserve seat so that the database can assume that the customer is enrolled
 	// this is important for the enrollment process, as multiple users may try to enroll one after another,
 	// and each successfully getting the stripe checkout link
@@ -145,7 +186,7 @@ func (s *Service) CheckoutEvent(ctx context.Context, eventID uuid.UUID, successU
 	}
 
 	eventIDStr := eventID.String()
-	return stripe.CreateOneTimePayment(ctx, priceID, 1, &eventIDStr, successURL)
+	return stripe.CreateOneTimePayment(ctx, priceID, 1, &eventIDStr, stripeCouponID, successURL)
 }
 
 // CheckEventEnrollmentOptions returns available enrollment options for a customer and event
@@ -269,7 +310,7 @@ func (s *Service) CheckoutEventWithCredits(ctx context.Context, eventID uuid.UUI
 }
 
 // Enhanced CheckoutEvent with membership validation
-func (s *Service) CheckoutEventEnhanced(ctx context.Context, eventID uuid.UUID, successURL string) (string, *errLib.CommonError) {
+func (s *Service) CheckoutEventEnhanced(ctx context.Context, eventID uuid.UUID, discountCode *string, successURL string) (string, *errLib.CommonError) {
 	customerID, ctxErr := contextUtils.GetUserID(ctx)
 	if ctxErr != nil {
 		return "", ctxErr
@@ -286,12 +327,12 @@ func (s *Service) CheckoutEventEnhanced(ctx context.Context, eventID uuid.UUID, 
 		if err := s.EnrollmentService.ReserveSeatInEvent(ctx, eventID, customerID); err != nil {
 			return "", err
 		}
-		
+
 		// Mark as paid since it's free for this customer
 		if err := s.EnrollmentService.UpdateReservationStatusInEvent(ctx, eventID, customerID, dbEnrollment.PaymentStatusPaid); err != nil {
 			log.Printf("Failed to update reservation status for free enrollment: %v", err)
 		}
-		
+
 		return "", nil // No payment URL needed
 	}
 
@@ -300,11 +341,27 @@ func (s *Service) CheckoutEventEnhanced(ctx context.Context, eventID uuid.UUID, 
 		return "", errLib.New("Event requires membership or is not available for purchase", http.StatusBadRequest)
 	}
 
+	// Handle discount code if provided
+	var stripeCouponID *string
+	if discountCode != nil {
+		applied, err := s.DiscountService.ApplyDiscount(ctx, *discountCode, nil)
+		if err != nil {
+			return "", err
+		}
+
+		// Validate that discount applies to one-time payments
+		if applied.AppliesTo != "one_time" && applied.AppliesTo != "both" {
+			return "", errLib.New("This discount code does not apply to one-time payments", http.StatusBadRequest)
+		}
+
+		stripeCouponID = applied.StripeCouponID
+	}
+
 	// Proceed with existing Stripe checkout logic
 	if err := s.EnrollmentService.ReserveSeatInEvent(ctx, eventID, customerID); err != nil {
 		return "", err
 	}
 
 	eventIDStr := eventID.String()
-	return stripe.CreateOneTimePayment(ctx, *options.StripePriceID, 1, &eventIDStr, successURL)
+	return stripe.CreateOneTimePayment(ctx, *options.StripePriceID, 1, &eventIDStr, stripeCouponID, successURL)
 }

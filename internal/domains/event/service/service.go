@@ -103,15 +103,38 @@ func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurre
 
 func (s *Service) CreateEvent(ctx context.Context, details values.CreateEventValues) *errLib.CommonError {
 	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
-		// TODO: We need to get the event ID after creation to set membership plans
-		// For now, CreateEvents doesn't return IDs, so this is a limitation
-		// We'll need to update this when we add support for returning created event IDs
+		// Create the event
 		if err := txRepo.CreateEvents(ctx, []values.CreateEventValues{details}); err != nil {
 			return err
 		}
 
-		// Note: Membership plan associations need to be set separately after event creation
-		// This requires updating the CreateEvents method to return created event IDs
+		// Query for the created event to get its ID
+		// We search by the unique combination of program, location, start time, and end time
+		filter := values.GetEventsFilter{
+			ProgramID:  details.ProgramID,
+			LocationID: details.LocationID,
+			After:      details.StartAt,
+			Before:     details.EndAt,
+			Limit:      1,
+		}
+
+		events, err := txRepo.GetEvents(ctx, filter)
+		if err != nil {
+			return err
+		}
+
+		if len(events) == 0 {
+			return errLib.New("Failed to retrieve created event", http.StatusInternalServerError)
+		}
+
+		createdEvent := events[0]
+
+		// Set membership plan associations
+		if len(details.RequiredMembershipPlanIDs) > 0 {
+			if err := txRepo.SetEventMembershipPlans(ctx, createdEvent.ID, details.RequiredMembershipPlanIDs); err != nil {
+				return err
+			}
+		}
 
 		isStaff, err := contextUtils.IsStaff(ctx)
 		if err != nil {

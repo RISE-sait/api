@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 
 	"api/internal/di"
@@ -16,6 +17,8 @@ import (
 	txUtils "api/utils/db"
 
 	"github.com/google/uuid"
+	"github.com/stripe/stripe-go/v81"
+	"github.com/stripe/stripe-go/v81/coupon"
 )
 
 type Service struct {
@@ -40,6 +43,58 @@ func (s *Service) executeInTx(ctx context.Context, fn func(repo *repo.Repository
 	})
 }
 
+// createStripeCoupon creates a coupon in Stripe based on the discount details
+func (s *Service) createStripeCoupon(details values.CreateValues) (*string, *errLib.CommonError) {
+	params := &stripe.CouponParams{}
+
+	// Set discount value based on type
+	if details.DiscountType == values.TypePercentage {
+		params.PercentOff = stripe.Float64(float64(details.DiscountPercent))
+	} else if details.DiscountType == values.TypeFixedAmount {
+		if details.DiscountAmount == nil {
+			return nil, errLib.New("discount_amount is required for fixed_amount type", http.StatusBadRequest)
+		}
+		// Stripe expects amount in cents
+		params.AmountOff = stripe.Int64(int64(*details.DiscountAmount * 100))
+		params.Currency = stripe.String("cad") // TODO: Make currency configurable
+	}
+
+	// Set duration
+	switch details.DurationType {
+	case values.DurationOnce:
+		params.Duration = stripe.String(string(stripe.CouponDurationOnce))
+	case values.DurationRepeating:
+		params.Duration = stripe.String(string(stripe.CouponDurationRepeating))
+		if details.DurationMonths != nil {
+			params.DurationInMonths = stripe.Int64(int64(*details.DurationMonths))
+		}
+	case values.DurationForever:
+		params.Duration = stripe.String(string(stripe.CouponDurationForever))
+	}
+
+	// Set max redemptions if specified
+	if details.MaxRedemptions != nil {
+		params.MaxRedemptions = stripe.Int64(int64(*details.MaxRedemptions))
+	}
+
+	// Set name and metadata
+	params.Name = stripe.String(details.Name)
+	params.Metadata = map[string]string{
+		"description": details.Description,
+		"applies_to":  string(details.AppliesTo),
+	}
+
+	// Create the coupon in Stripe
+	c, err := coupon.New(params)
+	if err != nil {
+		log.Printf("Failed to create Stripe coupon for discount '%s': %v", details.Name, err)
+		return nil, errLib.New("Failed to create coupon in Stripe: "+err.Error(), http.StatusInternalServerError)
+	}
+
+	log.Printf("Successfully created Stripe coupon %s for discount '%s'", c.ID, details.Name)
+	return &c.ID, nil
+}
+
 func (s *Service) GetDiscount(ctx context.Context, id uuid.UUID) (values.ReadValues, *errLib.CommonError) {
 	return s.repo.GetByID(ctx, id)
 }
@@ -52,9 +107,22 @@ func (s *Service) GetDiscountByNameActive(ctx context.Context, name string) (val
 	return s.repo.GetByNameActive(ctx, name)
 }
 
+func (s *Service) GetDiscountByName(ctx context.Context, name string) (values.ReadValues, *errLib.CommonError) {
+	return s.repo.GetByName(ctx, name)
+}
+
 func (s *Service) CreateDiscount(ctx context.Context, details values.CreateValues) (values.ReadValues, *errLib.CommonError) {
+	// Create Stripe coupon first
+	stripeCouponID, err := s.createStripeCoupon(details)
+	if err != nil {
+		return values.ReadValues{}, err
+	}
+
+	// Store the Stripe coupon ID in the discount details
+	details.StripeCouponID = stripeCouponID
+
 	var created values.ReadValues
-	err := s.executeInTx(ctx, func(txRepo *repo.Repository) *errLib.CommonError {
+	txErr := s.executeInTx(ctx, func(txRepo *repo.Repository) *errLib.CommonError {
 		var err2 *errLib.CommonError
 		created, err2 = txRepo.Create(ctx, details)
 		if err2 != nil {
@@ -71,8 +139,17 @@ func (s *Service) CreateDiscount(ctx context.Context, details values.CreateValue
 			fmt.Sprintf("Created discount with details: %+v", details),
 		)
 	})
-	if err != nil {
-		return values.ReadValues{}, err
+	if txErr != nil {
+		// If database transaction fails, we should delete the Stripe coupon
+		// to avoid orphaned coupons
+		if stripeCouponID != nil {
+			if _, delErr := coupon.Del(*stripeCouponID, nil); delErr != nil {
+				log.Printf("WARNING: Failed to cleanup Stripe coupon %s after database error: %v", *stripeCouponID, delErr)
+			} else {
+				log.Printf("Cleaned up Stripe coupon %s after database transaction failure", *stripeCouponID)
+			}
+		}
+		return values.ReadValues{}, txErr
 	}
 	return created, nil
 }

@@ -15,21 +15,30 @@ import (
 
 const createDiscount = `-- name: CreateDiscount :one
 INSERT INTO discounts (
-    name, description, discount_percent, is_use_unlimited, use_per_client, is_active, valid_from, valid_to
+    name, description, discount_percent, discount_amount, discount_type,
+    is_use_unlimited, use_per_client, is_active, valid_from, valid_to,
+    duration_type, duration_months, applies_to, max_redemptions, stripe_coupon_id
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
-) RETURNING id, name, description, discount_percent, is_use_unlimited, use_per_client, is_active, valid_from, valid_to, created_at, updated_at
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+) RETURNING id, name, description, discount_percent, is_use_unlimited, use_per_client, is_active, valid_from, valid_to, created_at, updated_at, stripe_coupon_id, duration_type, duration_months, discount_type, discount_amount, applies_to, max_redemptions, times_redeemed
 `
 
 type CreateDiscountParams struct {
-	Name            string         `json:"name"`
-	Description     sql.NullString `json:"description"`
-	DiscountPercent int32          `json:"discount_percent"`
-	IsUseUnlimited  bool           `json:"is_use_unlimited"`
-	UsePerClient    sql.NullInt32  `json:"use_per_client"`
-	IsActive        bool           `json:"is_active"`
-	ValidFrom       time.Time      `json:"valid_from"`
-	ValidTo         sql.NullTime   `json:"valid_to"`
+	Name            string               `json:"name"`
+	Description     sql.NullString       `json:"description"`
+	DiscountPercent int32                `json:"discount_percent"`
+	DiscountAmount  sql.NullString       `json:"discount_amount"`
+	DiscountType    DiscountType         `json:"discount_type"`
+	IsUseUnlimited  bool                 `json:"is_use_unlimited"`
+	UsePerClient    sql.NullInt32        `json:"use_per_client"`
+	IsActive        bool                 `json:"is_active"`
+	ValidFrom       time.Time            `json:"valid_from"`
+	ValidTo         sql.NullTime         `json:"valid_to"`
+	DurationType    DiscountDurationType `json:"duration_type"`
+	DurationMonths  sql.NullInt32        `json:"duration_months"`
+	AppliesTo       DiscountAppliesTo    `json:"applies_to"`
+	MaxRedemptions  sql.NullInt32        `json:"max_redemptions"`
+	StripeCouponID  sql.NullString       `json:"stripe_coupon_id"`
 }
 
 func (q *Queries) CreateDiscount(ctx context.Context, arg CreateDiscountParams) (Discount, error) {
@@ -37,11 +46,18 @@ func (q *Queries) CreateDiscount(ctx context.Context, arg CreateDiscountParams) 
 		arg.Name,
 		arg.Description,
 		arg.DiscountPercent,
+		arg.DiscountAmount,
+		arg.DiscountType,
 		arg.IsUseUnlimited,
 		arg.UsePerClient,
 		arg.IsActive,
 		arg.ValidFrom,
 		arg.ValidTo,
+		arg.DurationType,
+		arg.DurationMonths,
+		arg.AppliesTo,
+		arg.MaxRedemptions,
+		arg.StripeCouponID,
 	)
 	var i Discount
 	err := row.Scan(
@@ -56,6 +72,14 @@ func (q *Queries) CreateDiscount(ctx context.Context, arg CreateDiscountParams) 
 		&i.ValidTo,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.StripeCouponID,
+		&i.DurationType,
+		&i.DurationMonths,
+		&i.DiscountType,
+		&i.DiscountAmount,
+		&i.AppliesTo,
+		&i.MaxRedemptions,
+		&i.TimesRedeemed,
 	)
 	return i, err
 }
@@ -73,7 +97,7 @@ func (q *Queries) DeleteDiscount(ctx context.Context, id uuid.UUID) (int64, erro
 }
 
 const getDiscountById = `-- name: GetDiscountById :one
-SELECT id, name, description, discount_percent, is_use_unlimited, use_per_client, is_active, valid_from, valid_to, created_at, updated_at FROM discounts WHERE id = $1
+SELECT id, name, description, discount_percent, is_use_unlimited, use_per_client, is_active, valid_from, valid_to, created_at, updated_at, stripe_coupon_id, duration_type, duration_months, discount_type, discount_amount, applies_to, max_redemptions, times_redeemed FROM discounts WHERE id = $1
 `
 
 func (q *Queries) GetDiscountById(ctx context.Context, id uuid.UUID) (Discount, error) {
@@ -91,12 +115,51 @@ func (q *Queries) GetDiscountById(ctx context.Context, id uuid.UUID) (Discount, 
 		&i.ValidTo,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.StripeCouponID,
+		&i.DurationType,
+		&i.DurationMonths,
+		&i.DiscountType,
+		&i.DiscountAmount,
+		&i.AppliesTo,
+		&i.MaxRedemptions,
+		&i.TimesRedeemed,
+	)
+	return i, err
+}
+
+const getDiscountByName = `-- name: GetDiscountByName :one
+SELECT id, name, description, discount_percent, is_use_unlimited, use_per_client, is_active, valid_from, valid_to, created_at, updated_at, stripe_coupon_id, duration_type, duration_months, discount_type, discount_amount, applies_to, max_redemptions, times_redeemed FROM discounts WHERE name = $1
+`
+
+func (q *Queries) GetDiscountByName(ctx context.Context, name string) (Discount, error) {
+	row := q.db.QueryRowContext(ctx, getDiscountByName, name)
+	var i Discount
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.DiscountPercent,
+		&i.IsUseUnlimited,
+		&i.UsePerClient,
+		&i.IsActive,
+		&i.ValidFrom,
+		&i.ValidTo,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.StripeCouponID,
+		&i.DurationType,
+		&i.DurationMonths,
+		&i.DiscountType,
+		&i.DiscountAmount,
+		&i.AppliesTo,
+		&i.MaxRedemptions,
+		&i.TimesRedeemed,
 	)
 	return i, err
 }
 
 const getDiscountByNameActive = `-- name: GetDiscountByNameActive :one
-SELECT id, name, description, discount_percent, is_use_unlimited, use_per_client, is_active, valid_from, valid_to, created_at, updated_at FROM discounts
+SELECT id, name, description, discount_percent, is_use_unlimited, use_per_client, is_active, valid_from, valid_to, created_at, updated_at, stripe_coupon_id, duration_type, duration_months, discount_type, discount_amount, applies_to, max_redemptions, times_redeemed FROM discounts
 WHERE name = $1
   AND is_active = true
   AND valid_from <= now()
@@ -118,6 +181,14 @@ func (q *Queries) GetDiscountByNameActive(ctx context.Context, name string) (Dis
 		&i.ValidTo,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.StripeCouponID,
+		&i.DurationType,
+		&i.DurationMonths,
+		&i.DiscountType,
+		&i.DiscountAmount,
+		&i.AppliesTo,
+		&i.MaxRedemptions,
+		&i.TimesRedeemed,
 	)
 	return i, err
 }
@@ -188,7 +259,7 @@ func (q *Queries) IncrementUsage(ctx context.Context, arg IncrementUsageParams) 
 }
 
 const listDiscounts = `-- name: ListDiscounts :many
-SELECT id, name, description, discount_percent, is_use_unlimited, use_per_client, is_active, valid_from, valid_to, created_at, updated_at FROM discounts ORDER BY created_at DESC
+SELECT id, name, description, discount_percent, is_use_unlimited, use_per_client, is_active, valid_from, valid_to, created_at, updated_at, stripe_coupon_id, duration_type, duration_months, discount_type, discount_amount, applies_to, max_redemptions, times_redeemed FROM discounts ORDER BY created_at DESC
 `
 
 func (q *Queries) ListDiscounts(ctx context.Context) ([]Discount, error) {
@@ -212,6 +283,14 @@ func (q *Queries) ListDiscounts(ctx context.Context) ([]Discount, error) {
 			&i.ValidTo,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.StripeCouponID,
+			&i.DurationType,
+			&i.DurationMonths,
+			&i.DiscountType,
+			&i.DiscountAmount,
+			&i.AppliesTo,
+			&i.MaxRedemptions,
+			&i.TimesRedeemed,
 		); err != nil {
 			return nil, err
 		}
@@ -231,26 +310,40 @@ UPDATE discounts
 SET name = $1,
     description = $2,
     discount_percent = $3,
-    is_use_unlimited = $4,
-    use_per_client = $5,
-    is_active = $6,
-    valid_from = $7,
-    valid_to = $8,
+    discount_amount = $4,
+    discount_type = $5,
+    is_use_unlimited = $6,
+    use_per_client = $7,
+    is_active = $8,
+    valid_from = $9,
+    valid_to = $10,
+    duration_type = $11,
+    duration_months = $12,
+    applies_to = $13,
+    max_redemptions = $14,
+    stripe_coupon_id = $15,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $9
-RETURNING id, name, description, discount_percent, is_use_unlimited, use_per_client, is_active, valid_from, valid_to, created_at, updated_at
+WHERE id = $16
+RETURNING id, name, description, discount_percent, is_use_unlimited, use_per_client, is_active, valid_from, valid_to, created_at, updated_at, stripe_coupon_id, duration_type, duration_months, discount_type, discount_amount, applies_to, max_redemptions, times_redeemed
 `
 
 type UpdateDiscountParams struct {
-	Name            string         `json:"name"`
-	Description     sql.NullString `json:"description"`
-	DiscountPercent int32          `json:"discount_percent"`
-	IsUseUnlimited  bool           `json:"is_use_unlimited"`
-	UsePerClient    sql.NullInt32  `json:"use_per_client"`
-	IsActive        bool           `json:"is_active"`
-	ValidFrom       time.Time      `json:"valid_from"`
-	ValidTo         sql.NullTime   `json:"valid_to"`
-	ID              uuid.UUID      `json:"id"`
+	Name            string               `json:"name"`
+	Description     sql.NullString       `json:"description"`
+	DiscountPercent int32                `json:"discount_percent"`
+	DiscountAmount  sql.NullString       `json:"discount_amount"`
+	DiscountType    DiscountType         `json:"discount_type"`
+	IsUseUnlimited  bool                 `json:"is_use_unlimited"`
+	UsePerClient    sql.NullInt32        `json:"use_per_client"`
+	IsActive        bool                 `json:"is_active"`
+	ValidFrom       time.Time            `json:"valid_from"`
+	ValidTo         sql.NullTime         `json:"valid_to"`
+	DurationType    DiscountDurationType `json:"duration_type"`
+	DurationMonths  sql.NullInt32        `json:"duration_months"`
+	AppliesTo       DiscountAppliesTo    `json:"applies_to"`
+	MaxRedemptions  sql.NullInt32        `json:"max_redemptions"`
+	StripeCouponID  sql.NullString       `json:"stripe_coupon_id"`
+	ID              uuid.UUID            `json:"id"`
 }
 
 func (q *Queries) UpdateDiscount(ctx context.Context, arg UpdateDiscountParams) (Discount, error) {
@@ -258,11 +351,18 @@ func (q *Queries) UpdateDiscount(ctx context.Context, arg UpdateDiscountParams) 
 		arg.Name,
 		arg.Description,
 		arg.DiscountPercent,
+		arg.DiscountAmount,
+		arg.DiscountType,
 		arg.IsUseUnlimited,
 		arg.UsePerClient,
 		arg.IsActive,
 		arg.ValidFrom,
 		arg.ValidTo,
+		arg.DurationType,
+		arg.DurationMonths,
+		arg.AppliesTo,
+		arg.MaxRedemptions,
+		arg.StripeCouponID,
 		arg.ID,
 	)
 	var i Discount
@@ -278,6 +378,14 @@ func (q *Queries) UpdateDiscount(ctx context.Context, arg UpdateDiscountParams) 
 		&i.ValidTo,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.StripeCouponID,
+		&i.DurationType,
+		&i.DurationMonths,
+		&i.DiscountType,
+		&i.DiscountAmount,
+		&i.AppliesTo,
+		&i.MaxRedemptions,
+		&i.TimesRedeemed,
 	)
 	return i, err
 }

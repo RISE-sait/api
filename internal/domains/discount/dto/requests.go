@@ -8,14 +8,20 @@ import (
 )
 
 type RequestDto struct {
-	Name            string `json:"name" validate:"required,notwhitespace"`
-	Description     string `json:"description"`
-	DiscountPercent int    `json:"discount_percent" validate:"gte=0,lte=100"`
-	IsUseUnlimited  bool   `json:"is_use_unlimited"`
-	UsePerClient    int    `json:"use_per_client" validate:"omitempty,gt=0"`
-	IsActive        bool   `json:"is_active"`
-	ValidFrom       string `json:"valid_from" validate:"required,datetime=2006-01-02T15:04:05Z07:00"`
-	ValidTo         string `json:"valid_to" validate:"omitempty,datetime=2006-01-02T15:04:05Z07:00"`
+	Name            string  `json:"name" validate:"required,notwhitespace"`
+	Description     string  `json:"description"`
+	DiscountPercent int     `json:"discount_percent" validate:"omitempty,gte=0,lte=100"`
+	DiscountAmount  *float64 `json:"discount_amount,omitempty" validate:"omitempty,gt=0"`
+	DiscountType    string  `json:"discount_type" validate:"required,oneof=percentage fixed_amount"`
+	IsUseUnlimited  bool    `json:"is_use_unlimited"`
+	UsePerClient    int     `json:"use_per_client" validate:"omitempty,gt=0"`
+	IsActive        bool    `json:"is_active"`
+	ValidFrom       string  `json:"valid_from" validate:"required,datetime=2006-01-02T15:04:05Z07:00"`
+	ValidTo         string  `json:"valid_to" validate:"omitempty,datetime=2006-01-02T15:04:05Z07:00"`
+	DurationType    string  `json:"duration_type" validate:"required,oneof=once repeating forever"`
+	DurationMonths  *int    `json:"duration_months,omitempty" validate:"omitempty,gt=0"`
+	AppliesTo       string  `json:"applies_to" validate:"required,oneof=subscription one_time both"`
+	MaxRedemptions  *int    `json:"max_redemptions,omitempty" validate:"omitempty,gt=0"`
 }
 
 // ApplyRequestDto is used to apply a discount code for a customer
@@ -37,6 +43,22 @@ func (dto *RequestDto) toValues() (values.CreateValues, *errLib.CommonError) {
 		return values.CreateValues{}, err
 	}
 
+	// Validate discount type and value
+	if dto.DiscountType == "percentage" && (dto.DiscountPercent <= 0 || dto.DiscountPercent > 100) {
+		return values.CreateValues{}, errLib.New("discount_percent must be between 1 and 100 for percentage type", 400)
+	}
+	if dto.DiscountType == "fixed_amount" && (dto.DiscountAmount == nil || *dto.DiscountAmount <= 0) {
+		return values.CreateValues{}, errLib.New("discount_amount must be greater than 0 for fixed_amount type", 400)
+	}
+
+	// Validate duration
+	if dto.DurationType == "repeating" && (dto.DurationMonths == nil || *dto.DurationMonths <= 0) {
+		return values.CreateValues{}, errLib.New("duration_months is required and must be greater than 0 for repeating duration", 400)
+	}
+	if dto.DurationType != "repeating" && dto.DurationMonths != nil {
+		return values.CreateValues{}, errLib.New("duration_months should only be set for repeating duration", 400)
+	}
+
 	validFrom, err := time.Parse(time.RFC3339, dto.ValidFrom)
 	if err != nil {
 		return values.CreateValues{}, errLib.New("Invalid valid_from format. Expected RFC3339", 400)
@@ -54,11 +76,17 @@ func (dto *RequestDto) toValues() (values.CreateValues, *errLib.CommonError) {
 		Name:            dto.Name,
 		Description:     dto.Description,
 		DiscountPercent: dto.DiscountPercent,
+		DiscountAmount:  dto.DiscountAmount,
+		DiscountType:    values.DiscountType(dto.DiscountType),
 		IsUseUnlimited:  dto.IsUseUnlimited,
 		UsePerClient:    dto.UsePerClient,
 		IsActive:        dto.IsActive,
 		ValidFrom:       validFrom,
 		ValidTo:         validTo,
+		DurationType:    values.DurationType(dto.DurationType),
+		DurationMonths:  dto.DurationMonths,
+		AppliesTo:       values.AppliesTo(dto.AppliesTo),
+		MaxRedemptions:  dto.MaxRedemptions,
 	}, nil
 }
 

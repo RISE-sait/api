@@ -1,12 +1,17 @@
 -- name: CreateDiscount :one
 INSERT INTO discounts (
-    name, description, discount_percent, is_use_unlimited, use_per_client, is_active, valid_from, valid_to
+    name, description, discount_percent, discount_amount, discount_type,
+    is_use_unlimited, use_per_client, is_active, valid_from, valid_to,
+    duration_type, duration_months, applies_to, max_redemptions, stripe_coupon_id
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
 ) RETURNING *;
 
 -- name: GetDiscountById :one
 SELECT * FROM discounts WHERE id = $1;
+
+-- name: GetDiscountByName :one
+SELECT * FROM discounts WHERE name = $1;
 
 -- name: GetDiscountByNameActive :one
 SELECT * FROM discounts
@@ -23,13 +28,20 @@ UPDATE discounts
 SET name = $1,
     description = $2,
     discount_percent = $3,
-    is_use_unlimited = $4,
-    use_per_client = $5,
-    is_active = $6,
-    valid_from = $7,
-    valid_to = $8,
+    discount_amount = $4,
+    discount_type = $5,
+    is_use_unlimited = $6,
+    use_per_client = $7,
+    is_active = $8,
+    valid_from = $9,
+    valid_to = $10,
+    duration_type = $11,
+    duration_months = $12,
+    applies_to = $13,
+    max_redemptions = $14,
+    stripe_coupon_id = $15,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $9
+WHERE id = $16
 RETURNING *;
 
 -- name: DeleteDiscount :execrows

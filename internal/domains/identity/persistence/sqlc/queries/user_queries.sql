@@ -39,13 +39,16 @@ SELECT u.*,
        a.assists,
        a.rebounds,
        a.steals,
-       a.photo_url as athlete_photo_url
+       a.photo_url as athlete_photo_url,
+       a.team_id,
+       t.logo_url as team_logo_url
 from u
          LEFT JOIN
      latest_cmp cmp ON cmp.customer_id = u.id
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
-         LEFT JOIN athletic.athletes a ON u.id = a.id;
+         LEFT JOIN athletic.athletes a ON u.id = a.id
+         LEFT JOIN athletic.teams t ON a.team_id = t.id;
 
 -- name: GetIsUserAParent :one
 SELECT COUNT(*) > 0

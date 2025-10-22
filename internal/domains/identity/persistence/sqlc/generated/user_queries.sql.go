@@ -28,7 +28,7 @@ INSERT INTO users.users (hubspot_id, country_alpha2_code, email, dob, phone, has
                          has_sms_consent, parent_id, first_name, last_name)
 VALUES ($1, $2, $3, $4, $5,
         $6, $7, (SELECT pu.id from users.users pu WHERE $10 = pu.email), $8, $9)
-RETURNING id, hubspot_id, country_alpha2_code, gender, first_name, last_name, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at, dob, is_archived, square_customer_id
+RETURNING id, hubspot_id, country_alpha2_code, gender, first_name, last_name, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at, dob, is_archived, square_customer_id, stripe_customer_id, notes, deleted_at, scheduled_deletion_at, email_verified, email_verification_token, email_verification_token_expires_at, email_verified_at
 `
 
 type CreateUserParams struct {
@@ -75,6 +75,14 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (UsersUs
 		&i.Dob,
 		&i.IsArchived,
 		&i.SquareCustomerID,
+		&i.StripeCustomerID,
+		&i.Notes,
+		&i.DeletedAt,
+		&i.ScheduledDeletionAt,
+		&i.EmailVerified,
+		&i.EmailVerificationToken,
+		&i.EmailVerificationTokenExpiresAt,
+		&i.EmailVerifiedAt,
 	)
 	return i, err
 }
@@ -113,7 +121,7 @@ func (q *Queries) GetIsUserAParent(ctx context.Context, parentID uuid.NullUUID) 
 
 const getUserByIdOrEmail = `-- name: GetUserByIdOrEmail :one
 WITH u
-         as (SELECT id, hubspot_id, country_alpha2_code, gender, first_name, last_name, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at, dob, is_archived, square_customer_id
+         as (SELECT id, hubspot_id, country_alpha2_code, gender, first_name, last_name, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at, dob, is_archived, square_customer_id, stripe_customer_id, notes, deleted_at, scheduled_deletion_at, email_verified, email_verification_token, email_verification_token_expires_at, email_verified_at
              FROM users.users u2
              WHERE (u2.id = $1 OR $1 IS NULL)
                AND (u2.email = $2 OR $2 IS NULL)
@@ -122,7 +130,7 @@ WITH u
                     FROM users.customer_membership_plans
                     WHERE customer_id = (SELECT id FROM u)
                     ORDER BY customer_id, start_date DESC)
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id,
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at,
        mp.name          as membership_plan_name,
        cmp.start_date   as membership_plan_start_date,
        cmp.renewal_date as membership_plan_renewal_date,
@@ -136,13 +144,16 @@ SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last
        a.assists,
        a.rebounds,
        a.steals,
-       a.photo_url as athlete_photo_url
+       a.photo_url as athlete_photo_url,
+       a.team_id,
+       t.logo_url as team_logo_url
 from u
          LEFT JOIN
      latest_cmp cmp ON cmp.customer_id = u.id
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
          LEFT JOIN athletic.athletes a ON u.id = a.id
+         LEFT JOIN athletic.teams t ON a.team_id = t.id
 `
 
 type GetUserByIdOrEmailParams struct {
@@ -151,35 +162,45 @@ type GetUserByIdOrEmailParams struct {
 }
 
 type GetUserByIdOrEmailRow struct {
-	ID                        uuid.UUID      `json:"id"`
-	HubspotID                 sql.NullString `json:"hubspot_id"`
-	CountryAlpha2Code         string         `json:"country_alpha2_code"`
-	Gender                    sql.NullString `json:"gender"`
-	FirstName                 string         `json:"first_name"`
-	LastName                  string         `json:"last_name"`
-	ParentID                  uuid.NullUUID  `json:"parent_id"`
-	Phone                     sql.NullString `json:"phone"`
-	Email                     sql.NullString `json:"email"`
-	HasMarketingEmailConsent  bool           `json:"has_marketing_email_consent"`
-	HasSmsConsent             bool           `json:"has_sms_consent"`
-	CreatedAt                 time.Time      `json:"created_at"`
-	UpdatedAt                 time.Time      `json:"updated_at"`
-	Dob                       time.Time      `json:"dob"`
-	IsArchived                bool           `json:"is_archived"`
-	SquareCustomerID          sql.NullString `json:"square_customer_id"`
-	MembershipPlanName        sql.NullString `json:"membership_plan_name"`
-	MembershipPlanStartDate   sql.NullTime   `json:"membership_plan_start_date"`
-	MembershipPlanRenewalDate sql.NullTime   `json:"membership_plan_renewal_date"`
-	MembershipName            sql.NullString `json:"membership_name"`
-	MembershipDescription     sql.NullString `json:"membership_description"`
-	MembershipBenefits        sql.NullString `json:"membership_benefits"`
-	Points                    sql.NullInt32  `json:"points"`
-	Wins                      sql.NullInt32  `json:"wins"`
-	Losses                    sql.NullInt32  `json:"losses"`
-	Assists                   sql.NullInt32  `json:"assists"`
-	Rebounds                  sql.NullInt32  `json:"rebounds"`
-	Steals                    sql.NullInt32  `json:"steals"`
-	AthletePhotoUrl           sql.NullString `json:"athlete_photo_url"`
+	ID                              uuid.UUID      `json:"id"`
+	HubspotID                       sql.NullString `json:"hubspot_id"`
+	CountryAlpha2Code               string         `json:"country_alpha2_code"`
+	Gender                          sql.NullString `json:"gender"`
+	FirstName                       string         `json:"first_name"`
+	LastName                        string         `json:"last_name"`
+	ParentID                        uuid.NullUUID  `json:"parent_id"`
+	Phone                           sql.NullString `json:"phone"`
+	Email                           sql.NullString `json:"email"`
+	HasMarketingEmailConsent        bool           `json:"has_marketing_email_consent"`
+	HasSmsConsent                   bool           `json:"has_sms_consent"`
+	CreatedAt                       time.Time      `json:"created_at"`
+	UpdatedAt                       time.Time      `json:"updated_at"`
+	Dob                             time.Time      `json:"dob"`
+	IsArchived                      bool           `json:"is_archived"`
+	SquareCustomerID                sql.NullString `json:"square_customer_id"`
+	StripeCustomerID                sql.NullString `json:"stripe_customer_id"`
+	Notes                           sql.NullString `json:"notes"`
+	DeletedAt                       sql.NullTime   `json:"deleted_at"`
+	ScheduledDeletionAt             sql.NullTime   `json:"scheduled_deletion_at"`
+	EmailVerified                   bool           `json:"email_verified"`
+	EmailVerificationToken          sql.NullString `json:"email_verification_token"`
+	EmailVerificationTokenExpiresAt sql.NullTime   `json:"email_verification_token_expires_at"`
+	EmailVerifiedAt                 sql.NullTime   `json:"email_verified_at"`
+	MembershipPlanName              sql.NullString `json:"membership_plan_name"`
+	MembershipPlanStartDate         sql.NullTime   `json:"membership_plan_start_date"`
+	MembershipPlanRenewalDate       sql.NullTime   `json:"membership_plan_renewal_date"`
+	MembershipName                  sql.NullString `json:"membership_name"`
+	MembershipDescription           sql.NullString `json:"membership_description"`
+	MembershipBenefits              sql.NullString `json:"membership_benefits"`
+	Points                          sql.NullInt32  `json:"points"`
+	Wins                            sql.NullInt32  `json:"wins"`
+	Losses                          sql.NullInt32  `json:"losses"`
+	Assists                         sql.NullInt32  `json:"assists"`
+	Rebounds                        sql.NullInt32  `json:"rebounds"`
+	Steals                          sql.NullInt32  `json:"steals"`
+	AthletePhotoUrl                 sql.NullString `json:"athlete_photo_url"`
+	TeamID                          uuid.NullUUID  `json:"team_id"`
+	TeamLogoUrl                     sql.NullString `json:"team_logo_url"`
 }
 
 func (q *Queries) GetUserByIdOrEmail(ctx context.Context, arg GetUserByIdOrEmailParams) (GetUserByIdOrEmailRow, error) {
@@ -202,6 +223,14 @@ func (q *Queries) GetUserByIdOrEmail(ctx context.Context, arg GetUserByIdOrEmail
 		&i.Dob,
 		&i.IsArchived,
 		&i.SquareCustomerID,
+		&i.StripeCustomerID,
+		&i.Notes,
+		&i.DeletedAt,
+		&i.ScheduledDeletionAt,
+		&i.EmailVerified,
+		&i.EmailVerificationToken,
+		&i.EmailVerificationTokenExpiresAt,
+		&i.EmailVerifiedAt,
 		&i.MembershipPlanName,
 		&i.MembershipPlanStartDate,
 		&i.MembershipPlanRenewalDate,
@@ -215,6 +244,8 @@ func (q *Queries) GetUserByIdOrEmail(ctx context.Context, arg GetUserByIdOrEmail
 		&i.Rebounds,
 		&i.Steals,
 		&i.AthletePhotoUrl,
+		&i.TeamID,
+		&i.TeamLogoUrl,
 	)
 	return i, err
 }

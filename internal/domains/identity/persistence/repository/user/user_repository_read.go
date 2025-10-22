@@ -124,7 +124,7 @@ func addMembershipInfo(response *values.UserReadInfo, user dbIdentity.GetUserByI
 
 func addAthleteInfo(response *values.UserReadInfo, user dbIdentity.GetUserByIdOrEmailRow) {
 	if user.Wins.Valid {
-		response.AthleteInfo = &values.AthleteInfo{
+		athleteInfo := &values.AthleteInfo{
 			Wins:     user.Wins.Int32,
 			Losses:   user.Losses.Int32,
 			Points:   user.Points.Int32,
@@ -132,6 +132,16 @@ func addAthleteInfo(response *values.UserReadInfo, user dbIdentity.GetUserByIdOr
 			Assists:  user.Assists.Int32,
 			Rebounds: user.Rebounds.Int32,
 		}
+
+		if user.TeamID.Valid {
+			athleteInfo.TeamID = &user.TeamID.UUID
+		}
+
+		if user.TeamLogoUrl.Valid {
+			athleteInfo.TeamLogoURL = &user.TeamLogoUrl.String
+		}
+
+		response.AthleteInfo = athleteInfo
 	}
 }
 

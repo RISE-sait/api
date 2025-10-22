@@ -24,12 +24,14 @@ type MembershipReadInfo struct {
 }
 
 type AthleteInfo struct {
-	Wins     int32
-	Losses   int32
-	Points   int32
-	Steals   int32
-	Assists  int32
-	Rebounds int32
+	Wins        int32
+	Losses      int32
+	Points      int32
+	Steals      int32
+	Assists     int32
+	Rebounds    int32
+	TeamID      *uuid.UUID
+	TeamLogoURL *string
 }
 
 type UserReadInfo struct {

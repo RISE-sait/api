@@ -75,6 +75,7 @@ func (h *CheckoutHandlers) CheckoutMembership(w http.ResponseWriter, r *http.Req
 // @Accept json
 // @Produce json
 // @Param id path string true "Program ID" format(uuid)
+// @Param discount_code query string false "Discount code to apply"
 // @Success 200 {object} dto.CheckoutResponseDto "Payment link generated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error: Failed to process checkout"
@@ -98,10 +99,15 @@ func (h *CheckoutHandlers) CheckoutProgram(w http.ResponseWriter, r *http.Reques
 
 	var responseDto dto.CheckoutResponseDto
 
+	var discountCode *string
+	if code := r.URL.Query().Get("discount_code"); code != "" {
+		discountCode = &code
+	}
+
 	// Get success URL based on request origin
 	successURL := stripe.GetSuccessURLFromRequest(r)
 
-	if paymentLink, err := h.Service.CheckoutProgram(r.Context(), programID, successURL); err != nil {
+	if paymentLink, err := h.Service.CheckoutProgram(r.Context(), programID, discountCode, successURL); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {
@@ -115,6 +121,7 @@ func (h *CheckoutHandlers) CheckoutProgram(w http.ResponseWriter, r *http.Reques
 // @Accept json
 // @Produce json
 // @Param id path string true "Event ID" format(uuid)
+// @Param discount_code query string false "Discount code to apply"
 // @Success 200 {object} dto.CheckoutResponseDto "Payment link generated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input or missing event ID"
 // @Failure 404 {object} map[string]interface{} "Not Found: Event not found"
@@ -140,10 +147,15 @@ func (h *CheckoutHandlers) CheckoutEvent(w http.ResponseWriter, r *http.Request)
 
 	var responseDto dto.CheckoutResponseDto
 
+	var discountCode *string
+	if code := r.URL.Query().Get("discount_code"); code != "" {
+		discountCode = &code
+	}
+
 	// Get success URL based on request origin
 	successURL := stripe.GetSuccessURLFromRequest(r)
 
-	if paymentLink, err := h.Service.CheckoutEvent(r.Context(), eventID, successURL); err != nil {
+	if paymentLink, err := h.Service.CheckoutEvent(r.Context(), eventID, discountCode, successURL); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {
@@ -192,6 +204,7 @@ func (h *CheckoutHandlers) GetEventEnrollmentOptions(w http.ResponseWriter, r *h
 // @Accept json
 // @Produce json
 // @Param id path string true "Event ID" format(uuid)
+// @Param discount_code query string false "Discount code to apply"
 // @Param request body map[string]interface{} false "Payment method request" example({"payment_method":"stripe"}) enum("stripe","credits")
 // @Success 200 {object} dto.CheckoutResponseDto "Payment link generated or free enrollment completed"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input or missing event ID"
@@ -219,7 +232,7 @@ func (h *CheckoutHandlers) CheckoutEventEnhanced(w http.ResponseWriter, r *http.
 	var requestBody struct {
 		PaymentMethod string `json:"payment_method"`
 	}
-	
+
 	// Only parse body if content is present
 	if r.ContentLength > 0 {
 		if err := validators.ParseJSON(r.Body, &requestBody); err != nil {
@@ -254,10 +267,15 @@ func (h *CheckoutHandlers) CheckoutEventEnhanced(w http.ResponseWriter, r *http.
 	}
 
 	// Handle stripe payment (default)
+	var discountCode *string
+	if code := r.URL.Query().Get("discount_code"); code != "" {
+		discountCode = &code
+	}
+
 	// Get success URL based on request origin
 	successURL := stripe.GetSuccessURLFromRequest(r)
 
-	if paymentLink, err := h.Service.CheckoutEventEnhanced(r.Context(), eventID, successURL); err != nil {
+	if paymentLink, err := h.Service.CheckoutEventEnhanced(r.Context(), eventID, discountCode, successURL); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {

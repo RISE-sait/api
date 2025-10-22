@@ -43,16 +43,24 @@ func (h *Handler) CreateDiscount(w http.ResponseWriter, r *http.Request) {
 		Name:            created.Name,
 		Description:     created.Description,
 		DiscountPercent: created.DiscountPercent,
+		DiscountAmount:  created.DiscountAmount,
+		DiscountType:    string(created.DiscountType),
 		IsUseUnlimited:  created.IsUseUnlimited,
 		UsePerClient:    created.UsePerClient,
 		IsActive:        created.IsActive,
 		ValidFrom:       created.ValidFrom,
+		DurationType:    string(created.DurationType),
+		DurationMonths:  created.DurationMonths,
+		AppliesTo:       string(created.AppliesTo),
+		MaxRedemptions:  created.MaxRedemptions,
+		TimesRedeemed:   created.TimesRedeemed,
+		StripeCouponID:  created.StripeCouponID,
+		CreatedAt:       created.CreatedAt,
+		UpdatedAt:       created.UpdatedAt,
 	}
 	if !created.ValidTo.IsZero() {
 		resp.ValidTo = &created.ValidTo
 	}
-	resp.CreatedAt = created.CreatedAt
-	resp.UpdatedAt = created.UpdatedAt
 
 	responseHandlers.RespondWithSuccess(w, resp, http.StatusCreated)
 }
@@ -75,16 +83,24 @@ func (h *Handler) GetDiscount(w http.ResponseWriter, r *http.Request) {
 		Name:            discount.Name,
 		Description:     discount.Description,
 		DiscountPercent: discount.DiscountPercent,
+		DiscountAmount:  discount.DiscountAmount,
+		DiscountType:    string(discount.DiscountType),
 		IsUseUnlimited:  discount.IsUseUnlimited,
 		UsePerClient:    discount.UsePerClient,
 		IsActive:        discount.IsActive,
 		ValidFrom:       discount.ValidFrom,
+		DurationType:    string(discount.DurationType),
+		DurationMonths:  discount.DurationMonths,
+		AppliesTo:       string(discount.AppliesTo),
+		MaxRedemptions:  discount.MaxRedemptions,
+		TimesRedeemed:   discount.TimesRedeemed,
+		StripeCouponID:  discount.StripeCouponID,
+		CreatedAt:       discount.CreatedAt,
+		UpdatedAt:       discount.UpdatedAt,
 	}
 	if !discount.ValidTo.IsZero() {
 		resp.ValidTo = &discount.ValidTo
 	}
-	resp.CreatedAt = discount.CreatedAt
-	resp.UpdatedAt = discount.UpdatedAt
 
 	responseHandlers.RespondWithSuccess(w, resp, http.StatusOK)
 }
@@ -103,10 +119,18 @@ func (h *Handler) GetDiscounts(w http.ResponseWriter, r *http.Request) {
 			Name:            d.Name,
 			Description:     d.Description,
 			DiscountPercent: d.DiscountPercent,
+			DiscountAmount:  d.DiscountAmount,
+			DiscountType:    string(d.DiscountType),
 			IsUseUnlimited:  d.IsUseUnlimited,
 			UsePerClient:    d.UsePerClient,
 			IsActive:        d.IsActive,
 			ValidFrom:       d.ValidFrom,
+			DurationType:    string(d.DurationType),
+			DurationMonths:  d.DurationMonths,
+			AppliesTo:       string(d.AppliesTo),
+			MaxRedemptions:  d.MaxRedemptions,
+			TimesRedeemed:   d.TimesRedeemed,
+			StripeCouponID:  d.StripeCouponID,
 			CreatedAt:       d.CreatedAt,
 			UpdatedAt:       d.UpdatedAt,
 		}
@@ -140,10 +164,18 @@ func (h *Handler) UpdateDiscount(w http.ResponseWriter, r *http.Request) {
 		Name:            updated.Name,
 		Description:     updated.Description,
 		DiscountPercent: updated.DiscountPercent,
+		DiscountAmount:  updated.DiscountAmount,
+		DiscountType:    string(updated.DiscountType),
 		IsUseUnlimited:  updated.IsUseUnlimited,
 		UsePerClient:    updated.UsePerClient,
 		IsActive:        updated.IsActive,
 		ValidFrom:       updated.ValidFrom,
+		DurationType:    string(updated.DurationType),
+		DurationMonths:  updated.DurationMonths,
+		AppliesTo:       string(updated.AppliesTo),
+		MaxRedemptions:  updated.MaxRedemptions,
+		TimesRedeemed:   updated.TimesRedeemed,
+		StripeCouponID:  updated.StripeCouponID,
 		CreatedAt:       updated.CreatedAt,
 		UpdatedAt:       updated.UpdatedAt,
 	}
@@ -199,10 +231,18 @@ func (h *Handler) ApplyDiscount(w http.ResponseWriter, r *http.Request) {
 		Name:            applied.Name,
 		Description:     applied.Description,
 		DiscountPercent: applied.DiscountPercent,
+		DiscountAmount:  applied.DiscountAmount,
+		DiscountType:    string(applied.DiscountType),
 		IsUseUnlimited:  applied.IsUseUnlimited,
 		UsePerClient:    applied.UsePerClient,
 		IsActive:        applied.IsActive,
 		ValidFrom:       applied.ValidFrom,
+		DurationType:    string(applied.DurationType),
+		DurationMonths:  applied.DurationMonths,
+		AppliesTo:       string(applied.AppliesTo),
+		MaxRedemptions:  applied.MaxRedemptions,
+		TimesRedeemed:   applied.TimesRedeemed,
+		StripeCouponID:  applied.StripeCouponID,
 		CreatedAt:       applied.CreatedAt,
 		UpdatedAt:       applied.UpdatedAt,
 	}

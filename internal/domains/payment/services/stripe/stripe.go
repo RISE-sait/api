@@ -55,6 +55,7 @@ func CreateOneTimePayment(
 	itemStripePriceID string, // Stripe Price ID of the item being purchased
 	quantity int, // Number of items
 	eventID *string, // Optional: Event ID for event enrollment payments
+	stripeCouponID *string, // Optional: Stripe coupon ID for discounts
 	successURL string, // Success redirect URL after payment
 ) (string, *errLib.CommonError) {
 	// Create a timeout context for this operation
@@ -122,6 +123,17 @@ func CreateOneTimePayment(
 		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
 			Enabled: stripe.Bool(true),
 		},
+	}
+
+	// Add discount coupon if provided
+	if stripeCouponID != nil && *stripeCouponID != "" {
+		params.Discounts = []*stripe.CheckoutSessionDiscountParams{
+			{Coupon: stripe.String(*stripeCouponID)},
+		}
+		// Add coupon ID to metadata for tracking
+		metadata["stripeCouponID"] = *stripeCouponID
+		params.Metadata["stripeCouponID"] = *stripeCouponID
+		params.PaymentIntentData.Metadata["stripeCouponID"] = *stripeCouponID
 	}
 
 	// Create Stripe session with timeout handling
@@ -266,6 +278,7 @@ func CreateSubscription(
 	ctx context.Context,
 	stripePlanPriceID string, // Stripe Price ID for the recurring plan
 	stripeJoiningFeesID string, // Optional one-time joining fee
+	stripeCouponID *string, // Optional: Stripe coupon ID for discounts
 	successURL string, // Success redirect URL after payment
 ) (string, *errLib.CommonError) {
 	// Create a timeout context for this operation
@@ -338,8 +351,18 @@ func CreateSubscription(
 		})
 	}
 
+	// Add discount coupon if provided
+	if stripeCouponID != nil && *stripeCouponID != "" {
+		params.Discounts = []*stripe.CheckoutSessionDiscountParams{
+			{Coupon: stripe.String(*stripeCouponID)},
+		}
+		// Add coupon ID to metadata for tracking
+		params.Metadata["stripeCouponID"] = *stripeCouponID
+		params.SubscriptionData.Metadata["stripeCouponID"] = *stripeCouponID
+	}
+
 	// Create Stripe session with timeout handling
-	type subscriptionResult struct {
+	type subscriptionResult struct{
 		session *stripe.CheckoutSession
 		err     error
 	}

@@ -1,9 +1,19 @@
 -- +goose Up
 -- +goose StatementBegin
 -- Create enum types
-CREATE TYPE IF NOT EXISTS discount_duration_type AS ENUM ('once', 'repeating', 'forever');
-CREATE TYPE IF NOT EXISTS discount_type AS ENUM ('percentage', 'fixed_amount');
-CREATE TYPE IF NOT EXISTS discount_applies_to AS ENUM ('subscription', 'one_time', 'both');
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'discount_duration_type') THEN
+        CREATE TYPE discount_duration_type AS ENUM ('once', 'repeating', 'forever');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'discount_type') THEN
+        CREATE TYPE discount_type AS ENUM ('percentage', 'fixed_amount');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'discount_applies_to') THEN
+        CREATE TYPE discount_applies_to AS ENUM ('subscription', 'one_time', 'both');
+    END IF;
+END
+$$;
 
 -- Create discounts table with all columns (handles both fresh DB and existing table)
 CREATE TABLE IF NOT EXISTS discounts (

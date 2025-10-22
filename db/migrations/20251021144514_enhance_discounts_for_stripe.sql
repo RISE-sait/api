@@ -4,76 +4,76 @@
 -- Add enum types for discount configuration (only if they don't exist)
 DO $$
 BEGIN
-    CREATE TYPE discount_duration_type AS ENUM ('once', 'repeating', 'forever');
-EXCEPTION
-    WHEN duplicate_object THEN NULL;
-END;
-$$ LANGUAGE plpgsql;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'discount_duration_type') THEN
+        CREATE TYPE discount_duration_type AS ENUM ('once', 'repeating', 'forever');
+    END IF;
+END
+$$;
 
 DO $$
 BEGIN
-    CREATE TYPE discount_type AS ENUM ('percentage', 'fixed_amount');
-EXCEPTION
-    WHEN duplicate_object THEN NULL;
-END;
-$$ LANGUAGE plpgsql;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'discount_type') THEN
+        CREATE TYPE discount_type AS ENUM ('percentage', 'fixed_amount');
+    END IF;
+END
+$$;
 
 DO $$
 BEGIN
-    CREATE TYPE discount_applies_to AS ENUM ('subscription', 'one_time', 'both');
-EXCEPTION
-    WHEN duplicate_object THEN NULL;
-END;
-$$ LANGUAGE plpgsql;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'discount_applies_to') THEN
+        CREATE TYPE discount_applies_to AS ENUM ('subscription', 'one_time', 'both');
+    END IF;
+END
+$$;
 
 -- Add new columns to discounts table for Stripe integration (only if they don't exist)
 DO $$
 BEGIN
     ALTER TABLE discounts ADD COLUMN IF NOT EXISTS stripe_coupon_id VARCHAR(255);
-END;
-$$ LANGUAGE plpgsql;
+END
+$$;
 
 DO $$
 BEGIN
-    ALTER TABLE discounts ADD COLUMN IF NOT EXISTS duration_type discount_duration_type NOT NULL DEFAULT 'once';
-END;
-$$ LANGUAGE plpgsql;
+    ALTER TABLE discounts ADD COLUMN IF NOT EXISTS duration_type discount_duration_type NOT NULL DEFAULT 'once'::discount_duration_type;
+END
+$$;
 
 DO $$
 BEGIN
     ALTER TABLE discounts ADD COLUMN IF NOT EXISTS duration_months INT;
-END;
-$$ LANGUAGE plpgsql;
+END
+$$;
 
 DO $$
 BEGIN
-    ALTER TABLE discounts ADD COLUMN IF NOT EXISTS discount_type discount_type NOT NULL DEFAULT 'percentage';
-END;
-$$ LANGUAGE plpgsql;
+    ALTER TABLE discounts ADD COLUMN IF NOT EXISTS discount_type discount_type NOT NULL DEFAULT 'percentage'::discount_type;
+END
+$$;
 
 DO $$
 BEGIN
     ALTER TABLE discounts ADD COLUMN IF NOT EXISTS discount_amount DECIMAL(10, 2);
-END;
-$$ LANGUAGE plpgsql;
+END
+$$;
 
 DO $$
 BEGIN
-    ALTER TABLE discounts ADD COLUMN IF NOT EXISTS applies_to discount_applies_to NOT NULL DEFAULT 'both';
-END;
-$$ LANGUAGE plpgsql;
+    ALTER TABLE discounts ADD COLUMN IF NOT EXISTS applies_to discount_applies_to NOT NULL DEFAULT 'both'::discount_applies_to;
+END
+$$;
 
 DO $$
 BEGIN
     ALTER TABLE discounts ADD COLUMN IF NOT EXISTS max_redemptions INT;
-END;
-$$ LANGUAGE plpgsql;
+END
+$$;
 
 DO $$
 BEGIN
     ALTER TABLE discounts ADD COLUMN IF NOT EXISTS times_redeemed INT NOT NULL DEFAULT 0;
-END;
-$$ LANGUAGE plpgsql;
+END
+$$;
 
 -- Add unique constraint on stripe_coupon_id (only if it doesn't exist)
 DO $$
@@ -81,8 +81,8 @@ BEGIN
     ALTER TABLE discounts ADD CONSTRAINT discounts_stripe_coupon_id_key UNIQUE (stripe_coupon_id);
 EXCEPTION
     WHEN duplicate_object THEN NULL;
-END;
-$$ LANGUAGE plpgsql;
+END
+$$;
 
 -- Add constraints (only if they don't exist)
 DO $$
@@ -94,8 +94,8 @@ BEGIN
     );
 EXCEPTION
     WHEN duplicate_object THEN NULL;
-END;
-$$ LANGUAGE plpgsql;
+END
+$$;
 
 DO $$
 BEGIN
@@ -106,8 +106,8 @@ BEGIN
     );
 EXCEPTION
     WHEN duplicate_object THEN NULL;
-END;
-$$ LANGUAGE plpgsql;
+END
+$$;
 
 DO $$
 BEGIN
@@ -117,8 +117,8 @@ BEGIN
     );
 EXCEPTION
     WHEN duplicate_object THEN NULL;
-END;
-$$ LANGUAGE plpgsql;
+END
+$$;
 
 -- Create indexes (only if they don't exist)
 CREATE INDEX IF NOT EXISTS idx_discounts_stripe_coupon_id ON discounts(stripe_coupon_id);

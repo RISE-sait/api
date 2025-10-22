@@ -132,12 +132,14 @@ func mapReadValueToResponse(userInfo identity.UserReadInfo) dto.UserAuthenticati
 
 	if userInfo.AthleteInfo != nil {
 		responseBody.AthleteInfo = &dto.AthleteResponseDto{
-			Wins:     userInfo.AthleteInfo.Wins,
-			Losses:   userInfo.AthleteInfo.Losses,
-			Points:   userInfo.AthleteInfo.Points,
-			Steals:   userInfo.AthleteInfo.Steals,
-			Assists:  userInfo.AthleteInfo.Assists,
-			Rebounds: userInfo.AthleteInfo.Rebounds,
+			Wins:        userInfo.AthleteInfo.Wins,
+			Losses:      userInfo.AthleteInfo.Losses,
+			Points:      userInfo.AthleteInfo.Points,
+			Steals:      userInfo.AthleteInfo.Steals,
+			Assists:     userInfo.AthleteInfo.Assists,
+			Rebounds:    userInfo.AthleteInfo.Rebounds,
+			TeamID:      userInfo.AthleteInfo.TeamID,
+			TeamLogoURL: userInfo.AthleteInfo.TeamLogoURL,
 		}
 	}
 

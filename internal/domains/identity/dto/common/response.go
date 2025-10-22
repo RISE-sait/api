@@ -15,12 +15,14 @@ type MembershipReadResponseDto struct {
 }
 
 type AthleteResponseDto struct {
-	Wins     int32 `json:"wins"`
-	Losses   int32 `json:"losses"`
-	Points   int32 `json:"points"`
-	Steals   int32 `json:"steals"`
-	Assists  int32 `json:"assists"`
-	Rebounds int32 `json:"rebounds"`
+	Wins        int32       `json:"wins"`
+	Losses      int32       `json:"losses"`
+	Points      int32       `json:"points"`
+	Steals      int32       `json:"steals"`
+	Assists     int32       `json:"assists"`
+	Rebounds    int32       `json:"rebounds"`
+	TeamID      *uuid.UUID  `json:"team_id,omitempty"`
+	TeamLogoURL *string     `json:"team_logo_url,omitempty"`
 }
 
 type UserAuthenticationResponseDto struct {

@@ -149,7 +149,10 @@ func getJSONFieldName(e validator.FieldError, structType reflect.Type) string {
 			if field.Name == fieldName {
 				jsonTag := field.Tag.Get("json")
 				if jsonTag != "" {
-					return strings.Split(jsonTag, ",")[0] // Take the first JSON tag
+					parts := strings.Split(jsonTag, ",")
+					if len(parts) > 0 && parts[0] != "" {
+						return parts[0] // Take the first JSON tag
+					}
 				}
 				return field.Name // Fallback to Go field name
 			}
@@ -175,7 +178,10 @@ func getJSONFieldNameForParam(param string, structType reflect.Type) string {
 		if field.Name == param {
 			jsonTag := field.Tag.Get("json")
 			if jsonTag != "" {
-				return strings.Split(jsonTag, ",")[0] // Take the first JSON tag
+				parts := strings.Split(jsonTag, ",")
+				if len(parts) > 0 && parts[0] != "" {
+					return parts[0] // Take the first JSON tag
+				}
 			}
 			return field.Name // Fallback to Go field name
 		}

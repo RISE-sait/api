@@ -16,8 +16,8 @@ type RequestDto struct {
 	IsUseUnlimited  bool    `json:"is_use_unlimited"`
 	UsePerClient    int     `json:"use_per_client" validate:"omitempty,gt=0"`
 	IsActive        bool    `json:"is_active"`
-	ValidFrom       string  `json:"valid_from" validate:"required,datetime=2006-01-02T15:04:05Z07:00"`
-	ValidTo         string  `json:"valid_to" validate:"omitempty,datetime=2006-01-02T15:04:05Z07:00"`
+	ValidFrom       string  `json:"valid_from" validate:"required"`
+	ValidTo         string  `json:"valid_to" validate:"omitempty"`
 	DurationType    string  `json:"duration_type" validate:"required,oneof=once repeating forever"`
 	DurationMonths  *int    `json:"duration_months,omitempty" validate:"omitempty,gt=0"`
 	AppliesTo       string  `json:"applies_to" validate:"required,oneof=subscription one_time both"`

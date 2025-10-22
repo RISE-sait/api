@@ -1,5 +1,4 @@
 -- +goose Up
--- +goose StatementBegin
 
 -- Add enum types for discount configuration (only if they don't exist)
 DO $$
@@ -124,10 +123,7 @@ $$;
 CREATE INDEX IF NOT EXISTS idx_discounts_stripe_coupon_id ON discounts(stripe_coupon_id);
 CREATE INDEX IF NOT EXISTS idx_discounts_active ON discounts(is_active) WHERE is_active = true;
 
--- +goose StatementEnd
-
 -- +goose Down
--- +goose StatementBegin
 
 -- Drop indexes
 DROP INDEX IF EXISTS idx_discounts_stripe_coupon_id;
@@ -155,5 +151,3 @@ DROP COLUMN IF EXISTS times_redeemed;
 DROP TYPE IF EXISTS discount_duration_type;
 DROP TYPE IF EXISTS discount_type;
 DROP TYPE IF EXISTS discount_applies_to;
-
--- +goose StatementEnd

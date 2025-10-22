@@ -57,7 +57,7 @@ END $$;
 DO $$ BEGIN
     ALTER TABLE discounts ADD CONSTRAINT discounts_stripe_coupon_id_key UNIQUE (stripe_coupon_id);
 EXCEPTION
-    WHEN duplicate_table THEN null;
+    WHEN duplicate_object THEN null;
 END $$;
 
 -- Add constraints (only if they don't exist)

@@ -112,6 +112,7 @@ func RegisterUserRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 	h := userHandler.NewCustomersHandler(container)
+	suspensionHandler := userHandler.NewSuspensionHandler(container)
 
 	return func(r chi.Router) {
 		r.Get("/", h.GetCustomers)
@@ -124,6 +125,11 @@ func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 		r.Get("/archived", h.ListArchivedCustomers)
 		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/delete-account", h.DeleteMyAccount)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}/notes", h.UpdateCustomerNotes)
+
+		// Suspension routes
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/{id}/suspend", suspensionHandler.SuspendUser)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/{id}/unsuspend", suspensionHandler.UnsuspendUser)
+		r.With(middlewares.JWTAuthMiddleware(true)).Get("/{id}/suspension", suspensionHandler.GetSuspensionInfo)
 	}
 }
 

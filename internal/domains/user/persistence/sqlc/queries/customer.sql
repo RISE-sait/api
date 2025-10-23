@@ -219,3 +219,61 @@ UPDATE users.users
 SET notes = sqlc.arg('notes'),
     updated_at = current_timestamp
 WHERE id = sqlc.arg('customer_id');
+
+-- name: SuspendUser :execrows
+UPDATE users.users
+SET suspended_at = sqlc.arg('suspended_at'),
+    suspension_reason = sqlc.arg('suspension_reason'),
+    suspended_by = sqlc.arg('suspended_by'),
+    suspension_expires_at = sqlc.narg('suspension_expires_at'),
+    updated_at = current_timestamp
+WHERE id = sqlc.arg('user_id');
+
+-- name: UnsuspendUser :execrows
+UPDATE users.users
+SET suspended_at = NULL,
+    suspension_reason = NULL,
+    suspended_by = NULL,
+    suspension_expires_at = NULL,
+    updated_at = current_timestamp
+WHERE id = sqlc.arg('user_id');
+
+-- name: SuspendUserMemberships :execrows
+UPDATE users.customer_membership_plans
+SET suspended_at = sqlc.arg('suspended_at'),
+    suspension_billing_paused = TRUE,
+    updated_at = current_timestamp
+WHERE customer_id = sqlc.arg('user_id')
+  AND status = 'active';
+
+-- name: UnsuspendUserMemberships :execrows
+UPDATE users.customer_membership_plans
+SET suspended_at = NULL,
+    suspension_billing_paused = FALSE,
+    updated_at = current_timestamp
+WHERE customer_id = sqlc.arg('user_id')
+  AND suspended_at IS NOT NULL;
+
+-- name: ExtendMembershipRenewalDate :execrows
+UPDATE users.customer_membership_plans
+SET renewal_date = sqlc.arg('new_renewal_date'),
+    updated_at = current_timestamp
+WHERE customer_id = sqlc.arg('user_id')
+  AND suspended_at IS NOT NULL;
+
+-- name: GetUserActiveMemberships :many
+SELECT *
+FROM users.customer_membership_plans
+WHERE customer_id = sqlc.arg('user_id')
+  AND status = 'active';
+
+-- name: GetUserSuspendedMemberships :many
+SELECT *
+FROM users.customer_membership_plans
+WHERE customer_id = sqlc.arg('user_id')
+  AND suspended_at IS NOT NULL;
+
+-- name: GetSuspensionInfo :one
+SELECT suspended_at, suspension_reason, suspended_by, suspension_expires_at
+FROM users.users
+WHERE id = sqlc.arg('user_id');

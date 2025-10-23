@@ -2,14 +2,24 @@ package middlewares
 
 import (
 	"context"
+	"database/sql"
+	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	errLib "api/internal/libs/errors"
 	jwtLib "api/internal/libs/jwt"
 	responseHandlers "api/internal/libs/responses"
 	contextUtils "api/utils/context"
 )
+
+var db *sql.DB
+
+// SetDB sets the database connection for suspension checks
+func SetDB(database *sql.DB) {
+	db = database
+}
 
 // JWTAuthMiddleware validates JWT tokens and checks user roles.
 // It allows superadmin access to all routes and grants access if the user's role matches any allowed role (case-insensitive).
@@ -41,6 +51,18 @@ func JWTAuthMiddleware(isAllowAnyoneWithValidToken bool, allowedRoles ...context
 			if err != nil {
 				responseHandlers.RespondWithError(w, err)
 				return
+			}
+
+			// Check if user is suspended (skip for superadmin)
+			if userRole != contextUtils.RoleSuperAdmin {
+				suspended, suspensionErr := checkUserSuspension(ctx, claims.UserID.String())
+				if suspensionErr != nil {
+					log.Printf("Error checking suspension status for user %s: %v", claims.UserID, suspensionErr)
+					// Continue despite error - don't block legitimate users if DB query fails
+				} else if suspended {
+					responseHandlers.RespondWithError(w, errLib.New("Your account has been suspended. Please contact support for more information.", http.StatusForbidden))
+					return
+				}
 			}
 
 			isAuthorized := hasRequiredRole(userRole, allowedRoles)
@@ -120,4 +142,50 @@ func hasRequiredRole(userRole contextUtils.CtxRole, allowedRoles []contextUtils.
 	}
 
 	return false
+}
+
+// checkUserSuspension checks if a user is currently suspended
+// Returns true if suspended, false otherwise
+func checkUserSuspension(ctx context.Context, userID string) (bool, error) {
+	if db == nil {
+		log.Printf("Warning: Database connection not set in JWT middleware")
+		return false, nil // Fail open if DB not configured
+	}
+
+	query := `
+		SELECT suspended_at, suspension_expires_at
+		FROM users.users
+		WHERE id = $1
+	`
+
+	var suspendedAt, suspensionExpiresAt sql.NullTime
+	err := db.QueryRowContext(ctx, query, userID).Scan(&suspendedAt, &suspensionExpiresAt)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// User not found - let it proceed, will fail at authorization
+			return false, nil
+		}
+		return false, err
+	}
+
+	// Check if user is suspended
+	if !suspendedAt.Valid {
+		// Not suspended
+		return false, nil
+	}
+
+	// Check if suspension has expired
+	if suspensionExpiresAt.Valid {
+		now := time.Now().UTC()
+		if now.After(suspensionExpiresAt.Time) {
+			// Suspension has expired - user should be unsuspended
+			// But we'll return false here and let them access (auto-unsuspension)
+			// Ideally you'd want a cron job to clear expired suspensions
+			return false, nil
+		}
+	}
+
+	// User is currently suspended
+	return true, nil
 }

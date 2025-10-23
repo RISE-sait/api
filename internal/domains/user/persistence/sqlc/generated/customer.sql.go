@@ -154,6 +154,27 @@ func (q *Queries) DeleteCustomerMemberships(ctx context.Context, customerID uuid
 	return result.RowsAffected()
 }
 
+const extendMembershipRenewalDate = `-- name: ExtendMembershipRenewalDate :execrows
+UPDATE users.customer_membership_plans
+SET renewal_date = $1,
+    updated_at = current_timestamp
+WHERE customer_id = $2
+  AND suspended_at IS NOT NULL
+`
+
+type ExtendMembershipRenewalDateParams struct {
+	NewRenewalDate sql.NullTime `json:"new_renewal_date"`
+	UserID         uuid.UUID    `json:"user_id"`
+}
+
+func (q *Queries) ExtendMembershipRenewalDate(ctx context.Context, arg ExtendMembershipRenewalDateParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, extendMembershipRenewalDate, arg.NewRenewalDate, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const getActiveMembershipInfo = `-- name: GetActiveMembershipInfo :one
 SELECT
     cmp.id,
@@ -286,7 +307,7 @@ func (q *Queries) GetAthletes(ctx context.Context, arg GetAthletesParams) ([]Get
 }
 
 const getCustomer = `-- name: GetCustomer :one
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at,
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at, u.suspended_at, u.suspension_reason, u.suspended_by, u.suspension_expires_at,
        m.name           AS membership_name,
        mp.id            AS membership_plan_id,
        mp.name          AS membership_plan_name,
@@ -347,6 +368,10 @@ type GetCustomerRow struct {
 	EmailVerificationToken          sql.NullString `json:"email_verification_token"`
 	EmailVerificationTokenExpiresAt sql.NullTime   `json:"email_verification_token_expires_at"`
 	EmailVerifiedAt                 sql.NullTime   `json:"email_verified_at"`
+	SuspendedAt                     sql.NullTime   `json:"suspended_at"`
+	SuspensionReason                sql.NullString `json:"suspension_reason"`
+	SuspendedBy                     uuid.NullUUID  `json:"suspended_by"`
+	SuspensionExpiresAt             sql.NullTime   `json:"suspension_expires_at"`
 	MembershipName                  sql.NullString `json:"membership_name"`
 	MembershipPlanID                uuid.NullUUID  `json:"membership_plan_id"`
 	MembershipPlanName              sql.NullString `json:"membership_plan_name"`
@@ -389,6 +414,10 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 		&i.EmailVerificationToken,
 		&i.EmailVerificationTokenExpiresAt,
 		&i.EmailVerifiedAt,
+		&i.SuspendedAt,
+		&i.SuspensionReason,
+		&i.SuspendedBy,
+		&i.SuspensionExpiresAt,
 		&i.MembershipName,
 		&i.MembershipPlanID,
 		&i.MembershipPlanName,
@@ -406,7 +435,7 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 }
 
 const getCustomers = `-- name: GetCustomers :many
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at,
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at, u.suspended_at, u.suspension_reason, u.suspended_by, u.suspension_expires_at,
        m.name           AS membership_name,
        mp.id            AS membership_plan_id,
        mp.name          AS membership_plan_name,
@@ -475,6 +504,10 @@ type GetCustomersRow struct {
 	EmailVerificationToken          sql.NullString `json:"email_verification_token"`
 	EmailVerificationTokenExpiresAt sql.NullTime   `json:"email_verification_token_expires_at"`
 	EmailVerifiedAt                 sql.NullTime   `json:"email_verified_at"`
+	SuspendedAt                     sql.NullTime   `json:"suspended_at"`
+	SuspensionReason                sql.NullString `json:"suspension_reason"`
+	SuspendedBy                     uuid.NullUUID  `json:"suspended_by"`
+	SuspensionExpiresAt             sql.NullTime   `json:"suspension_expires_at"`
 	MembershipName                  sql.NullString `json:"membership_name"`
 	MembershipPlanID                uuid.NullUUID  `json:"membership_plan_id"`
 	MembershipPlanName              sql.NullString `json:"membership_plan_name"`
@@ -528,6 +561,10 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]G
 			&i.EmailVerificationToken,
 			&i.EmailVerificationTokenExpiresAt,
 			&i.EmailVerifiedAt,
+			&i.SuspendedAt,
+			&i.SuspensionReason,
+			&i.SuspendedBy,
+			&i.SuspensionExpiresAt,
 			&i.MembershipName,
 			&i.MembershipPlanID,
 			&i.MembershipPlanName,
@@ -554,8 +591,127 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]G
 	return items, nil
 }
 
+const getSuspensionInfo = `-- name: GetSuspensionInfo :one
+SELECT suspended_at, suspension_reason, suspended_by, suspension_expires_at
+FROM users.users
+WHERE id = $1
+`
+
+type GetSuspensionInfoRow struct {
+	SuspendedAt         sql.NullTime   `json:"suspended_at"`
+	SuspensionReason    sql.NullString `json:"suspension_reason"`
+	SuspendedBy         uuid.NullUUID  `json:"suspended_by"`
+	SuspensionExpiresAt sql.NullTime   `json:"suspension_expires_at"`
+}
+
+func (q *Queries) GetSuspensionInfo(ctx context.Context, userID uuid.UUID) (GetSuspensionInfoRow, error) {
+	row := q.db.QueryRowContext(ctx, getSuspensionInfo, userID)
+	var i GetSuspensionInfoRow
+	err := row.Scan(
+		&i.SuspendedAt,
+		&i.SuspensionReason,
+		&i.SuspendedBy,
+		&i.SuspensionExpiresAt,
+	)
+	return i, err
+}
+
+const getUserActiveMemberships = `-- name: GetUserActiveMemberships :many
+SELECT id, customer_id, membership_plan_id, start_date, renewal_date, status, created_at, updated_at, photo_url, square_subscription_id, subscription_status, next_billing_date, subscription_created_at, subscription_source, suspended_at, suspension_billing_paused
+FROM users.customer_membership_plans
+WHERE customer_id = $1
+  AND status = 'active'
+`
+
+func (q *Queries) GetUserActiveMemberships(ctx context.Context, userID uuid.UUID) ([]UsersCustomerMembershipPlan, error) {
+	rows, err := q.db.QueryContext(ctx, getUserActiveMemberships, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UsersCustomerMembershipPlan
+	for rows.Next() {
+		var i UsersCustomerMembershipPlan
+		if err := rows.Scan(
+			&i.ID,
+			&i.CustomerID,
+			&i.MembershipPlanID,
+			&i.StartDate,
+			&i.RenewalDate,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.PhotoUrl,
+			&i.SquareSubscriptionID,
+			&i.SubscriptionStatus,
+			&i.NextBillingDate,
+			&i.SubscriptionCreatedAt,
+			&i.SubscriptionSource,
+			&i.SuspendedAt,
+			&i.SuspensionBillingPaused,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUserSuspendedMemberships = `-- name: GetUserSuspendedMemberships :many
+SELECT id, customer_id, membership_plan_id, start_date, renewal_date, status, created_at, updated_at, photo_url, square_subscription_id, subscription_status, next_billing_date, subscription_created_at, subscription_source, suspended_at, suspension_billing_paused
+FROM users.customer_membership_plans
+WHERE customer_id = $1
+  AND suspended_at IS NOT NULL
+`
+
+func (q *Queries) GetUserSuspendedMemberships(ctx context.Context, userID uuid.UUID) ([]UsersCustomerMembershipPlan, error) {
+	rows, err := q.db.QueryContext(ctx, getUserSuspendedMemberships, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UsersCustomerMembershipPlan
+	for rows.Next() {
+		var i UsersCustomerMembershipPlan
+		if err := rows.Scan(
+			&i.ID,
+			&i.CustomerID,
+			&i.MembershipPlanID,
+			&i.StartDate,
+			&i.RenewalDate,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.PhotoUrl,
+			&i.SquareSubscriptionID,
+			&i.SubscriptionStatus,
+			&i.NextBillingDate,
+			&i.SubscriptionCreatedAt,
+			&i.SubscriptionSource,
+			&i.SuspendedAt,
+			&i.SuspensionBillingPaused,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listArchivedCustomers = `-- name: ListArchivedCustomers :many
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at, u.suspended_at, u.suspension_reason, u.suspended_by, u.suspension_expires_at
 FROM users.users u
 WHERE u.is_archived = TRUE
 LIMIT $2 OFFSET $1
@@ -600,6 +756,10 @@ func (q *Queries) ListArchivedCustomers(ctx context.Context, arg ListArchivedCus
 			&i.EmailVerificationToken,
 			&i.EmailVerificationTokenExpiresAt,
 			&i.EmailVerifiedAt,
+			&i.SuspendedAt,
+			&i.SuspensionReason,
+			&i.SuspendedBy,
+			&i.SuspensionExpiresAt,
 		); err != nil {
 			return nil, err
 		}
@@ -701,6 +861,60 @@ func (q *Queries) ListMembershipHistory(ctx context.Context, customerID uuid.UUI
 	return items, nil
 }
 
+const suspendUser = `-- name: SuspendUser :execrows
+UPDATE users.users
+SET suspended_at = $1,
+    suspension_reason = $2,
+    suspended_by = $3,
+    suspension_expires_at = $4,
+    updated_at = current_timestamp
+WHERE id = $5
+`
+
+type SuspendUserParams struct {
+	SuspendedAt         sql.NullTime   `json:"suspended_at"`
+	SuspensionReason    sql.NullString `json:"suspension_reason"`
+	SuspendedBy         uuid.NullUUID  `json:"suspended_by"`
+	SuspensionExpiresAt sql.NullTime   `json:"suspension_expires_at"`
+	UserID              uuid.UUID      `json:"user_id"`
+}
+
+func (q *Queries) SuspendUser(ctx context.Context, arg SuspendUserParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, suspendUser,
+		arg.SuspendedAt,
+		arg.SuspensionReason,
+		arg.SuspendedBy,
+		arg.SuspensionExpiresAt,
+		arg.UserID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const suspendUserMemberships = `-- name: SuspendUserMemberships :execrows
+UPDATE users.customer_membership_plans
+SET suspended_at = $1,
+    suspension_billing_paused = TRUE,
+    updated_at = current_timestamp
+WHERE customer_id = $2
+  AND status = 'active'
+`
+
+type SuspendUserMembershipsParams struct {
+	SuspendedAt sql.NullTime `json:"suspended_at"`
+	UserID      uuid.UUID    `json:"user_id"`
+}
+
+func (q *Queries) SuspendUserMemberships(ctx context.Context, arg SuspendUserMembershipsParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, suspendUserMemberships, arg.SuspendedAt, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const unarchiveCustomer = `-- name: UnarchiveCustomer :execrows
 UPDATE users.users
 SET is_archived = FALSE,
@@ -710,6 +924,41 @@ WHERE id = $1
 
 func (q *Queries) UnarchiveCustomer(ctx context.Context, id uuid.UUID) (int64, error) {
 	result, err := q.db.ExecContext(ctx, unarchiveCustomer, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const unsuspendUser = `-- name: UnsuspendUser :execrows
+UPDATE users.users
+SET suspended_at = NULL,
+    suspension_reason = NULL,
+    suspended_by = NULL,
+    suspension_expires_at = NULL,
+    updated_at = current_timestamp
+WHERE id = $1
+`
+
+func (q *Queries) UnsuspendUser(ctx context.Context, userID uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, unsuspendUser, userID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const unsuspendUserMemberships = `-- name: UnsuspendUserMemberships :execrows
+UPDATE users.customer_membership_plans
+SET suspended_at = NULL,
+    suspension_billing_paused = FALSE,
+    updated_at = current_timestamp
+WHERE customer_id = $1
+  AND suspended_at IS NOT NULL
+`
+
+func (q *Queries) UnsuspendUserMemberships(ctx context.Context, userID uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, unsuspendUserMemberships, userID)
 	if err != nil {
 		return 0, err
 	}

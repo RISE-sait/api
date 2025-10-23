@@ -437,8 +437,8 @@ WHERE (
           ($1::uuid = e.program_id OR $1 IS NULL)
               AND ($2::uuid = e.location_id OR $2 IS NULL)
               AND ($3::uuid = e.court_id OR $3 IS NULL)
-              AND ($4::timestamp <= e.start_at OR $4 IS NULL)
-              AND ($5::timestamp >= e.end_at OR $5 IS NULL)
+              AND ($4::timestamptz <= e.start_at OR $4 IS NULL)
+              AND ($5::timestamptz >= e.end_at OR $5 IS NULL)
               AND ($6 = p.type OR $6 IS NULL)
               AND ($7::uuid IS NULL OR ce.customer_id = $7::uuid OR
                    es.staff_id = $7::uuid)

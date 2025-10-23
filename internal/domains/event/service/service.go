@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -118,10 +119,16 @@ func (s *Service) CreateEvent(ctx context.Context, details values.CreateEventVal
 			Limit:      1,
 		}
 
+		log.Printf("Querying for created event with filter: ProgramID=%s, LocationID=%s, After=%s, Before=%s",
+			filter.ProgramID, filter.LocationID, filter.After.Format(time.RFC3339Nano), filter.Before.Format(time.RFC3339Nano))
+
 		events, err := txRepo.GetEvents(ctx, filter)
 		if err != nil {
+			log.Printf("GetEvents query returned error: %v", err)
 			return err
 		}
+
+		log.Printf("GetEvents returned %d events", len(events))
 
 		if len(events) == 0 {
 			return errLib.New("Failed to retrieve created event", http.StatusInternalServerError)

@@ -349,16 +349,20 @@ func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if eventCreate, err := targetBody.ToCreateEventValues(userID); err != nil {
+	eventCreate, err := targetBody.ToCreateEventValues(userID)
+	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
-	} else {
-		if err = h.EventsService.CreateEvent(r.Context(), eventCreate); err != nil {
-			responseHandlers.RespondWithError(w, err)
-			return
-		}
 	}
-	responseHandlers.RespondWithSuccess(w, nil, http.StatusCreated)
+
+	createdEvent, err := h.EventsService.CreateEvent(r.Context(), eventCreate)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	eventDto := dto.NewEventResponseDto(createdEvent, true)
+	responseHandlers.RespondWithSuccess(w, eventDto, http.StatusCreated)
 }
 
 // UpdateEvent updates an existing event by ID.

@@ -102,8 +102,10 @@ func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurre
 	})
 }
 
-func (s *Service) CreateEvent(ctx context.Context, details values.CreateEventValues) *errLib.CommonError {
-	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
+func (s *Service) CreateEvent(ctx context.Context, details values.CreateEventValues) (values.ReadEventValues, *errLib.CommonError) {
+	var createdEventData values.ReadEventValues
+
+	err := s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
 		// Create the event
 		if err := txRepo.CreateEvents(ctx, []values.CreateEventValues{details}); err != nil {
 			return err
@@ -149,15 +151,22 @@ func (s *Service) CreateEvent(ctx context.Context, details values.CreateEventVal
 		}
 
 		if isStaff {
-			return s.staffActivityLogsService.InsertStaffActivity(
+			if err := s.staffActivityLogsService.InsertStaffActivity(
 				ctx,
 				txRepo.GetTx(),
 				details.CreatedBy,
 				fmt.Sprintf("Created event with details: %+v", details),
-			)
+			); err != nil {
+				return err
+			}
 		}
+
+		// Capture the created event data to return
+		createdEventData = createdEvent
 		return nil
 	})
+
+	return createdEventData, err
 }
 
 func (s *Service) UpdateEvent(ctx context.Context, details values.UpdateEventValues) *errLib.CommonError {

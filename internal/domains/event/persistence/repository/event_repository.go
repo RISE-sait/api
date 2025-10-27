@@ -347,6 +347,12 @@ func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEvent
 	events := make([]values.ReadEventValues, 0, len(dbRows))
 
 	for _, row := range dbRows {
+		// Get membership plan IDs for this event
+		membershipPlanIDs, membershipErr := r.GetEventMembershipPlanIDs(ctx, row.ID)
+		if membershipErr != nil {
+			log.Printf("Failed to get membership plans for event %s: %v", row.ID, membershipErr)
+			return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+		}
 
 		event := values.ReadEventValues{
 			ID:        row.ID,
@@ -386,8 +392,9 @@ func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEvent
 				Type:        string(row.ProgramType),
 				PhotoURL:    nullStringToPtr(row.ProgramPhotoUrl),
 			},
-			PriceID:    nullStringToPtr(row.PriceID),
-			CreditCost: nullInt32ToPtr(row.CreditCost),
+			RequiredMembershipPlanIDs: membershipPlanIDs,
+			PriceID:                   nullStringToPtr(row.PriceID),
+			CreditCost:                nullInt32ToPtr(row.CreditCost),
 		}
 
 		if row.TeamID.Valid && row.TeamName.Valid {

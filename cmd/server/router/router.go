@@ -129,6 +129,7 @@ func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 		// Suspension routes
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/{id}/suspend", suspensionHandler.SuspendUser)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/{id}/unsuspend", suspensionHandler.UnsuspendUser)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/{id}/collect-arrears", suspensionHandler.CollectArrears)
 		r.With(middlewares.JWTAuthMiddleware(true)).Get("/{id}/suspension", suspensionHandler.GetSuspensionInfo)
 	}
 }

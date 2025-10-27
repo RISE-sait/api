@@ -15,6 +15,7 @@ type SuspendUserRequestDto struct {
 
 type UnsuspendUserRequestDto struct {
 	ExtendMembership bool `json:"extend_membership"` // whether to extend renewal_date by suspension duration
+	CollectArrears   bool `json:"collect_arrears"`   // whether to create invoice items for missed billing periods
 }
 
 type SuspensionInfoResponseDto struct {

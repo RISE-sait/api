@@ -157,6 +157,7 @@ func (h *SuspensionHandler) UnsuspendUser(w http.ResponseWriter, r *http.Request
 		UserID:           userID,
 		UnsuspendedBy:    unsuspendedBy,
 		ExtendMembership: requestDto.ExtendMembership,
+		CollectArrears:   requestDto.CollectArrears,
 	}
 
 	if err := h.suspensionService.UnsuspendUser(r.Context(), params); err != nil {
@@ -247,4 +248,61 @@ func (h *SuspensionHandler) GetSuspensionInfo(w http.ResponseWriter, r *http.Req
 	}
 
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
+}
+
+// CollectArrears manually collects arrears for a suspended user
+// @Summary Manually collect arrears for suspended user
+// @Description Calculates and creates Stripe invoice items for missed billing periods during suspension. Does not unsuspend the user. Requires admin role.
+// @Tags customers
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path string true "User ID to collect arrears for"
+// @Success 200 {object} map[string]interface{} "Arrears collected successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input or user not suspended"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden: Insufficient permissions"
+// @Failure 404 {object} map[string]interface{} "Not Found: User not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /customers/{id}/collect-arrears [post]
+func (h *SuspensionHandler) CollectArrears(w http.ResponseWriter, r *http.Request) {
+	// Get user ID from URL
+	userIDStr := chi.URLParam(r, "id")
+	userID, parseErr := validators.ParseUUID(userIDStr)
+	if parseErr != nil {
+		responseHandlers.RespondWithError(w, parseErr)
+		return
+	}
+
+	// Check authorization - only admins can collect arrears
+	userRole, roleErr := contextUtils.GetUserRole(r.Context())
+	if roleErr != nil {
+		responseHandlers.RespondWithError(w, errLib.New("Authentication required", http.StatusUnauthorized))
+		return
+	}
+
+	if userRole != contextUtils.RoleAdmin && userRole != contextUtils.RoleSuperAdmin {
+		responseHandlers.RespondWithError(w, errLib.New("Insufficient permissions to collect arrears", http.StatusForbidden))
+		return
+	}
+
+	// Get the staff member ID who is performing the arrears collection
+	collectedBy, userErr := contextUtils.GetUserID(r.Context())
+	if userErr != nil {
+		responseHandlers.RespondWithError(w, userErr)
+		return
+	}
+
+	// Call service to collect arrears
+	arrearsTotal, err := h.suspensionService.CollectArrearsManually(r.Context(), userID, collectedBy)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	responseHandlers.RespondWithSuccess(w, map[string]interface{}{
+		"message":       "Arrears collected successfully",
+		"user_id":       userID,
+		"arrears_total": arrearsTotal,
+	}, http.StatusOK)
 }

@@ -45,6 +45,9 @@ func main() {
 	diContainer := di.NewContainer()
 	defer diContainer.Cleanup()
 
+	// Set database connection for JWT middleware suspension checks
+	middlewares.SetDB(diContainer.DB)
+
 	server := &http.Server{
 		Addr:         ":80",
 		Handler:      setupServer(diContainer, swaggerUrl),

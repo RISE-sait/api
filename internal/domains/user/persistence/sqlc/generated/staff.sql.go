@@ -79,7 +79,7 @@ func (q *Queries) GetAvailableStaffRoles(ctx context.Context) ([]StaffStaffRole,
 }
 
 const getStaffs = `-- name: GetStaffs :many
-SELECT s.is_active, u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at, sr.role_name, cs.wins, cs.losses, s.photo_url
+SELECT s.is_active, u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at, u.suspended_at, u.suspension_reason, u.suspended_by, u.suspension_expires_at, sr.role_name, cs.wins, cs.losses, s.photo_url
 FROM staff.staff s
 JOIN users.users u ON u.id = s.id
 JOIN staff.staff_roles sr ON s.role_id = sr.id
@@ -113,6 +113,10 @@ type GetStaffsRow struct {
 	EmailVerificationToken          sql.NullString `json:"email_verification_token"`
 	EmailVerificationTokenExpiresAt sql.NullTime   `json:"email_verification_token_expires_at"`
 	EmailVerifiedAt                 sql.NullTime   `json:"email_verified_at"`
+	SuspendedAt                     sql.NullTime   `json:"suspended_at"`
+	SuspensionReason                sql.NullString `json:"suspension_reason"`
+	SuspendedBy                     uuid.NullUUID  `json:"suspended_by"`
+	SuspensionExpiresAt             sql.NullTime   `json:"suspension_expires_at"`
 	RoleName                        string         `json:"role_name"`
 	Wins                            sql.NullInt32  `json:"wins"`
 	Losses                          sql.NullInt32  `json:"losses"`
@@ -154,6 +158,10 @@ func (q *Queries) GetStaffs(ctx context.Context, roleName sql.NullString) ([]Get
 			&i.EmailVerificationToken,
 			&i.EmailVerificationTokenExpiresAt,
 			&i.EmailVerifiedAt,
+			&i.SuspendedAt,
+			&i.SuspensionReason,
+			&i.SuspendedBy,
+			&i.SuspensionExpiresAt,
 			&i.RoleName,
 			&i.Wins,
 			&i.Losses,

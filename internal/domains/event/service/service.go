@@ -114,6 +114,7 @@ func (s *Service) CreateEvent(ctx context.Context, details values.CreateEventVal
 		// Query for the created event to get its ID
 		// We search by the unique combination of program, location, start time, and end time
 		filter := values.GetEventsFilter{
+			
 			ProgramID:  details.ProgramID,
 			LocationID: details.LocationID,
 			After:      details.StartAt,

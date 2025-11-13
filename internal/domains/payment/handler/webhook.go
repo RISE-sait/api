@@ -93,8 +93,15 @@ func (h *WebhookHandlers) HandleStripeWebhook(w http.ResponseWriter, r *http.Req
 		webhookErr = h.Service.HandleSubscriptionUpdated(*event)
 	case "customer.subscription.deleted":
 		webhookErr = h.Service.HandleSubscriptionDeleted(*event)
+	case "invoice.created":
+		// Apply subsidy credit BEFORE customer is charged
+		webhookErr = h.Service.HandleInvoiceCreated(*event)
+	case "invoice.finalized":
+		// Apply subsidy credit at finalization (after subscription linked, before payment)
+		webhookErr = h.Service.HandleInvoiceFinalized(*event)
 	case "invoice.payment_succeeded":
-		webhookErr = h.Service.HandleInvoicePaymentSucceeded(*event)
+		// Records subsidy usage after successful payment
+		webhookErr = h.Service.HandleInvoicePaymentSucceededWithSubsidy(*event)
 	case "invoice.payment_failed":
 		webhookErr = h.Service.HandleInvoicePaymentFailed(*event)
 	default:

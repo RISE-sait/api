@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.29.0
 
-package db_event
+package db
 
 import (
 	"database/sql"
@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 type AuditAuditStatus string
@@ -559,13 +560,13 @@ type HaircutEvent struct {
 }
 
 type HaircutHaircutService struct {
-	ID            uuid.UUID      `json:"id"`
-	Name          string         `json:"name"`
-	Description   sql.NullString `json:"description"`
-	Price         string         `json:"price"`
-	DurationInMin int32          `json:"duration_in_min"`
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
+	ID            uuid.UUID       `json:"id"`
+	Name          string          `json:"name"`
+	Description   sql.NullString  `json:"description"`
+	Price         decimal.Decimal `json:"price"`
+	DurationInMin int32           `json:"duration_in_min"`
+	CreatedAt     time.Time       `json:"created_at"`
+	UpdatedAt     time.Time       `json:"updated_at"`
 }
 
 type LocationCourt struct {
@@ -745,11 +746,11 @@ type SubsidiesAuditLog struct {
 
 // Customer subsidy balances - like gift cards
 type SubsidiesCustomerSubsidy struct {
-	ID              uuid.UUID     `json:"id"`
-	CustomerID      uuid.UUID     `json:"customer_id"`
-	ProviderID      uuid.NullUUID `json:"provider_id"`
-	ApprovedAmount  string        `json:"approved_amount"`
-	TotalAmountUsed string        `json:"total_amount_used"`
+	ID              uuid.UUID       `json:"id"`
+	CustomerID      uuid.UUID       `json:"customer_id"`
+	ProviderID      uuid.NullUUID   `json:"provider_id"`
+	ApprovedAmount  decimal.Decimal `json:"approved_amount"`
+	TotalAmountUsed decimal.Decimal `json:"total_amount_used"`
 	// Auto-calculated: approved_amount - total_amount_used
 	RemainingBalance sql.NullString `json:"remaining_balance"`
 	Status           string         `json:"status"`
@@ -780,19 +781,19 @@ type SubsidiesProvider struct {
 
 // Track each deduction from subsidy balance
 type SubsidiesUsageTransaction struct {
-	ID                    uuid.UUID      `json:"id"`
-	CustomerSubsidyID     uuid.UUID      `json:"customer_subsidy_id"`
-	CustomerID            uuid.UUID      `json:"customer_id"`
-	TransactionType       string         `json:"transaction_type"`
-	MembershipPlanID      uuid.NullUUID  `json:"membership_plan_id"`
-	OriginalAmount        string         `json:"original_amount"`
-	SubsidyApplied        string         `json:"subsidy_applied"`
-	CustomerPaid          string         `json:"customer_paid"`
-	StripeSubscriptionID  sql.NullString `json:"stripe_subscription_id"`
-	StripeInvoiceID       sql.NullString `json:"stripe_invoice_id"`
-	StripePaymentIntentID sql.NullString `json:"stripe_payment_intent_id"`
-	Description           sql.NullString `json:"description"`
-	AppliedAt             sql.NullTime   `json:"applied_at"`
+	ID                    uuid.UUID       `json:"id"`
+	CustomerSubsidyID     uuid.UUID       `json:"customer_subsidy_id"`
+	CustomerID            uuid.UUID       `json:"customer_id"`
+	TransactionType       string          `json:"transaction_type"`
+	MembershipPlanID      uuid.NullUUID   `json:"membership_plan_id"`
+	OriginalAmount        decimal.Decimal `json:"original_amount"`
+	SubsidyApplied        decimal.Decimal `json:"subsidy_applied"`
+	CustomerPaid          decimal.Decimal `json:"customer_paid"`
+	StripeSubscriptionID  sql.NullString  `json:"stripe_subscription_id"`
+	StripeInvoiceID       sql.NullString  `json:"stripe_invoice_id"`
+	StripePaymentIntentID sql.NullString  `json:"stripe_payment_intent_id"`
+	Description           sql.NullString  `json:"description"`
+	AppliedAt             sql.NullTime    `json:"applied_at"`
 }
 
 // Available credit packages for one-time purchase

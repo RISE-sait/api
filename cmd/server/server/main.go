@@ -14,6 +14,7 @@ import (
 	"api/cmd/server/router"
 	"api/internal/di"
 	healthHandler "api/internal/domains/health/handler"
+	"api/internal/jobs"
 
 	"github.com/go-chi/cors"
 
@@ -47,6 +48,13 @@ func main() {
 
 	// Set database connection for JWT middleware suspension checks
 	middlewares.SetDB(diContainer.DB)
+
+	// Initialize and start scheduled jobs
+	scheduler := jobs.NewScheduler(diContainer)
+	scheduler.RegisterJob(jobs.NewMembershipReconciliationJob(diContainer))
+	scheduler.RegisterJob(jobs.NewSubsidyExpirationJob(diContainer))
+	scheduler.Start()
+	defer scheduler.Stop()
 
 	server := &http.Server{
 		Addr:         ":80",

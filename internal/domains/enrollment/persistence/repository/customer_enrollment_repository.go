@@ -80,7 +80,7 @@ func (r *CustomerEnrollmentRepository) RemoveCustomerFromEvent(c context.Context
 	return nil
 }
 
-func (r *CustomerEnrollmentRepository) EnrollCustomerInMembershipPlan(ctx context.Context, customerID, planID uuid.UUID, cancelAtDateTime time.Time, startTime time.Time) *errLib.CommonError {
+func (r *CustomerEnrollmentRepository) EnrollCustomerInMembershipPlan(ctx context.Context, customerID, planID uuid.UUID, cancelAtDateTime time.Time, nextBillingDate time.Time, startTime time.Time) *errLib.CommonError {
 
 	if err := r.Queries.EnrollCustomerInMembershipPlan(ctx, dbEnrollment.EnrollCustomerInMembershipPlanParams{
 		CustomerID:       customerID,
@@ -91,8 +91,12 @@ func (r *CustomerEnrollmentRepository) EnrollCustomerInMembershipPlan(ctx contex
 			Time:  cancelAtDateTime,
 			Valid: !cancelAtDateTime.IsZero(),
 		},
+		NextBillingDate: sql.NullTime{
+			Time:  nextBillingDate,
+			Valid: !nextBillingDate.IsZero(),
+		},
 		SubscriptionSource: sql.NullString{
-			String: "subscription",
+			String: "stripe", // Match what SQL queries expect
 			Valid:  true,
 		},
 	}); err != nil {

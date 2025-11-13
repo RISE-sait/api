@@ -2,6 +2,8 @@ package payment
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -12,6 +14,7 @@ import (
 	membership "api/internal/domains/membership/persistence/repositories"
 	repository "api/internal/domains/payment/persistence/repositories"
 	"api/internal/domains/payment/services/stripe"
+	subsidyService "api/internal/domains/subsidy/service"
 	userServices "api/internal/domains/user/services"
 	errLib "api/internal/libs/errors"
 	contextUtils "api/utils/context"
@@ -23,9 +26,11 @@ type Service struct {
 	CheckoutRepo        *repository.CheckoutRepository
 	MembershipPlansRepo *membership.PlansRepository
 	DiscountService     *discountService.Service
+	SubsidyService      *subsidyService.SubsidyService
 	EnrollmentService   *enrollment.CustomerEnrollmentService
 	EventService        *eventService.Service
 	CreditService       *userServices.CustomerCreditService
+	DB                  *sql.DB
 }
 
 func NewPurchaseService(container *di.Container) *Service {
@@ -33,10 +38,23 @@ func NewPurchaseService(container *di.Container) *Service {
 		CheckoutRepo:        repository.NewCheckoutRepository(container),
 		MembershipPlansRepo: membership.NewMembershipPlansRepository(container),
 		DiscountService:     discountService.NewService(container),
+		SubsidyService:      subsidyService.NewSubsidyService(container),
 		EnrollmentService:   enrollment.NewCustomerEnrollmentService(container),
 		EventService:        eventService.NewEventService(container),
 		CreditService:       userServices.NewCustomerCreditService(container),
+		DB:                  container.DB,
 	}
+}
+
+// getExistingStripeCustomerID retrieves the existing Stripe customer ID for a user from the database
+func (s *Service) getExistingStripeCustomerID(ctx context.Context, userID uuid.UUID) *string {
+	var stripeCustomerID sql.NullString
+	query := "SELECT stripe_customer_id FROM users.users WHERE id = $1"
+	err := s.DB.QueryRowContext(ctx, query, userID).Scan(&stripeCustomerID)
+	if err != nil || !stripeCustomerID.Valid || stripeCustomerID.String == "" {
+		return nil
+	}
+	return &stripeCustomerID.String
 }
 
 func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID uuid.UUID, discountCode *string, successURL string) (string, *errLib.CommonError) {
@@ -77,16 +95,52 @@ func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID u
 		stripeCouponID = applied.StripeCouponID
 	}
 
+	// Check if customer has active subsidy
+	subsidy, subsidyErr := s.SubsidyService.GetActiveSubsidy(ctx, customerID)
+	if subsidyErr != nil {
+		// Log error but don't fail checkout - subsidy is optional
+		log.Printf("Warning: Failed to check subsidy for customer %s: %v", customerID, subsidyErr)
+	}
+
+	// Add subsidy info to metadata for webhook processing (used to record usage after payment)
+	metadata := map[string]string{
+		"userID": customerID.String(),
+	}
+
+	if subsidy != nil && subsidy.RemainingBalance > 0 {
+		metadata["has_subsidy"] = "true"
+		metadata["subsidy_id"] = subsidy.ID.String()
+		metadata["subsidy_balance"] = fmt.Sprintf("%.2f", subsidy.RemainingBalance)
+		log.Printf("Customer %s has active subsidy: $%.2f remaining", customerID, subsidy.RemainingBalance)
+
+		// Create a Stripe coupon for the subsidy amount to apply at checkout time
+		// This avoids race conditions with webhooks
+		subsidyCouponID, couponErr := stripe.CreateSubsidyCoupon(ctx, subsidy.RemainingBalance)
+		if couponErr != nil {
+			log.Printf("Warning: Failed to create subsidy coupon: %v", couponErr)
+		} else if subsidyCouponID != "" {
+			// Apply subsidy coupon (overrides any discount code if both exist)
+			stripeCouponID = &subsidyCouponID
+			log.Printf("Created subsidy coupon: %s for $%.2f", subsidyCouponID, subsidy.RemainingBalance)
+		}
+	}
+
+	// Get existing Stripe customer ID or recover if deleted (industry standard: one user = one Stripe customer)
+	existingCustomerID, recoverErr := s.getOrRecreateStripeCustomer(ctx, customerID)
+	if recoverErr != nil {
+		return "", recoverErr
+	}
+
 	// Check if membership has any joining fee
 	if requirements.StripeJoiningFeeID != "" {
 		// Use recurring joining fee (annual/monthly) - existing function handles this
-		return stripe.CreateSubscription(ctx, requirements.StripePriceID, requirements.StripeJoiningFeeID, stripeCouponID, successURL)
+		return stripe.CreateSubscriptionWithMetadata(ctx, requirements.StripePriceID, requirements.StripeJoiningFeeID, stripeCouponID, metadata, successURL, existingCustomerID)
 	} else if requirements.JoiningFee > 0 {
 		// Use one-time setup fee
-		return stripe.CreateSubscriptionWithSetupFee(ctx, requirements.StripePriceID, requirements.JoiningFee, successURL)
+		return stripe.CreateSubscriptionWithSetupFeeAndMetadata(ctx, requirements.StripePriceID, requirements.JoiningFee, metadata, successURL, existingCustomerID)
 	} else {
 		// No joining fee - just regular subscription
-		return stripe.CreateSubscription(ctx, requirements.StripePriceID, "", stripeCouponID, successURL)
+		return stripe.CreateSubscriptionWithMetadata(ctx, requirements.StripePriceID, "", stripeCouponID, metadata, successURL, existingCustomerID)
 	}
 }
 
@@ -134,8 +188,11 @@ func (s *Service) CheckoutProgram(ctx context.Context, programID uuid.UUID, disc
 		return "", err
 	}
 
+	// Get existing Stripe customer ID to reuse (industry standard: one user = one Stripe customer)
+	existingCustomerID := s.getExistingStripeCustomerID(ctx, customerID)
+
 	programIDStr := programID.String()
-	return stripe.CreateOneTimePayment(ctx, priceID, 1, &programIDStr, stripeCouponID, successURL)
+	return stripe.CreateOneTimePayment(ctx, priceID, 1, &programIDStr, stripeCouponID, successURL, existingCustomerID)
 }
 
 func (s *Service) CheckoutEvent(ctx context.Context, eventID uuid.UUID, discountCode *string, successURL string) (string, *errLib.CommonError) {
@@ -185,8 +242,11 @@ func (s *Service) CheckoutEvent(ctx context.Context, eventID uuid.UUID, discount
 		return "", err
 	}
 
+	// Get existing Stripe customer ID to reuse (industry standard: one user = one Stripe customer)
+	existingCustomerID := s.getExistingStripeCustomerID(ctx, customerID)
+
 	eventIDStr := eventID.String()
-	return stripe.CreateOneTimePayment(ctx, priceID, 1, &eventIDStr, stripeCouponID, successURL)
+	return stripe.CreateOneTimePayment(ctx, priceID, 1, &eventIDStr, stripeCouponID, successURL, existingCustomerID)
 }
 
 // CheckEventEnrollmentOptions returns available enrollment options for a customer and event
@@ -362,6 +422,9 @@ func (s *Service) CheckoutEventEnhanced(ctx context.Context, eventID uuid.UUID, 
 		return "", err
 	}
 
+	// Get existing Stripe customer ID to reuse (industry standard: one user = one Stripe customer)
+	existingCustomerID := s.getExistingStripeCustomerID(ctx, customerID)
+
 	eventIDStr := eventID.String()
-	return stripe.CreateOneTimePayment(ctx, *options.StripePriceID, 1, &eventIDStr, stripeCouponID, successURL)
+	return stripe.CreateOneTimePayment(ctx, *options.StripePriceID, 1, &eventIDStr, stripeCouponID, successURL, existingCustomerID)
 }

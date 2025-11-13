@@ -9,14 +9,14 @@ import (
 
 type RequestDto struct {
 	Name     string    `json:"name" validate:"required,notwhitespace"`
-	Capacity int32     `json:"capacity" validate:"required,gt=0"`
+	Capacity int32     `json:"capacity" validate:"required,gt=0,lte=100"`
 	CoachID  uuid.UUID `json:"coach_id" example:"faae4b3a-ad9f-463c-ae4b-3aad9fb63c9b"`
 	LogoURL  *string   `json:"logo_url,omitempty"`
 }
 
 type ExternalTeamRequestDto struct {
 	Name     string  `json:"name" validate:"required,notwhitespace"`
-	Capacity int32   `json:"capacity" validate:"required,gt=0"`
+	Capacity int32   `json:"capacity" validate:"required,gt=0,lte=100"`
 	LogoURL  *string `json:"logo_url,omitempty"`
 }
 

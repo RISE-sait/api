@@ -314,8 +314,8 @@ func (h *PaymentReportsHandler) GetSubsidyUsageSummary(w http.ResponseWriter, r 
 // @Param transaction_type query string false "Filter by transaction type"
 // @Param payment_status query string false "Filter by payment status"
 // @Success 200 {file} file "CSV file"
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
 // @Security Bearer
 // @Router /admin/payments/export [get]
 func (h *PaymentReportsHandler) ExportPaymentTransactions(w http.ResponseWriter, r *http.Request) {

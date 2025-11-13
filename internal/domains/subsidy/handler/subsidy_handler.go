@@ -36,10 +36,10 @@ func NewSubsidyHandler(container *di.Container) *SubsidyHandler {
 // @Accept json
 // @Produce json
 // @Param provider body dto.CreateProviderRequest true "Provider details"
-// @Success 201 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 401 {object} responses.ErrorResponse
-// @Failure 403 {object} responses.ErrorResponse
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
 // @Security Bearer
 // @Router /subsidies/providers [post]
 func (h *SubsidyHandler) CreateProvider(w http.ResponseWriter, r *http.Request) {
@@ -70,11 +70,11 @@ func (h *SubsidyHandler) CreateProvider(w http.ResponseWriter, r *http.Request) 
 // @Tags Subsidies - Admin
 // @Produce json
 // @Param id path string true "Provider ID"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 401 {object} responses.ErrorResponse
-// @Failure 403 {object} responses.ErrorResponse
-// @Failure 404 {object} responses.ErrorResponse
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
 // @Security Bearer
 // @Router /subsidies/providers/{id} [get]
 func (h *SubsidyHandler) GetProvider(w http.ResponseWriter, r *http.Request) {
@@ -100,9 +100,9 @@ func (h *SubsidyHandler) GetProvider(w http.ResponseWriter, r *http.Request) {
 // @Tags Subsidies - Admin
 // @Produce json
 // @Param is_active query boolean false "Filter by active status"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 401 {object} responses.ErrorResponse
-// @Failure 403 {object} responses.ErrorResponse
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
 // @Security Bearer
 // @Router /subsidies/providers [get]
 func (h *SubsidyHandler) ListProviders(w http.ResponseWriter, r *http.Request) {
@@ -129,11 +129,11 @@ func (h *SubsidyHandler) ListProviders(w http.ResponseWriter, r *http.Request) {
 // @Tags Subsidies - Admin
 // @Produce json
 // @Param id path string true "Provider ID"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 401 {object} responses.ErrorResponse
-// @Failure 403 {object} responses.ErrorResponse
-// @Failure 404 {object} responses.ErrorResponse
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
 // @Security Bearer
 // @Router /subsidies/providers/{id}/stats [get]
 func (h *SubsidyHandler) GetProviderStats(w http.ResponseWriter, r *http.Request) {
@@ -162,10 +162,10 @@ func (h *SubsidyHandler) GetProviderStats(w http.ResponseWriter, r *http.Request
 // @Accept json
 // @Produce json
 // @Param subsidy body dto.CreateSubsidyRequest true "Subsidy details"
-// @Success 201 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 401 {object} responses.ErrorResponse
-// @Failure 403 {object} responses.ErrorResponse
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
 // @Security Bearer
 // @Router /subsidies [post]
 func (h *SubsidyHandler) CreateSubsidy(w http.ResponseWriter, r *http.Request) {
@@ -205,11 +205,11 @@ func (h *SubsidyHandler) CreateSubsidy(w http.ResponseWriter, r *http.Request) {
 // @Tags Subsidies - Admin
 // @Produce json
 // @Param id path string true "Subsidy ID"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 401 {object} responses.ErrorResponse
-// @Failure 403 {object} responses.ErrorResponse
-// @Failure 404 {object} responses.ErrorResponse
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
 // @Security Bearer
 // @Router /subsidies/{id} [get]
 func (h *SubsidyHandler) GetSubsidy(w http.ResponseWriter, r *http.Request) {
@@ -239,9 +239,9 @@ func (h *SubsidyHandler) GetSubsidy(w http.ResponseWriter, r *http.Request) {
 // @Param status query string false "Filter by status (pending, approved, active, depleted, expired, revoked)"
 // @Param page query integer false "Page number" default(1)
 // @Param limit query integer false "Items per page" default(50)
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 401 {object} responses.ErrorResponse
-// @Failure 403 {object} responses.ErrorResponse
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
 // @Security Bearer
 // @Router /subsidies [get]
 func (h *SubsidyHandler) ListSubsidies(w http.ResponseWriter, r *http.Request) {
@@ -285,11 +285,11 @@ func (h *SubsidyHandler) ListSubsidies(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param id path string true "Subsidy ID"
 // @Param request body dto.DeactivateSubsidyRequest true "Deactivation reason"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 401 {object} responses.ErrorResponse
-// @Failure 403 {object} responses.ErrorResponse
-// @Failure 404 {object} responses.ErrorResponse
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
 // @Security Bearer
 // @Router /subsidies/{id}/deactivate [post]
 func (h *SubsidyHandler) DeactivateSubsidy(w http.ResponseWriter, r *http.Request) {
@@ -333,9 +333,9 @@ func (h *SubsidyHandler) DeactivateSubsidy(w http.ResponseWriter, r *http.Reques
 // @Description Get overall subsidy statistics and reports (admin only)
 // @Tags Subsidies - Admin
 // @Produce json
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 401 {object} responses.ErrorResponse
-// @Failure 403 {object} responses.ErrorResponse
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
 // @Security Bearer
 // @Router /subsidies/summary [get]
 func (h *SubsidyHandler) GetSubsidySummary(w http.ResponseWriter, r *http.Request) {
@@ -357,8 +357,8 @@ func (h *SubsidyHandler) GetSubsidySummary(w http.ResponseWriter, r *http.Reques
 // @Produce json
 // @Param page query integer false "Page number" default(1)
 // @Param limit query integer false "Items per page" default(10)
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 401 {object} responses.ErrorResponse
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
 // @Security Bearer
 // @Router /subsidies/me [get]
 func (h *SubsidyHandler) GetMySubsidies(w http.ResponseWriter, r *http.Request) {
@@ -388,8 +388,8 @@ func (h *SubsidyHandler) GetMySubsidies(w http.ResponseWriter, r *http.Request) 
 // @Description Get current subsidy balance for the authenticated customer
 // @Tags Subsidies - Customer
 // @Produce json
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 401 {object} responses.ErrorResponse
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
 // @Security Bearer
 // @Router /subsidies/me/balance [get]
 func (h *SubsidyHandler) GetMyBalance(w http.ResponseWriter, r *http.Request) {
@@ -415,8 +415,8 @@ func (h *SubsidyHandler) GetMyBalance(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param page query integer false "Page number" default(1)
 // @Param limit query integer false "Items per page" default(20)
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 401 {object} responses.ErrorResponse
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
 // @Security Bearer
 // @Router /subsidies/me/usage [get]
 func (h *SubsidyHandler) GetMyUsageHistory(w http.ResponseWriter, r *http.Request) {

@@ -41,9 +41,9 @@ func NewPaymentReportsHandler(container *di.Container) *PaymentReportsHandler {
 // @Param subsidy_id query string false "Filter by subsidy ID"
 // @Param limit query int false "Page size" default(50)
 // @Param offset query int false "Page offset" default(0)
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
+// @Success 200 {object} map[string]interface{} "Payment transactions retrieved successfully"
+// @Failure 400 {object} map[string]string "Invalid request parameters"
+// @Failure 500 {object} map[string]string "Internal server error"
 // @Security Bearer
 // @Router /admin/payments/transactions [get]
 func (h *PaymentReportsHandler) ListPaymentTransactions(w http.ResponseWriter, r *http.Request) {
@@ -151,9 +151,9 @@ func (h *PaymentReportsHandler) ListPaymentTransactions(w http.ResponseWriter, r
 // @Param end_date query string false "End date (RFC3339 format)"
 // @Param transaction_type query string false "Filter by transaction type"
 // @Param payment_status query string false "Filter by payment status"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
+// @Success 200 {object} map[string]interface{} "Payment transactions retrieved successfully"
+// @Failure 400 {object} map[string]string "Invalid request parameters"
+// @Failure 500 {object} map[string]string "Internal server error"
 // @Security Bearer
 // @Router /admin/payments/summary [get]
 func (h *PaymentReportsHandler) GetPaymentSummary(w http.ResponseWriter, r *http.Request) {
@@ -209,9 +209,9 @@ func (h *PaymentReportsHandler) GetPaymentSummary(w http.ResponseWriter, r *http
 // @Produce json
 // @Param start_date query string false "Start date (RFC3339 format)"
 // @Param end_date query string false "End date (RFC3339 format)"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
+// @Success 200 {object} map[string]interface{} "Payment transactions retrieved successfully"
+// @Failure 400 {object} map[string]string "Invalid request parameters"
+// @Failure 500 {object} map[string]string "Internal server error"
 // @Security Bearer
 // @Router /admin/payments/summary/by-type [get]
 func (h *PaymentReportsHandler) GetPaymentSummaryByType(w http.ResponseWriter, r *http.Request) {
@@ -261,9 +261,9 @@ func (h *PaymentReportsHandler) GetPaymentSummaryByType(w http.ResponseWriter, r
 // @Produce json
 // @Param start_date query string false "Start date (RFC3339 format)"
 // @Param end_date query string false "End date (RFC3339 format)"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
+// @Success 200 {object} map[string]interface{} "Payment transactions retrieved successfully"
+// @Failure 400 {object} map[string]string "Invalid request parameters"
+// @Failure 500 {object} map[string]string "Internal server error"
 // @Security Bearer
 // @Router /admin/payments/subsidy-usage [get]
 func (h *PaymentReportsHandler) GetSubsidyUsageSummary(w http.ResponseWriter, r *http.Request) {

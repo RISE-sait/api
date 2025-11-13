@@ -95,13 +95,14 @@ func (q *Queries) EnrollCustomerInEvent(ctx context.Context, arg EnrollCustomerI
 }
 
 const enrollCustomerInMembershipPlan = `-- name: EnrollCustomerInMembershipPlan :exec
-INSERT INTO users.customer_membership_plans (customer_id, membership_plan_id, status, start_date, renewal_date, subscription_source)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO users.customer_membership_plans (customer_id, membership_plan_id, status, start_date, renewal_date, next_billing_date, subscription_source)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT (customer_id, membership_plan_id)
 DO UPDATE SET
     status = EXCLUDED.status,
     start_date = EXCLUDED.start_date,
     renewal_date = EXCLUDED.renewal_date,
+    next_billing_date = EXCLUDED.next_billing_date,
     subscription_source = EXCLUDED.subscription_source,
     updated_at = CURRENT_TIMESTAMP
 `
@@ -112,6 +113,7 @@ type EnrollCustomerInMembershipPlanParams struct {
 	Status             MembershipMembershipStatus `json:"status"`
 	StartDate          time.Time                  `json:"start_date"`
 	RenewalDate        sql.NullTime               `json:"renewal_date"`
+	NextBillingDate    sql.NullTime               `json:"next_billing_date"`
 	SubscriptionSource sql.NullString             `json:"subscription_source"`
 }
 
@@ -122,6 +124,7 @@ func (q *Queries) EnrollCustomerInMembershipPlan(ctx context.Context, arg Enroll
 		arg.Status,
 		arg.StartDate,
 		arg.RenewalDate,
+		arg.NextBillingDate,
 		arg.SubscriptionSource,
 	)
 	return err

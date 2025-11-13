@@ -57,6 +57,7 @@ func CreateOneTimePayment(
 	eventID *string, // Optional: Event ID for event enrollment payments
 	stripeCouponID *string, // Optional: Stripe coupon ID for discounts
 	successURL string, // Success redirect URL after payment
+	existingCustomerID *string, // Optional: Existing Stripe customer ID to reuse
 ) (string, *errLib.CommonError) {
 	// Create a timeout context for this operation
 	timeoutCtx, cancel := withCriticalTimeout(ctx)
@@ -125,6 +126,14 @@ func CreateOneTimePayment(
 		},
 	}
 
+	// Reuse existing customer if provided (industry standard: one user = one Stripe customer)
+	if existingCustomerID != nil && *existingCustomerID != "" {
+		params.Customer = stripe.String(*existingCustomerID)
+		log.Printf("[STRIPE] Reusing existing customer: %s for user %s", *existingCustomerID, userID)
+	} else {
+		log.Printf("[STRIPE] Creating new customer for user %s", userID)
+	}
+
 	// Add discount coupon if provided
 	if stripeCouponID != nil && *stripeCouponID != "" {
 		params.Discounts = []*stripe.CheckoutSessionDiscountParams{
@@ -160,6 +169,128 @@ func CreateOneTimePayment(
 			return "", errLib.New("Payment session failed: "+result.err.Error(), http.StatusInternalServerError)
 		}
 		return result.session.URL, nil
+	}
+}
+
+// CreateSubscriptionWithSetupFeeAndMetadata creates a Stripe Checkout Session for a recurring subscription with optional setup fee and metadata
+func CreateSubscriptionWithSetupFeeAndMetadata(
+	ctx context.Context,
+	stripePlanPriceID string,       // Stripe Price ID for the recurring plan
+	setupFeeAmount int,             // Setup fee amount in cents (0 for no fee)
+	metadata map[string]string,     // Metadata to attach to subscription
+	successURL string,              // Success redirect URL after payment
+	existingCustomerID *string,     // Optional: Existing Stripe customer ID to reuse
+) (string, *errLib.CommonError) {
+	// Create a timeout context for this operation
+	timeoutCtx, cancel := withCriticalTimeout(ctx)
+	defer cancel()
+
+	// Extract user ID from context
+	userID, err := contextUtils.GetUserID(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	// Check if Stripe is initialized
+	if strings.ReplaceAll(stripe.Key, " ", "") == "" {
+		return "", errLib.New("Stripe not initialized", http.StatusInternalServerError)
+	}
+
+	// Check if context is already cancelled or timed out
+	select {
+	case <-timeoutCtx.Done():
+		if timeoutCtx.Err() == context.DeadlineExceeded {
+			return "", errLib.New("Request timeout while creating subscription", http.StatusRequestTimeout)
+		}
+		return "", errLib.New("Request cancelled", http.StatusRequestTimeout)
+	default:
+		// Continue with the operation
+	}
+
+	// Validate input
+	if stripePlanPriceID == "" {
+		return "", errLib.New("item stripe price ID cannot be empty", http.StatusBadRequest)
+	}
+
+	if successURL == "" {
+		return "", errLib.New("success URL cannot be empty", http.StatusBadRequest)
+	}
+
+	// Merge metadata with userID
+	if metadata == nil {
+		metadata = make(map[string]string)
+	}
+	metadata["userID"] = userID.String()
+
+	// Set up Checkout session with subscription mode
+	params := &stripe.CheckoutSessionParams{
+		Metadata: metadata,
+		SubscriptionData: &stripe.CheckoutSessionSubscriptionDataParams{
+			Metadata: metadata,
+		},
+		LineItems: []*stripe.CheckoutSessionLineItemParams{
+			{
+				Price:    stripe.String(stripePlanPriceID), // Main subscription plan
+				Quantity: stripe.Int64(1),
+			},
+		},
+		Mode:       stripe.String("subscription"), // Subscription mode
+		SuccessURL: stripe.String(successURL),
+		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
+			Enabled: stripe.Bool(true),
+		},
+	}
+
+	// Reuse existing customer if provided (industry standard: one user = one Stripe customer)
+	if existingCustomerID != nil && *existingCustomerID != "" {
+		params.Customer = stripe.String(*existingCustomerID)
+		log.Printf("[STRIPE] Reusing existing customer: %s for user %s", *existingCustomerID, userID)
+	} else {
+		log.Printf("[STRIPE] Creating new customer for user %s", userID)
+	}
+
+	// Add setup fee if specified
+	if setupFeeAmount > 0 {
+		// Store setup fee amount in metadata for webhook processing
+		params.SubscriptionData.Metadata["setup_fee_amount"] = fmt.Sprintf("%d", setupFeeAmount)
+		params.Metadata["setup_fee_amount"] = fmt.Sprintf("%d", setupFeeAmount)
+
+		// Add payment intent data to handle the setup fee on first payment
+		params.PaymentIntentData = &stripe.CheckoutSessionPaymentIntentDataParams{
+			Metadata: map[string]string{
+				"setup_fee_amount": fmt.Sprintf("%d", setupFeeAmount),
+			},
+		}
+	}
+
+	// Ask Stripe to expand line item pricing and subscription in response
+	params.AddExpand("line_items.data.price")
+	params.AddExpand("subscription")
+
+	// Create Stripe session with timeout handling
+	type subscriptionResult struct {
+		session *stripe.CheckoutSession
+		err     error
+	}
+
+	resultChan := make(chan subscriptionResult, 1)
+
+	go func() {
+		s, err := session.New(params)
+		resultChan <- subscriptionResult{session: s, err: err}
+	}()
+
+	select {
+	case result := <-resultChan:
+		if result.err != nil {
+			return "", errLib.New("Failed to create Stripe session", http.StatusInternalServerError)
+		}
+		return result.session.URL, nil
+	case <-timeoutCtx.Done():
+		if timeoutCtx.Err() == context.DeadlineExceeded {
+			return "", errLib.New("Timeout while creating subscription session", http.StatusRequestTimeout)
+		}
+		return "", errLib.New("Request cancelled", http.StatusRequestTimeout)
 	}
 }
 
@@ -280,6 +411,7 @@ func CreateSubscription(
 	stripeJoiningFeesID string, // Optional one-time joining fee
 	stripeCouponID *string, // Optional: Stripe coupon ID for discounts
 	successURL string, // Success redirect URL after payment
+	existingCustomerID *string, // Optional: Existing Stripe customer ID to reuse
 ) (string, *errLib.CommonError) {
 	// Create a timeout context for this operation
 	timeoutCtx, cancel := withCriticalTimeout(ctx)
@@ -339,6 +471,14 @@ func CreateSubscription(
 		},
 	}
 
+	// Reuse existing customer if provided (industry standard: one user = one Stripe customer)
+	if existingCustomerID != nil && *existingCustomerID != "" {
+		params.Customer = stripe.String(*existingCustomerID)
+		log.Printf("[STRIPE] Reusing existing customer: %s for user %s", *existingCustomerID, userID)
+	} else {
+		log.Printf("[STRIPE] Creating new customer for user %s", userID)
+	}
+
 	// Ask Stripe to expand line item pricing and subscription in response
 	params.AddExpand("line_items.data.price")
 	params.AddExpand("subscription")
@@ -369,6 +509,133 @@ func CreateSubscription(
 
 	resultChan := make(chan subscriptionResult, 1)
 	
+	go func() {
+		s, err := session.New(params)
+		resultChan <- subscriptionResult{session: s, err: err}
+	}()
+
+	select {
+	case <-timeoutCtx.Done():
+		if timeoutCtx.Err() == context.DeadlineExceeded {
+			return "", errLib.New("Stripe API timeout while creating subscription", http.StatusRequestTimeout)
+		}
+		return "", errLib.New("Request cancelled during subscription creation", http.StatusRequestTimeout)
+	case result := <-resultChan:
+		if result.err != nil {
+			return "", errLib.New("Subscription setup failed: "+result.err.Error(), http.StatusInternalServerError)
+		}
+		return result.session.URL, nil // Return URL to redirect client for payment
+	}
+}
+
+// CreateSubscriptionWithMetadata creates a Stripe Checkout Session for a recurring subscription with metadata
+func CreateSubscriptionWithMetadata(
+	ctx context.Context,
+	stripePlanPriceID string,       // Stripe Price ID for the recurring plan
+	stripeJoiningFeesID string,     // Optional one-time joining fee
+	stripeCouponID *string,         // Optional: Stripe coupon ID for discounts
+	metadata map[string]string,     // Metadata to attach to subscription
+	successURL string,              // Success redirect URL after payment
+	existingCustomerID *string,     // Optional: Existing Stripe customer ID to reuse
+) (string, *errLib.CommonError) {
+	// Create a timeout context for this operation
+	timeoutCtx, cancel := withCriticalTimeout(ctx)
+	defer cancel()
+
+	// Extract user ID from context
+	userID, err := contextUtils.GetUserID(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	// Check if Stripe is initialized
+	if strings.ReplaceAll(stripe.Key, " ", "") == "" {
+		return "", errLib.New("Stripe not initialized", http.StatusInternalServerError)
+	}
+
+	// Check if context is already cancelled or timed out
+	select {
+	case <-timeoutCtx.Done():
+		if timeoutCtx.Err() == context.DeadlineExceeded {
+			return "", errLib.New("Request timeout while creating subscription", http.StatusRequestTimeout)
+		}
+		return "", errLib.New("Request cancelled", http.StatusRequestTimeout)
+	default:
+		// Continue with the operation
+	}
+
+	// Validate input
+	if stripePlanPriceID == "" {
+		return "", errLib.New("item stripe price ID cannot be empty", http.StatusBadRequest)
+	}
+
+	if successURL == "" {
+		return "", errLib.New("success URL cannot be empty", http.StatusBadRequest)
+	}
+
+	// Merge metadata with userID
+	if metadata == nil {
+		metadata = make(map[string]string)
+	}
+	metadata["userID"] = userID.String()
+
+	// Set up Checkout session with subscription mode
+	params := &stripe.CheckoutSessionParams{
+		Metadata: metadata,
+		SubscriptionData: &stripe.CheckoutSessionSubscriptionDataParams{
+			Metadata: metadata,
+		},
+		LineItems: []*stripe.CheckoutSessionLineItemParams{
+			{
+				Price:    stripe.String(stripePlanPriceID), // Main subscription plan
+				Quantity: stripe.Int64(1),
+			},
+		},
+		Mode:       stripe.String("subscription"), // Subscription mode
+		SuccessURL: stripe.String(successURL),
+		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
+			Enabled: stripe.Bool(true),
+		},
+	}
+
+	// Reuse existing customer if provided (industry standard: one user = one Stripe customer)
+	if existingCustomerID != nil && *existingCustomerID != "" {
+		params.Customer = stripe.String(*existingCustomerID)
+		log.Printf("[STRIPE] Reusing existing customer: %s for user %s", *existingCustomerID, userID)
+	} else {
+		log.Printf("[STRIPE] Creating new customer for user %s", userID)
+	}
+
+	// Ask Stripe to expand line item pricing and subscription in response
+	params.AddExpand("line_items.data.price")
+	params.AddExpand("subscription")
+
+	// If there's a joining fee, add it as a second line item
+	if stripeJoiningFeesID != "" {
+		params.LineItems = append(params.LineItems, &stripe.CheckoutSessionLineItemParams{
+			Price:    stripe.String(stripeJoiningFeesID),
+			Quantity: stripe.Int64(1),
+		})
+	}
+
+	// Add discount coupon if provided
+	if stripeCouponID != nil && *stripeCouponID != "" {
+		params.Discounts = []*stripe.CheckoutSessionDiscountParams{
+			{Coupon: stripe.String(*stripeCouponID)},
+		}
+		// Add coupon ID to metadata for tracking
+		params.Metadata["stripeCouponID"] = *stripeCouponID
+		params.SubscriptionData.Metadata["stripeCouponID"] = *stripeCouponID
+	}
+
+	// Create Stripe session with timeout handling
+	type subscriptionResult struct{
+		session *stripe.CheckoutSession
+		err     error
+	}
+
+	resultChan := make(chan subscriptionResult, 1)
+
 	go func() {
 		s, err := session.New(params)
 		resultChan <- subscriptionResult{session: s, err: err}
@@ -801,6 +1068,33 @@ func ValidateWebhookSignature(payload []byte, signature, secret string) (*stripe
 	}
 
 	return &event, nil
+}
+
+// CreateSubsidyCoupon creates a one-time fixed-amount coupon for subsidy application
+func CreateSubsidyCoupon(ctx context.Context, subsidyAmount float64) (string, *errLib.CommonError) {
+	if subsidyAmount <= 0 {
+		return "", errLib.New("Subsidy amount must be positive", http.StatusBadRequest)
+	}
+
+	// Convert subsidy amount to cents
+	amountInCents := int64(subsidyAmount * 100)
+
+	// Create a one-time coupon with the subsidy amount
+	couponParams := &stripe.CouponParams{
+		Duration:  stripe.String(string(stripe.CouponDurationOnce)),
+		AmountOff: stripe.Int64(amountInCents),
+		Currency:  stripe.String("cad"),
+		Name:      stripe.String(fmt.Sprintf("Subsidy Credit: $%.2f", subsidyAmount)),
+	}
+
+	c, err := coupon.New(couponParams)
+	if err != nil {
+		log.Printf("[SUBSIDY] Failed to create subsidy coupon: %v", err)
+		return "", errLib.New("Failed to create subsidy coupon: "+err.Error(), http.StatusInternalServerError)
+	}
+
+	log.Printf("[SUBSIDY] Created Stripe coupon %s for subsidy amount $%.2f", c.ID, subsidyAmount)
+	return c.ID, nil
 }
 
 // PriceService handles Stripe price operations

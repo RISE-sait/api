@@ -17,6 +17,7 @@ import (
 	playgroundDb "api/internal/domains/playground/persistence/sqlc/generated"
 	practiceDb "api/internal/domains/practice/persistence/sqlc/generated"
 	programDb "api/internal/domains/program/persistence/sqlc/generated"
+	subsidyDb "api/internal/domains/subsidy/persistence/sqlc/generated"
 	teamDb "api/internal/domains/team/persistence/sqlc/generated"
 
 	outboxDb "api/internal/services/outbox/generated"
@@ -54,6 +55,7 @@ type QueriesType struct {
 	DiscountDb          *discountDb.Queries
 	CourtDb             *courtDb.Queries
 	PracticeDb          *practiceDb.Queries
+	SubsidyDb           *subsidyDb.Queries
 }
 
 // NewContainer initializes and returns a Container with database, queries, HubSpot, and Firebase services.
@@ -111,6 +113,7 @@ func initializeQueries(db *sql.DB) *QueriesType {
 		DiscountDb:          discountDb.New(db),
 		CourtDb:             courtDb.New(db),
 		PracticeDb:          practiceDb.New(db),
+		SubsidyDb:           subsidyDb.New(db),
 	}
 }
 

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"net/http"
 
@@ -20,6 +21,7 @@ type CreditPackageService struct {
 	CreditPackageRepo *repo.CreditPackageRepository
 	CreditService     *userServices.CustomerCreditService
 	StripeService     *stripe.PriceService
+	DB                *sql.DB
 }
 
 func NewCreditPackageService(container *di.Container) *CreditPackageService {
@@ -27,7 +29,19 @@ func NewCreditPackageService(container *di.Container) *CreditPackageService {
 		CreditPackageRepo: repo.NewCreditPackageRepository(container),
 		CreditService:     userServices.NewCustomerCreditService(container),
 		StripeService:     stripe.NewPriceService(),
+		DB:                container.DB,
 	}
+}
+
+// getExistingStripeCustomerID retrieves the existing Stripe customer ID for a user from the database
+func (s *CreditPackageService) getExistingStripeCustomerID(ctx context.Context, userID uuid.UUID) *string {
+	var stripeCustomerID sql.NullString
+	query := "SELECT stripe_customer_id FROM users.users WHERE id = $1"
+	err := s.DB.QueryRowContext(ctx, query, userID).Scan(&stripeCustomerID)
+	if err != nil || !stripeCustomerID.Valid || stripeCustomerID.String == "" {
+		return nil
+	}
+	return &stripeCustomerID.String
 }
 
 // GetAllPackages returns all available credit packages with live Stripe pricing
@@ -107,10 +121,13 @@ func (s *CreditPackageService) CheckoutCreditPackage(ctx context.Context, packag
 		return "", err
 	}
 
+	// Get existing Stripe customer ID to reuse (industry standard: one user = one Stripe customer)
+	existingCustomerID := s.getExistingStripeCustomerID(ctx, customerID)
+
 	// Create Stripe checkout session for one-time payment
 	// Pass packageID in metadata so webhook can identify the purchase
 	packageIDStr := packageID.String()
-	checkoutURL, err := stripe.CreateOneTimePayment(ctx, pkg.StripePriceID, 1, &packageIDStr, nil, successURL)
+	checkoutURL, err := stripe.CreateOneTimePayment(ctx, pkg.StripePriceID, 1, &packageIDStr, nil, successURL, existingCustomerID)
 	if err != nil {
 		log.Printf("Failed to create Stripe checkout session: %v", err)
 		return "", err

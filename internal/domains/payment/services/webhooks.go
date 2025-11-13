@@ -7,6 +7,8 @@ import (
 	enrollment "api/internal/domains/enrollment/service"
 	enrollmentRepo "api/internal/domains/enrollment/persistence/repository"
 	repository "api/internal/domains/payment/persistence/repositories"
+	"api/internal/domains/subsidy/dto"
+	subsidyService "api/internal/domains/subsidy/service"
 	userServices "api/internal/domains/user/services"
 	errLib "api/internal/libs/errors"
 	"api/internal/libs/logger"
@@ -26,6 +28,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v81"
 	"github.com/stripe/stripe-go/v81/checkout/session"
+	"github.com/stripe/stripe-go/v81/customer"
+	"github.com/stripe/stripe-go/v81/invoice"
 	"github.com/stripe/stripe-go/v81/subscription"
 )
 
@@ -38,6 +42,7 @@ type WebhookService struct {
 	CreditService          *userServices.CreditService
 	CustomerCreditService  *userServices.CustomerCreditService
 	CreditPackageRepo      *creditPackageRepo.CreditPackageRepository
+	SubsidyService         *subsidyService.SubsidyService
 	Idempotency            *WebhookIdempotency
 	logger                 *logger.StructuredLogger
 	db                     *sql.DB
@@ -53,6 +58,7 @@ func NewWebhookService(container *di.Container) *WebhookService {
 		CreditService:          userServices.NewCreditService(container),
 		CustomerCreditService:  userServices.NewCustomerCreditService(container),
 		CreditPackageRepo:      creditPackageRepo.NewCreditPackageRepository(container),
+		SubsidyService:         subsidyService.NewSubsidyService(container),
 		Idempotency:            NewWebhookIdempotency(24*time.Hour, 10000), // Store events for 24 hours, max 10k events
 		logger:                 logger.WithComponent("stripe-webhooks"),
 		db:                     container.DB,
@@ -323,22 +329,134 @@ func (s *WebhookService) handleSubscriptionCheckoutComplete(checkoutSession stri
 			log.Printf("ERROR: Failed to check existing enrollment: %v", checkErr)
 			return checkErr
 		} else if isAlreadyEnrolled {
-			log.Printf("🚫 SKIPPING ENROLLMENT - Customer %s is already enrolled in plan %s", userID, planID)
+			log.Printf(" SKIPPING ENROLLMENT - Customer %s is already enrolled in plan %s", userID, planID)
 		} else {
-			log.Printf("🚀 STARTING ENROLLMENT - Customer %s in membership plan %s with start time %s", userID, planID, eventCreatedAt.Format(time.RFC3339))
-			if err := s.EnrollmentService.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, time.Time{}, eventCreatedAt); err != nil {
-				log.Printf("❌ ERROR: EnrollCustomerInMembershipPlan failed: %v", err)
+			log.Printf(" STARTING ENROLLMENT - Customer %s in membership plan %s with start time %s (one-time payment, no next billing date)", userID, planID, eventCreatedAt.Format(time.RFC3339))
+			if err := s.EnrollmentService.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, time.Time{}, time.Time{}, eventCreatedAt); err != nil {
+				log.Printf(" ERROR: EnrollCustomerInMembershipPlan failed: %v", err)
 				return err
 			}
-			log.Printf("✅ SUCCESS: Enrolled customer %s in membership plan %s", userID, planID)
+			log.Printf(" SUCCESS: Enrolled customer %s in membership plan %s", userID, planID)
 		}
 	}
-	
+
 	// NOTE: Credits are no longer allocated with memberships - they are only available via credit packages
 	// Credit allocation has been moved to credit package purchases
-	
+
+	// Record subsidy usage if a subsidy was applied
+	if hasSubsidy, exists := fullSession.Metadata["has_subsidy"]; exists && hasSubsidy == "true" {
+		if err := s.recordSubsidyUsageFromCheckout(fullSession, userID); err != nil {
+			log.Printf("WARNING: Failed to record subsidy usage: %v", err)
+			// Don't fail the entire checkout for subsidy recording failure
+		}
+	}
+
 	s.sendMembershipPurchaseEmail(userID, planID)
 	return nil
+}
+
+// recordSubsidyUsageFromCheckout records subsidy usage based on checkout session metadata
+func (s *WebhookService) recordSubsidyUsageFromCheckout(session *stripe.CheckoutSession, userID uuid.UUID) *errLib.CommonError {
+	// Extract subsidy info from metadata
+	subsidyIDStr, exists := session.Metadata["subsidy_id"]
+	if !exists || subsidyIDStr == "" {
+		return errLib.New("Subsidy ID not found in metadata", http.StatusBadRequest)
+	}
+
+	subsidyID, err := uuid.Parse(subsidyIDStr)
+	if err != nil {
+		return errLib.New("Invalid subsidy ID format", http.StatusBadRequest)
+	}
+
+	// Get subsidy balance from metadata
+	var subsidyBalance float64
+	if balanceStr, exists := session.Metadata["subsidy_balance"]; exists {
+		fmt.Sscanf(balanceStr, "%f", &subsidyBalance)
+	}
+
+	// Get the invoice to determine actual amounts
+	var invoice *stripe.Invoice
+	if session.Invoice != nil && session.Invoice.ID != "" {
+		inv, err := s.getInvoiceDetails(session.Invoice.ID)
+		if err != nil {
+			log.Printf("[SUBSIDY] Failed to get invoice details: %v", err)
+			return err
+		}
+		invoice = inv
+	}
+
+	// Calculate subsidy amount applied
+	var subsidyApplied float64
+	var customerPaid float64
+	var originalAmount float64
+
+	if invoice != nil {
+		// Calculate from invoice discount amounts
+		if invoice.TotalDiscountAmounts != nil && len(invoice.TotalDiscountAmounts) > 0 {
+			for _, discount := range invoice.TotalDiscountAmounts {
+				subsidyApplied += float64(discount.Amount) / 100.0
+			}
+		}
+		customerPaid = float64(invoice.AmountPaid) / 100.0
+		originalAmount = float64(invoice.Total+invoice.TotalDiscountAmounts[0].Amount) / 100.0
+	} else {
+		// Fallback: use subsidy balance if invoice not available
+		subsidyApplied = subsidyBalance
+		customerPaid = 0
+		originalAmount = subsidyBalance
+	}
+
+	log.Printf("[SUBSIDY] Recording usage - Original: $%.2f, Subsidy: $%.2f, Customer Paid: $%.2f",
+		originalAmount, subsidyApplied, customerPaid)
+
+	// Record subsidy usage
+	subscriptionID := ""
+	if session.Subscription != nil {
+		subscriptionID = session.Subscription.ID
+	}
+
+	invoiceID := ""
+	if invoice != nil {
+		invoiceID = invoice.ID
+	}
+
+	recordReq := &dto.RecordUsageRequest{
+		SubsidyID:            subsidyID,
+		CustomerID:           userID,
+		TransactionType:      "membership_payment",
+		OriginalAmount:       originalAmount,
+		SubsidyApplied:       subsidyApplied,
+		CustomerPaid:         customerPaid,
+		StripeSubscriptionID: &subscriptionID,
+		StripeInvoiceID:      &invoiceID,
+		Description:          fmt.Sprintf("Membership payment - Session %s", session.ID),
+	}
+
+	_, recordErr := s.SubsidyService.RecordUsage(context.Background(), recordReq)
+	if recordErr != nil {
+		log.Printf("[SUBSIDY] Failed to record subsidy usage: %v", recordErr)
+		return recordErr
+	}
+
+	log.Printf("[SUBSIDY] Recorded subsidy usage: $%.2f applied, $%.2f paid by customer", subsidyApplied, customerPaid)
+	return nil
+}
+
+// getInvoiceDetails retrieves full invoice details from Stripe
+func (s *WebhookService) getInvoiceDetails(invoiceID string) (*stripe.Invoice, *errLib.CommonError) {
+	params := &stripe.InvoiceParams{
+		Expand: []*string{
+			stripe.String("subscription"),
+			stripe.String("customer"),
+		},
+	}
+
+	inv, err := invoice.Get(invoiceID, params)
+	if err != nil {
+		return nil, errLib.New("Failed to get invoice: "+err.Error(), http.StatusInternalServerError)
+	}
+
+	return inv, nil
 }
 
 func (s *WebhookService) getExpandedSession(sessionID string) (*stripe.CheckoutSession, *errLib.CommonError) {
@@ -390,8 +508,11 @@ func (s *WebhookService) processSubscriptionWithEndDate(subscriptionID string, t
 		return err
 	}
 
+	// Get next billing date from Stripe subscription's current_period_end
+	nextBillingDate := time.Unix(sub.CurrentPeriodEnd, 0)
+
 	log.Printf("Checking existing enrollment for customer %s in plan %s", userID, planID)
-	
+
 	// Check if customer is already enrolled to handle webhook retries gracefully
 	if isAlreadyEnrolled, checkErr := s.isCustomerAlreadyEnrolled(context.Background(), userID, planID); checkErr != nil {
 		log.Printf("ERROR: Failed to check existing enrollment: %v", checkErr)
@@ -399,8 +520,9 @@ func (s *WebhookService) processSubscriptionWithEndDate(subscriptionID string, t
 	} else if isAlreadyEnrolled {
 		log.Printf("🚫 SKIPPING ENROLLMENT - Customer %s is already enrolled in plan %s", userID, planID)
 	} else {
-		log.Printf("🚀 STARTING ENROLLMENT - Customer %s in plan %s with end date: %s, start time: %s", userID, planID, cancelAtDateTime.Format(time.RFC3339), eventCreatedAt.Format(time.RFC3339))
-		if err = s.EnrollmentService.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, cancelAtDateTime, eventCreatedAt); err != nil {
+		log.Printf("🚀 STARTING ENROLLMENT - Customer %s in plan %s with end date: %s, next billing: %s, start time: %s",
+			userID, planID, cancelAtDateTime.Format(time.RFC3339), nextBillingDate.Format(time.RFC3339), eventCreatedAt.Format(time.RFC3339))
+		if err = s.EnrollmentService.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, cancelAtDateTime, nextBillingDate, eventCreatedAt); err != nil {
 			log.Printf("❌ ERROR: EnrollCustomerInMembershipPlan failed in processSubscriptionWithEndDate: %v", err)
 			return err
 		}
@@ -856,7 +978,9 @@ func (s *WebhookService) isCustomerAlreadyEnrolled(ctx context.Context, customer
 }
 
 // storeStripeCustomerID stores the Stripe customer ID in the database for future reference
+// and updates the Stripe customer with userID metadata for subsidy processing
 func (s *WebhookService) storeStripeCustomerID(userID uuid.UUID, stripeCustomerID string) *errLib.CommonError {
+	// First, update the database
 	query := "UPDATE users.users SET stripe_customer_id = $1 WHERE id = $2"
 	result, err := s.db.Exec(query, stripeCustomerID, userID)
 	if err != nil {
@@ -873,6 +997,21 @@ func (s *WebhookService) storeStripeCustomerID(userID uuid.UUID, stripeCustomerI
 	if rowsAffected == 0 {
 		log.Printf("No user found with ID %s to update Stripe customer ID", userID)
 		return errLib.New("User not found", http.StatusNotFound)
+	}
+
+	// Now update the Stripe customer with userID metadata for subsidy processing
+	customerParams := &stripe.CustomerParams{
+		Metadata: map[string]string{
+			"userID": userID.String(),
+		},
+	}
+	_, stripeErr := customer.Update(stripeCustomerID, customerParams)
+	if stripeErr != nil {
+		log.Printf("WARNING: Failed to update Stripe customer %s metadata: %v", stripeCustomerID, stripeErr)
+		// Don't fail the entire process - the database update succeeded
+		// Subsidy webhook can still fall back to subscription metadata
+	} else {
+		log.Printf("Successfully updated Stripe customer %s with userID metadata", stripeCustomerID)
 	}
 
 	return nil

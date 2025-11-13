@@ -26,6 +26,7 @@ import (
 	practice "api/internal/domains/practice/handler"
 	programHandler "api/internal/domains/program"
 	schedule "api/internal/domains/schedule/handler"
+	subsidyHandler "api/internal/domains/subsidy/handler"
 	teamsHandler "api/internal/domains/team"
 	uploadHandler "api/internal/domains/upload/handler"
 	userHandler "api/internal/domains/user/handler"
@@ -80,6 +81,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		"/checkout": RegisterCheckoutRoutes,
 		"/subscriptions": RegisterSubscriptionRoutes,
 		"/credit_packages": RegisterCreditPackageRoutes,
+		"/subsidies": RegisterSubsidyRoutes,
 
 		// Webhooks
 		"/webhooks": RegisterWebhooksRoutes,
@@ -645,5 +647,39 @@ func RegisterCreditPackageRoutes(container *di.Container) func(chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/", h.CreateCreditPackage)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}", h.UpdateCreditPackage)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", h.DeleteCreditPackage)
+	}
+}
+
+func RegisterSubsidyRoutes(container *di.Container) func(chi.Router) {
+	h := subsidyHandler.NewSubsidyHandler(container)
+
+	return func(r chi.Router) {
+		// Customer routes - check balance and history
+		r.Group(func(r chi.Router) {
+			r.Use(middlewares.JWTAuthMiddleware(true)) // Require auth
+			r.Get("/me", h.GetMySubsidies)
+			r.Get("/me/balance", h.GetMyBalance)
+			r.Get("/me/usage", h.GetMyUsageHistory)
+		})
+
+		// Admin routes - manage providers and subsidies
+		r.Group(func(r chi.Router) {
+			r.Use(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin))
+
+			// Provider management
+			r.Post("/providers", h.CreateProvider)
+			r.Get("/providers", h.ListProviders)
+			r.Get("/providers/{id}", h.GetProvider)
+			r.Get("/providers/{id}/stats", h.GetProviderStats)
+
+			// Subsidy management
+			r.Post("/", h.CreateSubsidy)
+			r.Get("/", h.ListSubsidies)
+			r.Get("/{id}", h.GetSubsidy)
+			r.Post("/{id}/deactivate", h.DeactivateSubsidy)
+
+			// Summary/reports
+			r.Get("/summary", h.GetSubsidySummary)
+		})
 	}
 }

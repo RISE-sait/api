@@ -23,8 +23,9 @@ var (
 	mu         sync.Mutex
 )
 
-// getRealIP returns the client's real IP address, considering reverse proxies.
-func getRealIP(r *http.Request) string {
+// GetRealIP returns the client's real IP address, considering reverse proxies.
+// Exported for use in other packages (e.g., audit logging)
+func GetRealIP(r *http.Request) string {
 	if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
 		parts := strings.Split(forwarded, ",")
 		ip := strings.TrimSpace(parts[0])
@@ -38,6 +39,11 @@ func getRealIP(r *http.Request) string {
 		return host
 	}
 	return r.RemoteAddr
+}
+
+// getRealIP is an internal wrapper for backward compatibility
+func getRealIP(r *http.Request) string {
+	return GetRealIP(r)
 }
 
 // RateLimitMiddleware enforces rate limiting and temporarily blocks abusive IPs.

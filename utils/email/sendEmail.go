@@ -61,3 +61,43 @@ func SendEmailVerification(to, firstName, verificationURL string) *errLib.Common
 	log.Printf("Verification email sent successfully to %s", to)
 	return nil
 }
+
+// SendSubsidyApprovedEmail sends a notification when a subsidy is approved for a customer
+func SendSubsidyApprovedEmail(to, firstName, providerName string, amount float64, validUntil string) {
+	body := SubsidyApprovedBody(firstName, providerName, amount, validUntil)
+	if err := SendEmail(to, "Subsidy Approved - Rise", body); err != nil {
+		log.Println("failed to send subsidy approved email:", err.Message)
+	} else {
+		log.Printf("Subsidy approved email sent successfully to %s", to)
+	}
+}
+
+// SendSubsidyUsedEmail sends a notification when subsidy is used (non-depleting transactions)
+func SendSubsidyUsedEmail(to, firstName string, amountUsed, remainingBalance float64, transactionType string) {
+	body := SubsidyUsedBody(firstName, amountUsed, remainingBalance, transactionType)
+	if err := SendEmail(to, "Subsidy Applied - Rise", body); err != nil {
+		log.Println("failed to send subsidy used email:", err.Message)
+	} else {
+		log.Printf("Subsidy used email sent successfully to %s", to)
+	}
+}
+
+// SendSubsidyDepletedEmail sends a notification when subsidy is fully depleted
+func SendSubsidyDepletedEmail(to, firstName string, totalUsed float64) {
+	body := SubsidyDepletedBody(firstName, totalUsed)
+	if err := SendEmail(to, "Subsidy Fully Used - Rise", body); err != nil {
+		log.Println("failed to send subsidy depleted email:", err.Message)
+	} else {
+		log.Printf("Subsidy depleted email sent successfully to %s", to)
+	}
+}
+
+// SendSubsidyExpiringEmail sends a notification when subsidy is about to expire
+func SendSubsidyExpiringEmail(to, firstName string, remainingBalance float64, expiryDate string) {
+	body := SubsidyExpiringBody(firstName, remainingBalance, expiryDate)
+	if err := SendEmail(to, "Subsidy Expiring Soon - Rise", body); err != nil {
+		log.Println("failed to send subsidy expiring email:", err.Message)
+	} else {
+		log.Printf("Subsidy expiring email sent successfully to %s", to)
+	}
+}

@@ -10,6 +10,7 @@ import (
 	errLib "api/internal/libs/errors"
 	responses "api/internal/libs/responses"
 	"api/internal/libs/validators"
+	"api/internal/middlewares"
 	contextUtils "api/utils/context"
 
 	"github.com/go-chi/chi"
@@ -29,6 +30,18 @@ func NewSubsidyHandler(container *di.Container) *SubsidyHandler {
 // ===== ADMIN HANDLERS - PROVIDER MANAGEMENT =====
 
 // CreateProvider creates a new subsidy provider
+// @Summary Create subsidy provider
+// @Description Create a new subsidy provider organization (admin only)
+// @Tags Subsidies - Admin
+// @Accept json
+// @Produce json
+// @Param provider body dto.CreateProviderRequest true "Provider details"
+// @Success 201 {object} responses.SuccessResponse
+// @Failure 400 {object} responses.ErrorResponse
+// @Failure 401 {object} responses.ErrorResponse
+// @Failure 403 {object} responses.ErrorResponse
+// @Security Bearer
+// @Router /subsidies/providers [post]
 func (h *SubsidyHandler) CreateProvider(w http.ResponseWriter, r *http.Request) {
 	var req dto.CreateProviderRequest
 
@@ -52,6 +65,18 @@ func (h *SubsidyHandler) CreateProvider(w http.ResponseWriter, r *http.Request) 
 }
 
 // GetProvider retrieves a provider by ID
+// @Summary Get subsidy provider
+// @Description Get details of a specific subsidy provider (admin only)
+// @Tags Subsidies - Admin
+// @Produce json
+// @Param id path string true "Provider ID"
+// @Success 200 {object} responses.SuccessResponse
+// @Failure 400 {object} responses.ErrorResponse
+// @Failure 401 {object} responses.ErrorResponse
+// @Failure 403 {object} responses.ErrorResponse
+// @Failure 404 {object} responses.ErrorResponse
+// @Security Bearer
+// @Router /subsidies/providers/{id} [get]
 func (h *SubsidyHandler) GetProvider(w http.ResponseWriter, r *http.Request) {
 	idParam := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idParam)
@@ -70,6 +95,16 @@ func (h *SubsidyHandler) GetProvider(w http.ResponseWriter, r *http.Request) {
 }
 
 // ListProviders lists all providers
+// @Summary List subsidy providers
+// @Description Get list of all subsidy providers with optional filters (admin only)
+// @Tags Subsidies - Admin
+// @Produce json
+// @Param is_active query boolean false "Filter by active status"
+// @Success 200 {object} responses.SuccessResponse
+// @Failure 401 {object} responses.ErrorResponse
+// @Failure 403 {object} responses.ErrorResponse
+// @Security Bearer
+// @Router /subsidies/providers [get]
 func (h *SubsidyHandler) ListProviders(w http.ResponseWriter, r *http.Request) {
 	var isActive *bool
 	if isActiveStr := r.URL.Query().Get("is_active"); isActiveStr != "" {
@@ -89,6 +124,18 @@ func (h *SubsidyHandler) ListProviders(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetProviderStats retrieves provider statistics
+// @Summary Get provider statistics
+// @Description Get usage statistics for a specific provider (admin only)
+// @Tags Subsidies - Admin
+// @Produce json
+// @Param id path string true "Provider ID"
+// @Success 200 {object} responses.SuccessResponse
+// @Failure 400 {object} responses.ErrorResponse
+// @Failure 401 {object} responses.ErrorResponse
+// @Failure 403 {object} responses.ErrorResponse
+// @Failure 404 {object} responses.ErrorResponse
+// @Security Bearer
+// @Router /subsidies/providers/{id}/stats [get]
 func (h *SubsidyHandler) GetProviderStats(w http.ResponseWriter, r *http.Request) {
 	idParam := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idParam)
@@ -109,6 +156,18 @@ func (h *SubsidyHandler) GetProviderStats(w http.ResponseWriter, r *http.Request
 // ===== ADMIN HANDLERS - SUBSIDY MANAGEMENT =====
 
 // CreateSubsidy creates a new subsidy for a customer
+// @Summary Create subsidy
+// @Description Create a new subsidy for a customer (admin only)
+// @Tags Subsidies - Admin
+// @Accept json
+// @Produce json
+// @Param subsidy body dto.CreateSubsidyRequest true "Subsidy details"
+// @Success 201 {object} responses.SuccessResponse
+// @Failure 400 {object} responses.ErrorResponse
+// @Failure 401 {object} responses.ErrorResponse
+// @Failure 403 {object} responses.ErrorResponse
+// @Security Bearer
+// @Router /subsidies [post]
 func (h *SubsidyHandler) CreateSubsidy(w http.ResponseWriter, r *http.Request) {
 	var req dto.CreateSubsidyRequest
 
@@ -128,7 +187,10 @@ func (h *SubsidyHandler) CreateSubsidy(w http.ResponseWriter, r *http.Request) {
 		return // Error already sent by helper
 	}
 
-	subsidy, err := h.Service.CreateSubsidy(r.Context(), &req, staffID)
+	// Get IP address for audit logging
+	ipAddress := middlewares.GetRealIP(r)
+
+	subsidy, err := h.Service.CreateSubsidy(r.Context(), &req, staffID, ipAddress)
 	if err != nil {
 		responses.RespondWithError(w, err)
 		return
@@ -138,6 +200,18 @@ func (h *SubsidyHandler) CreateSubsidy(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetSubsidy retrieves subsidy details
+// @Summary Get subsidy
+// @Description Get details of a specific subsidy (admin only)
+// @Tags Subsidies - Admin
+// @Produce json
+// @Param id path string true "Subsidy ID"
+// @Success 200 {object} responses.SuccessResponse
+// @Failure 400 {object} responses.ErrorResponse
+// @Failure 401 {object} responses.ErrorResponse
+// @Failure 403 {object} responses.ErrorResponse
+// @Failure 404 {object} responses.ErrorResponse
+// @Security Bearer
+// @Router /subsidies/{id} [get]
 func (h *SubsidyHandler) GetSubsidy(w http.ResponseWriter, r *http.Request) {
 	idParam := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idParam)
@@ -156,6 +230,20 @@ func (h *SubsidyHandler) GetSubsidy(w http.ResponseWriter, r *http.Request) {
 }
 
 // ListSubsidies lists subsidies with filters
+// @Summary List subsidies
+// @Description Get list of subsidies with optional filters (admin only)
+// @Tags Subsidies - Admin
+// @Produce json
+// @Param customer_id query string false "Filter by customer ID"
+// @Param provider_id query string false "Filter by provider ID"
+// @Param status query string false "Filter by status (pending, approved, active, depleted, expired, revoked)"
+// @Param page query integer false "Page number" default(1)
+// @Param limit query integer false "Items per page" default(50)
+// @Success 200 {object} responses.SuccessResponse
+// @Failure 401 {object} responses.ErrorResponse
+// @Failure 403 {object} responses.ErrorResponse
+// @Security Bearer
+// @Router /subsidies [get]
 func (h *SubsidyHandler) ListSubsidies(w http.ResponseWriter, r *http.Request) {
 	filters := dto.SubsidyFilters{
 		Page:  parseIntQuery(r, "page", 1),
@@ -190,6 +278,20 @@ func (h *SubsidyHandler) ListSubsidies(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeactivateSubsidy deactivates a subsidy
+// @Summary Deactivate subsidy
+// @Description Deactivate/revoke a subsidy (admin only)
+// @Tags Subsidies - Admin
+// @Accept json
+// @Produce json
+// @Param id path string true "Subsidy ID"
+// @Param request body dto.DeactivateSubsidyRequest true "Deactivation reason"
+// @Success 200 {object} responses.SuccessResponse
+// @Failure 400 {object} responses.ErrorResponse
+// @Failure 401 {object} responses.ErrorResponse
+// @Failure 403 {object} responses.ErrorResponse
+// @Failure 404 {object} responses.ErrorResponse
+// @Security Bearer
+// @Router /subsidies/{id}/deactivate [post]
 func (h *SubsidyHandler) DeactivateSubsidy(w http.ResponseWriter, r *http.Request) {
 	idParam := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idParam)
@@ -215,7 +317,10 @@ func (h *SubsidyHandler) DeactivateSubsidy(w http.ResponseWriter, r *http.Reques
 		return // Error already sent by helper
 	}
 
-	if serviceErr := h.Service.DeactivateSubsidy(r.Context(), id, staffID, req.Reason); serviceErr != nil {
+	// Get IP address for audit logging
+	ipAddress := middlewares.GetRealIP(r)
+
+	if serviceErr := h.Service.DeactivateSubsidy(r.Context(), id, staffID, req.Reason, ipAddress); serviceErr != nil {
 		responses.RespondWithError(w, serviceErr)
 		return
 	}
@@ -224,6 +329,15 @@ func (h *SubsidyHandler) DeactivateSubsidy(w http.ResponseWriter, r *http.Reques
 }
 
 // GetSubsidySummary retrieves overall subsidy statistics
+// @Summary Get subsidy summary
+// @Description Get overall subsidy statistics and reports (admin only)
+// @Tags Subsidies - Admin
+// @Produce json
+// @Success 200 {object} responses.SuccessResponse
+// @Failure 401 {object} responses.ErrorResponse
+// @Failure 403 {object} responses.ErrorResponse
+// @Security Bearer
+// @Router /subsidies/summary [get]
 func (h *SubsidyHandler) GetSubsidySummary(w http.ResponseWriter, r *http.Request) {
 	summary, err := h.Service.GetSubsidySummary(r.Context())
 	if err != nil {
@@ -237,6 +351,16 @@ func (h *SubsidyHandler) GetSubsidySummary(w http.ResponseWriter, r *http.Reques
 // ===== CUSTOMER HANDLERS =====
 
 // GetMySubsidies retrieves current user's subsidies
+// @Summary Get my subsidies
+// @Description Get list of subsidies for the authenticated customer
+// @Tags Subsidies - Customer
+// @Produce json
+// @Param page query integer false "Page number" default(1)
+// @Param limit query integer false "Items per page" default(10)
+// @Success 200 {object} responses.SuccessResponse
+// @Failure 401 {object} responses.ErrorResponse
+// @Security Bearer
+// @Router /subsidies/me [get]
 func (h *SubsidyHandler) GetMySubsidies(w http.ResponseWriter, r *http.Request) {
 	// SECURITY: Extract customer ID from auth context
 	customerID, ok := getCustomerIDFromContext(w, r)
@@ -260,6 +384,14 @@ func (h *SubsidyHandler) GetMySubsidies(w http.ResponseWriter, r *http.Request) 
 }
 
 // GetMyBalance retrieves current user's subsidy balance
+// @Summary Get my balance
+// @Description Get current subsidy balance for the authenticated customer
+// @Tags Subsidies - Customer
+// @Produce json
+// @Success 200 {object} responses.SuccessResponse
+// @Failure 401 {object} responses.ErrorResponse
+// @Security Bearer
+// @Router /subsidies/me/balance [get]
 func (h *SubsidyHandler) GetMyBalance(w http.ResponseWriter, r *http.Request) {
 	// SECURITY: Extract customer ID from auth context
 	customerID, ok := getCustomerIDFromContext(w, r)
@@ -277,6 +409,16 @@ func (h *SubsidyHandler) GetMyBalance(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetMyUsageHistory retrieves current user's usage history
+// @Summary Get my usage history
+// @Description Get subsidy usage history for the authenticated customer
+// @Tags Subsidies - Customer
+// @Produce json
+// @Param page query integer false "Page number" default(1)
+// @Param limit query integer false "Items per page" default(20)
+// @Success 200 {object} responses.SuccessResponse
+// @Failure 401 {object} responses.ErrorResponse
+// @Security Bearer
+// @Router /subsidies/me/usage [get]
 func (h *SubsidyHandler) GetMyUsageHistory(w http.ResponseWriter, r *http.Request) {
 	// SECURITY: Extract customer ID from auth context
 	customerID, ok := getCustomerIDFromContext(w, r)

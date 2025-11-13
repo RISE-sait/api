@@ -13,20 +13,21 @@ import (
 )
 
 const getCustomersTeam = `-- name: GetCustomersTeam :one
-SELECT t.id, t.name, t.capacity, t.created_at, t.updated_at, t.coach_id, t.logo_url
+SELECT t.id, t.name, t.capacity, t.created_at, t.updated_at, t.coach_id, t.logo_url, t.is_external
 FROM athletic.athletes a
          LEFT JOIN athletic.teams t ON a.team_id = t.id
 WHERE a.id = $1
 `
 
 type GetCustomersTeamRow struct {
-	ID        uuid.NullUUID  `json:"id"`
-	Name      sql.NullString `json:"name"`
-	Capacity  sql.NullInt32  `json:"capacity"`
-	CreatedAt sql.NullTime   `json:"created_at"`
-	UpdatedAt sql.NullTime   `json:"updated_at"`
-	CoachID   uuid.NullUUID  `json:"coach_id"`
-	LogoUrl   sql.NullString `json:"logo_url"`
+	ID         uuid.NullUUID  `json:"id"`
+	Name       sql.NullString `json:"name"`
+	Capacity   sql.NullInt32  `json:"capacity"`
+	CreatedAt  sql.NullTime   `json:"created_at"`
+	UpdatedAt  sql.NullTime   `json:"updated_at"`
+	CoachID    uuid.NullUUID  `json:"coach_id"`
+	LogoUrl    sql.NullString `json:"logo_url"`
+	IsExternal sql.NullBool   `json:"is_external"`
 }
 
 func (q *Queries) GetCustomersTeam(ctx context.Context, customerID uuid.UUID) (GetCustomersTeamRow, error) {
@@ -40,6 +41,7 @@ func (q *Queries) GetCustomersTeam(ctx context.Context, customerID uuid.UUID) (G
 		&i.UpdatedAt,
 		&i.CoachID,
 		&i.LogoUrl,
+		&i.IsExternal,
 	)
 	return i, err
 }

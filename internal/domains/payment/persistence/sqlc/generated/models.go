@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
+	"github.com/sqlc-dev/pqtype"
 )
 
 type AuditAuditStatus string
@@ -429,6 +430,8 @@ type AthleticTeam struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	CoachID   uuid.NullUUID  `json:"coach_id"`
 	LogoUrl   sql.NullString `json:"logo_url"`
+	// TRUE for external/opponent teams (not RISE teams). External teams are shared across all coaches and do not require a coach_id. FALSE for internal RISE teams that must have a coach_id.
+	IsExternal bool `json:"is_external"`
 }
 
 type AuditOutbox struct {
@@ -479,24 +482,30 @@ type EventsCustomerEnrollment struct {
 }
 
 type EventsEvent struct {
-	ID                       uuid.UUID      `json:"id"`
-	LocationID               uuid.UUID      `json:"location_id"`
-	ProgramID                uuid.UUID      `json:"program_id"`
-	TeamID                   uuid.NullUUID  `json:"team_id"`
-	StartAt                  time.Time      `json:"start_at"`
-	EndAt                    time.Time      `json:"end_at"`
-	CreatedBy                uuid.UUID      `json:"created_by"`
-	UpdatedBy                uuid.UUID      `json:"updated_by"`
-	IsCancelled              bool           `json:"is_cancelled"`
-	CancellationReason       sql.NullString `json:"cancellation_reason"`
-	CreatedAt                time.Time      `json:"created_at"`
-	UpdatedAt                time.Time      `json:"updated_at"`
-	IsDateTimeModified       bool           `json:"is_date_time_modified"`
-	RecurrenceID             uuid.NullUUID  `json:"recurrence_id"`
-	CourtID                  uuid.NullUUID  `json:"court_id"`
-	RequiredMembershipPlanID uuid.NullUUID  `json:"required_membership_plan_id"`
-	PriceID                  sql.NullString `json:"price_id"`
-	CreditCost               sql.NullInt32  `json:"credit_cost"`
+	ID                 uuid.UUID      `json:"id"`
+	LocationID         uuid.UUID      `json:"location_id"`
+	ProgramID          uuid.UUID      `json:"program_id"`
+	TeamID             uuid.NullUUID  `json:"team_id"`
+	StartAt            time.Time      `json:"start_at"`
+	EndAt              time.Time      `json:"end_at"`
+	CreatedBy          uuid.UUID      `json:"created_by"`
+	UpdatedBy          uuid.UUID      `json:"updated_by"`
+	IsCancelled        bool           `json:"is_cancelled"`
+	CancellationReason sql.NullString `json:"cancellation_reason"`
+	CreatedAt          time.Time      `json:"created_at"`
+	UpdatedAt          time.Time      `json:"updated_at"`
+	IsDateTimeModified bool           `json:"is_date_time_modified"`
+	RecurrenceID       uuid.NullUUID  `json:"recurrence_id"`
+	CourtID            uuid.NullUUID  `json:"court_id"`
+	PriceID            sql.NullString `json:"price_id"`
+	CreditCost         sql.NullInt32  `json:"credit_cost"`
+}
+
+type EventsEventMembershipAccess struct {
+	ID               uuid.UUID    `json:"id"`
+	EventID          uuid.UUID    `json:"event_id"`
+	MembershipPlanID uuid.UUID    `json:"membership_plan_id"`
+	CreatedAt        sql.NullTime `json:"created_at"`
 }
 
 type EventsStaff struct {
@@ -517,6 +526,19 @@ type GameGame struct {
 	CreatedAt  sql.NullTime   `json:"created_at"`
 	UpdatedAt  sql.NullTime   `json:"updated_at"`
 	CourtID    uuid.NullUUID  `json:"court_id"`
+	// User (coach/admin) who created/scheduled this game
+	CreatedBy uuid.NullUUID `json:"created_by"`
+}
+
+type HaircutBarberAvailability struct {
+	ID        uuid.UUID `json:"id"`
+	BarberID  uuid.UUID `json:"barber_id"`
+	DayOfWeek int32     `json:"day_of_week"`
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type HaircutBarberService struct {
@@ -593,6 +615,60 @@ type MembershipMembershipPlan struct {
 	Interval           sql.NullString `json:"interval"`
 	// One-time joining fee in cents (e.g., 13000 = $130.00). Applied as Stripe setup fee on first payment only.
 	JoiningFee int32 `json:"joining_fee"`
+	// Number of credits awarded when purchasing this membership plan (NULL for non-credit memberships)
+	CreditAllocation sql.NullInt32 `json:"credit_allocation"`
+	// Maximum credits that can be used per week with this membership plan (NULL for non-credit memberships, 0 = unlimited credits)
+	WeeklyCreditLimit sql.NullInt32 `json:"weekly_credit_limit"`
+	IsVisible         bool          `json:"is_visible"`
+}
+
+type NotificationsPushToken struct {
+	ID            int32          `json:"id"`
+	UserID        uuid.UUID      `json:"user_id"`
+	ExpoPushToken string         `json:"expo_push_token"`
+	DeviceType    sql.NullString `json:"device_type"`
+	CreatedAt     sql.NullTime   `json:"created_at"`
+	UpdatedAt     sql.NullTime   `json:"updated_at"`
+}
+
+// Centralized tracking of all payment transactions including memberships, events, programs, and subsidies
+type PaymentsPaymentTransaction struct {
+	ID              uuid.UUID `json:"id"`
+	CustomerID      uuid.UUID `json:"customer_id"`
+	CustomerEmail   string    `json:"customer_email"`
+	CustomerName    string    `json:"customer_name"`
+	TransactionType string    `json:"transaction_type"`
+	TransactionDate time.Time `json:"transaction_date"`
+	// Original price before any discounts or subsidies
+	OriginalAmount decimal.Decimal `json:"original_amount"`
+	// Amount reduced by discount codes
+	DiscountAmount decimal.Decimal `json:"discount_amount"`
+	// Amount covered by government/organization subsidy
+	SubsidyAmount decimal.Decimal `json:"subsidy_amount"`
+	// Final amount customer actually paid (original - discount - subsidy)
+	CustomerPaid            decimal.Decimal `json:"customer_paid"`
+	MembershipPlanID        uuid.NullUUID   `json:"membership_plan_id"`
+	ProgramID               uuid.NullUUID   `json:"program_id"`
+	EventID                 uuid.NullUUID   `json:"event_id"`
+	CreditPackageID         uuid.NullUUID   `json:"credit_package_id"`
+	SubsidyID               uuid.NullUUID   `json:"subsidy_id"`
+	DiscountCodeID          uuid.NullUUID   `json:"discount_code_id"`
+	StripeCustomerID        sql.NullString  `json:"stripe_customer_id"`
+	StripeSubscriptionID    sql.NullString  `json:"stripe_subscription_id"`
+	StripeInvoiceID         sql.NullString  `json:"stripe_invoice_id"`
+	StripePaymentIntentID   sql.NullString  `json:"stripe_payment_intent_id"`
+	StripeCheckoutSessionID sql.NullString  `json:"stripe_checkout_session_id"`
+	PaymentStatus           string          `json:"payment_status"`
+	PaymentMethod           sql.NullString  `json:"payment_method"`
+	Currency                sql.NullString  `json:"currency"`
+	Description             sql.NullString  `json:"description"`
+	// JSON field for storing additional flexible data like plan names, event details, etc.
+	Metadata       pqtype.NullRawMessage `json:"metadata"`
+	RefundedAmount decimal.Decimal       `json:"refunded_amount"`
+	RefundReason   sql.NullString        `json:"refund_reason"`
+	RefundedAt     sql.NullTime          `json:"refunded_at"`
+	CreatedAt      time.Time             `json:"created_at"`
+	UpdatedAt      time.Time             `json:"updated_at"`
 }
 
 type PlaygroundSession struct {
@@ -662,6 +738,7 @@ type ProgramProgram struct {
 	CreatedAt   time.Time           `json:"created_at"`
 	UpdatedAt   time.Time           `json:"updated_at"`
 	PayPerEvent bool                `json:"pay_per_event"`
+	PhotoUrl    sql.NullString      `json:"photo_url"`
 }
 
 type StaffPendingStaff struct {
@@ -694,6 +771,87 @@ type StaffStaffRole struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// Audit trail for compliance and reporting
+type SubsidiesAuditLog struct {
+	ID                uuid.UUID      `json:"id"`
+	CustomerSubsidyID uuid.NullUUID  `json:"customer_subsidy_id"`
+	Action            string         `json:"action"`
+	PerformedBy       uuid.NullUUID  `json:"performed_by"`
+	PreviousStatus    sql.NullString `json:"previous_status"`
+	NewStatus         sql.NullString `json:"new_status"`
+	AmountChanged     sql.NullString `json:"amount_changed"`
+	Notes             sql.NullString `json:"notes"`
+	IpAddress         sql.NullString `json:"ip_address"`
+	CreatedAt         sql.NullTime   `json:"created_at"`
+}
+
+// Customer subsidy balances - like gift cards
+type SubsidiesCustomerSubsidy struct {
+	ID              uuid.UUID       `json:"id"`
+	CustomerID      uuid.UUID       `json:"customer_id"`
+	ProviderID      uuid.NullUUID   `json:"provider_id"`
+	ApprovedAmount  decimal.Decimal `json:"approved_amount"`
+	TotalAmountUsed decimal.Decimal `json:"total_amount_used"`
+	// Auto-calculated: approved_amount - total_amount_used
+	RemainingBalance sql.NullString `json:"remaining_balance"`
+	Status           string         `json:"status"`
+	ApprovedBy       uuid.NullUUID  `json:"approved_by"`
+	ApprovedAt       sql.NullTime   `json:"approved_at"`
+	RejectedBy       uuid.NullUUID  `json:"rejected_by"`
+	RejectedAt       sql.NullTime   `json:"rejected_at"`
+	RejectionReason  sql.NullString `json:"rejection_reason"`
+	ValidFrom        time.Time      `json:"valid_from"`
+	ValidUntil       sql.NullTime   `json:"valid_until"`
+	Reason           sql.NullString `json:"reason"`
+	ApplicationNotes sql.NullString `json:"application_notes"`
+	AdminNotes       sql.NullString `json:"admin_notes"`
+	CreatedAt        sql.NullTime   `json:"created_at"`
+	UpdatedAt        sql.NullTime   `json:"updated_at"`
+}
+
+// Organizations providing subsidies (Jumpstart, etc.)
+type SubsidiesProvider struct {
+	ID           uuid.UUID      `json:"id"`
+	Name         string         `json:"name"`
+	ContactEmail sql.NullString `json:"contact_email"`
+	ContactPhone sql.NullString `json:"contact_phone"`
+	IsActive     sql.NullBool   `json:"is_active"`
+	CreatedAt    sql.NullTime   `json:"created_at"`
+	UpdatedAt    sql.NullTime   `json:"updated_at"`
+}
+
+// Track each deduction from subsidy balance
+type SubsidiesUsageTransaction struct {
+	ID                    uuid.UUID       `json:"id"`
+	CustomerSubsidyID     uuid.UUID       `json:"customer_subsidy_id"`
+	CustomerID            uuid.UUID       `json:"customer_id"`
+	TransactionType       string          `json:"transaction_type"`
+	MembershipPlanID      uuid.NullUUID   `json:"membership_plan_id"`
+	OriginalAmount        decimal.Decimal `json:"original_amount"`
+	SubsidyApplied        decimal.Decimal `json:"subsidy_applied"`
+	CustomerPaid          decimal.Decimal `json:"customer_paid"`
+	StripeSubscriptionID  sql.NullString  `json:"stripe_subscription_id"`
+	StripeInvoiceID       sql.NullString  `json:"stripe_invoice_id"`
+	StripePaymentIntentID sql.NullString  `json:"stripe_payment_intent_id"`
+	Description           sql.NullString  `json:"description"`
+	AppliedAt             sql.NullTime    `json:"applied_at"`
+}
+
+// Available credit packages for one-time purchase
+type UsersCreditPackage struct {
+	ID          uuid.UUID      `json:"id"`
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	// Stripe price ID for one-time payment checkout
+	StripePriceID string `json:"stripe_price_id"`
+	// Number of credits awarded when purchasing this package
+	CreditAllocation int32 `json:"credit_allocation"`
+	// Maximum credits that can be used per week (0 = unlimited)
+	WeeklyCreditLimit int32     `json:"weekly_credit_limit"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
+}
+
 type UsersCreditTransaction struct {
 	ID              uuid.UUID             `json:"id"`
 	CustomerID      uuid.UUID             `json:"customer_id"`
@@ -702,6 +860,19 @@ type UsersCreditTransaction struct {
 	EventID         uuid.NullUUID         `json:"event_id"`
 	Description     sql.NullString        `json:"description"`
 	CreatedAt       sql.NullTime          `json:"created_at"`
+}
+
+// Tracks each customer's currently active credit package and their weekly limit
+type UsersCustomerActiveCreditPackage struct {
+	// Customer who purchased the package (PRIMARY KEY ensures one package per customer)
+	CustomerID uuid.UUID `json:"customer_id"`
+	// The credit package they purchased
+	CreditPackageID uuid.UUID `json:"credit_package_id"`
+	// Weekly credit limit from the package (copied here for performance)
+	WeeklyCreditLimit int32 `json:"weekly_credit_limit"`
+	// When this package was purchased
+	PurchasedAt time.Time `json:"purchased_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type UsersCustomerCredit struct {
@@ -731,6 +902,10 @@ type UsersCustomerMembershipPlan struct {
 	NextBillingDate       sql.NullTime               `json:"next_billing_date"`
 	SubscriptionCreatedAt sql.NullTime               `json:"subscription_created_at"`
 	SubscriptionSource    sql.NullString             `json:"subscription_source"`
+	// Timestamp when membership billing was suspended
+	SuspendedAt sql.NullTime `json:"suspended_at"`
+	// Whether billing is paused due to suspension. When true, arrears will accrue.
+	SuspensionBillingPaused bool `json:"suspension_billing_paused"`
 }
 
 type UsersSubscriptionAutoCharging struct {
@@ -765,6 +940,41 @@ type UsersUser struct {
 	Dob                      time.Time      `json:"dob"`
 	IsArchived               bool           `json:"is_archived"`
 	SquareCustomerID         sql.NullString `json:"square_customer_id"`
+	StripeCustomerID         sql.NullString `json:"stripe_customer_id"`
+	// Staff notes about the customer for internal reference
+	Notes sql.NullString `json:"notes"`
+	// Timestamp when account was soft deleted. NULL means account is active. Account data kept for recovery period (30-90 days)
+	DeletedAt sql.NullTime `json:"deleted_at"`
+	// Timestamp when account is scheduled for permanent deletion. Used for grace period recovery
+	ScheduledDeletionAt sql.NullTime `json:"scheduled_deletion_at"`
+	// Whether the user has verified their email address. Users must verify email before they can log in.
+	EmailVerified bool `json:"email_verified"`
+	// One-time token sent to user email for verification. NULL after verification.
+	EmailVerificationToken sql.NullString `json:"email_verification_token"`
+	// Expiration time for verification token. Tokens are valid for 24 hours.
+	EmailVerificationTokenExpiresAt sql.NullTime `json:"email_verification_token_expires_at"`
+	// Timestamp when the user verified their email address.
+	EmailVerifiedAt sql.NullTime `json:"email_verified_at"`
+	// Timestamp when user was suspended. NULL means user is not suspended.
+	SuspendedAt sql.NullTime `json:"suspended_at"`
+	// Admin-provided reason for suspension (e.g., "Violation of community guidelines", "Non-payment")
+	SuspensionReason sql.NullString `json:"suspension_reason"`
+	// Staff member who suspended the user
+	SuspendedBy uuid.NullUUID `json:"suspended_by"`
+	// When suspension automatically expires. Can be set for any duration (1 month, 12 months, etc). NULL means indefinite suspension.
+	SuspensionExpiresAt sql.NullTime `json:"suspension_expires_at"`
+}
+
+// Tracks weekly credit consumption per customer for membership limit enforcement
+type UsersWeeklyCreditUsage struct {
+	ID         uuid.UUID `json:"id"`
+	CustomerID uuid.UUID `json:"customer_id"`
+	// Monday of the ISO week (e.g., 2024-01-15 for week starting Jan 15)
+	WeekStartDate time.Time `json:"week_start_date"`
+	// Total credits consumed during this week
+	CreditsUsed int32        `json:"credits_used"`
+	CreatedAt   sql.NullTime `json:"created_at"`
+	UpdatedAt   sql.NullTime `json:"updated_at"`
 }
 
 type WaiverWaiver struct {

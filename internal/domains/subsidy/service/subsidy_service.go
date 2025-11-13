@@ -12,22 +12,32 @@ import (
 	"api/internal/domains/subsidy/dto"
 	repo "api/internal/domains/subsidy/persistence/repository"
 	db "api/internal/domains/subsidy/persistence/sqlc/generated"
+	"api/internal/domains/payment/tracking"
 	errLib "api/internal/libs/errors"
 	txUtils "api/utils/db"
+	"api/utils/email"
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
+// Business rule constants
+const (
+	MAX_SUBSIDY_AMOUNT        = 100000.0 // Maximum subsidy amount ($100,000)
+	FLOAT_PRECISION_TOLERANCE = 0.01     // Tolerance for floating point comparisons
+)
+
 type SubsidyService struct {
-	repo *repo.SubsidyRepository
-	db   *sql.DB
+	repo            *repo.SubsidyRepository
+	db              *sql.DB
+	paymentTracking *tracking.PaymentTrackingService
 }
 
 func NewSubsidyService(container *di.Container) *SubsidyService {
 	return &SubsidyService{
-		repo: repo.NewSubsidyRepository(container),
-		db:   container.DB,
+		repo:            repo.NewSubsidyRepository(container),
+		db:              container.DB,
+		paymentTracking: tracking.NewPaymentTrackingService(container),
 	}
 }
 
@@ -130,13 +140,13 @@ func (s *SubsidyService) GetProviderStats(ctx context.Context, id uuid.UUID) (*d
 
 // ===== SUBSIDY CRUD METHODS =====
 
-func (s *SubsidyService) CreateSubsidy(ctx context.Context, req *dto.CreateSubsidyRequest, staffID uuid.UUID) (*dto.SubsidyResponse, *errLib.CommonError) {
+func (s *SubsidyService) CreateSubsidy(ctx context.Context, req *dto.CreateSubsidyRequest, staffID uuid.UUID, ipAddress string) (*dto.SubsidyResponse, *errLib.CommonError) {
 	// SECURITY: Input validation
 	if req.ApprovedAmount <= 0 {
 		return nil, errLib.New("Approved amount must be positive", http.StatusBadRequest)
 	}
-	if req.ApprovedAmount > 100000 { // Reasonable max limit
-		return nil, errLib.New("Approved amount exceeds maximum limit ($100,000)", http.StatusBadRequest)
+	if req.ApprovedAmount > MAX_SUBSIDY_AMOUNT {
+		return nil, errLib.New(fmt.Sprintf("Approved amount exceeds maximum limit ($%.0f)", MAX_SUBSIDY_AMOUNT), http.StatusBadRequest)
 	}
 	if req.Reason == "" {
 		return nil, errLib.New("Reason is required for subsidy creation", http.StatusBadRequest)
@@ -189,7 +199,7 @@ func (s *SubsidyService) CreateSubsidy(ctx context.Context, req *dto.CreateSubsi
 			return errLib.New("Failed to create subsidy", http.StatusInternalServerError)
 		}
 
-		// Create comprehensive audit log
+		// Create comprehensive audit log with IP address
 		_, auditErr := queries.CreateAuditLog(ctx, db.CreateAuditLogParams{
 			CustomerSubsidyID: uuid.NullUUID{UUID: subsidy.ID, Valid: true},
 			Action:            "created",
@@ -197,6 +207,7 @@ func (s *SubsidyService) CreateSubsidy(ctx context.Context, req *dto.CreateSubsi
 			NewStatus:         sql.NullString{String: "active", Valid: true},
 			AmountChanged:     sql.NullString{String: decimal.NewFromFloat(req.ApprovedAmount).String(), Valid: true},
 			Notes:             sql.NullString{String: fmt.Sprintf("Subsidy created by staff. Provider: %s, Amount: $%.2f, Reason: %s", provider.Name, req.ApprovedAmount, req.Reason), Valid: true},
+			IpAddress:         sql.NullString{String: ipAddress, Valid: ipAddress != ""},
 		})
 
 		if auditErr != nil {
@@ -219,6 +230,34 @@ func (s *SubsidyService) CreateSubsidy(ctx context.Context, req *dto.CreateSubsi
 
 	log.Printf("✅ [AUDIT] Created subsidy: ID=%s, Amount=$%.2f, Customer=%s, Provider=%s, Staff=%s",
 		result.ID, req.ApprovedAmount, req.CustomerID, req.ProviderID, staffID)
+
+	// Run fraud detection checks
+	s.detectFraudOnCreation(req.CustomerID, result.ID, req.ApprovedAmount, staffID, ipAddress)
+
+	// Send email notification to customer (async)
+	go func() {
+		// Extract customer name from result
+		customerName := "Customer"
+		if result.Customer != nil {
+			customerName = result.Customer.Name
+		}
+
+		providerName := "Provider"
+		if result.Provider != nil {
+			providerName = result.Provider.Name
+		}
+
+		validUntil := "No expiration"
+		if result.ValidUntil != nil {
+			validUntil = result.ValidUntil.Format("January 2, 2006")
+		}
+
+		// Get customer email from the query result
+		if result.Customer != nil && result.Customer.Email != "" {
+			email.SendSubsidyApprovedEmail(result.Customer.Email, customerName, providerName, req.ApprovedAmount, validUntil)
+		}
+	}()
+
 	return result, nil
 }
 
@@ -353,7 +392,7 @@ func (s *SubsidyService) CalculateSubsidyAmount(subsidy *dto.SubsidyResponse, ch
 	return subsidy.RemainingBalance
 }
 
-func (s *SubsidyService) DeactivateSubsidy(ctx context.Context, subsidyID, staffID uuid.UUID, reason string) *errLib.CommonError {
+func (s *SubsidyService) DeactivateSubsidy(ctx context.Context, subsidyID, staffID uuid.UUID, reason, ipAddress string) *errLib.CommonError {
 	// SECURITY: Input validation
 	if reason == "" {
 		return errLib.New("Reason is required for deactivation", http.StatusBadRequest)
@@ -392,7 +431,7 @@ func (s *SubsidyService) DeactivateSubsidy(ctx context.Context, subsidyID, staff
 			return errLib.New("Failed to deactivate subsidy", http.StatusInternalServerError)
 		}
 
-		// Create comprehensive audit log
+		// Create comprehensive audit log with IP address
 		_, auditErr := queries.CreateAuditLog(ctx, db.CreateAuditLogParams{
 			CustomerSubsidyID: uuid.NullUUID{UUID: subsidyID, Valid: true},
 			Action:            "deactivated",
@@ -400,6 +439,7 @@ func (s *SubsidyService) DeactivateSubsidy(ctx context.Context, subsidyID, staff
 			PreviousStatus:    sql.NullString{String: previousStatus, Valid: true},
 			NewStatus:         sql.NullString{String: "expired", Valid: true},
 			Notes:             sql.NullString{String: fmt.Sprintf("Manually deactivated by staff. Reason: %s. Remaining balance: $%.2f", reason, remainingBalance), Valid: true},
+			IpAddress:         sql.NullString{String: ipAddress, Valid: ipAddress != ""},
 		})
 
 		if auditErr != nil {
@@ -459,7 +499,7 @@ func (s *SubsidyService) RecordUsage(ctx context.Context, req *dto.RecordUsageRe
 
 		// SECURITY: Verify sufficient balance
 		remainingBalance := sqlStringToFloat(subsidy.RemainingBalance)
-		if req.SubsidyApplied > remainingBalance+0.01 { // Small tolerance for float precision
+		if req.SubsidyApplied > remainingBalance+FLOAT_PRECISION_TOLERANCE {
 			log.Printf("[SECURITY] Insufficient subsidy balance: requested %.2f, available %.2f", req.SubsidyApplied, remainingBalance)
 			return errLib.New(fmt.Sprintf("Insufficient subsidy balance: requested $%.2f, available $%.2f",
 				req.SubsidyApplied, remainingBalance), http.StatusBadRequest)
@@ -498,7 +538,9 @@ func (s *SubsidyService) RecordUsage(ctx context.Context, req *dto.RecordUsageRe
 
 		// Check if subsidy is now depleted
 		remainingBalance = sqlStringToFloat(updatedSubsidy.RemainingBalance)
-		if remainingBalance <= 0.01 { // Account for floating point precision
+		isDepleted := remainingBalance <= FLOAT_PRECISION_TOLERANCE
+
+		if isDepleted {
 			_, depletedErr := queries.MarkSubsidyAsDepleted(ctx, req.SubsidyID)
 			if depletedErr != nil {
 				log.Printf("Warning: Failed to mark subsidy as depleted: %v", depletedErr)
@@ -519,6 +561,55 @@ func (s *SubsidyService) RecordUsage(ctx context.Context, req *dto.RecordUsageRe
 				log.Printf("Warning: Failed to create audit log: %v", auditErr)
 			}
 		}
+
+		// Run fraud detection on usage
+		s.detectFraudOnUsage(req.CustomerID, req.SubsidyID, req.SubsidyApplied, remainingBalance, timeFromSQL(subsidy.CreatedAt))
+
+		// Get customer info for email notifications
+		customerEmail := stringFromSQL(subsidy.CustomerEmail)
+		customerName := interfaceToString(subsidy.CustomerName)
+		if customerName == "" {
+			customerName = "Customer"
+		}
+
+		// Send appropriate email notification (async)
+		go func() {
+			if customerEmail != "" {
+				if isDepleted {
+					// Send depleted email
+					email.SendSubsidyDepletedEmail(customerEmail, customerName, decimalToFloat(updatedSubsidy.TotalAmountUsed))
+				} else if req.SubsidyApplied > 0 {
+					// Send usage email (only if significant amount was used)
+					email.SendSubsidyUsedEmail(customerEmail, customerName, req.SubsidyApplied, remainingBalance, req.TransactionType)
+				}
+			}
+		}()
+
+		// Track payment in centralized payment tracking system
+		go func() {
+			_, trackingErr := s.paymentTracking.TrackPayment(context.Background(), tracking.TrackPaymentParams{
+				CustomerID:           req.CustomerID,
+				CustomerEmail:        customerEmail,
+				CustomerName:         customerName,
+				TransactionType:      req.TransactionType,
+				TransactionDate:      time.Now(),
+				OriginalAmount:       req.OriginalAmount,
+				DiscountAmount:       0,
+				SubsidyAmount:        req.SubsidyApplied,
+				CustomerPaid:         req.CustomerPaid,
+				MembershipPlanID:     req.MembershipPlanID,
+				SubsidyID:            &req.SubsidyID,
+				StripeSubscriptionID: stringFromSQL(usage.StripeSubscriptionID),
+				StripeInvoiceID:      stringFromSQL(usage.StripeInvoiceID),
+				StripePaymentIntentID: stringFromSQL(usage.StripePaymentIntentID),
+				PaymentStatus:        "completed",
+				Currency:             "USD",
+				Description:          stringFromSQL(usage.Description),
+			})
+			if trackingErr != nil {
+				log.Printf("Warning: Failed to track subsidy payment: %v", trackingErr)
+			}
+		}()
 
 		result = &dto.UsageTransactionResponse{
 			ID:              usage.ID,

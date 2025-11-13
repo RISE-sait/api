@@ -2,6 +2,7 @@ package payment
 
 import (
 	"api/internal/domains/payment/tracking"
+	creditPackageDTO "api/internal/domains/credit_package/dto"
 	"context"
 	"database/sql"
 	"fmt"
@@ -40,17 +41,17 @@ func (s *WebhookService) trackCreditPackagePurchase(session *stripe.CheckoutSess
 		discountAmount = float64(session.TotalDetails.AmountDiscount) / 100.0
 	}
 
-	// Extract credit package ID dynamically
+	// Extract credit package ID - creditPackage is of type *dto.CreditPackageResponse
 	var packageID *uuid.UUID
 	description := "Credit package purchase"
 
-	switch pkg := creditPackage.(type) {
-	case *struct {
-		ID   uuid.UUID
-		Name string
-	}:
+	// Type assert to the actual DTO type
+	if pkg, ok := creditPackage.(*creditPackageDTO.CreditPackageResponse); ok {
 		packageID = &pkg.ID
 		description = fmt.Sprintf("Credit package purchase: %s", pkg.Name)
+	} else {
+		// Fallback: log the type and continue without package ID
+		log.Printf("[PAYMENT-TRACKING] Warning: Could not extract credit package ID from type %T", creditPackage)
 	}
 
 	_, trackingErr := s.PaymentTracking.TrackPayment(ctx, tracking.TrackPaymentParams{
@@ -209,9 +210,17 @@ func (s *WebhookService) trackMembershipSubscription(session *stripe.CheckoutSes
 	discountAmount := 0.0
 
 	// Check for subsidy
+	var subsidyID *uuid.UUID
 	if hasSubsidy, exists := session.Metadata["has_subsidy"]; exists && hasSubsidy == "true" {
 		if subsidyAmountStr, exists := session.Metadata["subsidy_amount"]; exists {
 			fmt.Sscanf(subsidyAmountStr, "%f", &subsidyAmount)
+		}
+		if subsidyIDStr, exists := session.Metadata["subsidy_id"]; exists {
+			if parsedID, err := uuid.Parse(subsidyIDStr); err == nil {
+				subsidyID = &parsedID
+			} else {
+				log.Printf("[PAYMENT-TRACKING] Failed to parse subsidy_id from metadata: %v", err)
+			}
 		}
 	}
 
@@ -242,6 +251,7 @@ func (s *WebhookService) trackMembershipSubscription(session *stripe.CheckoutSes
 		SubsidyAmount:           subsidyAmount,
 		CustomerPaid:            customerPaid,
 		MembershipPlanID:        &planID,
+		SubsidyID:               subsidyID,
 		StripeCustomerID:        session.Customer.ID,
 		StripeSubscriptionID:    subscriptionID,
 		StripeCheckoutSessionID: session.ID,

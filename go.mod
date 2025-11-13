@@ -114,6 +114,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/pressly/goose v2.7.0+incompatible
 	github.com/shopspring/decimal v1.4.0
+	github.com/sqlc-dev/pqtype v0.3.0
 	github.com/stretchr/testify v1.10.0
 	github.com/stripe/stripe-go/v81 v81.4.0
 	github.com/swaggo/http-swagger v1.3.4

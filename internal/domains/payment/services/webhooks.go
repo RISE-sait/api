@@ -7,6 +7,7 @@ import (
 	enrollment "api/internal/domains/enrollment/service"
 	enrollmentRepo "api/internal/domains/enrollment/persistence/repository"
 	repository "api/internal/domains/payment/persistence/repositories"
+	"api/internal/domains/payment/tracking"
 	"api/internal/domains/subsidy/dto"
 	subsidyService "api/internal/domains/subsidy/service"
 	userServices "api/internal/domains/user/services"
@@ -43,9 +44,11 @@ type WebhookService struct {
 	CustomerCreditService  *userServices.CustomerCreditService
 	CreditPackageRepo      *creditPackageRepo.CreditPackageRepository
 	SubsidyService         *subsidyService.SubsidyService
+	PaymentTracking        *tracking.PaymentTrackingService
 	Idempotency            *WebhookIdempotency
 	logger                 *logger.StructuredLogger
 	db                     *sql.DB
+	container              *di.Container
 }
 
 func NewWebhookService(container *di.Container) *WebhookService {
@@ -59,9 +62,11 @@ func NewWebhookService(container *di.Container) *WebhookService {
 		CustomerCreditService:  userServices.NewCustomerCreditService(container),
 		CreditPackageRepo:      creditPackageRepo.NewCreditPackageRepository(container),
 		SubsidyService:         subsidyService.NewSubsidyService(container),
+		PaymentTracking:        tracking.NewPaymentTrackingService(container),
 		Idempotency:            NewWebhookIdempotency(24*time.Hour, 10000), // Store events for 24 hours, max 10k events
 		logger:                 logger.WithComponent("stripe-webhooks"),
 		db:                     container.DB,
+		container:              container,
 	}
 }
 
@@ -219,6 +224,9 @@ func (s *WebhookService) handleItemCheckoutComplete(checkoutSession stripe.Check
 			return errLib.New(fmt.Sprintf("failed to set active package: %v", err), http.StatusInternalServerError)
 		}
 
+		// Track payment in centralized system
+		go s.trackCreditPackagePurchase(fullSession, customerID, creditPackage, eventCreatedAt)
+
 		log.Printf("CREDIT PACKAGE PURCHASE COMPLETE - Customer %s: +%d credits, %d/week limit", customerID, creditPackage.CreditAllocation, creditPackage.WeeklyCreditLimit)
 		return nil
 	case programID == uuid.Nil && eventID == uuid.Nil:
@@ -229,12 +237,16 @@ func (s *WebhookService) handleItemCheckoutComplete(checkoutSession stripe.Check
 			log.Printf("Failed to update program reservation: %v", err)
 			return errLib.New(fmt.Sprintf("failed to update program reservation (customer: %s, program: %s): %v", customerID, programID, err), http.StatusInternalServerError)
 		}
+		// Track payment in centralized system
+		go s.trackProgramEnrollment(fullSession, customerID, programID, eventCreatedAt)
 	case eventID != uuid.Nil:
 		log.Printf("Updating event reservation for user %s and event %s", customerID, eventID)
 		if err = s.EnrollmentService.UpdateReservationStatusInEvent(context.Background(), eventID, customerID, dbEnrollment.PaymentStatusPaid); err != nil {
 			log.Printf("Failed to update event reservation: %v", err)
 			return errLib.New(fmt.Sprintf("failed to update event reservation (customer: %s, event: %s): %v", customerID, eventID, err), http.StatusInternalServerError)
 		}
+		// Track payment in centralized system
+		go s.trackEventRegistration(fullSession, customerID, eventID, eventCreatedAt)
 	}
 
 	log.Println("handleItemCheckoutComplete completed")
@@ -350,6 +362,9 @@ func (s *WebhookService) handleSubscriptionCheckoutComplete(checkoutSession stri
 			// Don't fail the entire checkout for subsidy recording failure
 		}
 	}
+
+	// Track payment in centralized system
+	go s.trackMembershipSubscription(fullSession, userID, planID, eventCreatedAt)
 
 	s.sendMembershipPurchaseEmail(userID, planID)
 	return nil
@@ -867,8 +882,11 @@ func (s *WebhookService) HandleInvoicePaymentSucceeded(event stripe.Event) *errL
 					log.Printf("[WEBHOOK] Failed to activate membership after successful payment: %v", updateErr)
 					return updateErr
 				}
-				
+
 				log.Printf("[WEBHOOK] Successfully activated membership for user %s after invoice payment %s", userID, invoice.ID)
+
+				// Track payment in centralized system
+				go s.trackMembershipRenewal(&invoice, userID, time.Unix(event.Created, 0))
 			} else {
 				log.Printf("[WEBHOOK] Invalid userID format for invoice %s: %v", invoice.ID, err)
 				return errLib.New("Invalid user ID format", http.StatusBadRequest)

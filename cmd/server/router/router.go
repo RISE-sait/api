@@ -83,6 +83,9 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		"/credit_packages": RegisterCreditPackageRoutes,
 		"/subsidies": RegisterSubsidyRoutes,
 
+		// Payment & Reporting routes
+		"/admin/payments": RegisterPaymentReportsRoutes,
+
 		// Webhooks
 		"/webhooks": RegisterWebhooksRoutes,
 
@@ -657,6 +660,7 @@ func RegisterSubsidyRoutes(container *di.Container) func(chi.Router) {
 		// Customer routes - check balance and history
 		r.Group(func(r chi.Router) {
 			r.Use(middlewares.JWTAuthMiddleware(true)) // Require auth
+			r.Use(middlewares.RateLimitMiddleware(10, 20, 1*time.Minute)) // 10 rps, burst 20
 			r.Get("/me", h.GetMySubsidies)
 			r.Get("/me/balance", h.GetMyBalance)
 			r.Get("/me/usage", h.GetMyUsageHistory)
@@ -665,6 +669,7 @@ func RegisterSubsidyRoutes(container *di.Container) func(chi.Router) {
 		// Admin routes - manage providers and subsidies
 		r.Group(func(r chi.Router) {
 			r.Use(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin))
+			r.Use(middlewares.RateLimitMiddleware(5, 10, 1*time.Minute)) // 5 rps, burst 10
 
 			// Provider management
 			r.Post("/providers", h.CreateProvider)
@@ -681,5 +686,26 @@ func RegisterSubsidyRoutes(container *di.Container) func(chi.Router) {
 			// Summary/reports
 			r.Get("/summary", h.GetSubsidySummary)
 		})
+	}
+}
+
+// RegisterPaymentReportsRoutes registers payment reporting routes
+func RegisterPaymentReportsRoutes(container *di.Container) func(chi.Router) {
+	h := payment.NewPaymentReportsHandler(container)
+	return func(r chi.Router) {
+		// All routes require admin authentication
+		r.Use(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin))
+		r.Use(middlewares.RateLimitMiddleware(5, 10, 1*time.Minute)) // 5 rps, burst 10
+
+		// Transaction listing and details
+		r.Get("/transactions", h.ListPaymentTransactions)
+
+		// Summary and analytics
+		r.Get("/summary", h.GetPaymentSummary)
+		r.Get("/summary/by-type", h.GetPaymentSummaryByType)
+		r.Get("/subsidy-usage", h.GetSubsidyUsageSummary)
+
+		// Export
+		r.Get("/export", h.ExportPaymentTransactions)
 	}
 }

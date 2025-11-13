@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 )
 
 type AuditAuditStatus string
@@ -629,6 +630,46 @@ type NotificationsPushToken struct {
 	UpdatedAt     sql.NullTime   `json:"updated_at"`
 }
 
+// Centralized tracking of all payment transactions including memberships, events, programs, and subsidies
+type PaymentsPaymentTransaction struct {
+	ID              uuid.UUID `json:"id"`
+	CustomerID      uuid.UUID `json:"customer_id"`
+	CustomerEmail   string    `json:"customer_email"`
+	CustomerName    string    `json:"customer_name"`
+	TransactionType string    `json:"transaction_type"`
+	TransactionDate time.Time `json:"transaction_date"`
+	// Original price before any discounts or subsidies
+	OriginalAmount string `json:"original_amount"`
+	// Amount reduced by discount codes
+	DiscountAmount string `json:"discount_amount"`
+	// Amount covered by government/organization subsidy
+	SubsidyAmount string `json:"subsidy_amount"`
+	// Final amount customer actually paid (original - discount - subsidy)
+	CustomerPaid            string         `json:"customer_paid"`
+	MembershipPlanID        uuid.NullUUID  `json:"membership_plan_id"`
+	ProgramID               uuid.NullUUID  `json:"program_id"`
+	EventID                 uuid.NullUUID  `json:"event_id"`
+	CreditPackageID         uuid.NullUUID  `json:"credit_package_id"`
+	SubsidyID               uuid.NullUUID  `json:"subsidy_id"`
+	DiscountCodeID          uuid.NullUUID  `json:"discount_code_id"`
+	StripeCustomerID        sql.NullString `json:"stripe_customer_id"`
+	StripeSubscriptionID    sql.NullString `json:"stripe_subscription_id"`
+	StripeInvoiceID         sql.NullString `json:"stripe_invoice_id"`
+	StripePaymentIntentID   sql.NullString `json:"stripe_payment_intent_id"`
+	StripeCheckoutSessionID sql.NullString `json:"stripe_checkout_session_id"`
+	PaymentStatus           string         `json:"payment_status"`
+	PaymentMethod           sql.NullString `json:"payment_method"`
+	Currency                sql.NullString `json:"currency"`
+	Description             sql.NullString `json:"description"`
+	// JSON field for storing additional flexible data like plan names, event details, etc.
+	Metadata       pqtype.NullRawMessage `json:"metadata"`
+	RefundedAmount string                `json:"refunded_amount"`
+	RefundReason   sql.NullString        `json:"refund_reason"`
+	RefundedAt     sql.NullTime          `json:"refunded_at"`
+	CreatedAt      time.Time             `json:"created_at"`
+	UpdatedAt      time.Time             `json:"updated_at"`
+}
+
 type PlaygroundSession struct {
 	ID         uuid.UUID `json:"id"`
 	SystemID   uuid.UUID `json:"system_id"`
@@ -727,6 +768,72 @@ type StaffStaffRole struct {
 	RoleName  string    `json:"role_name"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// Audit trail for compliance and reporting
+type SubsidiesAuditLog struct {
+	ID                uuid.UUID      `json:"id"`
+	CustomerSubsidyID uuid.NullUUID  `json:"customer_subsidy_id"`
+	Action            string         `json:"action"`
+	PerformedBy       uuid.NullUUID  `json:"performed_by"`
+	PreviousStatus    sql.NullString `json:"previous_status"`
+	NewStatus         sql.NullString `json:"new_status"`
+	AmountChanged     sql.NullString `json:"amount_changed"`
+	Notes             sql.NullString `json:"notes"`
+	IpAddress         sql.NullString `json:"ip_address"`
+	CreatedAt         sql.NullTime   `json:"created_at"`
+}
+
+// Customer subsidy balances - like gift cards
+type SubsidiesCustomerSubsidy struct {
+	ID              uuid.UUID     `json:"id"`
+	CustomerID      uuid.UUID     `json:"customer_id"`
+	ProviderID      uuid.NullUUID `json:"provider_id"`
+	ApprovedAmount  string        `json:"approved_amount"`
+	TotalAmountUsed string        `json:"total_amount_used"`
+	// Auto-calculated: approved_amount - total_amount_used
+	RemainingBalance sql.NullString `json:"remaining_balance"`
+	Status           string         `json:"status"`
+	ApprovedBy       uuid.NullUUID  `json:"approved_by"`
+	ApprovedAt       sql.NullTime   `json:"approved_at"`
+	RejectedBy       uuid.NullUUID  `json:"rejected_by"`
+	RejectedAt       sql.NullTime   `json:"rejected_at"`
+	RejectionReason  sql.NullString `json:"rejection_reason"`
+	ValidFrom        time.Time      `json:"valid_from"`
+	ValidUntil       sql.NullTime   `json:"valid_until"`
+	Reason           sql.NullString `json:"reason"`
+	ApplicationNotes sql.NullString `json:"application_notes"`
+	AdminNotes       sql.NullString `json:"admin_notes"`
+	CreatedAt        sql.NullTime   `json:"created_at"`
+	UpdatedAt        sql.NullTime   `json:"updated_at"`
+}
+
+// Organizations providing subsidies (Jumpstart, etc.)
+type SubsidiesProvider struct {
+	ID           uuid.UUID      `json:"id"`
+	Name         string         `json:"name"`
+	ContactEmail sql.NullString `json:"contact_email"`
+	ContactPhone sql.NullString `json:"contact_phone"`
+	IsActive     sql.NullBool   `json:"is_active"`
+	CreatedAt    sql.NullTime   `json:"created_at"`
+	UpdatedAt    sql.NullTime   `json:"updated_at"`
+}
+
+// Track each deduction from subsidy balance
+type SubsidiesUsageTransaction struct {
+	ID                    uuid.UUID      `json:"id"`
+	CustomerSubsidyID     uuid.UUID      `json:"customer_subsidy_id"`
+	CustomerID            uuid.UUID      `json:"customer_id"`
+	TransactionType       string         `json:"transaction_type"`
+	MembershipPlanID      uuid.NullUUID  `json:"membership_plan_id"`
+	OriginalAmount        string         `json:"original_amount"`
+	SubsidyApplied        string         `json:"subsidy_applied"`
+	CustomerPaid          string         `json:"customer_paid"`
+	StripeSubscriptionID  sql.NullString `json:"stripe_subscription_id"`
+	StripeInvoiceID       sql.NullString `json:"stripe_invoice_id"`
+	StripePaymentIntentID sql.NullString `json:"stripe_payment_intent_id"`
+	Description           sql.NullString `json:"description"`
+	AppliedAt             sql.NullTime   `json:"applied_at"`
 }
 
 // Available credit packages for one-time purchase

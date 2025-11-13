@@ -277,3 +277,9 @@ WHERE customer_id = sqlc.arg('user_id')
 SELECT suspended_at, suspension_reason, suspended_by, suspension_expires_at
 FROM users.users
 WHERE id = sqlc.arg('user_id');
+
+-- name: GetMembershipByStripeSubscriptionID :one
+SELECT *
+FROM users.customer_membership_plans
+WHERE square_subscription_id = sqlc.arg('subscription_id')
+LIMIT 1;

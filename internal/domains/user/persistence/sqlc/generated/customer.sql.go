@@ -591,6 +591,37 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]G
 	return items, nil
 }
 
+const getMembershipByStripeSubscriptionID = `-- name: GetMembershipByStripeSubscriptionID :one
+SELECT id, customer_id, membership_plan_id, start_date, renewal_date, status, created_at, updated_at, photo_url, square_subscription_id, subscription_status, next_billing_date, subscription_created_at, subscription_source, suspended_at, suspension_billing_paused
+FROM users.customer_membership_plans
+WHERE square_subscription_id = $1
+LIMIT 1
+`
+
+func (q *Queries) GetMembershipByStripeSubscriptionID(ctx context.Context, subscriptionID sql.NullString) (UsersCustomerMembershipPlan, error) {
+	row := q.db.QueryRowContext(ctx, getMembershipByStripeSubscriptionID, subscriptionID)
+	var i UsersCustomerMembershipPlan
+	err := row.Scan(
+		&i.ID,
+		&i.CustomerID,
+		&i.MembershipPlanID,
+		&i.StartDate,
+		&i.RenewalDate,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.PhotoUrl,
+		&i.SquareSubscriptionID,
+		&i.SubscriptionStatus,
+		&i.NextBillingDate,
+		&i.SubscriptionCreatedAt,
+		&i.SubscriptionSource,
+		&i.SuspendedAt,
+		&i.SuspensionBillingPaused,
+	)
+	return i, err
+}
+
 const getSuspensionInfo = `-- name: GetSuspensionInfo :one
 SELECT suspended_at, suspension_reason, suspended_by, suspension_expires_at
 FROM users.users

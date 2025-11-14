@@ -15,19 +15,26 @@ func SendContactRequest(req dto.ContactRequest) error {
 	smtpPort := os.Getenv("SMTP_PORT")
 	from := os.Getenv("SMTP_EMAIL")
 	password := os.Getenv("SMTP_PASSWORD")
-	to := os.Getenv("CONTACT_RECIPIENT_EMAIL")
+
+	// Send to both Rise email addresses
+	recipients := []string{
+		"info@risesportscomplex.com",
+		"riseballtech@gmail.com",
+	}
 
 	subject := "New Contact Request"
 	body := fmt.Sprintf("Name: %s\nEmail: %s\nPhone: %s\nMessage:\n%s", req.Name, req.Email, req.Phone, req.Message)
 
+	// Format recipients for email header
+	toHeader := "info@risesportscomplex.com, riseballtech@gmail.com"
 	msg := "From: " + from + "\n" +
-		"To: " + to + "\n" +
+		"To: " + toHeader + "\n" +
 		"Subject: " + subject + "\n\n" +
 		body
 
 	auth := smtp.PlainAuth("", from, password, smtpHost)
 
-	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, []string{to}, []byte(msg))
+	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, recipients, []byte(msg))
 	if err != nil {
 		fmt.Printf("❌ SMTP error: %v\n", err)
 		return fmt.Errorf("failed to send email: %w", err)

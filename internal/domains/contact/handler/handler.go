@@ -103,6 +103,13 @@ func (h *Handler) SendContactEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Send to HubSpot as a lead
+	hubspotSvc := hupspotService.GetHubSpotService(nil)
+	if _, err := hubspotSvc.CreateContactLead(req.Name, req.Email, req.Phone, req.Message); err != nil {
+		// Log the error but don't fail the request since email was sent successfully
+		log.Printf("Failed to create HubSpot lead: %v", err)
+	}
+
 	//Success response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

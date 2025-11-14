@@ -356,3 +356,64 @@ func (s *Service) SubscribeToNewsletter(email, tag string) (string, *errLib.Comm
 
 	return "Subscribed successfully!", nil
 }
+
+// CreateContactLead creates a new lead in HubSpot from a contact form submission
+func (s *Service) CreateContactLead(name, email, phone, message string) (string, *errLib.CommonError) {
+	if email == "" || !strings.Contains(email, "@") {
+		return "", errLib.New("Invalid email format", http.StatusBadRequest)
+	}
+
+	// Split name into first and last name (basic split on first space)
+	nameParts := strings.SplitN(strings.TrimSpace(name), " ", 2)
+	firstName := nameParts[0]
+	lastName := ""
+	if len(nameParts) > 1 {
+		lastName = nameParts[1]
+	}
+
+	props := map[string]interface{}{
+		"properties": map[string]string{
+			"email":      email,
+			"firstname":  firstName,
+			"lastname":   lastName,
+			"phone":      phone,
+			"message":    message,
+			"lifecyclestage": "lead", // Mark as lead
+		},
+	}
+
+	url := fmt.Sprintf("%scrm/v3/objects/contacts", s.BaseURL)
+
+	// Try to create the contact
+	response, err := executeHubSpotRequest[UserResponse](s, http.MethodPost, url, props)
+	if err != nil {
+		// If contact already exists, update it
+		if err.HTTPCode == http.StatusConflict {
+			existing, getErr := s.GetUserByEmail(email)
+			if getErr != nil || existing == nil {
+				return "", errLib.New("Failed to retrieve existing contact", http.StatusInternalServerError)
+			}
+
+			// Update existing contact with new message
+			updateProps := map[string]interface{}{
+				"properties": map[string]string{
+					"phone":   phone,
+					"message": message,
+					"lifecyclestage": "lead",
+				},
+			}
+
+			updateURL := fmt.Sprintf("%scrm/v3/objects/contacts/%s", s.BaseURL, existing.HubSpotId)
+			_, updateErr := executeHubSpotRequest[any](s, http.MethodPatch, updateURL, updateProps)
+			if updateErr != nil {
+				return "", errLib.New("Failed to update contact", updateErr.HTTPCode)
+			}
+
+			return "Contact updated as lead in HubSpot", nil
+		}
+
+		return "", err
+	}
+
+	return response.HubSpotId, nil
+}

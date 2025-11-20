@@ -22,6 +22,17 @@ func NewHandler(container *di.Container) *Handler {
 }
 
 // CreateDiscount creates a new discount
+// @Summary Create a new discount code
+// @Description Creates a new discount code with Stripe coupon integration. Supports percentage and fixed amount discounts for subscriptions, one-time payments, or both.
+// @Tags discounts
+// @Accept json
+// @Produce json
+// @Param request body dto.RequestDto true "Discount details"
+// @Success 201 {object} dto.ResponseDto "Discount created successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input or validation error"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error: Failed to create discount or Stripe coupon"
+// @Security Bearer
+// @Router /discounts [post]
 func (h *Handler) CreateDiscount(w http.ResponseWriter, r *http.Request) {
 	var req dto.RequestDto
 	if err := validators.ParseJSON(r.Body, &req); err != nil {
@@ -66,6 +77,17 @@ func (h *Handler) CreateDiscount(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetDiscount retrieves a discount by ID
+// @Summary Get discount by ID
+// @Description Retrieves detailed information about a specific discount code
+// @Tags discounts
+// @Accept json
+// @Produce json
+// @Param id path string true "Discount ID" format(uuid)
+// @Success 200 {object} dto.ResponseDto "Discount retrieved successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid discount ID format"
+// @Failure 404 {object} map[string]interface{} "Not Found: Discount not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /discounts/{id} [get]
 func (h *Handler) GetDiscount(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := validators.ParseUUID(idStr)
@@ -106,6 +128,14 @@ func (h *Handler) GetDiscount(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetDiscounts retrieves all discounts
+// @Summary List all discount codes
+// @Description Retrieves a list of all discount codes (both active and inactive)
+// @Tags discounts
+// @Accept json
+// @Produce json
+// @Success 200 {array} dto.ResponseDto "List of discounts retrieved successfully"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /discounts [get]
 func (h *Handler) GetDiscounts(w http.ResponseWriter, r *http.Request) {
 	discounts, err := h.Service.GetDiscounts(r.Context())
 	if err != nil {
@@ -142,6 +172,19 @@ func (h *Handler) GetDiscounts(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateDiscount updates a discount by ID
+// @Summary Update a discount code
+// @Description Updates an existing discount code. Note: Stripe coupon is not updated, only local database values.
+// @Tags discounts
+// @Accept json
+// @Produce json
+// @Param id path string true "Discount ID" format(uuid)
+// @Param request body dto.RequestDto true "Updated discount details"
+// @Success 200 {object} dto.ResponseDto "Discount updated successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input or validation error"
+// @Failure 404 {object} map[string]interface{} "Not Found: Discount not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Security Bearer
+// @Router /discounts/{id} [put]
 func (h *Handler) UpdateDiscount(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	var req dto.RequestDto
@@ -186,6 +229,18 @@ func (h *Handler) UpdateDiscount(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteDiscount deletes a discount by ID
+// @Summary Delete a discount code
+// @Description Deletes a discount code from the database. Note: Associated Stripe coupon is not deleted.
+// @Tags discounts
+// @Accept json
+// @Produce json
+// @Param id path string true "Discount ID" format(uuid)
+// @Success 204 "Discount deleted successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid discount ID format"
+// @Failure 404 {object} map[string]interface{} "Not Found: Discount not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Security Bearer
+// @Router /discounts/{id} [delete]
 func (h *Handler) DeleteDiscount(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := validators.ParseUUID(idStr)
@@ -201,6 +256,19 @@ func (h *Handler) DeleteDiscount(w http.ResponseWriter, r *http.Request) {
 }
 
 // ApplyDiscount allows a logged in customer to apply a discount code by name
+// @Summary Validate and apply a discount code
+// @Description Validates a discount code for the current customer and records usage. Checks usage limits, membership plan restrictions, and validity dates.
+// @Tags discounts
+// @Accept json
+// @Produce json
+// @Param request body dto.ApplyRequestDto true "Discount code to apply"
+// @Success 200 {object} dto.ResponseDto "Discount applied successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 403 {object} map[string]interface{} "Forbidden: Usage limit reached or not valid for membership plan"
+// @Failure 404 {object} map[string]interface{} "Not Found: Discount code not found or inactive"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Security Bearer
+// @Router /discounts/apply [post]
 func (h *Handler) ApplyDiscount(w http.ResponseWriter, r *http.Request) {
 	var req dto.ApplyRequestDto
 	if err := validators.ParseJSON(r.Body, &req); err != nil {

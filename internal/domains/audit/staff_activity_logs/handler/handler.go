@@ -15,7 +15,7 @@ import (
 type Handler struct {
 	EventsService *service.Service
 }
-
+//func
 func NewHandler(container *di.Container) *Handler {
 	return &Handler{EventsService: service.NewService(container)}
 }

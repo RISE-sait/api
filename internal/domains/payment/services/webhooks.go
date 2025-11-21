@@ -344,7 +344,7 @@ func (s *WebhookService) handleSubscriptionCheckoutComplete(checkoutSession stri
 			log.Printf(" SKIPPING ENROLLMENT - Customer %s is already enrolled in plan %s", userID, planID)
 		} else {
 			log.Printf(" STARTING ENROLLMENT - Customer %s in membership plan %s with start time %s (one-time payment, no next billing date)", userID, planID, eventCreatedAt.Format(time.RFC3339))
-			if err := s.EnrollmentService.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, time.Time{}, time.Time{}, eventCreatedAt); err != nil {
+			if err := s.EnrollmentService.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, time.Time{}, time.Time{}, eventCreatedAt, ""); err != nil {
 				log.Printf(" ERROR: EnrollCustomerInMembershipPlan failed: %v", err)
 				return err
 			}
@@ -535,9 +535,9 @@ func (s *WebhookService) processSubscriptionWithEndDate(subscriptionID string, t
 	} else if isAlreadyEnrolled {
 		log.Printf("🚫 SKIPPING ENROLLMENT - Customer %s is already enrolled in plan %s", userID, planID)
 	} else {
-		log.Printf("🚀 STARTING ENROLLMENT - Customer %s in plan %s with end date: %s, next billing: %s, start time: %s",
-			userID, planID, cancelAtDateTime.Format(time.RFC3339), nextBillingDate.Format(time.RFC3339), eventCreatedAt.Format(time.RFC3339))
-		if err = s.EnrollmentService.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, cancelAtDateTime, nextBillingDate, eventCreatedAt); err != nil {
+		log.Printf("🚀 STARTING ENROLLMENT - Customer %s in plan %s with end date: %s, next billing: %s, start time: %s, subscription: %s",
+			userID, planID, cancelAtDateTime.Format(time.RFC3339), nextBillingDate.Format(time.RFC3339), eventCreatedAt.Format(time.RFC3339), subscriptionID)
+		if err = s.EnrollmentService.EnrollCustomerInMembershipPlan(context.Background(), userID, planID, cancelAtDateTime, nextBillingDate, eventCreatedAt, subscriptionID); err != nil {
 			log.Printf("❌ ERROR: EnrollCustomerInMembershipPlan failed in processSubscriptionWithEndDate: %v", err)
 			return err
 		}
@@ -835,10 +835,10 @@ func (s *WebhookService) HandleSubscriptionDeleted(event stripe.Event) *errLib.C
 		return nil // Don't fail webhook if user not found - subscription may have been deleted already
 	}
 
-	log.Printf("[WEBHOOK] Found user %s for Stripe customer %s, marking membership as expired", userID, stripeCustomerID)
+	log.Printf("[WEBHOOK] Found user %s for Stripe customer %s, marking subscription %s as expired", userID, stripeCustomerID, sub.ID)
 
-	// Update membership status to expired in database
-	if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatus(context.Background(), userID, "expired"); updateErr != nil {
+	// Update membership status to expired in database - ONLY for this specific subscription
+	if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByID(context.Background(), userID, sub.ID, "expired"); updateErr != nil {
 		log.Printf("[WEBHOOK] Failed to mark membership as expired: %v", updateErr)
 		return updateErr
 	}
@@ -864,39 +864,73 @@ func (s *WebhookService) HandleInvoicePaymentSucceeded(event stripe.Event) *errL
 		return errLib.New("Failed to parse invoice", http.StatusBadRequest)
 	}
 
-	subscriptionID := "none"
-	if invoice.Subscription != nil {
+	// Get subscription ID from the invoice
+	// Note: invoice.Subscription might be nil (not expanded), so we check the ID field directly
+	var subscriptionID string
+	if invoice.Subscription != nil && invoice.Subscription.ID != "" {
 		subscriptionID = invoice.Subscription.ID
 	}
+
 	log.Printf("[WEBHOOK] Invoice payment succeeded: %s for subscription: %s", invoice.ID, subscriptionID)
 
-	// Update payment history and ensure subscription is active
-	if invoice.Customer != nil && invoice.Customer.Metadata != nil {
-		if userIDStr, exists := invoice.Customer.Metadata["userID"]; exists {
-			userID, err := uuid.Parse(userIDStr)
-			if err == nil {
-				log.Printf("[WEBHOOK] Payment successful for user %s, ensuring membership is active", userID)
-				
-				// Ensure membership is active after successful payment
-				if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatus(context.Background(), userID, "active"); updateErr != nil {
-					log.Printf("[WEBHOOK] Failed to activate membership after successful payment: %v", updateErr)
-					return updateErr
-				}
+	// Look up user by Stripe customer ID (more reliable than metadata)
+	var userID uuid.UUID
 
-				log.Printf("[WEBHOOK] Successfully activated membership for user %s after invoice payment %s", userID, invoice.ID)
+	// Try to get customer ID from invoice
+	customerID := ""
+	if invoice.Customer != nil {
+		customerID = invoice.Customer.ID
+	}
 
-				// Track payment in centralized system
-				go s.trackMembershipRenewal(&invoice, userID, time.Unix(event.Created, 0))
-			} else {
-				log.Printf("[WEBHOOK] Invalid userID format for invoice %s: %v", invoice.ID, err)
-				return errLib.New("Invalid user ID format", http.StatusBadRequest)
+	if customerID == "" {
+		log.Printf("[WEBHOOK] No customer ID found for invoice %s", invoice.ID)
+		return nil
+	}
+
+	// Look up user by Stripe customer ID in database
+	query := "SELECT id FROM users.users WHERE stripe_customer_id = $1"
+	if dbErr := s.db.QueryRowContext(context.Background(), query, customerID).Scan(&userID); dbErr != nil {
+		log.Printf("[WEBHOOK] Failed to find user with Stripe customer ID %s for invoice %s: %v", customerID, invoice.ID, dbErr)
+		// Don't fail the webhook - the user might not exist yet
+		return nil
+	}
+
+	log.Printf("[WEBHOOK] Found user %s for Stripe customer %s, processing payment", userID, customerID)
+
+	// If this is a subscription invoice, get the next billing date from Stripe
+	if subscriptionID != "" {
+		// Get subscription details to find the next billing date
+		sub, subErr := subscription.Get(subscriptionID, nil)
+		if subErr != nil {
+			log.Printf("[WEBHOOK] Failed to get subscription details for %s: %v", subscriptionID, subErr)
+			// Fall back to just updating status
+			if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatus(context.Background(), userID, "active"); updateErr != nil {
+				log.Printf("[WEBHOOK] Failed to activate membership after successful payment: %v", updateErr)
+				return updateErr
 			}
 		} else {
-			log.Printf("[WEBHOOK] No userID in customer metadata for invoice %s", invoice.ID)
+			// Update both status and next billing date
+			nextBillingDate := time.Unix(sub.CurrentPeriodEnd, 0)
+			log.Printf("[WEBHOOK] Updating membership: status=active, next_billing=%s for subscription %s", nextBillingDate.Format(time.RFC3339), subscriptionID)
+			if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusAndNextBilling(context.Background(), userID, "active", nextBillingDate); updateErr != nil {
+				log.Printf("[WEBHOOK] Failed to update membership after successful payment: %v", updateErr)
+				return updateErr
+			}
+			log.Printf("[WEBHOOK] Successfully updated next_billing_date to %s", nextBillingDate.Format(time.RFC3339))
 		}
 	} else {
-		log.Printf("[WEBHOOK] No customer metadata found for invoice %s", invoice.ID)
+		// Non-subscription invoice, just update status
+		log.Printf("[WEBHOOK] No subscription ID for invoice %s, just updating status", invoice.ID)
+		if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatus(context.Background(), userID, "active"); updateErr != nil {
+			log.Printf("[WEBHOOK] Failed to activate membership after successful payment: %v", updateErr)
+			return updateErr
+		}
 	}
+
+	log.Printf("[WEBHOOK] Successfully activated membership for user %s after invoice payment %s", userID, invoice.ID)
+
+	// Track payment in centralized system
+	go s.trackMembershipRenewal(&invoice, userID, time.Unix(event.Created, 0))
 
 	// Mark as processed
 	s.Idempotency.MarkAsProcessed(event.ID)

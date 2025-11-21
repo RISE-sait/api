@@ -10,3 +10,11 @@ sql:
         emit_json_tags: true
         emit_enum_valid_method: true
         emit_all_enum_values: true
+        emit_pointers_for_null_types: false
+        overrides:
+          - db_type: "discount_type"
+            go_type: "string"
+          - db_type: "discount_duration_type"
+            go_type: "string"
+          - db_type: "discount_applies_to"
+            go_type: "string"

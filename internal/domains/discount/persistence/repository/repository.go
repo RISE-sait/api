@@ -59,24 +59,30 @@ func mapDbDiscount(d db.Discount) values.ReadValues {
 		stripeCouponID = &d.StripeCouponID.String
 	}
 
+	var stripePromotionCodeID *string
+	if d.StripePromotionCodeID.Valid {
+		stripePromotionCodeID = &d.StripePromotionCodeID.String
+	}
+
 	val := values.ReadValues{
 		ID: d.ID,
 		CreateValues: values.CreateValues{
-			Name:            d.Name,
-			Description:     d.Description.String,
-			DiscountPercent: int(d.DiscountPercent),
-			DiscountAmount:  discountAmount,
-			DiscountType:    values.DiscountType(d.DiscountType),
-			IsUseUnlimited:  d.IsUseUnlimited,
-			UsePerClient:    int(d.UsePerClient.Int32),
-			IsActive:        d.IsActive,
-			ValidFrom:       d.ValidFrom,
-			ValidTo:         d.ValidTo.Time,
-			DurationType:    values.DurationType(d.DurationType),
-			DurationMonths:  durationMonths,
-			AppliesTo:       values.AppliesTo(d.AppliesTo),
-			MaxRedemptions:  maxRedemptions,
-			StripeCouponID:  stripeCouponID,
+			Name:                  d.Name,
+			Description:           d.Description.String,
+			DiscountPercent:       int(d.DiscountPercent),
+			DiscountAmount:        discountAmount,
+			DiscountType:          values.DiscountType(d.DiscountType),
+			IsUseUnlimited:        d.IsUseUnlimited,
+			UsePerClient:          int(d.UsePerClient.Int32),
+			IsActive:              d.IsActive,
+			ValidFrom:             d.ValidFrom,
+			ValidTo:               d.ValidTo.Time,
+			DurationType:          values.DurationType(d.DurationType),
+			DurationMonths:        durationMonths,
+			AppliesTo:             values.AppliesTo(d.AppliesTo),
+			MaxRedemptions:        maxRedemptions,
+			StripeCouponID:        stripeCouponID,
+			StripePromotionCodeID: stripePromotionCodeID,
 		},
 		TimesRedeemed: int(d.TimesRedeemed),
 		CreatedAt:     d.CreatedAt,
@@ -107,22 +113,28 @@ func (r *Repository) Create(ctx context.Context, details values.CreateValues) (v
 		stripeCouponID = sql.NullString{String: *details.StripeCouponID, Valid: true}
 	}
 
+	var stripePromotionCodeID sql.NullString
+	if details.StripePromotionCodeID != nil {
+		stripePromotionCodeID = sql.NullString{String: *details.StripePromotionCodeID, Valid: true}
+	}
+
 	params := db.CreateDiscountParams{
-		Name:            details.Name,
-		Description:     sql.NullString{String: details.Description, Valid: details.Description != ""},
-		DiscountPercent: int32(details.DiscountPercent),
-		DiscountAmount:  discountAmount,
-		DiscountType:    db.DiscountType(details.DiscountType),
-		IsUseUnlimited:  details.IsUseUnlimited,
-		UsePerClient:    sql.NullInt32{Int32: int32(details.UsePerClient), Valid: details.UsePerClient > 0},
-		IsActive:        details.IsActive,
-		ValidFrom:       details.ValidFrom,
-		ValidTo:         sql.NullTime{Time: details.ValidTo, Valid: !details.ValidTo.IsZero()},
-		DurationType:    db.DiscountDurationType(details.DurationType),
-		DurationMonths:  durationMonths,
-		AppliesTo:       db.DiscountAppliesTo(details.AppliesTo),
-		MaxRedemptions:  maxRedemptions,
-		StripeCouponID:  stripeCouponID,
+		Name:                  details.Name,
+		Description:           sql.NullString{String: details.Description, Valid: details.Description != ""},
+		DiscountPercent:       int32(details.DiscountPercent),
+		DiscountAmount:        discountAmount,
+		DiscountType:          string(details.DiscountType),
+		IsUseUnlimited:        details.IsUseUnlimited,
+		UsePerClient:          sql.NullInt32{Int32: int32(details.UsePerClient), Valid: details.UsePerClient > 0},
+		IsActive:              details.IsActive,
+		ValidFrom:             details.ValidFrom,
+		ValidTo:               sql.NullTime{Time: details.ValidTo, Valid: !details.ValidTo.IsZero()},
+		DurationType:          string(details.DurationType),
+		DurationMonths:        durationMonths,
+		AppliesTo:             string(details.AppliesTo),
+		MaxRedemptions:        maxRedemptions,
+		StripeCouponID:        stripeCouponID,
+		StripePromotionCodeID: stripePromotionCodeID,
 	}
 	d, err := r.Queries.CreateDiscount(ctx, params)
 	if err != nil {
@@ -183,23 +195,29 @@ func (r *Repository) Update(ctx context.Context, details values.UpdateValues) (v
 		stripeCouponID = sql.NullString{String: *details.StripeCouponID, Valid: true}
 	}
 
+	var stripePromotionCodeID sql.NullString
+	if details.StripePromotionCodeID != nil {
+		stripePromotionCodeID = sql.NullString{String: *details.StripePromotionCodeID, Valid: true}
+	}
+
 	params := db.UpdateDiscountParams{
-		ID:              details.ID,
-		Name:            details.Name,
-		Description:     sql.NullString{String: details.Description, Valid: details.Description != ""},
-		DiscountPercent: int32(details.DiscountPercent),
-		DiscountAmount:  discountAmount,
-		DiscountType:    db.DiscountType(details.DiscountType),
-		IsUseUnlimited:  details.IsUseUnlimited,
-		UsePerClient:    sql.NullInt32{Int32: int32(details.UsePerClient), Valid: details.UsePerClient > 0},
-		IsActive:        details.IsActive,
-		ValidFrom:       details.ValidFrom,
-		ValidTo:         sql.NullTime{Time: details.ValidTo, Valid: !details.ValidTo.IsZero()},
-		DurationType:    db.DiscountDurationType(details.DurationType),
-		DurationMonths:  durationMonths,
-		AppliesTo:       db.DiscountAppliesTo(details.AppliesTo),
-		MaxRedemptions:  maxRedemptions,
-		StripeCouponID:  stripeCouponID,
+		Name:                  details.Name,
+		Description:           sql.NullString{String: details.Description, Valid: details.Description != ""},
+		DiscountPercent:       int32(details.DiscountPercent),
+		DiscountAmount:        discountAmount,
+		DiscountType:          string(details.DiscountType),
+		IsUseUnlimited:        details.IsUseUnlimited,
+		UsePerClient:          sql.NullInt32{Int32: int32(details.UsePerClient), Valid: details.UsePerClient > 0},
+		IsActive:              details.IsActive,
+		ValidFrom:             details.ValidFrom,
+		ValidTo:               sql.NullTime{Time: details.ValidTo, Valid: !details.ValidTo.IsZero()},
+		DurationType:          string(details.DurationType),
+		DurationMonths:        durationMonths,
+		AppliesTo:             string(details.AppliesTo),
+		MaxRedemptions:        maxRedemptions,
+		StripeCouponID:        stripeCouponID,
+		StripePromotionCodeID: stripePromotionCodeID,
+		ID:                    details.ID,
 	}
 	d, err := r.Queries.UpdateDiscount(ctx, params)
 	if err != nil {

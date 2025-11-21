@@ -119,8 +119,9 @@ func CreateOneTimePayment(
 				Quantity: stripe.Int64(int64(quantity)),    // Number of items
 			},
 		},
-		Mode:       stripe.String("payment"),                     // One-time payment mode
-		SuccessURL: stripe.String(successURL), // Redirect URL after success
+		Mode:                stripe.String("payment"), // One-time payment mode
+		SuccessURL:          stripe.String(successURL), // Redirect URL after success
+		AllowPromotionCodes: stripe.Bool(true),        // Allow customers to enter promo codes
 		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
 			Enabled: stripe.Bool(true),
 		},
@@ -234,8 +235,9 @@ func CreateSubscriptionWithSetupFeeAndMetadata(
 				Quantity: stripe.Int64(1),
 			},
 		},
-		Mode:       stripe.String("subscription"), // Subscription mode
-		SuccessURL: stripe.String(successURL),
+		Mode:                stripe.String("subscription"), // Subscription mode
+		SuccessURL:          stripe.String(successURL),
+		AllowPromotionCodes: stripe.Bool(true), // Allow customers to enter promo codes
 		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
 			Enabled: stripe.Bool(true),
 		},
@@ -352,8 +354,9 @@ func CreateSubscriptionWithSetupFee(
 				Quantity: stripe.Int64(1),
 			},
 		},
-		Mode:       stripe.String("subscription"), // Subscription mode
-		SuccessURL: stripe.String(successURL),
+		Mode:                stripe.String("subscription"), // Subscription mode
+		SuccessURL:          stripe.String(successURL),
+		AllowPromotionCodes: stripe.Bool(true), // Allow customers to enter promo codes
 		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
 			Enabled: stripe.Bool(true),
 		},
@@ -464,8 +467,9 @@ func CreateSubscription(
 				Quantity: stripe.Int64(1),
 			},
 		},
-		Mode:       stripe.String("subscription"), // Subscription mode
-		SuccessURL: stripe.String(successURL),
+		Mode:                stripe.String("subscription"), // Subscription mode
+		SuccessURL:          stripe.String(successURL),
+		AllowPromotionCodes: stripe.Bool(true), // Allow customers to enter promo codes
 		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
 			Enabled: stripe.Bool(true),
 		},
@@ -591,8 +595,9 @@ func CreateSubscriptionWithMetadata(
 				Quantity: stripe.Int64(1),
 			},
 		},
-		Mode:       stripe.String("subscription"), // Subscription mode
-		SuccessURL: stripe.String(successURL),
+		Mode:                stripe.String("subscription"), // Subscription mode
+		SuccessURL:          stripe.String(successURL),
+		AllowPromotionCodes: stripe.Bool(true), // Allow customers to enter promo codes
 		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
 			Enabled: stripe.Bool(true),
 		},

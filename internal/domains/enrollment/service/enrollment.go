@@ -92,8 +92,8 @@ func (s *CustomerEnrollmentService) executeInTx(ctx context.Context, fn func(rep
 //	return s.repo.EnrollCustomerInEvent(ctx, customerID, eventID)
 //}
 
-func (s *CustomerEnrollmentService) EnrollCustomerInMembershipPlan(ctx context.Context, customerID, planID uuid.UUID, cancelAtDateTime time.Time, nextBillingDate time.Time, startTime time.Time) *errLib.CommonError {
-	return s.repo.EnrollCustomerInMembershipPlan(ctx, customerID, planID, cancelAtDateTime, nextBillingDate, startTime)
+func (s *CustomerEnrollmentService) EnrollCustomerInMembershipPlan(ctx context.Context, customerID, planID uuid.UUID, cancelAtDateTime time.Time, nextBillingDate time.Time, startTime time.Time, stripeSubscriptionID string) *errLib.CommonError {
+	return s.repo.EnrollCustomerInMembershipPlan(ctx, customerID, planID, cancelAtDateTime, nextBillingDate, startTime, stripeSubscriptionID)
 }
 
 func (s *CustomerEnrollmentService) UnEnrollCustomerFromEvent(ctx context.Context, eventID, customerID uuid.UUID) *errLib.CommonError {

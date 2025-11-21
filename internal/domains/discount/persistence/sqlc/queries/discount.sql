@@ -2,9 +2,9 @@
 INSERT INTO discounts (
     name, description, discount_percent, discount_amount, discount_type,
     is_use_unlimited, use_per_client, is_active, valid_from, valid_to,
-    duration_type, duration_months, applies_to, max_redemptions, stripe_coupon_id
+    duration_type, duration_months, applies_to, max_redemptions, stripe_coupon_id, stripe_promotion_code_id
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
 ) RETURNING *;
 
 -- name: GetDiscountById :one
@@ -40,8 +40,9 @@ SET name = $1,
     applies_to = $13,
     max_redemptions = $14,
     stripe_coupon_id = $15,
+    stripe_promotion_code_id = $16,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $16
+WHERE id = $17
 RETURNING *;
 
 -- name: DeleteDiscount :execrows

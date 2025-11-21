@@ -80,7 +80,7 @@ func (r *CustomerEnrollmentRepository) RemoveCustomerFromEvent(c context.Context
 	return nil
 }
 
-func (r *CustomerEnrollmentRepository) EnrollCustomerInMembershipPlan(ctx context.Context, customerID, planID uuid.UUID, cancelAtDateTime time.Time, nextBillingDate time.Time, startTime time.Time) *errLib.CommonError {
+func (r *CustomerEnrollmentRepository) EnrollCustomerInMembershipPlan(ctx context.Context, customerID, planID uuid.UUID, cancelAtDateTime time.Time, nextBillingDate time.Time, startTime time.Time, stripeSubscriptionID string) *errLib.CommonError {
 
 	if err := r.Queries.EnrollCustomerInMembershipPlan(ctx, dbEnrollment.EnrollCustomerInMembershipPlanParams{
 		CustomerID:       customerID,
@@ -98,6 +98,10 @@ func (r *CustomerEnrollmentRepository) EnrollCustomerInMembershipPlan(ctx contex
 		SubscriptionSource: sql.NullString{
 			String: "stripe", // Match what SQL queries expect
 			Valid:  true,
+		},
+		StripeSubscriptionID: sql.NullString{
+			String: stripeSubscriptionID,
+			Valid:  stripeSubscriptionID != "",
 		},
 	}); err != nil {
 		// Handle PostgreSQL constraint violations

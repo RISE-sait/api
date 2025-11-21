@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"api/internal/di"
 	staffActivityLogs "api/internal/domains/audit/staff_activity_logs/service"
@@ -19,6 +20,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v81"
 	"github.com/stripe/stripe-go/v81/coupon"
+	"github.com/stripe/stripe-go/v81/promotioncode"
 )
 
 type Service struct {
@@ -95,6 +97,35 @@ func (s *Service) createStripeCoupon(details values.CreateValues) (*string, *err
 	return &c.ID, nil
 }
 
+// createStripePromotionCode creates a customer-facing promotion code linked to a coupon
+func (s *Service) createStripePromotionCode(couponID, code string, maxRedemptions *int, expiresAt *time.Time) (*string, *errLib.CommonError) {
+	params := &stripe.PromotionCodeParams{
+		Coupon: stripe.String(couponID),
+		Code:   stripe.String(code),
+		Active: stripe.Bool(true),
+	}
+
+	// Set max redemptions if specified
+	if maxRedemptions != nil && *maxRedemptions > 0 {
+		params.MaxRedemptions = stripe.Int64(int64(*maxRedemptions))
+	}
+
+	// Set expiration date if specified
+	if expiresAt != nil && !expiresAt.IsZero() {
+		params.ExpiresAt = stripe.Int64(expiresAt.Unix())
+	}
+
+	// Create the promotion code in Stripe
+	promoCode, err := promotioncode.New(params)
+	if err != nil {
+		log.Printf("Failed to create Stripe promotion code '%s': %v", code, err)
+		return nil, errLib.New("Failed to create promotion code in Stripe: "+err.Error(), http.StatusInternalServerError)
+	}
+
+	log.Printf("Successfully created Stripe promotion code %s (%s) for coupon %s", promoCode.ID, code, couponID)
+	return &promoCode.ID, nil
+}
+
 func (s *Service) GetDiscount(ctx context.Context, id uuid.UUID) (values.ReadValues, *errLib.CommonError) {
 	return s.repo.GetByID(ctx, id)
 }
@@ -121,6 +152,24 @@ func (s *Service) CreateDiscount(ctx context.Context, details values.CreateValue
 	// Store the Stripe coupon ID in the discount details
 	details.StripeCouponID = stripeCouponID
 
+	// Create Stripe promotion code (customer-facing code)
+	var expiresAt *time.Time
+	if !details.ValidTo.IsZero() {
+		expiresAt = &details.ValidTo
+	}
+
+	stripePromotionCodeID, err := s.createStripePromotionCode(*stripeCouponID, details.Name, details.MaxRedemptions, expiresAt)
+	if err != nil {
+		// If promotion code creation fails, clean up the coupon
+		if _, delErr := coupon.Del(*stripeCouponID, nil); delErr != nil {
+			log.Printf("WARNING: Failed to cleanup Stripe coupon %s after promotion code error: %v", *stripeCouponID, delErr)
+		}
+		return values.ReadValues{}, err
+	}
+
+	// Store the Stripe promotion code ID
+	details.StripePromotionCodeID = stripePromotionCodeID
+
 	var created values.ReadValues
 	txErr := s.executeInTx(ctx, func(txRepo *repo.Repository) *errLib.CommonError {
 		var err2 *errLib.CommonError
@@ -140,8 +189,16 @@ func (s *Service) CreateDiscount(ctx context.Context, details values.CreateValue
 		)
 	})
 	if txErr != nil {
-		// If database transaction fails, we should delete the Stripe coupon
-		// to avoid orphaned coupons
+		// If database transaction fails, clean up both the promotion code and coupon
+		if stripePromotionCodeID != nil {
+			if _, delErr := promotioncode.Update(*stripePromotionCodeID, &stripe.PromotionCodeParams{
+				Active: stripe.Bool(false),
+			}); delErr != nil {
+				log.Printf("WARNING: Failed to deactivate Stripe promotion code %s after database error: %v", *stripePromotionCodeID, delErr)
+			} else {
+				log.Printf("Deactivated Stripe promotion code %s after database transaction failure", *stripePromotionCodeID)
+			}
+		}
 		if stripeCouponID != nil {
 			if _, delErr := coupon.Del(*stripeCouponID, nil); delErr != nil {
 				log.Printf("WARNING: Failed to cleanup Stripe coupon %s after database error: %v", *stripeCouponID, delErr)

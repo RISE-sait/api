@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v81"
 	"github.com/stripe/stripe-go/v81/customer"
+	"github.com/stripe/stripe-go/v81/subscription"
 )
 
 // MembershipReconciliationJob syncs membership status with Stripe
@@ -46,7 +47,8 @@ func (j *MembershipReconciliationJob) Run(ctx context.Context) error {
 			u.stripe_customer_id,
 			cmp.status as db_status,
 			cmp.renewal_date,
-			cmp.id as membership_id
+			cmp.id as membership_id,
+			cmp.stripe_subscription_id
 		FROM users.users u
 		INNER JOIN users.customer_membership_plans cmp ON u.id = cmp.customer_id
 		WHERE u.stripe_customer_id IS NOT NULL
@@ -70,14 +72,15 @@ func (j *MembershipReconciliationJob) Run(ctx context.Context) error {
 
 	for rows.Next() {
 		var (
-			customerID       uuid.UUID
-			stripeCustomerID string
-			dbStatus         string
-			renewalDate      sql.NullTime
-			membershipID     uuid.UUID
+			customerID           uuid.UUID
+			stripeCustomerID     string
+			dbStatus             string
+			renewalDate          sql.NullTime
+			membershipID         uuid.UUID
+			stripeSubscriptionID sql.NullString
 		)
 
-		if err := rows.Scan(&customerID, &stripeCustomerID, &dbStatus, &renewalDate, &membershipID); err != nil {
+		if err := rows.Scan(&customerID, &stripeCustomerID, &dbStatus, &renewalDate, &membershipID, &stripeSubscriptionID); err != nil {
 			log.Printf("[RECONCILIATION] Failed to scan row: %v", err)
 			errors++
 			continue
@@ -86,7 +89,7 @@ func (j *MembershipReconciliationJob) Run(ctx context.Context) error {
 		checked++
 
 		// Check Stripe subscription status
-		stripeStatus, err := j.getStripeSubscriptionStatus(stripeCustomerID)
+		stripeStatus, err := j.getStripeSubscriptionStatus(stripeCustomerID, stripeSubscriptionID)
 		if err != nil {
 			log.Printf("[RECONCILIATION] Failed to get Stripe status for customer %s: %v", customerID, err)
 			errors++
@@ -136,8 +139,19 @@ func (j *MembershipReconciliationJob) Run(ctx context.Context) error {
 }
 
 // getStripeSubscriptionStatus fetches the subscription status from Stripe
-func (j *MembershipReconciliationJob) getStripeSubscriptionStatus(stripeCustomerID string) (string, error) {
-	// Get customer's subscriptions from Stripe
+func (j *MembershipReconciliationJob) getStripeSubscriptionStatus(stripeCustomerID string, stripeSubscriptionID sql.NullString) (string, error) {
+	// If we have a specific subscription ID, check that subscription directly
+	if stripeSubscriptionID.Valid && stripeSubscriptionID.String != "" {
+		sub, err := subscription.Get(stripeSubscriptionID.String, nil)
+		if err != nil {
+			// If subscription not found, it's been deleted/canceled
+			log.Printf("[RECONCILIATION] Subscription %s not found: %v", stripeSubscriptionID.String, err)
+			return "canceled", nil
+		}
+		return string(sub.Status), nil
+	}
+
+	// Fallback: Get customer's subscriptions from Stripe (for legacy records without subscription_id)
 	params := &stripe.CustomerParams{}
 	params.AddExpand("subscriptions")
 

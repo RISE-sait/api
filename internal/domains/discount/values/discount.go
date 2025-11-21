@@ -30,21 +30,22 @@ const (
 )
 
 type CreateValues struct {
-	Name             string
-	Description      string
-	DiscountPercent  int
-	DiscountAmount   *float64 // For fixed amount discounts
-	DiscountType     DiscountType
-	IsUseUnlimited   bool
-	UsePerClient     int
-	IsActive         bool
-	ValidFrom        time.Time
-	ValidTo          time.Time
-	DurationType     DurationType
-	DurationMonths   *int // Required when DurationType is "repeating"
-	AppliesTo        AppliesTo
-	MaxRedemptions   *int // Global max redemptions
-	StripeCouponID   *string
+	Name                   string
+	Description            string
+	DiscountPercent        int
+	DiscountAmount         *float64 // For fixed amount discounts
+	DiscountType           DiscountType
+	IsUseUnlimited         bool
+	UsePerClient           int
+	IsActive               bool
+	ValidFrom              time.Time
+	ValidTo                time.Time
+	DurationType           DurationType
+	DurationMonths         *int // Required when DurationType is "repeating"
+	AppliesTo              AppliesTo
+	MaxRedemptions         *int    // Global max redemptions
+	StripeCouponID         *string
+	StripePromotionCodeID  *string // Customer-facing promotion code in Stripe
 }
 
 type UpdateValues struct {
@@ -53,9 +54,9 @@ type UpdateValues struct {
 }
 
 type ReadValues struct {
-	ID             uuid.UUID
+	ID                    uuid.UUID
 	CreateValues
-	TimesRedeemed  int
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	TimesRedeemed         int
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
 }

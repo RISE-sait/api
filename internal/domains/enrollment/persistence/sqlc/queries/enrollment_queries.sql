@@ -15,8 +15,8 @@ INTO program.customer_enrollment(customer_id, program_id, is_cancelled)
 VALUES ($2, $1, false);
 
 -- name: EnrollCustomerInMembershipPlan :exec
-INSERT INTO users.customer_membership_plans (customer_id, membership_plan_id, status, start_date, renewal_date, next_billing_date, subscription_source)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO users.customer_membership_plans (customer_id, membership_plan_id, status, start_date, renewal_date, next_billing_date, subscription_source, stripe_subscription_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 ON CONFLICT (customer_id, membership_plan_id)
 DO UPDATE SET
     status = EXCLUDED.status,
@@ -24,6 +24,7 @@ DO UPDATE SET
     renewal_date = EXCLUDED.renewal_date,
     next_billing_date = EXCLUDED.next_billing_date,
     subscription_source = EXCLUDED.subscription_source,
+    stripe_subscription_id = EXCLUDED.stripe_subscription_id,
     updated_at = CURRENT_TIMESTAMP;
 
 -- name: UnEnrollCustomerFromEvent :execrows
@@ -132,6 +133,11 @@ ORDER BY created_at DESC
 LIMIT 1;
 
 -- name: UpdateMembershipPlanByCustomerId :execrows
-UPDATE users.customer_membership_plans 
+UPDATE users.customer_membership_plans
 SET status = $1, updated_at = CURRENT_TIMESTAMP
 WHERE customer_id = $2 AND subscription_source = 'stripe';
+
+-- name: UpdateMembershipStatusAndNextBilling :execrows
+UPDATE users.customer_membership_plans
+SET status = $1, next_billing_date = $2, updated_at = CURRENT_TIMESTAMP
+WHERE customer_id = $3 AND subscription_source = 'stripe';

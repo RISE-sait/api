@@ -268,22 +268,9 @@ func (s *WebhookService) handleSubscriptionCheckoutComplete(checkoutSession stri
 		return err
 	}
 
-	// 2. Validate line items and get price ID
-	priceIDs, err := s.validateLineItems(fullSession.LineItems)
-	if err != nil {
-		webhookLogger.Error("Failed to validate line items", err)
-		return err
-	}
-
-	priceID := priceIDs[0]
-	webhookLogger = webhookLogger.WithFields(map[string]interface{}{
-		"stripe_price_id": priceID,
-	})
-	
-	webhookLogger.Info("Processing subscription for price ID")
-
-	// 3. Parse metadata
+	// 2. Parse metadata for user and plan IDs
 	userIdStr := fullSession.Metadata["userID"]
+	planIdStr := fullSession.Metadata["membershipPlanID"]
 
 	if userIdStr == "" {
 		webhookLogger.Error("userID not found in metadata", nil)
@@ -295,22 +282,68 @@ func (s *WebhookService) handleSubscriptionCheckoutComplete(checkoutSession stri
 		webhookLogger.Error("Invalid user ID format", uuidErr)
 		return errLib.New("Invalid user ID format", http.StatusBadRequest)
 	}
-	
+
 	webhookLogger = webhookLogger.WithFields(map[string]interface{}{
 		"customer_id": userID,
 	})
 
-	planID, amtPeriods, err := s.PostCheckoutRepository.GetMembershipPlanByStripePriceID(context.Background(), priceID)
-	if err != nil {
-		webhookLogger.Error("Failed to get membership plan by Stripe price ID", err)
-		return err
+	// Get plan ID from metadata (preferred) or fall back to price lookup for backwards compatibility
+	var planID uuid.UUID
+	var amtPeriods *int32
+
+	if planIdStr != "" {
+		// Use plan ID from metadata (industry standard approach)
+		parsedPlanID, parseErr := uuid.Parse(planIdStr)
+		if parseErr != nil {
+			webhookLogger.Error("Invalid membership plan ID format in metadata", parseErr)
+			return errLib.New("Invalid membership plan ID format", http.StatusBadRequest)
+		}
+		planID = parsedPlanID
+
+		// Get amtPeriods directly from the plan by ID
+		amtPeriods, err = s.PostCheckoutRepository.GetMembershipPlanAmtPeriods(context.Background(), planID)
+		if err != nil {
+			webhookLogger.Error("Failed to get membership plan details", err)
+			return err
+		}
+
+		webhookLogger = webhookLogger.WithFields(map[string]interface{}{
+			"membership_plan_id": planID,
+			"source":             "metadata",
+		})
+	} else {
+		// Backwards compatibility: look up by price ID
+		webhookLogger.Info("No membershipPlanID in metadata, falling back to price lookup")
+
+		priceIDs, validateErr := s.validateLineItems(fullSession.LineItems)
+		if validateErr != nil {
+			webhookLogger.Error("Failed to validate line items", validateErr)
+			return validateErr
+		}
+
+		// Try each price ID until we find a matching membership plan
+		for _, priceID := range priceIDs {
+			planID, amtPeriods, err = s.PostCheckoutRepository.GetMembershipPlanByStripePriceID(context.Background(), priceID)
+			if err == nil && planID != uuid.Nil {
+				webhookLogger = webhookLogger.WithFields(map[string]interface{}{
+					"membership_plan_id": planID,
+					"matched_price_id":   priceID,
+					"source":             "price_lookup",
+				})
+				break
+			}
+		}
+
+		if planID == uuid.Nil {
+			webhookLogger.Error("Failed to find membership plan for any price ID", nil)
+			return errLib.New("membership plan not found", http.StatusNotFound)
+		}
 	}
 
 	webhookLogger = webhookLogger.WithFields(map[string]interface{}{
-		"membership_plan_id": planID,
 		"amt_periods": amtPeriods,
 	})
-	
+
 	webhookLogger.Info("Retrieved membership plan details")
 
 	// Store Stripe customer ID in database for future reference
@@ -411,9 +444,11 @@ func (s *WebhookService) recordSubsidyUsageFromCheckout(session *stripe.Checkout
 			for _, discount := range invoice.TotalDiscountAmounts {
 				subsidyApplied += float64(discount.Amount) / 100.0
 			}
+			originalAmount = float64(invoice.Total+invoice.TotalDiscountAmounts[0].Amount) / 100.0
+		} else {
+			originalAmount = float64(invoice.Total) / 100.0
 		}
 		customerPaid = float64(invoice.AmountPaid) / 100.0
-		originalAmount = float64(invoice.Total+invoice.TotalDiscountAmounts[0].Amount) / 100.0
 	} else {
 		// Fallback: use subsidy balance if invoice not available
 		subsidyApplied = subsidyBalance

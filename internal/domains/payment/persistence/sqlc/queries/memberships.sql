@@ -13,6 +13,11 @@ FROM membership.membership_plans mp
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
 WHERE mp.stripe_price_id = $1;
 
+-- name: GetMembershipPlanAmtPeriods :one
+SELECT amt_periods
+FROM membership.membership_plans
+WHERE id = $1;
+
 -- name: CheckCustomerActiveMembership :one
 SELECT COUNT(*) as active_count
 FROM users.customer_membership_plans

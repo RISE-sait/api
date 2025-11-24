@@ -102,9 +102,10 @@ func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID u
 		log.Printf("Warning: Failed to check subsidy for customer %s: %v", customerID, subsidyErr)
 	}
 
-	// Add subsidy info to metadata for webhook processing (used to record usage after payment)
+	// Add metadata for webhook processing
 	metadata := map[string]string{
-		"userID": customerID.String(),
+		"userID":           customerID.String(),
+		"membershipPlanID": membershipPlanID.String(),
 	}
 
 	if subsidy != nil && subsidy.RemainingBalance > 0 {

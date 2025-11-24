@@ -73,11 +73,18 @@ func (s *Service) UpdateCourt(ctx context.Context, d values.UpdateDetails) *errL
 		if err != nil {
 			return err
 		}
-		return s.staffActivityLogsService.InsertStaffActivity(ctx, r.GetTx(), staffID, fmt.Sprintf("Updated court %s", d.ID))
+		return s.staffActivityLogsService.InsertStaffActivity(ctx, r.GetTx(), staffID, fmt.Sprintf("Updated court '%s'", d.Name))
 	})
 }
 
 func (s *Service) DeleteCourt(ctx context.Context, id uuid.UUID) *errLib.CommonError {
+	// Get court name before deletion for audit log
+	court, getErr := s.repo.Get(ctx, id)
+	courtName := id.String() // fallback to ID if court not found
+	if getErr == nil {
+		courtName = court.Name
+	}
+
 	return s.executeInTx(ctx, func(r *repo.Repository) *errLib.CommonError {
 		if err := r.Delete(ctx, id); err != nil {
 			return err
@@ -86,6 +93,6 @@ func (s *Service) DeleteCourt(ctx context.Context, id uuid.UUID) *errLib.CommonE
 		if err != nil {
 			return err
 		}
-		return s.staffActivityLogsService.InsertStaffActivity(ctx, r.GetTx(), staffID, fmt.Sprintf("Deleted court %s", id))
+		return s.staffActivityLogsService.InsertStaffActivity(ctx, r.GetTx(), staffID, fmt.Sprintf("Deleted court '%s'", courtName))
 	})
 }

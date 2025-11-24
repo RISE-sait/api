@@ -44,6 +44,30 @@ func (s *Service) executeInTx(ctx context.Context, fn func(repo *repo.Repository
 	})
 }
 
+// lookupNames fetches human-readable names for team and location
+func (s *Service) lookupNames(ctx context.Context, teamID, locationID uuid.UUID) (teamName, locationName string) {
+	teamName = "Unknown Team"
+	locationName = "Unknown Location"
+
+	if teamID != uuid.Nil {
+		var name sql.NullString
+		_ = s.db.QueryRowContext(ctx, "SELECT name FROM athletic.teams WHERE id = $1", teamID).Scan(&name)
+		if name.Valid {
+			teamName = name.String
+		}
+	}
+
+	if locationID != uuid.Nil {
+		var name sql.NullString
+		_ = s.db.QueryRowContext(ctx, "SELECT name FROM facilities.locations WHERE id = $1", locationID).Scan(&name)
+		if name.Valid {
+			locationName = name.String
+		}
+	}
+
+	return teamName, locationName
+}
+
 func (s *Service) CreatePractice(ctx context.Context, val values.CreatePracticeValue) *errLib.CommonError {
 	return s.executeInTx(ctx, func(r *repo.Repository) *errLib.CommonError {
 		if err := r.Create(ctx, val); err != nil {
@@ -54,8 +78,17 @@ func (s *Service) CreatePractice(ctx context.Context, val values.CreatePracticeV
 			return err
 		}
 		
-		// Log the activity
-		if err := s.staffActivityLogsService.InsertStaffActivity(ctx, r.GetTx(), staffID, fmt.Sprintf("Created practice %+v", val)); err != nil {
+		// Log the activity with human-readable format
+		loc, _ := time.LoadLocation("America/Denver")
+		if loc == nil {
+			loc = time.UTC
+		}
+		teamName, locationName := s.lookupNames(ctx, val.TeamID, val.LocationID)
+		activityDesc := fmt.Sprintf("Created practice for %s at %s on %s",
+			teamName,
+			locationName,
+			val.StartTime.In(loc).Format("Jan 2, 2006 at 3:04 PM"))
+		if err := s.staffActivityLogsService.InsertStaffActivity(ctx, r.GetTx(), staffID, activityDesc); err != nil {
 			return err
 		}
 		
@@ -110,7 +143,16 @@ func (s *Service) UpdatePractice(ctx context.Context, val values.UpdatePracticeV
 		if err != nil {
 			return err
 		}
-		return s.staffActivityLogsService.InsertStaffActivity(ctx, r.GetTx(), staffID, fmt.Sprintf("Updated practice %+v", val))
+		loc, _ := time.LoadLocation("America/Denver")
+		if loc == nil {
+			loc = time.UTC
+		}
+		teamName, locationName := s.lookupNames(ctx, val.TeamID, val.LocationID)
+		activityDesc := fmt.Sprintf("Updated practice for %s at %s on %s",
+			teamName,
+			locationName,
+			val.StartTime.In(loc).Format("Jan 2, 2006 at 3:04 PM"))
+		return s.staffActivityLogsService.InsertStaffActivity(ctx, r.GetTx(), staffID, activityDesc)
 	})
 }
 

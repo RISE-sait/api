@@ -119,7 +119,7 @@ func (s *Service) Create(ctx context.Context, details values.CreateTeamValues) *
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Created team with details: %+v", details),
+			fmt.Sprintf("Created team '%s'", details.Name),
 		); err != nil {
 			return err
 		}
@@ -207,7 +207,7 @@ func (s *Service) UpdateTeam(ctx context.Context, details values.UpdateTeamValue
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Updated team with ID and new details: %+v", details),
+			fmt.Sprintf("Updated team '%s'", details.TeamDetails.Name),
 		)
 	})
 }

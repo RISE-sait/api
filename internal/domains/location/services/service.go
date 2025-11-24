@@ -71,7 +71,7 @@ func (s *Service) CreateLocation(ctx context.Context, details values.CreateDetai
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Created location with details: %+v", details),
+			fmt.Sprintf("Created location '%s' at %s", details.Name, details.Address),
 		); err != nil {
 			return err
 		}
@@ -101,7 +101,7 @@ func (s *Service) UpdateLocation(ctx context.Context, details values.UpdateDetai
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Updated location with ID and new details: %+v", details),
+			fmt.Sprintf("Updated location '%s' at %s", details.Name, details.Address),
 		)
 	})
 }

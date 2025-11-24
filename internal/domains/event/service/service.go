@@ -41,6 +41,63 @@ func (s *Service) executeInTx(ctx context.Context, fn func(repo *repo.EventsRepo
 	})
 }
 
+// lookupNames fetches human-readable names for program, location, and team
+func (s *Service) lookupNames(ctx context.Context, programID, locationID, teamID uuid.UUID) (programName, locationName, teamName string) {
+	programName = ""
+	locationName = ""
+	teamName = ""
+
+	if programID != uuid.Nil {
+		var name sql.NullString
+		_ = s.db.QueryRowContext(ctx, "SELECT name FROM program.programs WHERE id = $1", programID).Scan(&name)
+		if name.Valid {
+			programName = name.String
+		}
+	}
+
+	if locationID != uuid.Nil {
+		var name sql.NullString
+		_ = s.db.QueryRowContext(ctx, "SELECT name FROM facilities.locations WHERE id = $1", locationID).Scan(&name)
+		if name.Valid {
+			locationName = name.String
+		}
+	}
+
+	if teamID != uuid.Nil {
+		var name sql.NullString
+		_ = s.db.QueryRowContext(ctx, "SELECT name FROM athletic.teams WHERE id = $1", teamID).Scan(&name)
+		if name.Valid {
+			teamName = name.String
+		}
+	}
+
+	return programName, locationName, teamName
+}
+
+// formatEventDescription creates a human-readable activity description for an event
+func (s *Service) formatEventDescription(ctx context.Context, action string, details values.EventDetails) string {
+	loc, _ := time.LoadLocation("America/Denver")
+	if loc == nil {
+		loc = time.UTC
+	}
+
+	programName, locationName, teamName := s.lookupNames(ctx, details.ProgramID, details.LocationID, details.TeamID)
+
+	desc := fmt.Sprintf("%s event", action)
+	if programName != "" {
+		desc += fmt.Sprintf(" '%s'", programName)
+	}
+	if locationName != "" {
+		desc += fmt.Sprintf(" at %s", locationName)
+	}
+	if teamName != "" {
+		desc += fmt.Sprintf(" for team %s", teamName)
+	}
+	desc += fmt.Sprintf(" on %s", details.StartAt.In(loc).Format("Jan 2, 2006 at 3:04 PM"))
+
+	return desc
+}
+
 // GetEvent retrieves a single event by its ID from the repository.
 //
 // Parameters:
@@ -97,7 +154,7 @@ func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurre
 			ctx,
 			txRepo.GetTx(),
 			details.CreatedBy,
-			fmt.Sprintf("Created events with details: %+v", details),
+			s.formatEventDescription(ctx, "Created recurring", details.EventDetails),
 		)
 	})
 }
@@ -156,7 +213,7 @@ func (s *Service) CreateEvent(ctx context.Context, details values.CreateEventVal
 				ctx,
 				txRepo.GetTx(),
 				details.CreatedBy,
-				fmt.Sprintf("Created event with details: %+v", details),
+				s.formatEventDescription(ctx, "Created", details.EventDetails),
 			); err != nil {
 				return err
 			}
@@ -191,7 +248,7 @@ func (s *Service) UpdateEvent(ctx context.Context, details values.UpdateEventVal
 				ctx,
 				txRepo.GetTx(),
 				details.UpdatedBy,
-				fmt.Sprintf("Updated event with ID and new details: %+v", details),
+				s.formatEventDescription(ctx, "Updated", details.EventDetails),
 			)
 		} else {
 			return nil
@@ -237,7 +294,7 @@ func (s *Service) UpdateRecurringEvents(ctx context.Context, details values.Upda
 			ctx,
 			txRepo.GetTx(),
 			details.UpdatedBy,
-			fmt.Sprintf("Updated events with details: %+v", details),
+			s.formatEventDescription(ctx, "Updated recurring", details.EventDetails),
 		)
 	})
 }

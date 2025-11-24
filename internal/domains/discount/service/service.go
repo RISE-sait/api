@@ -185,7 +185,7 @@ func (s *Service) CreateDiscount(ctx context.Context, details values.CreateValue
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Created discount with details: %+v", details),
+			fmt.Sprintf("Created discount '%s' (%s: %d%%)", details.Name, details.DiscountType, details.DiscountPercent),
 		)
 	})
 	if txErr != nil {
@@ -227,7 +227,7 @@ func (s *Service) UpdateDiscount(ctx context.Context, details values.UpdateValue
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Updated discount with ID and new details: %+v", details),
+			fmt.Sprintf("Updated discount '%s' (%s: %d%%)", details.Name, details.DiscountType, details.DiscountPercent),
 		)
 	})
 	if err != nil {

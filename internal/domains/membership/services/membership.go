@@ -64,7 +64,7 @@ func (s *Service) CreateMembership(ctx context.Context, details values.CreateVal
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Created membership with details: %+v", details),
+			fmt.Sprintf("Created membership '%s'", details.Name),
 		)
 	})
 }
@@ -85,7 +85,7 @@ func (s *Service) UpdateMembership(ctx context.Context, details values.UpdateVal
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Updated membership with ID and new details: %+v", details),
+			fmt.Sprintf("Updated membership '%s'", details.Name),
 		)
 	})
 }

@@ -78,7 +78,7 @@ func (h *Handler) GetMySchedule(w http.ResponseWriter, r *http.Request) {
 	}
 	eventDtos := make([]eventDto.EventResponseDto, len(eventRecords))
 	for i, e := range eventRecords {
-		eventDtos[i] = eventDto.NewEventResponseDto(e, false) // false = don't include participant details
+		eventDtos[i] = eventDto.NewEventResponseDto(e, false, false) // don't include participant details or contact info
 	}
 
 	// Games

@@ -55,3 +55,7 @@ RETURNING *;
 -- name: GetPendingStaffs :many
 SELECT id, first_name, last_name, email, gender, phone, country_alpha2_code, role_id, created_at, updated_at, dob
 FROM staff.pending_staff;
+
+-- name: DeletePendingStaff :exec
+DELETE FROM staff.pending_staff
+WHERE id = $1;

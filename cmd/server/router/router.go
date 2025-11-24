@@ -120,16 +120,16 @@ func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 	suspensionHandler := userHandler.NewSuspensionHandler(container)
 
 	return func(r chi.Router) {
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/", h.GetCustomers)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/id/{id}", h.GetCustomerByID)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/email/{email}", h.GetCustomerByEmail)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/checkin/{id}", h.CheckinCustomer)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/{id}/memberships", h.GetMembershipHistory)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/{id}/archive", h.ArchiveCustomer)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/{id}/unarchive", h.UnarchiveCustomer)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/archived", h.ListArchivedCustomers)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/", h.GetCustomers)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/id/{id}", h.GetCustomerByID)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/email/{email}", h.GetCustomerByEmail)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/checkin/{id}", h.CheckinCustomer)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/{id}/memberships", h.GetMembershipHistory)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/{id}/archive", h.ArchiveCustomer)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/{id}/unarchive", h.UnarchiveCustomer)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/archived", h.ListArchivedCustomers)
 		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/delete-account", h.DeleteMyAccount)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}/notes", h.UpdateCustomerNotes)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Put("/{id}/notes", h.UpdateCustomerNotes)
 
 		// Suspension routes
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/{id}/suspend", suspensionHandler.SuspendUser)
@@ -336,8 +336,8 @@ func RegisterStaffRoutes(container *di.Container) func(chi.Router) {
 	staffLogsHandlers := staff_activity_logs.NewHandler(container)
 
 	return func(r chi.Router) {
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/", staffHandlers.GetStaffs)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/logs", staffLogsHandlers.GetStaffActivityLogs)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/", staffHandlers.GetStaffs)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/logs", staffLogsHandlers.GetStaffActivityLogs)
 
 		r.With(middlewares.JWTAuthMiddleware(false)).Put("/{id}", staffHandlers.UpdateStaff)
 		r.With(middlewares.JWTAuthMiddleware(true)).Patch("/{id}/profile", staffHandlers.UpdateStaffProfile)
@@ -453,7 +453,7 @@ func RegisterRegistrationRoutes(container *di.Container) func(chi.Router) {
 		r.Post("/athlete", athleteHandler.RegisterAthlete)
 
 		r.Post("/staff", staffHandler.RegisterStaff)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/staff/pending", staffHandler.GetPendingStaffs)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/staff/pending", staffHandler.GetPendingStaffs)
 		r.With(middlewares.JWTAuthMiddleware(false)).Post("/staff/approve/{id}", staffHandler.ApproveStaff)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/staff/reject/{id}", staffHandler.DeletePendingStaff)
 		r.Post("/child", childRegistrationHandler.RegisterChild)
@@ -608,13 +608,13 @@ func RegisterAdminRoutes(container *di.Container) func(chi.Router) {
 
 	return func(r chi.Router) {
 		// Credit management routes - receptionist can view
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/customers/{id}/credits", creditHandler.GetAnyCustomerCredits)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/customers/{id}/credits/transactions", creditHandler.GetAnyCustomerCreditTransactions)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/customers/{id}/credits/weekly-usage", creditHandler.GetAnyCustomerWeeklyUsage)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/customers/{id}/credits/add", creditHandler.AddCustomerCredits)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/customers/{id}/credits/deduct", creditHandler.DeductCustomerCredits)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/events/{id}/credit-transactions", creditHandler.GetEventCreditTransactions)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/events/{id}/credit-cost", creditHandler.UpdateEventCreditCost)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/customers/{id}/credits", creditHandler.GetAnyCustomerCredits)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/customers/{id}/credits/transactions", creditHandler.GetAnyCustomerCreditTransactions)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/customers/{id}/credits/weekly-usage", creditHandler.GetAnyCustomerWeeklyUsage)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/customers/{id}/credits/add", creditHandler.AddCustomerCredits)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/customers/{id}/credits/deduct", creditHandler.DeductCustomerCredits)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/events/{id}/credit-transactions", creditHandler.GetEventCreditTransactions)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Put("/events/{id}/credit-cost", creditHandler.UpdateEventCreditCost)
 	}
 }
 

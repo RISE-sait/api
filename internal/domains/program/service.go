@@ -111,7 +111,7 @@ func (s *Service) CreateProgram(ctx context.Context, details values.CreateProgra
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Created program with details: %+v", details),
+			fmt.Sprintf("Created program '%s' (type: %s, level: %s)", details.Name, details.Type, details.Level),
 		)
 	})
 }
@@ -140,7 +140,7 @@ func (s *Service) UpdateProgram(ctx context.Context, details values.UpdateProgra
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Updated program with ID and new details: %+v", details),
+			fmt.Sprintf("Updated program '%s' (type: %s, level: %s)", details.Name, details.Type, details.Level),
 		)
 	})
 }

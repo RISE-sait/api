@@ -46,6 +46,39 @@ func (s *Service) executeInTx(ctx context.Context, fn func(repo *repo.Repository
 	})
 }
 
+// lookupNames fetches human-readable names for teams and location
+func (s *Service) lookupNames(ctx context.Context, homeTeamID, awayTeamID, locationID uuid.UUID) (homeTeamName, awayTeamName, locationName string) {
+	homeTeamName = "Unknown Team"
+	awayTeamName = "Unknown Team"
+	locationName = "Unknown Location"
+
+	if homeTeamID != uuid.Nil {
+		var name sql.NullString
+		_ = s.db.QueryRowContext(ctx, "SELECT name FROM athletic.teams WHERE id = $1", homeTeamID).Scan(&name)
+		if name.Valid {
+			homeTeamName = name.String
+		}
+	}
+
+	if awayTeamID != uuid.Nil {
+		var name sql.NullString
+		_ = s.db.QueryRowContext(ctx, "SELECT name FROM athletic.teams WHERE id = $1", awayTeamID).Scan(&name)
+		if name.Valid {
+			awayTeamName = name.String
+		}
+	}
+
+	if locationID != uuid.Nil {
+		var name sql.NullString
+		_ = s.db.QueryRowContext(ctx, "SELECT name FROM facilities.locations WHERE id = $1", locationID).Scan(&name)
+		if name.Valid {
+			locationName = name.String
+		}
+	}
+
+	return homeTeamName, awayTeamName, locationName
+}
+
 // GetGameById retrieves a single game by its UUID.
 func (s *Service) GetGameById(ctx context.Context, id uuid.UUID) (values.ReadGameValue, *errLib.CommonError) {
 	return s.repo.GetGameById(ctx, id)
@@ -104,12 +137,22 @@ func (s *Service) CreateGame(ctx context.Context, details values.CreateGameValue
 			return err
 		}
 
-		// Log staff activity for auditing
+		// Log staff activity for auditing with human-readable names
+		loc, _ := time.LoadLocation("America/Denver")
+		if loc == nil {
+			loc = time.UTC
+		}
+		homeTeamName, awayTeamName, locationName := s.lookupNames(ctx, details.HomeTeamID, details.AwayTeamID, details.LocationID)
+		activityDesc := fmt.Sprintf("Created game: %s vs %s at %s on %s",
+			homeTeamName,
+			awayTeamName,
+			locationName,
+			details.StartTime.In(loc).Format("Jan 2, 2006 at 3:04 PM"))
 		if err = s.staffActivityLogsService.InsertStaffActivity(
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Created game with details: %+v", details),
+			activityDesc,
 		); err != nil {
 			return err
 		}
@@ -213,12 +256,22 @@ func (s *Service) UpdateGame(ctx context.Context, details values.UpdateGameValue
 			return err
 		}
 
-		// Log the update activity
+		// Log the update activity with human-readable names
+		loc, _ := time.LoadLocation("America/Denver")
+		if loc == nil {
+			loc = time.UTC
+		}
+		homeTeamName, awayTeamName, locationName := s.lookupNames(ctx, details.HomeTeamID, details.AwayTeamID, details.LocationID)
+		activityDesc := fmt.Sprintf("Updated game: %s vs %s at %s on %s",
+			homeTeamName,
+			awayTeamName,
+			locationName,
+			details.StartTime.In(loc).Format("Jan 2, 2006 at 3:04 PM"))
 		return s.staffActivityLogsService.InsertStaffActivity(
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Updated game with ID and new details: %+v", details),
+			activityDesc,
 		)
 	})
 }

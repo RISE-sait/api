@@ -151,7 +151,7 @@ func (s *PlanService) CreateMembershipPlan(ctx context.Context, details values.P
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Created membership plan with details: %+v", details),
+			fmt.Sprintf("Created membership plan '%s'", details.Name),
 		)
 	})
 }
@@ -172,7 +172,7 @@ func (s *PlanService) UpdateMembershipPlan(ctx context.Context, details values.P
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Updated membership plan with ID and new details: %+v", details),
+			fmt.Sprintf("Updated membership plan '%s'", details.Name),
 		)
 	})
 }

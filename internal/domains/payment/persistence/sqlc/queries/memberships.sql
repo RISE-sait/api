@@ -11,7 +11,7 @@ VALUES ($1, $2, $3, $4, $5);
 SELECT mp.id, mp.amt_periods
 FROM membership.membership_plans mp
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
-WHERE mp.stripe_price_id = $1;
+WHERE mp.stripe_price_id = $1 OR mp.stripe_joining_fee_id = $1;
 
 -- name: GetMembershipPlanAmtPeriods :one
 SELECT amt_periods

@@ -33,10 +33,17 @@ func (s *NotificationService) SendTeamNotification(ctx context.Context, teamID u
 	// Get all push tokens for team members
 	tokens, err := s.repo.GetPushTokensByTeamID(ctx, teamID)
 	if err != nil {
+		fmt.Printf("[NOTIFICATION] Error getting push tokens for team %s: %v\n", teamID, err)
 		return err
 	}
 
+	fmt.Printf("[NOTIFICATION] Sending %s notification to team %s, found %d push tokens\n", notification.Type, teamID, len(tokens))
+	for i, token := range tokens {
+		fmt.Printf("[NOTIFICATION]   Token %d: user_id=%s\n", i+1, token.UserID)
+	}
+
 	if len(tokens) == 0 {
+		fmt.Printf("[NOTIFICATION] No push tokens found for team %s\n", teamID)
 		return nil // No tokens to send to
 	}
 

@@ -126,10 +126,14 @@ func (s *Service) sendGameNotification(ctx context.Context, game values.CreateGa
 	gameTimeISO := ""
 	if !game.StartTime.IsZero() {
 		// Convert UTC time from database to Mountain Time (MST/MDT)
-		// Use fixed zone MDT (UTC-6) since we're currently in daylight saving time
-		mdt := time.FixedZone("MDT", -6*3600) // MDT is UTC-6
-		mountainTime := game.StartTime.In(mdt)
-		
+		// Use America/Denver to automatically handle daylight saving time transitions
+		loc, err := time.LoadLocation("America/Denver")
+		if err != nil {
+			// Fallback to UTC if location cannot be loaded
+			loc = time.UTC
+		}
+		mountainTime := game.StartTime.In(loc)
+
 		gameTime = mountainTime.Format("January 2, 2006 at 3:04 PM MST")
 		gameTimeISO = mountainTime.Format(time.RFC3339)
 	}

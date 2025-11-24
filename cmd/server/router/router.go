@@ -336,7 +336,7 @@ func RegisterStaffRoutes(container *di.Container) func(chi.Router) {
 	staffLogsHandlers := staff_activity_logs.NewHandler(container)
 
 	return func(r chi.Router) {
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/", staffHandlers.GetStaffs)
+		r.Get("/", staffHandlers.GetStaffs) // Public endpoint for website to display coaches
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/logs", staffLogsHandlers.GetStaffActivityLogs)
 
 		r.With(middlewares.JWTAuthMiddleware(false)).Put("/{id}", staffHandlers.UpdateStaff)

@@ -176,3 +176,16 @@ func (r *StaffRepository) GetPendingStaffs(ctx context.Context) ([]identityValue
 
 	return staffs, nil
 }
+
+func (r *StaffRepository) DeletePendingStaff(ctx context.Context, id uuid.UUID) *errLib.CommonError {
+	err := r.IdentityQueries.DeletePendingStaff(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return errLib.New("Pending staff not found", http.StatusNotFound)
+		}
+		log.Printf("Error deleting pending staff: %v", err)
+		return errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+
+	return nil
+}

@@ -214,7 +214,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 
 		for i, retrievedEvent := range events {
 
-			eventDto := dto.NewEventResponseDto(retrievedEvent, false)
+			eventDto := dto.NewEventResponseDto(retrievedEvent, false, false)
 
 			responseDto[i] = eventDto
 		}
@@ -318,7 +318,7 @@ func (h *EventsHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 
-		responseDto := dto.NewEventResponseDto(retrievedEvent, true)
+		responseDto := dto.NewEventResponseDto(retrievedEvent, true, false)
 
 		responseHandlers.RespondWithSuccess(w, responseDto, http.StatusOK)
 	}
@@ -361,7 +361,7 @@ func (h *EventsHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventDto := dto.NewEventResponseDto(createdEvent, true)
+	eventDto := dto.NewEventResponseDto(createdEvent, true, false)
 	responseHandlers.RespondWithSuccess(w, eventDto, http.StatusCreated)
 }
 

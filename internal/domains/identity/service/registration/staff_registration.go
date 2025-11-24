@@ -87,3 +87,7 @@ func (s *StaffsRegistrationService) ApproveStaff(
 func (s *StaffsRegistrationService) GetPendingStaffs(ctx context.Context) ([]identity.PendingStaffInfo, *errLib.CommonError) {
 	return s.StaffRepository.GetPendingStaffs(ctx)
 }
+
+func (s *StaffsRegistrationService) DeletePendingStaff(ctx context.Context, id uuid.UUID) *errLib.CommonError {
+	return s.StaffRepository.DeletePendingStaff(ctx, id)
+}

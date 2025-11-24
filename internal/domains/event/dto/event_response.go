@@ -81,7 +81,7 @@ type (
 	}
 )
 
-func NewEventResponseDto(event values.ReadEventValues, includePeople bool) EventResponseDto {
+func NewEventResponseDto(event values.ReadEventValues, includePeople bool, includeContactInfo bool) EventResponseDto {
 	response := EventResponseDto{
 		ID:                        event.ID,
 		Capacity:                  event.Capacity,
@@ -124,46 +124,58 @@ func NewEventResponseDto(event values.ReadEventValues, includePeople bool) Event
 
 	if includePeople {
 		response.Participants = &Participants{
-			Customers: mapCustomers(event.Customers),
-			Staff:     mapStaffs(event.Staffs),
+			Customers: mapCustomers(event.Customers, includeContactInfo),
+			Staff:     mapStaffs(event.Staffs, includeContactInfo),
 		}
 	}
 
 	return response
 }
 
-func mapCustomers(customers []values.Customer) []CustomerResponseDto {
+func mapCustomers(customers []values.Customer, includeContactInfo bool) []CustomerResponseDto {
 	result := make([]CustomerResponseDto, 0, len(customers))
 	for _, c := range customers {
-		result = append(result, CustomerResponseDto{
+		dto := CustomerResponseDto{
 			PersonResponseDto: PersonResponseDto{
 				ID:        c.ID,
 				FirstName: c.FirstName,
 				LastName:  c.LastName,
 			},
-			Email:                  c.Email,
-			Phone:                  c.Phone,
-			Gender:                 c.Gender,
 			HasCancelledEnrollment: c.HasCancelledEnrollment,
-		})
+		}
+
+		// Only include contact info if requested (admin/receptionist access)
+		if includeContactInfo {
+			dto.Email = c.Email
+			dto.Phone = c.Phone
+			dto.Gender = c.Gender
+		}
+
+		result = append(result, dto)
 	}
 	return result
 }
 
-func mapStaffs(staffs []values.Staff) []StaffResponseDto {
+func mapStaffs(staffs []values.Staff, includeContactInfo bool) []StaffResponseDto {
 	result := make([]StaffResponseDto, 0, len(staffs))
 	for _, staff := range staffs {
-		result = append(result, StaffResponseDto{
+		dto := StaffResponseDto{
 			PersonResponseDto: PersonResponseDto{
 				ID:        staff.ID,
 				FirstName: staff.FirstName,
 				LastName:  staff.LastName,
 			},
-			Email:    staff.Email,
-			Phone:    staff.Phone,
-			Gender:   staff.Gender,
 			RoleName: staff.RoleName,
-		})
+		}
+
+		// Only include contact info if requested (admin/receptionist access)
+		if includeContactInfo {
+			dto.Email = staff.Email
+			dto.Phone = staff.Phone
+			dto.Gender = staff.Gender
+		}
+
+		result = append(result, dto)
 	}
 	return result
 }

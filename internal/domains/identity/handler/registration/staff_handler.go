@@ -147,3 +147,44 @@ func (h *StaffHandlers) GetPendingStaffs(w http.ResponseWriter, r *http.Request)
 
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
 }
+
+// DeletePendingStaff deletes or rejects a pending staff member.
+// @Summary Delete/Reject a pending staff member
+// @Description Deletes a pending staff member's application from the system
+// @Tags registration
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param staff_id path string true "ID of staff member to delete"
+// @Success 200 {object} map[string]interface{} "Staff deleted successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 401 {object} map[string]interface{} "Unauthorized: Invalid or missing authentication token"
+// @Failure 403 {object} map[string]interface{} "Forbidden: User does not have admin privileges"
+// @Failure 404 {object} map[string]interface{} "Not Found: Pending staff member not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error: Failed to delete staff"
+// @Router /register/staff/reject/{id} [delete]
+func (h *StaffHandlers) DeletePendingStaff(w http.ResponseWriter, r *http.Request) {
+	var staffID uuid.UUID
+
+	if staffIdStr := chi.URLParam(r, "id"); staffIdStr == "" {
+		responseHandlers.RespondWithError(w, errLib.New("staff ID is required", http.StatusBadRequest))
+		return
+	} else {
+		id, err := validators.ParseUUID(staffIdStr)
+
+		if err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		}
+
+		staffID = id
+	}
+
+	err := h.StaffRegistrationService.DeletePendingStaff(r.Context(), staffID)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	responseHandlers.RespondWithSuccess(w, nil, http.StatusOK)
+}

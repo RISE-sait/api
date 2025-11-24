@@ -120,14 +120,14 @@ func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 	suspensionHandler := userHandler.NewSuspensionHandler(container)
 
 	return func(r chi.Router) {
-		r.Get("/", h.GetCustomers)
-		r.Get("/id/{id}", h.GetCustomerByID)
-		r.Get("/email/{email}", h.GetCustomerByEmail)
-		r.Get("/checkin/{id}", h.CheckinCustomer)
-		r.Get("/{id}/memberships", h.GetMembershipHistory)
-		r.Post("/{id}/archive", h.ArchiveCustomer)
-		r.Post("/{id}/unarchive", h.UnarchiveCustomer)
-		r.Get("/archived", h.ListArchivedCustomers)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/", h.GetCustomers)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/id/{id}", h.GetCustomerByID)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/email/{email}", h.GetCustomerByEmail)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/checkin/{id}", h.CheckinCustomer)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/{id}/memberships", h.GetMembershipHistory)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/{id}/archive", h.ArchiveCustomer)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/{id}/unarchive", h.UnarchiveCustomer)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/archived", h.ListArchivedCustomers)
 		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/delete-account", h.DeleteMyAccount)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}/notes", h.UpdateCustomerNotes)
 
@@ -189,7 +189,7 @@ func RegisterBarberAvailabilityRoutes(container *di.Container) func(chi.Router) 
 	return func(r chi.Router) {
 		// Public endpoint - get available time slots for any barber
 		r.Get("/{barber_id}/availability", h.GetAvailableTimeSlots)
-		
+
 		// Authenticated barber endpoints - manage own availability
 		r.Route("/me", func(r chi.Router) {
 			r.Use(middlewares.JWTAuthMiddleware(false, contextUtils.RoleBarber))
@@ -336,8 +336,8 @@ func RegisterStaffRoutes(container *di.Container) func(chi.Router) {
 	staffLogsHandlers := staff_activity_logs.NewHandler(container)
 
 	return func(r chi.Router) {
-		r.Get("/", staffHandlers.GetStaffs)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Get("/logs", staffLogsHandlers.GetStaffActivityLogs)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/", staffHandlers.GetStaffs)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/logs", staffLogsHandlers.GetStaffActivityLogs)
 
 		r.With(middlewares.JWTAuthMiddleware(false)).Put("/{id}", staffHandlers.UpdateStaff)
 		r.With(middlewares.JWTAuthMiddleware(true)).Patch("/{id}/profile", staffHandlers.UpdateStaffProfile)
@@ -453,8 +453,9 @@ func RegisterRegistrationRoutes(container *di.Container) func(chi.Router) {
 		r.Post("/athlete", athleteHandler.RegisterAthlete)
 
 		r.Post("/staff", staffHandler.RegisterStaff)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Get("/staff/pending", staffHandler.GetPendingStaffs)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/staff/pending", staffHandler.GetPendingStaffs)
 		r.With(middlewares.JWTAuthMiddleware(false)).Post("/staff/approve/{id}", staffHandler.ApproveStaff)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/staff/reject/{id}", staffHandler.DeletePendingStaff)
 		r.Post("/child", childRegistrationHandler.RegisterChild)
 		r.Post("/parent", parentRegistrationHandler.RegisterParent)
 	}
@@ -604,19 +605,16 @@ func RegisterSubscriptionRoutes(container *di.Container) func(chi.Router) {
 // RegisterAdminRoutes registers admin routes requiring admin authentication
 func RegisterAdminRoutes(container *di.Container) func(chi.Router) {
 	creditHandler := userHandler.NewCreditHandler(container)
-	
+
 	return func(r chi.Router) {
-		// Apply admin authentication to all routes
-		r.Use(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin))
-		
-		// Credit management routes
-		r.Get("/customers/{id}/credits", creditHandler.GetAnyCustomerCredits)
-		r.Get("/customers/{id}/credits/transactions", creditHandler.GetAnyCustomerCreditTransactions)
-		r.Get("/customers/{id}/credits/weekly-usage", creditHandler.GetAnyCustomerWeeklyUsage)
-		r.Post("/customers/{id}/credits/add", creditHandler.AddCustomerCredits)
-		r.Post("/customers/{id}/credits/deduct", creditHandler.DeductCustomerCredits)
-		r.Get("/events/{id}/credit-transactions", creditHandler.GetEventCreditTransactions)
-		r.Put("/events/{id}/credit-cost", creditHandler.UpdateEventCreditCost)
+		// Credit management routes - receptionist can view
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/customers/{id}/credits", creditHandler.GetAnyCustomerCredits)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/customers/{id}/credits/transactions", creditHandler.GetAnyCustomerCreditTransactions)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/customers/{id}/credits/weekly-usage", creditHandler.GetAnyCustomerWeeklyUsage)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/customers/{id}/credits/add", creditHandler.AddCustomerCredits)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/customers/{id}/credits/deduct", creditHandler.DeductCustomerCredits)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleReceptionist)).Get("/events/{id}/credit-transactions", creditHandler.GetEventCreditTransactions)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/events/{id}/credit-cost", creditHandler.UpdateEventCreditCost)
 	}
 }
 
@@ -668,20 +666,20 @@ func RegisterSubsidyRoutes(container *di.Container) func(chi.Router) {
 
 		// Admin routes - manage providers and subsidies
 		r.Group(func(r chi.Router) {
-			r.Use(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin))
+			r.Use(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist))
 			r.Use(middlewares.RateLimitMiddleware(5, 10, 1*time.Minute)) // 5 rps, burst 10
 
-			// Provider management
-			r.Post("/providers", h.CreateProvider)
+			// Provider management - receptionist can only view
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/providers", h.CreateProvider)
 			r.Get("/providers", h.ListProviders)
 			r.Get("/providers/{id}", h.GetProvider)
 			r.Get("/providers/{id}/stats", h.GetProviderStats)
 
-			// Subsidy management
-			r.Post("/", h.CreateSubsidy)
+			// Subsidy management - receptionist can only view
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/", h.CreateSubsidy)
 			r.Get("/", h.ListSubsidies)
 			r.Get("/{id}", h.GetSubsidy)
-			r.Post("/{id}/deactivate", h.DeactivateSubsidy)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/{id}/deactivate", h.DeactivateSubsidy)
 
 			// Summary/reports
 			r.Get("/summary", h.GetSubsidySummary)
@@ -693,8 +691,8 @@ func RegisterSubsidyRoutes(container *di.Container) func(chi.Router) {
 func RegisterPaymentReportsRoutes(container *di.Container) func(chi.Router) {
 	h := payment.NewPaymentReportsHandler(container)
 	return func(r chi.Router) {
-		// All routes require admin authentication
-		r.Use(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin))
+		// All routes require admin authentication - receptionist can view
+		r.Use(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist))
 		r.Use(middlewares.RateLimitMiddleware(5, 10, 1*time.Minute)) // 5 rps, burst 10
 
 		// Transaction listing and details

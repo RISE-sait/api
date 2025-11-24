@@ -274,9 +274,14 @@ WHERE customer_id = sqlc.arg('user_id')
   AND suspended_at IS NOT NULL;
 
 -- name: GetSuspensionInfo :one
-SELECT suspended_at, suspension_reason, suspended_by, suspension_expires_at
-FROM users.users
-WHERE id = sqlc.arg('user_id');
+SELECT
+    u.suspended_at,
+    u.suspension_reason,
+    suspender.first_name || ' ' || suspender.last_name as suspended_by,
+    u.suspension_expires_at
+FROM users.users u
+LEFT JOIN users.users suspender ON suspender.id = u.suspended_by
+WHERE u.id = sqlc.arg('user_id');
 
 -- name: GetMembershipByStripeSubscriptionID :one
 SELECT *

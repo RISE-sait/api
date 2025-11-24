@@ -80,7 +80,7 @@ type SubsidyResponse struct {
 	ValidUntil       *time.Time       `json:"valid_until,omitempty"`
 	Reason           string           `json:"reason,omitempty"`
 	AdminNotes       string           `json:"admin_notes,omitempty"`
-	ApprovedBy       *uuid.UUID       `json:"approved_by,omitempty"`
+	ApprovedBy       string           `json:"approved_by,omitempty"`
 	ApprovedAt       *time.Time       `json:"approved_at,omitempty"`
 	CreatedAt        time.Time        `json:"created_at"`
 	UpdatedAt        time.Time        `json:"updated_at"`

@@ -19,10 +19,12 @@ SELECT
     cs.*,
     p.name as provider_name,
     u.first_name || ' ' || u.last_name as customer_name,
-    u.email as customer_email
+    u.email as customer_email,
+    approver.first_name || ' ' || approver.last_name as approved_by_name
 FROM subsidies.customer_subsidies cs
 LEFT JOIN subsidies.providers p ON p.id = cs.provider_id
 LEFT JOIN users.users u ON u.id = cs.customer_id
+LEFT JOIN users.users approver ON approver.id = cs.approved_by
 WHERE cs.id = $1;
 
 -- name: GetActiveSubsidyForCustomer :one
@@ -44,10 +46,12 @@ SELECT
     cs.*,
     p.name as provider_name,
     u.first_name || ' ' || u.last_name as customer_name,
-    u.email as customer_email
+    u.email as customer_email,
+    approver.first_name || ' ' || approver.last_name as approved_by_name
 FROM subsidies.customer_subsidies cs
 LEFT JOIN subsidies.providers p ON p.id = cs.provider_id
 LEFT JOIN users.users u ON u.id = cs.customer_id
+LEFT JOIN users.users approver ON approver.id = cs.approved_by
 WHERE (sqlc.narg('customer_id')::uuid IS NULL OR cs.customer_id = sqlc.narg('customer_id'))
   AND (sqlc.narg('provider_id')::uuid IS NULL OR cs.provider_id = sqlc.narg('provider_id'))
   AND (sqlc.narg('status')::text IS NULL OR cs.status = sqlc.narg('status'))

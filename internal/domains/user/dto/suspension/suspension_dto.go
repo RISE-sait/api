@@ -5,7 +5,6 @@ import (
 	"time"
 
 	errLib "api/internal/libs/errors"
-	"github.com/google/uuid"
 )
 
 type SuspendUserRequestDto struct {
@@ -22,7 +21,7 @@ type SuspensionInfoResponseDto struct {
 	IsSuspended         bool       `json:"is_suspended"`
 	SuspendedAt         *time.Time `json:"suspended_at,omitempty"`
 	SuspensionReason    *string    `json:"suspension_reason,omitempty"`
-	SuspendedBy         *uuid.UUID `json:"suspended_by,omitempty"`
+	SuspendedBy         *string    `json:"suspended_by,omitempty"`
 	SuspensionExpiresAt *time.Time `json:"suspension_expires_at,omitempty"`
 }
 

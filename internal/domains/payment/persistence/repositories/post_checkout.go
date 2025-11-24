@@ -68,3 +68,20 @@ func (r *PostCheckoutRepository) GetMembershipPlanByStripePriceID(ctx context.Co
 
 	return membershipPlan.ID, &periods, nil
 }
+
+func (r *PostCheckoutRepository) GetMembershipPlanAmtPeriods(ctx context.Context, planID uuid.UUID) (*int32, *errLib.CommonError) {
+	amtPeriods, err := r.Queries.GetMembershipPlanAmtPeriods(ctx, planID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errLib.New("membership plan not found", http.StatusNotFound)
+		}
+		return nil, errLib.New(fmt.Sprintf("error getting membership plan amt_periods: %v", err), http.StatusBadRequest)
+	}
+
+	if !amtPeriods.Valid {
+		return nil, nil
+	}
+
+	periods := amtPeriods.Int32
+	return &periods, nil
+}

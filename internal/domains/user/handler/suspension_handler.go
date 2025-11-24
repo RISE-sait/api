@@ -239,8 +239,10 @@ func (h *SuspensionHandler) GetSuspensionInfo(w http.ResponseWriter, r *http.Req
 		response.SuspensionReason = &suspensionInfo.SuspensionReason.String
 	}
 
-	if suspensionInfo.SuspendedBy.Valid {
-		response.SuspendedBy = &suspensionInfo.SuspendedBy.UUID
+	if suspensionInfo.SuspendedBy != nil {
+		if name, ok := suspensionInfo.SuspendedBy.(string); ok && name != "" {
+			response.SuspendedBy = &name
+		}
 	}
 
 	if suspensionInfo.SuspensionExpiresAt.Valid {

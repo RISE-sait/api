@@ -73,10 +73,14 @@ func (s *Service) sendPracticeNotification(ctx context.Context, practice values.
 	startTimeISO := ""
 	if !practice.StartTime.IsZero() {
 		// Convert UTC time from database to Mountain Time (MST/MDT)
-		// Use fixed zone MDT (UTC-6) since we're currently in daylight saving time
-		mdt := time.FixedZone("MDT", -6*3600) // MDT is UTC-6
-		mountainTime := practice.StartTime.In(mdt)
-		
+		// Use America/Denver to automatically handle daylight saving time transitions
+		loc, err := time.LoadLocation("America/Denver")
+		if err != nil {
+			// Fallback to UTC if location cannot be loaded
+			loc = time.UTC
+		}
+		mountainTime := practice.StartTime.In(loc)
+
 		startTime = mountainTime.Format("January 2, 2006 at 3:04 PM MST")
 		startTimeISO = mountainTime.Format(time.RFC3339)
 	}

@@ -137,6 +137,9 @@ func CreateOneTimePayment(
 
 	// Add discount coupon if provided
 	if stripeCouponID != nil && *stripeCouponID != "" {
+		// When using a discount, we must remove AllowPromotionCodes
+		// Stripe does not allow both parameters at the same time
+		params.AllowPromotionCodes = nil
 		params.Discounts = []*stripe.CheckoutSessionDiscountParams{
 			{Coupon: stripe.String(*stripeCouponID)},
 		}
@@ -497,6 +500,9 @@ func CreateSubscription(
 
 	// Add discount coupon if provided
 	if stripeCouponID != nil && *stripeCouponID != "" {
+		// When using a discount, we must remove AllowPromotionCodes
+		// Stripe does not allow both parameters at the same time
+		params.AllowPromotionCodes = nil
 		params.Discounts = []*stripe.CheckoutSessionDiscountParams{
 			{Coupon: stripe.String(*stripeCouponID)},
 		}
@@ -625,6 +631,9 @@ func CreateSubscriptionWithMetadata(
 
 	// Add discount coupon if provided
 	if stripeCouponID != nil && *stripeCouponID != "" {
+		// When using a discount, we must remove AllowPromotionCodes
+		// Stripe does not allow both parameters at the same time
+		params.AllowPromotionCodes = nil
 		params.Discounts = []*stripe.CheckoutSessionDiscountParams{
 			{Coupon: stripe.String(*stripeCouponID)},
 		}

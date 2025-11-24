@@ -154,7 +154,12 @@ func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurre
 			ctx,
 			txRepo.GetTx(),
 			details.CreatedBy,
-			s.formatEventDescription(ctx, "Created recurring", details.EventDetails),
+			s.formatEventDescription(ctx, "Created recurring", values.EventDetails{
+				StartAt:    details.FirstOccurrence,
+				ProgramID:  details.ProgramID,
+				LocationID: details.LocationID,
+				TeamID:     details.TeamID,
+			}),
 		)
 	})
 }
@@ -294,7 +299,12 @@ func (s *Service) UpdateRecurringEvents(ctx context.Context, details values.Upda
 			ctx,
 			txRepo.GetTx(),
 			details.UpdatedBy,
-			s.formatEventDescription(ctx, "Updated recurring", details.EventDetails),
+			s.formatEventDescription(ctx, "Updated recurring", values.EventDetails{
+				StartAt:    details.FirstOccurrence,
+				ProgramID:  details.ProgramID,
+				LocationID: details.LocationID,
+				TeamID:     details.TeamID,
+			}),
 		)
 	})
 }

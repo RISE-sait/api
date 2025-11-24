@@ -75,7 +75,7 @@ const getMembershipPlanByStripePriceId = `-- name: GetMembershipPlanByStripePric
 SELECT mp.id, mp.amt_periods
 FROM membership.membership_plans mp
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
-WHERE mp.stripe_price_id = $1
+WHERE mp.stripe_price_id = $1 OR mp.stripe_joining_fee_id = $1
 `
 
 type GetMembershipPlanByStripePriceIdRow struct {

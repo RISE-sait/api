@@ -319,6 +319,28 @@ func (q *Queries) GetWeeklyCreditsUsed(ctx context.Context, arg GetWeeklyCredits
 	return credits_used, err
 }
 
+const isCustomerEnrolledInEvent = `-- name: IsCustomerEnrolledInEvent :one
+SELECT EXISTS(
+    SELECT 1 FROM events.customer_enrollment
+    WHERE event_id = $1
+    AND customer_id = $2
+    AND payment_status IN ('pending', 'paid')
+) as is_enrolled
+`
+
+type IsCustomerEnrolledInEventParams struct {
+	EventID    uuid.UUID `json:"event_id"`
+	CustomerID uuid.UUID `json:"customer_id"`
+}
+
+// Check if customer is already enrolled in an event (to prevent duplicate credit payments)
+func (q *Queries) IsCustomerEnrolledInEvent(ctx context.Context, arg IsCustomerEnrolledInEventParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, isCustomerEnrolledInEvent, arg.EventID, arg.CustomerID)
+	var is_enrolled bool
+	err := row.Scan(&is_enrolled)
+	return is_enrolled, err
+}
+
 const logCreditTransaction = `-- name: LogCreditTransaction :exec
 
 INSERT INTO users.credit_transactions (customer_id, amount, transaction_type, event_id, description)

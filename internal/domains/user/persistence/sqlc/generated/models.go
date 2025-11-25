@@ -444,70 +444,6 @@ func AllPaymentStatusValues() []PaymentStatus {
 	}
 }
 
-type ProgramProgramLevel string
-
-const (
-	ProgramProgramLevelBeginner     ProgramProgramLevel = "beginner"
-	ProgramProgramLevelIntermediate ProgramProgramLevel = "intermediate"
-	ProgramProgramLevelAdvanced     ProgramProgramLevel = "advanced"
-	ProgramProgramLevelAll          ProgramProgramLevel = "all"
-)
-
-func (e *ProgramProgramLevel) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = ProgramProgramLevel(s)
-	case string:
-		*e = ProgramProgramLevel(s)
-	default:
-		return fmt.Errorf("unsupported scan type for ProgramProgramLevel: %T", src)
-	}
-	return nil
-}
-
-type NullProgramProgramLevel struct {
-	ProgramProgramLevel ProgramProgramLevel `json:"program_program_level"`
-	Valid               bool                `json:"valid"` // Valid is true if ProgramProgramLevel is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullProgramProgramLevel) Scan(value interface{}) error {
-	if value == nil {
-		ns.ProgramProgramLevel, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.ProgramProgramLevel.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullProgramProgramLevel) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.ProgramProgramLevel), nil
-}
-
-func (e ProgramProgramLevel) Valid() bool {
-	switch e {
-	case ProgramProgramLevelBeginner,
-		ProgramProgramLevelIntermediate,
-		ProgramProgramLevelAdvanced,
-		ProgramProgramLevelAll:
-		return true
-	}
-	return false
-}
-
-func AllProgramProgramLevelValues() []ProgramProgramLevel {
-	return []ProgramProgramLevel{
-		ProgramProgramLevelBeginner,
-		ProgramProgramLevelIntermediate,
-		ProgramProgramLevelAdvanced,
-		ProgramProgramLevelAll,
-	}
-}
-
 type ProgramProgramType string
 
 const (
@@ -819,6 +755,38 @@ type NotificationsPushToken struct {
 	UpdatedAt     sql.NullTime   `json:"updated_at"`
 }
 
+type PaymentFailedRefund struct {
+	ID           uuid.UUID      `json:"id"`
+	CustomerID   uuid.UUID      `json:"customer_id"`
+	EventID      uuid.NullUUID  `json:"event_id"`
+	CreditAmount int32          `json:"credit_amount"`
+	ErrorMessage sql.NullString `json:"error_message"`
+	RetryCount   sql.NullInt32  `json:"retry_count"`
+	Status       sql.NullString `json:"status"`
+	CreatedAt    sql.NullTime   `json:"created_at"`
+	UpdatedAt    sql.NullTime   `json:"updated_at"`
+	ResolvedAt   sql.NullTime   `json:"resolved_at"`
+}
+
+type PaymentFailedWebhook struct {
+	ID           uuid.UUID             `json:"id"`
+	EventID      string                `json:"event_id"`
+	EventType    string                `json:"event_type"`
+	Payload      pqtype.NullRawMessage `json:"payload"`
+	ErrorMessage sql.NullString        `json:"error_message"`
+	Attempts     sql.NullInt32         `json:"attempts"`
+	Status       sql.NullString        `json:"status"`
+	CreatedAt    sql.NullTime          `json:"created_at"`
+	ResolvedAt   sql.NullTime          `json:"resolved_at"`
+}
+
+type PaymentWebhookEvent struct {
+	EventID     string         `json:"event_id"`
+	EventType   string         `json:"event_type"`
+	ProcessedAt sql.NullTime   `json:"processed_at"`
+	Status      sql.NullString `json:"status"`
+}
+
 // Centralized tracking of all payment transactions including memberships, events, programs, and subsidies
 type PaymentsPaymentTransaction struct {
 	ID              uuid.UUID `json:"id"`
@@ -917,16 +885,15 @@ type ProgramGame struct {
 }
 
 type ProgramProgram struct {
-	ID          uuid.UUID           `json:"id"`
-	Name        string              `json:"name"`
-	Description string              `json:"description"`
-	Level       ProgramProgramLevel `json:"level"`
-	Type        ProgramProgramType  `json:"type"`
-	Capacity    sql.NullInt32       `json:"capacity"`
-	CreatedAt   time.Time           `json:"created_at"`
-	UpdatedAt   time.Time           `json:"updated_at"`
-	PayPerEvent bool                `json:"pay_per_event"`
-	PhotoUrl    sql.NullString      `json:"photo_url"`
+	ID          uuid.UUID          `json:"id"`
+	Name        string             `json:"name"`
+	Description string             `json:"description"`
+	Type        ProgramProgramType `json:"type"`
+	Capacity    sql.NullInt32      `json:"capacity"`
+	CreatedAt   time.Time          `json:"created_at"`
+	UpdatedAt   time.Time          `json:"updated_at"`
+	PayPerEvent bool               `json:"pay_per_event"`
+	PhotoUrl    sql.NullString     `json:"photo_url"`
 }
 
 type StaffPendingStaff struct {

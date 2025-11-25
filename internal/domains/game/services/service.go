@@ -426,6 +426,22 @@ func (s *Service) getUserTeamIDs(ctx context.Context, userID uuid.UUID, role con
 			return []uuid.UUID{}, nil
 		}
 		return []uuid.UUID{id}, nil
+	case contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist:
+		// Admin/receptionist can see all teams
+		rows, err := s.db.QueryContext(ctx, `SELECT id FROM athletic.teams`)
+		if err != nil {
+			return nil, errLib.New("failed to get all teams", http.StatusInternalServerError)
+		}
+		defer rows.Close()
+		var ids []uuid.UUID
+		for rows.Next() {
+			var id uuid.UUID
+			if err := rows.Scan(&id); err != nil {
+				return nil, errLib.New("failed to scan team id", http.StatusInternalServerError)
+			}
+			ids = append(ids, id)
+		}
+		return ids, nil
 	default:
 		return nil, errLib.New("role not supported", http.StatusForbidden)
 	}

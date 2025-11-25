@@ -201,8 +201,8 @@ func (h *SuspensionHandler) GetSuspensionInfo(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// If not admin, verify user is checking their own suspension status
-	if userRole != contextUtils.RoleAdmin && userRole != contextUtils.RoleSuperAdmin {
+	// If not admin/receptionist, verify user is checking their own suspension status
+	if userRole != contextUtils.RoleAdmin && userRole != contextUtils.RoleSuperAdmin && userRole != contextUtils.RoleReceptionist {
 		currentUserID, userErr := contextUtils.GetUserID(r.Context())
 		if userErr != nil {
 			responseHandlers.RespondWithError(w, userErr)

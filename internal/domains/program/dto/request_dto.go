@@ -9,7 +9,6 @@ import (
 type RequestDto struct {
 	Name        string  `json:"name" validate:"required,notwhitespace"`
 	Description string  `json:"description"`
-	Level       string  `json:"level" validate:"required,notwhitespace"`
 	Type        string  `json:"type" validate:"required,notwhitespace"`
 	Capacity    *int32  `json:"capacity"`
 	PhotoURL    *string `json:"photo_url,omitempty"`
@@ -29,7 +28,6 @@ func (dto RequestDto) ToCreateValueObjects() (values.CreateProgramValues, *errLi
 		ProgramDetails: values.ProgramDetails{
 			Name:        dto.Name,
 			Description: dto.Description,
-			Level:       dto.Level,
 			Type:        dto.Type,
 			PhotoURL:    dto.PhotoURL,
 		},
@@ -52,7 +50,6 @@ func (dto RequestDto) ToUpdateValueObjects(idStr string) (values.UpdateProgramVa
 		ProgramDetails: values.ProgramDetails{
 			Name:        dto.Name,
 			Description: dto.Description,
-			Level:       dto.Level,
 			Capacity:    dto.Capacity,
 			Type:        dto.Type,
 			PhotoURL:    dto.PhotoURL,

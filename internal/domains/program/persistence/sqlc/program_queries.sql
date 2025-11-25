@@ -1,7 +1,7 @@
 -- Active: 1739459832645@@127.0.0.1@5432@postgres
 -- name: CreateProgram :one
-INSERT INTO program.programs (name, description, level, type, capacity, photo_url)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO program.programs (name, description, type, capacity, photo_url)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: GetPrograms :many
@@ -18,19 +18,18 @@ UPDATE program.programs
 SET
     name = $1,
     description = $2,
-    level = $3,
-    type = $4,
-    capacity = $5,
-    photo_url = $6,
+    type = $3,
+    capacity = $4,
+    photo_url = $5,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $7
+WHERE id = $6
 RETURNING *;
 
 -- name: DeleteProgram :execrows
 DELETE FROM program.programs WHERE id = $1;
 
 -- name: GetProgramByType :one
-SELECT id, name, description, level, type, capacity, created_at, updated_at, pay_per_event, photo_url
+SELECT id, name, description, type, capacity, created_at, updated_at, pay_per_event, photo_url
 FROM program.programs
 WHERE type = $1
 LIMIT 1;

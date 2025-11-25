@@ -30,8 +30,8 @@ func TestEnrollCustomerInEvent(t *testing.T) {
 	// Seed the database with a default program of type 'course'
 	// This is a workaround to avoid the need for a separate migration for the test database
 	_, err := db.ExecContext(context.Background(), `
-	INSERT INTO program.programs (id, name, type, level, description)
-	VALUES (gen_random_uuid(), 'Course', 'course', 'all', 'Default test program')
+	INSERT INTO program.programs (id, name, type, description)
+	VALUES (gen_random_uuid(), 'Course', 'course', 'Default test program')
 	ON CONFLICT (name) DO NOTHING
 `)
 require.NoError(t, err)
@@ -47,15 +47,14 @@ require.NoError(t, err)
 		ID          uuid.UUID
 		Name        string
 		Type        string
-		Level       string
 		Description string
 	}
 
 	err = db.QueryRowContext(context.Background(), `
-		SELECT id, name, type, level, description
+		SELECT id, name, type, description
 		FROM program.programs
 		WHERE type = 'course'
-	`).Scan(&createdProgram.ID, &createdProgram.Name, &createdProgram.Type, &createdProgram.Level, &createdProgram.Description)
+	`).Scan(&createdProgram.ID, &createdProgram.Name, &createdProgram.Type, &createdProgram.Description)
 	require.NoError(t, err)
 
 	// Create a location
@@ -128,8 +127,8 @@ func TestEnrollCustomerInProgramEvents(t *testing.T) {
 	// Seed the database with a default program of type 'course'
 	// This is a workaround to avoid the need for a separate migration for the test database
 	_, err := db.ExecContext(context.Background(), `
-	INSERT INTO program.programs (id, name, type, level, description)
-	VALUES (gen_random_uuid(), 'Course', 'course', 'all', 'Default test program')
+	INSERT INTO program.programs (id, name, type, description)
+	VALUES (gen_random_uuid(), 'Course', 'course', 'Default test program')
 	ON CONFLICT (name) DO NOTHING
 	`)
 	require.NoError(t, err)
@@ -154,15 +153,14 @@ func TestEnrollCustomerInProgramEvents(t *testing.T) {
 		ID          uuid.UUID
 		Name        string
 		Type        string
-		Level       string
 		Description string
 	}
 
 	err = db.QueryRowContext(context.Background(), `
-		SELECT id, name, type, level, description
+		SELECT id, name, type, description
 		FROM program.programs
 		WHERE type = 'course'
-	`).Scan(&createdProgram.ID, &createdProgram.Name, &createdProgram.Type, &createdProgram.Level, &createdProgram.Description)
+	`).Scan(&createdProgram.ID, &createdProgram.Name, &createdProgram.Type, &createdProgram.Description)
 	require.NoError(t, err)
 
 	createdLocation, err := locationQueries.CreateLocation(context.Background(), locationDb.CreateLocationParams{

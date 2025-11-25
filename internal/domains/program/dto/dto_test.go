@@ -72,7 +72,6 @@ func TestValidRequestDto(t *testing.T) {
 	requestDto := RequestDto{
 		Name:        "Go Programming Basics",
 		Description: "Learn Go Programming",
-		Level:       "all",
 		Type:        "game",
 	}
 
@@ -88,7 +87,6 @@ func TestMissingNameRequestDto(t *testing.T) {
 
 	requestDto := RequestDto{
 		Description: "Learn Go Programming",
-		Level:       "all",
 		Type:        "game",
 	}
 
@@ -106,7 +104,6 @@ func TestMissingTypeRequestDto(t *testing.T) {
 	requestDto := RequestDto{
 		Name:        "Go Programming Basics",
 		Description: "Learn Go Programming",
-		Level:       "all",
 	}
 
 	createRequestDto, err := requestDto.ToCreateValueObjects()
@@ -139,7 +136,6 @@ func TestUpdateRequestDtoValidUUID(t *testing.T) {
 	requestDto := RequestDto{
 		Name:        "Learn Go Programming Name",
 		Description: "Learn Go Programming Description",
-		Level:       "all",
 		Type:        "practice",
 	}
 

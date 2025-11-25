@@ -12,7 +12,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -49,33 +48,6 @@ func (s *Service) GetPrograms(ctx context.Context, programType string) ([]values
 	return s.repo.List(ctx, programType)
 }
 
-func (s *Service) GetProgramLevels() []string {
-
-	return s.repo.GetProgramLevels()
-}
-
-func (s *Service) validateProgramLevels(inputLevel string) *errLib.CommonError {
-
-	programLevels := s.repo.GetProgramLevels()
-
-	isValidLevel := false
-
-	for _, validLevel := range programLevels {
-
-		log.Println("Validating program level:", validLevel)
-		if inputLevel == validLevel {
-			isValidLevel = true
-			break
-		}
-	}
-
-	if !isValidLevel {
-		return errLib.New(fmt.Sprintf("Invalid program level. Valid levels are: %v", programLevels), http.StatusBadRequest)
-	}
-
-	return nil
-}
-
 func (s *Service) validateProgramType(inputType string) *errLib.CommonError {
 
 	if !db.ProgramProgramType(inputType).Valid() {
@@ -87,10 +59,6 @@ func (s *Service) validateProgramType(inputType string) *errLib.CommonError {
 }
 
 func (s *Service) CreateProgram(ctx context.Context, details values.CreateProgramValues) *errLib.CommonError {
-
-	if err := s.validateProgramLevels(details.Level); err != nil {
-		return err
-	}
 
 	if err := s.validateProgramType(details.Type); err != nil {
 		return err
@@ -111,16 +79,12 @@ func (s *Service) CreateProgram(ctx context.Context, details values.CreateProgra
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Created program '%s' (type: %s, level: %s)", details.Name, details.Type, details.Level),
+			fmt.Sprintf("Created program '%s' (type: %s)", details.Name, details.Type),
 		)
 	})
 }
 
 func (s *Service) UpdateProgram(ctx context.Context, details values.UpdateProgramValues) *errLib.CommonError {
-
-	if err := s.validateProgramLevels(details.Level); err != nil {
-		return err
-	}
 
 	if err := s.validateProgramType(details.Type); err != nil {
 		return err
@@ -140,7 +104,7 @@ func (s *Service) UpdateProgram(ctx context.Context, details values.UpdateProgra
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Updated program '%s' (type: %s, level: %s)", details.Name, details.Type, details.Level),
+			fmt.Sprintf("Updated program '%s' (type: %s)", details.Name, details.Type),
 		)
 	})
 }

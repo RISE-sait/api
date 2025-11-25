@@ -9,7 +9,6 @@ import (
 type ProgramDetails struct {
 	Name        string
 	Description string
-	Level       string
 	Type        string
 	Capacity    *int32
 	PhotoURL    *string

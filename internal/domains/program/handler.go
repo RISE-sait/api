@@ -75,7 +75,6 @@ func (h *Handler) GetPrograms(w http.ResponseWriter, r *http.Request) {
 			ID:          program.ID,
 			Name:        program.ProgramDetails.Name,
 			Description: program.ProgramDetails.Description,
-			Level:       program.ProgramDetails.Level,
 			Type:        program.ProgramDetails.Type,
 			CreatedAt:   program.CreatedAt,
 			UpdatedAt:   program.UpdatedAt,
@@ -126,7 +125,6 @@ func (h *Handler) GetProgram(w http.ResponseWriter, r *http.Request) {
 		ID:          program.ID,
 		Name:        program.ProgramDetails.Name,
 		Description: program.ProgramDetails.Description,
-		Level:       program.ProgramDetails.Level,
 		Type:        program.ProgramDetails.Type,
 		CreatedAt:   program.CreatedAt,
 		UpdatedAt:   program.UpdatedAt,
@@ -141,21 +139,6 @@ func (h *Handler) GetProgram(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
-}
-
-// GetProgramLevels retrieves available program levels.
-// @Tags programs
-// @Accept json
-// @Produce json
-// @Success 200 {array} dto.LevelsResponse "Get program levels retrieved successfully"
-// @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /programs/levels [get]
-func (h *Handler) GetProgramLevels(w http.ResponseWriter, _ *http.Request) {
-	levels := h.Service.GetProgramLevels()
-
-	response := dto.LevelsResponse{Name: levels}
-
-	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 }
 
 // UpdateProgram updates an existing program.

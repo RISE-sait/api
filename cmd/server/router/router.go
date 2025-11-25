@@ -324,7 +324,6 @@ func RegisterProgramRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Get("/", h.GetPrograms)
 		r.Get("/{id}", h.GetProgram)
-		r.Get("/levels", h.GetProgramLevels)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/", h.CreateProgram)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Put("/{id}", h.UpdateProgram)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{id}", h.DeleteProgram)

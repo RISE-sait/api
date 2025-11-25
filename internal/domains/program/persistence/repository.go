@@ -40,18 +40,6 @@ func (r *Repository) WithTx(tx *sql.Tx) *Repository {
 	}
 }
 
-func (r *Repository) GetProgramLevels() []string {
-	dbLevels := db.AllProgramProgramLevelValues()
-
-	var levels []string
-
-	for _, dbLevel := range dbLevels {
-		levels = append(levels, string(dbLevel))
-	}
-
-	return levels
-}
-
 func (r *Repository) Update(ctx context.Context, program values.UpdateProgramValues) *errLib.CommonError {
 	if !db.ProgramProgramType(program.Type).Valid() {
 		validTypes := db.AllProgramProgramTypeValues()
@@ -63,7 +51,6 @@ func (r *Repository) Update(ctx context.Context, program values.UpdateProgramVal
 		Name:        program.ProgramDetails.Name,
 		Description: program.ProgramDetails.Description,
 		Type:        db.ProgramProgramType(program.Type),
-		Level:       db.ProgramProgramLevel(program.ProgramDetails.Level),
 	}
 
 	if program.Capacity != nil {
@@ -113,7 +100,6 @@ func (r *Repository) GetProgramByID(ctx context.Context, id uuid.UUID) (values.G
 		ProgramDetails: values.ProgramDetails{
 			Name:        dbProgram.Name,
 			Description: dbProgram.Description,
-			Level:       string(dbProgram.Level),
 			Type:        string(dbProgram.Type),
 		},
 	}
@@ -166,7 +152,6 @@ func (r *Repository) List(ctx context.Context, programTypeStr string) ([]values.
 			ProgramDetails: values.ProgramDetails{
 				Name:        dbProgram.Name,
 				Description: dbProgram.Description,
-				Level:       string(dbProgram.Level),
 				Type:        string(dbProgram.Type),
 			},
 		}
@@ -212,7 +197,6 @@ func (r *Repository) Create(c context.Context, details values.CreateProgramValue
 	dbPracticeParams := db.CreateProgramParams{
 		Name:        details.Name,
 		Description: details.Description,
-		Level:       db.ProgramProgramLevel(details.Level),
 		Type:        db.ProgramProgramType(details.Type),
 	}
 

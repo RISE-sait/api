@@ -156,6 +156,54 @@ func (q *Queries) EnrollCustomerInProgram(ctx context.Context, arg EnrollCustome
 	return err
 }
 
+const getCustomerActiveMembershipPlans = `-- name: GetCustomerActiveMembershipPlans :many
+SELECT customer_id, membership_plan_id, status, start_date, renewal_date, next_billing_date, stripe_subscription_id
+FROM users.customer_membership_plans
+WHERE customer_id = $1 AND status = 'active'
+ORDER BY created_at DESC
+`
+
+type GetCustomerActiveMembershipPlansRow struct {
+	CustomerID           uuid.UUID                  `json:"customer_id"`
+	MembershipPlanID     uuid.UUID                  `json:"membership_plan_id"`
+	Status               MembershipMembershipStatus `json:"status"`
+	StartDate            time.Time                  `json:"start_date"`
+	RenewalDate          sql.NullTime               `json:"renewal_date"`
+	NextBillingDate      sql.NullTime               `json:"next_billing_date"`
+	StripeSubscriptionID sql.NullString             `json:"stripe_subscription_id"`
+}
+
+func (q *Queries) GetCustomerActiveMembershipPlans(ctx context.Context, customerID uuid.UUID) ([]GetCustomerActiveMembershipPlansRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCustomerActiveMembershipPlans, customerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCustomerActiveMembershipPlansRow
+	for rows.Next() {
+		var i GetCustomerActiveMembershipPlansRow
+		if err := rows.Scan(
+			&i.CustomerID,
+			&i.MembershipPlanID,
+			&i.Status,
+			&i.StartDate,
+			&i.RenewalDate,
+			&i.NextBillingDate,
+			&i.StripeSubscriptionID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCustomerIsEnrolledInProgram = `-- name: GetCustomerIsEnrolledInProgram :one
 SELECT (EXISTS (SELECT 1
                 FROM program.customer_enrollment

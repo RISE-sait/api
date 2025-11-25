@@ -311,3 +311,12 @@ func (r *CustomerEnrollmentRepository) EnrollCustomerInEvent(ctx context.Context
 
 	return nil
 }
+
+func (r *CustomerEnrollmentRepository) GetCustomerActiveMembershipPlans(ctx context.Context, customerID uuid.UUID) ([]dbEnrollment.GetCustomerActiveMembershipPlansRow, *errLib.CommonError) {
+	plans, err := r.Queries.GetCustomerActiveMembershipPlans(ctx, customerID)
+	if err != nil {
+		log.Printf("error getting customer active membership plans: %v", err)
+		return nil, errLib.New("Failed to get active membership plans", http.StatusInternalServerError)
+	}
+	return plans, nil
+}

@@ -141,3 +141,9 @@ WHERE customer_id = $2 AND subscription_source = 'stripe';
 UPDATE users.customer_membership_plans
 SET status = $1, next_billing_date = $2, updated_at = CURRENT_TIMESTAMP
 WHERE customer_id = $3 AND subscription_source = 'stripe';
+
+-- name: GetCustomerActiveMembershipPlans :many
+SELECT customer_id, membership_plan_id, status, start_date, renewal_date, next_billing_date, stripe_subscription_id
+FROM users.customer_membership_plans
+WHERE customer_id = $1 AND status = 'active'
+ORDER BY created_at DESC;

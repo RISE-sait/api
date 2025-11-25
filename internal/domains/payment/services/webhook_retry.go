@@ -2,6 +2,9 @@ package payment
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
+	"log"
 	"math"
 	"sync"
 	"time"
@@ -30,6 +33,7 @@ type WebhookRetryService struct {
 	multiplier     float64
 	logger         *logger.StructuredLogger
 	webhookService *WebhookService
+	db             *sql.DB
 	stopChan       chan struct{}
 	wg             sync.WaitGroup
 }
@@ -44,6 +48,7 @@ func NewWebhookRetryService(webhookService *WebhookService) *WebhookRetryService
 		multiplier:     2.0,                          // Exponential backoff multiplier
 		logger:         logger.WithComponent("webhook-retry"),
 		webhookService: webhookService,
+		db:             webhookService.db,            // Use DB from webhook service
 		stopChan:       make(chan struct{}),
 	}
 }
@@ -278,15 +283,48 @@ func (r *WebhookRetryService) handlePermanentFailure(attempt *RetryAttempt) {
 		"duration":       time.Since(attempt.CreatedAt).String(),
 	}).Error("Webhook permanently failed after all retry attempts", attempt.LastError)
 
-	// TODO: Implement dead letter queue storage
-	// TODO: Send alert to administrators
-	// TODO: Store in database for manual intervention
-	
-	// For now, just log the permanent failure
+	// Store in dead letter queue for manual intervention
+	r.insertIntoDeadLetterQueue(attempt)
+
+	// Log the permanent failure details
 	r.logger.WithFields(map[string]interface{}{
 		"event_data": string(attempt.Event.Data.Raw),
 		"event_id":   attempt.EventID,
 	}).Error("Permanently failed webhook event details", nil)
+}
+
+// insertIntoDeadLetterQueue stores the failed webhook in the database for manual recovery
+func (r *WebhookRetryService) insertIntoDeadLetterQueue(attempt *RetryAttempt) {
+	if r.db == nil {
+		log.Printf("[DEAD_LETTER] No database connection, cannot store failed webhook %s", attempt.EventID)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Convert event data to JSON
+	payloadJSON, err := json.Marshal(attempt.Event)
+	if err != nil {
+		log.Printf("[DEAD_LETTER] Failed to marshal event payload for %s: %v", attempt.EventID, err)
+		payloadJSON = attempt.Event.Data.Raw // Fall back to raw data
+	}
+
+	errorMessage := ""
+	if attempt.LastError != nil {
+		errorMessage = attempt.LastError.Error()
+	}
+
+	query := `INSERT INTO payment.failed_webhooks (event_id, event_type, payload, error_message, attempts, status)
+		VALUES ($1, $2, $3, $4, $5, 'failed')`
+
+	_, dbErr := r.db.ExecContext(ctx, query, attempt.EventID, string(attempt.Event.Type), payloadJSON, errorMessage, attempt.AttemptNumber)
+	if dbErr != nil {
+		log.Printf("[DEAD_LETTER] CRITICAL: Failed to insert webhook into dead letter queue: event_id=%s, error=%v", attempt.EventID, dbErr)
+	} else {
+		log.Printf("[DEAD_LETTER] Successfully stored failed webhook in dead letter queue: event_id=%s, event_type=%s, attempts=%d",
+			attempt.EventID, attempt.Event.Type, attempt.AttemptNumber)
+	}
 }
 
 // GetPendingRetries returns all pending retry attempts (for monitoring/debugging)

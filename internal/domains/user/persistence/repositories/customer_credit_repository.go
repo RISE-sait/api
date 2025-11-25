@@ -259,6 +259,19 @@ func (r *CustomerCreditRepository) UpdateWeeklyUsage(ctx context.Context, custom
 	return nil
 }
 
+// IsCustomerEnrolledInEvent checks if customer is already enrolled in an event (to prevent duplicate credit payments)
+func (r *CustomerCreditRepository) IsCustomerEnrolledInEvent(ctx context.Context, eventID, customerID uuid.UUID) (bool, *errLib.CommonError) {
+	result, err := r.queries.IsCustomerEnrolledInEvent(ctx, dbUser.IsCustomerEnrolledInEventParams{
+		EventID:    eventID,
+		CustomerID: customerID,
+	})
+	if err != nil {
+		log.Printf("Error checking customer enrollment: %v", err)
+		return false, errLib.New("Failed to check enrollment status", http.StatusInternalServerError)
+	}
+	return result, nil
+}
+
 // CanUseCreditsWithinWeeklyLimit checks if customer can use credits without exceeding weekly limit
 func (r *CustomerCreditRepository) CanUseCreditsWithinWeeklyLimit(ctx context.Context, customerID uuid.UUID, creditsToUse int32) (bool, *errLib.CommonError) {
 	// Calculate current week start (Monday of the current week)

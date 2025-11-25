@@ -139,6 +139,186 @@ func AllCreditTransactionTypeValues() []CreditTransactionType {
 	}
 }
 
+type DiscountAppliesTo string
+
+const (
+	DiscountAppliesToSubscription DiscountAppliesTo = "subscription"
+	DiscountAppliesToOneTime      DiscountAppliesTo = "one_time"
+	DiscountAppliesToBoth         DiscountAppliesTo = "both"
+)
+
+func (e *DiscountAppliesTo) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DiscountAppliesTo(s)
+	case string:
+		*e = DiscountAppliesTo(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DiscountAppliesTo: %T", src)
+	}
+	return nil
+}
+
+type NullDiscountAppliesTo struct {
+	DiscountAppliesTo DiscountAppliesTo `json:"discount_applies_to"`
+	Valid             bool              `json:"valid"` // Valid is true if DiscountAppliesTo is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDiscountAppliesTo) Scan(value interface{}) error {
+	if value == nil {
+		ns.DiscountAppliesTo, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DiscountAppliesTo.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDiscountAppliesTo) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DiscountAppliesTo), nil
+}
+
+func (e DiscountAppliesTo) Valid() bool {
+	switch e {
+	case DiscountAppliesToSubscription,
+		DiscountAppliesToOneTime,
+		DiscountAppliesToBoth:
+		return true
+	}
+	return false
+}
+
+func AllDiscountAppliesToValues() []DiscountAppliesTo {
+	return []DiscountAppliesTo{
+		DiscountAppliesToSubscription,
+		DiscountAppliesToOneTime,
+		DiscountAppliesToBoth,
+	}
+}
+
+type DiscountDurationType string
+
+const (
+	DiscountDurationTypeOnce      DiscountDurationType = "once"
+	DiscountDurationTypeRepeating DiscountDurationType = "repeating"
+	DiscountDurationTypeForever   DiscountDurationType = "forever"
+)
+
+func (e *DiscountDurationType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DiscountDurationType(s)
+	case string:
+		*e = DiscountDurationType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DiscountDurationType: %T", src)
+	}
+	return nil
+}
+
+type NullDiscountDurationType struct {
+	DiscountDurationType DiscountDurationType `json:"discount_duration_type"`
+	Valid                bool                 `json:"valid"` // Valid is true if DiscountDurationType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDiscountDurationType) Scan(value interface{}) error {
+	if value == nil {
+		ns.DiscountDurationType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DiscountDurationType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDiscountDurationType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DiscountDurationType), nil
+}
+
+func (e DiscountDurationType) Valid() bool {
+	switch e {
+	case DiscountDurationTypeOnce,
+		DiscountDurationTypeRepeating,
+		DiscountDurationTypeForever:
+		return true
+	}
+	return false
+}
+
+func AllDiscountDurationTypeValues() []DiscountDurationType {
+	return []DiscountDurationType{
+		DiscountDurationTypeOnce,
+		DiscountDurationTypeRepeating,
+		DiscountDurationTypeForever,
+	}
+}
+
+type DiscountType string
+
+const (
+	DiscountTypePercentage  DiscountType = "percentage"
+	DiscountTypeFixedAmount DiscountType = "fixed_amount"
+)
+
+func (e *DiscountType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DiscountType(s)
+	case string:
+		*e = DiscountType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DiscountType: %T", src)
+	}
+	return nil
+}
+
+type NullDiscountType struct {
+	DiscountType DiscountType `json:"discount_type"`
+	Valid        bool         `json:"valid"` // Valid is true if DiscountType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDiscountType) Scan(value interface{}) error {
+	if value == nil {
+		ns.DiscountType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DiscountType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDiscountType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DiscountType), nil
+}
+
+func (e DiscountType) Valid() bool {
+	switch e {
+	case DiscountTypePercentage,
+		DiscountTypeFixedAmount:
+		return true
+	}
+	return false
+}
+
+func AllDiscountTypeValues() []DiscountType {
+	return []DiscountType{
+		DiscountTypePercentage,
+		DiscountTypeFixedAmount,
+	}
+}
+
 type MembershipMembershipStatus string
 
 const (
@@ -264,70 +444,6 @@ func AllPaymentStatusValues() []PaymentStatus {
 	}
 }
 
-type ProgramProgramLevel string
-
-const (
-	ProgramProgramLevelBeginner     ProgramProgramLevel = "beginner"
-	ProgramProgramLevelIntermediate ProgramProgramLevel = "intermediate"
-	ProgramProgramLevelAdvanced     ProgramProgramLevel = "advanced"
-	ProgramProgramLevelAll          ProgramProgramLevel = "all"
-)
-
-func (e *ProgramProgramLevel) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = ProgramProgramLevel(s)
-	case string:
-		*e = ProgramProgramLevel(s)
-	default:
-		return fmt.Errorf("unsupported scan type for ProgramProgramLevel: %T", src)
-	}
-	return nil
-}
-
-type NullProgramProgramLevel struct {
-	ProgramProgramLevel ProgramProgramLevel `json:"program_program_level"`
-	Valid               bool                `json:"valid"` // Valid is true if ProgramProgramLevel is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullProgramProgramLevel) Scan(value interface{}) error {
-	if value == nil {
-		ns.ProgramProgramLevel, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.ProgramProgramLevel.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullProgramProgramLevel) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.ProgramProgramLevel), nil
-}
-
-func (e ProgramProgramLevel) Valid() bool {
-	switch e {
-	case ProgramProgramLevelBeginner,
-		ProgramProgramLevelIntermediate,
-		ProgramProgramLevelAdvanced,
-		ProgramProgramLevelAll:
-		return true
-	}
-	return false
-}
-
-func AllProgramProgramLevelValues() []ProgramProgramLevel {
-	return []ProgramProgramLevel{
-		ProgramProgramLevelBeginner,
-		ProgramProgramLevelIntermediate,
-		ProgramProgramLevelAdvanced,
-		ProgramProgramLevelAll,
-	}
-}
-
 type ProgramProgramType string
 
 const (
@@ -448,26 +564,26 @@ type AuditStaffActivityLog struct {
 }
 
 type Discount struct {
-	ID                    uuid.UUID      `json:"id"`
-	Name                  string         `json:"name"`
-	Description           sql.NullString `json:"description"`
-	DiscountPercent       int32          `json:"discount_percent"`
-	DiscountAmount        sql.NullString `json:"discount_amount"`
-	DiscountType          interface{}    `json:"discount_type"`
-	IsUseUnlimited        bool           `json:"is_use_unlimited"`
-	UsePerClient          sql.NullInt32  `json:"use_per_client"`
-	IsActive              bool           `json:"is_active"`
-	ValidFrom             time.Time      `json:"valid_from"`
-	ValidTo               sql.NullTime   `json:"valid_to"`
-	DurationType          interface{}    `json:"duration_type"`
-	DurationMonths        sql.NullInt32  `json:"duration_months"`
-	AppliesTo             interface{}    `json:"applies_to"`
-	MaxRedemptions        sql.NullInt32  `json:"max_redemptions"`
-	TimesRedeemed         int32          `json:"times_redeemed"`
-	StripeCouponID        sql.NullString `json:"stripe_coupon_id"`
-	CreatedAt             time.Time      `json:"created_at"`
-	UpdatedAt             time.Time      `json:"updated_at"`
-	StripePromotionCodeID sql.NullString `json:"stripe_promotion_code_id"`
+	ID                    uuid.UUID            `json:"id"`
+	Name                  string               `json:"name"`
+	Description           sql.NullString       `json:"description"`
+	DiscountPercent       int32                `json:"discount_percent"`
+	DiscountType          DiscountType         `json:"discount_type"`
+	IsUseUnlimited        bool                 `json:"is_use_unlimited"`
+	UsePerClient          sql.NullInt32        `json:"use_per_client"`
+	IsActive              bool                 `json:"is_active"`
+	ValidFrom             time.Time            `json:"valid_from"`
+	ValidTo               sql.NullTime         `json:"valid_to"`
+	CreatedAt             time.Time            `json:"created_at"`
+	UpdatedAt             time.Time            `json:"updated_at"`
+	StripeCouponID        sql.NullString       `json:"stripe_coupon_id"`
+	DurationType          DiscountDurationType `json:"duration_type"`
+	DurationMonths        sql.NullInt32        `json:"duration_months"`
+	DiscountAmount        sql.NullString       `json:"discount_amount"`
+	AppliesTo             DiscountAppliesTo    `json:"applies_to"`
+	MaxRedemptions        sql.NullInt32        `json:"max_redemptions"`
+	TimesRedeemed         int32                `json:"times_redeemed"`
+	StripePromotionCodeID sql.NullString       `json:"stripe_promotion_code_id"`
 }
 
 type EventsAttendance struct {
@@ -639,6 +755,38 @@ type NotificationsPushToken struct {
 	UpdatedAt     sql.NullTime   `json:"updated_at"`
 }
 
+type PaymentFailedRefund struct {
+	ID           uuid.UUID      `json:"id"`
+	CustomerID   uuid.UUID      `json:"customer_id"`
+	EventID      uuid.NullUUID  `json:"event_id"`
+	CreditAmount int32          `json:"credit_amount"`
+	ErrorMessage sql.NullString `json:"error_message"`
+	RetryCount   sql.NullInt32  `json:"retry_count"`
+	Status       sql.NullString `json:"status"`
+	CreatedAt    sql.NullTime   `json:"created_at"`
+	UpdatedAt    sql.NullTime   `json:"updated_at"`
+	ResolvedAt   sql.NullTime   `json:"resolved_at"`
+}
+
+type PaymentFailedWebhook struct {
+	ID           uuid.UUID             `json:"id"`
+	EventID      string                `json:"event_id"`
+	EventType    string                `json:"event_type"`
+	Payload      pqtype.NullRawMessage `json:"payload"`
+	ErrorMessage sql.NullString        `json:"error_message"`
+	Attempts     sql.NullInt32         `json:"attempts"`
+	Status       sql.NullString        `json:"status"`
+	CreatedAt    sql.NullTime          `json:"created_at"`
+	ResolvedAt   sql.NullTime          `json:"resolved_at"`
+}
+
+type PaymentWebhookEvent struct {
+	EventID     string         `json:"event_id"`
+	EventType   string         `json:"event_type"`
+	ProcessedAt sql.NullTime   `json:"processed_at"`
+	Status      sql.NullString `json:"status"`
+}
+
 // Centralized tracking of all payment transactions including memberships, events, programs, and subsidies
 type PaymentsPaymentTransaction struct {
 	ID              uuid.UUID `json:"id"`
@@ -737,16 +885,15 @@ type ProgramGame struct {
 }
 
 type ProgramProgram struct {
-	ID          uuid.UUID           `json:"id"`
-	Name        string              `json:"name"`
-	Description string              `json:"description"`
-	Level       ProgramProgramLevel `json:"level"`
-	Type        ProgramProgramType  `json:"type"`
-	Capacity    sql.NullInt32       `json:"capacity"`
-	CreatedAt   time.Time           `json:"created_at"`
-	UpdatedAt   time.Time           `json:"updated_at"`
-	PayPerEvent bool                `json:"pay_per_event"`
-	PhotoUrl    sql.NullString      `json:"photo_url"`
+	ID          uuid.UUID          `json:"id"`
+	Name        string             `json:"name"`
+	Description string             `json:"description"`
+	Type        ProgramProgramType `json:"type"`
+	Capacity    sql.NullInt32      `json:"capacity"`
+	CreatedAt   time.Time          `json:"created_at"`
+	UpdatedAt   time.Time          `json:"updated_at"`
+	PayPerEvent bool               `json:"pay_per_event"`
+	PhotoUrl    sql.NullString     `json:"photo_url"`
 }
 
 type StaffPendingStaff struct {

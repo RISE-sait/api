@@ -57,6 +57,25 @@ func (s *Service) getExistingStripeCustomerID(ctx context.Context, userID uuid.U
 	return &stripeCustomerID.String
 }
 
+// queueFailedRefund inserts a failed refund into the recovery queue for manual resolution
+func (s *Service) queueFailedRefund(ctx context.Context, customerID, eventID uuid.UUID, creditAmount int32, refundErr *errLib.CommonError) {
+	log.Printf("[REFUND_QUEUE] Queueing failed refund: customer=%s, event=%s, amount=%d, error=%s",
+		customerID, eventID, creditAmount, refundErr.Error())
+
+	query := `INSERT INTO payment.failed_refunds (customer_id, event_id, credit_amount, error_message, status)
+		VALUES ($1, $2, $3, $4, 'pending')`
+
+	_, dbErr := s.DB.ExecContext(ctx, query, customerID, eventID, creditAmount, refundErr.Error())
+	if dbErr != nil {
+		// If we can't even queue the refund, log it prominently for manual intervention
+		log.Printf("[REFUND_QUEUE] CRITICAL: Failed to queue refund for recovery: customer=%s, event=%s, amount=%d, queue_error=%v",
+			customerID, eventID, creditAmount, dbErr)
+	} else {
+		log.Printf("[REFUND_QUEUE] Successfully queued failed refund for recovery: customer=%s, event=%s, amount=%d",
+			customerID, eventID, creditAmount)
+	}
+}
+
 func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID uuid.UUID, discountCode *string, successURL string) (string, *errLib.CommonError) {
 	// Get customer ID from context
 	customerID, ctxErr := contextUtils.GetUserID(ctx)
@@ -357,6 +376,8 @@ func (s *Service) CheckoutEventWithCredits(ctx context.Context, eventID uuid.UUI
 		log.Printf("Seat reservation failed after credit deduction, attempting refund for customer %s, event %s", customerID, eventID)
 		if refundErr := s.CreditService.RefundCreditsForCancellation(ctx, eventID, customerID); refundErr != nil {
 			log.Printf("CRITICAL: Failed to refund credits after seat reservation failure: %v", refundErr)
+			// Queue the failed refund for manual recovery
+			s.queueFailedRefund(ctx, customerID, eventID, *options.CreditCost, refundErr)
 		}
 		return err
 	}

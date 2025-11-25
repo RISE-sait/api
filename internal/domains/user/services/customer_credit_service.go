@@ -29,6 +29,15 @@ func (s *CustomerCreditService) GetCustomerCredits(ctx context.Context, customer
 // EnrollWithCredits attempts to enroll a customer in an event using credits
 func (s *CustomerCreditService) EnrollWithCredits(ctx context.Context, eventID, customerID uuid.UUID) *errLib.CommonError {
 	return s.repo.ExecuteInTransaction(ctx, func(txRepo *repositories.CustomerCreditRepository) *errLib.CommonError {
+		// Check if customer is already enrolled in this event (prevent duplicate payments)
+		isEnrolled, err := txRepo.IsCustomerEnrolledInEvent(ctx, eventID, customerID)
+		if err != nil {
+			return err
+		}
+		if isEnrolled {
+			return errLib.New("Already enrolled in this event", http.StatusConflict)
+		}
+
 		// Get event credit cost
 		creditCost, err := txRepo.GetEventCreditCost(ctx, eventID)
 		if err != nil {

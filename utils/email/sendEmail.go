@@ -101,3 +101,23 @@ func SendSubsidyExpiringEmail(to, firstName string, remainingBalance float64, ex
 		log.Printf("Subsidy expiring email sent successfully to %s", to)
 	}
 }
+
+// SendPaymentFailedEmail sends a notification when a membership payment fails
+func SendPaymentFailedEmail(to, firstName, membershipPlan, updatePaymentURL string) {
+	body := PaymentFailedBody(firstName, membershipPlan, updatePaymentURL)
+	if err := SendEmail(to, "Action Required: Payment Failed - Rise", body); err != nil {
+		log.Println("failed to send payment failed email:", err.Message)
+	} else {
+		log.Printf("Payment failed email sent successfully to %s", to)
+	}
+}
+
+// SendPaymentFailedReminderEmail sends a reminder about failed payment
+func SendPaymentFailedReminderEmail(to, firstName, membershipPlan, updatePaymentURL string, daysUntilSuspension int) {
+	body := PaymentFailedReminderBody(firstName, membershipPlan, updatePaymentURL, daysUntilSuspension)
+	if err := SendEmail(to, "Reminder: Update Payment Method - Rise", body); err != nil {
+		log.Println("failed to send payment failed reminder email:", err.Message)
+	} else {
+		log.Printf("Payment failed reminder email sent successfully to %s", to)
+	}
+}

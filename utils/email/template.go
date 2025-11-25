@@ -267,3 +267,118 @@ func SubsidyExpiringBody(firstName string, remainingBalance float64, expiryDate 
 		</html>
 	`, firstName, remainingBalance, expiryDate)
 }
+
+func PaymentFailedBody(firstName, membershipPlan, updatePaymentURL string) string {
+	return fmt.Sprintf(`
+		<!DOCTYPE html>
+		<html>
+		<head>
+			<style>
+				body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+				.container { max-width: 600px; margin: 0 auto; padding: 20px; }
+				.header { background-color: #dc3545; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+				.content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 5px 5px; }
+				.alert-box { background-color: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; }
+				.info-box { background-color: white; border: 1px solid #ddd; padding: 20px; margin: 20px 0; border-radius: 5px; }
+				.button { display: inline-block; padding: 12px 30px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+				.footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
+			</style>
+		</head>
+		<body>
+			<div class="container">
+				<div class="header">
+					<h1>⚠️ Payment Failed</h1>
+				</div>
+				<div class="content">
+					<p>Hi %s,</p>
+
+					<p>We were unable to process your payment for your <strong>%s</strong> membership.</p>
+
+					<div class="alert-box">
+						<strong>What happened?</strong>
+						<p style="margin: 10px 0;">Your payment method was declined. This could be due to insufficient funds, an expired card, or your bank blocking the transaction.</p>
+					</div>
+
+					<div class="info-box">
+						<strong>What you need to do:</strong>
+						<ol style="margin: 10px 0;">
+							<li>Check that your payment method has sufficient funds</li>
+							<li>Make sure your card hasn't expired</li>
+							<li>Update your payment method using the button below</li>
+						</ol>
+					</div>
+
+					<p style="text-align: center;">
+						<a href="%s" class="button">Update Payment Method</a>
+					</p>
+
+					<div class="alert-box">
+						<strong>Important:</strong>
+						<p style="margin: 10px 0;">If payment is not received within 7 days, your membership access may be suspended. Please update your payment method as soon as possible to avoid any interruption to your membership benefits.</p>
+					</div>
+
+					<p>If you have any questions or need assistance, please contact us.</p>
+
+					<div class="footer">
+						<p>Thanks,<br>The Rise Team</p>
+						<p>This is an automated message, please do not reply to this email.</p>
+					</div>
+				</div>
+			</div>
+		</body>
+		</html>
+	`, firstName, membershipPlan, updatePaymentURL)
+}
+
+func PaymentFailedReminderBody(firstName, membershipPlan, updatePaymentURL string, daysUntilSuspension int) string {
+	return fmt.Sprintf(`
+		<!DOCTYPE html>
+		<html>
+		<head>
+			<style>
+				body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+				.container { max-width: 600px; margin: 0 auto; padding: 20px; }
+				.header { background-color: #ffc107; color: #333; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+				.content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 5px 5px; }
+				.urgent { background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
+				.countdown { background-color: white; border: 2px solid #dc3545; padding: 20px; margin: 20px 0; border-radius: 5px; text-align: center; }
+				.button { display: inline-block; padding: 12px 30px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+				.footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
+			</style>
+		</head>
+		<body>
+			<div class="container">
+				<div class="header">
+					<h1>⏰ Payment Reminder</h1>
+				</div>
+				<div class="content">
+					<p>Hi %s,</p>
+
+					<p>This is a reminder that we still haven't received payment for your <strong>%s</strong> membership.</p>
+
+					<div class="countdown">
+						<p style="margin: 10px 0; color: #666;">Days Until Membership Suspension</p>
+						<p style="font-size: 48px; font-weight: bold; color: #dc3545; margin: 10px 0;">%d</p>
+					</div>
+
+					<div class="urgent">
+						<strong>Don't lose your membership benefits!</strong>
+						<p style="margin: 10px 0;">Update your payment method now to continue enjoying all your membership benefits without interruption.</p>
+					</div>
+
+					<p style="text-align: center;">
+						<a href="%s" class="button">Update Payment Now</a>
+					</p>
+
+					<p>If you've already updated your payment method, please disregard this email.</p>
+
+					<div class="footer">
+						<p>Thanks,<br>The Rise Team</p>
+						<p>This is an automated message, please do not reply to this email.</p>
+					</div>
+				</div>
+			</div>
+		</body>
+		</html>
+	`, firstName, membershipPlan, daysUntilSuspension, updatePaymentURL)
+}

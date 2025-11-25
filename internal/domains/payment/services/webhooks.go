@@ -63,7 +63,7 @@ func NewWebhookService(container *di.Container) *WebhookService {
 		CreditPackageRepo:      creditPackageRepo.NewCreditPackageRepository(container),
 		SubsidyService:         subsidyService.NewSubsidyService(container),
 		PaymentTracking:        tracking.NewPaymentTrackingService(container),
-		Idempotency:            NewWebhookIdempotency(24*time.Hour, 10000), // Store events for 24 hours, max 10k events
+		Idempotency:            NewWebhookIdempotencyWithDB(container.DB, 24*time.Hour, 10000), // Database-backed with cache
 		logger:                 logger.WithComponent("stripe-webhooks"),
 		db:                     container.DB,
 		container:              container,
@@ -112,7 +112,7 @@ func (s *WebhookService) HandleCheckoutSessionCompleted(event stripe.Event) *err
 
 	// Mark as processed only if successful
 	if err == nil {
-		s.Idempotency.MarkAsProcessed(event.ID)
+		s.Idempotency.MarkAsProcessedWithType(event.ID, string(event.Type))
 		webhookLogger.Info("Webhook event processed successfully")
 	} else {
 		webhookLogger.Error("Webhook processing failed", err)
@@ -589,7 +589,8 @@ func (s *WebhookService) processSubscriptionWithEndDate(subscriptionID string, t
 	if stripeErr := s.updateSubscriptionCancelAt(sub.ID, cancelAtUnix); stripeErr != nil {
 		log.Printf("WARNING: Failed to update subscription cancel date for %s: %v", sub.ID, stripeErr)
 		log.Printf("WARNING: Enrollment succeeded but Stripe subscription cancel date could not be set")
-		// Consider implementing a background retry job for this
+		// Queue for background retry
+		s.queueSubscriptionCancelUpdate(sub.ID, cancelAtUnix)
 	} else {
 		log.Printf("Successfully set cancel date for subscription %s", sub.ID)
 	}
@@ -757,9 +758,9 @@ func (s *WebhookService) HandleSubscriptionCreated(event stripe.Event) *errLib.C
 	// Update database with subscription status
 	// This would involve updating the membership plan status to active
 	log.Printf("[WEBHOOK] Successfully processed subscription creation for user %s", userID)
-	
+
 	// Mark as processed
-	s.Idempotency.MarkAsProcessed(event.ID)
+	s.Idempotency.MarkAsProcessedWithType(event.ID, string(event.Type))
 	return nil
 }
 
@@ -829,7 +830,7 @@ func (s *WebhookService) HandleSubscriptionUpdated(event stripe.Event) *errLib.C
 	log.Printf("[WEBHOOK] Successfully updated subscription %s status to %s for user %s", sub.ID, dbStatus, userID)
 
 	// Mark as processed
-	s.Idempotency.MarkAsProcessed(event.ID)
+	s.Idempotency.MarkAsProcessedWithType(event.ID, string(event.Type))
 	return nil
 }
 
@@ -881,7 +882,7 @@ func (s *WebhookService) HandleSubscriptionDeleted(event stripe.Event) *errLib.C
 	log.Printf("[WEBHOOK] Successfully marked subscription %s as expired for user %s", sub.ID, userID)
 
 	// Mark as processed
-	s.Idempotency.MarkAsProcessed(event.ID)
+	s.Idempotency.MarkAsProcessedWithType(event.ID, string(event.Type))
 	return nil
 }
 
@@ -968,7 +969,7 @@ func (s *WebhookService) HandleInvoicePaymentSucceeded(event stripe.Event) *errL
 	go s.trackMembershipRenewal(&invoice, userID, time.Unix(event.Created, 0))
 
 	// Mark as processed
-	s.Idempotency.MarkAsProcessed(event.ID)
+	s.Idempotency.MarkAsProcessedWithType(event.ID, string(event.Type))
 	return nil
 }
 
@@ -998,17 +999,17 @@ func (s *WebhookService) HandleInvoicePaymentFailed(event stripe.Event) *errLib.
 			userID, err := uuid.Parse(userIDStr)
 			if err == nil {
 				log.Printf("[WEBHOOK] Payment failed for user %s, handling payment failure", userID)
-				
+
 				// Update membership status to inactive due to payment failure
 				if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatus(context.Background(), userID, "inactive"); updateErr != nil {
 					log.Printf("[WEBHOOK] Failed to update membership status after payment failure: %v", updateErr)
 					return updateErr
 				}
-				
+
 				log.Printf("[WEBHOOK] Successfully marked membership as inactive for user %s after payment failure %s", userID, invoice.ID)
-				
-				// TODO: Send email notification about payment failure
-				// s.sendPaymentFailureEmail(userID, invoice.ID)
+
+				// Send email notification about payment failure
+				go s.sendPaymentFailureEmail(userID, invoice.ID)
 			} else {
 				log.Printf("[WEBHOOK] Invalid userID format for failed invoice %s: %v", invoice.ID, err)
 				return errLib.New("Invalid user ID format", http.StatusBadRequest)
@@ -1021,16 +1022,77 @@ func (s *WebhookService) HandleInvoicePaymentFailed(event stripe.Event) *errLib.
 	}
 
 	// Mark as processed
-	s.Idempotency.MarkAsProcessed(event.ID)
+	s.Idempotency.MarkAsProcessedWithType(event.ID, string(event.Type))
 	return nil
 }
 
 // allocateCreditsForMembership allocates credits to a customer when they purchase a credit-based membership
 func (s *WebhookService) allocateCreditsForMembership(ctx context.Context, customerID, membershipPlanID uuid.UUID) *errLib.CommonError {
 	log.Printf("Allocating credits for customer %s with membership plan %s", customerID, membershipPlanID)
-	
+
 	// Use the credit service to handle allocation logic
 	return s.CreditService.AllocateCreditsOnMembershipPurchase(ctx, customerID, membershipPlanID)
+}
+
+// queueSubscriptionCancelUpdate queues a failed subscription cancel date update for background retry
+func (s *WebhookService) queueSubscriptionCancelUpdate(subscriptionID string, cancelAtUnix int64) {
+	log.Printf("[CANCEL_QUEUE] Queueing subscription cancel date update: subscription=%s, cancel_at=%d", subscriptionID, cancelAtUnix)
+
+	// For now, we'll just retry asynchronously with exponential backoff
+	go func() {
+		maxRetries := 3
+		baseDelay := 5 * time.Second
+
+		for attempt := 1; attempt <= maxRetries; attempt++ {
+			delay := baseDelay * time.Duration(attempt*attempt) // Quadratic backoff
+			log.Printf("[CANCEL_QUEUE] Retry attempt %d/%d for subscription %s in %v", attempt, maxRetries, subscriptionID, delay)
+			time.Sleep(delay)
+
+			if err := s.updateSubscriptionCancelAt(subscriptionID, cancelAtUnix); err == nil {
+				log.Printf("[CANCEL_QUEUE] Successfully updated subscription %s cancel date on retry %d", subscriptionID, attempt)
+				return
+			} else {
+				log.Printf("[CANCEL_QUEUE] Retry %d failed for subscription %s: %v", attempt, subscriptionID, err)
+			}
+		}
+
+		log.Printf("[CANCEL_QUEUE] CRITICAL: All retries failed for subscription %s cancel date update. Manual intervention required.", subscriptionID)
+	}()
+}
+
+// sendPaymentFailureEmail sends an email notification when a payment fails
+func (s *WebhookService) sendPaymentFailureEmail(userID uuid.UUID, invoiceID string) {
+	log.Printf("[EMAIL] Attempting to send payment failure email for user %s, invoice %s", userID, invoiceID)
+
+	// Get user info
+	userInfo, err := s.UserRepo.GetUserInfo(context.Background(), "", userID)
+	if err != nil {
+		log.Printf("[EMAIL] Failed to get user info for %s: %v", userID, err)
+		return
+	}
+
+	if userInfo.Email == nil {
+		log.Printf("[EMAIL] User %s has no email address", userID)
+		return
+	}
+
+	// Get active membership plan name
+	membershipPlanName := "your membership"
+	activePlans, planErr := s.EnrollmentRepo.GetCustomerActiveMembershipPlans(context.Background(), userID)
+	if planErr == nil && len(activePlans) > 0 {
+		// Get the first active plan's name
+		plan, pErr := s.PlansRepo.GetMembershipPlanById(context.Background(), activePlans[0].MembershipPlanID)
+		if pErr == nil {
+			membershipPlanName = plan.Name
+		}
+	}
+
+	// Create Stripe billing portal URL for the user to update payment
+	updatePaymentURL := "https://www.risesportscomplex.com/account/billing"
+
+	log.Printf("[EMAIL] Sending payment failure email to %s for %s", *userInfo.Email, membershipPlanName)
+	email.SendPaymentFailedEmail(*userInfo.Email, userInfo.FirstName, membershipPlanName, updatePaymentURL)
+	log.Printf("[EMAIL] Payment failure email sent successfully to %s", *userInfo.Email)
 }
 
 // isCustomerAlreadyEnrolled checks if a customer is already enrolled in a membership plan

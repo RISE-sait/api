@@ -111,6 +111,15 @@ WHERE cmp.customer_id = $1
 ORDER BY cmp.created_at DESC
 LIMIT 1;
 
+-- name: IsCustomerEnrolledInEvent :one
+-- Check if customer is already enrolled in an event (to prevent duplicate credit payments)
+SELECT EXISTS(
+    SELECT 1 FROM events.customer_enrollment
+    WHERE event_id = $1
+    AND customer_id = $2
+    AND payment_status IN ('pending', 'paid')
+) as is_enrolled;
+
 -- name: CheckWeeklyCreditLimit :one
 -- Check if customer can use specified credits without exceeding weekly limit
 -- Prioritizes active credit package over membership plan

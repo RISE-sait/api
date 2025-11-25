@@ -39,7 +39,7 @@ func (s *NotificationService) SendTeamNotification(ctx context.Context, teamID u
 
 	fmt.Printf("[NOTIFICATION] Sending %s notification to team %s, found %d push tokens\n", notification.Type, teamID, len(tokens))
 	for i, token := range tokens {
-		fmt.Printf("[NOTIFICATION]   Token %d: user_id=%s\n", i+1, token.UserID)
+		fmt.Printf("[NOTIFICATION]   Token %d: user_id=%s, device_type=%s, token_prefix=%s\n", i+1, token.UserID, token.DeviceType, token.ExpoPushToken[:min(len(token.ExpoPushToken), 30)])
 	}
 
 	if len(tokens) == 0 {
@@ -116,10 +116,16 @@ func (s *NotificationService) sendToExpo(messages []ExpoMessage) *errLib.CommonE
 		return errLib.New("Failed to decode Expo response", http.StatusInternalServerError)
 	}
 
-	// Log any errors from Expo
-	for _, result := range expoResp.Data {
+	// Log results from Expo for each message
+	for i, result := range expoResp.Data {
+		tokenPrefix := ""
+		if i < len(messages) {
+			tokenPrefix = messages[i].To[:min(len(messages[i].To), 30)]
+		}
 		if result.Status == "error" {
-			fmt.Printf("Expo push notification error: %s - %v\n", result.Message, result.Details)
+			fmt.Printf("[NOTIFICATION] Expo ERROR for token %s: %s - %v\n", tokenPrefix, result.Message, result.Details)
+		} else {
+			fmt.Printf("[NOTIFICATION] Expo OK for token %s: ticket_id=%s\n", tokenPrefix, result.ID)
 		}
 	}
 

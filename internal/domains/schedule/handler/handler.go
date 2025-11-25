@@ -64,7 +64,7 @@ func (h *Handler) GetMySchedule(w http.ResponseWriter, r *http.Request) {
 
 	// Events
 	var eventRecords []eventValues.ReadEventValues
-	if role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin {
+	if role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin || role == contextUtils.RoleReceptionist {
 		eventRecords, err = h.eventSvc.GetEvents(ctx, eventValues.GetEventsFilter{})
 	} else {
 		// For coaches/athletes, get events they're enrolled in or assigned to
@@ -83,7 +83,7 @@ func (h *Handler) GetMySchedule(w http.ResponseWriter, r *http.Request) {
 
 	// Games
 	var gameRecords []gameValues.ReadGameValue
-	if role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin {
+	if role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin || role == contextUtils.RoleReceptionist {
 		gameRecords, err = h.gameSvc.GetGames(ctx, gameValues.GetGamesFilter{
 			Limit:  1000,
 			Offset: 0,
@@ -102,7 +102,7 @@ func (h *Handler) GetMySchedule(w http.ResponseWriter, r *http.Request) {
 
 	// Practices
 	var practiceRecords []practiceValues.ReadPracticeValue
-	if role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin {
+	if role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin || role == contextUtils.RoleReceptionist {
 		practiceRecords, err = h.practiceSvc.GetPractices(ctx, uuid.Nil, 1000, 0)
 	} else {
 		practiceRecords, err = h.practiceSvc.GetUserPractices(ctx, userID, role, 1000, 0)

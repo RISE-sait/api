@@ -272,8 +272,8 @@ func (h *EventsHandler) GetRoleEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Admins should have access to all events 
-	if role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin {
+	// Admins and receptionists should have access to all events
+	if role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin || role == contextUtils.RoleReceptionist {
 		h.GetEvents(w, r)
 		return
 	}

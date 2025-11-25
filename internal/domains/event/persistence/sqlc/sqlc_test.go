@@ -50,9 +50,8 @@ func TestCreateEvents(t *testing.T) {
 	require.NoError(t, err)
 
 	createdProgram, err := programQueries.CreateProgram(context.Background(), programDb.CreateProgramParams{
-		Name:  "Go Basics Practice",
-		Level: "beginner",
-		Type:  programDb.ProgramProgramTypeCourse,
+		Name: "Go Basics Practice",
+		Type: programDb.ProgramProgramTypeCourse,
 	})
 
 	require.NoError(t, err)
@@ -143,9 +142,8 @@ func TestUpdateEvent(t *testing.T) {
 	require.NoError(t, err)
 
 	createdProgram, err := programQueries.CreateProgram(context.Background(), programDb.CreateProgramParams{
-		Name:  "Go Basics Practice",
-		Level: "beginner",
-		Type:  programDb.ProgramProgramTypeCourse,
+		Name: "Go Basics Practice",
+		Type: programDb.ProgramProgramTypeCourse,
 	})
 
 	require.NoError(t, err)
@@ -227,9 +225,8 @@ func TestDeleteEvent(t *testing.T) {
 	require.NoError(t, err)
 
 	createProgramParams := programDb.CreateProgramParams{
-		Name:  "Go Basics Practice",
-		Level: "beginner",
-		Type:  programDb.ProgramProgramTypeCourse,
+		Name: "Go Basics Practice",
+		Type: programDb.ProgramProgramTypeCourse,
 	}
 
 	createdProgram, err := programQueries.CreateProgram(context.Background(), createProgramParams)
@@ -305,9 +302,8 @@ func TestGetEventsByCourt(t *testing.T) {
 	require.NoError(t, err)
 
 	createdProgram, err := programQueries.CreateProgram(context.Background(), programDb.CreateProgramParams{
-		Name:  "Test Program",
-		Level: "beginner",
-		Type:  programDb.ProgramProgramTypeCourse,
+		Name: "Test Program",
+		Type: programDb.ProgramProgramTypeCourse,
 	})
 	require.NoError(t, err)
 

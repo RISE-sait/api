@@ -154,8 +154,7 @@ func TestEnrollCustomerInProgramEvents_ACID_No_race_condition(t *testing.T) {
 			Int32: 2,
 			Valid: true,
 		},
-		Level: dbProgram.ProgramProgramLevelAll,
-		Type:  dbProgram.ProgramProgramTypeCourse,
+		Type: dbProgram.ProgramProgramTypeCourse,
 	})
 
 	require.NoError(t, err)

@@ -19,6 +19,12 @@ type PlanDetails struct {
 
 type PlanCreateValues struct {
 	PlanDetails
+	// Fields for Stripe auto-creation (when StripePriceID is not provided)
+	UnitAmount       *int64 // Price in cents
+	Currency         string // "cad" or "usd"
+	BillingInterval  string // "month", "year", "week", "day"
+	IntervalCount    *int64 // defaults to 1
+	JoiningFeeAmount *int64 // optional one-time fee in cents
 }
 
 type PlanUpdateValues struct {

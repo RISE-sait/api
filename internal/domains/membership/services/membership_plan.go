@@ -21,6 +21,7 @@ type PlanService struct {
 	repo                     *repo.PlansRepository
 	staffActivityLogsService *staffActivityLogs.Service
 	stripeService            *stripeService.PriceService
+	productService           *stripeService.ProductService
 	db                       *sql.DB
 }
 
@@ -30,6 +31,7 @@ func NewPlanService(container *di.Container) *PlanService {
 		repo:                     repo.NewMembershipPlansRepository(container),
 		staffActivityLogsService: staffActivityLogs.NewService(container),
 		stripeService:            stripeService.NewPriceService(),
+		productService:           stripeService.NewProductService(),
 		db:                       container.DB,
 	}
 }
@@ -135,6 +137,51 @@ func (s *PlanService) GetAllPlansWithStripeData(ctx context.Context, membershipI
 }
 
 func (s *PlanService) CreateMembershipPlan(ctx context.Context, details values.PlanCreateValues) *errLib.CommonError {
+
+	// If no StripePriceID provided, create product/price in Stripe
+	if details.StripePriceID == "" {
+		// Set defaults
+		currency := details.Currency
+		if currency == "" {
+			currency = "cad"
+		}
+		intervalCount := int64(1)
+		if details.IntervalCount != nil {
+			intervalCount = *details.IntervalCount
+		}
+
+		// Create Stripe Product + recurring Price
+		priceID, productID, err := s.productService.CreateProductWithRecurringPrice(
+			details.Name,
+			"",
+			*details.UnitAmount,
+			currency,
+			details.BillingInterval,
+			intervalCount,
+		)
+		if err != nil {
+			return err
+		}
+
+		details.StripePriceID = priceID
+		log.Printf("[STRIPE] Created Stripe product %s with price %s for plan '%s'", productID, priceID, details.Name)
+
+		// If joining fee provided, create one-time price
+		if details.JoiningFeeAmount != nil && *details.JoiningFeeAmount > 0 {
+			joiningFeePriceID, err := s.productService.CreateOneTimePrice(
+				productID,
+				*details.JoiningFeeAmount,
+				currency,
+				"Joining Fee",
+			)
+			if err != nil {
+				return err
+			}
+			details.StripeJoiningFeesID = joiningFeePriceID
+			details.JoiningFee = int(*details.JoiningFeeAmount)
+			log.Printf("[STRIPE] Created Stripe joining fee price %s for plan '%s'", joiningFeePriceID, details.Name)
+		}
+	}
 
 	return s.executeInTx(ctx, func(txRepo *repo.PlansRepository) *errLib.CommonError {
 		if err := txRepo.CreateMembershipPlan(ctx, details); err != nil {

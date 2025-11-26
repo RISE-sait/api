@@ -70,7 +70,7 @@ func TestRequestDto_Validation(t *testing.T) {
 		expectedErrorMessage string
 	}{
 		{
-			name: "Valid DTO",
+			name: "Valid DTO with stripe price ID",
 			dto: &PlanRequestDto{
 				MembershipID:        uuid.New(),
 				Name:                "Go Programming Basics",
@@ -103,8 +103,53 @@ func TestRequestDto_Validation(t *testing.T) {
 			expectErr:            true,
 			expectedErrorMessage: `amt_periods: must be greater than 0`,
 		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validators.ValidateDto(tc.dto)
+			if tc.expectErr {
+				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tc.expectedErrorMessage)
+			} else {
+				assert.Nil(t, err)
+			}
+		})
+	}
+}
+
+func TestRequestDto_ToCreateValueObjects(t *testing.T) {
+	tests := []struct {
+		name                 string
+		dto                  *PlanRequestDto
+		expectErr            bool
+		expectedErrorMessage string
+	}{
 		{
-			name: "Invalid DTO with empty stripe price ID",
+			name: "Valid DTO with stripe price ID",
+			dto: &PlanRequestDto{
+				MembershipID:        uuid.New(),
+				Name:                "Go Programming Basics",
+				AmtPeriods:          int32Ptr(5),
+				StripePriceID:       "price_123",
+				StripeJoiningFeesID: "fee_123",
+			},
+			expectErr: false,
+		},
+		{
+			name: "Valid DTO with pricing details (auto-create Stripe)",
+			dto: &PlanRequestDto{
+				MembershipID:    uuid.New(),
+				Name:            "Go Programming Basics",
+				AmtPeriods:      int32Ptr(5),
+				UnitAmount:      int64Ptr(5000),
+				Currency:        "cad",
+				BillingInterval: "month",
+			},
+			expectErr: false,
+		},
+		{
+			name: "Invalid DTO with neither stripe price ID nor pricing details",
 			dto: &PlanRequestDto{
 				MembershipID:        uuid.New(),
 				Name:                "Go Programming Basics",
@@ -113,16 +158,28 @@ func TestRequestDto_Validation(t *testing.T) {
 				StripeJoiningFeesID: "fee_123",
 			},
 			expectErr:            true,
-			expectedErrorMessage: `stripe_price_id: required`,
+			expectedErrorMessage: `Either stripe_price_id or pricing details`,
+		},
+		{
+			name: "Invalid DTO with invalid billing interval",
+			dto: &PlanRequestDto{
+				MembershipID:    uuid.New(),
+				Name:            "Go Programming Basics",
+				AmtPeriods:      int32Ptr(5),
+				UnitAmount:      int64Ptr(5000),
+				BillingInterval: "invalid",
+			},
+			expectErr:            true,
+			expectedErrorMessage: `Invalid billing_interval`,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			err := validators.ValidateDto(tc.dto)
+			_, err := tc.dto.ToCreateValueObjects()
 			if tc.expectErr {
 				assert.NotNil(t, err)
-				assert.Contains(t, tc.expectedErrorMessage, err.Error())
+				assert.Contains(t, err.Error(), tc.expectedErrorMessage)
 			} else {
 				assert.Nil(t, err)
 			}
@@ -131,5 +188,9 @@ func TestRequestDto_Validation(t *testing.T) {
 }
 
 func int32Ptr(i int32) *int32 {
+	return &i
+}
+
+func int64Ptr(i int64) *int64 {
 	return &i
 }

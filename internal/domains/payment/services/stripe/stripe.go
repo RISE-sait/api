@@ -1225,6 +1225,66 @@ func (s *ProductService) CreateProductWithRecurringPrice(
 	return stripePrice.ID, stripeProduct.ID, nil
 }
 
+// CreateProductWithOneTimePrice creates a Stripe Product and a one-time Price (for credit packages)
+// Returns the stripe_price_id and stripe_product_id to store in the database
+func (s *ProductService) CreateProductWithOneTimePrice(
+	productName string,
+	productDescription string,
+	unitAmount int64,
+	currency string,
+) (stripePriceID string, stripeProductID string, err *errLib.CommonError) {
+	// Validate inputs
+	if strings.TrimSpace(productName) == "" {
+		return "", "", errLib.New("product name cannot be empty", http.StatusBadRequest)
+	}
+	if unitAmount <= 0 {
+		return "", "", errLib.New("unit amount must be positive", http.StatusBadRequest)
+	}
+	if strings.TrimSpace(currency) == "" {
+		currency = "cad"
+	}
+
+	// Check if Stripe is initialized
+	if strings.ReplaceAll(stripe.Key, " ", "") == "" {
+		return "", "", errLib.New("Stripe not initialized", http.StatusInternalServerError)
+	}
+
+	// Create the Stripe Product
+	productParams := &stripe.ProductParams{
+		Name:   stripe.String(productName),
+		Active: stripe.Bool(true),
+	}
+	if productDescription != "" {
+		productParams.Description = stripe.String(productDescription)
+	}
+
+	stripeProduct, productErr := product.New(productParams)
+	if productErr != nil {
+		log.Printf("[STRIPE] Failed to create product '%s': %v", productName, productErr)
+		return "", "", errLib.New("Failed to create Stripe product: "+productErr.Error(), http.StatusInternalServerError)
+	}
+
+	log.Printf("[STRIPE] Created product '%s' with ID: %s", productName, stripeProduct.ID)
+
+	// Create the one-time Price attached to the Product
+	priceParams := &stripe.PriceParams{
+		Product:    stripe.String(stripeProduct.ID),
+		UnitAmount: stripe.Int64(unitAmount),
+		Currency:   stripe.String(currency),
+	}
+
+	stripePrice, priceErr := price.New(priceParams)
+	if priceErr != nil {
+		log.Printf("[STRIPE] Failed to create price for product '%s': %v", stripeProduct.ID, priceErr)
+		return "", "", errLib.New("Failed to create Stripe price: "+priceErr.Error(), http.StatusInternalServerError)
+	}
+
+	log.Printf("[STRIPE] Created one-time price %s ($%d %s) for product %s",
+		stripePrice.ID, unitAmount, currency, stripeProduct.ID)
+
+	return stripePrice.ID, stripeProduct.ID, nil
+}
+
 // CreateOneTimePrice creates a one-time Price for an existing Product (for joining fees)
 // Returns the stripe_price_id for the one-time fee
 func (s *ProductService) CreateOneTimePrice(

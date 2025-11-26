@@ -104,16 +104,19 @@ func (r *UsersRepository) createCustomerTx(ctx context.Context, tx *sql.Tx, inpu
 
 func (r *UsersRepository) CreateAthleteTx(ctx context.Context, tx *sql.Tx, input values.AthleteRegistrationRequestInfo) (values.UserReadInfo, *errLib.CommonError) {
 	customer, qErr := r.createCustomerTx(ctx, tx, dbIdentity.CreateUserParams{
-		Email:                    sql.NullString{String: input.Email, Valid: true},
-		HubspotID:                sql.NullString{},
-		Phone:                    sql.NullString{String: input.Phone, Valid: true},
-		CountryAlpha2Code:        input.CountryCode,
-		Dob:                      input.DOB,
-		HasMarketingEmailConsent: input.HasConsentToEmailMarketing,
-		HasSmsConsent:            input.HasConsentToSms,
-		ParentEmail:              sql.NullString{Valid: false},
-		FirstName:                input.FirstName,
-		LastName:                 input.LastName,
+		Email:                        sql.NullString{String: input.Email, Valid: true},
+		HubspotID:                    sql.NullString{},
+		Phone:                        sql.NullString{String: input.Phone, Valid: true},
+		CountryAlpha2Code:            input.CountryCode,
+		Dob:                          input.DOB,
+		HasMarketingEmailConsent:     input.HasConsentToEmailMarketing,
+		HasSmsConsent:                input.HasConsentToSms,
+		ParentEmail:                  sql.NullString{Valid: false},
+		FirstName:                    input.FirstName,
+		LastName:                     input.LastName,
+		EmergencyContactName:         sql.NullString{String: input.EmergencyContactName, Valid: input.EmergencyContactName != ""},
+		EmergencyContactPhone:        sql.NullString{String: input.EmergencyContactPhone, Valid: input.EmergencyContactPhone != ""},
+		EmergencyContactRelationship: sql.NullString{String: input.EmergencyContactRelationship, Valid: input.EmergencyContactRelationship != ""},
 	}, "Athlete")
 
 	if qErr != nil {
@@ -143,28 +146,34 @@ func (r *UsersRepository) CreateAthleteTx(ctx context.Context, tx *sql.Tx, input
 
 func (r *UsersRepository) CreateParentTx(ctx context.Context, tx *sql.Tx, input values.ParentRegistrationRequestInfo) (values.UserReadInfo, *errLib.CommonError) {
 	return r.createCustomerTx(ctx, tx, dbIdentity.CreateUserParams{
-		Email:                    sql.NullString{String: input.Email, Valid: true},
-		HubspotID:                sql.NullString{},
-		CountryAlpha2Code:        input.CountryCode,
-		Dob:                      input.DOB,
-		HasMarketingEmailConsent: input.HasConsentToEmailMarketing,
-		HasSmsConsent:            input.HasConsentToSms,
-		ParentEmail:              sql.NullString{},
-		FirstName:                input.FirstName,
-		LastName:                 input.LastName,
+		Email:                        sql.NullString{String: input.Email, Valid: true},
+		HubspotID:                    sql.NullString{},
+		CountryAlpha2Code:            input.CountryCode,
+		Dob:                          input.DOB,
+		HasMarketingEmailConsent:     input.HasConsentToEmailMarketing,
+		HasSmsConsent:                input.HasConsentToSms,
+		ParentEmail:                  sql.NullString{},
+		FirstName:                    input.FirstName,
+		LastName:                     input.LastName,
+		EmergencyContactName:         sql.NullString{},
+		EmergencyContactPhone:        sql.NullString{},
+		EmergencyContactRelationship: sql.NullString{},
 	}, "Parent")
 }
 
 func (r *UsersRepository) CreateChildTx(ctx context.Context, tx *sql.Tx, input values.ChildRegistrationRequestInfo) (values.UserReadInfo, *errLib.CommonError) {
 	createdCustomer, err := r.createCustomerTx(ctx, tx, dbIdentity.CreateUserParams{
-		HubspotID:                sql.NullString{},
-		CountryAlpha2Code:        input.CountryCode,
-		Dob:                      input.DOB,
-		HasMarketingEmailConsent: false,
-		HasSmsConsent:            false,
-		ParentEmail:              sql.NullString{String: input.ParentEmail, Valid: true},
-		FirstName:                input.FirstName,
-		LastName:                 input.LastName,
+		HubspotID:                    sql.NullString{},
+		CountryAlpha2Code:            input.CountryCode,
+		Dob:                          input.DOB,
+		HasMarketingEmailConsent:     false,
+		HasSmsConsent:                false,
+		ParentEmail:                  sql.NullString{String: input.ParentEmail, Valid: true},
+		FirstName:                    input.FirstName,
+		LastName:                     input.LastName,
+		EmergencyContactName:         sql.NullString{},
+		EmergencyContactPhone:        sql.NullString{},
+		EmergencyContactRelationship: sql.NullString{},
 	}, "Child")
 	if err != nil {
 		return values.UserReadInfo{}, err

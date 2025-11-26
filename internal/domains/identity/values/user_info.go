@@ -63,11 +63,14 @@ type StaffReadInfo struct {
 
 type AthleteRegistrationRequestInfo struct {
 	UserRegistrationRequestNecessaryInfo
-	Email                      string
-	Phone                      string
-	HasConsentToSms            bool
-	HasConsentToEmailMarketing bool
-	Waivers                    []CustomerWaiverSigning
+	Email                        string
+	Phone                        string
+	HasConsentToSms              bool
+	HasConsentToEmailMarketing   bool
+	Waivers                      []CustomerWaiverSigning
+	EmergencyContactName         string
+	EmergencyContactPhone        string
+	EmergencyContactRelationship string
 }
 
 type ParentRegistrationRequestInfo struct {

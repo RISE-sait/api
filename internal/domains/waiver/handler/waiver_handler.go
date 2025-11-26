@@ -15,7 +15,7 @@ import (
 	"api/internal/services/gcp"
 	contextUtils "api/utils/context"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 )
 

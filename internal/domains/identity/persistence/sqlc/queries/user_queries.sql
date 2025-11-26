@@ -20,6 +20,7 @@ WITH u
              FROM users.users u2
              WHERE (u2.id = sqlc.narg('id') OR sqlc.narg('id') IS NULL)
                AND (u2.email = sqlc.narg('email') OR sqlc.narg('email') IS NULL)
+               AND u2.deleted_at IS NULL
              LIMIT 1),
      latest_cmp AS (SELECT DISTINCT ON (customer_id) *
                     FROM users.customer_membership_plans

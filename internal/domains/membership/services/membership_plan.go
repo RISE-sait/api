@@ -226,6 +226,21 @@ func (s *PlanService) UpdateMembershipPlan(ctx context.Context, details values.P
 
 func (s *PlanService) DeleteMembershipPlan(ctx context.Context, id uuid.UUID) *errLib.CommonError {
 
+	// First, get the plan to retrieve Stripe IDs before deleting
+	plan, err := s.repo.GetMembershipPlanById(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// Deactivate Stripe product and prices (don't fail if Stripe fails)
+	if plan.StripePriceID != "" {
+		s.productService.DeactivatePrice(plan.StripePriceID)
+		s.productService.DeactivateProductFromPrice(plan.StripePriceID)
+	}
+	if plan.StripeJoiningFeesID != "" {
+		s.productService.DeactivatePrice(plan.StripeJoiningFeesID)
+	}
+
 	return s.executeInTx(ctx, func(txRepo *repo.PlansRepository) *errLib.CommonError {
 		if err := txRepo.DeleteMembershipPlan(ctx, id); err != nil {
 			return err
@@ -240,7 +255,7 @@ func (s *PlanService) DeleteMembershipPlan(ctx context.Context, id uuid.UUID) *e
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Deleted membership plan with ID: %s", id),
+			fmt.Sprintf("Deleted membership plan '%s' (Stripe product deactivated)", plan.Name),
 		)
 	})
 }

@@ -1264,3 +1264,52 @@ func (s *ProductService) CreateOneTimePrice(
 
 	return stripePrice.ID, nil
 }
+
+// DeactivatePrice deactivates a Stripe price by ID
+func (s *ProductService) DeactivatePrice(priceID string) *errLib.CommonError {
+	if strings.TrimSpace(priceID) == "" {
+		return nil // Nothing to deactivate
+	}
+
+	params := &stripe.PriceParams{
+		Active: stripe.Bool(false),
+	}
+
+	_, err := price.Update(priceID, params)
+	if err != nil {
+		log.Printf("[STRIPE] Failed to deactivate price %s: %v", priceID, err)
+		// Don't fail the operation if Stripe deactivation fails - just log it
+		return nil
+	}
+
+	log.Printf("[STRIPE] Deactivated price %s", priceID)
+	return nil
+}
+
+// DeactivateProductFromPrice deactivates a Stripe product by looking up from price ID
+func (s *ProductService) DeactivateProductFromPrice(priceID string) *errLib.CommonError {
+	if strings.TrimSpace(priceID) == "" {
+		return nil
+	}
+
+	// Get the price to find the product ID
+	stripePrice, err := price.Get(priceID, nil)
+	if err != nil {
+		log.Printf("[STRIPE] Failed to get price %s for deactivation: %v", priceID, err)
+		return nil
+	}
+
+	// Deactivate the product
+	productParams := &stripe.ProductParams{
+		Active: stripe.Bool(false),
+	}
+
+	_, err = product.Update(stripePrice.Product.ID, productParams)
+	if err != nil {
+		log.Printf("[STRIPE] Failed to deactivate product %s: %v", stripePrice.Product.ID, err)
+		return nil
+	}
+
+	log.Printf("[STRIPE] Deactivated product %s", stripePrice.Product.ID)
+	return nil
+}

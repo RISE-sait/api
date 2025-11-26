@@ -133,7 +133,7 @@ func setupMiddlewares(router *chi.Mux) {
 	router.Use(middlewares.SetJSONContentType)
 
 	router.Use(cors.New(cors.Options{
-		AllowedOrigins:   []string{"https://rise-web-461776259687.us-west2.run.app", "http://localhost:3000", "https://www.rise-basketball.com", "https://www.risesportscomplex.com", "https://www.riseup-hoops.com"}, // Added all production domains
+		AllowedOrigins:   []string{"https://riseadmindashboard.com", "https://rise-web-461776259687.us-central1.run.app", "http://localhost:3000", "https://www.rise-basketball.com", "https://www.risesportscomplex.com", "https://www.riseup-hoops.com"}, // Added all production domains
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"}, // Added PATCH method
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		ExposedHeaders:   []string{"Authorization"},

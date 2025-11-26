@@ -21,6 +21,7 @@ type CreditPackageService struct {
 	CreditPackageRepo *repo.CreditPackageRepository
 	CreditService     *userServices.CustomerCreditService
 	StripeService     *stripe.PriceService
+	ProductService    *stripe.ProductService
 	DB                *sql.DB
 }
 
@@ -29,6 +30,7 @@ func NewCreditPackageService(container *di.Container) *CreditPackageService {
 		CreditPackageRepo: repo.NewCreditPackageRepository(container),
 		CreditService:     userServices.NewCustomerCreditService(container),
 		StripeService:     stripe.NewPriceService(),
+		ProductService:    stripe.NewProductService(),
 		DB:                container.DB,
 	}
 }
@@ -144,6 +146,34 @@ func (s *CreditPackageService) GetCustomerActivePackage(ctx context.Context, cus
 // Admin CRUD operations
 
 func (s *CreditPackageService) CreatePackage(ctx context.Context, req dto.CreateCreditPackageRequest) (*dto.CreditPackageResponse, *errLib.CommonError) {
+	// Validate request
+	if err := req.Validate(); err != nil {
+		return nil, err
+	}
+
+	// If no StripePriceID provided, create product/price in Stripe
+	if req.StripePriceID == "" {
+		// Set defaults
+		currency := req.Currency
+		if currency == "" {
+			currency = "cad"
+		}
+
+		// Create Stripe Product + one-time Price (credit packages are one-time purchases)
+		priceID, productID, err := s.ProductService.CreateProductWithOneTimePrice(
+			req.Name,
+			req.Description,
+			*req.UnitAmount,
+			currency,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		req.StripePriceID = priceID
+		log.Printf("[STRIPE] Created Stripe product %s with price %s for credit package '%s'", productID, priceID, req.Name)
+	}
+
 	return s.CreditPackageRepo.Create(ctx, req)
 }
 
@@ -152,5 +182,18 @@ func (s *CreditPackageService) UpdatePackage(ctx context.Context, id uuid.UUID, 
 }
 
 func (s *CreditPackageService) DeletePackage(ctx context.Context, id uuid.UUID) *errLib.CommonError {
+	// First, get the package to retrieve Stripe price ID before deleting
+	pkg, err := s.CreditPackageRepo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// Deactivate Stripe product and price (don't fail if Stripe fails)
+	if pkg.StripePriceID != "" {
+		s.ProductService.DeactivatePrice(pkg.StripePriceID)
+		s.ProductService.DeactivateProductFromPrice(pkg.StripePriceID)
+		log.Printf("[STRIPE] Deactivated Stripe price %s for credit package '%s'", pkg.StripePriceID, pkg.Name)
+	}
+
 	return s.CreditPackageRepo.Delete(ctx, id)
 }

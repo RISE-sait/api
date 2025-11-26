@@ -18,6 +18,7 @@ import (
 	"github.com/stripe/stripe-go/v81/checkout/session"
 	"github.com/stripe/stripe-go/v81/coupon"
 	"github.com/stripe/stripe-go/v81/price"
+	"github.com/stripe/stripe-go/v81/product"
 	"github.com/stripe/stripe-go/v81/subscription"
 	"github.com/stripe/stripe-go/v81/webhook"
 )
@@ -1132,4 +1133,134 @@ func (s *PriceService) GetPrice(priceID string) (*stripe.Price, *errLib.CommonEr
 	}
 
 	return stripePrice, nil
+}
+
+// ProductService handles Stripe product and price creation
+type ProductService struct{}
+
+// NewProductService creates a new product service instance
+func NewProductService() *ProductService {
+	return &ProductService{}
+}
+
+// CreateProductWithRecurringPrice creates a Stripe Product and a recurring Price
+// Returns the stripe_price_id and stripe_product_id to store in the database
+func (s *ProductService) CreateProductWithRecurringPrice(
+	productName string,
+	productDescription string,
+	unitAmount int64,
+	currency string,
+	interval string,
+	intervalCount int64,
+) (stripePriceID string, stripeProductID string, err *errLib.CommonError) {
+	// Validate inputs
+	if strings.TrimSpace(productName) == "" {
+		return "", "", errLib.New("product name cannot be empty", http.StatusBadRequest)
+	}
+	if unitAmount <= 0 {
+		return "", "", errLib.New("unit amount must be positive", http.StatusBadRequest)
+	}
+	if strings.TrimSpace(currency) == "" {
+		currency = "cad"
+	}
+	if intervalCount <= 0 {
+		intervalCount = 1
+	}
+
+	// Validate interval
+	validIntervals := map[string]bool{"day": true, "week": true, "month": true, "year": true}
+	if !validIntervals[interval] {
+		return "", "", errLib.New("invalid billing interval: must be day, week, month, or year", http.StatusBadRequest)
+	}
+
+	// Check if Stripe is initialized
+	if strings.ReplaceAll(stripe.Key, " ", "") == "" {
+		return "", "", errLib.New("Stripe not initialized", http.StatusInternalServerError)
+	}
+
+	// Create the Stripe Product
+	productParams := &stripe.ProductParams{
+		Name:   stripe.String(productName),
+		Active: stripe.Bool(true),
+	}
+	if productDescription != "" {
+		productParams.Description = stripe.String(productDescription)
+	}
+
+	stripeProduct, productErr := product.New(productParams)
+	if productErr != nil {
+		log.Printf("[STRIPE] Failed to create product '%s': %v", productName, productErr)
+		return "", "", errLib.New("Failed to create Stripe product: "+productErr.Error(), http.StatusInternalServerError)
+	}
+
+	log.Printf("[STRIPE] Created product '%s' with ID: %s", productName, stripeProduct.ID)
+
+	// Create the recurring Price attached to the Product
+	priceParams := &stripe.PriceParams{
+		Product:    stripe.String(stripeProduct.ID),
+		UnitAmount: stripe.Int64(unitAmount),
+		Currency:   stripe.String(currency),
+		Recurring: &stripe.PriceRecurringParams{
+			Interval:      stripe.String(interval),
+			IntervalCount: stripe.Int64(intervalCount),
+		},
+	}
+
+	stripePrice, priceErr := price.New(priceParams)
+	if priceErr != nil {
+		log.Printf("[STRIPE] Failed to create price for product '%s': %v", stripeProduct.ID, priceErr)
+		// Note: Product was created but price failed - orphaned product exists in Stripe
+		return "", "", errLib.New("Failed to create Stripe price: "+priceErr.Error(), http.StatusInternalServerError)
+	}
+
+	log.Printf("[STRIPE] Created recurring price %s ($%d %s/%s) for product %s",
+		stripePrice.ID, unitAmount, currency, interval, stripeProduct.ID)
+
+	return stripePrice.ID, stripeProduct.ID, nil
+}
+
+// CreateOneTimePrice creates a one-time Price for an existing Product (for joining fees)
+// Returns the stripe_price_id for the one-time fee
+func (s *ProductService) CreateOneTimePrice(
+	stripeProductID string,
+	unitAmount int64,
+	currency string,
+	nickname string,
+) (stripePriceID string, err *errLib.CommonError) {
+	// Validate inputs
+	if strings.TrimSpace(stripeProductID) == "" {
+		return "", errLib.New("product ID cannot be empty", http.StatusBadRequest)
+	}
+	if unitAmount <= 0 {
+		return "", errLib.New("unit amount must be positive", http.StatusBadRequest)
+	}
+	if strings.TrimSpace(currency) == "" {
+		currency = "cad"
+	}
+
+	// Check if Stripe is initialized
+	if strings.ReplaceAll(stripe.Key, " ", "") == "" {
+		return "", errLib.New("Stripe not initialized", http.StatusInternalServerError)
+	}
+
+	// Create the one-time Price attached to the existing Product
+	priceParams := &stripe.PriceParams{
+		Product:    stripe.String(stripeProductID),
+		UnitAmount: stripe.Int64(unitAmount),
+		Currency:   stripe.String(currency),
+	}
+	if nickname != "" {
+		priceParams.Nickname = stripe.String(nickname)
+	}
+
+	stripePrice, priceErr := price.New(priceParams)
+	if priceErr != nil {
+		log.Printf("[STRIPE] Failed to create one-time price for product '%s': %v", stripeProductID, priceErr)
+		return "", errLib.New("Failed to create Stripe one-time price: "+priceErr.Error(), http.StatusInternalServerError)
+	}
+
+	log.Printf("[STRIPE] Created one-time price %s ($%d %s) for product %s",
+		stripePrice.ID, unitAmount, currency, stripeProductID)
+
+	return stripePrice.ID, nil
 }

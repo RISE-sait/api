@@ -52,6 +52,18 @@ func (r *UsersRepository) UpdateUser(ctx context.Context, details values.UpdateV
 			Valid:  details.Gender != "",
 		},
 		ID: details.ID,
+		EmergencyContactName: sql.NullString{
+			String: details.EmergencyContactName,
+			Valid:  details.EmergencyContactName != "",
+		},
+		EmergencyContactPhone: sql.NullString{
+			String: details.EmergencyContactPhone,
+			Valid:  details.EmergencyContactPhone != "",
+		},
+		EmergencyContactRelationship: sql.NullString{
+			String: details.EmergencyContactRelationship,
+			Valid:  details.EmergencyContactRelationship != "",
+		},
 	})
 
 	if err != nil {

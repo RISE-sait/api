@@ -24,17 +24,20 @@ type ReadValue struct {
 }
 
 type UpdateValue struct {
-	ParentID                 uuid.UUID
-	FirstName                string
-	LastName                 string
-	Email                    string
-	Phone                    string
-	Dob                      time.Time
-	CountryAlpha2Code        string
-	HasMarketingEmailConsent bool
-	HasSmsConsent            bool
-	Gender                   string
-	ID                       uuid.UUID
+	ParentID                     uuid.UUID
+	FirstName                    string
+	LastName                     string
+	Email                        string
+	Phone                        string
+	Dob                          time.Time
+	CountryAlpha2Code            string
+	HasMarketingEmailConsent     bool
+	HasSmsConsent                bool
+	Gender                       string
+	ID                           uuid.UUID
+	EmergencyContactName         string
+	EmergencyContactPhone        string
+	EmergencyContactRelationship string
 }
 
 type CustomerFilter struct {

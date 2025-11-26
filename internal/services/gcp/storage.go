@@ -136,6 +136,38 @@ func GeneratePublicFileURL(fileName string) string {
 	return fmt.Sprintf("https://storage.googleapis.com/%s/%s", bucketName, encodedFileName)
 }
 
+// DeleteFileFromGCP deletes a single file from GCP storage by its public URL
+func DeleteFileFromGCP(publicURL string) *errLib.CommonError {
+	client, gcpClientErr := getGCPClient()
+	if gcpClientErr != nil {
+		return gcpClientErr
+	}
+
+	// Extract the file path from the public URL
+	// URL format: https://storage.googleapis.com/rise-sports/path/to/file.ext
+	prefix := fmt.Sprintf("https://storage.googleapis.com/%s/", bucketName)
+	if !strings.HasPrefix(publicURL, prefix) {
+		return errLib.New("Invalid GCP URL format", http.StatusBadRequest)
+	}
+
+	// Get the object path and decode URL encoding
+	objectPath := strings.TrimPrefix(publicURL, prefix)
+	decodedPath, decodeErr := url.QueryUnescape(objectPath)
+	if decodeErr != nil {
+		return errLib.New("Failed to decode file path", http.StatusBadRequest)
+	}
+
+	bucket := client.Bucket(bucketName)
+	obj := bucket.Object(decodedPath)
+
+	if deleteErr := obj.Delete(context.Background()); deleteErr != nil {
+		log.Printf("Failed to delete file from GCP: %s, error: %v", decodedPath, deleteErr)
+		return errLib.New("Failed to delete file from storage", http.StatusInternalServerError)
+	}
+
+	return nil
+}
+
 // DeleteOldProfileImages deletes all existing profile images in a user's folder
 // to prevent accumulation of old profile photos
 func DeleteOldProfileImages(userFolder string, folder string) *errLib.CommonError {

@@ -11,10 +11,13 @@ import (
 
 type AthleteRegistrationRequestDto struct {
 	commonDto.UserBaseInfoRequestDto
-	CustomerWaiversSigningDto  []WaiverSigningRequestDto `json:"waivers"`
-	PhoneNumber                string                    `json:"phone_number" validate:"omitempty,e164" example:"+15141234567"`
-	HasConsentToSmS            bool                      `json:"has_consent_to_sms"`
-	HasConsentToEmailMarketing bool                      `json:"has_consent_to_email_marketing"`
+	CustomerWaiversSigningDto       []WaiverSigningRequestDto `json:"waivers"`
+	PhoneNumber                     string                    `json:"phone_number" validate:"omitempty,e164" example:"+15141234567"`
+	HasConsentToSmS                 bool                      `json:"has_consent_to_sms"`
+	HasConsentToEmailMarketing      bool                      `json:"has_consent_to_email_marketing"`
+	EmergencyContactName            string                    `json:"emergency_contact_name" validate:"omitempty,max=100"`
+	EmergencyContactPhone           string                    `json:"emergency_contact_phone" validate:"omitempty,max=25"`
+	EmergencyContactRelationship    string                    `json:"emergency_contact_relationship" validate:"omitempty,max=50"`
 }
 
 // ToAthlete validates the DTO and converts waiver signing details into value objects.
@@ -64,10 +67,13 @@ func (dto AthleteRegistrationRequestDto) ToAthlete(email string) (values.Athlete
 			LastName:    dto.LastName,
 			CountryCode: dto.CountryCode,
 		},
-		Email:                      email,
-		Phone:                      dto.PhoneNumber,
-		HasConsentToSms:            dto.HasConsentToSmS,
-		HasConsentToEmailMarketing: dto.HasConsentToEmailMarketing,
-		Waivers:                    waiversVo,
+		Email:                        email,
+		Phone:                        dto.PhoneNumber,
+		HasConsentToSms:              dto.HasConsentToSmS,
+		HasConsentToEmailMarketing:   dto.HasConsentToEmailMarketing,
+		Waivers:                      waiversVo,
+		EmergencyContactName:         dto.EmergencyContactName,
+		EmergencyContactPhone:        dto.EmergencyContactPhone,
+		EmergencyContactRelationship: dto.EmergencyContactRelationship,
 	}, nil
 }

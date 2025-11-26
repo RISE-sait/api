@@ -1,8 +1,10 @@
 -- name: CreateUser :one
 INSERT INTO users.users (hubspot_id, country_alpha2_code, email, dob, phone, has_marketing_email_consent,
-                         has_sms_consent, parent_id, first_name, last_name)
+                         has_sms_consent, parent_id, first_name, last_name,
+                         emergency_contact_name, emergency_contact_phone, emergency_contact_relationship)
 VALUES ($1, $2, $3, $4, $5,
-        $6, $7, (SELECT pu.id from users.users pu WHERE sqlc.arg('parent_email') = pu.email), $8, $9)
+        $6, $7, (SELECT pu.id from users.users pu WHERE sqlc.arg('parent_email') = pu.email), $8, $9,
+        $10, $11, $12)
 RETURNING *;
 
 -- name: CreateAthlete :exec
@@ -61,3 +63,16 @@ SELECT COUNT(*) > 0
 FROM users.users
 WHERE id = sqlc.arg('child_id')
   AND parent_id = sqlc.arg('parent_id');
+
+-- name: UpdateEmergencyContact :execrows
+UPDATE users.users
+SET emergency_contact_name = $2,
+    emergency_contact_phone = $3,
+    emergency_contact_relationship = $4,
+    updated_at = NOW()
+WHERE id = $1;
+
+-- name: GetEmergencyContact :one
+SELECT emergency_contact_name, emergency_contact_phone, emergency_contact_relationship
+FROM users.users
+WHERE id = $1;

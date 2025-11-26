@@ -30,6 +30,7 @@ import (
 	teamsHandler "api/internal/domains/team"
 	uploadHandler "api/internal/domains/upload/handler"
 	userHandler "api/internal/domains/user/handler"
+	waiverHandler "api/internal/domains/waiver/handler"
 	"api/internal/middlewares"
 	contextUtils "api/utils/context"
 
@@ -98,8 +99,11 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		// AI proxy route
 		"/ai": RegisterAIRoutes,
 
-		// Admin routes  
+		// Admin routes
 		"/admin": RegisterAdminRoutes,
+
+		// Waiver routes
+		"/waivers": RegisterWaiverRoutes,
 	}
 
 	for path, handler := range routeMappings {
@@ -704,5 +708,20 @@ func RegisterPaymentReportsRoutes(container *di.Container) func(chi.Router) {
 
 		// Export
 		r.Get("/export", h.ExportPaymentTransactions)
+	}
+}
+
+// RegisterWaiverRoutes registers waiver upload and management routes
+func RegisterWaiverRoutes(container *di.Container) func(chi.Router) {
+	h := waiverHandler.NewWaiverHandler(container)
+	return func(r chi.Router) {
+		// Upload waiver - authenticated users can upload for themselves, staff can upload for others
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/upload", h.UploadWaiver)
+
+		// Get waivers for a user - users can view their own, staff can view anyone's
+		r.With(middlewares.JWTAuthMiddleware(true)).Get("/user/{user_id}", h.GetUserWaivers)
+
+		// Delete waiver - admin only
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Delete("/{id}", h.DeleteWaiver)
 	}
 }

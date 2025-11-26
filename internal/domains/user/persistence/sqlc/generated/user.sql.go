@@ -15,32 +15,38 @@ import (
 
 const updateUserInfo = `-- name: UpdateUserInfo :execrows
 UPDATE users.users
-SET first_name                  = $2,
-    last_name                   = $3,
-    email                       = $4,
-    phone                       = $5,
-    dob                         = $6,
-    country_alpha2_code         = $7,
-    has_marketing_email_consent = $8,
-    has_sms_consent             = $9,
-    gender                      = $10,
-    parent_id                   = $1,
-    updated_at                  = current_timestamp
-WHERE id = $11
+SET first_name                       = $2,
+    last_name                        = $3,
+    email                            = $4,
+    phone                            = $5,
+    dob                              = $6,
+    country_alpha2_code              = $7,
+    has_marketing_email_consent      = $8,
+    has_sms_consent                  = $9,
+    gender                           = $10,
+    parent_id                        = $1,
+    emergency_contact_name           = $11,
+    emergency_contact_phone          = $12,
+    emergency_contact_relationship   = $13,
+    updated_at                       = current_timestamp
+WHERE id = $14
 `
 
 type UpdateUserInfoParams struct {
-	ParentID                 uuid.NullUUID  `json:"parent_id"`
-	FirstName                string         `json:"first_name"`
-	LastName                 string         `json:"last_name"`
-	Email                    sql.NullString `json:"email"`
-	Phone                    sql.NullString `json:"phone"`
-	Dob                      time.Time      `json:"dob"`
-	CountryAlpha2Code        string         `json:"country_alpha2_code"`
-	HasMarketingEmailConsent bool           `json:"has_marketing_email_consent"`
-	HasSmsConsent            bool           `json:"has_sms_consent"`
-	Gender                   sql.NullString `json:"gender"`
-	ID                       uuid.UUID      `json:"id"`
+	ParentID                     uuid.NullUUID  `json:"parent_id"`
+	FirstName                    string         `json:"first_name"`
+	LastName                     string         `json:"last_name"`
+	Email                        sql.NullString `json:"email"`
+	Phone                        sql.NullString `json:"phone"`
+	Dob                          time.Time      `json:"dob"`
+	CountryAlpha2Code            string         `json:"country_alpha2_code"`
+	HasMarketingEmailConsent     bool           `json:"has_marketing_email_consent"`
+	HasSmsConsent                bool           `json:"has_sms_consent"`
+	Gender                       sql.NullString `json:"gender"`
+	EmergencyContactName         sql.NullString `json:"emergency_contact_name"`
+	EmergencyContactPhone        sql.NullString `json:"emergency_contact_phone"`
+	EmergencyContactRelationship sql.NullString `json:"emergency_contact_relationship"`
+	ID                           uuid.UUID      `json:"id"`
 }
 
 func (q *Queries) UpdateUserInfo(ctx context.Context, arg UpdateUserInfoParams) (int64, error) {
@@ -55,6 +61,9 @@ func (q *Queries) UpdateUserInfo(ctx context.Context, arg UpdateUserInfoParams) 
 		arg.HasMarketingEmailConsent,
 		arg.HasSmsConsent,
 		arg.Gender,
+		arg.EmergencyContactName,
+		arg.EmergencyContactPhone,
+		arg.EmergencyContactRelationship,
 		arg.ID,
 	)
 	if err != nil {

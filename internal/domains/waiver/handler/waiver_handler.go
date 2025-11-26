@@ -105,10 +105,30 @@ func (h *WaiverHandler) UploadWaiver(w http.ResponseWriter, r *http.Request) {
 	// Get notes from query params
 	notes := r.URL.Query().Get("notes")
 
+	// Get user's name for the folder path
+	userInfo, userErr := h.queries.GetUserByIdOrEmail(r.Context(), dbIdentity.GetUserByIdOrEmailParams{
+		ID:    uuid.NullUUID{UUID: targetUserID, Valid: true},
+		Email: sql.NullString{Valid: false},
+	})
+
+	// Generate folder name using first_last or fallback to user ID
+	var folderName string
+	if userErr == nil && userInfo.FirstName != "" && userInfo.LastName != "" {
+		// Sanitize names: lowercase, replace spaces with underscores, remove special chars
+		firstName := strings.ToLower(strings.TrimSpace(userInfo.FirstName))
+		lastName := strings.ToLower(strings.TrimSpace(userInfo.LastName))
+		// Replace spaces and remove non-alphanumeric characters
+		firstName = strings.ReplaceAll(firstName, " ", "_")
+		lastName = strings.ReplaceAll(lastName, " ", "_")
+		folderName = fmt.Sprintf("%s_%s_%s", firstName, lastName, targetUserID.String()[:8])
+	} else {
+		folderName = targetUserID.String()
+	}
+
 	// Generate filename
 	fileExt := strings.ToLower(filepath.Ext(header.Filename))
 	timestamp := time.Now().Unix()
-	fileName := fmt.Sprintf("waivers/%s/waiver_%d%s", targetUserID.String(), timestamp, fileExt)
+	fileName := fmt.Sprintf("waivers/%s/waiver_%d%s", folderName, timestamp, fileExt)
 
 	// Upload to GCP Storage
 	publicURL, uploadErr := gcp.UploadImageToGCP(file, fileName)
@@ -231,6 +251,25 @@ func (h *WaiverHandler) DeleteWaiver(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get the waiver record first to get the file URL
+	waiver, getErr := h.queries.GetWaiverUploadById(r.Context(), id)
+	if getErr != nil {
+		if getErr == sql.ErrNoRows {
+			responseHandlers.RespondWithError(w, errLib.New("Waiver not found", http.StatusNotFound))
+			return
+		}
+		responseHandlers.RespondWithError(w, errLib.New("Failed to retrieve waiver", http.StatusInternalServerError))
+		return
+	}
+
+	// Delete from GCP storage
+	if gcpErr := gcp.DeleteFileFromGCP(waiver.FileUrl); gcpErr != nil {
+		// Log the error but continue with database deletion
+		// The file might have been manually deleted or doesn't exist
+		fmt.Printf("Warning: Failed to delete waiver file from GCP: %s, error: %v\n", waiver.FileUrl, gcpErr)
+	}
+
+	// Delete from database
 	rowsAffected, err := h.queries.DeleteWaiverUpload(r.Context(), id)
 	if err != nil {
 		responseHandlers.RespondWithError(w, errLib.New("Failed to delete waiver", http.StatusInternalServerError))

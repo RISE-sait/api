@@ -1167,10 +1167,16 @@ func (s *ProductService) CreateProductWithRecurringPrice(
 		intervalCount = 1
 	}
 
-	// Validate interval
-	validIntervals := map[string]bool{"day": true, "week": true, "month": true, "year": true}
+	// Validate interval and handle biweekly
+	validIntervals := map[string]bool{"day": true, "week": true, "biweekly": true, "month": true, "year": true}
 	if !validIntervals[interval] {
-		return "", "", errLib.New("invalid billing interval: must be day, week, month, or year", http.StatusBadRequest)
+		return "", "", errLib.New("invalid billing interval: must be day, week, biweekly, month, or year", http.StatusBadRequest)
+	}
+
+	// Convert biweekly to week with interval_count=2
+	if interval == "biweekly" {
+		interval = "week"
+		intervalCount = 2
 	}
 
 	// Check if Stripe is initialized

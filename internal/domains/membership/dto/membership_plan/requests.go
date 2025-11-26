@@ -51,9 +51,9 @@ func (dto PlanRequestDto) ToCreateValueObjects() (values.PlanCreateValues, *errL
 
 	// Validate billing interval if provided
 	if dto.BillingInterval != "" {
-		validIntervals := map[string]bool{"day": true, "week": true, "month": true, "year": true}
+		validIntervals := map[string]bool{"day": true, "week": true, "biweekly": true, "month": true, "year": true}
 		if !validIntervals[dto.BillingInterval] {
-			return vo, errLib.New("Invalid billing_interval: must be day, week, month, or year", http.StatusBadRequest)
+			return vo, errLib.New("Invalid billing_interval: must be day, week, biweekly, month, or year", http.StatusBadRequest)
 		}
 	}
 

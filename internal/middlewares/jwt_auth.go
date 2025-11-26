@@ -53,12 +53,15 @@ func JWTAuthMiddleware(isAllowAnyoneWithValidToken bool, allowedRoles ...context
 				return
 			}
 
-			// Check if user is suspended (skip for superadmin)
+			// Check if user is suspended or deleted (skip for superadmin)
 			if userRole != contextUtils.RoleSuperAdmin {
-				suspended, suspensionErr := checkUserSuspension(ctx, claims.UserID.String())
-				if suspensionErr != nil {
-					log.Printf("Error checking suspension status for user %s: %v", claims.UserID, suspensionErr)
+				suspended, deleted, statusErr := checkUserSuspensionOrDeletion(ctx, claims.UserID.String())
+				if statusErr != nil {
+					log.Printf("Error checking account status for user %s: %v", claims.UserID, statusErr)
 					// Continue despite error - don't block legitimate users if DB query fails
+				} else if deleted {
+					responseHandlers.RespondWithError(w, errLib.New("Your account has been deleted. Please use the app to recover your account if within the recovery period.", http.StatusUnauthorized))
+					return
 				} else if suspended {
 					responseHandlers.RespondWithError(w, errLib.New("Your account has been suspended. Please contact support for more information.", http.StatusForbidden))
 					return
@@ -145,35 +148,40 @@ func hasRequiredRole(userRole contextUtils.CtxRole, allowedRoles []contextUtils.
 	return false
 }
 
-// checkUserSuspension checks if a user is currently suspended
-// Returns true if suspended, false otherwise
-func checkUserSuspension(ctx context.Context, userID string) (bool, error) {
+// checkUserSuspensionOrDeletion checks if a user is currently suspended or has deleted their account
+// Returns (isSuspended, isDeleted, error)
+func checkUserSuspensionOrDeletion(ctx context.Context, userID string) (bool, bool, error) {
 	if db == nil {
 		log.Printf("Warning: Database connection not set in JWT middleware")
-		return false, nil // Fail open if DB not configured
+		return false, false, nil // Fail open if DB not configured
 	}
 
 	query := `
-		SELECT suspended_at, suspension_expires_at
+		SELECT suspended_at, suspension_expires_at, deleted_at
 		FROM users.users
 		WHERE id = $1
 	`
 
-	var suspendedAt, suspensionExpiresAt sql.NullTime
-	err := db.QueryRowContext(ctx, query, userID).Scan(&suspendedAt, &suspensionExpiresAt)
+	var suspendedAt, suspensionExpiresAt, deletedAt sql.NullTime
+	err := db.QueryRowContext(ctx, query, userID).Scan(&suspendedAt, &suspensionExpiresAt, &deletedAt)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// User not found - let it proceed, will fail at authorization
-			return false, nil
+			return false, false, nil
 		}
-		return false, err
+		return false, false, err
+	}
+
+	// Check if user account is deleted
+	if deletedAt.Valid {
+		return false, true, nil
 	}
 
 	// Check if user is suspended
 	if !suspendedAt.Valid {
 		// Not suspended
-		return false, nil
+		return false, false, nil
 	}
 
 	// Check if suspension has expired
@@ -183,10 +191,10 @@ func checkUserSuspension(ctx context.Context, userID string) (bool, error) {
 			// Suspension has expired - user should be unsuspended
 			// But we'll return false here and let them access (auto-unsuspension)
 			// Ideally you'd want a cron job to clear expired suspensions
-			return false, nil
+			return false, false, nil
 		}
 	}
 
 	// User is currently suspended
-	return true, nil
+	return true, false, nil
 }

@@ -138,9 +138,9 @@ func (s *Service) CreateGame(ctx context.Context, details values.CreateGameValue
 		}
 
 		// Log staff activity for auditing with human-readable names
-		loc, _ := time.LoadLocation("America/Denver")
+		loc, _ := time.LoadLocation("America/Edmonton")
 		if loc == nil {
-			loc = time.UTC
+			loc = time.FixedZone("MST", -7*60*60)
 		}
 		homeTeamName, awayTeamName, locationName := s.lookupNames(ctx, details.HomeTeamID, details.AwayTeamID, details.LocationID)
 		activityDesc := fmt.Sprintf("Created game: %s vs %s at %s on %s",
@@ -168,17 +168,17 @@ func (s *Service) sendGameNotification(ctx context.Context, game values.CreateGa
 	gameTime := "TBD"
 	gameTimeISO := ""
 	if !game.StartTime.IsZero() {
-		// Convert UTC time from database to Mountain Time (MST/MDT)
-		// Use America/Denver to automatically handle daylight saving time transitions
-		loc, err := time.LoadLocation("America/Denver")
+		// The incoming time already has the correct timezone from the request
+		// Use America/Edmonton for Calgary timezone (handles MST/MDT automatically)
+		loc, err := time.LoadLocation("America/Edmonton")
 		if err != nil {
-			// Fallback to UTC if location cannot be loaded
-			loc = time.UTC
+			// Fallback: use fixed MST offset (UTC-7) if timezone data unavailable
+			loc = time.FixedZone("MST", -7*60*60)
 		}
-		mountainTime := game.StartTime.In(loc)
+		localTime := game.StartTime.In(loc)
 
-		gameTime = mountainTime.Format("January 2, 2006 at 3:04 PM")
-		gameTimeISO = mountainTime.Format(time.RFC3339)
+		gameTime = localTime.Format("January 2, 2006 at 3:04 PM")
+		gameTimeISO = localTime.Format(time.RFC3339)
 	}
 	
 	// Send notification to home team
@@ -257,9 +257,9 @@ func (s *Service) UpdateGame(ctx context.Context, details values.UpdateGameValue
 		}
 
 		// Log the update activity with human-readable names
-		loc, _ := time.LoadLocation("America/Denver")
+		loc, _ := time.LoadLocation("America/Edmonton")
 		if loc == nil {
-			loc = time.UTC
+			loc = time.FixedZone("MST", -7*60*60)
 		}
 		homeTeamName, awayTeamName, locationName := s.lookupNames(ctx, details.HomeTeamID, details.AwayTeamID, details.LocationID)
 		activityDesc := fmt.Sprintf("Updated game: %s vs %s at %s on %s",

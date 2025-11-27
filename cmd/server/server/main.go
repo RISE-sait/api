@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	_ "time/tzdata" // Embed timezone data for environments without system tzdata
 
 	"api/cmd/server/router"
 	"api/internal/di"

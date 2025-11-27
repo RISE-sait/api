@@ -76,9 +76,9 @@ func (s *Service) lookupNames(ctx context.Context, programID, locationID, teamID
 
 // formatEventDescription creates a human-readable activity description for an event
 func (s *Service) formatEventDescription(ctx context.Context, action string, details values.EventDetails) string {
-	loc, _ := time.LoadLocation("America/Denver")
+	loc, _ := time.LoadLocation("America/Edmonton")
 	if loc == nil {
-		loc = time.UTC
+		loc = time.FixedZone("MST", -7*60*60)
 	}
 
 	programName, locationName, teamName := s.lookupNames(ctx, details.ProgramID, details.LocationID, details.TeamID)

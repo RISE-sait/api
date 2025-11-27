@@ -79,9 +79,9 @@ func (s *Service) CreatePractice(ctx context.Context, val values.CreatePracticeV
 		}
 		
 		// Log the activity with human-readable format
-		loc, _ := time.LoadLocation("America/Denver")
+		loc, _ := time.LoadLocation("America/Edmonton")
 		if loc == nil {
-			loc = time.UTC
+			loc = time.FixedZone("MST", -7*60*60)
 		}
 		teamName, locationName := s.lookupNames(ctx, val.TeamID, val.LocationID)
 		activityDesc := fmt.Sprintf("Created practice for %s at %s on %s",
@@ -105,17 +105,17 @@ func (s *Service) sendPracticeNotification(ctx context.Context, practice values.
 	startTime := "TBD"
 	startTimeISO := ""
 	if !practice.StartTime.IsZero() {
-		// Convert UTC time from database to Mountain Time (MST/MDT)
-		// Use America/Denver to automatically handle daylight saving time transitions
-		loc, err := time.LoadLocation("America/Denver")
+		// The incoming time already has the correct timezone from the request
+		// Use America/Edmonton for Calgary timezone (handles MST/MDT automatically)
+		loc, err := time.LoadLocation("America/Edmonton")
 		if err != nil {
-			// Fallback to UTC if location cannot be loaded
-			loc = time.UTC
+			// Fallback: use fixed MST offset (UTC-7) if timezone data unavailable
+			loc = time.FixedZone("MST", -7*60*60)
 		}
-		mountainTime := practice.StartTime.In(loc)
+		localTime := practice.StartTime.In(loc)
 
-		startTime = mountainTime.Format("January 2, 2006 at 3:04 PM")
-		startTimeISO = mountainTime.Format(time.RFC3339)
+		startTime = localTime.Format("January 2, 2006 at 3:04 PM")
+		startTimeISO = localTime.Format(time.RFC3339)
 	}
 	
 	notification := notificationValues.TeamNotification{
@@ -143,9 +143,9 @@ func (s *Service) UpdatePractice(ctx context.Context, val values.UpdatePracticeV
 		if err != nil {
 			return err
 		}
-		loc, _ := time.LoadLocation("America/Denver")
+		loc, _ := time.LoadLocation("America/Edmonton")
 		if loc == nil {
-			loc = time.UTC
+			loc = time.FixedZone("MST", -7*60*60)
 		}
 		teamName, locationName := s.lookupNames(ctx, val.TeamID, val.LocationID)
 		activityDesc := fmt.Sprintf("Updated practice for %s at %s on %s",

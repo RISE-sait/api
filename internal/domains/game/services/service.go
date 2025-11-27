@@ -177,7 +177,7 @@ func (s *Service) sendGameNotification(ctx context.Context, game values.CreateGa
 		}
 		mountainTime := game.StartTime.In(loc)
 
-		gameTime = mountainTime.Format("January 2, 2006 at 3:04 PM MST")
+		gameTime = mountainTime.Format("January 2, 2006 at 3:04 PM")
 		gameTimeISO = mountainTime.Format(time.RFC3339)
 	}
 	

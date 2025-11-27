@@ -102,8 +102,8 @@ func (h *WaiverHandler) UploadWaiver(w http.ResponseWriter, r *http.Request) {
 		uploadedBy = uuid.NullUUID{Valid: false}
 	}
 
-	// Get notes from query params
-	notes := r.URL.Query().Get("notes")
+	// Get notes from form field (easier than query params)
+	notes := r.FormValue("notes")
 
 	// Get user's name for the folder path
 	userInfo, userErr := h.queries.GetUserByIdOrEmail(r.Context(), dbIdentity.GetUserByIdOrEmailParams{

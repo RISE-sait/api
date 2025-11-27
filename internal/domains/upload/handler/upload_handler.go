@@ -238,6 +238,82 @@ func (h *UploadHandler) UploadProgramPhoto(w http.ResponseWriter, r *http.Reques
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 }
 
+// UploadPromoImage handles website promo image uploads to cloud storage
+// @Summary Upload promo image to cloud storage
+// @Description Accepts an image file and uploads it to Google Cloud Storage in the website-promos folder
+// @Tags upload
+// @Accept multipart/form-data
+// @Produce json
+// @Param image formData file true "Image file to upload (jpg, jpeg, png, gif, webp)"
+// @Param type query string true "Promo type: hero or feature"
+// @Security Bearer
+// @Success 200 {object} map[string]interface{} "Image uploaded successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid file or file type"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 413 {object} map[string]interface{} "Payload Too Large: File size exceeds limit"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /upload/promo-image [post]
+func (h *UploadHandler) UploadPromoImage(w http.ResponseWriter, r *http.Request) {
+	// Limit file size to 20MB for high-quality hero images
+	r.ParseMultipartForm(20 << 20)
+
+	// Get the file from the request
+	file, header, err := r.FormFile("image")
+	if err != nil {
+		responseHandlers.RespondWithError(w, errLib.New("No image file provided", http.StatusBadRequest))
+		return
+	}
+	defer file.Close()
+
+	// Validate file size (20MB limit)
+	if header.Size > 20<<20 {
+		responseHandlers.RespondWithError(w, errLib.New("File size exceeds 20MB limit", http.StatusRequestEntityTooLarge))
+		return
+	}
+
+	// Validate file type
+	if !isValidImageType(header.Filename) {
+		responseHandlers.RespondWithError(w, errLib.New("Invalid file type. Only jpg, jpeg, png, gif, and webp are allowed", http.StatusBadRequest))
+		return
+	}
+
+	// Get promo type from query params
+	promoType := r.URL.Query().Get("type")
+	if promoType == "" {
+		promoType = "general"
+	}
+
+	// Validate promo type
+	if promoType != "hero" && promoType != "feature" && promoType != "general" {
+		responseHandlers.RespondWithError(w, errLib.New("Invalid promo type. Must be 'hero', 'feature', or 'general'", http.StatusBadRequest))
+		return
+	}
+
+	// Create folder path: website-promos/{type}
+	folderPath := fmt.Sprintf("website-promos/%s", promoType)
+
+	// Generate filename with timestamp for cache busting
+	fileExt := strings.ToLower(filepath.Ext(header.Filename))
+	timestamp := time.Now().Unix()
+	fileName := fmt.Sprintf("%s/promo_%d%s", folderPath, timestamp, fileExt)
+
+	// Upload to GCP Storage
+	publicURL, uploadErr := gcp.UploadImageToGCP(file, fileName)
+	if uploadErr != nil {
+		responseHandlers.RespondWithError(w, uploadErr)
+		return
+	}
+
+	response := map[string]interface{}{
+		"message":    "Promo image uploaded successfully",
+		"url":        publicURL,
+		"filename":   fileName,
+		"size_bytes": header.Size,
+	}
+
+	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
+}
+
 // isValidImageType checks if the file has a valid image extension
 func isValidImageType(filename string) bool {
 	ext := strings.ToLower(filepath.Ext(filename))

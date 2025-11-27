@@ -2,6 +2,7 @@ package event
 
 import (
 	values "api/internal/domains/event/values"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -9,8 +10,8 @@ import (
 //goland:noinspection GoNameStartsWithPackageName
 type (
 	DateResponseDto struct {
-		StartAt string `json:"start_at"`
-		EndAt   string `json:"end_at"`
+		StartAt time.Time `json:"start_at"`
+		EndAt   time.Time `json:"end_at"`
 	}
 
 	PersonResponseDto struct {
@@ -96,8 +97,8 @@ func NewEventResponseDto(event values.ReadEventValues, includePeople bool, inclu
 			Address: event.Location.Address,
 		},
 		DateResponseDto: DateResponseDto{
-			StartAt: event.StartAt.String(),
-			EndAt:   event.EndAt.String(),
+			StartAt: event.StartAt,
+			EndAt:   event.EndAt,
 		},
 		Program: ProgramInfo{
 			ID:          event.Program.ID,

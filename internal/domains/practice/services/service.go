@@ -114,7 +114,7 @@ func (s *Service) sendPracticeNotification(ctx context.Context, practice values.
 		}
 		mountainTime := practice.StartTime.In(loc)
 
-		startTime = mountainTime.Format("January 2, 2006 at 3:04 PM MST")
+		startTime = mountainTime.Format("January 2, 2006 at 3:04 PM")
 		startTimeISO = mountainTime.Format(time.RFC3339)
 	}
 	

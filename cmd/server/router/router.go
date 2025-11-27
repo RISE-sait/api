@@ -31,6 +31,7 @@ import (
 	uploadHandler "api/internal/domains/upload/handler"
 	userHandler "api/internal/domains/user/handler"
 	waiverHandler "api/internal/domains/waiver/handler"
+	websitePromoHandler "api/internal/domains/website_promo/handler"
 	"api/internal/middlewares"
 	contextUtils "api/utils/context"
 
@@ -104,6 +105,9 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 
 		// Waiver routes
 		"/waivers": RegisterWaiverRoutes,
+
+		// Website promo routes (public + admin)
+		"/website": RegisterWebsitePromoRoutes,
 	}
 
 	for path, handler := range routeMappings {
@@ -627,6 +631,7 @@ func RegisterUploadRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/image", uploadHandlers.UploadImage)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/program-photo", uploadHandlers.UploadProgramPhoto)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/promo-image", uploadHandlers.UploadPromoImage)
 	}
 }
 
@@ -723,5 +728,32 @@ func RegisterWaiverRoutes(container *di.Container) func(chi.Router) {
 
 		// Delete waiver - admin only
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Delete("/{id}", h.DeleteWaiver)
+	}
+}
+
+// RegisterWebsitePromoRoutes registers website promo routes
+func RegisterWebsitePromoRoutes(container *di.Container) func(chi.Router) {
+	h := websitePromoHandler.NewWebsitePromoHandler(container)
+	return func(r chi.Router) {
+		// Public routes - get active promos for website
+		r.Get("/hero-promos/active", h.GetActiveHeroPromos)
+		r.Get("/feature-cards/active", h.GetActiveFeatureCards)
+
+		// Admin routes - full CRUD
+		r.Route("/hero-promos", func(r chi.Router) {
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Get("/", h.GetAllHeroPromos)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Get("/{id}", h.GetHeroPromoById)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/", h.CreateHeroPromo)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Put("/{id}", h.UpdateHeroPromo)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Delete("/{id}", h.DeleteHeroPromo)
+		})
+
+		r.Route("/feature-cards", func(r chi.Router) {
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Get("/", h.GetAllFeatureCards)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Get("/{id}", h.GetFeatureCardById)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/", h.CreateFeatureCard)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Put("/{id}", h.UpdateFeatureCard)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Delete("/{id}", h.DeleteFeatureCard)
+		})
 	}
 }

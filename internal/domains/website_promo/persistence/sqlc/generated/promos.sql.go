@@ -70,19 +70,21 @@ func (q *Queries) CreateFeatureCard(ctx context.Context, arg CreateFeatureCardPa
 
 const createHeroPromo = `-- name: CreateHeroPromo :one
 INSERT INTO website.hero_promos (
-    title, subtitle, description, image_url, button_text, button_link,
+    title, subtitle, description, media_url, media_type, thumbnail_url, button_text, button_link,
     display_order, duration_seconds, is_active, start_date, end_date,
     created_by, updated_by
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12
-) RETURNING id, title, subtitle, description, image_url, button_text, button_link, display_order, duration_seconds, is_active, start_date, end_date, created_at, updated_at, created_by, updated_by
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14
+) RETURNING id, title, subtitle, description, media_url, button_text, button_link, display_order, duration_seconds, is_active, start_date, end_date, created_at, updated_at, created_by, updated_by, media_type, thumbnail_url
 `
 
 type CreateHeroPromoParams struct {
 	Title           string         `json:"title"`
 	Subtitle        sql.NullString `json:"subtitle"`
 	Description     sql.NullString `json:"description"`
-	ImageUrl        string         `json:"image_url"`
+	MediaUrl        string         `json:"media_url"`
+	MediaType       string         `json:"media_type"`
+	ThumbnailUrl    sql.NullString `json:"thumbnail_url"`
 	ButtonText      sql.NullString `json:"button_text"`
 	ButtonLink      sql.NullString `json:"button_link"`
 	DisplayOrder    int32          `json:"display_order"`
@@ -98,7 +100,9 @@ func (q *Queries) CreateHeroPromo(ctx context.Context, arg CreateHeroPromoParams
 		arg.Title,
 		arg.Subtitle,
 		arg.Description,
-		arg.ImageUrl,
+		arg.MediaUrl,
+		arg.MediaType,
+		arg.ThumbnailUrl,
 		arg.ButtonText,
 		arg.ButtonLink,
 		arg.DisplayOrder,
@@ -114,11 +118,71 @@ func (q *Queries) CreateHeroPromo(ctx context.Context, arg CreateHeroPromoParams
 		&i.Title,
 		&i.Subtitle,
 		&i.Description,
-		&i.ImageUrl,
+		&i.MediaUrl,
 		&i.ButtonText,
 		&i.ButtonLink,
 		&i.DisplayOrder,
 		&i.DurationSeconds,
+		&i.IsActive,
+		&i.StartDate,
+		&i.EndDate,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CreatedBy,
+		&i.UpdatedBy,
+		&i.MediaType,
+		&i.ThumbnailUrl,
+	)
+	return i, err
+}
+
+const createPromoVideo = `-- name: CreatePromoVideo :one
+
+INSERT INTO website.promo_videos (
+    title, description, video_url, thumbnail_url, category,
+    display_order, is_active, start_date, end_date,
+    created_by, updated_by
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10
+) RETURNING id, title, description, video_url, thumbnail_url, category, display_order, is_active, start_date, end_date, created_at, updated_at, created_by, updated_by
+`
+
+type CreatePromoVideoParams struct {
+	Title        string         `json:"title"`
+	Description  sql.NullString `json:"description"`
+	VideoUrl     string         `json:"video_url"`
+	ThumbnailUrl string         `json:"thumbnail_url"`
+	Category     sql.NullString `json:"category"`
+	DisplayOrder int32          `json:"display_order"`
+	IsActive     bool           `json:"is_active"`
+	StartDate    sql.NullTime   `json:"start_date"`
+	EndDate      sql.NullTime   `json:"end_date"`
+	CreatedBy    uuid.NullUUID  `json:"created_by"`
+}
+
+// Promo Videos queries
+func (q *Queries) CreatePromoVideo(ctx context.Context, arg CreatePromoVideoParams) (WebsitePromoVideo, error) {
+	row := q.db.QueryRowContext(ctx, createPromoVideo,
+		arg.Title,
+		arg.Description,
+		arg.VideoUrl,
+		arg.ThumbnailUrl,
+		arg.Category,
+		arg.DisplayOrder,
+		arg.IsActive,
+		arg.StartDate,
+		arg.EndDate,
+		arg.CreatedBy,
+	)
+	var i WebsitePromoVideo
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.VideoUrl,
+		&i.ThumbnailUrl,
+		&i.Category,
+		&i.DisplayOrder,
 		&i.IsActive,
 		&i.StartDate,
 		&i.EndDate,
@@ -148,6 +212,18 @@ DELETE FROM website.hero_promos WHERE id = $1
 
 func (q *Queries) DeleteHeroPromo(ctx context.Context, id uuid.UUID) (int64, error) {
 	result, err := q.db.ExecContext(ctx, deleteHeroPromo, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const deletePromoVideo = `-- name: DeletePromoVideo :execrows
+DELETE FROM website.promo_videos WHERE id = $1
+`
+
+func (q *Queries) DeletePromoVideo(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deletePromoVideo, id)
 	if err != nil {
 		return 0, err
 	}
@@ -201,7 +277,7 @@ func (q *Queries) GetActiveFeatureCards(ctx context.Context) ([]WebsiteFeatureCa
 }
 
 const getActiveHeroPromos = `-- name: GetActiveHeroPromos :many
-SELECT id, title, subtitle, description, image_url, button_text, button_link, display_order, duration_seconds, is_active, start_date, end_date, created_at, updated_at, created_by, updated_by FROM website.hero_promos
+SELECT id, title, subtitle, description, media_url, button_text, button_link, display_order, duration_seconds, is_active, start_date, end_date, created_at, updated_at, created_by, updated_by, media_type, thumbnail_url FROM website.hero_promos
 WHERE is_active = true
   AND (start_date IS NULL OR start_date <= CURRENT_TIMESTAMP)
   AND (end_date IS NULL OR end_date >= CURRENT_TIMESTAMP)
@@ -222,11 +298,106 @@ func (q *Queries) GetActiveHeroPromos(ctx context.Context) ([]WebsiteHeroPromo, 
 			&i.Title,
 			&i.Subtitle,
 			&i.Description,
-			&i.ImageUrl,
+			&i.MediaUrl,
 			&i.ButtonText,
 			&i.ButtonLink,
 			&i.DisplayOrder,
 			&i.DurationSeconds,
+			&i.IsActive,
+			&i.StartDate,
+			&i.EndDate,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CreatedBy,
+			&i.UpdatedBy,
+			&i.MediaType,
+			&i.ThumbnailUrl,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getActivePromoVideos = `-- name: GetActivePromoVideos :many
+SELECT id, title, description, video_url, thumbnail_url, category, display_order, is_active, start_date, end_date, created_at, updated_at, created_by, updated_by FROM website.promo_videos
+WHERE is_active = true
+  AND (start_date IS NULL OR start_date <= CURRENT_TIMESTAMP)
+  AND (end_date IS NULL OR end_date >= CURRENT_TIMESTAMP)
+ORDER BY display_order ASC, created_at DESC
+`
+
+func (q *Queries) GetActivePromoVideos(ctx context.Context) ([]WebsitePromoVideo, error) {
+	rows, err := q.db.QueryContext(ctx, getActivePromoVideos)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []WebsitePromoVideo
+	for rows.Next() {
+		var i WebsitePromoVideo
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.VideoUrl,
+			&i.ThumbnailUrl,
+			&i.Category,
+			&i.DisplayOrder,
+			&i.IsActive,
+			&i.StartDate,
+			&i.EndDate,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CreatedBy,
+			&i.UpdatedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getActivePromoVideosByCategory = `-- name: GetActivePromoVideosByCategory :many
+SELECT id, title, description, video_url, thumbnail_url, category, display_order, is_active, start_date, end_date, created_at, updated_at, created_by, updated_by FROM website.promo_videos
+WHERE is_active = true
+  AND category = $1
+  AND (start_date IS NULL OR start_date <= CURRENT_TIMESTAMP)
+  AND (end_date IS NULL OR end_date >= CURRENT_TIMESTAMP)
+ORDER BY display_order ASC, created_at DESC
+`
+
+func (q *Queries) GetActivePromoVideosByCategory(ctx context.Context, category sql.NullString) ([]WebsitePromoVideo, error) {
+	rows, err := q.db.QueryContext(ctx, getActivePromoVideosByCategory, category)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []WebsitePromoVideo
+	for rows.Next() {
+		var i WebsitePromoVideo
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.VideoUrl,
+			&i.ThumbnailUrl,
+			&i.Category,
+			&i.DisplayOrder,
 			&i.IsActive,
 			&i.StartDate,
 			&i.EndDate,
@@ -291,7 +462,7 @@ func (q *Queries) GetAllFeatureCards(ctx context.Context) ([]WebsiteFeatureCard,
 }
 
 const getAllHeroPromos = `-- name: GetAllHeroPromos :many
-SELECT id, title, subtitle, description, image_url, button_text, button_link, display_order, duration_seconds, is_active, start_date, end_date, created_at, updated_at, created_by, updated_by FROM website.hero_promos ORDER BY display_order ASC, created_at DESC
+SELECT id, title, subtitle, description, media_url, button_text, button_link, display_order, duration_seconds, is_active, start_date, end_date, created_at, updated_at, created_by, updated_by, media_type, thumbnail_url FROM website.hero_promos ORDER BY display_order ASC, created_at DESC
 `
 
 func (q *Queries) GetAllHeroPromos(ctx context.Context) ([]WebsiteHeroPromo, error) {
@@ -308,11 +479,55 @@ func (q *Queries) GetAllHeroPromos(ctx context.Context) ([]WebsiteHeroPromo, err
 			&i.Title,
 			&i.Subtitle,
 			&i.Description,
-			&i.ImageUrl,
+			&i.MediaUrl,
 			&i.ButtonText,
 			&i.ButtonLink,
 			&i.DisplayOrder,
 			&i.DurationSeconds,
+			&i.IsActive,
+			&i.StartDate,
+			&i.EndDate,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CreatedBy,
+			&i.UpdatedBy,
+			&i.MediaType,
+			&i.ThumbnailUrl,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllPromoVideos = `-- name: GetAllPromoVideos :many
+SELECT id, title, description, video_url, thumbnail_url, category, display_order, is_active, start_date, end_date, created_at, updated_at, created_by, updated_by FROM website.promo_videos ORDER BY display_order ASC, created_at DESC
+`
+
+func (q *Queries) GetAllPromoVideos(ctx context.Context) ([]WebsitePromoVideo, error) {
+	rows, err := q.db.QueryContext(ctx, getAllPromoVideos)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []WebsitePromoVideo
+	for rows.Next() {
+		var i WebsitePromoVideo
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.VideoUrl,
+			&i.ThumbnailUrl,
+			&i.Category,
+			&i.DisplayOrder,
 			&i.IsActive,
 			&i.StartDate,
 			&i.EndDate,
@@ -361,7 +576,7 @@ func (q *Queries) GetFeatureCardById(ctx context.Context, id uuid.UUID) (Website
 }
 
 const getHeroPromoById = `-- name: GetHeroPromoById :one
-SELECT id, title, subtitle, description, image_url, button_text, button_link, display_order, duration_seconds, is_active, start_date, end_date, created_at, updated_at, created_by, updated_by FROM website.hero_promos WHERE id = $1
+SELECT id, title, subtitle, description, media_url, button_text, button_link, display_order, duration_seconds, is_active, start_date, end_date, created_at, updated_at, created_by, updated_by, media_type, thumbnail_url FROM website.hero_promos WHERE id = $1
 `
 
 func (q *Queries) GetHeroPromoById(ctx context.Context, id uuid.UUID) (WebsiteHeroPromo, error) {
@@ -372,11 +587,39 @@ func (q *Queries) GetHeroPromoById(ctx context.Context, id uuid.UUID) (WebsiteHe
 		&i.Title,
 		&i.Subtitle,
 		&i.Description,
-		&i.ImageUrl,
+		&i.MediaUrl,
 		&i.ButtonText,
 		&i.ButtonLink,
 		&i.DisplayOrder,
 		&i.DurationSeconds,
+		&i.IsActive,
+		&i.StartDate,
+		&i.EndDate,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CreatedBy,
+		&i.UpdatedBy,
+		&i.MediaType,
+		&i.ThumbnailUrl,
+	)
+	return i, err
+}
+
+const getPromoVideoById = `-- name: GetPromoVideoById :one
+SELECT id, title, description, video_url, thumbnail_url, category, display_order, is_active, start_date, end_date, created_at, updated_at, created_by, updated_by FROM website.promo_videos WHERE id = $1
+`
+
+func (q *Queries) GetPromoVideoById(ctx context.Context, id uuid.UUID) (WebsitePromoVideo, error) {
+	row := q.db.QueryRowContext(ctx, getPromoVideoById, id)
+	var i WebsitePromoVideo
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.VideoUrl,
+		&i.ThumbnailUrl,
+		&i.Category,
+		&i.DisplayOrder,
 		&i.IsActive,
 		&i.StartDate,
 		&i.EndDate,
@@ -458,18 +701,20 @@ UPDATE website.hero_promos SET
     title = $2,
     subtitle = $3,
     description = $4,
-    image_url = $5,
-    button_text = $6,
-    button_link = $7,
-    display_order = $8,
-    duration_seconds = $9,
-    is_active = $10,
-    start_date = $11,
-    end_date = $12,
+    media_url = $5,
+    media_type = $6,
+    thumbnail_url = $7,
+    button_text = $8,
+    button_link = $9,
+    display_order = $10,
+    duration_seconds = $11,
+    is_active = $12,
+    start_date = $13,
+    end_date = $14,
     updated_at = CURRENT_TIMESTAMP,
-    updated_by = $13
+    updated_by = $15
 WHERE id = $1
-RETURNING id, title, subtitle, description, image_url, button_text, button_link, display_order, duration_seconds, is_active, start_date, end_date, created_at, updated_at, created_by, updated_by
+RETURNING id, title, subtitle, description, media_url, button_text, button_link, display_order, duration_seconds, is_active, start_date, end_date, created_at, updated_at, created_by, updated_by, media_type, thumbnail_url
 `
 
 type UpdateHeroPromoParams struct {
@@ -477,7 +722,9 @@ type UpdateHeroPromoParams struct {
 	Title           string         `json:"title"`
 	Subtitle        sql.NullString `json:"subtitle"`
 	Description     sql.NullString `json:"description"`
-	ImageUrl        string         `json:"image_url"`
+	MediaUrl        string         `json:"media_url"`
+	MediaType       string         `json:"media_type"`
+	ThumbnailUrl    sql.NullString `json:"thumbnail_url"`
 	ButtonText      sql.NullString `json:"button_text"`
 	ButtonLink      sql.NullString `json:"button_link"`
 	DisplayOrder    int32          `json:"display_order"`
@@ -494,7 +741,9 @@ func (q *Queries) UpdateHeroPromo(ctx context.Context, arg UpdateHeroPromoParams
 		arg.Title,
 		arg.Subtitle,
 		arg.Description,
-		arg.ImageUrl,
+		arg.MediaUrl,
+		arg.MediaType,
+		arg.ThumbnailUrl,
 		arg.ButtonText,
 		arg.ButtonLink,
 		arg.DisplayOrder,
@@ -510,11 +759,78 @@ func (q *Queries) UpdateHeroPromo(ctx context.Context, arg UpdateHeroPromoParams
 		&i.Title,
 		&i.Subtitle,
 		&i.Description,
-		&i.ImageUrl,
+		&i.MediaUrl,
 		&i.ButtonText,
 		&i.ButtonLink,
 		&i.DisplayOrder,
 		&i.DurationSeconds,
+		&i.IsActive,
+		&i.StartDate,
+		&i.EndDate,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CreatedBy,
+		&i.UpdatedBy,
+		&i.MediaType,
+		&i.ThumbnailUrl,
+	)
+	return i, err
+}
+
+const updatePromoVideo = `-- name: UpdatePromoVideo :one
+UPDATE website.promo_videos SET
+    title = $2,
+    description = $3,
+    video_url = $4,
+    thumbnail_url = $5,
+    category = $6,
+    display_order = $7,
+    is_active = $8,
+    start_date = $9,
+    end_date = $10,
+    updated_at = CURRENT_TIMESTAMP,
+    updated_by = $11
+WHERE id = $1
+RETURNING id, title, description, video_url, thumbnail_url, category, display_order, is_active, start_date, end_date, created_at, updated_at, created_by, updated_by
+`
+
+type UpdatePromoVideoParams struct {
+	ID           uuid.UUID      `json:"id"`
+	Title        string         `json:"title"`
+	Description  sql.NullString `json:"description"`
+	VideoUrl     string         `json:"video_url"`
+	ThumbnailUrl string         `json:"thumbnail_url"`
+	Category     sql.NullString `json:"category"`
+	DisplayOrder int32          `json:"display_order"`
+	IsActive     bool           `json:"is_active"`
+	StartDate    sql.NullTime   `json:"start_date"`
+	EndDate      sql.NullTime   `json:"end_date"`
+	UpdatedBy    uuid.NullUUID  `json:"updated_by"`
+}
+
+func (q *Queries) UpdatePromoVideo(ctx context.Context, arg UpdatePromoVideoParams) (WebsitePromoVideo, error) {
+	row := q.db.QueryRowContext(ctx, updatePromoVideo,
+		arg.ID,
+		arg.Title,
+		arg.Description,
+		arg.VideoUrl,
+		arg.ThumbnailUrl,
+		arg.Category,
+		arg.DisplayOrder,
+		arg.IsActive,
+		arg.StartDate,
+		arg.EndDate,
+		arg.UpdatedBy,
+	)
+	var i WebsitePromoVideo
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.VideoUrl,
+		&i.ThumbnailUrl,
+		&i.Category,
+		&i.DisplayOrder,
 		&i.IsActive,
 		&i.StartDate,
 		&i.EndDate,

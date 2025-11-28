@@ -245,7 +245,7 @@ func (h *UploadHandler) UploadProgramPhoto(w http.ResponseWriter, r *http.Reques
 // @Accept multipart/form-data
 // @Produce json
 // @Param image formData file true "Image file to upload (jpg, jpeg, png, gif, webp)"
-// @Param type query string true "Promo type: hero or feature"
+// @Param type query string true "Promo type: hero, feature, or video"
 // @Security Bearer
 // @Success 200 {object} map[string]interface{} "Image uploaded successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid file or file type"
@@ -284,8 +284,8 @@ func (h *UploadHandler) UploadPromoImage(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Validate promo type
-	if promoType != "hero" && promoType != "feature" && promoType != "general" {
-		responseHandlers.RespondWithError(w, errLib.New("Invalid promo type. Must be 'hero', 'feature', or 'general'", http.StatusBadRequest))
+	if promoType != "hero" && promoType != "feature" && promoType != "general" && promoType != "video" {
+		responseHandlers.RespondWithError(w, errLib.New("Invalid promo type. Must be 'hero', 'feature', 'video', or 'general'", http.StatusBadRequest))
 		return
 	}
 
@@ -314,10 +314,99 @@ func (h *UploadHandler) UploadPromoImage(w http.ResponseWriter, r *http.Request)
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 }
 
+// UploadPromoVideo handles website promo video uploads to cloud storage
+// @Summary Upload promo video to cloud storage
+// @Description Accepts a video file and uploads it to Google Cloud Storage in the website-promos folder
+// @Tags upload
+// @Accept multipart/form-data
+// @Produce json
+// @Param video formData file true "Video file to upload (mp4, webm, mov)"
+// @Param type query string true "Promo type: hero or video"
+// @Security Bearer
+// @Success 200 {object} map[string]interface{} "Video uploaded successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid file or file type"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 413 {object} map[string]interface{} "Payload Too Large: File size exceeds limit"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /upload/promo-video [post]
+func (h *UploadHandler) UploadPromoVideo(w http.ResponseWriter, r *http.Request) {
+	// Limit file size to 100MB for videos
+	r.ParseMultipartForm(100 << 20)
+
+	// Get the file from the request
+	file, header, err := r.FormFile("video")
+	if err != nil {
+		responseHandlers.RespondWithError(w, errLib.New("No video file provided", http.StatusBadRequest))
+		return
+	}
+	defer file.Close()
+
+	// Validate file size (100MB limit)
+	if header.Size > 100<<20 {
+		responseHandlers.RespondWithError(w, errLib.New("File size exceeds 100MB limit", http.StatusRequestEntityTooLarge))
+		return
+	}
+
+	// Validate file type
+	if !isValidVideoType(header.Filename) {
+		responseHandlers.RespondWithError(w, errLib.New("Invalid file type. Only mp4, webm, and mov are allowed", http.StatusBadRequest))
+		return
+	}
+
+	// Get promo type from query params
+	promoType := r.URL.Query().Get("type")
+	if promoType == "" {
+		promoType = "video"
+	}
+
+	// Validate promo type
+	if promoType != "hero" && promoType != "video" {
+		responseHandlers.RespondWithError(w, errLib.New("Invalid promo type. Must be 'hero' or 'video'", http.StatusBadRequest))
+		return
+	}
+
+	// Create folder path: website-promos/{type}/videos
+	folderPath := fmt.Sprintf("website-promos/%s/videos", promoType)
+
+	// Generate filename with timestamp for cache busting
+	fileExt := strings.ToLower(filepath.Ext(header.Filename))
+	timestamp := time.Now().Unix()
+	fileName := fmt.Sprintf("%s/promo_%d%s", folderPath, timestamp, fileExt)
+
+	// Upload to GCP Storage
+	publicURL, uploadErr := gcp.UploadImageToGCP(file, fileName)
+	if uploadErr != nil {
+		responseHandlers.RespondWithError(w, uploadErr)
+		return
+	}
+
+	response := map[string]interface{}{
+		"message":    "Promo video uploaded successfully",
+		"url":        publicURL,
+		"filename":   fileName,
+		"size_bytes": header.Size,
+	}
+
+	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
+}
+
 // isValidImageType checks if the file has a valid image extension
 func isValidImageType(filename string) bool {
 	ext := strings.ToLower(filepath.Ext(filename))
 	validExtensions := []string{".jpg", ".jpeg", ".png", ".gif", ".webp"}
+
+	for _, validExt := range validExtensions {
+		if ext == validExt {
+			return true
+		}
+	}
+	return false
+}
+
+// isValidVideoType checks if the file has a valid video extension
+func isValidVideoType(filename string) bool {
+	ext := strings.ToLower(filepath.Ext(filename))
+	validExtensions := []string{".mp4", ".webm", ".mov"}
 
 	for _, validExt := range validExtensions {
 		if ext == validExt {

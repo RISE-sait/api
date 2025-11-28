@@ -53,8 +53,8 @@ func JWTAuthMiddleware(isAllowAnyoneWithValidToken bool, allowedRoles ...context
 				return
 			}
 
-			// Check if user is suspended or deleted (skip for superadmin)
-			if userRole != contextUtils.RoleSuperAdmin {
+			// Check if user is suspended or deleted (skip for superadmin and IT)
+			if userRole != contextUtils.RoleSuperAdmin && userRole != contextUtils.RoleIT {
 				suspended, deleted, statusErr := checkUserSuspensionOrDeletion(ctx, claims.UserID.String())
 				if statusErr != nil {
 					log.Printf("Error checking account status for user %s: %v", claims.UserID, statusErr)
@@ -111,6 +111,7 @@ func extractRole(userRoleInfo *jwtLib.RoleInfo) (contextUtils.CtxRole, *errLib.C
 		contextUtils.RoleInstructor,
 		contextUtils.RoleCoach,
 		contextUtils.RoleSuperAdmin,
+		contextUtils.RoleIT,
 		contextUtils.RoleParent,
 		contextUtils.RoleBarber,
 		contextUtils.RoleAthlete,
@@ -127,14 +128,14 @@ func extractRole(userRoleInfo *jwtLib.RoleInfo) (contextUtils.CtxRole, *errLib.C
 	return "", errLib.New("Invalid role", http.StatusUnauthorized)
 }
 
-// hasRequiredRole checks if the user's role matches any of the allowed roles or is SUPERADMIN.
+// hasRequiredRole checks if the user's role matches any of the allowed roles or is SUPERADMIN/IT.
 func hasRequiredRole(userRole contextUtils.CtxRole, allowedRoles []contextUtils.CtxRole) bool {
 	if userRole == "" {
 		return false
 	}
 
-	// SUPER ADMIN has access to everything
-	if userRole == contextUtils.RoleSuperAdmin {
+	// SUPER ADMIN and IT have access to everything
+	if userRole == contextUtils.RoleSuperAdmin || userRole == contextUtils.RoleIT {
 		return true
 	}
 

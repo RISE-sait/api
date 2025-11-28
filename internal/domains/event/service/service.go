@@ -12,6 +12,7 @@ import (
 	staffActivityLogs "api/internal/domains/audit/staff_activity_logs/service"
 	repo "api/internal/domains/event/persistence/repository"
 	values "api/internal/domains/event/values"
+	stripeService "api/internal/domains/payment/services/stripe"
 	errLib "api/internal/libs/errors"
 	contextUtils "api/utils/context"
 	txUtils "api/utils/db"
@@ -23,6 +24,7 @@ type Service struct {
 	eventsRepository         *repo.EventsRepository
 	recurrencesRepository    *repo.RecurrencesRepository
 	staffActivityLogsService *staffActivityLogs.Service
+	productService           *stripeService.ProductService
 	db                       *sql.DB
 }
 
@@ -31,6 +33,7 @@ func NewEventService(container *di.Container) *Service {
 		eventsRepository:         repo.NewEventsRepository(container),
 		recurrencesRepository:    repo.NewRecurrencesRepository(container),
 		staffActivityLogsService: staffActivityLogs.NewService(container),
+		productService:           stripeService.NewProductService(),
 		db:                       container.DB,
 	}
 }
@@ -125,6 +128,37 @@ func (s *Service) GetEvents(ctx context.Context, filter values.GetEventsFilter) 
 }
 
 func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurrenceValues) *errLib.CommonError {
+	// If no PriceID provided but UnitAmount is, create a Stripe price
+	if details.PriceID == "" && details.UnitAmount != nil {
+		currency := details.Currency
+		if currency == "" {
+			currency = "cad"
+		}
+
+		// Get program name for the Stripe product name
+		programName := "Recurring Event"
+		if details.ProgramID != uuid.Nil {
+			var name sql.NullString
+			_ = s.db.QueryRowContext(ctx, "SELECT name FROM program.programs WHERE id = $1", details.ProgramID).Scan(&name)
+			if name.Valid {
+				programName = name.String + " Recurring Event"
+			}
+		}
+
+		priceID, productID, err := s.productService.CreateProductWithOneTimePrice(
+			programName,
+			fmt.Sprintf("Recurring event starting %s", details.FirstOccurrence.Format("Jan 2, 2006")),
+			*details.UnitAmount,
+			currency,
+		)
+		if err != nil {
+			return err
+		}
+
+		details.PriceID = priceID
+		log.Printf("[STRIPE] Created Stripe product %s with price %s for recurring event", productID, priceID)
+	}
+
 	events, err := generateEventsFromRecurrence(
 		details.FirstOccurrence,
 		details.LastOccurrence,
@@ -166,6 +200,37 @@ func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurre
 
 func (s *Service) CreateEvent(ctx context.Context, details values.CreateEventValues) (values.ReadEventValues, *errLib.CommonError) {
 	var createdEventData values.ReadEventValues
+
+	// If no PriceID provided but UnitAmount is, create a Stripe price
+	if details.PriceID == "" && details.UnitAmount != nil {
+		currency := details.Currency
+		if currency == "" {
+			currency = "cad"
+		}
+
+		// Get program name for the Stripe product name
+		programName := "Event"
+		if details.ProgramID != uuid.Nil {
+			var name sql.NullString
+			_ = s.db.QueryRowContext(ctx, "SELECT name FROM program.programs WHERE id = $1", details.ProgramID).Scan(&name)
+			if name.Valid {
+				programName = name.String + " Event"
+			}
+		}
+
+		priceID, productID, err := s.productService.CreateProductWithOneTimePrice(
+			programName,
+			fmt.Sprintf("Event on %s", details.StartAt.Format("Jan 2, 2006")),
+			*details.UnitAmount,
+			currency,
+		)
+		if err != nil {
+			return values.ReadEventValues{}, err
+		}
+
+		details.PriceID = priceID
+		log.Printf("[STRIPE] Created Stripe product %s with price %s for event", productID, priceID)
+	}
 
 	err := s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
 		// Create the event
@@ -267,6 +332,37 @@ func (s *Service) UpdateEvent(ctx context.Context, details values.UpdateEventVal
 // - Deletes events outside the new period
 // - Returns *errLib.CommonError if recurrence is being extended
 func (s *Service) UpdateRecurringEvents(ctx context.Context, details values.UpdateRecurrenceValues) *errLib.CommonError {
+	// If no PriceID provided but UnitAmount is, create a Stripe price
+	if details.PriceID == "" && details.UnitAmount != nil {
+		currency := details.Currency
+		if currency == "" {
+			currency = "cad"
+		}
+
+		// Get program name for the Stripe product name
+		programName := "Recurring Event"
+		if details.ProgramID != uuid.Nil {
+			var name sql.NullString
+			_ = s.db.QueryRowContext(ctx, "SELECT name FROM program.programs WHERE id = $1", details.ProgramID).Scan(&name)
+			if name.Valid {
+				programName = name.String + " Recurring Event"
+			}
+		}
+
+		priceID, productID, err := s.productService.CreateProductWithOneTimePrice(
+			programName,
+			fmt.Sprintf("Recurring event starting %s", details.FirstOccurrence.Format("Jan 2, 2006")),
+			*details.UnitAmount,
+			currency,
+		)
+		if err != nil {
+			return err
+		}
+
+		details.PriceID = priceID
+		log.Printf("[STRIPE] Created Stripe product %s with price %s for updated recurring event", productID, priceID)
+	}
+
 	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
 		if err := txRepo.DeleteUnmodifiedEventsByRecurrenceID(ctx, details.ID); err != nil {
 			return err
@@ -310,16 +406,55 @@ func (s *Service) UpdateRecurringEvents(ctx context.Context, details values.Upda
 }
 
 func (s *Service) DeleteUnmodifiedEventsByRecurrenceID(ctx context.Context, staffId, id uuid.UUID) *errLib.CommonError {
+	// Lookup recurrence details for audit log
+	var programName, locationName string
+	var firstOccurrence, lastOccurrence time.Time
+
+	row := s.db.QueryRowContext(ctx, `
+		SELECT p.name, l.name, r.first_occurrence, r.last_occurrence
+		FROM events.recurrences r
+		LEFT JOIN program.programs p ON r.program_id = p.id
+		LEFT JOIN facilities.locations l ON r.location_id = l.id
+		WHERE r.id = $1
+	`, id)
+	var pName, lName sql.NullString
+	_ = row.Scan(&pName, &lName, &firstOccurrence, &lastOccurrence)
+	if pName.Valid {
+		programName = pName.String
+	}
+	if lName.Valid {
+		locationName = lName.String
+	}
+
 	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
 		if err := txRepo.DeleteUnmodifiedEventsByRecurrenceID(ctx, id); err != nil {
 			return err
+		}
+
+		// Build description
+		loc, _ := time.LoadLocation("America/Edmonton")
+		if loc == nil {
+			loc = time.FixedZone("MST", -7*60*60)
+		}
+
+		desc := "Deleted recurring events"
+		if programName != "" {
+			desc += fmt.Sprintf(" for '%s'", programName)
+		}
+		if locationName != "" {
+			desc += fmt.Sprintf(" at %s", locationName)
+		}
+		if !firstOccurrence.IsZero() && !lastOccurrence.IsZero() {
+			desc += fmt.Sprintf(" (%s to %s)",
+				firstOccurrence.In(loc).Format("Jan 2, 2006"),
+				lastOccurrence.In(loc).Format("Jan 2, 2006"))
 		}
 
 		return s.staffActivityLogsService.InsertStaffActivity(
 			ctx,
 			txRepo.GetTx(),
 			staffId,
-			fmt.Sprintf("Deleted events with recurring id: %+v", id),
+			desc,
 		)
 	})
 }
@@ -330,6 +465,34 @@ func (s *Service) DeleteEvents(ctx context.Context, ids []uuid.UUID) *errLib.Com
 		isStaff bool
 		staffID uuid.UUID
 	)
+
+	// Fetch event details before deletion for audit log
+	events, err := s.eventsRepository.GetEvents(ctx, values.GetEventsFilter{Ids: ids})
+	if err != nil {
+		return err
+	}
+
+	// Build description with event details
+	var descriptions []string
+	for _, event := range events {
+		desc := ""
+		if event.Program.Name != "" {
+			desc = event.Program.Name
+		}
+		if event.Location.Name != "" {
+			if desc != "" {
+				desc += " at " + event.Location.Name
+			} else {
+				desc = event.Location.Name
+			}
+		}
+		loc, _ := time.LoadLocation("America/Edmonton")
+		if loc == nil {
+			loc = time.FixedZone("MST", -7*60*60)
+		}
+		desc += " on " + event.StartAt.In(loc).Format("Jan 2, 2006 at 3:04 PM")
+		descriptions = append(descriptions, desc)
+	}
 
 	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
 		if err = txRepo.DeleteEvents(ctx, ids); err != nil {
@@ -348,11 +511,18 @@ func (s *Service) DeleteEvents(ctx context.Context, ids []uuid.UUID) *errLib.Com
 				return err
 			}
 
+			activityDesc := "Deleted event(s): "
+			if len(descriptions) > 0 {
+				activityDesc += fmt.Sprintf("%v", descriptions)
+			} else {
+				activityDesc += fmt.Sprintf("IDs %v", ids)
+			}
+
 			return s.staffActivityLogsService.InsertStaffActivity(
 				ctx,
 				txRepo.GetTx(),
 				staffID,
-				fmt.Sprintf("Deleted events with ids: %+v", ids),
+				activityDesc,
 			)
 		} else {
 			return nil

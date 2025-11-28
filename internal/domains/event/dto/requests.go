@@ -26,6 +26,10 @@ type RecurrenceRequestDto struct {
 	RequiredMembershipPlanIDs []uuid.UUID `json:"required_membership_plan_ids" example:"[\"f0e21457-75d4-4de6-b765-5ee13221fd72\"]"`
 	PriceID                   string      `json:"price_id" example:"price_123"`
 	CreditCost                *int32      `json:"credit_cost" validate:"omitempty,gte=0" example:"5"`
+	RegistrationRequired      *bool       `json:"registration_required" example:"true"` // Defaults to true if not provided
+	// Fields for Stripe auto-creation (when PriceID is not provided)
+	UnitAmount *int64 `json:"unit_amount" example:"2500"` // Price in cents (e.g., 2500 = $25.00)
+	Currency   string `json:"currency" example:"cad"`     // "cad" or "usd", defaults to "cad"
 }
 
 //goland:noinspection GoNameStartsWithPackageName
@@ -39,6 +43,10 @@ type EventRequestDto struct {
 	RequiredMembershipPlanIDs []uuid.UUID `json:"required_membership_plan_ids" example:"[\"f0e21457-75d4-4de6-b765-5ee13221fd72\"]"`
 	PriceID                   string      `json:"price_id" example:"price_123"`
 	CreditCost                *int32      `json:"credit_cost" validate:"omitempty,gte=0" example:"5"`
+	RegistrationRequired      *bool       `json:"registration_required" example:"true"` // Defaults to true if not provided
+	// Fields for Stripe auto-creation (when PriceID is not provided)
+	UnitAmount *int64 `json:"unit_amount" example:"2500"` // Price in cents (e.g., 2500 = $25.00)
+	Currency   string `json:"currency" example:"cad"`     // "cad" or "usd", defaults to "cad"
 }
 
 type DeleteRequestDto struct {
@@ -79,6 +87,12 @@ func (dto RecurrenceRequestDto) ToCreateRecurrenceValues(creator uuid.UUID) (val
 		return values.CreateRecurrenceValues{}, err
 	}
 
+	// Default registration_required to true if not provided
+	registrationRequired := true
+	if dto.RegistrationRequired != nil {
+		registrationRequired = *dto.RegistrationRequired
+	}
+
 	createRecurrenceValues := values.CreateRecurrenceValues{
 		CreatedBy:                 creator,
 		BaseRecurrenceValues:      recurrence,
@@ -89,6 +103,9 @@ func (dto RecurrenceRequestDto) ToCreateRecurrenceValues(creator uuid.UUID) (val
 		RequiredMembershipPlanIDs: dto.RequiredMembershipPlanIDs,
 		PriceID:                   dto.PriceID,
 		CreditCost:                dto.CreditCost,
+		RegistrationRequired:      registrationRequired,
+		UnitAmount:                dto.UnitAmount,
+		Currency:                  dto.Currency,
 	}
 
 	return createRecurrenceValues, nil
@@ -98,6 +115,12 @@ func (dto RecurrenceRequestDto) ToUpdateRecurrenceValues(updater, recurrenceID u
 	recurrence, err := dto.ToBaseRecurrenceValues()
 	if err != nil {
 		return values.UpdateRecurrenceValues{}, err
+	}
+
+	// Default registration_required to true if not provided
+	registrationRequired := true
+	if dto.RegistrationRequired != nil {
+		registrationRequired = *dto.RegistrationRequired
 	}
 
 	updateRecurrenceValues := values.UpdateRecurrenceValues{
@@ -111,6 +134,9 @@ func (dto RecurrenceRequestDto) ToUpdateRecurrenceValues(updater, recurrenceID u
 		RequiredMembershipPlanIDs: dto.RequiredMembershipPlanIDs,
 		PriceID:                   dto.PriceID,
 		CreditCost:                dto.CreditCost,
+		RegistrationRequired:      registrationRequired,
+		UnitAmount:                dto.UnitAmount,
+		Currency:                  dto.Currency,
 	}
 
 	return updateRecurrenceValues, nil
@@ -186,6 +212,12 @@ func (dto EventRequestDto) ToCreateEventValues(creator uuid.UUID) (values.Create
 		return values.CreateEventValues{}, err
 	}
 
+	// Default registration_required to true if not provided
+	registrationRequired := true
+	if dto.RegistrationRequired != nil {
+		registrationRequired = *dto.RegistrationRequired
+	}
+
 	v := values.CreateEventValues{
 		CreatedBy: creator,
 		EventDetails: values.EventDetails{
@@ -198,6 +230,9 @@ func (dto EventRequestDto) ToCreateEventValues(creator uuid.UUID) (values.Create
 			RequiredMembershipPlanIDs: dto.RequiredMembershipPlanIDs,
 			PriceID:                   dto.PriceID,
 			CreditCost:                dto.CreditCost,
+			RegistrationRequired:      registrationRequired,
+			UnitAmount:                dto.UnitAmount,
+			Currency:                  dto.Currency,
 		},
 	}
 
@@ -215,6 +250,12 @@ func (dto EventRequestDto) ToUpdateEventValues(idStr string, updater uuid.UUID) 
 		return values.UpdateEventValues{}, err
 	}
 
+	// Default registration_required to true if not provided
+	registrationRequired := true
+	if dto.RegistrationRequired != nil {
+		registrationRequired = *dto.RegistrationRequired
+	}
+
 	v := values.UpdateEventValues{
 		ID:        id,
 		UpdatedBy: updater,
@@ -228,6 +269,9 @@ func (dto EventRequestDto) ToUpdateEventValues(idStr string, updater uuid.UUID) 
 			RequiredMembershipPlanIDs: dto.RequiredMembershipPlanIDs,
 			PriceID:                   dto.PriceID,
 			CreditCost:                dto.CreditCost,
+			RegistrationRequired:      registrationRequired,
+			UnitAmount:                dto.UnitAmount,
+			Currency:                  dto.Currency,
 		},
 	}
 

@@ -7,20 +7,25 @@ import (
 )
 
 type ReadValue struct {
-	ID             uuid.UUID
-	DOB            time.Time
-	HubspotID      *string
-	CountryCode    string
-	FirstName      string
-	LastName       string
-	Email          *string
-	Phone          *string
-	Notes          *string
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
-	IsArchived     bool
-	MembershipInfo *MembershipReadValue
-	AthleteInfo    *AthleteReadValue
+	ID                           uuid.UUID
+	DOB                          time.Time
+	HubspotID                    *string
+	CountryCode                  string
+	FirstName                    string
+	LastName                     string
+	Email                        *string
+	Phone                        *string
+	Notes                        *string
+	CreatedAt                    time.Time
+	UpdatedAt                    time.Time
+	IsArchived                   bool
+	DeletedAt                    *time.Time
+	ScheduledDeletionAt          *time.Time
+	EmergencyContactName         *string
+	EmergencyContactPhone        *string
+	EmergencyContactRelationship *string
+	MembershipInfo               *MembershipReadValue
+	AthleteInfo                  *AthleteReadValue
 }
 
 type UpdateValue struct {

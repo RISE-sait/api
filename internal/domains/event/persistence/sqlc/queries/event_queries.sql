@@ -13,7 +13,8 @@ WITH unnested_data AS (
         unnest(sqlc.arg('is_cancelled_array')::bool[])           AS is_cancelled,
         unnest(sqlc.arg('cancellation_reasons')::text[])         AS cancellation_reason,
         unnest(sqlc.arg('price_ids')::text[])                    AS price_id,
-        unnest(sqlc.arg('credit_costs')::int[])                  AS credit_cost
+        unnest(sqlc.arg('credit_costs')::int[])                  AS credit_cost,
+        unnest(sqlc.arg('registration_required_array')::bool[])  AS registration_required
 )
 INSERT INTO events.events (
     location_id,
@@ -29,7 +30,8 @@ INSERT INTO events.events (
     is_cancelled,
     cancellation_reason,
     price_id,
-    credit_cost
+    credit_cost,
+    registration_required
 )
 SELECT
     location_id,
@@ -45,7 +47,8 @@ SELECT
     is_cancelled,
     NULLIF(cancellation_reason, ''),
     NULLIF(price_id, ''),
-    NULLIF(credit_cost, 0)
+    NULLIF(credit_cost, 0),
+    registration_required
 FROM unnested_data
 ON CONFLICT ON CONSTRAINT no_overlapping_events DO NOTHING;
 
@@ -162,9 +165,10 @@ SET start_at              = $1,
     updated_by            = sqlc.arg('updated_by')::uuid,
     is_date_time_modified = (recurrence_id IS NOT NULL),
     price_id              = $10,
-    credit_cost           = $11
-WHERE id = $9
-RETURNING *;
+    credit_cost           = $11,
+    registration_required = $12
+  WHERE id = $9
+  RETURNING *;
 
 -- name: DeleteEventsByIds :exec
 DELETE

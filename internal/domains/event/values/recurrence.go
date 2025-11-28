@@ -47,6 +47,10 @@ type CreateRecurrenceValues struct {
 	RequiredMembershipPlanIDs []uuid.UUID
 	PriceID                   string
 	CreditCost                *int32
+	RegistrationRequired      bool
+	// Fields for Stripe auto-creation (when PriceID is not provided)
+	UnitAmount *int64 // Price in cents
+	Currency   string // "cad" or "usd"
 }
 
 type UpdateRecurrenceValues struct {
@@ -60,4 +64,8 @@ type UpdateRecurrenceValues struct {
 	RequiredMembershipPlanIDs []uuid.UUID
 	PriceID                   string
 	CreditCost                *int32
+	RegistrationRequired      bool
+	// Fields for Stripe auto-creation (when PriceID is not provided)
+	UnitAmount *int64 // Price in cents
+	Currency   string // "cad" or "usd"
 }

@@ -59,3 +59,45 @@ func (s *Service) DeleteUser(ctx context.Context, userEmail string) *errLib.Comm
 	log.Printf("Successfully deleted Firebase user: %s (%s)", user.UID, userEmail)
 	return nil
 }
+
+// DisableUser disables a Firebase user account (for soft delete - user cannot log in but data is preserved)
+func (s *Service) DisableUser(ctx context.Context, userEmail string) *errLib.CommonError {
+	// Get user by email first
+	user, firebaseErr := s.FirebaseAuthClient.GetUserByEmail(ctx, userEmail)
+	if firebaseErr != nil {
+		log.Printf("Failed to get Firebase user by email %s: %v", userEmail, firebaseErr)
+		return errLib.New("Firebase user not found", http.StatusNotFound)
+	}
+
+	// Disable the user account
+	params := (&auth.UserToUpdate{}).Disabled(true)
+	_, firebaseErr = s.FirebaseAuthClient.UpdateUser(ctx, user.UID, params)
+	if firebaseErr != nil {
+		log.Printf("Failed to disable Firebase user %s: %v", user.UID, firebaseErr)
+		return errLib.New("Failed to disable Firebase user", http.StatusInternalServerError)
+	}
+
+	log.Printf("Successfully disabled Firebase user: %s (%s)", user.UID, userEmail)
+	return nil
+}
+
+// EnableUser re-enables a disabled Firebase user account (for account recovery)
+func (s *Service) EnableUser(ctx context.Context, userEmail string) *errLib.CommonError {
+	// Get user by email first
+	user, firebaseErr := s.FirebaseAuthClient.GetUserByEmail(ctx, userEmail)
+	if firebaseErr != nil {
+		log.Printf("Failed to get Firebase user by email %s: %v", userEmail, firebaseErr)
+		return errLib.New("Firebase user not found", http.StatusNotFound)
+	}
+
+	// Enable the user account
+	params := (&auth.UserToUpdate{}).Disabled(false)
+	_, firebaseErr = s.FirebaseAuthClient.UpdateUser(ctx, user.UID, params)
+	if firebaseErr != nil {
+		log.Printf("Failed to enable Firebase user %s: %v", user.UID, firebaseErr)
+		return errLib.New("Failed to enable Firebase user", http.StatusInternalServerError)
+	}
+
+	log.Printf("Successfully enabled Firebase user: %s (%s)", user.UID, userEmail)
+	return nil
+}

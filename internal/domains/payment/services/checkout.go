@@ -271,11 +271,12 @@ func (s *Service) CheckoutEvent(ctx context.Context, eventID uuid.UUID, discount
 
 // CheckEventEnrollmentOptions returns available enrollment options for a customer and event
 type EventEnrollmentOptions struct {
-	CanEnrollFree    bool    `json:"can_enroll_free"`
-	StripePriceID    *string `json:"stripe_price_id"`
-	CreditCost       *int32  `json:"credit_cost"`
-	MembershipPlanID *string `json:"membership_plan_id"`
-	HasSufficientCredits bool `json:"has_sufficient_credits"`
+	CanEnrollFree        bool    `json:"can_enroll_free"`
+	StripePriceID        *string `json:"stripe_price_id"`
+	CreditCost           *int32  `json:"credit_cost"`
+	MembershipPlanID     *string `json:"membership_plan_id"`
+	HasSufficientCredits bool    `json:"has_sufficient_credits"`
+	RegistrationRequired bool    `json:"registration_required"`
 }
 
 func (s *Service) CheckEventEnrollmentOptions(ctx context.Context, eventID uuid.UUID) (*EventEnrollmentOptions, *errLib.CommonError) {
@@ -290,7 +291,14 @@ func (s *Service) CheckEventEnrollmentOptions(ctx context.Context, eventID uuid.
 		return nil, err
 	}
 
-	options := &EventEnrollmentOptions{}
+	options := &EventEnrollmentOptions{
+		RegistrationRequired: event.RegistrationRequired,
+	}
+
+	// If registration is not required, enrollment is not allowed
+	if !event.RegistrationRequired {
+		return options, nil
+	}
 
 	// Check if event has required membership plans
 	if len(event.RequiredMembershipPlanIDs) > 0 {
@@ -349,6 +357,11 @@ func (s *Service) CheckoutEventWithCredits(ctx context.Context, eventID uuid.UUI
 		return err
 	}
 
+	// Check if event requires registration
+	if !options.RegistrationRequired {
+		return errLib.New("This event does not require registration", http.StatusBadRequest)
+	}
+
 	// Validate credit payment is available
 	if options.CreditCost == nil {
 		return errLib.New("Event does not accept credit payments", http.StatusBadRequest)
@@ -402,6 +415,11 @@ func (s *Service) CheckoutEventEnhanced(ctx context.Context, eventID uuid.UUID, 
 	options, err := s.CheckEventEnrollmentOptions(ctx, eventID)
 	if err != nil {
 		return "", err
+	}
+
+	// Check if event requires registration
+	if !options.RegistrationRequired {
+		return "", errLib.New("This event does not require registration", http.StatusBadRequest)
 	}
 
 	// If customer can enroll for free, complete enrollment without payment

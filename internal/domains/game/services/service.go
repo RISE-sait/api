@@ -290,18 +290,26 @@ func (s *Service) DeleteGame(ctx context.Context, id uuid.UUID) *errLib.CommonEr
 		return err
 	}
 
+	// Get the existing game details for audit log (and coach validation)
+	existingGame, err := s.repo.GetGameById(ctx, id)
+	if err != nil {
+		return err
+	}
+
 	// For coaches, validate they have access to the game
 	if role == contextUtils.RoleCoach {
-		// First get the existing game to check team IDs
-		existingGame, err := s.repo.GetGameById(ctx, id)
-		if err != nil {
-			return err
-		}
-
 		teamIDs := []uuid.UUID{existingGame.HomeTeamID, existingGame.AwayTeamID}
 		if err := s.ValidateCoachTeamAccess(ctx, userID, teamIDs); err != nil {
 			return err
 		}
+	}
+
+	// Get names for audit log
+	homeTeamName, awayTeamName, locationName := s.lookupNames(ctx, existingGame.HomeTeamID, existingGame.AwayTeamID, existingGame.LocationID)
+
+	loc, _ := time.LoadLocation("America/Edmonton")
+	if loc == nil {
+		loc = time.FixedZone("MST", -7*60*60)
 	}
 
 	return s.executeInTx(ctx, func(txRepo *repo.Repository) *errLib.CommonError {
@@ -316,12 +324,18 @@ func (s *Service) DeleteGame(ctx context.Context, id uuid.UUID) *errLib.CommonEr
 			return err
 		}
 
+		activityDesc := fmt.Sprintf("Deleted game: %s vs %s at %s on %s",
+			homeTeamName,
+			awayTeamName,
+			locationName,
+			existingGame.StartTime.In(loc).Format("Jan 2, 2006 at 3:04 PM"))
+
 		// Log the deletion
 		return s.staffActivityLogsService.InsertStaffActivity(
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Deleted game with ID: %s", id),
+			activityDesc,
 		)
 	})
 }

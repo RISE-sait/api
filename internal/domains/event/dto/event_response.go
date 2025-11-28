@@ -77,6 +77,7 @@ type (
 		RequiredMembershipPlanIDs []uuid.UUID       `json:"required_membership_plan_ids,omitempty"`
 		PriceID                   *string           `json:"price_id,omitempty"`
 		CreditCost                *int32            `json:"credit_cost,omitempty"`
+		RegistrationRequired      bool              `json:"registration_required"`
 		DateResponseDto
 		*Participants
 	}
@@ -91,6 +92,7 @@ func NewEventResponseDto(event values.ReadEventValues, includePeople bool, inclu
 		RequiredMembershipPlanIDs: event.RequiredMembershipPlanIDs,
 		PriceID:                   event.PriceID,
 		CreditCost:                event.CreditCost,
+		RegistrationRequired:      event.RegistrationRequired,
 		Location: LocationInfo{
 			ID:      event.Location.ID,
 			Name:    event.Location.Name,

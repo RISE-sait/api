@@ -18,6 +18,10 @@ type EventDetails struct {
 	RequiredMembershipPlanIDs []uuid.UUID
 	PriceID                   string
 	CreditCost                *int32
+	RegistrationRequired      bool
+	// Fields for Stripe auto-creation (when PriceID is not provided)
+	UnitAmount *int64 // Price in cents
+	Currency   string // "cad" or "usd"
 }
 
 type CreateEventValues struct {
@@ -78,6 +82,7 @@ type ReadEventValues struct {
 	RequiredMembershipPlanIDs []uuid.UUID
 	PriceID                   *string
 	CreditCost                *int32
+	RegistrationRequired      bool
 
 	Customers []Customer
 

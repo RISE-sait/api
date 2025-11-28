@@ -157,6 +157,19 @@ func (s *Service) UpdatePractice(ctx context.Context, val values.UpdatePracticeV
 }
 
 func (s *Service) DeletePractice(ctx context.Context, id uuid.UUID) *errLib.CommonError {
+	// Fetch practice details before deletion for audit log
+	practice, fetchErr := s.repo.GetByID(ctx, id)
+	if fetchErr != nil {
+		return fetchErr
+	}
+
+	teamName, locationName := s.lookupNames(ctx, practice.TeamID, practice.LocationID)
+
+	loc, _ := time.LoadLocation("America/Edmonton")
+	if loc == nil {
+		loc = time.FixedZone("MST", -7*60*60)
+	}
+
 	return s.executeInTx(ctx, func(r *repo.Repository) *errLib.CommonError {
 		if err := r.Delete(ctx, id); err != nil {
 			return err
@@ -165,7 +178,13 @@ func (s *Service) DeletePractice(ctx context.Context, id uuid.UUID) *errLib.Comm
 		if err != nil {
 			return err
 		}
-		return s.staffActivityLogsService.InsertStaffActivity(ctx, r.GetTx(), staffID, fmt.Sprintf("Deleted practice %s", id))
+
+		activityDesc := fmt.Sprintf("Deleted practice for %s at %s on %s",
+			teamName,
+			locationName,
+			practice.StartTime.In(loc).Format("Jan 2, 2006 at 3:04 PM"))
+
+		return s.staffActivityLogsService.InsertStaffActivity(ctx, r.GetTx(), staffID, activityDesc)
 	})
 }
 

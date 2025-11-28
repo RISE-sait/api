@@ -1163,3 +1163,39 @@ type WaiverWaiverUpload struct {
 	CreatedAt     sql.NullTime   `json:"created_at"`
 	UpdatedAt     sql.NullTime   `json:"updated_at"`
 }
+
+type WebsiteFeatureCard struct {
+	ID           uuid.UUID      `json:"id"`
+	Title        string         `json:"title"`
+	Description  sql.NullString `json:"description"`
+	ImageUrl     string         `json:"image_url"`
+	ButtonText   sql.NullString `json:"button_text"`
+	ButtonLink   sql.NullString `json:"button_link"`
+	DisplayOrder int32          `json:"display_order"`
+	IsActive     bool           `json:"is_active"`
+	StartDate    sql.NullTime   `json:"start_date"`
+	EndDate      sql.NullTime   `json:"end_date"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	CreatedBy    uuid.NullUUID  `json:"created_by"`
+	UpdatedBy    uuid.NullUUID  `json:"updated_by"`
+}
+
+type WebsiteHeroPromo struct {
+	ID              uuid.UUID      `json:"id"`
+	Title           string         `json:"title"`
+	Subtitle        sql.NullString `json:"subtitle"`
+	Description     sql.NullString `json:"description"`
+	ImageUrl        string         `json:"image_url"`
+	ButtonText      sql.NullString `json:"button_text"`
+	ButtonLink      sql.NullString `json:"button_link"`
+	DisplayOrder    int32          `json:"display_order"`
+	DurationSeconds int32          `json:"duration_seconds"`
+	IsActive        bool           `json:"is_active"`
+	StartDate       sql.NullTime   `json:"start_date"`
+	EndDate         sql.NullTime   `json:"end_date"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	CreatedBy       uuid.NullUUID  `json:"created_by"`
+	UpdatedBy       uuid.NullUUID  `json:"updated_by"`
+}

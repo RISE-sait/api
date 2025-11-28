@@ -724,8 +724,10 @@ func (h *CustomersHandler) DeleteMyAccount(w http.ResponseWriter, r *http.Reques
 	var userEmail string
 	if dbErr := h.CustomerRepo.Db.QueryRowContext(r.Context(), "SELECT email FROM users.users WHERE id = $1", customerID).Scan(&userEmail); dbErr == nil && userEmail != "" {
 		log.Printf("Disabling Firebase account for soft-deleted user: %s", userEmail)
-		// TODO: Implement Firebase disable (not delete) - Firebase Admin SDK has UpdateUser with Disabled field
-		// For now we just log it - you'll need to add a DisableUser method to FirebaseService
+		if firebaseErr := h.FirebaseService.DisableUser(r.Context(), userEmail); firebaseErr != nil {
+			log.Printf("WARNING: Failed to disable Firebase account for %s: %v", userEmail, firebaseErr)
+			// Don't fail the deletion - the account is already soft-deleted in the database
+		}
 	}
 
 	log.Printf("Account soft deleted successfully for customer: %s (recoverable until %s)", customerID, scheduledDeletionAt.Format(time.RFC3339))
@@ -811,8 +813,15 @@ func (h *CustomersHandler) RecoverAccount(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// TODO: Re-enable Firebase account
-	// h.FirebaseService.EnableUser(r.Context(), userEmail)
+	// Re-enable Firebase account
+	var userEmail string
+	if dbErr := h.CustomerRepo.Db.QueryRowContext(r.Context(), "SELECT email FROM users.users WHERE id = $1", customerID).Scan(&userEmail); dbErr == nil && userEmail != "" {
+		log.Printf("Re-enabling Firebase account for recovered user: %s", userEmail)
+		if firebaseErr := h.FirebaseService.EnableUser(r.Context(), userEmail); firebaseErr != nil {
+			log.Printf("WARNING: Failed to re-enable Firebase account for %s: %v", userEmail, firebaseErr)
+			// Don't fail the recovery - the account is already recovered in the database
+		}
+	}
 
 	log.Printf("Account successfully recovered for customer: %s", customerID)
 

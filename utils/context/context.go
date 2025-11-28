@@ -18,6 +18,7 @@ const (
 
 const (
 	RoleSuperAdmin   CtxRole = "SUPERADMIN"
+	RoleIT           CtxRole = "IT"
 	RoleAdmin        CtxRole = "ADMIN"
 	RoleInstructor   CtxRole = "INSTRUCTOR"
 	RoleParent       CtxRole = "PARENT"
@@ -85,7 +86,7 @@ func IsStaff(ctx context.Context) (bool, *errLib.CommonError) {
 	}
 
 	switch role {
-	case RoleSuperAdmin, RoleAdmin, RoleInstructor, RoleCoach, RoleBarber, RoleReceptionist:
+	case RoleSuperAdmin, RoleIT, RoleAdmin, RoleInstructor, RoleCoach, RoleBarber, RoleReceptionist:
 		return true, nil
 	default:
 		return false, nil

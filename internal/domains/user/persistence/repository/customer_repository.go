@@ -69,6 +69,14 @@ func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int
 			IsArchived:  dbCustomer.IsArchived,
 		}
 
+		if dbCustomer.DeletedAt.Valid {
+			customer.DeletedAt = &dbCustomer.DeletedAt.Time
+		}
+
+		if dbCustomer.ScheduledDeletionAt.Valid {
+			customer.ScheduledDeletionAt = &dbCustomer.ScheduledDeletionAt.Time
+		}
+
 		if dbCustomer.HubspotID.Valid {
 			customer.HubspotID = &dbCustomer.HubspotID.String
 		}
@@ -83,6 +91,18 @@ func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int
 
 		if dbCustomer.Notes.Valid {
 			customer.Notes = &dbCustomer.Notes.String
+		}
+
+		if dbCustomer.EmergencyContactName.Valid {
+			customer.EmergencyContactName = &dbCustomer.EmergencyContactName.String
+		}
+
+		if dbCustomer.EmergencyContactPhone.Valid {
+			customer.EmergencyContactPhone = &dbCustomer.EmergencyContactPhone.String
+		}
+
+		if dbCustomer.EmergencyContactRelationship.Valid {
+			customer.EmergencyContactRelationship = &dbCustomer.EmergencyContactRelationship.String
 		}
 
 		if dbCustomer.MembershipName.Valid && dbCustomer.MembershipPlanName.Valid && dbCustomer.MembershipStartDate.Valid && dbCustomer.MembershipPlanID.Valid {
@@ -151,6 +171,14 @@ func (r *CustomerRepository) GetCustomer(ctx context.Context, id uuid.UUID, emai
 		IsArchived:  dbCustomer.IsArchived,
 	}
 
+	if dbCustomer.DeletedAt.Valid {
+		customer.DeletedAt = &dbCustomer.DeletedAt.Time
+	}
+
+	if dbCustomer.ScheduledDeletionAt.Valid {
+		customer.ScheduledDeletionAt = &dbCustomer.ScheduledDeletionAt.Time
+	}
+
 	if dbCustomer.HubspotID.Valid {
 		customer.HubspotID = &dbCustomer.HubspotID.String
 	}
@@ -165,6 +193,18 @@ func (r *CustomerRepository) GetCustomer(ctx context.Context, id uuid.UUID, emai
 
 	if dbCustomer.Notes.Valid {
 		customer.Notes = &dbCustomer.Notes.String
+	}
+
+	if dbCustomer.EmergencyContactName.Valid {
+		customer.EmergencyContactName = &dbCustomer.EmergencyContactName.String
+	}
+
+	if dbCustomer.EmergencyContactPhone.Valid {
+		customer.EmergencyContactPhone = &dbCustomer.EmergencyContactPhone.String
+	}
+
+	if dbCustomer.EmergencyContactRelationship.Valid {
+		customer.EmergencyContactRelationship = &dbCustomer.EmergencyContactRelationship.String
 	}
 
 	if dbCustomer.MembershipName.Valid && dbCustomer.MembershipPlanName.Valid && dbCustomer.MembershipStartDate.Valid && dbCustomer.MembershipPlanID.Valid {

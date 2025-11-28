@@ -9,17 +9,22 @@ import (
 )
 
 type Response struct {
-	UserID         uuid.UUID              `json:"user_id"`
-	DOB            string                 `json:"dob"`
-	FirstName      string                 `json:"first_name"`
-	LastName       string                 `json:"last_name"`
-	Email          *string                `json:"email,omitempty"`
-	Phone          *string                `json:"phone,omitempty"`
-	HubspotId      *string                `json:"hubspot_id,omitempty"`
-	CountryCode    string                 `json:"country_code"`
-	Notes          *string                `json:"notes,omitempty"`
-	MembershipInfo *MembershipResponseDto `json:"membership_info,omitempty"`
-	IsArchived     bool                   `json:"is_archived"`
+	UserID                       uuid.UUID              `json:"user_id"`
+	DOB                          string                 `json:"dob"`
+	FirstName                    string                 `json:"first_name"`
+	LastName                     string                 `json:"last_name"`
+	Email                        *string                `json:"email,omitempty"`
+	Phone                        *string                `json:"phone,omitempty"`
+	HubspotId                    *string                `json:"hubspot_id,omitempty"`
+	CountryCode                  string                 `json:"country_code"`
+	Notes                        *string                `json:"notes,omitempty"`
+	EmergencyContactName         *string                `json:"emergency_contact_name,omitempty"`
+	EmergencyContactPhone        *string                `json:"emergency_contact_phone,omitempty"`
+	EmergencyContactRelationship *string                `json:"emergency_contact_relationship,omitempty"`
+	MembershipInfo               *MembershipResponseDto `json:"membership_info,omitempty"`
+	IsArchived                   bool                   `json:"is_archived"`
+	DeletedAt                    *time.Time             `json:"deleted_at,omitempty"`
+	ScheduledDeletionAt          *time.Time             `json:"scheduled_deletion_at,omitempty"`
 }
 
 type MembershipResponseDto struct {
@@ -32,16 +37,21 @@ type MembershipResponseDto struct {
 
 func UserReadValueToResponse(customer values.ReadValue) Response {
 	response := Response{
-		UserID:      customer.ID,
-		DOB:         customer.DOB.Format("2006-01-02"),
-		FirstName:   customer.FirstName,
-		LastName:    customer.LastName,
-		Email:       customer.Email,
-		Phone:       customer.Phone,
-		CountryCode: customer.CountryCode,
-		HubspotId:   customer.HubspotID,
-		Notes:       customer.Notes,
-		IsArchived:  customer.IsArchived,
+		UserID:                       customer.ID,
+		DOB:                          customer.DOB.Format("2006-01-02"),
+		FirstName:                    customer.FirstName,
+		LastName:                     customer.LastName,
+		Email:                        customer.Email,
+		Phone:                        customer.Phone,
+		CountryCode:                  customer.CountryCode,
+		HubspotId:                    customer.HubspotID,
+		Notes:                        customer.Notes,
+		EmergencyContactName:         customer.EmergencyContactName,
+		EmergencyContactPhone:        customer.EmergencyContactPhone,
+		EmergencyContactRelationship: customer.EmergencyContactRelationship,
+		IsArchived:                   customer.IsArchived,
+		DeletedAt:                    customer.DeletedAt,
+		ScheduledDeletionAt:          customer.ScheduledDeletionAt,
 	}
 
 	if customer.MembershipInfo != nil {

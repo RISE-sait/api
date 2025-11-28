@@ -119,7 +119,7 @@ func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []valu
 	var (
 		locationIDs, programIDs, courtIDs, teamIDs, createdByIds, recurrenceIds []uuid.UUID
 		startAtArray, endAtArray                                                []time.Time
-		isCancelledArray, isDateTimeModifiedArray                               []bool
+		isCancelledArray, isDateTimeModifiedArray, registrationRequiredArray    []bool
 		priceIDs                                                                []string
 		creditCosts                                                             []int32
 	)
@@ -142,6 +142,7 @@ func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []valu
 		isCancelledArray = append(isCancelledArray, false)
 		isDateTimeModifiedArray = append(isDateTimeModifiedArray, false)
 		priceIDs = append(priceIDs, event.PriceID)
+		registrationRequiredArray = append(registrationRequiredArray, event.RegistrationRequired)
 
 		// Handle credit cost - sqlc doesn't support nullable arrays, so use 0 for null
 		if event.CreditCost != nil {
@@ -164,7 +165,8 @@ func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []valu
 		IsDateTimeModifiedArray: isDateTimeModifiedArray,
 		CancellationReasons:     nil,
 		PriceIds:                priceIDs,
-		CreditCosts:             creditCosts,
+		CreditCosts:               creditCosts,
+		RegistrationRequiredArray: registrationRequiredArray,
 	}
 
 	impactedRows, dbErr := r.Queries.CreateEvents(ctx, dbParams)
@@ -247,6 +249,7 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id uuid.UUID) (values.R
 		RequiredMembershipPlanIDs: membershipPlanIDs,
 		PriceID:                   nullStringToPtr(dbEvent.PriceID),
 		CreditCost:                nullInt32ToPtr(dbEvent.CreditCost),
+		RegistrationRequired:      dbEvent.RegistrationRequired,
 	}
 
 	if dbEvent.CourtID.Valid && dbEvent.CourtName.Valid {
@@ -395,6 +398,7 @@ func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEvent
 			RequiredMembershipPlanIDs: membershipPlanIDs,
 			PriceID:                   nullStringToPtr(row.PriceID),
 			CreditCost:                nullInt32ToPtr(row.CreditCost),
+			RegistrationRequired:      row.RegistrationRequired,
 		}
 
 		if row.TeamID.Valid && row.TeamName.Valid {
@@ -489,6 +493,7 @@ func (r *EventsRepository) UpdateEvent(ctx context.Context, event values.UpdateE
 			}(),
 			Valid: event.CreditCost != nil,
 		},
+		RegistrationRequired: event.RegistrationRequired,
 		UpdatedBy: userID,
 	}
 

@@ -67,13 +67,14 @@ require.NoError(t, err)
 	now := time.Now().Truncate(time.Second)
 
 	_, err = eventQueries.CreateEvents(context.Background(), eventDb.CreateEventsParams{
-		StartAtArray:            []time.Time{now},
-		EndAtArray:              []time.Time{now.Add(time.Hour * 24)},
-		LocationIds:             []uuid.UUID{createdLocation.ID},
-		ProgramIds:              []uuid.UUID{createdProgram.ID},
-		CreatedByIds:            []uuid.UUID{eventCreator.ID},
-		IsCancelledArray:        []bool{false},
-		IsDateTimeModifiedArray: []bool{false},
+		StartAtArray:              []time.Time{now},
+		EndAtArray:                []time.Time{now.Add(time.Hour * 24)},
+		LocationIds:               []uuid.UUID{createdLocation.ID},
+		ProgramIds:                []uuid.UUID{createdProgram.ID},
+		CreatedByIds:              []uuid.UUID{eventCreator.ID},
+		IsCancelledArray:          []bool{false},
+		IsDateTimeModifiedArray:   []bool{false},
+		RegistrationRequiredArray: []bool{true},
 	})
 	require.NoError(t, err)
 
@@ -199,15 +200,21 @@ func TestEnrollCustomerInProgramEvents(t *testing.T) {
 		currentTime = endTimes[i].Add(gap)
 	}
 
+	registrationRequiredArray := make([]bool, numEvents)
+	for i := 0; i < numEvents; i++ {
+		registrationRequiredArray[i] = true
+	}
+
 	_, err = eventQueries.CreateEvents(context.Background(), eventDb.CreateEventsParams{
-		LocationIds:             locationIDs,
-		ProgramIds:              programIDs,
-		CreatedByIds:            createdByIDs,
-		StartAtArray:            startTimes,
-		EndAtArray:              endTimes,
-		IsCancelledArray:        isCancelledArray,
-		CancellationReasons:     cancellationReasons,
-		IsDateTimeModifiedArray: make([]bool, numEvents),
+		LocationIds:               locationIDs,
+		ProgramIds:                programIDs,
+		CreatedByIds:              createdByIDs,
+		StartAtArray:              startTimes,
+		EndAtArray:                endTimes,
+		IsCancelledArray:          isCancelledArray,
+		CancellationReasons:       cancellationReasons,
+		IsDateTimeModifiedArray:   make([]bool, numEvents),
+		RegistrationRequiredArray: registrationRequiredArray,
 	})
 	require.NoError(t, err)
 

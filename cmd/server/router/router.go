@@ -632,6 +632,7 @@ func RegisterUploadRoutes(container *di.Container) func(chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/image", uploadHandlers.UploadImage)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/program-photo", uploadHandlers.UploadProgramPhoto)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/promo-image", uploadHandlers.UploadPromoImage)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/promo-video", uploadHandlers.UploadPromoVideo)
 	}
 }
 
@@ -738,6 +739,7 @@ func RegisterWebsitePromoRoutes(container *di.Container) func(chi.Router) {
 		// Public routes - get active promos for website
 		r.Get("/hero-promos/active", h.GetActiveHeroPromos)
 		r.Get("/feature-cards/active", h.GetActiveFeatureCards)
+		r.Get("/promo-videos/active", h.GetActivePromoVideos)
 
 		// Admin routes - full CRUD
 		r.Route("/hero-promos", func(r chi.Router) {
@@ -754,6 +756,14 @@ func RegisterWebsitePromoRoutes(container *di.Container) func(chi.Router) {
 			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/", h.CreateFeatureCard)
 			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Put("/{id}", h.UpdateFeatureCard)
 			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Delete("/{id}", h.DeleteFeatureCard)
+		})
+
+		r.Route("/promo-videos", func(r chi.Router) {
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Get("/", h.GetAllPromoVideos)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Get("/{id}", h.GetPromoVideoById)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/", h.CreatePromoVideo)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Put("/{id}", h.UpdatePromoVideo)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Delete("/{id}", h.DeletePromoVideo)
 		})
 	}
 }

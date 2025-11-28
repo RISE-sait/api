@@ -1,10 +1,10 @@
 -- name: CreateHeroPromo :one
 INSERT INTO website.hero_promos (
-    title, subtitle, description, image_url, button_text, button_link,
+    title, subtitle, description, media_url, media_type, thumbnail_url, button_text, button_link,
     display_order, duration_seconds, is_active, start_date, end_date,
     created_by, updated_by
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14
 ) RETURNING *;
 
 -- name: GetHeroPromoById :one
@@ -25,16 +25,18 @@ UPDATE website.hero_promos SET
     title = $2,
     subtitle = $3,
     description = $4,
-    image_url = $5,
-    button_text = $6,
-    button_link = $7,
-    display_order = $8,
-    duration_seconds = $9,
-    is_active = $10,
-    start_date = $11,
-    end_date = $12,
+    media_url = $5,
+    media_type = $6,
+    thumbnail_url = $7,
+    button_text = $8,
+    button_link = $9,
+    display_order = $10,
+    duration_seconds = $11,
+    is_active = $12,
+    start_date = $13,
+    end_date = $14,
     updated_at = CURRENT_TIMESTAMP,
-    updated_by = $13
+    updated_by = $15
 WHERE id = $1
 RETURNING *;
 
@@ -81,3 +83,54 @@ RETURNING *;
 
 -- name: DeleteFeatureCard :execrows
 DELETE FROM website.feature_cards WHERE id = $1;
+
+-- Promo Videos queries
+
+-- name: CreatePromoVideo :one
+INSERT INTO website.promo_videos (
+    title, description, video_url, thumbnail_url, category,
+    display_order, is_active, start_date, end_date,
+    created_by, updated_by
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10
+) RETURNING *;
+
+-- name: GetPromoVideoById :one
+SELECT * FROM website.promo_videos WHERE id = $1;
+
+-- name: GetAllPromoVideos :many
+SELECT * FROM website.promo_videos ORDER BY display_order ASC, created_at DESC;
+
+-- name: GetActivePromoVideos :many
+SELECT * FROM website.promo_videos
+WHERE is_active = true
+  AND (start_date IS NULL OR start_date <= CURRENT_TIMESTAMP)
+  AND (end_date IS NULL OR end_date >= CURRENT_TIMESTAMP)
+ORDER BY display_order ASC, created_at DESC;
+
+-- name: GetActivePromoVideosByCategory :many
+SELECT * FROM website.promo_videos
+WHERE is_active = true
+  AND category = $1
+  AND (start_date IS NULL OR start_date <= CURRENT_TIMESTAMP)
+  AND (end_date IS NULL OR end_date >= CURRENT_TIMESTAMP)
+ORDER BY display_order ASC, created_at DESC;
+
+-- name: UpdatePromoVideo :one
+UPDATE website.promo_videos SET
+    title = $2,
+    description = $3,
+    video_url = $4,
+    thumbnail_url = $5,
+    category = $6,
+    display_order = $7,
+    is_active = $8,
+    start_date = $9,
+    end_date = $10,
+    updated_at = CURRENT_TIMESTAMP,
+    updated_by = $11
+WHERE id = $1
+RETURNING *;
+
+-- name: DeletePromoVideo :execrows
+DELETE FROM website.promo_videos WHERE id = $1;

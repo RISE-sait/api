@@ -75,13 +75,14 @@ func TestCreateEvents(t *testing.T) {
 	}
 
 	createEventsParams := eventDb.CreateEventsParams{
-		StartAtArray:            make([]time.Time, len(testTimes)),
-		EndAtArray:              make([]time.Time, len(testTimes)),
-		LocationIds:             make([]uuid.UUID, len(testTimes)),
-		ProgramIds:              make([]uuid.UUID, len(testTimes)),
-		CreatedByIds:            make([]uuid.UUID, len(testTimes)),
-		IsCancelledArray:        make([]bool, len(testTimes)),
-		IsDateTimeModifiedArray: make([]bool, len(testTimes)),
+		StartAtArray:             make([]time.Time, len(testTimes)),
+		EndAtArray:               make([]time.Time, len(testTimes)),
+		LocationIds:              make([]uuid.UUID, len(testTimes)),
+		ProgramIds:               make([]uuid.UUID, len(testTimes)),
+		CreatedByIds:             make([]uuid.UUID, len(testTimes)),
+		IsCancelledArray:         make([]bool, len(testTimes)),
+		IsDateTimeModifiedArray:  make([]bool, len(testTimes)),
+		RegistrationRequiredArray: make([]bool, len(testTimes)),
 	}
 
 	for i, tm := range testTimes {
@@ -92,6 +93,7 @@ func TestCreateEvents(t *testing.T) {
 		createEventsParams.CreatedByIds[i] = creator.ID
 		createEventsParams.IsDateTimeModifiedArray[i] = false
 		createEventsParams.IsCancelledArray[i] = false
+		createEventsParams.RegistrationRequiredArray[i] = true
 	}
 
 	_, err = eventQueries.CreateEvents(context.Background(), createEventsParams)
@@ -158,13 +160,14 @@ func TestUpdateEvent(t *testing.T) {
 	now := time.Now().Truncate(time.Second)
 
 	createEventsParams := eventDb.CreateEventsParams{
-		StartAtArray:            []time.Time{now},
-		EndAtArray:              []time.Time{now.Add(24 * time.Hour)},
-		LocationIds:             []uuid.UUID{createdLocation.ID},
-		ProgramIds:              []uuid.UUID{createdProgram.ID},
-		CreatedByIds:            []uuid.UUID{creator.ID},
-		IsCancelledArray:        []bool{false},
-		IsDateTimeModifiedArray: []bool{false},
+		StartAtArray:              []time.Time{now},
+		EndAtArray:                []time.Time{now.Add(24 * time.Hour)},
+		LocationIds:               []uuid.UUID{createdLocation.ID},
+		ProgramIds:                []uuid.UUID{createdProgram.ID},
+		CreatedByIds:              []uuid.UUID{creator.ID},
+		IsCancelledArray:          []bool{false},
+		IsDateTimeModifiedArray:   []bool{false},
+		RegistrationRequiredArray: []bool{true},
 	}
 
 	_, err = eventQueries.CreateEvents(context.Background(), createEventsParams)
@@ -187,12 +190,13 @@ func TestUpdateEvent(t *testing.T) {
 	newEnd := now.Add(4 * time.Hour).UTC()
 
 	updateEventParams := eventDb.UpdateEventParams{
-		ID:         originalEvent.ID,
-		StartAt:    newStart,
-		EndAt:      newEnd,
-		LocationID: originalEvent.LocationID,
-		ProgramID:  originalEvent.ProgramID,
-		UpdatedBy:  originalEvent.CreatedBy,
+		ID:                   originalEvent.ID,
+		StartAt:              newStart,
+		EndAt:                newEnd,
+		LocationID:           originalEvent.LocationID,
+		ProgramID:            originalEvent.ProgramID,
+		UpdatedBy:            originalEvent.CreatedBy,
+		RegistrationRequired: true,
 	}
 
 	updatedEvent, err := eventQueries.UpdateEvent(context.Background(), updateEventParams)
@@ -243,13 +247,14 @@ func TestDeleteEvent(t *testing.T) {
 	now := time.Now().Truncate(time.Second)
 
 	createEventsParams := eventDb.CreateEventsParams{
-		StartAtArray:            []time.Time{now, now.Add(48 * time.Hour)},
-		EndAtArray:              []time.Time{now.Add(24 * time.Hour), now.Add(72 * time.Hour)},
-		LocationIds:             []uuid.UUID{createdLocation.ID, createdLocation.ID},
-		ProgramIds:              []uuid.UUID{createdProgram.ID, createdProgram.ID},
-		CreatedByIds:            []uuid.UUID{creator.ID, creator.ID},
-		IsCancelledArray:        []bool{false, false},
-		IsDateTimeModifiedArray: []bool{false, false},
+		StartAtArray:              []time.Time{now, now.Add(48 * time.Hour)},
+		EndAtArray:                []time.Time{now.Add(24 * time.Hour), now.Add(72 * time.Hour)},
+		LocationIds:               []uuid.UUID{createdLocation.ID, createdLocation.ID},
+		ProgramIds:                []uuid.UUID{createdProgram.ID, createdProgram.ID},
+		CreatedByIds:              []uuid.UUID{creator.ID, creator.ID},
+		IsCancelledArray:          []bool{false, false},
+		IsDateTimeModifiedArray:   []bool{false, false},
+		RegistrationRequiredArray: []bool{true, true},
 	}
 
 	_, err = eventQueries.CreateEvents(context.Background(), createEventsParams)
@@ -321,17 +326,18 @@ func TestGetEventsByCourt(t *testing.T) {
 	now := time.Now().Truncate(time.Second)
 
 	createEventsParams := eventDb.CreateEventsParams{
-		StartAtArray:            []time.Time{now, now.Add(time.Hour)},
-		EndAtArray:              []time.Time{now.Add(time.Hour), now.Add(2 * time.Hour)},
-		LocationIds:             []uuid.UUID{createdLocation.ID, createdLocation.ID},
-		ProgramIds:              []uuid.UUID{createdProgram.ID, createdProgram.ID},
-		CourtIds:                []uuid.UUID{court1.ID, court2.ID},
-		TeamIds:                 []uuid.UUID{uuid.Nil, uuid.Nil},
-		CreatedByIds:            []uuid.UUID{creator.ID, creator.ID},
-		RecurrenceIds:           []uuid.UUID{uuid.Nil, uuid.Nil},
-		IsCancelledArray:        []bool{false, false},
-		IsDateTimeModifiedArray: []bool{false, false},
-		CancellationReasons:     []string{"", ""},
+		StartAtArray:              []time.Time{now, now.Add(time.Hour)},
+		EndAtArray:                []time.Time{now.Add(time.Hour), now.Add(2 * time.Hour)},
+		LocationIds:               []uuid.UUID{createdLocation.ID, createdLocation.ID},
+		ProgramIds:                []uuid.UUID{createdProgram.ID, createdProgram.ID},
+		CourtIds:                  []uuid.UUID{court1.ID, court2.ID},
+		TeamIds:                   []uuid.UUID{uuid.Nil, uuid.Nil},
+		CreatedByIds:              []uuid.UUID{creator.ID, creator.ID},
+		RecurrenceIds:             []uuid.UUID{uuid.Nil, uuid.Nil},
+		IsCancelledArray:          []bool{false, false},
+		IsDateTimeModifiedArray:   []bool{false, false},
+		CancellationReasons:       []string{"", ""},
+		RegistrationRequiredArray: []bool{true, true},
 	}
 
 	_, err = eventQueries.CreateEvents(context.Background(), createEventsParams)

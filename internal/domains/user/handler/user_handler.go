@@ -75,7 +75,7 @@ func (h *UsersHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	loggedInUserRole := r.Context().Value(contextUtils.RoleKey).(contextUtils.CtxRole)
 	isLoggedInUserSameAsUpdateTarget := id == loggedInUserId
 
-	isAdmin := loggedInUserRole == contextUtils.RoleAdmin || loggedInUserRole == contextUtils.RoleSuperAdmin
+	isAdmin := loggedInUserRole == contextUtils.RoleAdmin || loggedInUserRole == contextUtils.RoleSuperAdmin || loggedInUserRole == contextUtils.RoleIT
 
 	if !isAdmin && !isLoggedInUserSameAsUpdateTarget {
 		responseHandlers.RespondWithError(w, errLib.New("You do not have permission to access this resource", http.StatusForbidden))

@@ -56,7 +56,7 @@ func (h *SuspensionHandler) SuspendUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if userRole != contextUtils.RoleAdmin && userRole != contextUtils.RoleSuperAdmin {
+	if userRole != contextUtils.RoleAdmin && userRole != contextUtils.RoleSuperAdmin && userRole != contextUtils.RoleIT {
 		responseHandlers.RespondWithError(w, errLib.New("Insufficient permissions to suspend users", http.StatusForbidden))
 		return
 	}
@@ -133,7 +133,7 @@ func (h *SuspensionHandler) UnsuspendUser(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if userRole != contextUtils.RoleAdmin && userRole != contextUtils.RoleSuperAdmin {
+	if userRole != contextUtils.RoleAdmin && userRole != contextUtils.RoleSuperAdmin && userRole != contextUtils.RoleIT {
 		responseHandlers.RespondWithError(w, errLib.New("Insufficient permissions to unsuspend users", http.StatusForbidden))
 		return
 	}
@@ -202,7 +202,7 @@ func (h *SuspensionHandler) GetSuspensionInfo(w http.ResponseWriter, r *http.Req
 	}
 
 	// If not admin/receptionist, verify user is checking their own suspension status
-	if userRole != contextUtils.RoleAdmin && userRole != contextUtils.RoleSuperAdmin && userRole != contextUtils.RoleReceptionist {
+	if userRole != contextUtils.RoleAdmin && userRole != contextUtils.RoleSuperAdmin && userRole != contextUtils.RoleIT && userRole != contextUtils.RoleReceptionist {
 		currentUserID, userErr := contextUtils.GetUserID(r.Context())
 		if userErr != nil {
 			responseHandlers.RespondWithError(w, userErr)
@@ -283,7 +283,7 @@ func (h *SuspensionHandler) CollectArrears(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if userRole != contextUtils.RoleAdmin && userRole != contextUtils.RoleSuperAdmin {
+	if userRole != contextUtils.RoleAdmin && userRole != contextUtils.RoleSuperAdmin && userRole != contextUtils.RoleIT {
 		responseHandlers.RespondWithError(w, errLib.New("Insufficient permissions to collect arrears", http.StatusForbidden))
 		return
 	}

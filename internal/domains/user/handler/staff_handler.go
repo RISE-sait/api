@@ -191,7 +191,7 @@ func (h *StaffHandler) UpdateStaffProfile(w http.ResponseWriter, r *http.Request
 	}
 
 	// If not admin, check if user is updating their own profile
-	if userRole != contextUtils.RoleAdmin && userRole != contextUtils.RoleSuperAdmin {
+	if userRole != contextUtils.RoleAdmin && userRole != contextUtils.RoleSuperAdmin && userRole != contextUtils.RoleIT {
 		currentUserID, userErr := contextUtils.GetUserID(r.Context())
 		if userErr != nil {
 			responseHandlers.RespondWithError(w, userErr)

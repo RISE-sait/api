@@ -60,7 +60,7 @@ func (h *Handler) CreateGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Only admins and coaches can create games
-	if role != contextUtils.RoleAdmin && role != contextUtils.RoleSuperAdmin && role != contextUtils.RoleCoach {
+	if role != contextUtils.RoleAdmin && role != contextUtils.RoleSuperAdmin && role != contextUtils.RoleIT && role != contextUtils.RoleCoach {
 		responseHandlers.RespondWithError(w, errLib.New("Insufficient permissions to create games", http.StatusForbidden))
 		return
 	}
@@ -227,8 +227,8 @@ func (h *Handler) GetRoleGames(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Admins can view all games 
-	if role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin {
+	// Admins can view all games
+	if role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin || role == contextUtils.RoleIT {
 		h.GetGames(w, r)
 		return
 	}
@@ -318,7 +318,7 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Only admins and coaches can update games
-	if role != contextUtils.RoleAdmin && role != contextUtils.RoleSuperAdmin && role != contextUtils.RoleCoach {
+	if role != contextUtils.RoleAdmin && role != contextUtils.RoleSuperAdmin && role != contextUtils.RoleIT && role != contextUtils.RoleCoach {
 		responseHandlers.RespondWithError(w, errLib.New("Insufficient permissions to update games", http.StatusForbidden))
 		return
 	}
@@ -375,7 +375,7 @@ func (h *Handler) DeleteGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Only admins and coaches can delete games
-	if role != contextUtils.RoleAdmin && role != contextUtils.RoleSuperAdmin && role != contextUtils.RoleCoach {
+	if role != contextUtils.RoleAdmin && role != contextUtils.RoleSuperAdmin && role != contextUtils.RoleIT && role != contextUtils.RoleCoach {
 		responseHandlers.RespondWithError(w, errLib.New("Insufficient permissions to delete games", http.StatusForbidden))
 		return
 	}

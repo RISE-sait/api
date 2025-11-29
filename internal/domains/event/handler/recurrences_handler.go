@@ -36,16 +36,25 @@ func (h *EventsHandler) CreateRecurrences(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if recurrenceValues, err := targetBody.ToCreateRecurrenceValues(userID); err != nil {
+	recurrenceValues, err := targetBody.ToCreateRecurrenceValues(userID)
+	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
-	} else {
-		if err = h.EventsService.CreateEvents(r.Context(), recurrenceValues); err != nil {
-			responseHandlers.RespondWithError(w, err)
-			return
-		}
 	}
-	responseHandlers.RespondWithSuccess(w, nil, http.StatusCreated)
+
+	createdEvents, err := h.EventsService.CreateEvents(r.Context(), recurrenceValues)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Convert to response DTOs
+	eventDtos := make([]dto.EventResponseDto, 0, len(createdEvents))
+	for _, event := range createdEvents {
+		eventDtos = append(eventDtos, dto.NewEventResponseDto(event, false, false))
+	}
+
+	responseHandlers.RespondWithSuccess(w, eventDtos, http.StatusCreated)
 }
 
 // UpdateRecurrences updates existing events by filters.

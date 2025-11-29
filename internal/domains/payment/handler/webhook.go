@@ -83,27 +83,28 @@ func (h *WebhookHandlers) HandleStripeWebhook(w http.ResponseWriter, r *http.Req
 
 	// Process the webhook event and handle retries on failure
 	var webhookErr *errLib.CommonError
-	
+	ctx := r.Context()
+
 	switch event.Type {
 	case "checkout.session.completed":
-		webhookErr = h.Service.HandleCheckoutSessionCompleted(*event)
+		webhookErr = h.Service.HandleCheckoutSessionCompleted(ctx, *event)
 	case "customer.subscription.created":
-		webhookErr = h.Service.HandleSubscriptionCreated(*event)
+		webhookErr = h.Service.HandleSubscriptionCreated(ctx, *event)
 	case "customer.subscription.updated":
-		webhookErr = h.Service.HandleSubscriptionUpdated(*event)
+		webhookErr = h.Service.HandleSubscriptionUpdated(ctx, *event)
 	case "customer.subscription.deleted":
-		webhookErr = h.Service.HandleSubscriptionDeleted(*event)
+		webhookErr = h.Service.HandleSubscriptionDeleted(ctx, *event)
 	case "invoice.created":
 		// Apply subsidy credit BEFORE customer is charged
-		webhookErr = h.Service.HandleInvoiceCreated(*event)
+		webhookErr = h.Service.HandleInvoiceCreated(ctx, *event)
 	case "invoice.finalized":
 		// Apply subsidy credit at finalization (after subscription linked, before payment)
-		webhookErr = h.Service.HandleInvoiceFinalized(*event)
+		webhookErr = h.Service.HandleInvoiceFinalized(ctx, *event)
 	case "invoice.payment_succeeded":
 		// Records subsidy usage after successful payment
-		webhookErr = h.Service.HandleInvoicePaymentSucceededWithSubsidy(*event)
+		webhookErr = h.Service.HandleInvoicePaymentSucceededWithSubsidy(ctx, *event)
 	case "invoice.payment_failed":
-		webhookErr = h.Service.HandleInvoicePaymentFailed(*event)
+		webhookErr = h.Service.HandleInvoicePaymentFailed(ctx, *event)
 	default:
 		log.Printf("[STRIPE] Unhandled webhook event type: %s", event.Type)
 		w.WriteHeader(http.StatusOK)

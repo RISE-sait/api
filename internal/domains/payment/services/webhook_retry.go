@@ -225,21 +225,25 @@ func (r *WebhookRetryService) processRetryAttempt(attempt *RetryAttempt) {
 
 	retryLogger.Info("Retrying webhook processing")
 
+	// Create a timeout context for retry processing (2 minutes max)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
 	// Process the webhook based on event type
 	var err error
 	switch attempt.Event.Type {
 	case "checkout.session.completed":
-		err = r.webhookService.HandleCheckoutSessionCompleted(attempt.Event)
+		err = r.webhookService.HandleCheckoutSessionCompleted(ctx, attempt.Event)
 	case "customer.subscription.created":
-		err = r.webhookService.HandleSubscriptionCreated(attempt.Event)
+		err = r.webhookService.HandleSubscriptionCreated(ctx, attempt.Event)
 	case "customer.subscription.updated":
-		err = r.webhookService.HandleSubscriptionUpdated(attempt.Event)
+		err = r.webhookService.HandleSubscriptionUpdated(ctx, attempt.Event)
 	case "customer.subscription.deleted":
-		err = r.webhookService.HandleSubscriptionDeleted(attempt.Event)
+		err = r.webhookService.HandleSubscriptionDeleted(ctx, attempt.Event)
 	case "invoice.payment_succeeded":
-		err = r.webhookService.HandleInvoicePaymentSucceeded(attempt.Event)
+		err = r.webhookService.HandleInvoicePaymentSucceeded(ctx, attempt.Event)
 	case "invoice.payment_failed":
-		err = r.webhookService.HandleInvoicePaymentFailed(attempt.Event)
+		err = r.webhookService.HandleInvoicePaymentFailed(ctx, attempt.Event)
 	default:
 		retryLogger.Warn("Unknown event type for retry, removing from queue")
 		r.RemoveRetry(attempt.EventID)

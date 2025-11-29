@@ -273,7 +273,7 @@ func (h *EventsHandler) GetRoleEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Admins and receptionists should have access to all events
-	if role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin || role == contextUtils.RoleReceptionist {
+	if role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin || role == contextUtils.RoleIT || role == contextUtils.RoleReceptionist {
 		h.GetEvents(w, r)
 		return
 	}
@@ -421,7 +421,7 @@ func (h *EventsHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isAdmin := userRole == contextUtils.RoleAdmin || userRole == contextUtils.RoleSuperAdmin
+	isAdmin := userRole == contextUtils.RoleAdmin || userRole == contextUtils.RoleSuperAdmin || userRole == contextUtils.RoleIT
 	isCreator := retrievedEvent.CreatedBy.ID == loggedInUserID
 
 	// Check if the user is an admin or the creator of the retrievedEvent, if not, return forbidden
@@ -480,7 +480,7 @@ func (h *EventsHandler) DeleteEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isAdmin := userRole == contextUtils.RoleAdmin || userRole == contextUtils.RoleSuperAdmin
+	isAdmin := userRole == contextUtils.RoleAdmin || userRole == contextUtils.RoleSuperAdmin || userRole == contextUtils.RoleIT
 
 	for _, retrievedEvent := range retrievedEvents {
 		if !isAdmin && retrievedEvent.CreatedBy.ID != loggedInUserID {

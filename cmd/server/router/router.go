@@ -128,21 +128,21 @@ func RegisterCustomerRoutes(container *di.Container) func(chi.Router) {
 	suspensionHandler := userHandler.NewSuspensionHandler(container)
 
 	return func(r chi.Router) {
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/", h.GetCustomers)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/id/{id}", h.GetCustomerByID)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/email/{email}", h.GetCustomerByEmail)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/checkin/{id}", h.CheckinCustomer)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/{id}/memberships", h.GetMembershipHistory)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/{id}/archive", h.ArchiveCustomer)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/{id}/unarchive", h.UnarchiveCustomer)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/archived", h.ListArchivedCustomers)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT, contextUtils.RoleReceptionist)).Get("/", h.GetCustomers)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT, contextUtils.RoleReceptionist)).Get("/id/{id}", h.GetCustomerByID)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT, contextUtils.RoleReceptionist)).Get("/email/{email}", h.GetCustomerByEmail)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT, contextUtils.RoleReceptionist)).Get("/checkin/{id}", h.CheckinCustomer)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT, contextUtils.RoleReceptionist)).Get("/{id}/memberships", h.GetMembershipHistory)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/{id}/archive", h.ArchiveCustomer)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/{id}/unarchive", h.UnarchiveCustomer)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT, contextUtils.RoleReceptionist)).Get("/archived", h.ListArchivedCustomers)
 		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/delete-account", h.DeleteMyAccount)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Put("/{id}/notes", h.UpdateCustomerNotes)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Put("/{id}/notes", h.UpdateCustomerNotes)
 
 		// Suspension routes
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/{id}/suspend", suspensionHandler.SuspendUser)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/{id}/unsuspend", suspensionHandler.UnsuspendUser)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/{id}/collect-arrears", suspensionHandler.CollectArrears)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/{id}/suspend", suspensionHandler.SuspendUser)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/{id}/unsuspend", suspensionHandler.UnsuspendUser)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/{id}/collect-arrears", suspensionHandler.CollectArrears)
 		r.With(middlewares.JWTAuthMiddleware(true)).Get("/{id}/suspension", suspensionHandler.GetSuspensionInfo)
 	}
 }
@@ -344,7 +344,7 @@ func RegisterStaffRoutes(container *di.Container) func(chi.Router) {
 
 	return func(r chi.Router) {
 		r.Get("/", staffHandlers.GetStaffs) // Public endpoint for website to display coaches
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/logs", staffLogsHandlers.GetStaffActivityLogs)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT, contextUtils.RoleReceptionist)).Get("/logs", staffLogsHandlers.GetStaffActivityLogs)
 
 		r.With(middlewares.JWTAuthMiddleware(false)).Put("/{id}", staffHandlers.UpdateStaff)
 		r.With(middlewares.JWTAuthMiddleware(true)).Patch("/{id}/profile", staffHandlers.UpdateStaffProfile)
@@ -460,7 +460,7 @@ func RegisterRegistrationRoutes(container *di.Container) func(chi.Router) {
 		r.Post("/athlete", athleteHandler.RegisterAthlete)
 
 		r.Post("/staff", staffHandler.RegisterStaff)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/staff/pending", staffHandler.GetPendingStaffs)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT, contextUtils.RoleReceptionist)).Get("/staff/pending", staffHandler.GetPendingStaffs)
 		r.With(middlewares.JWTAuthMiddleware(false)).Post("/staff/approve/{id}", staffHandler.ApproveStaff)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/staff/reject/{id}", staffHandler.DeletePendingStaff)
 		r.Post("/child", childRegistrationHandler.RegisterChild)
@@ -615,13 +615,13 @@ func RegisterAdminRoutes(container *di.Container) func(chi.Router) {
 
 	return func(r chi.Router) {
 		// Credit management routes - receptionist can view
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/customers/{id}/credits", creditHandler.GetAnyCustomerCredits)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/customers/{id}/credits/transactions", creditHandler.GetAnyCustomerCreditTransactions)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/customers/{id}/credits/weekly-usage", creditHandler.GetAnyCustomerWeeklyUsage)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/customers/{id}/credits/add", creditHandler.AddCustomerCredits)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/customers/{id}/credits/deduct", creditHandler.DeductCustomerCredits)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist)).Get("/events/{id}/credit-transactions", creditHandler.GetEventCreditTransactions)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Put("/events/{id}/credit-cost", creditHandler.UpdateEventCreditCost)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT, contextUtils.RoleReceptionist)).Get("/customers/{id}/credits", creditHandler.GetAnyCustomerCredits)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT, contextUtils.RoleReceptionist)).Get("/customers/{id}/credits/transactions", creditHandler.GetAnyCustomerCreditTransactions)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT, contextUtils.RoleReceptionist)).Get("/customers/{id}/credits/weekly-usage", creditHandler.GetAnyCustomerWeeklyUsage)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/customers/{id}/credits/add", creditHandler.AddCustomerCredits)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/customers/{id}/credits/deduct", creditHandler.DeductCustomerCredits)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT, contextUtils.RoleReceptionist)).Get("/events/{id}/credit-transactions", creditHandler.GetEventCreditTransactions)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Put("/events/{id}/credit-cost", creditHandler.UpdateEventCreditCost)
 	}
 }
 
@@ -631,8 +631,8 @@ func RegisterUploadRoutes(container *di.Container) func(chi.Router) {
 	return func(r chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/image", uploadHandlers.UploadImage)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Post("/program-photo", uploadHandlers.UploadProgramPhoto)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/promo-image", uploadHandlers.UploadPromoImage)
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/promo-video", uploadHandlers.UploadPromoVideo)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/promo-image", uploadHandlers.UploadPromoImage)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/promo-video", uploadHandlers.UploadPromoVideo)
 	}
 }
 
@@ -675,20 +675,20 @@ func RegisterSubsidyRoutes(container *di.Container) func(chi.Router) {
 
 		// Admin routes - manage providers and subsidies
 		r.Group(func(r chi.Router) {
-			r.Use(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist))
+			r.Use(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT, contextUtils.RoleReceptionist))
 			r.Use(middlewares.RateLimitMiddleware(5, 10, 1*time.Minute)) // 5 rps, burst 10
 
 			// Provider management - receptionist can only view
-			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/providers", h.CreateProvider)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/providers", h.CreateProvider)
 			r.Get("/providers", h.ListProviders)
 			r.Get("/providers/{id}", h.GetProvider)
 			r.Get("/providers/{id}/stats", h.GetProviderStats)
 
 			// Subsidy management - receptionist can only view
-			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/", h.CreateSubsidy)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/", h.CreateSubsidy)
 			r.Get("/", h.ListSubsidies)
 			r.Get("/{id}", h.GetSubsidy)
-			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/{id}/deactivate", h.DeactivateSubsidy)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/{id}/deactivate", h.DeactivateSubsidy)
 
 			// Summary/reports
 			r.Get("/summary", h.GetSubsidySummary)
@@ -701,7 +701,7 @@ func RegisterPaymentReportsRoutes(container *di.Container) func(chi.Router) {
 	h := payment.NewPaymentReportsHandler(container)
 	return func(r chi.Router) {
 		// All routes require admin authentication - receptionist can view
-		r.Use(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist))
+		r.Use(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT, contextUtils.RoleReceptionist))
 		r.Use(middlewares.RateLimitMiddleware(5, 10, 1*time.Minute)) // 5 rps, burst 10
 
 		// Transaction listing and details
@@ -728,7 +728,7 @@ func RegisterWaiverRoutes(container *di.Container) func(chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(true)).Get("/user/{user_id}", h.GetUserWaivers)
 
 		// Delete waiver - admin only
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Delete("/{id}", h.DeleteWaiver)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Delete("/{id}", h.DeleteWaiver)
 	}
 }
 
@@ -743,27 +743,27 @@ func RegisterWebsitePromoRoutes(container *di.Container) func(chi.Router) {
 
 		// Admin routes - full CRUD
 		r.Route("/hero-promos", func(r chi.Router) {
-			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Get("/", h.GetAllHeroPromos)
-			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Get("/{id}", h.GetHeroPromoById)
-			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/", h.CreateHeroPromo)
-			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Put("/{id}", h.UpdateHeroPromo)
-			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Delete("/{id}", h.DeleteHeroPromo)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Get("/", h.GetAllHeroPromos)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Get("/{id}", h.GetHeroPromoById)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/", h.CreateHeroPromo)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Put("/{id}", h.UpdateHeroPromo)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Delete("/{id}", h.DeleteHeroPromo)
 		})
 
 		r.Route("/feature-cards", func(r chi.Router) {
-			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Get("/", h.GetAllFeatureCards)
-			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Get("/{id}", h.GetFeatureCardById)
-			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/", h.CreateFeatureCard)
-			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Put("/{id}", h.UpdateFeatureCard)
-			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Delete("/{id}", h.DeleteFeatureCard)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Get("/", h.GetAllFeatureCards)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Get("/{id}", h.GetFeatureCardById)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/", h.CreateFeatureCard)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Put("/{id}", h.UpdateFeatureCard)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Delete("/{id}", h.DeleteFeatureCard)
 		})
 
 		r.Route("/promo-videos", func(r chi.Router) {
-			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Get("/", h.GetAllPromoVideos)
-			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Get("/{id}", h.GetPromoVideoById)
-			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Post("/", h.CreatePromoVideo)
-			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Put("/{id}", h.UpdatePromoVideo)
-			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin)).Delete("/{id}", h.DeletePromoVideo)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Get("/", h.GetAllPromoVideos)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Get("/{id}", h.GetPromoVideoById)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/", h.CreatePromoVideo)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Put("/{id}", h.UpdatePromoVideo)
+			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Delete("/{id}", h.DeletePromoVideo)
 		})
 	}
 }

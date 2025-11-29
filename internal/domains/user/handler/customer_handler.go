@@ -147,7 +147,7 @@ func (h *CustomersHandler) UpdateAthleteProfile(w http.ResponseWriter, r *http.R
 	}
 
 	// If not admin, check if user is updating their own profile
-	if userRole != contextUtils.RoleAdmin && userRole != contextUtils.RoleSuperAdmin {
+	if userRole != contextUtils.RoleAdmin && userRole != contextUtils.RoleSuperAdmin && userRole != contextUtils.RoleIT {
 		currentUserID, userErr := contextUtils.GetUserID(r.Context())
 		if userErr != nil {
 			responseHandlers.RespondWithError(w, userErr)
@@ -860,7 +860,7 @@ func (h *CustomersHandler) UpdateCustomerNotes(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if userRole != contextUtils.RoleAdmin && userRole != contextUtils.RoleSuperAdmin {
+	if userRole != contextUtils.RoleAdmin && userRole != contextUtils.RoleSuperAdmin && userRole != contextUtils.RoleIT {
 		responseHandlers.RespondWithError(w, errLib.New("Insufficient permissions to update notes", http.StatusForbidden))
 		return
 	}

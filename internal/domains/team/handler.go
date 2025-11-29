@@ -120,7 +120,7 @@ func (h *Handler) GetMyTeams(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Admins can view all teams
-	if role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin {
+	if role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin || role == contextUtils.RoleIT {
 		h.GetTeams(w, r)
 		return
 	}

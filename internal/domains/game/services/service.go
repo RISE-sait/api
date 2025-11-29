@@ -440,7 +440,7 @@ func (s *Service) getUserTeamIDs(ctx context.Context, userID uuid.UUID, role con
 			return []uuid.UUID{}, nil
 		}
 		return []uuid.UUID{id}, nil
-	case contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleReceptionist:
+	case contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT, contextUtils.RoleReceptionist:
 		// Admin/receptionist can see all teams
 		rows, err := s.db.QueryContext(ctx, `SELECT id FROM athletic.teams`)
 		if err != nil {

@@ -4,11 +4,12 @@ import (
 	"api/config"
 	errLib "api/internal/libs/errors"
 	"fmt"
-	"github.com/google/uuid"
+	"log"
 	"net/http"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 type RoleInfo struct {
@@ -23,24 +24,24 @@ type CustomClaims struct {
 
 type JwtClaims struct {
 	CustomClaims
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 func SignJWT(customClaims CustomClaims) (string, *errLib.CommonError) {
 
 	claims := JwtClaims{
 		CustomClaims: customClaims,
-		StandardClaims: jwt.StandardClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    config.Env.JwtConfig.Issuer,
-			ExpiresAt: time.Now().Add(time.Hour * 24 * 15).Unix(), // 15 days
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)), // 24 hours (reduced from 15 days)
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signedToken, err := token.SignedString([]byte(config.Env.JwtConfig.Secret))
 	if err != nil {
-		fmt.Println("Error signing token: ", err)
-		return "", errLib.New("Error signing token. Check Azure for logs", 500)
+		log.Printf("Error signing JWT token: %v", err)
+		return "", errLib.New("Error signing token", http.StatusInternalServerError)
 	}
 
 	return signedToken, nil

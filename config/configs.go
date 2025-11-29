@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"time"
 
 	"github.com/stripe/stripe-go/v81"
 
@@ -111,10 +112,25 @@ func getEnv(key string, calmIfNotExist ...bool) string {
 func GetDBConnection() *sql.DB {
 	connStr := Env.DbConnUrl
 
-	log.Println(connStr)
+	// Note: Never log connection strings as they contain credentials
+	log.Println("Connecting to database...")
+
 	dbConn, err := sql.Open("postgres", connStr)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to open database connection")
 	}
+
+	// Configure connection pool for production scalability
+	dbConn.SetMaxOpenConns(25)                  // Maximum number of open connections
+	dbConn.SetMaxIdleConns(5)                   // Maximum number of idle connections
+	dbConn.SetConnMaxLifetime(5 * time.Minute)  // Maximum connection lifetime
+	dbConn.SetConnMaxIdleTime(2 * time.Minute)  // Maximum idle time before closing
+
+	// Verify connection is working
+	if err := dbConn.Ping(); err != nil {
+		log.Fatal("Failed to ping database")
+	}
+
+	log.Println("Database connection established successfully")
 	return dbConn
 }

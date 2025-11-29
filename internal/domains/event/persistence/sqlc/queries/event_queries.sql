@@ -93,6 +93,7 @@ WHERE (
               AND (sqlc.narg('created_by')::uuid IS NULL OR e.created_by = sqlc.narg('created_by'))
               AND (sqlc.narg('updated_by')::uuid IS NULL OR e.updated_by = sqlc.narg('updated_by'))
               AND (sqlc.narg('include_cancelled')::boolean IS NULL OR e.is_cancelled = sqlc.narg('include_cancelled'))
+              AND (sqlc.narg('ids')::uuid[] IS NULL OR e.id = ANY(sqlc.narg('ids')::uuid[]))
           )
           OFFSET sqlc.narg('offset') LIMIT sqlc.narg('limit');
 

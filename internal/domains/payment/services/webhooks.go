@@ -440,7 +440,7 @@ func (s *WebhookService) recordSubsidyUsageFromCheckout(session *stripe.Checkout
 
 	if invoice != nil {
 		// Calculate from invoice discount amounts
-		if invoice.TotalDiscountAmounts != nil && len(invoice.TotalDiscountAmounts) > 0 {
+		if len(invoice.TotalDiscountAmounts) > 0 {
 			for _, discount := range invoice.TotalDiscountAmounts {
 				subsidyApplied += float64(discount.Amount) / 100.0
 			}

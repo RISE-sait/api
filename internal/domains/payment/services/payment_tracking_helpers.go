@@ -303,7 +303,7 @@ func (s *WebhookService) trackMembershipRenewal(invoice *stripe.Invoice, custome
 	discountAmount := 0.0
 
 	// Check for discounts
-	if invoice.TotalDiscountAmounts != nil && len(invoice.TotalDiscountAmounts) > 0 {
+	if len(invoice.TotalDiscountAmounts) > 0 {
 		for _, discount := range invoice.TotalDiscountAmounts {
 			discountAmount += float64(discount.Amount) / 100.0
 		}

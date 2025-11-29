@@ -527,7 +527,7 @@ func (s *WebhookService) HandleInvoicePaymentSucceededWithSubsidy(event stripe.E
 	if subsidyAppliedFromMetadata > 0 {
 		subsidyApplied = subsidyAppliedFromMetadata
 		log.Printf("[SUBSIDY] Using subsidy amount from invoice metadata: $%.2f", subsidyApplied)
-	} else if invoice.TotalDiscountAmounts != nil && len(invoice.TotalDiscountAmounts) > 0 {
+	} else if len(invoice.TotalDiscountAmounts) > 0 {
 		// SECOND: Calculate from invoice discounts
 		for _, discount := range invoice.TotalDiscountAmounts {
 			subsidyApplied += float64(discount.Amount) / 100.0

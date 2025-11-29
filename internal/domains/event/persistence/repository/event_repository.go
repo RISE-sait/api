@@ -331,6 +331,7 @@ func (r *EventsRepository) GetEvents(ctx context.Context, filter values.GetEvent
 		UpdatedBy:     uuid.NullUUID{UUID: filter.UpdatedBy, Valid: filter.UpdatedBy != uuid.Nil},
 		Limit:         sql.NullInt32{Int32: int32(filter.Limit), Valid: filter.Limit > 0},
 		Offset:        sql.NullInt32{Int32: int32(filter.Offset), Valid: filter.Offset > 0},
+		Ids:           filter.Ids,
 	}
 
 	if filter.ProgramType != "" {

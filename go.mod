@@ -106,10 +106,10 @@ require (
 	cloud.google.com/go/storage v1.50.0
 	firebase.google.com/go v3.13.0+incompatible
 	github.com/biter777/countries v1.7.5
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/docker/docker v27.1.1+incompatible
 	github.com/go-chi/cors v1.2.1
 	github.com/go-playground/validator v9.31.0+incompatible
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	github.com/pressly/goose v2.7.0+incompatible

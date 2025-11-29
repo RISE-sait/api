@@ -127,7 +127,7 @@ func (s *Service) GetEvents(ctx context.Context, filter values.GetEventsFilter) 
 	return s.eventsRepository.GetEvents(ctx, filter)
 }
 
-func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurrenceValues) *errLib.CommonError {
+func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurrenceValues) ([]values.ReadEventValues, *errLib.CommonError) {
 	// If no PriceID provided but UnitAmount is, create a Stripe price
 	if details.PriceID == "" && details.UnitAmount != nil {
 		currency := details.Currency
@@ -152,7 +152,7 @@ func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurre
 			currency,
 		)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		details.PriceID = priceID
@@ -175,10 +175,10 @@ func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurre
 		details.CreditCost,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
+	txErr := s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
 		// Create events
 		if err = txRepo.CreateEvents(ctx, events); err != nil {
 			return err
@@ -196,6 +196,24 @@ func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurre
 			}),
 		)
 	})
+
+	if txErr != nil {
+		return nil, txErr
+	}
+
+	// Fetch the created events to return them with real IDs
+	createdEvents, fetchErr := s.eventsRepository.GetEvents(ctx, values.GetEventsFilter{
+		CreatedBy:  details.CreatedBy,
+		ProgramID:  details.ProgramID,
+		LocationID: details.LocationID,
+		After:      details.FirstOccurrence,
+		Before:     details.LastOccurrence.AddDate(0, 0, 1), // Add 1 day to include last occurrence
+	})
+	if fetchErr != nil {
+		return nil, fetchErr
+	}
+
+	return createdEvents, nil
 }
 
 func (s *Service) CreateEvent(ctx context.Context, details values.CreateEventValues) (values.ReadEventValues, *errLib.CommonError) {

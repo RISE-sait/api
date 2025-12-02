@@ -108,6 +108,29 @@ eventsToCreate, err := generateEventsFromRecurrence(
 )
 ```
 
+### 5. Updated unit tests (service_test.go)
+
+Added the new `registrationRequired` parameter to all 6 test cases in `internal/domains/event/service/service_test.go`:
+
+```go
+events, err := generateEventsFromRecurrence(
+    recurrence.FirstOccurrence,
+    recurrence.LastOccurrence,
+    recurrence.StartTime,
+    recurrence.EndTime,
+    recurrence.CreatedBy,
+    recurrence.ProgramID,
+    recurrence.LocationID,
+    recurrence.CourtID,
+    recurrence.TeamID,
+    recurrence.RequiredMembershipPlanIDs,
+    recurrence.PriceID,
+    recurrence.DayOfWeek,
+    nil,
+    true,  // <-- Added registrationRequired parameter
+)
+```
+
 ## Testing
 
 To verify the fix, create a recurring event with `registration_required: true`:

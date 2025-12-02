@@ -42,6 +42,7 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			recurrence.PriceID,
 			recurrence.DayOfWeek,
 			nil,
+			true,
 		)
 
 		assert.Nil(t, err)
@@ -88,6 +89,7 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			recurrence.PriceID,
 			recurrence.DayOfWeek,
 			nil,
+			true,
 		)
 
 		assert.Nil(t, events)
@@ -127,6 +129,7 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			recurrence.PriceID,
 			recurrence.DayOfWeek,
 			nil,
+			true,
 		)
 
 		assert.Nil(t, events)
@@ -166,6 +169,7 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			recurrence.PriceID,
 			recurrence.DayOfWeek,
 			nil,
+			true,
 		)
 
 		assert.Nil(t, err)
@@ -206,6 +210,7 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			recurrence.PriceID,
 			recurrence.DayOfWeek,
 			nil,
+			true,
 		)
 
 		assert.NotNil(t, err)
@@ -243,6 +248,7 @@ func TestGenerateEventsFromRecurrence(t *testing.T) {
 			recurrence.PriceID,
 			recurrence.DayOfWeek,
 			nil,
+			true,
 		)
 
 		assert.Nil(t, err)

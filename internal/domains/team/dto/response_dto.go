@@ -28,6 +28,7 @@ type RosterMemberInfo struct {
 	Name     string    `json:"name"`
 	Email    string    `json:"email,omitempty"`
 	Country  string    `json:"country"`
+	PhotoURL *string   `json:"photo_url,omitempty"`
 	Points   int32     `json:"points"`
 	Wins     int32     `json:"wins"`
 	Losses   int32     `json:"losses"`

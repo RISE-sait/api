@@ -231,7 +231,7 @@ func (r *Repository) getRosterMembers(ctx context.Context, teamID uuid.UUID) ([]
 	members := make([]values.RosterMemberInfo, len(dbMembers))
 
 	for i, dbMember := range dbMembers {
-		members[i] = values.RosterMemberInfo{
+		member := values.RosterMemberInfo{
 			ID:       dbMember.ID,
 			Email:    dbMember.Email.String,
 			Country:  dbMember.CountryAlpha2Code,
@@ -243,6 +243,12 @@ func (r *Repository) getRosterMembers(ctx context.Context, teamID uuid.UUID) ([]
 			Rebounds: dbMember.Rebounds,
 			Steals:   dbMember.Steals,
 		}
+
+		if dbMember.PhotoUrl.Valid {
+			member.PhotoURL = &dbMember.PhotoUrl.String
+		}
+
+		members[i] = member
 	}
 
 	return members, nil

@@ -193,7 +193,7 @@ func (r *Repository) Delete(c context.Context, id uuid.UUID) *errLib.CommonError
 	return nil
 }
 
-func (r *Repository) Create(c context.Context, details values.CreateProgramValues) *errLib.CommonError {
+func (r *Repository) Create(c context.Context, details values.CreateProgramValues) (values.GetProgramValues, *errLib.CommonError) {
 	dbPracticeParams := db.CreateProgramParams{
 		Name:        details.Name,
 		Description: details.Description,
@@ -214,20 +214,39 @@ func (r *Repository) Create(c context.Context, details values.CreateProgramValue
 		}
 	}
 
-	_, err := r.Queries.CreateProgram(c, dbPracticeParams)
+	dbProgram, err := r.Queries.CreateProgram(c, dbPracticeParams)
 	if err != nil {
 		// Check if the error is a unique violation (error code 23505)
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == databaseErrors.UniqueViolation {
 				// Return a custom error for unique violation
-				return errLib.New("Program name already exists", http.StatusConflict)
+				return values.GetProgramValues{}, errLib.New("Program name already exists", http.StatusConflict)
 			}
 		}
 
 		log.Printf("Error creating program: %v", err)
-		return errLib.New("Internal server error", http.StatusInternalServerError)
+		return values.GetProgramValues{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
 
-	return nil
+	result := values.GetProgramValues{
+		ID:        dbProgram.ID,
+		CreatedAt: dbProgram.CreatedAt,
+		UpdatedAt: dbProgram.UpdatedAt,
+		ProgramDetails: values.ProgramDetails{
+			Name:        dbProgram.Name,
+			Description: dbProgram.Description,
+			Type:        string(dbProgram.Type),
+		},
+	}
+
+	if dbProgram.Capacity.Valid {
+		result.Capacity = &dbProgram.Capacity.Int32
+	}
+
+	if dbProgram.PhotoUrl.Valid {
+		result.PhotoURL = &dbProgram.PhotoUrl.String
+	}
+
+	return result, nil
 }

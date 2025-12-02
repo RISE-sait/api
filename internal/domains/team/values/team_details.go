@@ -43,6 +43,7 @@ type RosterMemberInfo struct {
 	Email    string
 	Country  string
 	Name     string
+	PhotoURL *string
 	Points   int32
 	Wins     int32
 	Losses   int32

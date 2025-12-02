@@ -74,7 +74,8 @@ SELECT u.id,
        a.losses,
        a.assists,
        a.rebounds,
-       a.steals
+       a.steals,
+       a.photo_url
 FROM athletic.teams t
          JOIN athletic.athletes a ON t.id = a.team_id
          JOIN users.users u ON a.id = u.id

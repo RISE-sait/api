@@ -58,16 +58,20 @@ func (s *Service) validateProgramType(inputType string) *errLib.CommonError {
 	return nil
 }
 
-func (s *Service) CreateProgram(ctx context.Context, details values.CreateProgramValues) *errLib.CommonError {
+func (s *Service) CreateProgram(ctx context.Context, details values.CreateProgramValues) (values.GetProgramValues, *errLib.CommonError) {
 
 	if err := s.validateProgramType(details.Type); err != nil {
-		return err
+		return values.GetProgramValues{}, err
 	}
 
-	return s.executeInTx(ctx, func(txRepo *repo.Repository) *errLib.CommonError {
-		if err := txRepo.Create(ctx, details); err != nil {
+	var createdProgram values.GetProgramValues
+
+	err := s.executeInTx(ctx, func(txRepo *repo.Repository) *errLib.CommonError {
+		program, err := txRepo.Create(ctx, details)
+		if err != nil {
 			return err
 		}
+		createdProgram = program
 
 		staffID, err := contextUtils.GetUserID(ctx)
 
@@ -82,6 +86,8 @@ func (s *Service) CreateProgram(ctx context.Context, details values.CreateProgra
 			fmt.Sprintf("Created program '%s' (type: %s)", details.Name, details.Type),
 		)
 	})
+
+	return createdProgram, err
 }
 
 func (s *Service) UpdateProgram(ctx context.Context, details values.UpdateProgramValues) *errLib.CommonError {

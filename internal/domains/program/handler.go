@@ -24,7 +24,7 @@ func NewHandler(container *di.Container) *Handler {
 // @Produce json
 // @Param program body dto.RequestDto true "Program details"
 // @Security Bearer
-// @Success 201 {object} map[string]interface{} "Program created successfully"
+// @Success 201 {object} dto.Response "Program created successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /programs [post]
@@ -43,12 +43,30 @@ func (h *Handler) CreateProgram(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Service.CreateProgram(r.Context(), programCreate); err != nil {
+	program, err := h.Service.CreateProgram(r.Context(), programCreate)
+	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
-	responseHandlers.RespondWithSuccess(w, nil, http.StatusCreated)
+	result := dto.Response{
+		ID:          program.ID,
+		Name:        program.ProgramDetails.Name,
+		Description: program.ProgramDetails.Description,
+		Type:        program.ProgramDetails.Type,
+		CreatedAt:   program.CreatedAt,
+		UpdatedAt:   program.UpdatedAt,
+	}
+
+	if program.ProgramDetails.Capacity != nil {
+		result.Capacity = program.ProgramDetails.Capacity
+	}
+
+	if program.ProgramDetails.PhotoURL != nil {
+		result.PhotoURL = program.ProgramDetails.PhotoURL
+	}
+
+	responseHandlers.RespondWithSuccess(w, result, http.StatusCreated)
 }
 
 // GetPrograms retrieves a list of programs.

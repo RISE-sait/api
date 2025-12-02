@@ -173,6 +173,7 @@ func (s *Service) CreateEvents(ctx context.Context, details values.CreateRecurre
 		details.PriceID,
 		details.DayOfWeek,
 		details.CreditCost,
+		details.RegistrationRequired,
 	)
 	if err != nil {
 		return nil, err
@@ -400,6 +401,7 @@ func (s *Service) UpdateRecurringEvents(ctx context.Context, details values.Upda
 			details.PriceID,
 			details.DayOfWeek,
 			details.CreditCost,
+			details.RegistrationRequired,
 		)
 		if err != nil {
 			return err
@@ -561,6 +563,7 @@ func generateEventsFromRecurrence(
 	priceID string,
 	day time.Weekday,
 	creditCost *int32,
+	registrationRequired bool,
 ) ([]values.CreateEventValues, *errLib.CommonError) {
 	const timeLayout = "15:04:05Z07:00"
 
@@ -606,6 +609,7 @@ func generateEventsFromRecurrence(
 				RequiredMembershipPlanIDs: membershipPlanIDs,
 				PriceID:                   priceID,
 				CreditCost:                creditCost,
+				RegistrationRequired:      registrationRequired,
 			},
 		})
 	}

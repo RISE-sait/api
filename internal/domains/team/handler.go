@@ -224,6 +224,7 @@ func (h *Handler) GetTeamByID(w http.ResponseWriter, r *http.Request) {
 			Name:     member.Name,
 			Email:    member.Email,
 			Country:  member.Country,
+			PhotoURL: member.PhotoURL,
 			Points:   member.Points,
 			Wins:     member.Wins,
 			Losses:   member.Losses,

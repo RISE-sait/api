@@ -225,14 +225,15 @@ func (s *Service) DeleteTeam(ctx context.Context, id uuid.UUID) *errLib.CommonEr
 		return err
 	}
 
+	// Fetch team before deletion for audit log and coach validation
+	team, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
 	// For coaches, validate they own the team they're trying to delete
 	if role == contextUtils.RoleCoach {
-		existingTeam, err := s.repo.GetByID(ctx, id)
-		if err != nil {
-			return err
-		}
-
-		if existingTeam.TeamDetails.CoachID != userID {
+		if team.TeamDetails.CoachID != userID {
 			return errLib.New("Coaches can only delete their own teams", 403)
 		}
 	}
@@ -251,7 +252,7 @@ func (s *Service) DeleteTeam(ctx context.Context, id uuid.UUID) *errLib.CommonEr
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Deleted team with ID: %s", id),
+			fmt.Sprintf("Deleted team '%s'", team.TeamDetails.Name),
 		)
 	})
 }

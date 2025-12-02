@@ -117,6 +117,12 @@ func (s *Service) UpdateProgram(ctx context.Context, details values.UpdateProgra
 
 func (s *Service) DeleteProgram(ctx context.Context, id uuid.UUID) *errLib.CommonError {
 
+	// Fetch program name before deletion for audit log
+	program, err := s.repo.GetProgramByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
 	return s.executeInTx(ctx, func(txRepo *repo.Repository) *errLib.CommonError {
 		if err := txRepo.Delete(ctx, id); err != nil {
 			return err
@@ -131,7 +137,7 @@ func (s *Service) DeleteProgram(ctx context.Context, id uuid.UUID) *errLib.Commo
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Deleted program with ID: %s", id),
+			fmt.Sprintf("Deleted program '%s' (type: %s)", program.Name, program.Type),
 		)
 	})
 }

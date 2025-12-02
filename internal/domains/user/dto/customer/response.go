@@ -22,6 +22,7 @@ type Response struct {
 	EmergencyContactPhone        *string                `json:"emergency_contact_phone,omitempty"`
 	EmergencyContactRelationship *string                `json:"emergency_contact_relationship,omitempty"`
 	MembershipInfo               *MembershipResponseDto `json:"membership_info,omitempty"`
+	PhotoURL                     *string                `json:"photo_url,omitempty"`
 	IsArchived                   bool                   `json:"is_archived"`
 	DeletedAt                    *time.Time             `json:"deleted_at,omitempty"`
 	ScheduledDeletionAt          *time.Time             `json:"scheduled_deletion_at,omitempty"`
@@ -62,6 +63,10 @@ func UserReadValueToResponse(customer values.ReadValue) Response {
 			MembershipPlanID:      &customer.MembershipInfo.MembershipPlanID,
 			MembershipPlanName:    &customer.MembershipInfo.MembershipPlanName,
 		}
+	}
+
+	if customer.AthleteInfo != nil && customer.AthleteInfo.PhotoURL != nil {
+		response.PhotoURL = customer.AthleteInfo.PhotoURL
 	}
 
 	return response

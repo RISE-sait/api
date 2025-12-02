@@ -108,6 +108,12 @@ func (s *Service) UpdateLocation(ctx context.Context, details values.UpdateDetai
 
 func (s *Service) DeleteLocation(ctx context.Context, id uuid.UUID) *errLib.CommonError {
 
+	// Fetch location before deletion for audit log
+	location, err := s.repo.GetLocationByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
 	return s.executeInTx(ctx, func(txRepo *repo.Repository) *errLib.CommonError {
 		if err := txRepo.DeleteLocation(ctx, id); err != nil {
 			return err
@@ -122,7 +128,7 @@ func (s *Service) DeleteLocation(ctx context.Context, id uuid.UUID) *errLib.Comm
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Deleted location with ID: %s", id),
+			fmt.Sprintf("Deleted location '%s' at %s", location.Name, location.Address),
 		)
 	})
 }

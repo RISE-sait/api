@@ -94,6 +94,24 @@ func (h *Handler) GetTeams(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		roster := make([]dto.RosterMemberInfo, len(team.Roster))
+		for j, member := range team.Roster {
+			roster[j] = dto.RosterMemberInfo{
+				ID:       member.ID,
+				Name:     member.Name,
+				Email:    member.Email,
+				Country:  member.Country,
+				PhotoURL: member.PhotoURL,
+				Points:   member.Points,
+				Wins:     member.Wins,
+				Losses:   member.Losses,
+				Assists:  member.Assists,
+				Rebounds: member.Rebounds,
+				Steals:   member.Steals,
+			}
+		}
+		response.Roster = &roster
+
 		result[i] = response
 	}
 
@@ -159,6 +177,24 @@ func (h *Handler) GetMyTeams(w http.ResponseWriter, r *http.Request) {
 					Email: team.TeamDetails.CoachEmail,
 				}
 			}
+
+			roster := make([]dto.RosterMemberInfo, len(team.Roster))
+			for j, member := range team.Roster {
+				roster[j] = dto.RosterMemberInfo{
+					ID:       member.ID,
+					Name:     member.Name,
+					Email:    member.Email,
+					Country:  member.Country,
+					PhotoURL: member.PhotoURL,
+					Points:   member.Points,
+					Wins:     member.Wins,
+					Losses:   member.Losses,
+					Assists:  member.Assists,
+					Rebounds: member.Rebounds,
+					Steals:   member.Steals,
+				}
+			}
+			response.Roster = &roster
 
 			result[i] = response
 		}

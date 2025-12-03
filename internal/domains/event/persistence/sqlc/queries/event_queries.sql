@@ -87,7 +87,8 @@ WHERE (
               AND (sqlc.narg('after')::timestamptz <= e.start_at OR sqlc.narg('after') IS NULL)
               AND (sqlc.narg('before')::timestamptz >= e.end_at OR sqlc.narg('before') IS NULL)
               AND (sqlc.narg('type') = p.type OR sqlc.narg('type') IS NULL)
-              AND (sqlc.narg('participant_id')::uuid IS NULL OR ce.customer_id = sqlc.narg('participant_id')::uuid OR
+              AND (sqlc.narg('participant_id')::uuid IS NULL OR
+                   (ce.customer_id = sqlc.narg('participant_id')::uuid AND ce.payment_status = 'paid') OR
                    es.staff_id = sqlc.narg('participant_id')::uuid)
               AND (sqlc.narg('team_id')::uuid IS NULL OR e.team_id = sqlc.narg('team_id'))
               AND (sqlc.narg('created_by')::uuid IS NULL OR e.created_by = sqlc.narg('created_by'))
@@ -110,7 +111,8 @@ SELECT u.id            AS customer_id,
 
 FROM events.customer_enrollment ce
          JOIN users.users u ON ce.customer_id = u.id
-WHERE ce.event_id = $1;
+WHERE ce.event_id = $1
+  AND ce.payment_status = 'paid';
 
 -- name: GetEventStaffs :many
 SELECT s.id         AS staff_id,

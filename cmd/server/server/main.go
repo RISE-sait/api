@@ -55,6 +55,7 @@ func main() {
 	scheduler.RegisterJob(jobs.NewMembershipReconciliationJob(diContainer))
 	scheduler.RegisterJob(jobs.NewSubsidyExpirationJob(diContainer))
 	scheduler.RegisterJob(jobs.NewAccountDeletionJob(diContainer))
+	scheduler.RegisterJob(jobs.NewReservationCleanupJob(diContainer))
 	scheduler.Start()
 	defer scheduler.Stop()
 

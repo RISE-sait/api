@@ -280,6 +280,7 @@ SELECT u.id            AS customer_id,
 FROM events.customer_enrollment ce
          JOIN users.users u ON ce.customer_id = u.id
 WHERE ce.event_id = $1
+  AND ce.payment_status = 'paid'
 `
 
 type GetEventCustomersRow struct {
@@ -447,7 +448,8 @@ WHERE (
               AND ($4::timestamptz <= e.start_at OR $4 IS NULL)
               AND ($5::timestamptz >= e.end_at OR $5 IS NULL)
               AND ($6 = p.type OR $6 IS NULL)
-              AND ($7::uuid IS NULL OR ce.customer_id = $7::uuid OR
+              AND ($7::uuid IS NULL OR
+                   (ce.customer_id = $7::uuid AND ce.payment_status = 'paid') OR
                    es.staff_id = $7::uuid)
               AND ($8::uuid IS NULL OR e.team_id = $8)
               AND ($9::uuid IS NULL OR e.created_by = $9)

@@ -59,7 +59,7 @@ func (s *Service) lookupNames(ctx context.Context, teamID, locationID uuid.UUID)
 
 	if locationID != uuid.Nil {
 		var name sql.NullString
-		_ = s.db.QueryRowContext(ctx, "SELECT name FROM facilities.locations WHERE id = $1", locationID).Scan(&name)
+		_ = s.db.QueryRowContext(ctx, "SELECT name FROM location.locations WHERE id = $1", locationID).Scan(&name)
 		if name.Valid {
 			locationName = name.String
 		}

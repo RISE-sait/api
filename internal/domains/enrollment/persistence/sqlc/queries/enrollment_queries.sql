@@ -1,6 +1,6 @@
 -- name: EnrollCustomerInEvent :exec
-INSERT INTO events.customer_enrollment (customer_id, event_id)
-VALUES ($1, $2);
+INSERT INTO events.customer_enrollment (customer_id, event_id, payment_status)
+VALUES ($1, $2, 'paid');
 
 -- name: EnrollCustomerInProgram :exec
 WITH events AS (SELECT e.id
@@ -8,11 +8,11 @@ WITH events AS (SELECT e.id
                          WHERE e.program_id = $1
                            AND e.start_at >= current_timestamp),
      event_inserts as (
-         INSERT INTO events.customer_enrollment (customer_id, event_id)
-             SELECT $2, id FROM events)
+         INSERT INTO events.customer_enrollment (customer_id, event_id, payment_status)
+             SELECT $2, id, 'paid' FROM events)
 INSERT
-INTO program.customer_enrollment(customer_id, program_id, is_cancelled)
-VALUES ($2, $1, false);
+INTO program.customer_enrollment(customer_id, program_id, is_cancelled, payment_status)
+VALUES ($2, $1, false, 'paid');
 
 -- name: EnrollCustomerInMembershipPlan :exec
 INSERT INTO users.customer_membership_plans (customer_id, membership_plan_id, status, start_date, renewal_date, next_billing_date, subscription_source, stripe_subscription_id)

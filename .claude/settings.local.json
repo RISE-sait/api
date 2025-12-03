@@ -5,7 +5,8 @@
       "Bash(findstr:*)",
       "Bash(more:*)",
       "Bash(find:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(docker compose logs:*)"
     ],
     "deny": [],
     "ask": []

@@ -21,6 +21,7 @@ type UpdateDetails struct {
 
 // ReadValues represents court data returned from queries
 type ReadValues struct {
-	ID uuid.UUID
+	ID           uuid.UUID
+	LocationName string
 	BaseDetails
 }

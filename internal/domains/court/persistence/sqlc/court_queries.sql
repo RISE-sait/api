@@ -4,13 +4,15 @@ VALUES ($1, $2)
 RETURNING id, location_id, name;
 
 -- name: GetCourtById :one
-SELECT id, location_id, name
-FROM location.courts
-WHERE id = $1;
+SELECT c.id, c.location_id, c.name, l.name as location_name
+FROM location.courts c
+JOIN location.locations l ON c.location_id = l.id
+WHERE c.id = $1;
 
 -- name: GetCourts :many
-SELECT id, location_id, name
-FROM location.courts;
+SELECT c.id, c.location_id, c.name, l.name as location_name
+FROM location.courts c
+JOIN location.locations l ON c.location_id = l.id;
 
 -- name: UpdateCourt :execrows
 UPDATE location.courts

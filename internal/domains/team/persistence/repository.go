@@ -157,6 +157,13 @@ func (r *Repository) List(ctx context.Context) ([]values.GetTeamValues, *errLib.
 			team.TeamDetails.CoachEmail = dbPractice.CoachEmail
 		}
 
+		// Fetch roster for each team
+		roster, rosterErr := r.getRosterMembers(ctx, dbPractice.ID)
+		if rosterErr != nil {
+			return nil, rosterErr
+		}
+		team.Roster = roster
+
 		teams[i] = team
 	}
 
@@ -198,6 +205,13 @@ func (r *Repository) ListByCoach(ctx context.Context, coachID uuid.UUID) ([]valu
 			team.TeamDetails.CoachName = dbTeam.CoachName
 			team.TeamDetails.CoachEmail = dbTeam.CoachEmail.String
 		}
+
+		// Fetch roster for each team
+		roster, rosterErr := r.getRosterMembers(ctx, dbTeam.ID)
+		if rosterErr != nil {
+			return nil, rosterErr
+		}
+		team.Roster = roster
 
 		teams[i] = team
 	}

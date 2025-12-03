@@ -454,8 +454,14 @@ func (r *Repository) CreateGame(ctx context.Context, details values.CreateGameVa
 	err := r.Queries.CreateGame(ctx, params)
 	if err != nil {
 		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
-			return errLib.New("Duplicate game entry", http.StatusConflict)
+		if errors.As(err, &pqErr) {
+			switch pqErr.Code {
+			case databaseErrors.UniqueViolation:
+				return errLib.New("Duplicate game entry", http.StatusConflict)
+			case databaseErrors.RaiseException:
+				// Court booking conflict from trigger
+				return errLib.New(pqErr.Message, http.StatusConflict)
+			}
 		}
 		log.Println("Error creating game:", err)
 		return errLib.New("Internal server error", http.StatusInternalServerError)

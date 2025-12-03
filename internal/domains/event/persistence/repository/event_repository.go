@@ -178,6 +178,10 @@ func (r *EventsRepository) CreateEvents(ctx context.Context, eventDetails []valu
 			if errInfo, found := constraintErrors[pqErr.Constraint]; found {
 				return errLib.New(errInfo.Message, errInfo.Status)
 			}
+			// Check for cross-table court booking conflict (from trigger)
+			if pqErr.Code == "P0001" {
+				return errLib.New(pqErr.Message, http.StatusConflict)
+			}
 		}
 
 		log.Printf("Failed to create eventDetails: %+v. Error: %v", eventDetails, dbErr.Error())

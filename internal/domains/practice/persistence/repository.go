@@ -101,9 +101,13 @@ func (r *Repository) Create(ctx context.Context, val values.CreatePracticeValue)
 		BookedBy:   toNullUUID(val.BookedBy),
 	}
 	if err := r.Queries.CreatePractice(ctx, params); err != nil {
-		// Check if it's an exclusion constraint violation (double booking)
+		// Check if it's an exclusion constraint violation (double booking within practices)
 		if strings.Contains(err.Error(), "no_overlapping_practices") {
 			return errLib.New("This court is already booked during the selected time slot", http.StatusConflict)
+		}
+		// Check if it's a cross-table booking conflict (from trigger)
+		if strings.Contains(err.Error(), "Court is already booked") {
+			return errLib.New(err.Error(), http.StatusConflict)
 		}
 		return errLib.New("failed to create practice", http.StatusInternalServerError)
 	}

@@ -6,4 +6,5 @@ const (
 	NotNullViolation          = "23502" // Postgres error code for not null violation
 	InvalidTextRepresentation = "22P02" // Error code for invalid input syntax, including enums
 	TxSerializationError      = "40001" // Postgres error code for serialization failure
+	RaiseException            = "P0001" // Postgres error code for RAISE EXCEPTION (used by triggers)
 )

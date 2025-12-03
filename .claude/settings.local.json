@@ -6,7 +6,8 @@
       "Bash(more:*)",
       "Bash(find:*)",
       "Bash(xargs:*)",
-      "Bash(docker compose logs:*)"
+      "Bash(docker compose logs:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

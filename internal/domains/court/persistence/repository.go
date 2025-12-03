@@ -61,8 +61,9 @@ func (r *Repository) Get(ctx context.Context, id uuid.UUID) (values.ReadValues, 
 		return values.ReadValues{}, errLib.New("internal server error", http.StatusInternalServerError)
 	}
 	return values.ReadValues{
-		ID:          row.ID,
-		BaseDetails: values.BaseDetails{LocationID: row.LocationID, Name: row.Name},
+		ID:           row.ID,
+		LocationName: row.LocationName,
+		BaseDetails:  values.BaseDetails{LocationID: row.LocationID, Name: row.Name},
 	}, nil
 }
 
@@ -75,8 +76,9 @@ func (r *Repository) List(ctx context.Context) ([]values.ReadValues, *errLib.Com
 	courts := make([]values.ReadValues, len(dbCourts))
 	for i, c := range dbCourts {
 		courts[i] = values.ReadValues{
-			ID:          c.ID,
-			BaseDetails: values.BaseDetails{LocationID: c.LocationID, Name: c.Name},
+			ID:           c.ID,
+			LocationName: c.LocationName,
+			BaseDetails:  values.BaseDetails{LocationID: c.LocationID, Name: c.Name},
 		}
 	}
 	return courts, nil

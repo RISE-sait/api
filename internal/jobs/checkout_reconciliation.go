@@ -166,6 +166,15 @@ func (j *CheckoutReconciliationJob) Run(ctx context.Context) error {
 func (j *CheckoutReconciliationJob) wasCheckoutProcessed(ctx context.Context, session *stripe.CheckoutSession, userID uuid.UUID) (bool, error) {
 	// For subscriptions, check if user has a membership with this subscription ID
 	if session.Mode == stripe.CheckoutSessionModeSubscription {
+		// First, check by Stripe subscription ID (most reliable)
+		if session.Subscription != nil && session.Subscription.ID != "" {
+			exists, err := j.hasMembershipBySubscriptionID(ctx, session.Subscription.ID)
+			if err == nil && exists {
+				return true, nil
+			}
+		}
+
+		// Fallback: check by membership plan ID from metadata
 		membershipPlanIDStr := session.Metadata["membershipPlanID"]
 		if membershipPlanIDStr == "" {
 			// Can't determine, assume not processed
@@ -203,6 +212,18 @@ func (j *CheckoutReconciliationJob) wasCheckoutProcessed(ctx context.Context, se
 	return false, nil
 }
 
+// hasMembershipBySubscriptionID checks if a membership exists with this Stripe subscription ID
+func (j *CheckoutReconciliationJob) hasMembershipBySubscriptionID(ctx context.Context, subscriptionID string) (bool, error) {
+	query := `SELECT EXISTS(
+		SELECT 1 FROM users.customer_membership_plans
+		WHERE stripe_subscription_id = $1
+	)`
+
+	var exists bool
+	err := j.db.QueryRowContext(ctx, query, subscriptionID).Scan(&exists)
+	return exists, err
+}
+
 // hasMembershipForPlan checks if user has an active membership for a plan
 func (j *CheckoutReconciliationJob) hasMembershipForPlan(ctx context.Context, userID, planID uuid.UUID) (bool, error) {
 	query := `SELECT EXISTS(
@@ -218,7 +239,7 @@ func (j *CheckoutReconciliationJob) hasMembershipForPlan(ctx context.Context, us
 // hasCreditPackageActive checks if user has an active credit package
 func (j *CheckoutReconciliationJob) hasCreditPackageActive(ctx context.Context, userID, packageID uuid.UUID) (bool, error) {
 	query := `SELECT EXISTS(
-		SELECT 1 FROM users.customer_credit_packages
+		SELECT 1 FROM users.customer_active_credit_package
 		WHERE customer_id = $1 AND credit_package_id = $2
 	)`
 

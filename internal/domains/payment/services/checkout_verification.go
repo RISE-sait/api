@@ -188,7 +188,7 @@ func (s *CheckoutVerificationService) checkMembershipEnrollment(ctx context.Cont
 // checkCreditPackageActive checks if customer has an active credit package
 func (s *CheckoutVerificationService) checkCreditPackageActive(ctx context.Context, customerID, packageID uuid.UUID) (bool, *errLib.CommonError) {
 	query := `SELECT EXISTS(
-		SELECT 1 FROM users.customer_credit_packages
+		SELECT 1 FROM users.customer_active_credit_package
 		WHERE customer_id = $1 AND credit_package_id = $2
 	)`
 

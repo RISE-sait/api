@@ -192,8 +192,8 @@ func (s *CreditPackageService) DeletePackage(ctx context.Context, id uuid.UUID) 
 	var activeWithCreditsCount int
 	checkActiveQuery := `
 		SELECT COUNT(*) FROM users.customer_credit_packages ccp
-		JOIN users.customer_credits cc ON cc.customer_id = ccp.customer_id
-		WHERE ccp.credit_package_id = $1 AND cc.balance > 0
+		LEFT JOIN users.customer_credits cc ON cc.customer_id = ccp.customer_id
+		WHERE ccp.credit_package_id = $1 AND COALESCE(cc.balance, 0) > 0
 	`
 	if dbErr := s.DB.QueryRowContext(ctx, checkActiveQuery, id).Scan(&activeWithCreditsCount); dbErr != nil {
 		log.Printf("Failed to check active credit packages for package %s: %v", id, dbErr)
@@ -204,7 +204,7 @@ func (s *CreditPackageService) DeletePackage(ctx context.Context, id uuid.UUID) 
 		return errLib.New("Cannot delete package: customers have remaining credits from this package", http.StatusBadRequest)
 	}
 
-	// Delete customer_credit_packages entries for this package (customers with 0 credits)
+	// Delete customer_credit_packages entries for this package
 	deleteCustomerPackagesQuery := `DELETE FROM users.customer_credit_packages WHERE credit_package_id = $1`
 	if _, dbErr := s.DB.ExecContext(ctx, deleteCustomerPackagesQuery, id); dbErr != nil {
 		log.Printf("Failed to delete customer credit packages for package %s: %v", id, dbErr)

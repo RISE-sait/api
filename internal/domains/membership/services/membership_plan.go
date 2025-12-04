@@ -232,6 +232,21 @@ func (s *PlanService) DeleteMembershipPlan(ctx context.Context, id uuid.UUID) *e
 		return err
 	}
 
+	// Check if there are any active customer memberships for this plan
+	var activeCount int
+	checkActiveQuery := `
+		SELECT COUNT(*) FROM users.customer_membership_plans
+		WHERE membership_plan_id = $1 AND status = 'active'
+	`
+	if dbErr := s.db.QueryRowContext(ctx, checkActiveQuery, id).Scan(&activeCount); dbErr != nil {
+		log.Printf("Failed to check active memberships for plan %s: %v", id, dbErr)
+		return errLib.New("Failed to check active memberships", 500)
+	}
+
+	if activeCount > 0 {
+		return errLib.New(fmt.Sprintf("Cannot delete plan: %d active customer memberships exist. Wait for them to expire or cancel them first.", activeCount), 400)
+	}
+
 	// Deactivate Stripe product and prices (don't fail if Stripe fails)
 	if plan.StripePriceID != "" {
 		s.productService.DeactivatePrice(plan.StripePriceID)
@@ -242,6 +257,16 @@ func (s *PlanService) DeleteMembershipPlan(ctx context.Context, id uuid.UUID) *e
 	}
 
 	return s.executeInTx(ctx, func(txRepo *repo.PlansRepository) *errLib.CommonError {
+		// Delete expired customer memberships for this plan first
+		deleteExpiredQuery := `
+			DELETE FROM users.customer_membership_plans
+			WHERE membership_plan_id = $1 AND status != 'active'
+		`
+		if _, dbErr := txRepo.GetTx().ExecContext(ctx, deleteExpiredQuery, id); dbErr != nil {
+			log.Printf("Failed to delete expired memberships for plan %s: %v", id, dbErr)
+			return errLib.New("Failed to delete expired customer memberships", 500)
+		}
+
 		if err := txRepo.DeleteMembershipPlan(ctx, id); err != nil {
 			return err
 		}
@@ -255,7 +280,7 @@ func (s *PlanService) DeleteMembershipPlan(ctx context.Context, id uuid.UUID) *e
 			ctx,
 			txRepo.GetTx(),
 			staffID,
-			fmt.Sprintf("Deleted membership plan '%s' (Stripe product deactivated)", plan.Name),
+			fmt.Sprintf("Deleted membership plan '%s' (Stripe product deactivated, expired enrollments removed)", plan.Name),
 		)
 	})
 }

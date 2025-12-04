@@ -2,6 +2,8 @@ package payment
 
 import (
 	"fmt"
+	"net/http"
+
 	"api/internal/di"
 	dto "api/internal/domains/payment/dto"
 	service "api/internal/domains/payment/services"
@@ -10,17 +12,22 @@ import (
 	"api/internal/libs/logger"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
+	contextUtils "api/utils/context"
+
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
-	"net/http"
 )
 
 type CheckoutHandlers struct {
-	Service *service.Service
+	Service             *service.Service
+	VerificationService *service.CheckoutVerificationService
 }
 
 func NewCheckoutHandlers(container *di.Container) *CheckoutHandlers {
-	return &CheckoutHandlers{Service: service.NewPurchaseService(container)}
+	return &CheckoutHandlers{
+		Service:             service.NewPurchaseService(container),
+		VerificationService: service.NewCheckoutVerificationService(container),
+	}
 }
 
 // CheckoutMembership allows a customer to check out a membership plan.
@@ -58,10 +65,10 @@ func (h *CheckoutHandlers) CheckoutMembership(w http.ResponseWriter, r *http.Req
 		discountCode = &code
 	}
 
-	// Get success URL based on request origin
-	successURL := stripe.GetSuccessURLFromRequest(r)
+	// Get success and cancel URLs based on request origin
+	successURL, cancelURL := stripe.GetCheckoutURLs(r)
 
-	if paymentLink, err := h.Service.CheckoutMembershipPlan(r.Context(), membershipPlanId, discountCode, successURL); err != nil {
+	if paymentLink, err := h.Service.CheckoutMembershipPlan(r.Context(), membershipPlanId, discountCode, successURL, cancelURL); err != nil {
 		responseDto.PaymentURL = paymentLink
 		responseHandlers.RespondWithError(w, err)
 	} else {
@@ -104,10 +111,10 @@ func (h *CheckoutHandlers) CheckoutProgram(w http.ResponseWriter, r *http.Reques
 		discountCode = &code
 	}
 
-	// Get success URL based on request origin
-	successURL := stripe.GetSuccessURLFromRequest(r)
+	// Get success and cancel URLs based on request origin
+	successURL, cancelURL := stripe.GetCheckoutURLs(r)
 
-	if paymentLink, err := h.Service.CheckoutProgram(r.Context(), programID, discountCode, successURL); err != nil {
+	if paymentLink, err := h.Service.CheckoutProgram(r.Context(), programID, discountCode, successURL, cancelURL); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {
@@ -152,10 +159,10 @@ func (h *CheckoutHandlers) CheckoutEvent(w http.ResponseWriter, r *http.Request)
 		discountCode = &code
 	}
 
-	// Get success URL based on request origin
-	successURL := stripe.GetSuccessURLFromRequest(r)
+	// Get success and cancel URLs based on request origin
+	successURL, cancelURL := stripe.GetCheckoutURLs(r)
 
-	if paymentLink, err := h.Service.CheckoutEvent(r.Context(), eventID, discountCode, successURL); err != nil {
+	if paymentLink, err := h.Service.CheckoutEvent(r.Context(), eventID, discountCode, successURL, cancelURL); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {
@@ -272,10 +279,10 @@ func (h *CheckoutHandlers) CheckoutEventEnhanced(w http.ResponseWriter, r *http.
 		discountCode = &code
 	}
 
-	// Get success URL based on request origin
-	successURL := stripe.GetSuccessURLFromRequest(r)
+	// Get success and cancel URLs based on request origin
+	successURL, cancelURL := stripe.GetCheckoutURLs(r)
 
-	if paymentLink, err := h.Service.CheckoutEventEnhanced(r.Context(), eventID, discountCode, successURL); err != nil {
+	if paymentLink, err := h.Service.CheckoutEventEnhanced(r.Context(), eventID, discountCode, successURL, cancelURL); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {
@@ -299,10 +306,45 @@ func (h *CheckoutHandlers) TestSlackAlert(w http.ResponseWriter, r *http.Request
 	// Use structured logger to trigger Slack alert with critical component
 	testLogger := logger.WithComponent("checkout-service")
 	testLogger.Error("TEST: Payment processing failed", fmt.Errorf("this is a test error to verify Slack integration timing"))
-	
+
 	response := map[string]interface{}{
 		"message": "Test Slack alert sent - check your Slack channel with optimized timing!",
 		"status": "sent",
 	}
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
+}
+
+// VerifyCheckoutSession verifies a checkout session and ensures enrollment is complete
+// This is called by the frontend after redirect from Stripe checkout as a safety net
+// @Tags payments
+// @Accept json
+// @Produce json
+// @Param session_id path string true "Stripe Checkout Session ID"
+// @Success 200 {object} service.VerificationResult "Verification result"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid session ID"
+// @Failure 403 {object} map[string]interface{} "Forbidden: Session doesn't belong to user"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Security Bearer
+// @Router /checkout/verify/{session_id} [post]
+func (h *CheckoutHandlers) VerifyCheckoutSession(w http.ResponseWriter, r *http.Request) {
+	sessionID := chi.URLParam(r, "session_id")
+	if sessionID == "" {
+		responseHandlers.RespondWithError(w, errLib.New("session_id is required", http.StatusBadRequest))
+		return
+	}
+
+	// Get user ID from context (set by JWT middleware)
+	userID, err := contextUtils.GetUserID(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	result, verifyErr := h.VerificationService.VerifyCheckoutSession(r.Context(), sessionID, userID)
+	if verifyErr != nil {
+		responseHandlers.RespondWithError(w, verifyErr)
+		return
+	}
+
+	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
 }

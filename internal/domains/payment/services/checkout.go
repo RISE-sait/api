@@ -76,7 +76,7 @@ func (s *Service) queueFailedRefund(ctx context.Context, customerID, eventID uui
 	}
 }
 
-func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID uuid.UUID, discountCode *string, successURL string) (string, *errLib.CommonError) {
+func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID uuid.UUID, discountCode *string, successURL string, cancelURL string) (string, *errLib.CommonError) {
 	// Get customer ID from context
 	customerID, ctxErr := contextUtils.GetUserID(ctx)
 	if ctxErr != nil {
@@ -154,17 +154,17 @@ func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID u
 	// Check if membership has any joining fee
 	if requirements.StripeJoiningFeeID != "" {
 		// Use recurring joining fee (annual/monthly) - existing function handles this
-		return stripe.CreateSubscriptionWithMetadata(ctx, requirements.StripePriceID, requirements.StripeJoiningFeeID, stripeCouponID, metadata, successURL, existingCustomerID)
+		return stripe.CreateSubscriptionWithMetadata(ctx, requirements.StripePriceID, requirements.StripeJoiningFeeID, stripeCouponID, metadata, successURL, cancelURL, existingCustomerID)
 	} else if requirements.JoiningFee > 0 {
 		// Use one-time setup fee
-		return stripe.CreateSubscriptionWithSetupFeeAndMetadata(ctx, requirements.StripePriceID, requirements.JoiningFee, metadata, successURL, existingCustomerID)
+		return stripe.CreateSubscriptionWithSetupFeeAndMetadata(ctx, requirements.StripePriceID, requirements.JoiningFee, metadata, successURL, cancelURL, existingCustomerID)
 	} else {
 		// No joining fee - just regular subscription
-		return stripe.CreateSubscriptionWithMetadata(ctx, requirements.StripePriceID, "", stripeCouponID, metadata, successURL, existingCustomerID)
+		return stripe.CreateSubscriptionWithMetadata(ctx, requirements.StripePriceID, "", stripeCouponID, metadata, successURL, cancelURL, existingCustomerID)
 	}
 }
 
-func (s *Service) CheckoutProgram(ctx context.Context, programID uuid.UUID, discountCode *string, successURL string) (string, *errLib.CommonError) {
+func (s *Service) CheckoutProgram(ctx context.Context, programID uuid.UUID, discountCode *string, successURL string, cancelURL string) (string, *errLib.CommonError) {
 	customerID, ctxErr := contextUtils.GetUserID(ctx)
 	if ctxErr != nil {
 		return "", ctxErr
@@ -212,10 +212,10 @@ func (s *Service) CheckoutProgram(ctx context.Context, programID uuid.UUID, disc
 	existingCustomerID := s.getExistingStripeCustomerID(ctx, customerID)
 
 	programIDStr := programID.String()
-	return stripe.CreateOneTimePayment(ctx, priceID, 1, &programIDStr, stripeCouponID, successURL, existingCustomerID)
+	return stripe.CreateOneTimePayment(ctx, priceID, 1, &programIDStr, stripeCouponID, successURL, cancelURL, existingCustomerID)
 }
 
-func (s *Service) CheckoutEvent(ctx context.Context, eventID uuid.UUID, discountCode *string, successURL string) (string, *errLib.CommonError) {
+func (s *Service) CheckoutEvent(ctx context.Context, eventID uuid.UUID, discountCode *string, successURL string, cancelURL string) (string, *errLib.CommonError) {
 	customerID, ctxErr := contextUtils.GetUserID(ctx)
 	if ctxErr != nil {
 		return "", ctxErr
@@ -266,7 +266,7 @@ func (s *Service) CheckoutEvent(ctx context.Context, eventID uuid.UUID, discount
 	existingCustomerID := s.getExistingStripeCustomerID(ctx, customerID)
 
 	eventIDStr := eventID.String()
-	return stripe.CreateOneTimePayment(ctx, priceID, 1, &eventIDStr, stripeCouponID, successURL, existingCustomerID)
+	return stripe.CreateOneTimePayment(ctx, priceID, 1, &eventIDStr, stripeCouponID, successURL, cancelURL, existingCustomerID)
 }
 
 // CheckEventEnrollmentOptions returns available enrollment options for a customer and event
@@ -405,7 +405,7 @@ func (s *Service) CheckoutEventWithCredits(ctx context.Context, eventID uuid.UUI
 }
 
 // Enhanced CheckoutEvent with membership validation
-func (s *Service) CheckoutEventEnhanced(ctx context.Context, eventID uuid.UUID, discountCode *string, successURL string) (string, *errLib.CommonError) {
+func (s *Service) CheckoutEventEnhanced(ctx context.Context, eventID uuid.UUID, discountCode *string, successURL string, cancelURL string) (string, *errLib.CommonError) {
 	customerID, ctxErr := contextUtils.GetUserID(ctx)
 	if ctxErr != nil {
 		return "", ctxErr
@@ -466,5 +466,5 @@ func (s *Service) CheckoutEventEnhanced(ctx context.Context, eventID uuid.UUID, 
 	existingCustomerID := s.getExistingStripeCustomerID(ctx, customerID)
 
 	eventIDStr := eventID.String()
-	return stripe.CreateOneTimePayment(ctx, *options.StripePriceID, 1, &eventIDStr, stripeCouponID, successURL, existingCustomerID)
+	return stripe.CreateOneTimePayment(ctx, *options.StripePriceID, 1, &eventIDStr, stripeCouponID, successURL, cancelURL, existingCustomerID)
 }

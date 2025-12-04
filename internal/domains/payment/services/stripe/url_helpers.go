@@ -7,6 +7,25 @@ import (
 
 // GetSuccessURLFromRequest determines the appropriate success URL based on the request origin
 func GetSuccessURLFromRequest(r *http.Request) string {
+	origin := getOriginFromRequest(r)
+	return getSuccessURLForOrigin(origin)
+}
+
+// GetCancelURLFromRequest determines the appropriate cancel URL based on the request origin
+// This URL is where users are redirected when they abort the checkout process
+func GetCancelURLFromRequest(r *http.Request) string {
+	origin := getOriginFromRequest(r)
+	return getCancelURLForOrigin(origin)
+}
+
+// GetCheckoutURLs returns both success and cancel URLs for a checkout session
+func GetCheckoutURLs(r *http.Request) (successURL, cancelURL string) {
+	origin := getOriginFromRequest(r)
+	return getSuccessURLForOrigin(origin), getCancelURLForOrigin(origin)
+}
+
+// getOriginFromRequest extracts the origin from request headers
+func getOriginFromRequest(r *http.Request) string {
 	// Try to get origin from the Origin header first
 	origin := r.Header.Get("Origin")
 
@@ -29,10 +48,12 @@ func GetSuccessURLFromRequest(r *http.Request) string {
 		}
 	}
 
-	// Map known domains to their success URLs
 	// Normalize origin by removing trailing slash
-	origin = strings.TrimSuffix(origin, "/")
+	return strings.TrimSuffix(origin, "/")
+}
 
+// getSuccessURLForOrigin maps origin to success URL
+func getSuccessURLForOrigin(origin string) string {
 	switch {
 	case strings.Contains(origin, "risesportscomplex.com"):
 		return "https://www.risesportscomplex.com/success"
@@ -43,5 +64,21 @@ func GetSuccessURLFromRequest(r *http.Request) string {
 	default:
 		// Default to rise-basketball.com if origin is unknown or localhost
 		return "https://www.rise-basketball.com/success"
+	}
+}
+
+// getCancelURLForOrigin maps origin to cancel URL
+// Users are redirected here when they click "back" or close the Stripe checkout
+func getCancelURLForOrigin(origin string) string {
+	switch {
+	case strings.Contains(origin, "risesportscomplex.com"):
+		return "https://www.risesportscomplex.com/checkout/canceled"
+	case strings.Contains(origin, "rise-basketball.com"):
+		return "https://www.rise-basketball.com/checkout/canceled"
+	case strings.Contains(origin, "riseup-hoops.com"):
+		return "https://www.riseup-hoops.com/checkout/canceled"
+	default:
+		// Default to rise-basketball.com if origin is unknown or localhost
+		return "https://www.rise-basketball.com/checkout/canceled"
 	}
 }

@@ -326,9 +326,11 @@ func IsPaymentCritical(level LogLevel, message string, component string) bool {
 	// Payment-related components
 	paymentComponents := []string{
 		"stripe-webhooks",
-		"payment-security", 
+		"payment-security",
 		"pci-compliance",
 		"checkout-service",
+		"checkout-verification",
+		"checkout-reconciliation",
 	}
 
 	// Check if component is payment-related
@@ -341,11 +343,16 @@ func IsPaymentCritical(level LogLevel, message string, component string) bool {
 	// Check if message contains payment-related keywords
 	criticalKeywords := []string{
 		"payment processing failed",
-		"webhook processing failed", 
+		"webhook processing failed",
 		"database connection",
 		"stripe api error",
 		"checkout failed",
 		"subscription failed",
+		"reconciliation failed",
+		"missed checkout detected",
+		"enrollment failed",
+		"customer paid but",
+		"manual intervention required",
 	}
 
 	lowerMessage := strings.ToLower(message)
@@ -435,4 +442,100 @@ func GetUserEmailFromID(customerID string) string {
 	// This would ideally query the database, but for now return placeholder
 	// In production, you'd want to implement a quick lookup
 	return fmt.Sprintf("customer-%s@unknown.com", customerID[:8])
+}
+
+// ReconciliationAlertDetails contains information about a reconciliation event
+type ReconciliationAlertDetails struct {
+	SessionID    string
+	CustomerID   string
+	AlertType    string // "MISSED_CHECKOUT", "RECONCILIATION_SUCCESS", "RECONCILIATION_FAILURE"
+	ErrorMessage string
+	WasFixed     bool
+	Product      string // "membership", "credit_package", "event", "program"
+}
+
+// SendReconciliationAlert sends alerts for checkout reconciliation events
+func SendReconciliationAlert(details ReconciliationAlertDetails) {
+	webhookURL := os.Getenv("SLACK_WEBHOOK_URL")
+	if webhookURL == "" {
+		return
+	}
+
+	var color string
+	var emoji string
+	var title string
+
+	switch details.AlertType {
+	case "MISSED_CHECKOUT":
+		if details.WasFixed {
+			color = "#36a64f" // Green
+			emoji = "✅"
+			title = "CHECKOUT RECONCILED SUCCESSFULLY"
+		} else {
+			color = "danger"
+			emoji = "🚨"
+			title = "CHECKOUT RECONCILIATION FAILED - MANUAL INTERVENTION REQUIRED"
+		}
+	case "RECONCILIATION_FAILURE":
+		color = "danger"
+		emoji = "💥"
+		title = "CRITICAL: CUSTOMER PAID BUT ENROLLMENT FAILED"
+	default:
+		color = "warning"
+		emoji = "⚠️"
+		title = "CHECKOUT RECONCILIATION ALERT"
+	}
+
+	fields := []Field{
+		{Title: "Session ID", Value: details.SessionID, Short: false},
+		{Title: "Customer ID", Value: details.CustomerID, Short: true},
+		{Title: "Product", Value: details.Product, Short: true},
+	}
+
+	if details.ErrorMessage != "" {
+		fields = append(fields, Field{
+			Title: "Error",
+			Value: fmt.Sprintf("```%s```", details.ErrorMessage),
+			Short: false,
+		})
+	}
+
+	if !details.WasFixed && details.AlertType == "MISSED_CHECKOUT" {
+		fields = append(fields, Field{
+			Title: "Action Required",
+			Value: "⚠️ Please manually verify and enroll the customer. Check Stripe Dashboard and database.",
+			Short: false,
+		})
+		fields = append(fields, Field{
+			Title: "Investigation Links",
+			Value: fmt.Sprintf(
+				"• [Stripe Session](https://dashboard.stripe.com/test/checkout/sessions/%s)\n"+
+					"• Customer ID: %s",
+				details.SessionID, details.CustomerID,
+			),
+			Short: false,
+		})
+	}
+
+	payload := SlackPayload{
+		Channel:   "#payment-alerts",
+		Username:  "Reconciliation-Bot",
+		IconEmoji: ":robot_face:",
+		Text:      fmt.Sprintf("*%s %s*", emoji, title),
+		Attachments: []Attachment{
+			{
+				Color:     color,
+				Title:     title,
+				Timestamp: time.Now().Unix(),
+				Fields:    fields,
+			},
+		},
+	}
+
+	// Critical failures sent synchronously, successes async
+	if details.AlertType == "RECONCILIATION_FAILURE" || (!details.WasFixed && details.AlertType == "MISSED_CHECKOUT") {
+		sendSlackWebhookFast(webhookURL, payload)
+	} else {
+		go sendSlackWebhookFast(webhookURL, payload)
+	}
 }

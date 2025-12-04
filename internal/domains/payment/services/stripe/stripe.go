@@ -17,6 +17,7 @@ import (
 	billingportal "github.com/stripe/stripe-go/v81/billingportal/session"
 	"github.com/stripe/stripe-go/v81/checkout/session"
 	"github.com/stripe/stripe-go/v81/coupon"
+	"github.com/stripe/stripe-go/v81/customer"
 	"github.com/stripe/stripe-go/v81/price"
 	"github.com/stripe/stripe-go/v81/product"
 	"github.com/stripe/stripe-go/v81/subscription"
@@ -58,6 +59,7 @@ func CreateOneTimePayment(
 	eventID *string, // Optional: Event ID for event enrollment payments
 	stripeCouponID *string, // Optional: Stripe coupon ID for discounts
 	successURL string, // Success redirect URL after payment
+	cancelURL string, // Cancel redirect URL when user aborts checkout
 	existingCustomerID *string, // Optional: Existing Stripe customer ID to reuse
 ) (string, *errLib.CommonError) {
 	// Create a timeout context for this operation
@@ -93,6 +95,10 @@ func CreateOneTimePayment(
 		return "", errLib.New("success URL cannot be empty", http.StatusBadRequest)
 	}
 
+	if cancelURL == "" {
+		return "", errLib.New("cancel URL cannot be empty", http.StatusBadRequest)
+	}
+
 	// Extract user ID from context (e.g. JWT or middleware-injected value)
 	userID, err := contextUtils.GetUserID(ctx)
 	if err != nil {
@@ -103,12 +109,12 @@ func CreateOneTimePayment(
 	metadata := map[string]string{
 		"userID": userID.String(),
 	}
-	
+
 	// Add event ID to metadata if provided
 	if eventID != nil && *eventID != "" {
 		metadata["eventID"] = *eventID
 	}
-	
+
 	params := &stripe.CheckoutSessionParams{
 		Metadata: metadata,
 		PaymentIntentData: &stripe.CheckoutSessionPaymentIntentDataParams{
@@ -122,6 +128,7 @@ func CreateOneTimePayment(
 		},
 		Mode:                stripe.String("payment"), // One-time payment mode
 		SuccessURL:          stripe.String(successURL), // Redirect URL after success
+		CancelURL:           stripe.String(cancelURL),  // Redirect URL when user aborts checkout
 		AllowPromotionCodes: stripe.Bool(true),        // Allow customers to enter promo codes
 		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
 			Enabled: stripe.Bool(true),
@@ -184,6 +191,7 @@ func CreateSubscriptionWithSetupFeeAndMetadata(
 	setupFeeAmount int,             // Setup fee amount in cents (0 for no fee)
 	metadata map[string]string,     // Metadata to attach to subscription
 	successURL string,              // Success redirect URL after payment
+	cancelURL string,               // Cancel redirect URL when user aborts checkout
 	existingCustomerID *string,     // Optional: Existing Stripe customer ID to reuse
 ) (string, *errLib.CommonError) {
 	// Create a timeout context for this operation
@@ -221,6 +229,10 @@ func CreateSubscriptionWithSetupFeeAndMetadata(
 		return "", errLib.New("success URL cannot be empty", http.StatusBadRequest)
 	}
 
+	if cancelURL == "" {
+		return "", errLib.New("cancel URL cannot be empty", http.StatusBadRequest)
+	}
+
 	// Merge metadata with userID
 	if metadata == nil {
 		metadata = make(map[string]string)
@@ -241,6 +253,7 @@ func CreateSubscriptionWithSetupFeeAndMetadata(
 		},
 		Mode:                stripe.String("subscription"), // Subscription mode
 		SuccessURL:          stripe.String(successURL),
+		CancelURL:           stripe.String(cancelURL),      // Redirect URL when user aborts checkout
 		AllowPromotionCodes: stripe.Bool(true), // Allow customers to enter promo codes
 		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
 			Enabled: stripe.Bool(true),
@@ -306,6 +319,7 @@ func CreateSubscriptionWithSetupFee(
 	stripePlanPriceID string, // Stripe Price ID for the recurring plan
 	setupFeeAmount int,       // Setup fee amount in cents (0 for no fee)
 	successURL string, // Success redirect URL after payment
+	cancelURL string, // Cancel redirect URL when user aborts checkout
 ) (string, *errLib.CommonError) {
 	// Create a timeout context for this operation
 	timeoutCtx, cancel := withCriticalTimeout(ctx)
@@ -342,6 +356,10 @@ func CreateSubscriptionWithSetupFee(
 		return "", errLib.New("success URL cannot be empty", http.StatusBadRequest)
 	}
 
+	if cancelURL == "" {
+		return "", errLib.New("cancel URL cannot be empty", http.StatusBadRequest)
+	}
+
 	// Set up Checkout session with subscription mode
 	params := &stripe.CheckoutSessionParams{
 		Metadata: map[string]string{
@@ -360,6 +378,7 @@ func CreateSubscriptionWithSetupFee(
 		},
 		Mode:                stripe.String("subscription"), // Subscription mode
 		SuccessURL:          stripe.String(successURL),
+		CancelURL:           stripe.String(cancelURL),      // Redirect URL when user aborts checkout
 		AllowPromotionCodes: stripe.Bool(true), // Allow customers to enter promo codes
 		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
 			Enabled: stripe.Bool(true),
@@ -418,6 +437,7 @@ func CreateSubscription(
 	stripeJoiningFeesID string, // Optional one-time joining fee
 	stripeCouponID *string, // Optional: Stripe coupon ID for discounts
 	successURL string, // Success redirect URL after payment
+	cancelURL string, // Cancel redirect URL when user aborts checkout
 	existingCustomerID *string, // Optional: Existing Stripe customer ID to reuse
 ) (string, *errLib.CommonError) {
 	// Create a timeout context for this operation
@@ -455,6 +475,10 @@ func CreateSubscription(
 		return "", errLib.New("success URL cannot be empty", http.StatusBadRequest)
 	}
 
+	if cancelURL == "" {
+		return "", errLib.New("cancel URL cannot be empty", http.StatusBadRequest)
+	}
+
 	// Set up Checkout session with subscription mode
 	params := &stripe.CheckoutSessionParams{
 		Metadata: map[string]string{
@@ -473,6 +497,7 @@ func CreateSubscription(
 		},
 		Mode:                stripe.String("subscription"), // Subscription mode
 		SuccessURL:          stripe.String(successURL),
+		CancelURL:           stripe.String(cancelURL),      // Redirect URL when user aborts checkout
 		AllowPromotionCodes: stripe.Bool(true), // Allow customers to enter promo codes
 		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
 			Enabled: stripe.Bool(true),
@@ -513,7 +538,7 @@ func CreateSubscription(
 	}
 
 	// Create Stripe session with timeout handling
-	type subscriptionResult struct{
+	type subscriptionResult struct {
 		session *stripe.CheckoutSession
 		err     error
 	}
@@ -547,6 +572,7 @@ func CreateSubscriptionWithMetadata(
 	stripeCouponID *string,         // Optional: Stripe coupon ID for discounts
 	metadata map[string]string,     // Metadata to attach to subscription
 	successURL string,              // Success redirect URL after payment
+	cancelURL string,               // Cancel redirect URL when user aborts checkout
 	existingCustomerID *string,     // Optional: Existing Stripe customer ID to reuse
 ) (string, *errLib.CommonError) {
 	// Create a timeout context for this operation
@@ -584,6 +610,10 @@ func CreateSubscriptionWithMetadata(
 		return "", errLib.New("success URL cannot be empty", http.StatusBadRequest)
 	}
 
+	if cancelURL == "" {
+		return "", errLib.New("cancel URL cannot be empty", http.StatusBadRequest)
+	}
+
 	// Merge metadata with userID
 	if metadata == nil {
 		metadata = make(map[string]string)
@@ -604,6 +634,7 @@ func CreateSubscriptionWithMetadata(
 		},
 		Mode:                stripe.String("subscription"), // Subscription mode
 		SuccessURL:          stripe.String(successURL),
+		CancelURL:           stripe.String(cancelURL),      // Redirect URL when user aborts checkout
 		AllowPromotionCodes: stripe.Bool(true), // Allow customers to enter promo codes
 		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
 			Enabled: stripe.Bool(true),
@@ -1378,4 +1409,110 @@ func (s *ProductService) DeactivateProductFromPrice(priceID string) *errLib.Comm
 
 	log.Printf("[STRIPE] Deactivated product %s", stripePrice.Product.ID)
 	return nil
+}
+
+// VerifyStripeCustomer checks if a Stripe customer ID is still valid/active
+func VerifyStripeCustomer(customerID string) bool {
+	if strings.TrimSpace(customerID) == "" {
+		return false
+	}
+
+	params := &stripe.CustomerParams{}
+	cust, err := customer.Get(customerID, params)
+	if err != nil {
+		log.Printf("[STRIPE] Customer verification failed for %s: %v", customerID, err)
+		return false
+	}
+
+	// Check if customer exists and is not deleted
+	return cust != nil && !cust.Deleted
+}
+
+// GetCheckoutSession retrieves a checkout session from Stripe with expanded details
+func GetCheckoutSession(sessionID string) (*stripe.CheckoutSession, *errLib.CommonError) {
+	if strings.TrimSpace(sessionID) == "" {
+		return nil, errLib.New("session ID cannot be empty", http.StatusBadRequest)
+	}
+
+	params := &stripe.CheckoutSessionParams{
+		Expand: []*string{
+			stripe.String("line_items"),
+			stripe.String("line_items.data.price"),
+			stripe.String("subscription"),
+			stripe.String("customer"),
+		},
+	}
+
+	checkoutSession, err := session.Get(sessionID, params)
+	if err != nil {
+		log.Printf("[STRIPE] Failed to retrieve checkout session %s: %v", sessionID, err)
+		return nil, errLib.New("Failed to retrieve checkout session: "+err.Error(), http.StatusInternalServerError)
+	}
+
+	return checkoutSession, nil
+}
+
+// GetSubscriptionDetails retrieves a subscription from Stripe by ID
+func GetSubscriptionDetails(subscriptionID string) (*stripe.Subscription, *errLib.CommonError) {
+	if strings.TrimSpace(subscriptionID) == "" {
+		return nil, errLib.New("subscription ID cannot be empty", http.StatusBadRequest)
+	}
+
+	sub, err := subscription.Get(subscriptionID, nil)
+	if err != nil {
+		log.Printf("[STRIPE] Failed to retrieve subscription %s: %v", subscriptionID, err)
+		return nil, errLib.New("Failed to retrieve subscription: "+err.Error(), http.StatusInternalServerError)
+	}
+
+	return sub, nil
+}
+
+// UpdateSubscriptionCancelAt updates a subscription's cancel_at date
+// Used by reconciliation to set the calculated renewal/cancel date on subscriptions
+func UpdateSubscriptionCancelAt(subscriptionID string, cancelAt int64) *errLib.CommonError {
+	if strings.TrimSpace(subscriptionID) == "" {
+		return errLib.New("subscription ID cannot be empty", http.StatusBadRequest)
+	}
+
+	_, err := subscription.Update(subscriptionID, &stripe.SubscriptionParams{
+		CancelAt: stripe.Int64(cancelAt),
+	})
+	if err != nil {
+		log.Printf("[STRIPE] Failed to update subscription %s cancel_at: %v", subscriptionID, err)
+		return errLib.New("Failed to update subscription cancel date: "+err.Error(), http.StatusInternalServerError)
+	}
+
+	return nil
+}
+
+// ListRecentCheckoutSessions retrieves completed checkout sessions within a time range
+// Used for reconciliation to detect missed webhook payments
+func ListRecentCheckoutSessions(sinceTime time.Time, limit int64) ([]*stripe.CheckoutSession, *errLib.CommonError) {
+	if strings.ReplaceAll(stripe.Key, " ", "") == "" {
+		return nil, errLib.New("Stripe not initialized", http.StatusInternalServerError)
+	}
+
+	params := &stripe.CheckoutSessionListParams{
+		Status: stripe.String("complete"),
+		Expand: []*string{
+			stripe.String("data.line_items"),
+			stripe.String("data.subscription"),
+			stripe.String("data.customer"),
+		},
+	}
+	params.Filters.AddFilter("created", "gte", fmt.Sprintf("%d", sinceTime.Unix()))
+	params.Limit = stripe.Int64(limit)
+
+	var sessions []*stripe.CheckoutSession
+	iter := session.List(params)
+	for iter.Next() {
+		sessions = append(sessions, iter.CheckoutSession())
+	}
+
+	if iter.Err() != nil {
+		log.Printf("[STRIPE] Failed to list checkout sessions: %v", iter.Err())
+		return nil, errLib.New("Failed to list checkout sessions: "+iter.Err().Error(), http.StatusInternalServerError)
+	}
+
+	return sessions, nil
 }

@@ -56,6 +56,7 @@ func main() {
 	scheduler.RegisterJob(jobs.NewSubsidyExpirationJob(diContainer))
 	scheduler.RegisterJob(jobs.NewAccountDeletionJob(diContainer))
 	scheduler.RegisterJob(jobs.NewReservationCleanupJob(diContainer))
+	scheduler.RegisterJob(jobs.NewCheckoutReconciliationJob(diContainer)) // Safety net for missed webhook payments
 	scheduler.Start()
 	defer scheduler.Stop()
 

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"api/config"
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/base64"
@@ -86,22 +87,25 @@ func (p *PCIComplianceMiddleware) DataMaskingMiddleware(next http.Handler) http.
 
 
 func (p *PCIComplianceMiddleware) isSecureConnection(r *http.Request) bool {
-
+	// TLS connection is always secure
 	if r.TLS != nil {
 		return true
 	}
-	
 
+	// Trust X-Forwarded-Proto header from load balancer/proxy
 	if proto := r.Header.Get("X-Forwarded-Proto"); proto == "https" {
 		return true
 	}
-	
 
-	if strings.Contains(r.Host, "localhost") || strings.Contains(r.Host, "127.0.0.1") {
-		p.logger.Warn("Development mode: allowing insecure connection to localhost")
-		return true
+	// ONLY allow localhost bypass in development environment
+	// In production/staging, ALL connections must use HTTPS
+	if config.Env.Environment == "development" {
+		if strings.Contains(r.Host, "localhost") || strings.Contains(r.Host, "127.0.0.1") {
+			p.logger.Warn("Development mode: allowing insecure connection to localhost")
+			return true
+		}
 	}
-	
+
 	return false
 }
 

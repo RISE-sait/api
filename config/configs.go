@@ -33,6 +33,7 @@ type config struct {
 	StripeWebhookSecret              string
 	ChatBotServiceUrl                string
 	FrontendBaseURL                  string // Frontend URL for email verification (supports Universal Links for mobile app)
+	Environment                      string // "production", "staging", or "development"
 }
 
 var Env = initConfig()
@@ -52,6 +53,12 @@ func initConfig() *config {
 
 	stripe.Key = stripeApiKey
 
+	// Get environment with fallback to "development"
+	environment := getEnv("ENVIRONMENT")
+	if environment == "" {
+		environment = "development"
+	}
+
 	return &config{
 		DbConnUrl:     getEnv("DATABASE_URL"),
 		HubSpotApiKey: getEnv("HUBSPOT_API_KEY"),
@@ -65,6 +72,7 @@ func initConfig() *config {
 		StripeWebhookSecret:              getEnv("STRIPE_WEBHOOK_SECRET"),
 		ChatBotServiceUrl:                getEnv("CHAT_BOT_SERVICE_URL"),
 		FrontendBaseURL:                  getEnv("FRONTEND_BASE_URL"),
+		Environment:                      environment,
 	}
 }
 

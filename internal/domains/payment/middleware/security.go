@@ -125,17 +125,53 @@ func (s *SecurityMiddleware) validatePaymentRequest(r *http.Request) error {
 	return nil
 }
 
-// isValidWebhookSource validates webhook requests are from Stripe
+// isValidWebhookSource performs preliminary validation of webhook requests
+// NOTE: This is NOT the primary security mechanism for webhooks.
+// The real security comes from signature verification using Stripe's webhook signing secret
+// which is performed in the webhook handler via ValidateWebhookSignature().
+// User-Agent checks are easily spoofed and add no real security.
 func (s *SecurityMiddleware) isValidWebhookSource(r *http.Request) bool {
-	// Check User-Agent (Stripe webhooks have specific user agent)
-	userAgent := r.Header.Get("User-Agent")
-	if !strings.HasPrefix(userAgent, "Stripe/") {
+	// Verify the request has a Stripe-Signature header
+	// This is just a quick sanity check - the actual signature verification
+	// happens in the handler using Stripe's webhook.ConstructEventWithOptions()
+	if r.Header.Get("Stripe-Signature") == "" {
+		s.logger.WithFields(map[string]interface{}{
+			"client_ip":  r.RemoteAddr,
+			"user_agent": r.Header.Get("User-Agent"),
+		}).Warn("Webhook request missing Stripe-Signature header")
 		return false
 	}
-	
-	// Additional IP validation could be added here
-	// Stripe publishes their webhook IP ranges
-	
+
+	// Verify request method is POST
+	if r.Method != http.MethodPost {
+		s.logger.WithFields(map[string]interface{}{
+			"client_ip": r.RemoteAddr,
+			"method":    r.Method,
+		}).Warn("Webhook request with invalid method")
+		return false
+	}
+
+	// Verify Content-Type (Stripe always sends application/json)
+	contentType := r.Header.Get("Content-Type")
+	if !strings.HasPrefix(contentType, "application/json") {
+		s.logger.WithFields(map[string]interface{}{
+			"client_ip":    r.RemoteAddr,
+			"content_type": contentType,
+		}).Warn("Webhook request with invalid content type")
+		return false
+	}
+
+	// Log User-Agent for debugging but don't block based on it
+	// Stripe's User-Agent can change and blocking based on it is security theater
+	userAgent := r.Header.Get("User-Agent")
+	if !strings.HasPrefix(userAgent, "Stripe/") {
+		// Just log a warning, don't block - signature verification is the real security
+		s.logger.WithFields(map[string]interface{}{
+			"client_ip":  r.RemoteAddr,
+			"user_agent": userAgent,
+		}).Warn("Webhook request with unexpected User-Agent (not blocking - signature verification will validate)")
+	}
+
 	return true
 }
 

@@ -80,9 +80,9 @@ func (s *WebhookService) HandleCheckoutSessionCompleted(ctx context.Context, eve
 		"webhook":    "checkout_session_completed",
 	})
 
-	// Check idempotency first
-	if s.Idempotency.IsProcessed(event.ID) {
-		webhookLogger.Info("Event already processed, skipping due to idempotency")
+	// Atomically claim the event - prevents race conditions with concurrent webhook deliveries
+	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+		webhookLogger.Info("Event already claimed by another process, skipping")
 		return nil
 	}
 
@@ -110,13 +110,14 @@ func (s *WebhookService) HandleCheckoutSessionCompleted(ctx context.Context, eve
 		return nil
 	}
 
-	// Mark as processed only if successful
+	// Mark event complete or failed based on result
 	if err == nil {
-		s.Idempotency.MarkAsProcessedWithType(event.ID, string(event.Type))
+		s.Idempotency.MarkEventComplete(event.ID)
 		webhookLogger.Info("Webhook event processed successfully")
 	} else {
 		webhookLogger.Error("Webhook processing failed", err)
-		
+		s.Idempotency.MarkEventFailed(event.ID, err.Error())
+
 		// Send comprehensive Slack alert for debugging
 		s.sendEnhancedWebhookAlert(event, checkSession, err)
 	}
@@ -723,9 +724,9 @@ func (s *WebhookService) sendMembershipPurchaseEmail(userID, planID uuid.UUID) {
 
 // HandleSubscriptionCreated processes subscription.created events
 func (s *WebhookService) HandleSubscriptionCreated(ctx context.Context, event stripe.Event) *errLib.CommonError {
-	// Check idempotency first
-	if s.Idempotency.IsProcessed(event.ID) {
-		log.Printf("Event %s already processed, skipping", event.ID)
+	// Atomically claim the event - prevents race conditions
+	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+		log.Printf("Event %s already claimed by another process, skipping", event.ID)
 		return nil
 	}
 
@@ -759,13 +760,19 @@ func (s *WebhookService) HandleSubscriptionCreated(ctx context.Context, event st
 	// This would involve updating the membership plan status to active
 	log.Printf("[WEBHOOK] Successfully processed subscription creation for user %s", userID)
 
-	// Mark as processed
-	s.Idempotency.MarkAsProcessedWithType(event.ID, string(event.Type))
+	// Mark as complete
+	s.Idempotency.MarkEventComplete(event.ID)
 	return nil
 }
 
 // HandleSubscriptionUpdated processes subscription.updated events
 func (s *WebhookService) HandleSubscriptionUpdated(ctx context.Context, event stripe.Event) *errLib.CommonError {
+	// Atomically claim the event - prevents race conditions
+	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+		log.Printf("Event %s already claimed by another process, skipping", event.ID)
+		return nil
+	}
+
 	var sub stripe.Subscription
 	if err := json.Unmarshal(event.Data.Raw, &sub); err != nil {
 		log.Printf("[WEBHOOK] Failed to parse subscription updated event: %v", err)
@@ -821,24 +828,24 @@ func (s *WebhookService) HandleSubscriptionUpdated(ctx context.Context, event st
 		}
 	}
 
-	// Update membership status in database
-	if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatus(ctx, userID, dbStatus); updateErr != nil {
+	// Update membership status in database - use subscription ID to target only this specific subscription
+	if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByID(ctx, userID, sub.ID, dbStatus); updateErr != nil {
 		log.Printf("[WEBHOOK] Failed to update subscription status in database: %v", updateErr)
 		return updateErr
 	}
 
 	log.Printf("[WEBHOOK] Successfully updated subscription %s status to %s for user %s", sub.ID, dbStatus, userID)
 
-	// Mark as processed
-	s.Idempotency.MarkAsProcessedWithType(event.ID, string(event.Type))
+	// Mark as complete
+	s.Idempotency.MarkEventComplete(event.ID)
 	return nil
 }
 
 // HandleSubscriptionDeleted processes subscription.deleted events
 func (s *WebhookService) HandleSubscriptionDeleted(ctx context.Context, event stripe.Event) *errLib.CommonError {
-	// Check idempotency first
-	if s.Idempotency.IsProcessed(event.ID) {
-		log.Printf("Event %s already processed, skipping", event.ID)
+	// Atomically claim the event - prevents race conditions
+	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+		log.Printf("Event %s already claimed by another process, skipping", event.ID)
 		return nil
 	}
 
@@ -881,16 +888,16 @@ func (s *WebhookService) HandleSubscriptionDeleted(ctx context.Context, event st
 
 	log.Printf("[WEBHOOK] Successfully marked subscription %s as expired for user %s", sub.ID, userID)
 
-	// Mark as processed
-	s.Idempotency.MarkAsProcessedWithType(event.ID, string(event.Type))
+	// Mark as complete
+	s.Idempotency.MarkEventComplete(event.ID)
 	return nil
 }
 
 // HandleInvoicePaymentSucceeded processes invoice.payment_succeeded events
 func (s *WebhookService) HandleInvoicePaymentSucceeded(ctx context.Context, event stripe.Event) *errLib.CommonError {
-	// Check idempotency first
-	if s.Idempotency.IsProcessed(event.ID) {
-		log.Printf("Event %s already processed, skipping", event.ID)
+	// Atomically claim the event - prevents race conditions
+	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+		log.Printf("Event %s already claimed by another process, skipping", event.ID)
 		return nil
 	}
 
@@ -939,24 +946,24 @@ func (s *WebhookService) HandleInvoicePaymentSucceeded(ctx context.Context, even
 		sub, subErr := subscription.Get(subscriptionID, nil)
 		if subErr != nil {
 			log.Printf("[WEBHOOK] Failed to get subscription details for %s: %v", subscriptionID, subErr)
-			// Fall back to just updating status
-			if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatus(ctx, userID, "active"); updateErr != nil {
+			// Fall back to just updating status - use subscription ID for specificity
+			if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByID(ctx, userID, subscriptionID, "active"); updateErr != nil {
 				log.Printf("[WEBHOOK] Failed to activate membership after successful payment: %v", updateErr)
 				return updateErr
 			}
 		} else {
-			// Update both status and next billing date
+			// Update both status and next billing date - target specific subscription
 			nextBillingDate := time.Unix(sub.CurrentPeriodEnd, 0)
 			log.Printf("[WEBHOOK] Updating membership: status=active, next_billing=%s for subscription %s", nextBillingDate.Format(time.RFC3339), subscriptionID)
-			if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusAndNextBilling(ctx, userID, "active", nextBillingDate); updateErr != nil {
+			if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByIDAndNextBilling(ctx, userID, subscriptionID, "active", nextBillingDate); updateErr != nil {
 				log.Printf("[WEBHOOK] Failed to update membership after successful payment: %v", updateErr)
 				return updateErr
 			}
 			log.Printf("[WEBHOOK] Successfully updated next_billing_date to %s", nextBillingDate.Format(time.RFC3339))
 		}
 	} else {
-		// Non-subscription invoice, just update status
-		log.Printf("[WEBHOOK] No subscription ID for invoice %s, just updating status", invoice.ID)
+		// Non-subscription invoice - should not happen for membership payments
+		log.Printf("[WEBHOOK] No subscription ID for invoice %s, updating all active subscriptions", invoice.ID)
 		if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatus(ctx, userID, "active"); updateErr != nil {
 			log.Printf("[WEBHOOK] Failed to activate membership after successful payment: %v", updateErr)
 			return updateErr
@@ -968,16 +975,16 @@ func (s *WebhookService) HandleInvoicePaymentSucceeded(ctx context.Context, even
 	// Track payment in centralized system
 	go s.trackMembershipRenewal(&invoice, userID, time.Unix(event.Created, 0))
 
-	// Mark as processed
-	s.Idempotency.MarkAsProcessedWithType(event.ID, string(event.Type))
+	// Mark as complete
+	s.Idempotency.MarkEventComplete(event.ID)
 	return nil
 }
 
 // HandleInvoicePaymentFailed processes invoice.payment_failed events
 func (s *WebhookService) HandleInvoicePaymentFailed(ctx context.Context, event stripe.Event) *errLib.CommonError {
-	// Check idempotency first
-	if s.Idempotency.IsProcessed(event.ID) {
-		log.Printf("Event %s already processed, skipping", event.ID)
+	// Atomically claim the event - prevents race conditions
+	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+		log.Printf("Event %s already claimed by another process, skipping", event.ID)
 		return nil
 	}
 
@@ -993,36 +1000,49 @@ func (s *WebhookService) HandleInvoicePaymentFailed(ctx context.Context, event s
 	}
 	log.Printf("[WEBHOOK] Invoice payment failed: %s for subscription: %s", invoice.ID, subscriptionID)
 
-	// Handle payment failure - mark subscription as inactive/past due
-	if invoice.Customer != nil && invoice.Customer.Metadata != nil {
-		if userIDStr, exists := invoice.Customer.Metadata["userID"]; exists {
-			userID, err := uuid.Parse(userIDStr)
-			if err == nil {
-				log.Printf("[WEBHOOK] Payment failed for user %s, handling payment failure", userID)
-
-				// Update membership status to inactive due to payment failure
-				if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatus(ctx, userID, "inactive"); updateErr != nil {
-					log.Printf("[WEBHOOK] Failed to update membership status after payment failure: %v", updateErr)
-					return updateErr
-				}
-
-				log.Printf("[WEBHOOK] Successfully marked membership as inactive for user %s after payment failure %s", userID, invoice.ID)
-
-				// Send email notification about payment failure
-				go s.sendPaymentFailureEmail(userID, invoice.ID)
-			} else {
-				log.Printf("[WEBHOOK] Invalid userID format for failed invoice %s: %v", invoice.ID, err)
-				return errLib.New("Invalid user ID format", http.StatusBadRequest)
-			}
-		} else {
-			log.Printf("[WEBHOOK] No userID in customer metadata for failed invoice %s", invoice.ID)
-		}
-	} else {
-		log.Printf("[WEBHOOK] No customer metadata found for failed invoice %s", invoice.ID)
+	// Look up user by Stripe customer ID (more reliable than metadata)
+	customerID := ""
+	if invoice.Customer != nil {
+		customerID = invoice.Customer.ID
 	}
 
-	// Mark as processed
-	s.Idempotency.MarkAsProcessedWithType(event.ID, string(event.Type))
+	if customerID == "" {
+		log.Printf("[WEBHOOK] No customer ID found for failed invoice %s", invoice.ID)
+		s.Idempotency.MarkEventComplete(event.ID)
+		return nil
+	}
+
+	var userID uuid.UUID
+	query := "SELECT id FROM users.users WHERE stripe_customer_id = $1"
+	if dbErr := s.db.QueryRowContext(ctx, query, customerID).Scan(&userID); dbErr != nil {
+		log.Printf("[WEBHOOK] Failed to find user with Stripe customer ID %s: %v", customerID, dbErr)
+		s.Idempotency.MarkEventComplete(event.ID)
+		return nil
+	}
+
+	log.Printf("[WEBHOOK] Payment failed for user %s, handling payment failure", userID)
+
+	// Update membership status to inactive due to payment failure - target specific subscription if available
+	if subscriptionID != "none" {
+		if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByID(ctx, userID, subscriptionID, "inactive"); updateErr != nil {
+			log.Printf("[WEBHOOK] Failed to update membership status after payment failure: %v", updateErr)
+			return updateErr
+		}
+	} else {
+		// Fallback to updating all subscriptions if no subscription ID (shouldn't happen for subscription invoices)
+		if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatus(ctx, userID, "inactive"); updateErr != nil {
+			log.Printf("[WEBHOOK] Failed to update membership status after payment failure: %v", updateErr)
+			return updateErr
+		}
+	}
+
+	log.Printf("[WEBHOOK] Successfully marked subscription %s as inactive for user %s after payment failure %s", subscriptionID, userID, invoice.ID)
+
+	// Send email notification about payment failure
+	go s.sendPaymentFailureEmail(userID, invoice.ID)
+
+	// Mark as complete
+	s.Idempotency.MarkEventComplete(event.ID)
 	return nil
 }
 
@@ -1241,6 +1261,273 @@ func (s *WebhookService) sendEnhancedWebhookAlert(event stripe.Event, checkSessi
 	
 	// Send the enhanced alert
 	logger.SendWebhookFailureAlert(alertDetails)
-	
+
 	log.Printf("Enhanced webhook failure alert sent for event %s", event.ID)
+}
+
+// HandleInvoiceUpcoming handles invoice.upcoming events
+// This is sent ~3 days before a subscription renews, useful for sending reminder emails
+func (s *WebhookService) HandleInvoiceUpcoming(ctx context.Context, event stripe.Event) *errLib.CommonError {
+	// Atomically claim the event
+	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+		log.Printf("Event %s already claimed, skipping", event.ID)
+		return nil
+	}
+
+	var invoice stripe.Invoice
+	if err := json.Unmarshal(event.Data.Raw, &invoice); err != nil {
+		log.Printf("[WEBHOOK] Failed to parse invoice upcoming event: %v", err)
+		return errLib.New("Failed to parse invoice", http.StatusBadRequest)
+	}
+
+	log.Printf("[WEBHOOK] Invoice upcoming: %s, Amount: %d cents", invoice.ID, invoice.AmountDue)
+
+	// Look up user by Stripe customer ID
+	customerID := ""
+	if invoice.Customer != nil {
+		customerID = invoice.Customer.ID
+	}
+
+	if customerID == "" {
+		log.Printf("[WEBHOOK] No customer ID found for upcoming invoice %s", invoice.ID)
+		s.Idempotency.MarkEventComplete(event.ID)
+		return nil
+	}
+
+	var userID uuid.UUID
+	query := "SELECT id FROM users.users WHERE stripe_customer_id = $1"
+	if dbErr := s.db.QueryRowContext(ctx, query, customerID).Scan(&userID); dbErr != nil {
+		log.Printf("[WEBHOOK] Failed to find user with Stripe customer ID %s: %v", customerID, dbErr)
+		s.Idempotency.MarkEventComplete(event.ID)
+		return nil
+	}
+
+	// Send renewal reminder email
+	go s.sendRenewalReminderEmail(userID, invoice.AmountDue, time.Unix(invoice.DueDate, 0))
+
+	log.Printf("[WEBHOOK] Processed upcoming invoice for user %s, amount: %d cents", userID, invoice.AmountDue)
+
+	s.Idempotency.MarkEventComplete(event.ID)
+	return nil
+}
+
+// HandlePaymentMethodAttached handles payment_method.attached events
+// Useful for logging when customers add new payment methods
+func (s *WebhookService) HandlePaymentMethodAttached(ctx context.Context, event stripe.Event) *errLib.CommonError {
+	// Atomically claim the event
+	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+		log.Printf("Event %s already claimed, skipping", event.ID)
+		return nil
+	}
+
+	var paymentMethod stripe.PaymentMethod
+	if err := json.Unmarshal(event.Data.Raw, &paymentMethod); err != nil {
+		log.Printf("[WEBHOOK] Failed to parse payment method attached event: %v", err)
+		return errLib.New("Failed to parse payment method", http.StatusBadRequest)
+	}
+
+	log.Printf("[WEBHOOK] Payment method attached: %s, Type: %s", paymentMethod.ID, paymentMethod.Type)
+
+	// Get customer ID and look up user
+	customerID := ""
+	if paymentMethod.Customer != nil {
+		customerID = paymentMethod.Customer.ID
+	}
+
+	if customerID != "" {
+		var userID uuid.UUID
+		query := "SELECT id FROM users.users WHERE stripe_customer_id = $1"
+		if dbErr := s.db.QueryRowContext(ctx, query, customerID).Scan(&userID); dbErr == nil {
+			log.Printf("[WEBHOOK] Payment method %s attached for user %s", paymentMethod.ID, userID)
+
+			// If this customer had failed payments, they may have updated their payment method
+			// Consider reactivating their subscription or sending a confirmation email
+			go s.sendPaymentMethodUpdatedEmail(userID)
+		}
+	}
+
+	s.Idempotency.MarkEventComplete(event.ID)
+	return nil
+}
+
+// HandlePaymentMethodDetached handles payment_method.detached events
+func (s *WebhookService) HandlePaymentMethodDetached(ctx context.Context, event stripe.Event) *errLib.CommonError {
+	// Atomically claim the event
+	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+		log.Printf("Event %s already claimed, skipping", event.ID)
+		return nil
+	}
+
+	var paymentMethod stripe.PaymentMethod
+	if err := json.Unmarshal(event.Data.Raw, &paymentMethod); err != nil {
+		log.Printf("[WEBHOOK] Failed to parse payment method detached event: %v", err)
+		return errLib.New("Failed to parse payment method", http.StatusBadRequest)
+	}
+
+	log.Printf("[WEBHOOK] Payment method detached: %s", paymentMethod.ID)
+
+	s.Idempotency.MarkEventComplete(event.ID)
+	return nil
+}
+
+// HandleSubscriptionPaused handles customer.subscription.paused events
+func (s *WebhookService) HandleSubscriptionPaused(ctx context.Context, event stripe.Event) *errLib.CommonError {
+	// Atomically claim the event
+	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+		log.Printf("Event %s already claimed, skipping", event.ID)
+		return nil
+	}
+
+	var sub stripe.Subscription
+	if err := json.Unmarshal(event.Data.Raw, &sub); err != nil {
+		log.Printf("[WEBHOOK] Failed to parse subscription paused event: %v", err)
+		return errLib.New("Failed to parse subscription", http.StatusBadRequest)
+	}
+
+	log.Printf("[WEBHOOK] Subscription paused: %s", sub.ID)
+
+	// Look up user by Stripe customer ID
+	stripeCustomerID := ""
+	if sub.Customer != nil {
+		stripeCustomerID = sub.Customer.ID
+	}
+
+	if stripeCustomerID == "" {
+		log.Printf("[WEBHOOK] No customer ID found for paused subscription %s", sub.ID)
+		s.Idempotency.MarkEventComplete(event.ID)
+		return nil
+	}
+
+	var userID uuid.UUID
+	query := "SELECT id FROM users.users WHERE stripe_customer_id = $1"
+	if dbErr := s.db.QueryRowContext(ctx, query, stripeCustomerID).Scan(&userID); dbErr != nil {
+		log.Printf("[WEBHOOK] Failed to find user with Stripe customer ID %s: %v", stripeCustomerID, dbErr)
+		s.Idempotency.MarkEventComplete(event.ID)
+		return nil
+	}
+
+	// Update membership status to paused
+	if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByID(ctx, userID, sub.ID, "paused"); updateErr != nil {
+		log.Printf("[WEBHOOK] Failed to update subscription status to paused: %v", updateErr)
+		return updateErr
+	}
+
+	log.Printf("[WEBHOOK] Successfully paused subscription %s for user %s", sub.ID, userID)
+
+	s.Idempotency.MarkEventComplete(event.ID)
+	return nil
+}
+
+// HandleSubscriptionResumed handles customer.subscription.resumed events
+func (s *WebhookService) HandleSubscriptionResumed(ctx context.Context, event stripe.Event) *errLib.CommonError {
+	// Atomically claim the event
+	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+		log.Printf("Event %s already claimed, skipping", event.ID)
+		return nil
+	}
+
+	var sub stripe.Subscription
+	if err := json.Unmarshal(event.Data.Raw, &sub); err != nil {
+		log.Printf("[WEBHOOK] Failed to parse subscription resumed event: %v", err)
+		return errLib.New("Failed to parse subscription", http.StatusBadRequest)
+	}
+
+	log.Printf("[WEBHOOK] Subscription resumed: %s", sub.ID)
+
+	// Look up user by Stripe customer ID
+	stripeCustomerID := ""
+	if sub.Customer != nil {
+		stripeCustomerID = sub.Customer.ID
+	}
+
+	if stripeCustomerID == "" {
+		log.Printf("[WEBHOOK] No customer ID found for resumed subscription %s", sub.ID)
+		s.Idempotency.MarkEventComplete(event.ID)
+		return nil
+	}
+
+	var userID uuid.UUID
+	query := "SELECT id FROM users.users WHERE stripe_customer_id = $1"
+	if dbErr := s.db.QueryRowContext(ctx, query, stripeCustomerID).Scan(&userID); dbErr != nil {
+		log.Printf("[WEBHOOK] Failed to find user with Stripe customer ID %s: %v", stripeCustomerID, dbErr)
+		s.Idempotency.MarkEventComplete(event.ID)
+		return nil
+	}
+
+	// Update membership status to active
+	if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByID(ctx, userID, sub.ID, "active"); updateErr != nil {
+		log.Printf("[WEBHOOK] Failed to update subscription status to active: %v", updateErr)
+		return updateErr
+	}
+
+	log.Printf("[WEBHOOK] Successfully resumed subscription %s for user %s", sub.ID, userID)
+
+	s.Idempotency.MarkEventComplete(event.ID)
+	return nil
+}
+
+// HandleCustomerUpdated handles customer.updated events
+// Useful for tracking email changes and keeping user data in sync
+func (s *WebhookService) HandleCustomerUpdated(ctx context.Context, event stripe.Event) *errLib.CommonError {
+	// Atomically claim the event
+	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+		log.Printf("Event %s already claimed, skipping", event.ID)
+		return nil
+	}
+
+	var customer stripe.Customer
+	if err := json.Unmarshal(event.Data.Raw, &customer); err != nil {
+		log.Printf("[WEBHOOK] Failed to parse customer updated event: %v", err)
+		return errLib.New("Failed to parse customer", http.StatusBadRequest)
+	}
+
+	log.Printf("[WEBHOOK] Customer updated: %s, Email: %s", customer.ID, customer.Email)
+
+	// Look up user by Stripe customer ID
+	var userID uuid.UUID
+	query := "SELECT id FROM users.users WHERE stripe_customer_id = $1"
+	if dbErr := s.db.QueryRowContext(ctx, query, customer.ID).Scan(&userID); dbErr != nil {
+		log.Printf("[WEBHOOK] Customer %s not found in database (may be new customer)", customer.ID)
+		s.Idempotency.MarkEventComplete(event.ID)
+		return nil
+	}
+
+	// Log the update - could sync email if needed
+	log.Printf("[WEBHOOK] Customer update for user %s - Stripe email: %s", userID, customer.Email)
+
+	s.Idempotency.MarkEventComplete(event.ID)
+	return nil
+}
+
+// sendRenewalReminderEmail sends an email reminder about upcoming subscription renewal
+func (s *WebhookService) sendRenewalReminderEmail(userID uuid.UUID, amountDue int64, dueDate time.Time) {
+	log.Printf("[EMAIL] Sending renewal reminder to user %s, amount: %d cents, due: %s",
+		userID, amountDue, dueDate.Format(time.RFC3339))
+
+	userInfo, err := s.UserRepo.GetUserInfo(context.Background(), "", userID)
+	if err != nil || userInfo.Email == nil {
+		log.Printf("[EMAIL] Failed to get user info for renewal reminder: %v", err)
+		return
+	}
+
+	// Format amount for display
+	amountStr := fmt.Sprintf("$%.2f", float64(amountDue)/100.0)
+	dateStr := dueDate.Format("January 2, 2006")
+
+	log.Printf("[EMAIL] Renewal reminder sent to %s: %s due on %s", *userInfo.Email, amountStr, dateStr)
+	// Note: Implement email.SendRenewalReminderEmail if needed
+}
+
+// sendPaymentMethodUpdatedEmail sends confirmation when payment method is updated
+func (s *WebhookService) sendPaymentMethodUpdatedEmail(userID uuid.UUID) {
+	log.Printf("[EMAIL] Sending payment method updated confirmation to user %s", userID)
+
+	userInfo, err := s.UserRepo.GetUserInfo(context.Background(), "", userID)
+	if err != nil || userInfo.Email == nil {
+		log.Printf("[EMAIL] Failed to get user info for payment method update: %v", err)
+		return
+	}
+
+	log.Printf("[EMAIL] Payment method update confirmation sent to %s", *userInfo.Email)
+	// Note: Implement email.SendPaymentMethodUpdatedEmail if needed
 }

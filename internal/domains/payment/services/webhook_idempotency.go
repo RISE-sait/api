@@ -67,6 +67,121 @@ func (w *WebhookIdempotency) IsProcessed(eventID string) bool {
 	return false
 }
 
+// TryClaimEvent atomically attempts to claim an event for processing.
+// Returns true if this caller successfully claimed the event (should process it).
+// Returns false if the event was already claimed by another process.
+// This prevents race conditions where two concurrent handlers both pass IsProcessed check.
+func (w *WebhookIdempotency) TryClaimEvent(eventID, eventType string) bool {
+	// First check in-memory cache (fast path for recently processed)
+	w.mutex.RLock()
+	processedAt, exists := w.cache[eventID]
+	w.mutex.RUnlock()
+
+	if exists && time.Since(processedAt) <= w.maxCacheAge {
+		log.Printf("[IDEMPOTENCY] Event %s already in cache, rejecting claim", eventID)
+		return false
+	}
+
+	// Use database atomic insert to claim the event
+	if w.db != nil {
+		claimed := w.tryClaimInDB(eventID, eventType)
+		if claimed {
+			// Successfully claimed - add to cache
+			w.mutex.Lock()
+			if len(w.cache) >= w.maxCacheSize {
+				w.removeOldestEntries(w.maxCacheSize / 4)
+			}
+			w.cache[eventID] = time.Now()
+			w.mutex.Unlock()
+		}
+		return claimed
+	}
+
+	// No database - use cache-only with mutex protection
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+
+	// Double-check after acquiring write lock
+	if _, exists := w.cache[eventID]; exists {
+		return false
+	}
+
+	// Claim it
+	if len(w.cache) >= w.maxCacheSize {
+		w.removeOldestEntries(w.maxCacheSize / 4)
+	}
+	w.cache[eventID] = time.Now()
+	return true
+}
+
+// tryClaimInDB atomically attempts to insert the event and returns whether it succeeded
+func (w *WebhookIdempotency) tryClaimInDB(eventID, eventType string) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Use INSERT with ON CONFLICT DO NOTHING and check rows affected
+	// This is atomic - only one concurrent caller can successfully insert
+	query := `INSERT INTO payment.webhook_events (event_id, event_type, processed_at, status)
+		VALUES ($1, $2, NOW(), 'processing')
+		ON CONFLICT (event_id) DO NOTHING`
+
+	result, err := w.db.ExecContext(ctx, query, eventID, eventType)
+	if err != nil {
+		log.Printf("[IDEMPOTENCY] Failed to claim event %s in DB: %v", eventID, err)
+		// On DB error, check if it exists to decide
+		return !w.isProcessedInDB(eventID)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("[IDEMPOTENCY] Failed to get rows affected for event %s: %v", eventID, err)
+		return false
+	}
+
+	if rowsAffected > 0 {
+		log.Printf("[IDEMPOTENCY] Successfully claimed event %s", eventID)
+		return true
+	}
+
+	log.Printf("[IDEMPOTENCY] Event %s already claimed by another process", eventID)
+	return false
+}
+
+// MarkEventComplete updates the event status to processed after successful handling
+func (w *WebhookIdempotency) MarkEventComplete(eventID string) {
+	if w.db != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		query := `UPDATE payment.webhook_events SET status = 'processed' WHERE event_id = $1`
+		_, err := w.db.ExecContext(ctx, query, eventID)
+		if err != nil {
+			log.Printf("[IDEMPOTENCY] Failed to mark event %s as complete: %v", eventID, err)
+		}
+	}
+}
+
+// MarkEventFailed updates the event status to failed for retry
+func (w *WebhookIdempotency) MarkEventFailed(eventID string, errorMsg string) {
+	if w.db != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		query := `UPDATE payment.webhook_events
+			SET status = 'failed', error_message = $2
+			WHERE event_id = $1`
+		_, err := w.db.ExecContext(ctx, query, eventID, errorMsg)
+		if err != nil {
+			log.Printf("[IDEMPOTENCY] Failed to mark event %s as failed: %v", eventID, err)
+		}
+	}
+
+	// Remove from cache so retry can be attempted
+	w.mutex.Lock()
+	delete(w.cache, eventID)
+	w.mutex.Unlock()
+}
+
 // isProcessedInDB checks the database for processed events
 func (w *WebhookIdempotency) isProcessedInDB(eventID string) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

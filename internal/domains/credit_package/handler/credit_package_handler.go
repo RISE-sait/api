@@ -87,10 +87,10 @@ func (h *CreditPackageHandler) CheckoutCreditPackage(w http.ResponseWriter, r *h
 		return
 	}
 
-	// Get success URL based on request origin
-	successURL := stripe.GetSuccessURLFromRequest(r)
+	// Get success and cancel URLs based on request origin
+	successURL, cancelURL := stripe.GetCheckoutURLs(r)
 
-	checkoutURL, err := h.Service.CheckoutCreditPackage(r.Context(), id, successURL)
+	checkoutURL, err := h.Service.CheckoutCreditPackage(r.Context(), id, successURL, cancelURL)
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return

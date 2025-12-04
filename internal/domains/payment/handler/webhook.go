@@ -94,17 +94,30 @@ func (h *WebhookHandlers) HandleStripeWebhook(w http.ResponseWriter, r *http.Req
 		webhookErr = h.Service.HandleSubscriptionUpdated(ctx, *event)
 	case "customer.subscription.deleted":
 		webhookErr = h.Service.HandleSubscriptionDeleted(ctx, *event)
+	case "customer.subscription.paused":
+		webhookErr = h.Service.HandleSubscriptionPaused(ctx, *event)
+	case "customer.subscription.resumed":
+		webhookErr = h.Service.HandleSubscriptionResumed(ctx, *event)
+	case "customer.updated":
+		webhookErr = h.Service.HandleCustomerUpdated(ctx, *event)
 	case "invoice.created":
 		// Apply subsidy credit BEFORE customer is charged
 		webhookErr = h.Service.HandleInvoiceCreated(ctx, *event)
 	case "invoice.finalized":
 		// Apply subsidy credit at finalization (after subscription linked, before payment)
 		webhookErr = h.Service.HandleInvoiceFinalized(ctx, *event)
+	case "invoice.upcoming":
+		// Sent ~3 days before renewal - useful for reminder emails
+		webhookErr = h.Service.HandleInvoiceUpcoming(ctx, *event)
 	case "invoice.payment_succeeded":
 		// Records subsidy usage after successful payment
 		webhookErr = h.Service.HandleInvoicePaymentSucceededWithSubsidy(ctx, *event)
 	case "invoice.payment_failed":
 		webhookErr = h.Service.HandleInvoicePaymentFailed(ctx, *event)
+	case "payment_method.attached":
+		webhookErr = h.Service.HandlePaymentMethodAttached(ctx, *event)
+	case "payment_method.detached":
+		webhookErr = h.Service.HandlePaymentMethodDetached(ctx, *event)
 	default:
 		log.Printf("[STRIPE] Unhandled webhook event type: %s", event.Type)
 		w.WriteHeader(http.StatusOK)

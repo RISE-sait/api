@@ -417,6 +417,10 @@ func RegisterCheckoutRoutes(container *di.Container) func(chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/events/{id}", h.CheckoutEvent)
 		r.With(middlewares.JWTAuthMiddleware(true)).Get("/events/{id}/options", h.GetEventEnrollmentOptions)
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/events/{id}/enhanced", h.CheckoutEventEnhanced)
+
+		// Checkout verification endpoint - called by frontend after redirect from Stripe
+		// This ensures enrollment is complete even if webhooks fail
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/verify/{session_id}", h.VerifyCheckoutSession)
 	}
 }
 

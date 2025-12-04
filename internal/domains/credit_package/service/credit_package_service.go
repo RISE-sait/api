@@ -188,6 +188,29 @@ func (s *CreditPackageService) DeletePackage(ctx context.Context, id uuid.UUID) 
 		return err
 	}
 
+	// Check if any customers currently have this package active with remaining credits
+	var activeWithCreditsCount int
+	checkActiveQuery := `
+		SELECT COUNT(*) FROM users.customer_credit_packages ccp
+		JOIN users.customer_credits cc ON cc.customer_id = ccp.customer_id
+		WHERE ccp.credit_package_id = $1 AND cc.balance > 0
+	`
+	if dbErr := s.DB.QueryRowContext(ctx, checkActiveQuery, id).Scan(&activeWithCreditsCount); dbErr != nil {
+		log.Printf("Failed to check active credit packages for package %s: %v", id, dbErr)
+		return errLib.New("Failed to check active credit packages", http.StatusInternalServerError)
+	}
+
+	if activeWithCreditsCount > 0 {
+		return errLib.New("Cannot delete package: customers have remaining credits from this package", http.StatusBadRequest)
+	}
+
+	// Delete customer_credit_packages entries for this package (customers with 0 credits)
+	deleteCustomerPackagesQuery := `DELETE FROM users.customer_credit_packages WHERE credit_package_id = $1`
+	if _, dbErr := s.DB.ExecContext(ctx, deleteCustomerPackagesQuery, id); dbErr != nil {
+		log.Printf("Failed to delete customer credit packages for package %s: %v", id, dbErr)
+		return errLib.New("Failed to delete customer credit packages", http.StatusInternalServerError)
+	}
+
 	// Deactivate Stripe product and price (don't fail if Stripe fails)
 	if pkg.StripePriceID != "" {
 		s.ProductService.DeactivatePrice(pkg.StripePriceID)

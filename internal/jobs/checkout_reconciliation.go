@@ -172,6 +172,26 @@ func (j *CheckoutReconciliationJob) wasCheckoutProcessed(ctx context.Context, se
 			if err == nil && exists {
 				return true, nil
 			}
+
+			// Also check if the subscription was deleted/canceled in Stripe
+			// If so, consider it "processed" (no need to reconcile a deleted subscription)
+			sub, subErr := subscription.Get(session.Subscription.ID, nil)
+			if subErr != nil {
+				// Subscription no longer exists in Stripe - treat as processed (was deleted)
+				j.logger.WithFields(map[string]interface{}{
+					"session_id":      session.ID,
+					"subscription_id": session.Subscription.ID,
+				}).Info("Subscription no longer exists in Stripe, skipping")
+				return true, nil
+			}
+			if sub.Status == stripe.SubscriptionStatusCanceled {
+				// Subscription was canceled - treat as processed
+				j.logger.WithFields(map[string]interface{}{
+					"session_id":      session.ID,
+					"subscription_id": session.Subscription.ID,
+				}).Info("Subscription is canceled in Stripe, skipping")
+				return true, nil
+			}
 		}
 
 		// Fallback: check by membership plan ID from metadata

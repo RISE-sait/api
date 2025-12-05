@@ -184,14 +184,36 @@ func (j *CheckoutReconciliationJob) wasCheckoutProcessed(ctx context.Context, se
 				}).Info("Subscription no longer exists in Stripe, skipping")
 				return true, nil
 			}
-			if sub.Status == stripe.SubscriptionStatusCanceled {
-				// Subscription was canceled - treat as processed
+			// Skip terminal subscription states - no need to reconcile these
+			if sub.Status == stripe.SubscriptionStatusCanceled ||
+				sub.Status == stripe.SubscriptionStatusIncompleteExpired ||
+				sub.Status == stripe.SubscriptionStatusUnpaid {
 				j.logger.WithFields(map[string]interface{}{
 					"session_id":      session.ID,
 					"subscription_id": session.Subscription.ID,
-				}).Info("Subscription is canceled in Stripe, skipping")
+					"status":          sub.Status,
+				}).Info("Subscription is in terminal state in Stripe, skipping")
 				return true, nil
 			}
+
+			// Also skip if subscription is scheduled to cancel (CancelAt is set)
+			// This means the user intentionally canceled
+			if sub.CancelAt > 0 {
+				j.logger.WithFields(map[string]interface{}{
+					"session_id":      session.ID,
+					"subscription_id": session.Subscription.ID,
+					"cancel_at":       time.Unix(sub.CancelAt, 0),
+				}).Info("Subscription is scheduled to cancel, skipping")
+				return true, nil
+			}
+		} else {
+			// No subscription attached to session - try to get subscription ID from session directly
+			// This can happen if the subscription was deleted from Stripe
+			// In this case, we should skip reconciliation since there's nothing to reconcile
+			j.logger.WithFields(map[string]interface{}{
+				"session_id": session.ID,
+			}).Info("Subscription checkout has no subscription reference, skipping")
+			return true, nil
 		}
 
 		// Fallback: check by membership plan ID from metadata
@@ -213,7 +235,11 @@ func (j *CheckoutReconciliationJob) wasCheckoutProcessed(ctx context.Context, se
 	if session.Mode == stripe.CheckoutSessionModePayment {
 		// Check line items to determine what was purchased
 		if session.LineItems == nil || len(session.LineItems.Data) == 0 {
-			return false, nil
+			// No line items - can't determine what was purchased, skip
+			j.logger.WithFields(map[string]interface{}{
+				"session_id": session.ID,
+			}).Info("One-time payment has no line items, skipping")
+			return true, nil
 		}
 
 		for _, item := range session.LineItems.Data {
@@ -227,6 +253,14 @@ func (j *CheckoutReconciliationJob) wasCheckoutProcessed(ctx context.Context, se
 				return j.hasCreditPackageActive(ctx, userID, pkg.ID)
 			}
 		}
+
+		// If we get here, we couldn't identify the product type
+		// This could be a test payment or a product we don't track
+		// Skip to avoid endless reconciliation attempts
+		j.logger.WithFields(map[string]interface{}{
+			"session_id": session.ID,
+		}).Info("One-time payment product not recognized, skipping")
+		return true, nil
 	}
 
 	return false, nil

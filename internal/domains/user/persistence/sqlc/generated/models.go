@@ -606,23 +606,24 @@ type EventsCustomerEnrollment struct {
 }
 
 type EventsEvent struct {
-	ID                 uuid.UUID      `json:"id"`
-	LocationID         uuid.UUID      `json:"location_id"`
-	ProgramID          uuid.UUID      `json:"program_id"`
-	TeamID             uuid.NullUUID  `json:"team_id"`
-	StartAt            time.Time      `json:"start_at"`
-	EndAt              time.Time      `json:"end_at"`
-	CreatedBy          uuid.UUID      `json:"created_by"`
-	UpdatedBy          uuid.UUID      `json:"updated_by"`
-	IsCancelled        bool           `json:"is_cancelled"`
-	CancellationReason sql.NullString `json:"cancellation_reason"`
-	CreatedAt          time.Time      `json:"created_at"`
-	UpdatedAt          time.Time      `json:"updated_at"`
-	IsDateTimeModified bool           `json:"is_date_time_modified"`
-	RecurrenceID       uuid.NullUUID  `json:"recurrence_id"`
-	CourtID            uuid.NullUUID  `json:"court_id"`
-	PriceID            sql.NullString `json:"price_id"`
-	CreditCost         sql.NullInt32  `json:"credit_cost"`
+	ID                   uuid.UUID      `json:"id"`
+	LocationID           uuid.UUID      `json:"location_id"`
+	ProgramID            uuid.UUID      `json:"program_id"`
+	TeamID               uuid.NullUUID  `json:"team_id"`
+	StartAt              time.Time      `json:"start_at"`
+	EndAt                time.Time      `json:"end_at"`
+	CreatedBy            uuid.UUID      `json:"created_by"`
+	UpdatedBy            uuid.UUID      `json:"updated_by"`
+	IsCancelled          bool           `json:"is_cancelled"`
+	CancellationReason   sql.NullString `json:"cancellation_reason"`
+	CreatedAt            time.Time      `json:"created_at"`
+	UpdatedAt            time.Time      `json:"updated_at"`
+	IsDateTimeModified   bool           `json:"is_date_time_modified"`
+	RecurrenceID         uuid.NullUUID  `json:"recurrence_id"`
+	CourtID              uuid.NullUUID  `json:"court_id"`
+	PriceID              sql.NullString `json:"price_id"`
+	CreditCost           sql.NullInt32  `json:"credit_cost"`
+	RegistrationRequired bool           `json:"registration_required"`
 }
 
 type EventsEventMembershipAccess struct {
@@ -781,10 +782,11 @@ type PaymentFailedWebhook struct {
 }
 
 type PaymentWebhookEvent struct {
-	EventID     string         `json:"event_id"`
-	EventType   string         `json:"event_type"`
-	ProcessedAt sql.NullTime   `json:"processed_at"`
-	Status      sql.NullString `json:"status"`
+	EventID      string         `json:"event_id"`
+	EventType    string         `json:"event_type"`
+	ProcessedAt  sql.NullTime   `json:"processed_at"`
+	Status       sql.NullString `json:"status"`
+	ErrorMessage sql.NullString `json:"error_message"`
 }
 
 // Centralized tracking of all payment transactions including memberships, events, programs, and subsidies
@@ -1186,7 +1188,7 @@ type WebsiteHeroPromo struct {
 	Title           string         `json:"title"`
 	Subtitle        sql.NullString `json:"subtitle"`
 	Description     sql.NullString `json:"description"`
-	ImageUrl        string         `json:"image_url"`
+	MediaUrl        string         `json:"media_url"`
 	ButtonText      sql.NullString `json:"button_text"`
 	ButtonLink      sql.NullString `json:"button_link"`
 	DisplayOrder    int32          `json:"display_order"`
@@ -1198,4 +1200,23 @@ type WebsiteHeroPromo struct {
 	UpdatedAt       time.Time      `json:"updated_at"`
 	CreatedBy       uuid.NullUUID  `json:"created_by"`
 	UpdatedBy       uuid.NullUUID  `json:"updated_by"`
+	MediaType       string         `json:"media_type"`
+	ThumbnailUrl    sql.NullString `json:"thumbnail_url"`
+}
+
+type WebsitePromoVideo struct {
+	ID           uuid.UUID      `json:"id"`
+	Title        string         `json:"title"`
+	Description  sql.NullString `json:"description"`
+	VideoUrl     string         `json:"video_url"`
+	ThumbnailUrl string         `json:"thumbnail_url"`
+	Category     sql.NullString `json:"category"`
+	DisplayOrder int32          `json:"display_order"`
+	IsActive     bool           `json:"is_active"`
+	StartDate    sql.NullTime   `json:"start_date"`
+	EndDate      sql.NullTime   `json:"end_date"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	CreatedBy    uuid.NullUUID  `json:"created_by"`
+	UpdatedBy    uuid.NullUUID  `json:"updated_by"`
 }

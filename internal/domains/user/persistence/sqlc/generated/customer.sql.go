@@ -475,6 +475,7 @@ WHERE u.is_archived = FALSE
   AND NOT EXISTS (SELECT 1
                   FROM staff.staff s
                   WHERE s.id = u.id)
+ORDER BY u.created_at DESC
 LIMIT $4 OFFSET $3
 `
 

@@ -28,6 +28,22 @@ func (q *Queries) ArchiveCustomer(ctx context.Context, id uuid.UUID) (int64, err
 	return result.RowsAffected()
 }
 
+const countActiveMembers = `-- name: CountActiveMembers :one
+SELECT COUNT(DISTINCT cmp.customer_id)
+FROM users.customer_membership_plans cmp
+JOIN users.users u ON u.id = cmp.customer_id
+WHERE cmp.status = 'active'
+  AND u.is_archived = FALSE
+  AND NOT EXISTS (SELECT 1 FROM staff.staff s WHERE s.id = u.id)
+`
+
+func (q *Queries) CountActiveMembers(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countActiveMembers)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countCustomers = `-- name: CountCustomers :one
 SELECT COUNT(*)
 FROM users.users u

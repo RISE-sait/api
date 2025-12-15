@@ -289,3 +289,11 @@ SELECT *
 FROM users.customer_membership_plans
 WHERE square_subscription_id = sqlc.arg('subscription_id')
 LIMIT 1;
+
+-- name: CountActiveMembers :one
+SELECT COUNT(DISTINCT cmp.customer_id)
+FROM users.customer_membership_plans cmp
+JOIN users.users u ON u.id = cmp.customer_id
+WHERE cmp.status = 'active'
+  AND u.is_archived = FALSE
+  AND NOT EXISTS (SELECT 1 FROM staff.staff s WHERE s.id = u.id);

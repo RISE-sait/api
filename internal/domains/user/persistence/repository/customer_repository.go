@@ -413,6 +413,15 @@ func (r *CustomerRepository) CountCustomers(ctx context.Context, parentID uuid.U
 	return count, nil
 }
 
+func (r *CustomerRepository) CountActiveMembers(ctx context.Context) (int64, *errLib.CommonError) {
+	count, err := r.Queries.CountActiveMembers(ctx)
+	if err != nil {
+		return 0, errLib.New("Failed to count active members: "+err.Error(), http.StatusInternalServerError)
+	}
+
+	return count, nil
+}
+
 func (r *CustomerRepository) GetActiveMembershipInfo(ctx context.Context, customerID uuid.UUID) (*userValues.MembershipPlansReadValue, *errLib.CommonError) {
 	row, err := r.Queries.GetActiveMembershipInfo(ctx, customerID)
 	if err != nil {

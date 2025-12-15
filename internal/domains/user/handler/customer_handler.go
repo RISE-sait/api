@@ -276,6 +276,13 @@ func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Fetch active members count
+	activeMembersCount, err := h.CustomerRepo.CountActiveMembers(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, errLib.New("Failed to count active members: "+err.Error(), http.StatusInternalServerError))
+		return
+	}
+
 	// Map results
 	result := make([]customerDto.Response, len(dbCustomers))
 	for i, customer := range dbCustomers {
@@ -284,11 +291,12 @@ func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) 
 
 	// Compose response with pagination metadata
 	response := map[string]interface{}{
-		"data":  result,
-		"page":  page,
-		"limit": limit,
-		"total": totalCount,
-		"pages": int((totalCount + int64(limit) - 1) / int64(limit)), // ceil(total / limit)
+		"data":                 result,
+		"page":                 page,
+		"limit":                limit,
+		"total":                totalCount,
+		"pages":                int((totalCount + int64(limit) - 1) / int64(limit)), // ceil(total / limit)
+		"active_members_count": activeMembersCount,
 	}
 
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)

@@ -2,6 +2,7 @@ package router
 
 import (
 	"api/internal/di"
+	adminHandler "api/internal/domains/admin/handler"
 	staff_activity_logs "api/internal/domains/audit/staff_activity_logs/handler"
 	haircutEvents "api/internal/domains/haircut/event/handler"
 	barberServicesHandler "api/internal/domains/haircut/haircut_service"
@@ -616,6 +617,7 @@ func RegisterSubscriptionRoutes(container *di.Container) func(chi.Router) {
 // RegisterAdminRoutes registers admin routes requiring admin authentication
 func RegisterAdminRoutes(container *di.Container) func(chi.Router) {
 	creditHandler := userHandler.NewCreditHandler(container)
+	firebaseCleanupHandler := adminHandler.NewFirebaseCleanupHandler(container)
 
 	return func(r chi.Router) {
 		// Credit management routes - receptionist can view
@@ -626,6 +628,9 @@ func RegisterAdminRoutes(container *di.Container) func(chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/customers/{id}/credits/deduct", creditHandler.DeductCustomerCredits)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT, contextUtils.RoleReceptionist)).Get("/events/{id}/credit-transactions", creditHandler.GetEventCreditTransactions)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Put("/events/{id}/credit-cost", creditHandler.UpdateEventCreditCost)
+
+		// Firebase cleanup - IT and SuperAdmin only (sensitive operation)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/firebase/cleanup", firebaseCleanupHandler.CleanupOrphanedFirebaseUsers)
 	}
 }
 

@@ -593,17 +593,18 @@ func (q *Queries) GetSubsidyUsageSummary(ctx context.Context, arg GetSubsidyUsag
 }
 
 const getTransactionsForBackfill = `-- name: GetTransactionsForBackfill :many
-SELECT id, stripe_payment_intent_id, stripe_invoice_id
+SELECT id, stripe_checkout_session_id, stripe_payment_intent_id, stripe_invoice_id
 FROM payments.payment_transactions
-WHERE (stripe_payment_intent_id IS NOT NULL OR stripe_invoice_id IS NOT NULL)
+WHERE (stripe_checkout_session_id IS NOT NULL OR stripe_payment_intent_id IS NOT NULL OR stripe_invoice_id IS NOT NULL)
   AND receipt_url IS NULL
   AND invoice_url IS NULL
 `
 
 type GetTransactionsForBackfillRow struct {
-	ID                    uuid.UUID      `json:"id"`
-	StripePaymentIntentID sql.NullString `json:"stripe_payment_intent_id"`
-	StripeInvoiceID       sql.NullString `json:"stripe_invoice_id"`
+	ID                      uuid.UUID      `json:"id"`
+	StripeCheckoutSessionID sql.NullString `json:"stripe_checkout_session_id"`
+	StripePaymentIntentID   sql.NullString `json:"stripe_payment_intent_id"`
+	StripeInvoiceID         sql.NullString `json:"stripe_invoice_id"`
 }
 
 func (q *Queries) GetTransactionsForBackfill(ctx context.Context) ([]GetTransactionsForBackfillRow, error) {
@@ -615,7 +616,12 @@ func (q *Queries) GetTransactionsForBackfill(ctx context.Context) ([]GetTransact
 	var items []GetTransactionsForBackfillRow
 	for rows.Next() {
 		var i GetTransactionsForBackfillRow
-		if err := rows.Scan(&i.ID, &i.StripePaymentIntentID, &i.StripeInvoiceID); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.StripeCheckoutSessionID,
+			&i.StripePaymentIntentID,
+			&i.StripeInvoiceID,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

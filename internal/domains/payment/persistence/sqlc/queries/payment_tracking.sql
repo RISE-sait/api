@@ -178,8 +178,8 @@ SET receipt_url = COALESCE(sqlc.narg('receipt_url'), receipt_url),
 WHERE id = $1;
 
 -- name: GetTransactionsForBackfill :many
-SELECT id, stripe_payment_intent_id, stripe_invoice_id
+SELECT id, stripe_checkout_session_id, stripe_payment_intent_id, stripe_invoice_id
 FROM payments.payment_transactions
-WHERE (stripe_payment_intent_id IS NOT NULL OR stripe_invoice_id IS NOT NULL)
+WHERE (stripe_checkout_session_id IS NOT NULL OR stripe_payment_intent_id IS NOT NULL OR stripe_invoice_id IS NOT NULL)
   AND receipt_url IS NULL
   AND invoice_url IS NULL;

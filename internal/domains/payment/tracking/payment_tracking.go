@@ -61,6 +61,11 @@ type TrackPaymentParams struct {
 
 	Description string
 	Metadata    map[string]interface{}
+
+	// Stripe URLs for receipts and invoices
+	ReceiptURL    string // For one-time payments (events, programs, credit packages)
+	InvoiceURL    string // For subscription payments
+	InvoicePDFURL string // PDF download URL for subscription invoices
 }
 
 // TrackPayment creates a new payment transaction record
@@ -123,6 +128,9 @@ func (s *PaymentTrackingService) TrackPayment(ctx context.Context, params TrackP
 		Currency:                stringToNullString(params.Currency),
 		Description:             stringToNullString(params.Description),
 		Metadata:                metadataJSON,
+		ReceiptUrl:              stringToNullString(params.ReceiptURL),
+		InvoiceUrl:              stringToNullString(params.InvoiceURL),
+		InvoicePdfUrl:           stringToNullString(params.InvoicePDFURL),
 	})
 
 	if err != nil {

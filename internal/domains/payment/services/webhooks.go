@@ -140,6 +140,13 @@ func (s *WebhookService) handleItemCheckoutComplete(ctx context.Context, checkou
 
 	log.Println("Full session expanded")
 
+	// Extract receipt URL from PaymentIntent's charge for one-time payments
+	var receiptURL string
+	if fullSession.PaymentIntent != nil && fullSession.PaymentIntent.LatestCharge != nil {
+		receiptURL = fullSession.PaymentIntent.LatestCharge.ReceiptURL
+		log.Printf("Receipt URL extracted: %s", receiptURL)
+	}
+
 	userIDStr := fullSession.Metadata["userID"]
 	log.Println("🔍 Metadata userID:", userIDStr)
 
@@ -226,7 +233,7 @@ func (s *WebhookService) handleItemCheckoutComplete(ctx context.Context, checkou
 		}
 
 		// Track payment in centralized system
-		go s.trackCreditPackagePurchase(fullSession, customerID, creditPackage, eventCreatedAt)
+		go s.trackCreditPackagePurchase(fullSession, customerID, creditPackage, eventCreatedAt, receiptURL)
 
 		log.Printf("CREDIT PACKAGE PURCHASE COMPLETE - Customer %s: +%d credits, %d/week limit", customerID, creditPackage.CreditAllocation, creditPackage.WeeklyCreditLimit)
 		return nil
@@ -239,7 +246,7 @@ func (s *WebhookService) handleItemCheckoutComplete(ctx context.Context, checkou
 			return errLib.New(fmt.Sprintf("failed to update program reservation (customer: %s, program: %s): %v", customerID, programID, err), http.StatusInternalServerError)
 		}
 		// Track payment in centralized system
-		go s.trackProgramEnrollment(fullSession, customerID, programID, eventCreatedAt)
+		go s.trackProgramEnrollment(fullSession, customerID, programID, eventCreatedAt, receiptURL)
 	case eventID != uuid.Nil:
 		log.Printf("Updating event reservation for user %s and event %s", customerID, eventID)
 		if err = s.EnrollmentService.UpdateReservationStatusInEvent(ctx, eventID, customerID, dbEnrollment.PaymentStatusPaid); err != nil {
@@ -247,7 +254,7 @@ func (s *WebhookService) handleItemCheckoutComplete(ctx context.Context, checkou
 			return errLib.New(fmt.Sprintf("failed to update event reservation (customer: %s, event: %s): %v", customerID, eventID, err), http.StatusInternalServerError)
 		}
 		// Track payment in centralized system
-		go s.trackEventRegistration(fullSession, customerID, eventID, eventCreatedAt)
+		go s.trackEventRegistration(fullSession, customerID, eventID, eventCreatedAt, receiptURL)
 	}
 
 	log.Println("handleItemCheckoutComplete completed")
@@ -517,6 +524,7 @@ func (s *WebhookService) getExpandedSession(sessionID string) (*stripe.CheckoutS
 			stripe.String("line_items.data.price"),
 			stripe.String("subscription"),
 			stripe.String("customer"),
+			stripe.String("payment_intent.latest_charge"),
 		},
 	}
 

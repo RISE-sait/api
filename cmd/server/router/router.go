@@ -723,6 +723,9 @@ func RegisterPaymentReportsRoutes(container *di.Container) func(chi.Router) {
 
 		// Export
 		r.Get("/export", h.ExportPaymentTransactions)
+
+		// Backfill URLs from Stripe (admin only, not receptionist)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/backfill-urls", h.BackfillPaymentURLs)
 	}
 }
 

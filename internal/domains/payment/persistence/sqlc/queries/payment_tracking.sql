@@ -24,11 +24,14 @@ INSERT INTO payments.payment_transactions (
     payment_method,
     currency,
     description,
-    metadata
+    metadata,
+    receipt_url,
+    invoice_url,
+    invoice_pdf_url
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
     $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-    $21, $22, $23, $24, $25
+    $21, $22, $23, $24, $25, $26, $27, $28
 ) RETURNING *;
 
 -- name: GetPaymentTransaction :one
@@ -154,6 +157,9 @@ SELECT
     payment_method,
     currency,
     description,
+    receipt_url,
+    invoice_url,
+    invoice_pdf_url,
     created_at
 FROM payments.payment_transactions
 WHERE
@@ -162,3 +168,18 @@ WHERE
     (sqlc.narg('transaction_type')::text IS NULL OR transaction_type = sqlc.narg('transaction_type')) AND
     (sqlc.narg('payment_status')::text IS NULL OR payment_status = sqlc.narg('payment_status'))
 ORDER BY transaction_date DESC;
+
+-- name: UpdatePaymentUrls :exec
+UPDATE payments.payment_transactions
+SET receipt_url = COALESCE(sqlc.narg('receipt_url'), receipt_url),
+    invoice_url = COALESCE(sqlc.narg('invoice_url'), invoice_url),
+    invoice_pdf_url = COALESCE(sqlc.narg('invoice_pdf_url'), invoice_pdf_url),
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1;
+
+-- name: GetTransactionsForBackfill :many
+SELECT id, stripe_payment_intent_id, stripe_invoice_id
+FROM payments.payment_transactions
+WHERE (stripe_payment_intent_id IS NOT NULL OR stripe_invoice_id IS NOT NULL)
+  AND receipt_url IS NULL
+  AND invoice_url IS NULL;

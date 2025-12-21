@@ -10,20 +10,26 @@ import (
 	"time"
 
 	"api/internal/di"
+	db "api/internal/domains/payment/persistence/sqlc/generated"
 	"api/internal/domains/payment/tracking"
 	errLib "api/internal/libs/errors"
 	responses "api/internal/libs/responses"
 
 	"github.com/google/uuid"
+	"github.com/stripe/stripe-go/v81"
+	"github.com/stripe/stripe-go/v81/invoice"
+	"github.com/stripe/stripe-go/v81/paymentintent"
 )
 
 type PaymentReportsHandler struct {
 	trackingService *tracking.PaymentTrackingService
+	queries         *db.Queries
 }
 
 func NewPaymentReportsHandler(container *di.Container) *PaymentReportsHandler {
 	return &PaymentReportsHandler{
 		trackingService: tracking.NewPaymentTrackingService(container),
+		queries:         db.New(container.DB),
 	}
 }
 
@@ -422,4 +428,93 @@ func nullTimeToString(nt sql.NullTime) string {
 func marshalResponse(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(data)
+}
+
+// BackfillPaymentURLs fetches and stores receipt/invoice URLs for existing transactions
+// @Summary Backfill payment URLs
+// @Description Fetches receipt and invoice URLs from Stripe for existing transactions that don't have them (admin only)
+// @Tags Payments - Admin
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{} "Backfill completed"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security Bearer
+// @Router /admin/payments/backfill-urls [post]
+func (h *PaymentReportsHandler) BackfillPaymentURLs(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// Get all transactions that need backfilling
+	transactions, err := h.queries.GetTransactionsForBackfill(ctx)
+	if err != nil {
+		log.Printf("[PAYMENT-BACKFILL] Error fetching transactions for backfill: %v", err)
+		responses.RespondWithError(w, errLib.New("Failed to fetch transactions", http.StatusInternalServerError))
+		return
+	}
+
+	log.Printf("[PAYMENT-BACKFILL] Found %d transactions to backfill", len(transactions))
+
+	successCount := 0
+	errorCount := 0
+
+	for _, tx := range transactions {
+		var receiptURL, invoiceURL, invoicePDFURL sql.NullString
+
+		// Fetch receipt URL from PaymentIntent (for one-time payments)
+		if tx.StripePaymentIntentID.Valid && tx.StripePaymentIntentID.String != "" {
+			pi, piErr := paymentintent.Get(tx.StripePaymentIntentID.String, &stripe.PaymentIntentParams{
+				Expand: []*string{stripe.String("latest_charge")},
+			})
+			if piErr != nil {
+				log.Printf("[PAYMENT-BACKFILL] Error fetching PaymentIntent %s: %v", tx.StripePaymentIntentID.String, piErr)
+				errorCount++
+				continue
+			}
+			if pi.LatestCharge != nil && pi.LatestCharge.ReceiptURL != "" {
+				receiptURL = sql.NullString{String: pi.LatestCharge.ReceiptURL, Valid: true}
+				log.Printf("[PAYMENT-BACKFILL] Found receipt URL for transaction %s", tx.ID)
+			}
+		}
+
+		// Fetch invoice URLs from Invoice (for subscription payments)
+		if tx.StripeInvoiceID.Valid && tx.StripeInvoiceID.String != "" {
+			inv, invErr := invoice.Get(tx.StripeInvoiceID.String, nil)
+			if invErr != nil {
+				log.Printf("[PAYMENT-BACKFILL] Error fetching Invoice %s: %v", tx.StripeInvoiceID.String, invErr)
+				errorCount++
+				continue
+			}
+			if inv.HostedInvoiceURL != "" {
+				invoiceURL = sql.NullString{String: inv.HostedInvoiceURL, Valid: true}
+			}
+			if inv.InvoicePDF != "" {
+				invoicePDFURL = sql.NullString{String: inv.InvoicePDF, Valid: true}
+			}
+			log.Printf("[PAYMENT-BACKFILL] Found invoice URLs for transaction %s", tx.ID)
+		}
+
+		// Update the transaction with the fetched URLs
+		if receiptURL.Valid || invoiceURL.Valid || invoicePDFURL.Valid {
+			updateErr := h.queries.UpdatePaymentUrls(ctx, db.UpdatePaymentUrlsParams{
+				ID:            tx.ID,
+				ReceiptUrl:    receiptURL,
+				InvoiceUrl:    invoiceURL,
+				InvoicePdfUrl: invoicePDFURL,
+			})
+			if updateErr != nil {
+				log.Printf("[PAYMENT-BACKFILL] Error updating transaction %s: %v", tx.ID, updateErr)
+				errorCount++
+				continue
+			}
+			successCount++
+		}
+	}
+
+	log.Printf("[PAYMENT-BACKFILL] Backfill completed: %d succeeded, %d failed", successCount, errorCount)
+
+	responses.RespondWithSuccess(w, map[string]interface{}{
+		"message":       "Backfill completed",
+		"total":         len(transactions),
+		"success_count": successCount,
+		"error_count":   errorCount,
+	}, http.StatusOK)
 }

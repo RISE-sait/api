@@ -37,6 +37,11 @@ type PaymentTransactionResponse struct {
 	StripePaymentIntentID   *string `json:"stripe_payment_intent_id,omitempty"`
 	StripeCheckoutSessionID *string `json:"stripe_checkout_session_id,omitempty"`
 
+	// Stripe URLs for receipts and invoices
+	ReceiptURL    *string `json:"receipt_url,omitempty"`
+	InvoiceURL    *string `json:"invoice_url,omitempty"`
+	InvoicePDFURL *string `json:"invoice_pdf_url,omitempty"`
+
 	PaymentStatus  string  `json:"payment_status"`
 	PaymentMethod  *string `json:"payment_method,omitempty"`
 	Currency       *string `json:"currency,omitempty"`
@@ -110,6 +115,15 @@ func ToPaymentTransactionResponse(tx db.PaymentsPaymentTransaction) PaymentTrans
 	}
 	if tx.StripeCheckoutSessionID.Valid {
 		response.StripeCheckoutSessionID = &tx.StripeCheckoutSessionID.String
+	}
+	if tx.ReceiptUrl.Valid {
+		response.ReceiptURL = &tx.ReceiptUrl.String
+	}
+	if tx.InvoiceUrl.Valid {
+		response.InvoiceURL = &tx.InvoiceUrl.String
+	}
+	if tx.InvoicePdfUrl.Valid {
+		response.InvoicePDFURL = &tx.InvoicePdfUrl.String
 	}
 	if tx.PaymentMethod.Valid {
 		response.PaymentMethod = &tx.PaymentMethod.String

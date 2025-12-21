@@ -14,7 +14,7 @@ import (
 )
 
 // trackCreditPackagePurchase tracks a credit package purchase in the centralized payment system
-func (s *WebhookService) trackCreditPackagePurchase(session *stripe.CheckoutSession, customerID uuid.UUID, creditPackage interface{}, transactionDate time.Time) {
+func (s *WebhookService) trackCreditPackagePurchase(session *stripe.CheckoutSession, customerID uuid.UUID, creditPackage interface{}, transactionDate time.Time, receiptURL string) {
 	ctx := context.Background()
 
 	// Get customer details
@@ -70,6 +70,7 @@ func (s *WebhookService) trackCreditPackagePurchase(session *stripe.CheckoutSess
 		PaymentStatus:           "completed",
 		Currency:                string(session.Currency),
 		Description:             description,
+		ReceiptURL:              receiptURL,
 	})
 
 	if trackingErr != nil {
@@ -78,7 +79,7 @@ func (s *WebhookService) trackCreditPackagePurchase(session *stripe.CheckoutSess
 }
 
 // trackProgramEnrollment tracks a program enrollment payment
-func (s *WebhookService) trackProgramEnrollment(session *stripe.CheckoutSession, customerID, programID uuid.UUID, transactionDate time.Time) {
+func (s *WebhookService) trackProgramEnrollment(session *stripe.CheckoutSession, customerID, programID uuid.UUID, transactionDate time.Time, receiptURL string) {
 	ctx := context.Background()
 
 	// Get customer details
@@ -121,6 +122,7 @@ func (s *WebhookService) trackProgramEnrollment(session *stripe.CheckoutSession,
 		PaymentStatus:           "completed",
 		Currency:                string(session.Currency),
 		Description:             "Program enrollment payment",
+		ReceiptURL:              receiptURL,
 	})
 
 	if trackingErr != nil {
@@ -129,7 +131,7 @@ func (s *WebhookService) trackProgramEnrollment(session *stripe.CheckoutSession,
 }
 
 // trackEventRegistration tracks an event registration payment
-func (s *WebhookService) trackEventRegistration(session *stripe.CheckoutSession, customerID, eventID uuid.UUID, transactionDate time.Time) {
+func (s *WebhookService) trackEventRegistration(session *stripe.CheckoutSession, customerID, eventID uuid.UUID, transactionDate time.Time, receiptURL string) {
 	ctx := context.Background()
 
 	// Get customer details
@@ -172,6 +174,7 @@ func (s *WebhookService) trackEventRegistration(session *stripe.CheckoutSession,
 		PaymentStatus:           "completed",
 		Currency:                string(session.Currency),
 		Description:             "Event registration payment",
+		ReceiptURL:              receiptURL,
 	})
 
 	if trackingErr != nil {
@@ -331,6 +334,8 @@ func (s *WebhookService) trackMembershipRenewal(invoice *stripe.Invoice, custome
 		PaymentStatus:        "completed",
 		Currency:             string(invoice.Currency),
 		Description:          "Membership renewal payment",
+		InvoiceURL:           invoice.HostedInvoiceURL,
+		InvoicePDFURL:        invoice.InvoicePDF,
 	})
 
 	if trackingErr != nil {

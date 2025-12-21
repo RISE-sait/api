@@ -17,6 +17,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v81"
+	"github.com/stripe/stripe-go/v81/checkout/session"
 	"github.com/stripe/stripe-go/v81/invoice"
 	"github.com/stripe/stripe-go/v81/paymentintent"
 )
@@ -459,19 +460,33 @@ func (h *PaymentReportsHandler) BackfillPaymentURLs(w http.ResponseWriter, r *ht
 	for _, tx := range transactions {
 		var receiptURL, invoiceURL, invoicePDFURL sql.NullString
 
-		// Fetch receipt URL from PaymentIntent (for one-time payments)
-		if tx.StripePaymentIntentID.Valid && tx.StripePaymentIntentID.String != "" {
+		// Try to get receipt URL from CheckoutSession first (most transactions have this)
+		if tx.StripeCheckoutSessionID.Valid && tx.StripeCheckoutSessionID.String != "" {
+			sess, sessErr := session.Get(tx.StripeCheckoutSessionID.String, &stripe.CheckoutSessionParams{
+				Expand: []*string{stripe.String("payment_intent.latest_charge")},
+			})
+			if sessErr != nil {
+				log.Printf("[PAYMENT-BACKFILL] Error fetching CheckoutSession %s: %v", tx.StripeCheckoutSessionID.String, sessErr)
+				errorCount++
+				continue
+			}
+			// For one-time payments, get receipt from payment_intent
+			if sess.PaymentIntent != nil && sess.PaymentIntent.LatestCharge != nil && sess.PaymentIntent.LatestCharge.ReceiptURL != "" {
+				receiptURL = sql.NullString{String: sess.PaymentIntent.LatestCharge.ReceiptURL, Valid: true}
+				log.Printf("[PAYMENT-BACKFILL] Found receipt URL for transaction %s via checkout session", tx.ID)
+			}
+		}
+
+		// Fallback: Fetch receipt URL directly from PaymentIntent if we have it
+		if !receiptURL.Valid && tx.StripePaymentIntentID.Valid && tx.StripePaymentIntentID.String != "" {
 			pi, piErr := paymentintent.Get(tx.StripePaymentIntentID.String, &stripe.PaymentIntentParams{
 				Expand: []*string{stripe.String("latest_charge")},
 			})
 			if piErr != nil {
 				log.Printf("[PAYMENT-BACKFILL] Error fetching PaymentIntent %s: %v", tx.StripePaymentIntentID.String, piErr)
-				errorCount++
-				continue
-			}
-			if pi.LatestCharge != nil && pi.LatestCharge.ReceiptURL != "" {
+			} else if pi.LatestCharge != nil && pi.LatestCharge.ReceiptURL != "" {
 				receiptURL = sql.NullString{String: pi.LatestCharge.ReceiptURL, Valid: true}
-				log.Printf("[PAYMENT-BACKFILL] Found receipt URL for transaction %s", tx.ID)
+				log.Printf("[PAYMENT-BACKFILL] Found receipt URL for transaction %s via payment intent", tx.ID)
 			}
 		}
 
@@ -506,6 +521,8 @@ func (h *PaymentReportsHandler) BackfillPaymentURLs(w http.ResponseWriter, r *ht
 				continue
 			}
 			successCount++
+		} else {
+			log.Printf("[PAYMENT-BACKFILL] No URLs found for transaction %s", tx.ID)
 		}
 	}
 

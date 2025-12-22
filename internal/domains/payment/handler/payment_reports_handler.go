@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"api/internal/di"
@@ -20,7 +21,6 @@ import (
 	"github.com/stripe/stripe-go/v81/checkout/session"
 	"github.com/stripe/stripe-go/v81/invoice"
 	"github.com/stripe/stripe-go/v81/paymentintent"
-	"github.com/stripe/stripe-go/v81/subscription"
 )
 
 type PaymentReportsHandler struct {
@@ -464,11 +464,19 @@ func (h *PaymentReportsHandler) BackfillPaymentURLs(w http.ResponseWriter, r *ht
 		// Try to get receipt URL from CheckoutSession first (most transactions have this)
 		if tx.StripeCheckoutSessionID.Valid && tx.StripeCheckoutSessionID.String != "" {
 			sess, sessErr := session.Get(tx.StripeCheckoutSessionID.String, &stripe.CheckoutSessionParams{
-				Expand: []*string{stripe.String("payment_intent.latest_charge")},
+				Expand: []*string{
+					stripe.String("payment_intent.latest_charge"),
+					stripe.String("subscription.latest_invoice"),
+				},
 			})
 			if sessErr != nil {
-				log.Printf("[PAYMENT-BACKFILL] Error fetching CheckoutSession %s: %v", tx.StripeCheckoutSessionID.String, sessErr)
-				errorCount++
+				// Handle deleted/expired checkout sessions gracefully (404 errors)
+				if strings.Contains(sessErr.Error(), "resource_missing") || strings.Contains(sessErr.Error(), "No such checkout.session") {
+					log.Printf("[PAYMENT-BACKFILL] Checkout session %s no longer exists (deleted/expired), skipping", tx.StripeCheckoutSessionID.String)
+				} else {
+					log.Printf("[PAYMENT-BACKFILL] Error fetching CheckoutSession %s: %v", tx.StripeCheckoutSessionID.String, sessErr)
+					errorCount++
+				}
 				continue
 			}
 			// For one-time payments, get receipt from payment_intent
@@ -478,22 +486,15 @@ func (h *PaymentReportsHandler) BackfillPaymentURLs(w http.ResponseWriter, r *ht
 			}
 
 			// For subscription payments, get invoice from the subscription's latest invoice
-			if sess.Subscription != nil && sess.Subscription.ID != "" {
-				sub, subErr := subscription.Get(sess.Subscription.ID, &stripe.SubscriptionParams{
-					Expand: []*string{stripe.String("latest_invoice")},
-				})
-				if subErr != nil {
-					log.Printf("[PAYMENT-BACKFILL] Error fetching Subscription %s: %v", sess.Subscription.ID, subErr)
-				} else if sub.LatestInvoice != nil {
-					if sub.LatestInvoice.HostedInvoiceURL != "" {
-						invoiceURL = sql.NullString{String: sub.LatestInvoice.HostedInvoiceURL, Valid: true}
-					}
-					if sub.LatestInvoice.InvoicePDF != "" {
-						invoicePDFURL = sql.NullString{String: sub.LatestInvoice.InvoicePDF, Valid: true}
-					}
-					if invoiceURL.Valid {
-						log.Printf("[PAYMENT-BACKFILL] Found invoice URLs for transaction %s via subscription", tx.ID)
-					}
+			if sess.Subscription != nil && sess.Subscription.LatestInvoice != nil {
+				if sess.Subscription.LatestInvoice.HostedInvoiceURL != "" {
+					invoiceURL = sql.NullString{String: sess.Subscription.LatestInvoice.HostedInvoiceURL, Valid: true}
+				}
+				if sess.Subscription.LatestInvoice.InvoicePDF != "" {
+					invoicePDFURL = sql.NullString{String: sess.Subscription.LatestInvoice.InvoicePDF, Valid: true}
+				}
+				if invoiceURL.Valid {
+					log.Printf("[PAYMENT-BACKFILL] Found invoice URLs for transaction %s via subscription", tx.ID)
 				}
 			}
 		}

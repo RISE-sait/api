@@ -20,6 +20,7 @@ import (
 	"github.com/stripe/stripe-go/v81/checkout/session"
 	"github.com/stripe/stripe-go/v81/invoice"
 	"github.com/stripe/stripe-go/v81/paymentintent"
+	"github.com/stripe/stripe-go/v81/subscription"
 )
 
 type PaymentReportsHandler struct {
@@ -474,6 +475,26 @@ func (h *PaymentReportsHandler) BackfillPaymentURLs(w http.ResponseWriter, r *ht
 			if sess.PaymentIntent != nil && sess.PaymentIntent.LatestCharge != nil && sess.PaymentIntent.LatestCharge.ReceiptURL != "" {
 				receiptURL = sql.NullString{String: sess.PaymentIntent.LatestCharge.ReceiptURL, Valid: true}
 				log.Printf("[PAYMENT-BACKFILL] Found receipt URL for transaction %s via checkout session", tx.ID)
+			}
+
+			// For subscription payments, get invoice from the subscription's latest invoice
+			if sess.Subscription != nil && sess.Subscription.ID != "" {
+				sub, subErr := subscription.Get(sess.Subscription.ID, &stripe.SubscriptionParams{
+					Expand: []*string{stripe.String("latest_invoice")},
+				})
+				if subErr != nil {
+					log.Printf("[PAYMENT-BACKFILL] Error fetching Subscription %s: %v", sess.Subscription.ID, subErr)
+				} else if sub.LatestInvoice != nil {
+					if sub.LatestInvoice.HostedInvoiceURL != "" {
+						invoiceURL = sql.NullString{String: sub.LatestInvoice.HostedInvoiceURL, Valid: true}
+					}
+					if sub.LatestInvoice.InvoicePDF != "" {
+						invoicePDFURL = sql.NullString{String: sub.LatestInvoice.InvoicePDF, Valid: true}
+					}
+					if invoiceURL.Valid {
+						log.Printf("[PAYMENT-BACKFILL] Found invoice URLs for transaction %s via subscription", tx.ID)
+					}
+				}
 			}
 		}
 

@@ -5,4 +5,4 @@ bin = "bin/api.exe"
 poll = true  # Enable polling
 
 [watch]
-dirs = ["cmd", "internal, docs"]  # Directories to watch
+dirs = ["cmd", "internal", "docs"]  # Directories to watch

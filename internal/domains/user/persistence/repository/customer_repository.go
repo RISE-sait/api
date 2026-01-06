@@ -569,7 +569,7 @@ func (r *CustomerRepository) ListArchivedCustomers(ctx context.Context, limit, o
 // DeleteCustomerAccountCompletely performs a complete account deletion including all related data
 func (r *CustomerRepository) DeleteCustomerAccountCompletely(ctx context.Context, customerID uuid.UUID) *errLib.CommonError {
 	log.Printf("Starting complete account deletion for customer: %s", customerID)
-	
+
 	// Start a transaction for atomic deletion
 	tx, err := r.Db.BeginTx(ctx, nil)
 	if err != nil {
@@ -577,9 +577,9 @@ func (r *CustomerRepository) DeleteCustomerAccountCompletely(ctx context.Context
 		return errLib.New("Failed to start deletion process", http.StatusInternalServerError)
 	}
 	defer tx.Rollback()
-	
+
 	txRepo := r.WithTx(tx)
-	
+
 	// 1. Delete customer memberships
 	_, err = txRepo.Queries.DeleteCustomerMemberships(ctx, customerID)
 	if err != nil {
@@ -587,7 +587,7 @@ func (r *CustomerRepository) DeleteCustomerAccountCompletely(ctx context.Context
 		return errLib.New("Failed to delete customer memberships", http.StatusInternalServerError)
 	}
 	log.Printf("Deleted customer memberships for: %s", customerID)
-	
+
 	// 2. Delete program enrollments
 	_, err = txRepo.Queries.DeleteCustomerEnrollments(ctx, customerID)
 	if err != nil {
@@ -595,7 +595,7 @@ func (r *CustomerRepository) DeleteCustomerAccountCompletely(ctx context.Context
 		return errLib.New("Failed to delete customer enrollments", http.StatusInternalServerError)
 	}
 	log.Printf("Deleted program enrollments for: %s", customerID)
-	
+
 	// 3. Delete event enrollments
 	_, err = txRepo.Queries.DeleteCustomerEventEnrollments(ctx, customerID)
 	if err != nil {
@@ -603,7 +603,7 @@ func (r *CustomerRepository) DeleteCustomerAccountCompletely(ctx context.Context
 		return errLib.New("Failed to delete event enrollments", http.StatusInternalServerError)
 	}
 	log.Printf("Deleted event enrollments for: %s", customerID)
-	
+
 	// 4. Delete athlete data if exists
 	_, err = txRepo.Queries.DeleteAthleteData(ctx, customerID)
 	if err != nil {
@@ -612,7 +612,7 @@ func (r *CustomerRepository) DeleteCustomerAccountCompletely(ctx context.Context
 	} else {
 		log.Printf("Deleted athlete data for: %s", customerID)
 	}
-	
+
 	// 5. Delete staff data if exists (to avoid foreign key constraint violation)
 	_, err = tx.ExecContext(ctx, "DELETE FROM staff.staff WHERE id = $1", customerID)
 	if err != nil {
@@ -621,7 +621,7 @@ func (r *CustomerRepository) DeleteCustomerAccountCompletely(ctx context.Context
 	} else {
 		log.Printf("Deleted staff data for: %s", customerID)
 	}
-	
+
 	// 6. Finally delete the user account (this will cascade to credits and other ON DELETE CASCADE tables)
 	affected, err := txRepo.Queries.DeleteCustomerAccount(ctx, customerID)
 	if err != nil {
@@ -632,13 +632,13 @@ func (r *CustomerRepository) DeleteCustomerAccountCompletely(ctx context.Context
 		log.Printf("Customer not found during deletion: %s", customerID)
 		return errLib.New("Customer not found", http.StatusNotFound)
 	}
-	
+
 	// Commit the transaction
 	if err = tx.Commit(); err != nil {
 		log.Printf("Failed to commit customer deletion transaction: %v", err)
 		return errLib.New("Failed to complete account deletion", http.StatusInternalServerError)
 	}
-	
+
 	log.Printf("Successfully completed account deletion for customer: %s", customerID)
 	return nil
 }

@@ -1,6 +1,9 @@
 package registration
 
 import (
+	"log"
+	"net/http"
+
 	"api/internal/di"
 	dto "api/internal/domains/identity/dto/customer"
 	service "api/internal/domains/identity/service/firebase"
@@ -8,7 +11,6 @@ import (
 	identityUtils "api/internal/domains/identity/utils"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
-	"net/http"
 )
 
 type ParentRegistrationHandlers struct {
@@ -71,6 +73,12 @@ func (h *ParentRegistrationHandlers) RegisterParent(w http.ResponseWriter, r *ht
 	}
 
 	if userInfo, err := h.CustomerRegistrationService.RegisterParent(r.Context(), vo); err != nil {
+		// Compensating action: If DB creation failed, delete the orphaned Firebase user
+		// This prevents "email already exists" errors on retry
+		if deleteErr := h.FirebaseService.DeleteUser(r.Context(), email); deleteErr != nil {
+			// Log but don't override original error - cleanup job will catch it
+			log.Printf("Failed to cleanup Firebase user after registration failure: %v", deleteErr)
+		}
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {

@@ -19,6 +19,12 @@ type FirebaseCleanupJob struct {
 	dryRun             bool
 }
 
+// excludedEmails contains emails that should never be deleted from Firebase
+// even if they don't exist in the database (e.g., test accounts)
+var excludedEmails = map[string]bool{
+	"testadmin@rise.com": true,
+}
+
 // FirebaseCleanupResult contains the results of a cleanup operation
 type FirebaseCleanupResult struct {
 	TotalFirebaseUsers int      `json:"total_firebase_users"`
@@ -45,9 +51,9 @@ func (j *FirebaseCleanupJob) Name() string {
 	return "FirebaseCleanup"
 }
 
-// Interval returns how often this job runs (once per day)
+// Interval returns how often this job runs (every hour as a safety net)
 func (j *FirebaseCleanupJob) Interval() time.Duration {
-	return 24 * time.Hour
+	return 1 * time.Hour
 }
 
 // SetDryRun allows toggling dry run mode
@@ -117,8 +123,8 @@ func (j *FirebaseCleanupJob) RunWithResult(ctx context.Context) (*FirebaseCleanu
 
 		result.TotalFirebaseUsers++
 
-		// Check if Firebase user exists in database
-		if user.Email != "" && !dbEmailSet[user.Email] {
+		// Check if Firebase user exists in database (and not in exclusion list)
+		if user.Email != "" && !dbEmailSet[user.Email] && !excludedEmails[user.Email] {
 			orphanedUsers = append(orphanedUsers, struct {
 				UID   string
 				Email string

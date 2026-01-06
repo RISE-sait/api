@@ -1,11 +1,13 @@
 package email
 
 import (
-	"api/config"
-	errLib "api/internal/libs/errors"
+	"fmt"
 	"log"
 	"net/http"
 	"net/smtp"
+
+	"api/config"
+	errLib "api/internal/libs/errors"
 )
 
 func SendEmail(to, subject, body string) *errLib.CommonError {
@@ -120,4 +122,15 @@ func SendPaymentFailedReminderEmail(to, firstName, membershipPlan, updatePayment
 	} else {
 		log.Printf("Payment failed reminder email sent successfully to %s", to)
 	}
+}
+
+// SendAccountRecoveryEmail sends a password reset link to users who need to recover their account
+func SendAccountRecoveryEmail(to, resetURL string) error {
+	body := AccountRecoveryBody(resetURL)
+	if err := SendEmail(to, "Reset Your Password - Rise", body); err != nil {
+		log.Printf("failed to send account recovery email to %s: %s", to, err.Message)
+		return fmt.Errorf(err.Message)
+	}
+	log.Printf("Account recovery email sent successfully to %s", to)
+	return nil
 }

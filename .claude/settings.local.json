@@ -7,7 +7,9 @@
       "Bash(find:*)",
       "Bash(xargs:*)",
       "Bash(docker compose logs:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(cat:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

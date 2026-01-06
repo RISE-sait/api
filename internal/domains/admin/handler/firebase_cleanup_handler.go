@@ -76,7 +76,7 @@ func (h *FirebaseCleanupHandler) CleanupOrphanedFirebaseUsers(w http.ResponseWri
 // @Param dry_run query bool false "If true, only report what would be recovered without actually creating (default: true)"
 // @Param limit query int false "Max number of users to recover (default: 0 = unlimited). Use limit=1 to test with one user first."
 // @Param email query string false "Specific email to recover (for testing). If set, only this email will be processed."
-// @Success 200 {object} jobs.FirebaseRecoveryResult "Recovery result"
+// @Success 200 {object} map[string]interface{} "Recovery result"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /admin/firebase/recover [post]
 // @Security Bearer

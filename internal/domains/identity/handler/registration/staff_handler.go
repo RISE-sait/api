@@ -1,6 +1,9 @@
 package registration
 
 import (
+	"log"
+	"net/http"
+
 	"api/internal/di"
 	dto "api/internal/domains/identity/dto/staff"
 	firebaseService "api/internal/domains/identity/service/firebase"
@@ -12,7 +15,6 @@ import (
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
-	"net/http"
 
 	"github.com/go-chi/chi"
 )
@@ -77,6 +79,12 @@ func (h *StaffHandlers) RegisterStaff(w http.ResponseWriter, r *http.Request) {
 
 	err = h.StaffRegistrationService.RegisterPendingStaff(r.Context(), valueObject)
 	if err != nil {
+		// Compensating action: If DB creation failed, delete the orphaned Firebase user
+		// This prevents "email already exists" errors on retry
+		if deleteErr := h.FirebaseService.DeleteUser(r.Context(), email); deleteErr != nil {
+			// Log but don't override original error - cleanup job will catch it
+			log.Printf("Failed to cleanup Firebase user after registration failure: %v", deleteErr)
+		}
 		responseHandlers.RespondWithError(w, err)
 		return
 	}

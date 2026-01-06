@@ -434,3 +434,38 @@ func PaymentFailedReminderBody(firstName, membershipPlan, updatePaymentURL strin
 		</html>
 	`, firstName, membershipPlan, daysUntilSuspension, updatePaymentURL)
 }
+
+func EventNotificationBody(firstName, subject, message string) string {
+	return fmt.Sprintf(`
+		<!DOCTYPE html>
+		<html>
+		<head>
+			<style>
+				body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+				.container { max-width: 600px; margin: 0 auto; padding: 20px; }
+				.header { background-color: #007bff; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+				.content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 5px 5px; }
+				.message-box { background-color: white; border: 1px solid #ddd; padding: 20px; margin: 20px 0; border-radius: 5px; white-space: pre-wrap; }
+				.footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
+			</style>
+		</head>
+		<body>
+			<div class="container">
+				<div class="header">
+					<h1>%s</h1>
+				</div>
+				<div class="content">
+					<p>Hi %s,</p>
+
+					<div class="message-box">%s</div>
+
+					<div class="footer">
+						<p>Thanks,<br>The Rise Team</p>
+						<p>This is an automated message from Rise Sports Complex.</p>
+					</div>
+				</div>
+			</div>
+		</body>
+		</html>
+	`, subject, firstName, message)
+}

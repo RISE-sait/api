@@ -51,9 +51,9 @@ func (j *FirebaseCleanupJob) Name() string {
 	return "FirebaseCleanup"
 }
 
-// Interval returns how often this job runs (once per day)
+// Interval returns how often this job runs (every hour as a safety net)
 func (j *FirebaseCleanupJob) Interval() time.Duration {
-	return 24 * time.Hour
+	return 1 * time.Hour
 }
 
 // SetDryRun allows toggling dry run mode

@@ -631,6 +631,9 @@ func RegisterAdminRoutes(container *di.Container) func(chi.Router) {
 
 		// Firebase cleanup - IT and SuperAdmin only (sensitive operation)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/firebase/cleanup", firebaseCleanupHandler.CleanupOrphanedFirebaseUsers)
+
+		// Firebase recovery - IT and SuperAdmin only (recreates missing Firebase users from DB)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/firebase/recover", firebaseCleanupHandler.RecoverMissingFirebaseUsers)
 	}
 }
 

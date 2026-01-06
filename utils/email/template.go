@@ -330,6 +330,58 @@ func PaymentFailedBody(firstName, membershipPlan, updatePaymentURL string) strin
 	`, firstName, membershipPlan, updatePaymentURL)
 }
 
+func AccountRecoveryBody(resetURL string) string {
+	return fmt.Sprintf(`
+		<!DOCTYPE html>
+		<html>
+		<head>
+			<style>
+				body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+				.container { max-width: 600px; margin: 0 auto; padding: 20px; }
+				.header { background-color: #007bff; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+				.content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 5px 5px; }
+				.button { display: inline-block; padding: 12px 30px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+				.info-box { background-color: #e3f2fd; border-left: 4px solid #007bff; padding: 15px; margin: 20px 0; }
+				.footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
+			</style>
+		</head>
+		<body>
+			<div class="container">
+				<div class="header">
+					<h1>Reset Your Password</h1>
+				</div>
+				<div class="content">
+					<p>Hi,</p>
+
+					<p>We've made some updates to our system and need you to reset your password to continue accessing your Rise account.</p>
+
+					<div class="info-box">
+						<strong>Your account is safe!</strong>
+						<p style="margin: 10px 0;">All your membership details, credits, and account information are intact. You just need to set a new password.</p>
+					</div>
+
+					<p style="text-align: center;">
+						<a href="%s" class="button">Reset Password</a>
+					</p>
+
+					<p>Or copy and paste this link into your browser:</p>
+					<p style="background-color: white; padding: 10px; border: 1px solid #ddd; word-break: break-all; font-size: 12px;">
+						%s
+					</p>
+
+					<p>If you have any questions, please contact us.</p>
+
+					<div class="footer">
+						<p>Thanks,<br>The Rise Team</p>
+						<p>This is an automated message, please do not reply to this email.</p>
+					</div>
+				</div>
+			</div>
+		</body>
+		</html>
+	`, resetURL, resetURL)
+}
+
 func PaymentFailedReminderBody(firstName, membershipPlan, updatePaymentURL string, daysUntilSuspension int) string {
 	return fmt.Sprintf(`
 		<!DOCTYPE html>

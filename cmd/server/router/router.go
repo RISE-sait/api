@@ -355,6 +355,7 @@ func RegisterStaffRoutes(container *di.Container) func(chi.Router) {
 
 func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 	handler := eventHandler.NewEventsHandler(container)
+	notificationHandler := eventHandler.NewEventNotificationHandler(container)
 
 	return func(r chi.Router) {
 		r.Get("/", handler.GetEvents)
@@ -364,7 +365,16 @@ func RegisterEventRoutes(container *di.Container) func(chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/", handler.DeleteEvents)
 
 		r.Route("/{event_id}/staffs", RegisterEventStaffRoutes(container))
+
+		// Get enrolled customers for event notifications
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT, contextUtils.RoleCoach, contextUtils.RoleReceptionist)).Get("/{event_id}/customers", notificationHandler.GetEventCustomers)
+
+		// Customer enrollment management (remove from event)
 		r.Route("/{event_id}/customers", RegisterEventCustomerRoutes(container))
+
+		// Event notification routes
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT, contextUtils.RoleCoach)).Post("/{event_id}/notifications", notificationHandler.SendNotification)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT, contextUtils.RoleCoach)).Get("/{event_id}/notifications", notificationHandler.GetNotificationHistory)
 
 		r.Route("/recurring", RegisterRecurringEventRoutes(container))
 	}

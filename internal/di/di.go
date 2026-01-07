@@ -2,6 +2,7 @@ package di
 
 import (
 	"api/config"
+	analyticsDb "api/internal/domains/analytics/persistence/sqlc/generated"
 	staffActivityLogsDb "api/internal/domains/audit/staff_activity_logs/persistence/sqlc/generated"
 	courtDb "api/internal/domains/court/persistence/sqlc/generated"
 	discountDb "api/internal/domains/discount/persistence/sqlc/generated"
@@ -56,6 +57,7 @@ type QueriesType struct {
 	CourtDb             *courtDb.Queries
 	PracticeDb          *practiceDb.Queries
 	SubsidyDb           *subsidyDb.Queries
+	AnalyticsDb         *analyticsDb.Queries
 }
 
 // NewContainer initializes and returns a Container with database, queries, HubSpot, and Firebase services.
@@ -114,6 +116,7 @@ func initializeQueries(db *sql.DB) *QueriesType {
 		CourtDb:             courtDb.New(db),
 		PracticeDb:          practiceDb.New(db),
 		SubsidyDb:           subsidyDb.New(db),
+		AnalyticsDb:         analyticsDb.New(db),
 	}
 }
 

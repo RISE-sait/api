@@ -30,8 +30,9 @@ type CreateEventValues struct {
 }
 
 type UpdateEventValues struct {
-	ID        uuid.UUID
-	UpdatedBy uuid.UUID
+	ID               uuid.UUID
+	UpdatedBy        uuid.UUID
+	SkipNotification bool // Skip auto-notification on update (for minor changes)
 	EventDetails
 }
 

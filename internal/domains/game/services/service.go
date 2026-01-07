@@ -216,6 +216,77 @@ func (s *Service) sendGameNotification(ctx context.Context, game values.CreateGa
 	}
 }
 
+func (s *Service) sendGameUpdateNotification(ctx context.Context, existing values.ReadGameValue, updated values.UpdateGameValue) {
+	loc, _ := time.LoadLocation("America/Edmonton")
+	if loc == nil {
+		loc = time.FixedZone("MST", -7*60*60)
+	}
+
+	// Build change message
+	var changes []string
+	timeChanged := !existing.StartTime.Equal(updated.StartTime)
+	locationChanged := existing.LocationID != updated.LocationID
+
+	if timeChanged {
+		oldTime := existing.StartTime.In(loc).Format("Monday, January 2 at 3:04 PM")
+		newTime := updated.StartTime.In(loc).Format("Monday, January 2 at 3:04 PM")
+		changes = append(changes, fmt.Sprintf("Time changed from %s to %s", oldTime, newTime))
+	}
+
+	if locationChanged {
+		_, _, newLocationName := s.lookupNames(ctx, uuid.Nil, uuid.Nil, updated.LocationID)
+		changes = append(changes, fmt.Sprintf("Location changed from %s to %s", existing.LocationName, newLocationName))
+	}
+
+	if len(changes) == 0 {
+		return
+	}
+
+	message := ""
+	for i, change := range changes {
+		if i > 0 {
+			message += "\n"
+		}
+		message += change
+	}
+
+	newTimeISO := updated.StartTime.In(loc).Format(time.RFC3339)
+
+	// Notify home team
+	if existing.HomeTeamID != uuid.Nil {
+		notification := notificationValues.TeamNotification{
+			Type:   "game_update",
+			Title:  "Game Updated",
+			Body:   message,
+			TeamID: existing.HomeTeamID,
+			Data: map[string]interface{}{
+				"gameId":  existing.ID.String(),
+				"type":    "game_update",
+				"startAt": newTimeISO,
+				"role":    "home",
+			},
+		}
+		s.notificationService.SendTeamNotification(ctx, existing.HomeTeamID, notification)
+	}
+
+	// Notify away team
+	if existing.AwayTeamID != uuid.Nil {
+		notification := notificationValues.TeamNotification{
+			Type:   "game_update",
+			Title:  "Game Updated",
+			Body:   message,
+			TeamID: existing.AwayTeamID,
+			Data: map[string]interface{}{
+				"gameId":  existing.ID.String(),
+				"type":    "game_update",
+				"startAt": newTimeISO,
+				"role":    "away",
+			},
+		}
+		s.notificationService.SendTeamNotification(ctx, existing.AwayTeamID, notification)
+	}
+}
+
 // UpdateGame updates an existing game and logs the modification.
 // For coaches: validates that they coach at least one of the teams in the game.
 func (s *Service) UpdateGame(ctx context.Context, details values.UpdateGameValue) *errLib.CommonError {
@@ -230,21 +301,21 @@ func (s *Service) UpdateGame(ctx context.Context, details values.UpdateGameValue
 		return err
 	}
 
+	// Fetch existing game before update (for change detection and coach validation)
+	existingGame, err := s.repo.GetGameById(ctx, details.ID)
+	if err != nil {
+		return err
+	}
+
 	// For coaches, validate they have access to the game
 	if role == contextUtils.RoleCoach {
-		// First get the existing game to check team IDs
-		existingGame, err := s.repo.GetGameById(ctx, details.ID)
-		if err != nil {
-			return err
-		}
-
 		teamIDs := []uuid.UUID{existingGame.HomeTeamID, existingGame.AwayTeamID}
 		if err := s.ValidateCoachTeamAccess(ctx, userID, teamIDs); err != nil {
 			return err
 		}
 	}
 
-	return s.executeInTx(ctx, func(txRepo *repo.Repository) *errLib.CommonError {
+	updateErr := s.executeInTx(ctx, func(txRepo *repo.Repository) *errLib.CommonError {
 		// Update the game record
 		if err := txRepo.UpdateGame(ctx, details); err != nil {
 			return err
@@ -274,6 +345,22 @@ func (s *Service) UpdateGame(ctx context.Context, details values.UpdateGameValue
 			activityDesc,
 		)
 	})
+
+	if updateErr != nil {
+		return updateErr
+	}
+
+	// Send notification if significant changes detected
+	if !details.SkipNotification {
+		timeChanged := !existingGame.StartTime.Equal(details.StartTime)
+		locationChanged := existingGame.LocationID != details.LocationID
+
+		if timeChanged || locationChanged {
+			go s.sendGameUpdateNotification(context.Background(), existingGame, details)
+		}
+	}
+
+	return nil
 }
 
 // DeleteGame removes a game by ID and logs the deletion.

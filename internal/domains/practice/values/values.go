@@ -17,7 +17,8 @@ type CreatePracticeValue struct {
 }
 
 type UpdatePracticeValue struct {
-	ID uuid.UUID
+	ID               uuid.UUID
+	SkipNotification bool // Skip auto-notification on update
 	CreatePracticeValue
 }
 

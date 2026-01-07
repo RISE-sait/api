@@ -45,8 +45,9 @@ type EventRequestDto struct {
 	CreditCost                *int32      `json:"credit_cost" validate:"omitempty,gte=0" example:"5"`
 	RegistrationRequired      *bool       `json:"registration_required" example:"true"` // Defaults to true if not provided
 	// Fields for Stripe auto-creation (when PriceID is not provided)
-	UnitAmount *int64 `json:"unit_amount" example:"2500"` // Price in cents (e.g., 2500 = $25.00)
-	Currency   string `json:"currency" example:"cad"`     // "cad" or "usd", defaults to "cad"
+	UnitAmount       *int64 `json:"unit_amount" example:"2500"`        // Price in cents (e.g., 2500 = $25.00)
+	Currency         string `json:"currency" example:"cad"`           // "cad" or "usd", defaults to "cad"
+	SkipNotification *bool  `json:"skip_notification" example:"false"` // Skip auto-notification on update (for minor changes)
 }
 
 type DeleteRequestDto struct {
@@ -256,9 +257,16 @@ func (dto EventRequestDto) ToUpdateEventValues(idStr string, updater uuid.UUID) 
 		registrationRequired = *dto.RegistrationRequired
 	}
 
+	// Default skip_notification to false if not provided
+	skipNotification := false
+	if dto.SkipNotification != nil {
+		skipNotification = *dto.SkipNotification
+	}
+
 	v := values.UpdateEventValues{
-		ID:        id,
-		UpdatedBy: updater,
+		ID:               id,
+		UpdatedBy:        updater,
+		SkipNotification: skipNotification,
 		EventDetails: values.EventDetails{
 			StartAt:                   startAt,
 			EndAt:                     endAt,

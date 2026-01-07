@@ -12,13 +12,14 @@ import (
 )
 
 type RequestDto struct {
-	TeamID     uuid.UUID   `json:"team_id" validate:"required"`
-	StartTime  time.Time   `json:"start_time" validate:"required"`
-	EndTime    *time.Time  `json:"end_time"`
-	LocationID uuid.UUID   `json:"location_id" validate:"required"`
-	CourtID    uuid.UUID   `json:"court_id" validate:"required"`
-	Status     string      `json:"status" validate:"oneof=scheduled completed canceled"`
-	BookedBy   *uuid.UUID  `json:"booked_by"`
+	TeamID           uuid.UUID  `json:"team_id" validate:"required"`
+	StartTime        time.Time  `json:"start_time" validate:"required"`
+	EndTime          *time.Time `json:"end_time"`
+	LocationID       uuid.UUID  `json:"location_id" validate:"required"`
+	CourtID          uuid.UUID  `json:"court_id" validate:"required"`
+	Status           string     `json:"status" validate:"oneof=scheduled completed canceled"`
+	BookedBy         *uuid.UUID `json:"booked_by"`
+	SkipNotification *bool      `json:"skip_notification"` // Skip auto-notification on update
 }
 
 func (dto *RequestDto) ToCreateValue() (values.CreatePracticeValue, *errLib.CommonError) {
@@ -44,8 +45,16 @@ func (dto *RequestDto) ToUpdateValue(idStr string) (values.UpdatePracticeValue, 
 	if err = validators.ValidateDto(dto); err != nil {
 		return values.UpdatePracticeValue{}, err
 	}
+
+	// Default skip_notification to false if not provided
+	skipNotification := false
+	if dto.SkipNotification != nil {
+		skipNotification = *dto.SkipNotification
+	}
+
 	return values.UpdatePracticeValue{
-		ID: id,
+		ID:               id,
+		SkipNotification: skipNotification,
 		CreatePracticeValue: values.CreatePracticeValue{
 			TeamID:     dto.TeamID,
 			StartTime:  dto.StartTime,

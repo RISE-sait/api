@@ -134,8 +134,70 @@ func (s *Service) sendPracticeNotification(ctx context.Context, practice values.
 	s.notificationService.SendTeamNotification(ctx, practice.TeamID, notification)
 }
 
+func (s *Service) sendPracticeUpdateNotification(ctx context.Context, existing values.ReadPracticeValue, updated values.UpdatePracticeValue) {
+	loc, _ := time.LoadLocation("America/Edmonton")
+	if loc == nil {
+		loc = time.FixedZone("MST", -7*60*60)
+	}
+
+	// Build change message
+	var changes []string
+	timeChanged := !existing.StartTime.Equal(updated.StartTime)
+	locationChanged := existing.LocationID != updated.LocationID
+
+	if timeChanged {
+		oldTime := existing.StartTime.In(loc).Format("Monday, January 2 at 3:04 PM")
+		newTime := updated.StartTime.In(loc).Format("Monday, January 2 at 3:04 PM")
+		changes = append(changes, fmt.Sprintf("Time changed from %s to %s", oldTime, newTime))
+	}
+
+	if locationChanged {
+		_, newLocationName := s.lookupNames(ctx, uuid.Nil, updated.LocationID)
+		changes = append(changes, fmt.Sprintf("Location changed from %s to %s", existing.LocationName, newLocationName))
+	}
+
+	if len(changes) == 0 {
+		return
+	}
+
+	message := ""
+	for i, change := range changes {
+		if i > 0 {
+			message += "\n"
+		}
+		message += change
+	}
+
+	newTimeISO := updated.StartTime.In(loc).Format(time.RFC3339)
+
+	notification := notificationValues.TeamNotification{
+		Type:   "practice_update",
+		Title:  "Practice Updated",
+		Body:   message,
+		TeamID: existing.TeamID,
+		Data: map[string]interface{}{
+			"practiceId": existing.ID.String(),
+			"type":       "practice_update",
+			"startAt":    newTimeISO,
+		},
+	}
+
+	s.notificationService.SendTeamNotification(ctx, existing.TeamID, notification)
+}
+
 func (s *Service) UpdatePractice(ctx context.Context, val values.UpdatePracticeValue) *errLib.CommonError {
-	return s.executeInTx(ctx, func(r *repo.Repository) *errLib.CommonError {
+	// Fetch existing practice for change detection
+	var existingPractice values.ReadPracticeValue
+	var fetchErr *errLib.CommonError
+	if !val.SkipNotification && val.TeamID != uuid.Nil {
+		existingPractice, fetchErr = s.repo.GetByID(ctx, val.ID)
+		if fetchErr != nil {
+			// Log but don't fail - we can still update, just won't notify
+			// Continue with update
+		}
+	}
+
+	updateErr := s.executeInTx(ctx, func(r *repo.Repository) *errLib.CommonError {
 		if err := r.Update(ctx, val); err != nil {
 			return err
 		}
@@ -154,6 +216,22 @@ func (s *Service) UpdatePractice(ctx context.Context, val values.UpdatePracticeV
 			val.StartTime.In(loc).Format("Jan 2, 2006 at 3:04 PM"))
 		return s.staffActivityLogsService.InsertStaffActivity(ctx, r.GetTx(), staffID, activityDesc)
 	})
+
+	if updateErr != nil {
+		return updateErr
+	}
+
+	// Send notification if significant changes detected
+	if !val.SkipNotification && fetchErr == nil && val.TeamID != uuid.Nil {
+		timeChanged := !existingPractice.StartTime.Equal(val.StartTime)
+		locationChanged := existingPractice.LocationID != val.LocationID
+
+		if timeChanged || locationChanged {
+			go s.sendPracticeUpdateNotification(context.Background(), existingPractice, val)
+		}
+	}
+
+	return nil
 }
 
 func (s *Service) DeletePractice(ctx context.Context, id uuid.UUID) *errLib.CommonError {

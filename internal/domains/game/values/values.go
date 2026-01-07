@@ -24,8 +24,9 @@ type CreateGameValue struct {
 // UpdateGameValue represents the data required to update an existing game.
 // It embeds CreateGameValue and adds an ID field for the game being updated.
 type UpdateGameValue struct {
-	ID              uuid.UUID // ID of the game to update
-	CreateGameValue           // Embedded fields for game details
+	ID               uuid.UUID // ID of the game to update
+	SkipNotification bool      // Skip auto-notification on update
+	CreateGameValue            // Embedded fields for game details
 }
 
 // ReadGameValue represents a full game record retrieved from the database.

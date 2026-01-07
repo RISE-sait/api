@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"api/internal/di"
@@ -14,6 +15,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/sqlc-dev/pqtype"
+	"github.com/stripe/stripe-go/v81"
+	"github.com/stripe/stripe-go/v81/checkout/session"
+	"github.com/stripe/stripe-go/v81/invoice"
+	"github.com/stripe/stripe-go/v81/paymentintent"
 )
 
 type PaymentTrackingService struct {
@@ -142,6 +147,9 @@ func (s *PaymentTrackingService) TrackPayment(ctx context.Context, params TrackP
 		params.TransactionType, params.CustomerEmail, params.OriginalAmount,
 		params.SubsidyAmount, params.DiscountAmount, params.CustomerPaid, params.StripeInvoiceID)
 
+	// Auto-backfill URLs (same logic as POST /admin/payments/backfill-urls)
+	go s.BackfillTransactionURLs(transaction.ID)
+
 	return &transaction, nil
 }
 
@@ -202,6 +210,106 @@ func (s *PaymentTrackingService) GetPaymentByStripeInvoice(ctx context.Context, 
 		return nil, err
 	}
 	return &transaction, nil
+}
+
+// BackfillTransactionURLs fetches receipt/invoice URLs from Stripe for a single transaction.
+// Uses the EXACT same logic as POST /admin/payments/backfill-urls endpoint.
+func (s *PaymentTrackingService) BackfillTransactionURLs(transactionID uuid.UUID) {
+	// Small delay to let Stripe finalize the charge/invoice
+	time.Sleep(2 * time.Second)
+
+	ctx := context.Background()
+
+	tx, err := s.queries.GetPaymentTransaction(ctx, transactionID)
+	if err != nil {
+		log.Printf("[PAYMENT-BACKFILL] Error fetching transaction %s: %v", transactionID, err)
+		return
+	}
+
+	var receiptURL, invoiceURL, invoicePDFURL sql.NullString
+
+	// Try to get receipt URL from CheckoutSession first (most transactions have this)
+	if tx.StripeCheckoutSessionID.Valid && tx.StripeCheckoutSessionID.String != "" {
+		sess, sessErr := session.Get(tx.StripeCheckoutSessionID.String, &stripe.CheckoutSessionParams{
+			Expand: []*string{
+				stripe.String("payment_intent.latest_charge"),
+				stripe.String("subscription.latest_invoice"),
+			},
+		})
+		if sessErr != nil {
+			// Handle deleted/expired checkout sessions gracefully (404 errors)
+			if strings.Contains(sessErr.Error(), "resource_missing") || strings.Contains(sessErr.Error(), "No such checkout.session") {
+				log.Printf("[PAYMENT-BACKFILL] Checkout session %s no longer exists (deleted/expired), skipping", tx.StripeCheckoutSessionID.String)
+			} else {
+				log.Printf("[PAYMENT-BACKFILL] Error fetching CheckoutSession %s: %v", tx.StripeCheckoutSessionID.String, sessErr)
+			}
+			return
+		}
+		// For one-time payments, get receipt from payment_intent
+		if sess.PaymentIntent != nil && sess.PaymentIntent.LatestCharge != nil && sess.PaymentIntent.LatestCharge.ReceiptURL != "" {
+			receiptURL = sql.NullString{String: sess.PaymentIntent.LatestCharge.ReceiptURL, Valid: true}
+			log.Printf("[PAYMENT-BACKFILL] Found receipt URL for transaction %s via checkout session", tx.ID)
+		}
+
+		// For subscription payments, get invoice from the subscription's latest invoice
+		if sess.Subscription != nil && sess.Subscription.LatestInvoice != nil {
+			if sess.Subscription.LatestInvoice.HostedInvoiceURL != "" {
+				invoiceURL = sql.NullString{String: sess.Subscription.LatestInvoice.HostedInvoiceURL, Valid: true}
+			}
+			if sess.Subscription.LatestInvoice.InvoicePDF != "" {
+				invoicePDFURL = sql.NullString{String: sess.Subscription.LatestInvoice.InvoicePDF, Valid: true}
+			}
+			if invoiceURL.Valid {
+				log.Printf("[PAYMENT-BACKFILL] Found invoice URLs for transaction %s via subscription", tx.ID)
+			}
+		}
+	}
+
+	// Fallback: Fetch receipt URL directly from PaymentIntent if we have it
+	if !receiptURL.Valid && tx.StripePaymentIntentID.Valid && tx.StripePaymentIntentID.String != "" {
+		pi, piErr := paymentintent.Get(tx.StripePaymentIntentID.String, &stripe.PaymentIntentParams{
+			Expand: []*string{stripe.String("latest_charge")},
+		})
+		if piErr != nil {
+			log.Printf("[PAYMENT-BACKFILL] Error fetching PaymentIntent %s: %v", tx.StripePaymentIntentID.String, piErr)
+		} else if pi.LatestCharge != nil && pi.LatestCharge.ReceiptURL != "" {
+			receiptURL = sql.NullString{String: pi.LatestCharge.ReceiptURL, Valid: true}
+			log.Printf("[PAYMENT-BACKFILL] Found receipt URL for transaction %s via payment intent", tx.ID)
+		}
+	}
+
+	// Fetch invoice URLs from Invoice (for subscription payments)
+	if tx.StripeInvoiceID.Valid && tx.StripeInvoiceID.String != "" {
+		inv, invErr := invoice.Get(tx.StripeInvoiceID.String, nil)
+		if invErr != nil {
+			log.Printf("[PAYMENT-BACKFILL] Error fetching Invoice %s: %v", tx.StripeInvoiceID.String, invErr)
+			return
+		}
+		if inv.HostedInvoiceURL != "" {
+			invoiceURL = sql.NullString{String: inv.HostedInvoiceURL, Valid: true}
+		}
+		if inv.InvoicePDF != "" {
+			invoicePDFURL = sql.NullString{String: inv.InvoicePDF, Valid: true}
+		}
+		log.Printf("[PAYMENT-BACKFILL] Found invoice URLs for transaction %s", tx.ID)
+	}
+
+	// Update the transaction with the fetched URLs
+	if receiptURL.Valid || invoiceURL.Valid || invoicePDFURL.Valid {
+		updateErr := s.queries.UpdatePaymentUrls(ctx, db.UpdatePaymentUrlsParams{
+			ID:            tx.ID,
+			ReceiptUrl:    receiptURL,
+			InvoiceUrl:    invoiceURL,
+			InvoicePdfUrl: invoicePDFURL,
+		})
+		if updateErr != nil {
+			log.Printf("[PAYMENT-BACKFILL] Error updating transaction %s: %v", tx.ID, updateErr)
+			return
+		}
+		log.Printf("✅ [PAYMENT-BACKFILL] Transaction %s URLs updated", tx.ID)
+	} else {
+		log.Printf("[PAYMENT-BACKFILL] No URLs found for transaction %s", tx.ID)
+	}
 }
 
 // Helper functions

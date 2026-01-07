@@ -12,15 +12,16 @@ import (
 // RequestDto represents the expected payload for creating or updating a game.
 // It includes team IDs, scores, time info, location, and game status.
 type RequestDto struct {
-	HomeTeamID uuid.UUID  `json:"home_team_id" validate:"required"`                     // ID of the home team
-	AwayTeamID uuid.UUID  `json:"away_team_id" validate:"required"`                     // ID of the away team
-	HomeScore  *int32     `json:"home_score"`                                           // Optional score for the home team
-	AwayScore  *int32     `json:"away_score"`                                           // Optional score for the away team
-	StartTime  time.Time  `json:"start_time" validate:"required"`                       // Required start time of the game
-	EndTime    *time.Time `json:"end_time"`                                             // Optional end time of the game
-	LocationID uuid.UUID  `json:"location_id" validate:"required"`                      // ID of the location where the game is played
-	CourtID    uuid.UUID  `json:"court_id"`                                             // ID of the court where the game is played
-	Status     string     `json:"status" validate:"oneof=scheduled completed canceled"` // Game status must be one of the allowed values
+	HomeTeamID       uuid.UUID  `json:"home_team_id" validate:"required"`                     // ID of the home team
+	AwayTeamID       uuid.UUID  `json:"away_team_id" validate:"required"`                     // ID of the away team
+	HomeScore        *int32     `json:"home_score"`                                           // Optional score for the home team
+	AwayScore        *int32     `json:"away_score"`                                           // Optional score for the away team
+	StartTime        time.Time  `json:"start_time" validate:"required"`                       // Required start time of the game
+	EndTime          *time.Time `json:"end_time"`                                             // Optional end time of the game
+	LocationID       uuid.UUID  `json:"location_id" validate:"required"`                      // ID of the location where the game is played
+	CourtID          uuid.UUID  `json:"court_id"`                                             // ID of the court where the game is played
+	Status           string     `json:"status" validate:"oneof=scheduled completed canceled"` // Game status must be one of the allowed values
+	SkipNotification *bool      `json:"skip_notification"`                                    // Skip auto-notification on update
 }
 
 // ToCreateGameValue converts a validated RequestDto into a CreateGameValue used in the domain layer.
@@ -72,9 +73,16 @@ func (dto *RequestDto) ToUpdateGameValue(idStr string) (values.UpdateGameValue, 
 		return details, errLib.New("home_team_id and away_team_id must be different", 400)
 	}
 
+	// Default skip_notification to false if not provided
+	skipNotification := false
+	if dto.SkipNotification != nil {
+		skipNotification = *dto.SkipNotification
+	}
+
 	// Construct the UpdateGameValue object using embedded CreateGameValue
 	details = values.UpdateGameValue{
-		ID: id,
+		ID:               id,
+		SkipNotification: skipNotification,
 		CreateGameValue: values.CreateGameValue{
 			HomeTeamID: dto.HomeTeamID,
 			AwayTeamID: dto.AwayTeamID,

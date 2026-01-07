@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"api/internal/di"
 	staffActivityLogs "api/internal/domains/audit/staff_activity_logs/service"
+	dto "api/internal/domains/event/dto"
 	repo "api/internal/domains/event/persistence/repository"
 	values "api/internal/domains/event/values"
 	stripeService "api/internal/domains/payment/services/stripe"
@@ -25,6 +27,7 @@ type Service struct {
 	recurrencesRepository    *repo.RecurrencesRepository
 	staffActivityLogsService *staffActivityLogs.Service
 	productService           *stripeService.ProductService
+	notificationService      *EventNotificationService
 	db                       *sql.DB
 }
 
@@ -34,6 +37,7 @@ func NewEventService(container *di.Container) *Service {
 		recurrencesRepository:    repo.NewRecurrencesRepository(container),
 		staffActivityLogsService: staffActivityLogs.NewService(container),
 		productService:           stripeService.NewProductService(),
+		notificationService:      NewEventNotificationService(container),
 		db:                       container.DB,
 	}
 }
@@ -317,7 +321,19 @@ func (s *Service) CreateEvent(ctx context.Context, details values.CreateEventVal
 }
 
 func (s *Service) UpdateEvent(ctx context.Context, details values.UpdateEventValues) *errLib.CommonError {
-	return s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
+	// Fetch existing event BEFORE update (for change detection)
+	var existingEvent values.ReadEventValues
+	var fetchErr *errLib.CommonError
+	if !details.SkipNotification {
+		existingEvent, fetchErr = s.GetEvent(ctx, details.ID)
+		if fetchErr != nil {
+			// Log but don't fail - we can still update, just won't notify
+			log.Printf("[EVENT-UPDATE] Warning: could not fetch existing event for change detection: %v", fetchErr.Message)
+		}
+	}
+
+	// Perform the actual update
+	updateErr := s.executeInTx(ctx, func(txRepo *repo.EventsRepository) *errLib.CommonError {
 		if err := txRepo.UpdateEvent(ctx, details); err != nil {
 			return err
 		}
@@ -339,10 +355,23 @@ func (s *Service) UpdateEvent(ctx context.Context, details values.UpdateEventVal
 				details.UpdatedBy,
 				s.formatEventDescription(ctx, "Updated", details.EventDetails),
 			)
-		} else {
-			return nil
 		}
+		return nil
 	})
+
+	if updateErr != nil {
+		return updateErr
+	}
+
+	// Send notification asynchronously if significant changes detected
+	if !details.SkipNotification && fetchErr == nil {
+		changes := s.detectChanges(ctx, existingEvent, details)
+		if changes.HasSignificantChanges() {
+			go s.notifyEnrolledUsersOfChanges(context.Background(), details.ID, existingEvent, changes)
+		}
+	}
+
+	return nil
 }
 
 // UpdateRecurringEvents updates existing events within a recurrence schedule
@@ -622,4 +651,74 @@ func generateEventsFromRecurrence(
 	}
 
 	return events, nil
+}
+
+// detectChanges compares an existing event with new update values to identify changes
+func (s *Service) detectChanges(ctx context.Context, existing values.ReadEventValues, new values.UpdateEventValues) values.EventChanges {
+	changes := values.DetectEventChanges(existing, new)
+
+	// Fetch new location name if changed
+	if changes.LocationChanged {
+		_, newLocationName, _ := s.lookupNames(ctx, uuid.Nil, new.LocationID, uuid.Nil)
+		changes.NewLocationName = newLocationName
+	}
+
+	return changes
+}
+
+// buildChangeMessage creates a human-readable message describing what changed
+func (s *Service) buildChangeMessage(existing values.ReadEventValues, changes values.EventChanges) string {
+	loc, _ := time.LoadLocation("America/Edmonton")
+	if loc == nil {
+		loc = time.FixedZone("MST", -7*60*60)
+	}
+
+	var parts []string
+
+	if changes.StartTimeChanged || changes.EndTimeChanged {
+		oldTime := changes.OldStartAt.In(loc).Format("Monday, January 2 at 3:04 PM")
+		newTime := changes.NewStartAt.In(loc).Format("Monday, January 2 at 3:04 PM")
+		parts = append(parts, fmt.Sprintf("Time changed from %s to %s", oldTime, newTime))
+	}
+
+	if changes.LocationChanged {
+		parts = append(parts, fmt.Sprintf("Location changed from %s to %s",
+			changes.OldLocationName, changes.NewLocationName))
+	}
+
+	return strings.Join(parts, "\n")
+}
+
+// notifyEnrolledUsersOfChanges sends notifications to all enrolled users about event changes
+func (s *Service) notifyEnrolledUsersOfChanges(ctx context.Context, eventID uuid.UUID, existing values.ReadEventValues, changes values.EventChanges) {
+	message := s.buildChangeMessage(existing, changes)
+	if message == "" {
+		return
+	}
+
+	// Build subject line
+	programName := "Event"
+	if existing.Program.Name != "" {
+		programName = existing.Program.Name
+	}
+	subject := fmt.Sprintf("Event Update: %s", programName)
+
+	// Use the updater's ID as sender (or system if not available)
+	senderID := existing.UpdatedBy.ID
+
+	request := dto.SendNotificationRequestDto{
+		Channel:             string(dto.ChannelBoth),
+		Subject:             subject,
+		Message:             message,
+		IncludeEventDetails: true,
+	}
+
+	result, err := s.notificationService.SendNotification(ctx, eventID, senderID, request)
+	if err != nil {
+		log.Printf("[EVENT-UPDATE-NOTIFY] Failed to send notifications for event %s: %v", eventID, err.Message)
+		return
+	}
+
+	log.Printf("[EVENT-UPDATE-NOTIFY] Sent update notifications for event %s: email=%d/%d, push=%d/%d",
+		eventID, result.EmailSent, result.EmailFailed, result.PushSent, result.PushFailed)
 }

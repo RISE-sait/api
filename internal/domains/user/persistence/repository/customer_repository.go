@@ -105,6 +105,10 @@ func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int
 			customer.EmergencyContactRelationship = &dbCustomer.EmergencyContactRelationship.String
 		}
 
+		if dbCustomer.LastMobileLoginAt.Valid {
+			customer.LastMobileLoginAt = &dbCustomer.LastMobileLoginAt.Time
+		}
+
 		if dbCustomer.MembershipName.Valid && dbCustomer.MembershipPlanName.Valid && dbCustomer.MembershipStartDate.Valid && dbCustomer.MembershipPlanID.Valid {
 
 			customer.MembershipInfo = &userValues.MembershipReadValue{
@@ -205,6 +209,10 @@ func (r *CustomerRepository) GetCustomer(ctx context.Context, id uuid.UUID, emai
 
 	if dbCustomer.EmergencyContactRelationship.Valid {
 		customer.EmergencyContactRelationship = &dbCustomer.EmergencyContactRelationship.String
+	}
+
+	if dbCustomer.LastMobileLoginAt.Valid {
+		customer.LastMobileLoginAt = &dbCustomer.LastMobileLoginAt.Time
 	}
 
 	if dbCustomer.MembershipName.Valid && dbCustomer.MembershipPlanName.Valid && dbCustomer.MembershipStartDate.Valid && dbCustomer.MembershipPlanID.Valid {

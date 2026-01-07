@@ -87,10 +87,17 @@ WHERE customer_id = $1
 -- Update (or insert) weekly credit usage for a customer
 INSERT INTO users.weekly_credit_usage (customer_id, week_start_date, credits_used, updated_at)
 VALUES ($1, $2, $3, NOW())
-ON CONFLICT (customer_id, week_start_date) 
-DO UPDATE SET 
+ON CONFLICT (customer_id, week_start_date)
+DO UPDATE SET
     credits_used = users.weekly_credit_usage.credits_used + EXCLUDED.credits_used,
     updated_at = NOW();
+
+-- name: ReduceWeeklyCreditsUsed :exec
+-- Reduce weekly credit usage when credits are refunded (ensures it doesn't go below 0)
+UPDATE users.weekly_credit_usage
+SET credits_used = GREATEST(credits_used - $3, 0),
+    updated_at = NOW()
+WHERE customer_id = $1 AND week_start_date = $2;
 
 -- name: GetActiveCustomerMembershipPlanID :one
 -- Get customer's active membership plan ID

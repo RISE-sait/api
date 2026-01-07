@@ -1169,6 +1169,7 @@ type UsersUser struct {
 	EmergencyContactName         sql.NullString `json:"emergency_contact_name"`
 	EmergencyContactPhone        sql.NullString `json:"emergency_contact_phone"`
 	EmergencyContactRelationship sql.NullString `json:"emergency_contact_relationship"`
+	LastMobileLoginAt            sql.NullTime   `json:"last_mobile_login_at"`
 }
 
 // Tracks weekly credit consumption per customer for membership limit enforcement

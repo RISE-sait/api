@@ -323,7 +323,7 @@ func (q *Queries) GetAthletes(ctx context.Context, arg GetAthletesParams) ([]Get
 }
 
 const getCustomer = `-- name: GetCustomer :one
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at, u.suspended_at, u.suspension_reason, u.suspended_by, u.suspension_expires_at, u.emergency_contact_name, u.emergency_contact_phone, u.emergency_contact_relationship,
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at, u.suspended_at, u.suspension_reason, u.suspended_by, u.suspension_expires_at, u.emergency_contact_name, u.emergency_contact_phone, u.emergency_contact_relationship, u.last_mobile_login_at,
        m.name           AS membership_name,
        mp.id            AS membership_plan_id,
        mp.name          AS membership_plan_name,
@@ -391,6 +391,7 @@ type GetCustomerRow struct {
 	EmergencyContactName            sql.NullString `json:"emergency_contact_name"`
 	EmergencyContactPhone           sql.NullString `json:"emergency_contact_phone"`
 	EmergencyContactRelationship    sql.NullString `json:"emergency_contact_relationship"`
+	LastMobileLoginAt               sql.NullTime   `json:"last_mobile_login_at"`
 	MembershipName                  sql.NullString `json:"membership_name"`
 	MembershipPlanID                uuid.NullUUID  `json:"membership_plan_id"`
 	MembershipPlanName              sql.NullString `json:"membership_plan_name"`
@@ -440,6 +441,7 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 		&i.EmergencyContactName,
 		&i.EmergencyContactPhone,
 		&i.EmergencyContactRelationship,
+		&i.LastMobileLoginAt,
 		&i.MembershipName,
 		&i.MembershipPlanID,
 		&i.MembershipPlanName,
@@ -457,7 +459,7 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 }
 
 const getCustomers = `-- name: GetCustomers :many
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at, u.suspended_at, u.suspension_reason, u.suspended_by, u.suspension_expires_at, u.emergency_contact_name, u.emergency_contact_phone, u.emergency_contact_relationship,
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at, u.suspended_at, u.suspension_reason, u.suspended_by, u.suspension_expires_at, u.emergency_contact_name, u.emergency_contact_phone, u.emergency_contact_relationship, u.last_mobile_login_at,
        m.name           AS membership_name,
        mp.id            AS membership_plan_id,
        mp.name          AS membership_plan_name,
@@ -534,6 +536,7 @@ type GetCustomersRow struct {
 	EmergencyContactName            sql.NullString `json:"emergency_contact_name"`
 	EmergencyContactPhone           sql.NullString `json:"emergency_contact_phone"`
 	EmergencyContactRelationship    sql.NullString `json:"emergency_contact_relationship"`
+	LastMobileLoginAt               sql.NullTime   `json:"last_mobile_login_at"`
 	MembershipName                  sql.NullString `json:"membership_name"`
 	MembershipPlanID                uuid.NullUUID  `json:"membership_plan_id"`
 	MembershipPlanName              sql.NullString `json:"membership_plan_name"`
@@ -594,6 +597,7 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]G
 			&i.EmergencyContactName,
 			&i.EmergencyContactPhone,
 			&i.EmergencyContactRelationship,
+			&i.LastMobileLoginAt,
 			&i.MembershipName,
 			&i.MembershipPlanID,
 			&i.MembershipPlanName,
@@ -779,7 +783,7 @@ func (q *Queries) GetUserSuspendedMemberships(ctx context.Context, userID uuid.U
 }
 
 const listArchivedCustomers = `-- name: ListArchivedCustomers :many
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at, u.suspended_at, u.suspension_reason, u.suspended_by, u.suspension_expires_at, u.emergency_contact_name, u.emergency_contact_phone, u.emergency_contact_relationship
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at, u.suspended_at, u.suspension_reason, u.suspended_by, u.suspension_expires_at, u.emergency_contact_name, u.emergency_contact_phone, u.emergency_contact_relationship, u.last_mobile_login_at
 FROM users.users u
 WHERE u.is_archived = TRUE
 LIMIT $2 OFFSET $1
@@ -831,6 +835,7 @@ func (q *Queries) ListArchivedCustomers(ctx context.Context, arg ListArchivedCus
 			&i.EmergencyContactName,
 			&i.EmergencyContactPhone,
 			&i.EmergencyContactRelationship,
+			&i.LastMobileLoginAt,
 		); err != nil {
 			return nil, err
 		}

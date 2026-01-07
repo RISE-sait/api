@@ -2,470 +2,460 @@ package email
 
 import "fmt"
 
+// Brand colors
+const (
+	colorBlack      = "#000000"
+	colorYellow     = "#FFD700"
+	colorDarkGray   = "#1a1a1a"
+	colorLightGray  = "#f5f5f5"
+	colorWhite      = "#ffffff"
+	colorTextDark   = "#333333"
+	colorTextMuted  = "#666666"
+)
+
+// baseTemplate wraps content in the Rise branded email template
+func baseTemplate(title, content string) string {
+	return fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<style>
+		body {
+			font-family: 'Helvetica Neue', Arial, sans-serif;
+			line-height: 1.6;
+			color: %s;
+			margin: 0;
+			padding: 0;
+			background-color: %s;
+		}
+		.wrapper {
+			max-width: 600px;
+			margin: 0 auto;
+			padding: 20px;
+		}
+		.container {
+			background-color: %s;
+			border-radius: 8px;
+			overflow: hidden;
+			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+		}
+		.header {
+			background-color: %s;
+			padding: 30px 20px;
+			text-align: center;
+		}
+		.logo {
+			font-size: 42px;
+			font-weight: 900;
+			letter-spacing: 8px;
+			color: %s;
+			margin: 0;
+			text-transform: uppercase;
+		}
+		.tagline {
+			font-size: 10px;
+			letter-spacing: 3px;
+			color: %s;
+			margin-top: 8px;
+			text-transform: uppercase;
+		}
+		.title-bar {
+			background-color: %s;
+			padding: 15px 20px;
+			text-align: center;
+		}
+		.title-bar h1 {
+			color: %s;
+			margin: 0;
+			font-size: 18px;
+			font-weight: 700;
+			text-transform: uppercase;
+			letter-spacing: 2px;
+		}
+		.content {
+			padding: 30px;
+		}
+		.button {
+			display: inline-block;
+			padding: 14px 35px;
+			background-color: %s;
+			color: %s !important;
+			text-decoration: none;
+			border-radius: 4px;
+			font-weight: 700;
+			text-transform: uppercase;
+			letter-spacing: 1px;
+			font-size: 14px;
+		}
+		.button:hover {
+			background-color: #e6c200;
+		}
+		.button-dark {
+			background-color: %s;
+			color: %s !important;
+		}
+		.info-box {
+			background-color: %s;
+			border-left: 4px solid %s;
+			padding: 20px;
+			margin: 20px 0;
+		}
+		.alert-box {
+			background-color: #fff3cd;
+			border-left: 4px solid %s;
+			padding: 20px;
+			margin: 20px 0;
+		}
+		.danger-box {
+			background-color: #ffe6e6;
+			border-left: 4px solid #dc3545;
+			padding: 20px;
+			margin: 20px 0;
+		}
+		.success-box {
+			background-color: #e6ffe6;
+			border-left: 4px solid #28a745;
+			padding: 20px;
+			margin: 20px 0;
+		}
+		.stat-box {
+			background-color: %s;
+			padding: 25px;
+			text-align: center;
+			margin: 20px 0;
+			border-radius: 4px;
+		}
+		.stat-number {
+			font-size: 48px;
+			font-weight: 900;
+			color: %s;
+			margin: 0;
+		}
+		.stat-label {
+			font-size: 12px;
+			text-transform: uppercase;
+			letter-spacing: 2px;
+			color: %s;
+			margin-top: 5px;
+		}
+		.footer {
+			padding: 25px 30px;
+			border-top: 1px solid #eee;
+			font-size: 12px;
+			color: %s;
+			text-align: center;
+		}
+		.footer-logo {
+			font-size: 18px;
+			font-weight: 900;
+			letter-spacing: 4px;
+			color: %s;
+			margin-bottom: 10px;
+		}
+		.divider {
+			height: 3px;
+			background: linear-gradient(90deg, %s 0%%, %s 50%%, %s 100%%);
+			margin: 0;
+		}
+	</style>
+</head>
+<body>
+	<div class="wrapper">
+		<div class="container">
+			<div class="header">
+				<p class="logo">RISE</p>
+				<p class="tagline">Basketball • Performance • Community</p>
+			</div>
+			<div class="divider"></div>
+			<div class="title-bar">
+				<h1>%s</h1>
+			</div>
+			<div class="content">
+				%s
+			</div>
+			<div class="footer">
+				<p class="footer-logo">RISE</p>
+				<p>This is an automated message from Rise Sports Complex.<br>Please do not reply to this email.</p>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
+`, colorTextDark, colorLightGray, colorWhite, colorBlack, colorYellow, colorYellow,
+		colorYellow, colorBlack, colorYellow, colorBlack, colorBlack, colorYellow,
+		colorLightGray, colorYellow, colorYellow, colorBlack, colorYellow, colorTextMuted,
+		colorTextMuted, colorBlack, colorYellow, colorBlack, colorYellow, title, content)
+}
+
 func SignUpConfirmationBody(firstName string) string {
-	return fmt.Sprintf(`<p>Hi %s,</p><p>Thanks for creating an account at Rise.</p><p>Next steps:</p><ol><li>Download our mobile app and log in.</li><li>Complete your profile information.</li><li>Browse memberships and programs to get started.</li></ol><p>Welcome to the community!</p>`, firstName)
+	content := fmt.Sprintf(`
+		<p>Hey %s,</p>
+		<p><strong>Welcome to the team!</strong> Your Rise account is all set up and ready to go.</p>
+
+		<div class="info-box">
+			<strong>🏀 GET STARTED:</strong>
+			<ol style="margin: 15px 0 0 0; padding-left: 20px;">
+				<li>Download our mobile app and log in</li>
+				<li>Complete your profile information</li>
+				<li>Browse memberships and programs</li>
+			</ol>
+		</div>
+
+		<p>Time to level up. See you on the court!</p>
+
+		<p style="margin-top: 30px;"><strong>— The Rise Team</strong></p>
+	`, firstName)
+	return baseTemplate("Welcome to Rise", content)
 }
 
 func MembershipPurchaseBody(firstName, plan string) string {
-	return fmt.Sprintf(`<p>Hi %s,</p><p>Thank you for purchasing the %s membership.</p><p>Next steps:</p><ol><li>Check your dashboard for membership details.</li><li>Enjoy all the benefits available to you.</li><li>Contact us if you have any questions.</li></ol><p>We appreciate your support!</p>`, firstName, plan)
+	content := fmt.Sprintf(`
+		<p>Hey %s,</p>
+		<p><strong>You're officially in!</strong> Your <strong>%s</strong> membership is now active.</p>
+
+		<div class="success-box">
+			<strong>✓ MEMBERSHIP CONFIRMED</strong>
+			<p style="margin: 10px 0 0 0;">You now have access to all the benefits included in your plan.</p>
+		</div>
+
+		<div class="info-box">
+			<strong>WHAT'S NEXT:</strong>
+			<ol style="margin: 15px 0 0 0; padding-left: 20px;">
+				<li>Check your dashboard for membership details</li>
+				<li>Book your first session</li>
+				<li>Start training!</li>
+			</ol>
+		</div>
+
+		<p>Let's get to work.</p>
+
+		<p style="margin-top: 30px;"><strong>— The Rise Team</strong></p>
+	`, firstName, plan)
+	return baseTemplate("Membership Confirmed", content)
 }
 
 func EmailVerificationBody(firstName, verificationURL string) string {
-	return fmt.Sprintf(`
-		<!DOCTYPE html>
-		<html>
-		<head>
-			<style>
-				body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-				.container { max-width: 600px; margin: 0 auto; padding: 20px; }
-				.header { background-color: #007bff; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
-				.content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 5px 5px; }
-				.button { display: inline-block; padding: 12px 30px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-				.button:hover { background-color: #0056b3; }
-				.footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
-				.warning { background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin: 15px 0; }
-			</style>
-		</head>
-		<body>
-			<div class="container">
-				<div class="header">
-					<h1>Verify Your Email Address</h1>
-				</div>
-				<div class="content">
-					<p>Hi %s,</p>
+	content := fmt.Sprintf(`
+		<p>Hey %s,</p>
+		<p>Welcome to Rise! Just one more step to complete your registration.</p>
 
-					<p>Welcome to Rise! To complete your registration and start using your account, please verify your email address.</p>
+		<p style="text-align: center; margin: 30px 0;">
+			<a href="%s" class="button">VERIFY EMAIL</a>
+		</p>
 
-					<p style="text-align: center;">
-						<a href="%s" class="button">Verify Email Address</a>
-					</p>
+		<p style="font-size: 13px; color: #666;">Or copy and paste this link into your browser:</p>
+		<p style="background-color: #f5f5f5; padding: 12px; border-radius: 4px; word-break: break-all; font-size: 12px; font-family: monospace;">
+			%s
+		</p>
 
-					<p>Or copy and paste this link into your browser:</p>
-					<p style="background-color: white; padding: 10px; border: 1px solid #ddd; word-break: break-all;">
-						%s
-					</p>
+		<div class="alert-box">
+			<strong>⏰ HEADS UP:</strong>
+			<p style="margin: 10px 0 0 0;">This verification link expires in 24 hours.</p>
+		</div>
 
-					<div class="warning">
-						<strong>Important:</strong> This verification link will expire in 24 hours.
-					</div>
+		<p style="font-size: 13px; color: #666;">If you didn't create an account with Rise, you can safely ignore this email.</p>
 
-					<p>If you didn't create an account with Rise, you can safely ignore this email.</p>
-
-					<div class="footer">
-						<p>Thanks,<br>The Rise Team</p>
-						<p>This is an automated message, please do not reply to this email.</p>
-					</div>
-				</div>
-			</div>
-		</body>
-		</html>
+		<p style="margin-top: 30px;"><strong>— The Rise Team</strong></p>
 	`, firstName, verificationURL, verificationURL)
+	return baseTemplate("Verify Your Email", content)
 }
 
 func SubsidyApprovedBody(firstName, providerName string, amount float64, validUntil string) string {
-	return fmt.Sprintf(`
-		<!DOCTYPE html>
-		<html>
-		<head>
-			<style>
-				body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-				.container { max-width: 600px; margin: 0 auto; padding: 20px; }
-				.header { background-color: #28a745; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
-				.content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 5px 5px; }
-				.highlight { background-color: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; }
-				.amount { font-size: 32px; font-weight: bold; color: #28a745; text-align: center; margin: 20px 0; }
-				.info-box { background-color: white; border: 1px solid #ddd; padding: 15px; margin: 15px 0; border-radius: 5px; }
-				.footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
-			</style>
-		</head>
-		<body>
-			<div class="container">
-				<div class="header">
-					<h1>🎉 Subsidy Approved!</h1>
-				</div>
-				<div class="content">
-					<p>Hi %s,</p>
+	content := fmt.Sprintf(`
+		<p>Hey %s,</p>
+		<p><strong>Great news!</strong> You've been approved for financial assistance.</p>
 
-					<p>Great news! You've been approved for a subsidy to help cover your membership costs at Rise Sports Complex.</p>
+		<div class="stat-box">
+			<p class="stat-number">$%.2f</p>
+			<p class="stat-label">Subsidy Approved</p>
+		</div>
 
-					<div class="amount">$%.2f</div>
+		<div class="info-box">
+			<strong>📋 DETAILS:</strong>
+			<ul style="margin: 15px 0 0 0; padding-left: 20px; list-style: none;">
+				<li><strong>Provider:</strong> %s</li>
+				<li><strong>Amount:</strong> $%.2f</li>
+				<li><strong>Valid Until:</strong> %s</li>
+			</ul>
+		</div>
 
-					<div class="info-box">
-						<strong>Subsidy Details:</strong>
-						<ul style="margin: 10px 0;">
-							<li><strong>Provider:</strong> %s</li>
-							<li><strong>Amount:</strong> $%.2f</li>
-							<li><strong>Valid Until:</strong> %s</li>
-						</ul>
-					</div>
+		<div class="success-box">
+			<strong>HOW IT WORKS:</strong>
+			<p style="margin: 10px 0 0 0;">Your subsidy will be automatically applied to your next membership purchase. You'll only pay the remaining balance.</p>
+		</div>
 
-					<div class="highlight">
-						<strong>What happens next?</strong>
-						<p style="margin: 10px 0;">Your subsidy will be automatically applied to your next membership purchase or renewal. You'll only pay the remaining balance after the subsidy is applied.</p>
-					</div>
+		<p>Questions? Don't hesitate to reach out.</p>
 
-					<p>If you have any questions about your subsidy, please don't hesitate to contact us.</p>
-
-					<div class="footer">
-						<p>Thanks,<br>The Rise Team</p>
-						<p>This is an automated message, please do not reply to this email.</p>
-					</div>
-				</div>
-			</div>
-		</body>
-		</html>
+		<p style="margin-top: 30px;"><strong>— The Rise Team</strong></p>
 	`, firstName, amount, providerName, amount, validUntil)
+	return baseTemplate("Subsidy Approved!", content)
 }
 
 func SubsidyUsedBody(firstName string, amountUsed, remainingBalance float64, transactionType string) string {
-	return fmt.Sprintf(`
-		<!DOCTYPE html>
-		<html>
-		<head>
-			<style>
-				body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-				.container { max-width: 600px; margin: 0 auto; padding: 20px; }
-				.header { background-color: #007bff; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
-				.content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 5px 5px; }
-				.transaction-box { background-color: white; border: 1px solid #ddd; padding: 20px; margin: 20px 0; border-radius: 5px; }
-				.amount-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
-				.balance { background-color: #e3f2fd; border-left: 4px solid #007bff; padding: 15px; margin: 20px 0; font-size: 18px; }
-				.footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
-			</style>
-		</head>
-		<body>
-			<div class="container">
-				<div class="header">
-					<h1>Subsidy Applied</h1>
-				</div>
-				<div class="content">
-					<p>Hi %s,</p>
+	content := fmt.Sprintf(`
+		<p>Hey %s,</p>
+		<p>Your subsidy was applied to your recent %s transaction.</p>
 
-					<p>Your subsidy has been applied to your recent %s transaction.</p>
-
-					<div class="transaction-box">
-						<div class="amount-row">
-							<span><strong>Subsidy Applied:</strong></span>
-							<span style="color: #28a745; font-weight: bold;">$%.2f</span>
-						</div>
-						<div class="amount-row" style="border-bottom: none;">
-							<span><strong>Remaining Balance:</strong></span>
-							<span style="color: #007bff; font-weight: bold;">$%.2f</span>
-						</div>
-					</div>
-
-					<div class="balance">
-						💰 You still have <strong>$%.2f</strong> available for future memberships.
-					</div>
-
-					<p>Your subsidy will continue to be applied automatically to eligible transactions.</p>
-
-					<div class="footer">
-						<p>Thanks,<br>The Rise Team</p>
-						<p>This is an automated message, please do not reply to this email.</p>
-					</div>
-				</div>
+		<div style="display: flex; gap: 15px; margin: 20px 0;">
+			<div class="stat-box" style="flex: 1; background-color: #e6ffe6;">
+				<p style="font-size: 28px; font-weight: 900; color: #28a745; margin: 0;">$%.2f</p>
+				<p class="stat-label">Applied</p>
 			</div>
-		</body>
-		</html>
+			<div class="stat-box" style="flex: 1;">
+				<p style="font-size: 28px; font-weight: 900; color: #FFD700; margin: 0;">$%.2f</p>
+				<p class="stat-label">Remaining</p>
+			</div>
+		</div>
+
+		<div class="info-box">
+			<strong>💰 BALANCE UPDATE:</strong>
+			<p style="margin: 10px 0 0 0;">You still have <strong>$%.2f</strong> available for future memberships.</p>
+		</div>
+
+		<p style="margin-top: 30px;"><strong>— The Rise Team</strong></p>
 	`, firstName, transactionType, amountUsed, remainingBalance, remainingBalance)
+	return baseTemplate("Subsidy Applied", content)
 }
 
 func SubsidyDepletedBody(firstName string, totalUsed float64) string {
-	return fmt.Sprintf(`
-		<!DOCTYPE html>
-		<html>
-		<head>
-			<style>
-				body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-				.container { max-width: 600px; margin: 0 auto; padding: 20px; }
-				.header { background-color: #ffc107; color: #333; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
-				.content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 5px 5px; }
-				.notice-box { background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
-				.summary { background-color: white; border: 1px solid #ddd; padding: 20px; margin: 20px 0; border-radius: 5px; text-align: center; }
-				.footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
-			</style>
-		</head>
-		<body>
-			<div class="container">
-				<div class="header">
-					<h1>Subsidy Fully Used</h1>
-				</div>
-				<div class="content">
-					<p>Hi %s,</p>
+	content := fmt.Sprintf(`
+		<p>Hey %s,</p>
+		<p>Your subsidy balance has been fully used.</p>
 
-					<p>Your subsidy balance has been fully used.</p>
+		<div class="stat-box">
+			<p class="stat-number">$%.2f</p>
+			<p class="stat-label">Total Used</p>
+		</div>
 
-					<div class="summary">
-						<p style="margin: 10px 0; color: #666;">Total Subsidy Used</p>
-						<p style="font-size: 32px; font-weight: bold; color: #28a745; margin: 10px 0;">$%.2f</p>
-					</div>
+		<div class="alert-box">
+			<strong>WHAT'S NEXT:</strong>
+			<p style="margin: 10px 0 0 0;">Future membership purchases will be charged at the regular price. If you need assistance with costs, please contact our team to discuss available options.</p>
+		</div>
 
-					<div class="notice-box">
-						<strong>What's Next?</strong>
-						<p style="margin: 10px 0;">Future membership purchases will be charged at the regular price. If you need assistance with membership costs, please contact our team to discuss available options.</p>
-					</div>
+		<p>Thanks for being part of the Rise community!</p>
 
-					<p>Thank you for being part of the Rise community!</p>
-
-					<div class="footer">
-						<p>Thanks,<br>The Rise Team</p>
-						<p>This is an automated message, please do not reply to this email.</p>
-					</div>
-				</div>
-			</div>
-		</body>
-		</html>
+		<p style="margin-top: 30px;"><strong>— The Rise Team</strong></p>
 	`, firstName, totalUsed)
+	return baseTemplate("Subsidy Fully Used", content)
 }
 
 func SubsidyExpiringBody(firstName string, remainingBalance float64, expiryDate string) string {
-	return fmt.Sprintf(`
-		<!DOCTYPE html>
-		<html>
-		<head>
-			<style>
-				body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-				.container { max-width: 600px; margin: 0 auto; padding: 20px; }
-				.header { background-color: #dc3545; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
-				.content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 5px 5px; }
-				.urgent { background-color: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; }
-				.balance-box { background-color: white; border: 1px solid #ddd; padding: 20px; margin: 20px 0; border-radius: 5px; text-align: center; }
-				.footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
-			</style>
-		</head>
-		<body>
-			<div class="container">
-				<div class="header">
-					<h1>⚠️ Subsidy Expiring Soon</h1>
-				</div>
-				<div class="content">
-					<p>Hi %s,</p>
+	content := fmt.Sprintf(`
+		<p>Hey %s,</p>
+		<p><strong>Heads up!</strong> Your subsidy is expiring soon.</p>
 
-					<p>This is a reminder that your subsidy will expire soon.</p>
+		<div class="stat-box" style="border: 2px solid #dc3545;">
+			<p style="font-size: 28px; font-weight: 900; color: #FFD700; margin: 0;">$%.2f</p>
+			<p class="stat-label">Remaining Balance</p>
+			<p style="color: #dc3545; font-weight: bold; margin-top: 10px;">Expires: %s</p>
+		</div>
 
-					<div class="balance-box">
-						<p style="margin: 10px 0; color: #666;">Remaining Balance</p>
-						<p style="font-size: 32px; font-weight: bold; color: #007bff; margin: 10px 0;">$%.2f</p>
-						<p style="margin: 10px 0; color: #666;">Expires: <strong>%s</strong></p>
-					</div>
+		<div class="danger-box">
+			<strong>⚠️ ACTION REQUIRED:</strong>
+			<p style="margin: 10px 0 0 0;">Purchase or renew your membership before the expiry date to use your remaining balance. After expiration, unused funds will no longer be available.</p>
+		</div>
 
-					<div class="urgent">
-						<strong>Action Required:</strong>
-						<p style="margin: 10px 0;">To use your remaining subsidy balance, please purchase or renew your membership before the expiry date. After expiration, any unused balance will no longer be available.</p>
-					</div>
+		<p>Don't miss out — use it before you lose it!</p>
 
-					<p>If you have any questions, please contact us.</p>
-
-					<div class="footer">
-						<p>Thanks,<br>The Rise Team</p>
-						<p>This is an automated message, please do not reply to this email.</p>
-					</div>
-				</div>
-			</div>
-		</body>
-		</html>
+		<p style="margin-top: 30px;"><strong>— The Rise Team</strong></p>
 	`, firstName, remainingBalance, expiryDate)
+	return baseTemplate("Subsidy Expiring Soon", content)
 }
 
 func PaymentFailedBody(firstName, membershipPlan, updatePaymentURL string) string {
-	return fmt.Sprintf(`
-		<!DOCTYPE html>
-		<html>
-		<head>
-			<style>
-				body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-				.container { max-width: 600px; margin: 0 auto; padding: 20px; }
-				.header { background-color: #dc3545; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
-				.content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 5px 5px; }
-				.alert-box { background-color: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; }
-				.info-box { background-color: white; border: 1px solid #ddd; padding: 20px; margin: 20px 0; border-radius: 5px; }
-				.button { display: inline-block; padding: 12px 30px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-				.footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
-			</style>
-		</head>
-		<body>
-			<div class="container">
-				<div class="header">
-					<h1>⚠️ Payment Failed</h1>
-				</div>
-				<div class="content">
-					<p>Hi %s,</p>
+	content := fmt.Sprintf(`
+		<p>Hey %s,</p>
+		<p>We couldn't process your payment for your <strong>%s</strong> membership.</p>
 
-					<p>We were unable to process your payment for your <strong>%s</strong> membership.</p>
+		<div class="danger-box">
+			<strong>WHAT HAPPENED:</strong>
+			<p style="margin: 10px 0 0 0;">Your payment method was declined. This could be due to insufficient funds, an expired card, or your bank blocking the transaction.</p>
+		</div>
 
-					<div class="alert-box">
-						<strong>What happened?</strong>
-						<p style="margin: 10px 0;">Your payment method was declined. This could be due to insufficient funds, an expired card, or your bank blocking the transaction.</p>
-					</div>
+		<div class="info-box">
+			<strong>FIX IT NOW:</strong>
+			<ol style="margin: 15px 0 0 0; padding-left: 20px;">
+				<li>Check that your payment method has sufficient funds</li>
+				<li>Make sure your card hasn't expired</li>
+				<li>Update your payment method below</li>
+			</ol>
+		</div>
 
-					<div class="info-box">
-						<strong>What you need to do:</strong>
-						<ol style="margin: 10px 0;">
-							<li>Check that your payment method has sufficient funds</li>
-							<li>Make sure your card hasn't expired</li>
-							<li>Update your payment method using the button below</li>
-						</ol>
-					</div>
+		<p style="text-align: center; margin: 30px 0;">
+			<a href="%s" class="button">UPDATE PAYMENT</a>
+		</p>
 
-					<p style="text-align: center;">
-						<a href="%s" class="button">Update Payment Method</a>
-					</p>
+		<div class="alert-box">
+			<strong>⏰ IMPORTANT:</strong>
+			<p style="margin: 10px 0 0 0;">If payment isn't received within 7 days, your membership access may be suspended.</p>
+		</div>
 
-					<div class="alert-box">
-						<strong>Important:</strong>
-						<p style="margin: 10px 0;">If payment is not received within 7 days, your membership access may be suspended. Please update your payment method as soon as possible to avoid any interruption to your membership benefits.</p>
-					</div>
-
-					<p>If you have any questions or need assistance, please contact us.</p>
-
-					<div class="footer">
-						<p>Thanks,<br>The Rise Team</p>
-						<p>This is an automated message, please do not reply to this email.</p>
-					</div>
-				</div>
-			</div>
-		</body>
-		</html>
+		<p style="margin-top: 30px;"><strong>— The Rise Team</strong></p>
 	`, firstName, membershipPlan, updatePaymentURL)
+	return baseTemplate("Payment Failed", content)
 }
 
 func AccountRecoveryBody(resetURL string) string {
-	return fmt.Sprintf(`
-		<!DOCTYPE html>
-		<html>
-		<head>
-			<style>
-				body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-				.container { max-width: 600px; margin: 0 auto; padding: 20px; }
-				.header { background-color: #007bff; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
-				.content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 5px 5px; }
-				.button { display: inline-block; padding: 12px 30px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-				.info-box { background-color: #e3f2fd; border-left: 4px solid #007bff; padding: 15px; margin: 20px 0; }
-				.footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
-			</style>
-		</head>
-		<body>
-			<div class="container">
-				<div class="header">
-					<h1>Reset Your Password</h1>
-				</div>
-				<div class="content">
-					<p>Hi,</p>
+	content := fmt.Sprintf(`
+		<p>Hey,</p>
+		<p>We've made some updates to our system and need you to reset your password to continue accessing your Rise account.</p>
 
-					<p>We've made some updates to our system and need you to reset your password to continue accessing your Rise account.</p>
+		<div class="success-box">
+			<strong>✓ YOUR ACCOUNT IS SAFE</strong>
+			<p style="margin: 10px 0 0 0;">All your membership details, credits, and account information are intact. You just need to set a new password.</p>
+		</div>
 
-					<div class="info-box">
-						<strong>Your account is safe!</strong>
-						<p style="margin: 10px 0;">All your membership details, credits, and account information are intact. You just need to set a new password.</p>
-					</div>
+		<p style="text-align: center; margin: 30px 0;">
+			<a href="%s" class="button">RESET PASSWORD</a>
+		</p>
 
-					<p style="text-align: center;">
-						<a href="%s" class="button">Reset Password</a>
-					</p>
+		<p style="font-size: 13px; color: #666;">Or copy and paste this link into your browser:</p>
+		<p style="background-color: #f5f5f5; padding: 12px; border-radius: 4px; word-break: break-all; font-size: 12px; font-family: monospace;">
+			%s
+		</p>
 
-					<p>Or copy and paste this link into your browser:</p>
-					<p style="background-color: white; padding: 10px; border: 1px solid #ddd; word-break: break-all; font-size: 12px;">
-						%s
-					</p>
+		<p>Questions? We're here to help.</p>
 
-					<p>If you have any questions, please contact us.</p>
-
-					<div class="footer">
-						<p>Thanks,<br>The Rise Team</p>
-						<p>This is an automated message, please do not reply to this email.</p>
-					</div>
-				</div>
-			</div>
-		</body>
-		</html>
+		<p style="margin-top: 30px;"><strong>— The Rise Team</strong></p>
 	`, resetURL, resetURL)
+	return baseTemplate("Reset Your Password", content)
 }
 
 func PaymentFailedReminderBody(firstName, membershipPlan, updatePaymentURL string, daysUntilSuspension int) string {
-	return fmt.Sprintf(`
-		<!DOCTYPE html>
-		<html>
-		<head>
-			<style>
-				body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-				.container { max-width: 600px; margin: 0 auto; padding: 20px; }
-				.header { background-color: #ffc107; color: #333; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
-				.content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 5px 5px; }
-				.urgent { background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
-				.countdown { background-color: white; border: 2px solid #dc3545; padding: 20px; margin: 20px 0; border-radius: 5px; text-align: center; }
-				.button { display: inline-block; padding: 12px 30px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-				.footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
-			</style>
-		</head>
-		<body>
-			<div class="container">
-				<div class="header">
-					<h1>⏰ Payment Reminder</h1>
-				</div>
-				<div class="content">
-					<p>Hi %s,</p>
+	content := fmt.Sprintf(`
+		<p>Hey %s,</p>
+		<p>This is a reminder — we still haven't received payment for your <strong>%s</strong> membership.</p>
 
-					<p>This is a reminder that we still haven't received payment for your <strong>%s</strong> membership.</p>
+		<div class="stat-box" style="border: 3px solid #dc3545;">
+			<p class="stat-number" style="color: #dc3545;">%d</p>
+			<p class="stat-label">Days Until Suspension</p>
+		</div>
 
-					<div class="countdown">
-						<p style="margin: 10px 0; color: #666;">Days Until Membership Suspension</p>
-						<p style="font-size: 48px; font-weight: bold; color: #dc3545; margin: 10px 0;">%d</p>
-					</div>
+		<div class="alert-box">
+			<strong>DON'T LOSE ACCESS:</strong>
+			<p style="margin: 10px 0 0 0;">Update your payment method now to keep your membership benefits without interruption.</p>
+		</div>
 
-					<div class="urgent">
-						<strong>Don't lose your membership benefits!</strong>
-						<p style="margin: 10px 0;">Update your payment method now to continue enjoying all your membership benefits without interruption.</p>
-					</div>
+		<p style="text-align: center; margin: 30px 0;">
+			<a href="%s" class="button" style="background-color: #dc3545;">UPDATE PAYMENT NOW</a>
+		</p>
 
-					<p style="text-align: center;">
-						<a href="%s" class="button">Update Payment Now</a>
-					</p>
+		<p style="font-size: 13px; color: #666;">If you've already updated your payment method, please disregard this email.</p>
 
-					<p>If you've already updated your payment method, please disregard this email.</p>
-
-					<div class="footer">
-						<p>Thanks,<br>The Rise Team</p>
-						<p>This is an automated message, please do not reply to this email.</p>
-					</div>
-				</div>
-			</div>
-		</body>
-		</html>
+		<p style="margin-top: 30px;"><strong>— The Rise Team</strong></p>
 	`, firstName, membershipPlan, daysUntilSuspension, updatePaymentURL)
+	return baseTemplate("Payment Reminder", content)
 }
 
 func EventNotificationBody(firstName, subject, message string) string {
-	return fmt.Sprintf(`
-		<!DOCTYPE html>
-		<html>
-		<head>
-			<style>
-				body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-				.container { max-width: 600px; margin: 0 auto; padding: 20px; }
-				.header { background-color: #007bff; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
-				.content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 5px 5px; }
-				.message-box { background-color: white; border: 1px solid #ddd; padding: 20px; margin: 20px 0; border-radius: 5px; white-space: pre-wrap; }
-				.footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
-			</style>
-		</head>
-		<body>
-			<div class="container">
-				<div class="header">
-					<h1>%s</h1>
-				</div>
-				<div class="content">
-					<p>Hi %s,</p>
+	content := fmt.Sprintf(`
+		<p>Hey %s,</p>
 
-					<div class="message-box">%s</div>
+		<div style="background-color: #f5f5f5; border-left: 4px solid #FFD700; padding: 20px; margin: 20px 0; white-space: pre-wrap;">%s</div>
 
-					<div class="footer">
-						<p>Thanks,<br>The Rise Team</p>
-						<p>This is an automated message from Rise Sports Complex.</p>
-					</div>
-				</div>
-			</div>
-		</body>
-		</html>
-	`, subject, firstName, message)
+		<p style="margin-top: 30px;"><strong>— The Rise Team</strong></p>
+	`, firstName, message)
+	return baseTemplate(subject, content)
 }

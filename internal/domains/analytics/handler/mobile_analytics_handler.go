@@ -58,7 +58,7 @@ func (h *MobileAnalyticsHandler) RecordMobileSession(w http.ResponseWriter, r *h
 // @Tags admin,analytics
 // @Produce json
 // @Security Bearer
-// @Success 200 {object} repo.MobileUsageStats "Mobile usage statistics"
+// @Success 200 {object} map[string]interface{} "Mobile usage statistics"
 // @Failure 401 {object} map[string]interface{} "Unauthorized"
 // @Failure 403 {object} map[string]interface{} "Forbidden - Admin only"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"

@@ -297,3 +297,83 @@ func (r *CustomerCreditRepository) CanUseCreditsWithinWeeklyLimit(ctx context.Co
 
 	return result.CanUseCredits, nil
 }
+
+// GetEnrollmentCreditTransaction retrieves the credit transaction for a customer's event enrollment
+// Returns the amount of credits originally paid (as positive value), or nil if no credit payment found
+func (r *CustomerCreditRepository) GetEnrollmentCreditTransaction(ctx context.Context, customerID, eventID uuid.UUID) (*int32, *errLib.CommonError) {
+	result, err := r.queries.GetEnrollmentCreditTransaction(ctx, dbUser.GetEnrollmentCreditTransactionParams{
+		CustomerID: customerID,
+		EventID:    uuid.NullUUID{UUID: eventID, Valid: true},
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil // No credit payment found for this enrollment
+		}
+		log.Printf("Error getting enrollment credit transaction: %v", err)
+		return nil, errLib.New("Failed to check enrollment payment method", http.StatusInternalServerError)
+	}
+
+	// Amount is stored as negative for enrollment, convert to positive for refund
+	refundAmount := -result.Amount
+	return &refundAmount, nil
+}
+
+// CreditRefundAuditParams holds parameters for logging a credit refund audit entry
+type CreditRefundAuditParams struct {
+	CustomerID      uuid.UUID
+	EventID         uuid.UUID
+	PerformedBy     uuid.UUID
+	CreditsRefunded int32
+	EventName       string
+	EventStartAt    time.Time
+	ProgramName     string
+	LocationName    string
+	StaffRole       string
+	Reason          string
+	IPAddress       string
+}
+
+// LogCreditRefundAudit logs a credit refund to the audit table with full event context
+func (r *CustomerCreditRepository) LogCreditRefundAudit(ctx context.Context, params CreditRefundAuditParams) *errLib.CommonError {
+	err := r.queries.LogCreditRefundAudit(ctx, dbUser.LogCreditRefundAuditParams{
+		CustomerID:      params.CustomerID,
+		EventID:         uuid.NullUUID{UUID: params.EventID, Valid: true},
+		PerformedBy:     params.PerformedBy,
+		CreditsRefunded: params.CreditsRefunded,
+		EventName:       sql.NullString{String: params.EventName, Valid: params.EventName != ""},
+		EventStartAt:    sql.NullTime{Time: params.EventStartAt, Valid: !params.EventStartAt.IsZero()},
+		ProgramName:     sql.NullString{String: params.ProgramName, Valid: params.ProgramName != ""},
+		LocationName:    sql.NullString{String: params.LocationName, Valid: params.LocationName != ""},
+		StaffRole:       sql.NullString{String: params.StaffRole, Valid: params.StaffRole != ""},
+		Reason:          sql.NullString{String: params.Reason, Valid: params.Reason != ""},
+		IpAddress:       sql.NullString{String: params.IPAddress, Valid: params.IPAddress != ""},
+	})
+	if err != nil {
+		log.Printf("Error logging credit refund audit: %v", err)
+		return errLib.New("Failed to log credit refund audit", http.StatusInternalServerError)
+	}
+	return nil
+}
+
+// GetCreditRefundLogs retrieves credit refund audit logs with optional filtering
+func (r *CustomerCreditRepository) GetCreditRefundLogs(ctx context.Context, customerID, eventID *uuid.UUID, limit, offset int32) ([]dbUser.GetCreditRefundLogsRow, *errLib.CommonError) {
+	var customerIDParam, eventIDParam uuid.NullUUID
+	if customerID != nil {
+		customerIDParam = uuid.NullUUID{UUID: *customerID, Valid: true}
+	}
+	if eventID != nil {
+		eventIDParam = uuid.NullUUID{UUID: *eventID, Valid: true}
+	}
+
+	logs, err := r.queries.GetCreditRefundLogs(ctx, dbUser.GetCreditRefundLogsParams{
+		CustomerID: customerIDParam,
+		EventID:    eventIDParam,
+		Limit:      limit,
+		Offset:     offset,
+	})
+	if err != nil {
+		log.Printf("Error getting credit refund logs: %v", err)
+		return nil, errLib.New("Failed to retrieve credit refund logs", http.StatusInternalServerError)
+	}
+	return logs, nil
+}

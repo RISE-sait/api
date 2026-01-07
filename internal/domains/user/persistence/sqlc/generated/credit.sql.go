@@ -141,6 +141,108 @@ func (q *Queries) GetActiveCustomerMembershipPlanID(ctx context.Context, custome
 	return membership_plan_id, err
 }
 
+const getCreditRefundLogs = `-- name: GetCreditRefundLogs :many
+SELECT
+    crl.id,
+    crl.customer_id,
+    crl.event_id,
+    crl.performed_by,
+    crl.credits_refunded,
+    crl.event_name,
+    crl.event_start_at,
+    crl.program_name,
+    crl.location_name,
+    crl.staff_role,
+    crl.reason,
+    crl.ip_address,
+    crl.created_at,
+    cu.first_name as customer_first_name,
+    cu.last_name as customer_last_name,
+    su.first_name as staff_first_name,
+    su.last_name as staff_last_name
+FROM audit.credit_refund_logs crl
+JOIN users.users cu ON crl.customer_id = cu.id
+JOIN users.users su ON crl.performed_by = su.id
+WHERE ($3::uuid IS NULL OR crl.customer_id = $3)
+  AND ($4::uuid IS NULL OR crl.event_id = $4)
+ORDER BY crl.created_at DESC
+LIMIT $1 OFFSET $2
+`
+
+type GetCreditRefundLogsParams struct {
+	Limit      int32         `json:"limit"`
+	Offset     int32         `json:"offset"`
+	CustomerID uuid.NullUUID `json:"customer_id"`
+	EventID    uuid.NullUUID `json:"event_id"`
+}
+
+type GetCreditRefundLogsRow struct {
+	ID                uuid.UUID      `json:"id"`
+	CustomerID        uuid.UUID      `json:"customer_id"`
+	EventID           uuid.NullUUID  `json:"event_id"`
+	PerformedBy       uuid.UUID      `json:"performed_by"`
+	CreditsRefunded   int32          `json:"credits_refunded"`
+	EventName         sql.NullString `json:"event_name"`
+	EventStartAt      sql.NullTime   `json:"event_start_at"`
+	ProgramName       sql.NullString `json:"program_name"`
+	LocationName      sql.NullString `json:"location_name"`
+	StaffRole         sql.NullString `json:"staff_role"`
+	Reason            sql.NullString `json:"reason"`
+	IpAddress         sql.NullString `json:"ip_address"`
+	CreatedAt         sql.NullTime   `json:"created_at"`
+	CustomerFirstName string         `json:"customer_first_name"`
+	CustomerLastName  string         `json:"customer_last_name"`
+	StaffFirstName    string         `json:"staff_first_name"`
+	StaffLastName     string         `json:"staff_last_name"`
+}
+
+// Get credit refund audit logs with customer and staff names
+func (q *Queries) GetCreditRefundLogs(ctx context.Context, arg GetCreditRefundLogsParams) ([]GetCreditRefundLogsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCreditRefundLogs,
+		arg.Limit,
+		arg.Offset,
+		arg.CustomerID,
+		arg.EventID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCreditRefundLogsRow
+	for rows.Next() {
+		var i GetCreditRefundLogsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CustomerID,
+			&i.EventID,
+			&i.PerformedBy,
+			&i.CreditsRefunded,
+			&i.EventName,
+			&i.EventStartAt,
+			&i.ProgramName,
+			&i.LocationName,
+			&i.StaffRole,
+			&i.Reason,
+			&i.IpAddress,
+			&i.CreatedAt,
+			&i.CustomerFirstName,
+			&i.CustomerLastName,
+			&i.StaffFirstName,
+			&i.StaffLastName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCustomerCreditTransactions = `-- name: GetCustomerCreditTransactions :many
 SELECT id, customer_id, amount, transaction_type, event_id, description, created_at
 FROM users.credit_transactions
@@ -223,6 +325,37 @@ func (q *Queries) GetCustomerMembershipPlan(ctx context.Context, customerID uuid
 	row := q.db.QueryRowContext(ctx, getCustomerMembershipPlan, customerID)
 	var i GetCustomerMembershipPlanRow
 	err := row.Scan(&i.CreditAllocation, &i.WeeklyCreditLimit)
+	return i, err
+}
+
+const getEnrollmentCreditTransaction = `-- name: GetEnrollmentCreditTransaction :one
+
+SELECT id, amount, created_at
+FROM users.credit_transactions
+WHERE customer_id = $1
+  AND event_id = $2
+  AND transaction_type = 'enrollment'
+ORDER BY created_at DESC
+LIMIT 1
+`
+
+type GetEnrollmentCreditTransactionParams struct {
+	CustomerID uuid.UUID     `json:"customer_id"`
+	EventID    uuid.NullUUID `json:"event_id"`
+}
+
+type GetEnrollmentCreditTransactionRow struct {
+	ID        uuid.UUID    `json:"id"`
+	Amount    int32        `json:"amount"`
+	CreatedAt sql.NullTime `json:"created_at"`
+}
+
+// Credit Refund Queries
+// Get the credit transaction for a customer's event enrollment (to determine refund amount)
+func (q *Queries) GetEnrollmentCreditTransaction(ctx context.Context, arg GetEnrollmentCreditTransactionParams) (GetEnrollmentCreditTransactionRow, error) {
+	row := q.db.QueryRowContext(ctx, getEnrollmentCreditTransaction, arg.CustomerID, arg.EventID)
+	var i GetEnrollmentCreditTransactionRow
+	err := row.Scan(&i.ID, &i.Amount, &i.CreatedAt)
 	return i, err
 }
 
@@ -339,6 +472,46 @@ func (q *Queries) IsCustomerEnrolledInEvent(ctx context.Context, arg IsCustomerE
 	var is_enrolled bool
 	err := row.Scan(&is_enrolled)
 	return is_enrolled, err
+}
+
+const logCreditRefundAudit = `-- name: LogCreditRefundAudit :exec
+INSERT INTO audit.credit_refund_logs (
+    customer_id, event_id, performed_by, credits_refunded,
+    event_name, event_start_at, program_name, location_name,
+    staff_role, reason, ip_address
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+`
+
+type LogCreditRefundAuditParams struct {
+	CustomerID      uuid.UUID      `json:"customer_id"`
+	EventID         uuid.NullUUID  `json:"event_id"`
+	PerformedBy     uuid.UUID      `json:"performed_by"`
+	CreditsRefunded int32          `json:"credits_refunded"`
+	EventName       sql.NullString `json:"event_name"`
+	EventStartAt    sql.NullTime   `json:"event_start_at"`
+	ProgramName     sql.NullString `json:"program_name"`
+	LocationName    sql.NullString `json:"location_name"`
+	StaffRole       sql.NullString `json:"staff_role"`
+	Reason          sql.NullString `json:"reason"`
+	IpAddress       sql.NullString `json:"ip_address"`
+}
+
+// Log a credit refund to the audit table with full event context
+func (q *Queries) LogCreditRefundAudit(ctx context.Context, arg LogCreditRefundAuditParams) error {
+	_, err := q.db.ExecContext(ctx, logCreditRefundAudit,
+		arg.CustomerID,
+		arg.EventID,
+		arg.PerformedBy,
+		arg.CreditsRefunded,
+		arg.EventName,
+		arg.EventStartAt,
+		arg.ProgramName,
+		arg.LocationName,
+		arg.StaffRole,
+		arg.Reason,
+		arg.IpAddress,
+	)
+	return err
 }
 
 const logCreditTransaction = `-- name: LogCreditTransaction :exec

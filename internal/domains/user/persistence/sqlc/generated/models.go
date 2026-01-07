@@ -549,6 +549,26 @@ type AthleticTeam struct {
 	IsExternal bool `json:"is_external"`
 }
 
+// Audit trail for credit refunds when customers are removed from events
+type AuditCreditRefundLog struct {
+	ID          uuid.UUID     `json:"id"`
+	CustomerID  uuid.UUID     `json:"customer_id"`
+	EventID     uuid.NullUUID `json:"event_id"`
+	PerformedBy uuid.UUID     `json:"performed_by"`
+	// Number of credits refunded to customer
+	CreditsRefunded int32 `json:"credits_refunded"`
+	// Snapshot of event name at time of refund
+	EventName    sql.NullString `json:"event_name"`
+	EventStartAt sql.NullTime   `json:"event_start_at"`
+	ProgramName  sql.NullString `json:"program_name"`
+	LocationName sql.NullString `json:"location_name"`
+	// Role of admin who processed the refund
+	StaffRole sql.NullString `json:"staff_role"`
+	Reason    sql.NullString `json:"reason"`
+	IpAddress sql.NullString `json:"ip_address"`
+	CreatedAt sql.NullTime   `json:"created_at"`
+}
+
 type AuditOutbox struct {
 	ID           uuid.UUID        `json:"id"`
 	SqlStatement string           `json:"sql_statement"`
@@ -631,6 +651,25 @@ type EventsEventMembershipAccess struct {
 	EventID          uuid.UUID    `json:"event_id"`
 	MembershipPlanID uuid.UUID    `json:"membership_plan_id"`
 	CreatedAt        sql.NullTime `json:"created_at"`
+}
+
+// Tracks notifications sent to event attendees
+type EventsNotificationHistory struct {
+	ID      uuid.UUID `json:"id"`
+	EventID uuid.UUID `json:"event_id"`
+	SentBy  uuid.UUID `json:"sent_by"`
+	// Notification channel: email, push, or both
+	Channel string         `json:"channel"`
+	Subject sql.NullString `json:"subject"`
+	Message string         `json:"message"`
+	// Whether event details were automatically included in the message
+	IncludeEventDetails bool      `json:"include_event_details"`
+	RecipientCount      int32     `json:"recipient_count"`
+	EmailSuccessCount   int32     `json:"email_success_count"`
+	EmailFailureCount   int32     `json:"email_failure_count"`
+	PushSuccessCount    int32     `json:"push_success_count"`
+	PushFailureCount    int32     `json:"push_failure_count"`
+	CreatedAt           time.Time `json:"created_at"`
 }
 
 type EventsStaff struct {
@@ -827,6 +866,12 @@ type PaymentsPaymentTransaction struct {
 	RefundedAt     sql.NullTime          `json:"refunded_at"`
 	CreatedAt      time.Time             `json:"created_at"`
 	UpdatedAt      time.Time             `json:"updated_at"`
+	// Stripe receipt URL for one-time payments (events, programs, credit packages)
+	ReceiptUrl sql.NullString `json:"receipt_url"`
+	// Stripe hosted invoice URL for subscription payments
+	InvoiceUrl sql.NullString `json:"invoice_url"`
+	// Stripe invoice PDF download URL for subscription payments
+	InvoicePdfUrl sql.NullString `json:"invoice_pdf_url"`
 }
 
 type PlaygroundSession struct {

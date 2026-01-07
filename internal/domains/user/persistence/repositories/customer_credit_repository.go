@@ -259,6 +259,31 @@ func (r *CustomerCreditRepository) UpdateWeeklyUsage(ctx context.Context, custom
 	return nil
 }
 
+// ReduceWeeklyUsage reduces the weekly credit usage when credits are refunded
+func (r *CustomerCreditRepository) ReduceWeeklyUsage(ctx context.Context, customerID uuid.UUID, creditsToReduce int32) *errLib.CommonError {
+	// Calculate current week start (Monday of the current week)
+	now := time.Now()
+	weekday := now.Weekday()
+	daysSinceMonday := int(weekday-time.Monday) % 7
+	if daysSinceMonday < 0 {
+		daysSinceMonday += 7
+	}
+	monday := now.AddDate(0, 0, -daysSinceMonday)
+	weekStart := time.Date(monday.Year(), monday.Month(), monday.Day(), 0, 0, 0, 0, monday.Location())
+
+	err := r.queries.ReduceWeeklyCreditsUsed(ctx, dbUser.ReduceWeeklyCreditsUsedParams{
+		CustomerID:    customerID,
+		WeekStartDate: weekStart,
+		CreditsUsed:   creditsToReduce,
+	})
+
+	if err != nil {
+		return errLib.New("Failed to reduce weekly usage", http.StatusInternalServerError)
+	}
+
+	return nil
+}
+
 // IsCustomerEnrolledInEvent checks if customer is already enrolled in an event (to prevent duplicate credit payments)
 func (r *CustomerCreditRepository) IsCustomerEnrolledInEvent(ctx context.Context, eventID, customerID uuid.UUID) (bool, *errLib.CommonError) {
 	result, err := r.queries.IsCustomerEnrolledInEvent(ctx, dbUser.IsCustomerEnrolledInEventParams{

@@ -255,7 +255,7 @@ func (s *CustomerCreditService) ValidateEventCreditPayment(ctx context.Context, 
 }
 
 // RefundCreditsWithAudit refunds credits when an admin removes a customer from an event
-// This method does NOT affect weekly usage tracking (refunded credits are "bonus" back)
+// This method also reduces weekly usage tracking so the customer can use those credits again this week
 // Returns RefundResult with processed=false if customer didn't pay with credits
 func (s *CustomerCreditService) RefundCreditsWithAudit(
 	ctx context.Context,
@@ -306,7 +306,13 @@ func (s *CustomerCreditService) RefundCreditsWithAudit(
 			// Continue even if logging fails
 		}
 
-		// 3. Log to audit table with full event context
+		// 3. Reduce weekly usage so customer can use those credits again this week
+		if reduceErr := txRepo.ReduceWeeklyUsage(ctx, customerID, *creditAmount); reduceErr != nil {
+			log.Printf("[CREDIT-REFUND] Failed to reduce weekly usage: %v", reduceErr)
+			// Continue even if weekly usage reduction fails - the refund already happened
+		}
+
+		// 4. Log to audit table with full event context
 		auditErr := txRepo.LogCreditRefundAudit(ctx, repositories.CreditRefundAuditParams{
 			CustomerID:      customerID,
 			EventID:         eventID,

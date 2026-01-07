@@ -541,6 +541,25 @@ func (q *Queries) LogCreditTransaction(ctx context.Context, arg LogCreditTransac
 	return err
 }
 
+const reduceWeeklyCreditsUsed = `-- name: ReduceWeeklyCreditsUsed :exec
+UPDATE users.weekly_credit_usage
+SET credits_used = GREATEST(credits_used - $3, 0),
+    updated_at = NOW()
+WHERE customer_id = $1 AND week_start_date = $2
+`
+
+type ReduceWeeklyCreditsUsedParams struct {
+	CustomerID    uuid.UUID `json:"customer_id"`
+	WeekStartDate time.Time `json:"week_start_date"`
+	CreditsUsed   int32     `json:"credits_used"`
+}
+
+// Reduce weekly credit usage when credits are refunded (ensures it doesn't go below 0)
+func (q *Queries) ReduceWeeklyCreditsUsed(ctx context.Context, arg ReduceWeeklyCreditsUsedParams) error {
+	_, err := q.db.ExecContext(ctx, reduceWeeklyCreditsUsed, arg.CustomerID, arg.WeekStartDate, arg.CreditsUsed)
+	return err
+}
+
 const refundCredits = `-- name: RefundCredits :execrows
 UPDATE users.customer_credits
 SET credits = credits + $2
@@ -604,8 +623,8 @@ func (q *Queries) UpdateEventCreditCost(ctx context.Context, arg UpdateEventCred
 const updateWeeklyCreditsUsed = `-- name: UpdateWeeklyCreditsUsed :exec
 INSERT INTO users.weekly_credit_usage (customer_id, week_start_date, credits_used, updated_at)
 VALUES ($1, $2, $3, NOW())
-ON CONFLICT (customer_id, week_start_date) 
-DO UPDATE SET 
+ON CONFLICT (customer_id, week_start_date)
+DO UPDATE SET
     credits_used = users.weekly_credit_usage.credits_used + EXCLUDED.credits_used,
     updated_at = NOW()
 `

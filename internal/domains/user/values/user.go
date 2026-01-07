@@ -24,6 +24,7 @@ type ReadValue struct {
 	EmergencyContactName         *string
 	EmergencyContactPhone        *string
 	EmergencyContactRelationship *string
+	LastMobileLoginAt            *time.Time
 	MembershipInfo               *MembershipReadValue
 	AthleteInfo                  *AthleteReadValue
 }

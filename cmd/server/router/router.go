@@ -3,6 +3,7 @@ package router
 import (
 	"api/internal/di"
 	adminHandler "api/internal/domains/admin/handler"
+	analyticsHandler "api/internal/domains/analytics/handler"
 	staff_activity_logs "api/internal/domains/audit/staff_activity_logs/handler"
 	haircutEvents "api/internal/domains/haircut/event/handler"
 	barberServicesHandler "api/internal/domains/haircut/haircut_service"
@@ -516,6 +517,7 @@ func RegisterSecureRoutes(container *di.Container) func(chi.Router) {
 		r.Route("/schedule", RegisterSecureScheduleRoutes(container))
 		r.Route("/credits", RegisterSecureCreditRoutes(container))
 		r.Route("/notifications", RegisterSecureNotificationRoutes(container))
+		r.Route("/mobile", RegisterSecureMobileRoutes(container))
 	}
 }
 
@@ -628,6 +630,7 @@ func RegisterSubscriptionRoutes(container *di.Container) func(chi.Router) {
 func RegisterAdminRoutes(container *di.Container) func(chi.Router) {
 	creditHandler := userHandler.NewCreditHandler(container)
 	firebaseCleanupHandler := adminHandler.NewFirebaseCleanupHandler(container)
+	mobileAnalytics := analyticsHandler.NewMobileAnalyticsHandler(container)
 
 	return func(r chi.Router) {
 		// Credit management routes - receptionist can view
@@ -647,6 +650,14 @@ func RegisterAdminRoutes(container *di.Container) func(chi.Router) {
 
 		// Firebase recovery - IT and SuperAdmin only (recreates missing Firebase users from DB)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/firebase/recover", firebaseCleanupHandler.RecoverMissingFirebaseUsers)
+
+		// Mobile analytics routes - admin only
+		r.Route("/analytics/mobile", func(r chi.Router) {
+			r.Use(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT))
+			r.Get("/", mobileAnalytics.GetMobileUsageStats)
+			r.Get("/logins", mobileAnalytics.GetRecentMobileLogins)
+			r.Get("/trends", mobileAnalytics.GetMobileLoginTrends)
+		})
 	}
 }
 
@@ -667,6 +678,15 @@ func RegisterSecureNotificationRoutes(container *di.Container) func(chi.Router) 
 	return func(r chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/register", h.RegisterPushToken)
 		r.With(middlewares.JWTAuthMiddleware(true)).Post("/send", h.SendTeamNotification)
+	}
+}
+
+// RegisterSecureMobileRoutes registers secure mobile app routes.
+func RegisterSecureMobileRoutes(container *di.Container) func(chi.Router) {
+	h := analyticsHandler.NewMobileAnalyticsHandler(container)
+	return func(r chi.Router) {
+		// Mobile app calls this after successful login to track usage
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/session", h.RecordMobileSession)
 	}
 }
 

@@ -154,3 +154,51 @@ LEFT JOIN users.weekly_credit_usage wcu ON (
 )
 ORDER BY cmp.created_at DESC
 LIMIT 1;
+
+-- Credit Refund Queries
+
+-- name: GetEnrollmentCreditTransaction :one
+-- Get the credit transaction for a customer's event enrollment (to determine refund amount)
+SELECT id, amount, created_at
+FROM users.credit_transactions
+WHERE customer_id = $1
+  AND event_id = $2
+  AND transaction_type = 'enrollment'
+ORDER BY created_at DESC
+LIMIT 1;
+
+-- name: LogCreditRefundAudit :exec
+-- Log a credit refund to the audit table with full event context
+INSERT INTO audit.credit_refund_logs (
+    customer_id, event_id, performed_by, credits_refunded,
+    event_name, event_start_at, program_name, location_name,
+    staff_role, reason, ip_address
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);
+
+-- name: GetCreditRefundLogs :many
+-- Get credit refund audit logs with customer and staff names
+SELECT
+    crl.id,
+    crl.customer_id,
+    crl.event_id,
+    crl.performed_by,
+    crl.credits_refunded,
+    crl.event_name,
+    crl.event_start_at,
+    crl.program_name,
+    crl.location_name,
+    crl.staff_role,
+    crl.reason,
+    crl.ip_address,
+    crl.created_at,
+    cu.first_name as customer_first_name,
+    cu.last_name as customer_last_name,
+    su.first_name as staff_first_name,
+    su.last_name as staff_last_name
+FROM audit.credit_refund_logs crl
+JOIN users.users cu ON crl.customer_id = cu.id
+JOIN users.users su ON crl.performed_by = su.id
+WHERE (sqlc.narg(customer_id)::uuid IS NULL OR crl.customer_id = sqlc.narg(customer_id))
+  AND (sqlc.narg(event_id)::uuid IS NULL OR crl.event_id = sqlc.narg(event_id))
+ORDER BY crl.created_at DESC
+LIMIT $1 OFFSET $2;

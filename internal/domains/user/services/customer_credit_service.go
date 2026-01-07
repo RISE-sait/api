@@ -6,10 +6,26 @@ import (
 	"api/internal/domains/user/persistence/repositories"
 	errLib "api/internal/libs/errors"
 	"context"
+	"time"
+
 	"github.com/google/uuid"
 	"log"
 	"net/http"
 )
+
+// EventSnapshot holds event details for audit logging
+type EventSnapshot struct {
+	Name         string
+	StartAt      time.Time
+	ProgramName  string
+	LocationName string
+}
+
+// RefundResult holds the result of a credit refund operation
+type RefundResult struct {
+	CreditsRefunded int32
+	Processed       bool
+}
 
 type CustomerCreditService struct {
 	repo *repositories.CustomerCreditRepository
@@ -236,4 +252,96 @@ func (s *CustomerCreditService) ValidateEventCreditPayment(ctx context.Context, 
 	}
 
 	return nil
+}
+
+// RefundCreditsWithAudit refunds credits when an admin removes a customer from an event
+// This method does NOT affect weekly usage tracking (refunded credits are "bonus" back)
+// Returns RefundResult with processed=false if customer didn't pay with credits
+func (s *CustomerCreditService) RefundCreditsWithAudit(
+	ctx context.Context,
+	eventID, customerID, performedBy uuid.UUID,
+	staffRole string,
+	reason string,
+	ipAddress string,
+	eventSnapshot EventSnapshot,
+) (*RefundResult, *errLib.CommonError) {
+	result := &RefundResult{
+		CreditsRefunded: 0,
+		Processed:       false,
+	}
+
+	// Check if customer originally paid with credits
+	creditAmount, err := s.repo.GetEnrollmentCreditTransaction(ctx, customerID, eventID)
+	if err != nil {
+		return nil, err
+	}
+
+	if creditAmount == nil || *creditAmount == 0 {
+		// Customer didn't pay with credits, nothing to refund
+		log.Printf("[CREDIT-REFUND] No credit payment found for customer %s event %s", customerID, eventID)
+		return result, nil
+	}
+
+	// Execute refund in transaction
+	txErr := s.repo.ExecuteInTransaction(ctx, func(txRepo *repositories.CustomerCreditRepository) *errLib.CommonError {
+		// 1. Add credits back to customer
+		if refundErr := txRepo.RefundCredits(ctx, customerID, *creditAmount); refundErr != nil {
+			return refundErr
+		}
+
+		// 2. Log the transaction (type: refund)
+		description := "Admin refund for event removal"
+		if reason != "" {
+			description = "Admin refund: " + reason
+		}
+		if logErr := txRepo.LogCreditTransaction(
+			ctx,
+			customerID,
+			*creditAmount, // positive amount for refund
+			dbUser.CreditTransactionTypeRefund,
+			&eventID,
+			description,
+		); logErr != nil {
+			log.Printf("[CREDIT-REFUND] Failed to log transaction: %v", logErr)
+			// Continue even if logging fails
+		}
+
+		// 3. Log to audit table with full event context
+		auditErr := txRepo.LogCreditRefundAudit(ctx, repositories.CreditRefundAuditParams{
+			CustomerID:      customerID,
+			EventID:         eventID,
+			PerformedBy:     performedBy,
+			CreditsRefunded: *creditAmount,
+			EventName:       eventSnapshot.Name,
+			EventStartAt:    eventSnapshot.StartAt,
+			ProgramName:     eventSnapshot.ProgramName,
+			LocationName:    eventSnapshot.LocationName,
+			StaffRole:       staffRole,
+			Reason:          reason,
+			IPAddress:       ipAddress,
+		})
+		if auditErr != nil {
+			log.Printf("[CREDIT-REFUND] Failed to log audit: %v", auditErr)
+			// Continue even if audit logging fails - the refund already happened
+		}
+
+		return nil
+	})
+
+	if txErr != nil {
+		return nil, txErr
+	}
+
+	result.CreditsRefunded = *creditAmount
+	result.Processed = true
+
+	log.Printf("[CREDIT-REFUND] Refunded %d credits to customer %s for event %s by %s",
+		*creditAmount, customerID, eventID, performedBy)
+
+	return result, nil
+}
+
+// GetCreditRefundLogs retrieves credit refund audit logs with optional filtering
+func (s *CustomerCreditService) GetCreditRefundLogs(ctx context.Context, customerID, eventID *uuid.UUID, limit, offset int32) ([]dbUser.GetCreditRefundLogsRow, *errLib.CommonError) {
+	return s.repo.GetCreditRefundLogs(ctx, customerID, eventID, limit, offset)
 }

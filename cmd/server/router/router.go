@@ -402,8 +402,8 @@ func RegisterEventCustomerRoutes(container *di.Container, notificationHandler *e
 	return func(r chi.Router) {
 		// GET / - List enrolled customers (for notification preview)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT, contextUtils.RoleCoach, contextUtils.RoleReceptionist)).Get("/", notificationHandler.GetEventCustomers)
-		// DELETE /{customer_id} - Remove customer from event
-		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin)).Delete("/{customer_id}", h.RemoveCustomerFromEvent)
+		// DELETE /{customer_id} - Remove customer from event (with optional credit refund)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Delete("/{customer_id}", h.RemoveCustomerFromEvent)
 	}
 }
 
@@ -638,6 +638,9 @@ func RegisterAdminRoutes(container *di.Container) func(chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/customers/{id}/credits/deduct", creditHandler.DeductCustomerCredits)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT, contextUtils.RoleReceptionist)).Get("/events/{id}/credit-transactions", creditHandler.GetEventCreditTransactions)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Put("/events/{id}/credit-cost", creditHandler.UpdateEventCreditCost)
+
+		// Credit refund audit logs - admin only
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Get("/credit-refund-logs", creditHandler.GetCreditRefundLogs)
 
 		// Firebase cleanup - IT and SuperAdmin only (sensitive operation)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/firebase/cleanup", firebaseCleanupHandler.CleanupOrphanedFirebaseUsers)

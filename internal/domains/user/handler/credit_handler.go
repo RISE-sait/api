@@ -505,3 +505,92 @@ func (h *CreditHandler) GetAnyCustomerWeeklyUsage(w http.ResponseWriter, r *http
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
 }
 
+// GetCreditRefundLogs retrieves credit refund audit logs (admin only)
+// @Tags credits
+// @Accept json
+// @Produce json
+// @Param customer_id query string false "Filter by customer ID" format(uuid)
+// @Param event_id query string false "Filter by event ID" format(uuid)
+// @Param limit query int false "Number of items per page" minimum(1) maximum(100) default(20)
+// @Param offset query int false "Number of items to skip" minimum(0) default(0)
+// @Success 200 {object} map[string]interface{} "Credit refund logs retrieved successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden: Admin access required"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Security Bearer
+// @Router /admin/credit-refund-logs [get]
+func (h *CreditHandler) GetCreditRefundLogs(w http.ResponseWriter, r *http.Request) {
+	// Parse optional customer_id filter
+	var customerID *uuid.UUID
+	if customerIDStr := r.URL.Query().Get("customer_id"); customerIDStr != "" {
+		if id, err := validators.ParseUUID(customerIDStr); err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		} else {
+			customerID = &id
+		}
+	}
+
+	// Parse optional event_id filter
+	var eventID *uuid.UUID
+	if eventIDStr := r.URL.Query().Get("event_id"); eventIDStr != "" {
+		if id, err := validators.ParseUUID(eventIDStr); err != nil {
+			responseHandlers.RespondWithError(w, err)
+			return
+		} else {
+			eventID = &id
+		}
+	}
+
+	// Parse pagination parameters
+	limit := 20
+	offset := 0
+
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if parsed, parseErr := strconv.Atoi(limitStr); parseErr == nil && parsed > 0 && parsed <= 100 {
+			limit = parsed
+		}
+	}
+
+	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
+		if parsed, parseErr := strconv.Atoi(offsetStr); parseErr == nil && parsed >= 0 {
+			offset = parsed
+		}
+	}
+
+	logs, err := h.CreditService.GetCreditRefundLogs(r.Context(), customerID, eventID, int32(limit), int32(offset))
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	// Transform logs to include formatted names
+	formattedLogs := make([]map[string]interface{}, len(logs))
+	for i, log := range logs {
+		formattedLogs[i] = map[string]interface{}{
+			"id":                log.ID,
+			"customer_id":       log.CustomerID,
+			"customer_name":     log.CustomerFirstName + " " + log.CustomerLastName,
+			"event_id":          log.EventID,
+			"event_name":        log.EventName.String,
+			"event_start_at":    log.EventStartAt.Time,
+			"program_name":      log.ProgramName.String,
+			"location_name":     log.LocationName.String,
+			"credits_refunded":  log.CreditsRefunded,
+			"performed_by":      log.PerformedBy,
+			"performed_by_name": log.StaffFirstName + " " + log.StaffLastName,
+			"staff_role":        log.StaffRole.String,
+			"reason":            log.Reason.String,
+			"ip_address":        log.IpAddress.String,
+			"created_at":        log.CreatedAt,
+		}
+	}
+
+	response := map[string]interface{}{
+		"logs":   formattedLogs,
+		"limit":  limit,
+		"offset": offset,
+	}
+	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
+}

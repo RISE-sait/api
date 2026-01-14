@@ -762,6 +762,9 @@ func RegisterPaymentReportsRoutes(container *di.Container) func(chi.Router) {
 
 		// Backfill URLs from Stripe (admin only, not receptionist)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/backfill-urls", h.BackfillPaymentURLs)
+
+		// Backfill missing transactions from Stripe (admin only) - creates payment_transactions for historical payments
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/backfill-transactions", h.BackfillMissingTransactions)
 	}
 }
 

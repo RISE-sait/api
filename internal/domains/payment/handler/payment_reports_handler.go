@@ -26,12 +26,14 @@ import (
 type PaymentReportsHandler struct {
 	trackingService *tracking.PaymentTrackingService
 	queries         *db.Queries
+	db              *sql.DB
 }
 
 func NewPaymentReportsHandler(container *di.Container) *PaymentReportsHandler {
 	return &PaymentReportsHandler{
 		trackingService: tracking.NewPaymentTrackingService(container),
 		queries:         db.New(container.DB),
+		db:              container.DB,
 	}
 }
 
@@ -595,5 +597,209 @@ func (h *PaymentReportsHandler) BackfillPaymentURLs(w http.ResponseWriter, r *ht
 		"total":         len(transactions),
 		"success_count": successCount,
 		"error_count":   errorCount,
+	}, http.StatusOK)
+}
+
+// BackfillMissingTransactions creates payment_transactions records for historical Stripe payments
+// that were made before the payment tracking system was implemented.
+// @Summary Backfill missing payment transactions
+// @Description Fetches checkout sessions from Stripe and creates missing payment_transactions records (admin only)
+// @Tags Payments - Admin
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{} "Backfill completed"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security Bearer
+// @Router /admin/payments/backfill-transactions [post]
+func (h *PaymentReportsHandler) BackfillMissingTransactions(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	log.Printf("[TRANSACTION-BACKFILL] Starting backfill of missing payment transactions from Stripe")
+
+	// Track results
+	var created, skipped, errors int
+	var results []map[string]interface{}
+
+	// List all completed checkout sessions from Stripe
+	params := &stripe.CheckoutSessionListParams{
+		Status: stripe.String("complete"),
+	}
+	params.Limit = stripe.Int64(100)
+	params.AddExpand("data.line_items")
+	params.AddExpand("data.customer")
+	params.AddExpand("data.payment_intent")
+
+	iter := session.List(params)
+	for iter.Next() {
+		sess := iter.CheckoutSession()
+
+		// Skip if no metadata with userID
+		if sess.Metadata == nil || sess.Metadata["userID"] == "" {
+			log.Printf("[TRANSACTION-BACKFILL] Skipping session %s: no userID in metadata", sess.ID)
+			skipped++
+			continue
+		}
+
+		userIDStr := sess.Metadata["userID"]
+		userID, parseErr := uuid.Parse(userIDStr)
+		if parseErr != nil {
+			log.Printf("[TRANSACTION-BACKFILL] Skipping session %s: invalid userID %s", sess.ID, userIDStr)
+			skipped++
+			continue
+		}
+
+		// Check if transaction already exists for this checkout session
+		existingTx, _ := h.queries.GetPaymentTransactionByStripeCheckoutSession(ctx, sql.NullString{
+			String: sess.ID,
+			Valid:  true,
+		})
+		if existingTx.ID != uuid.Nil {
+			log.Printf("[TRANSACTION-BACKFILL] Skipping session %s: transaction already exists", sess.ID)
+			skipped++
+			continue
+		}
+
+		// Get user details
+		var customerEmail, customerName string
+		userQuery := "SELECT email, first_name, last_name FROM users.users WHERE id = $1"
+		var email sql.NullString
+		var firstName, lastName string
+		if err := h.db.QueryRowContext(ctx, userQuery, userID).Scan(&email, &firstName, &lastName); err != nil {
+			log.Printf("[TRANSACTION-BACKFILL] Warning: could not get user details for %s: %v", userID, err)
+		} else {
+			if email.Valid {
+				customerEmail = email.String
+			}
+			customerName = firstName + " " + lastName
+		}
+
+		// Determine transaction type from metadata or line items
+		transactionType := "unknown"
+		var creditPackageID, membershipPlanID, programID, eventID *uuid.UUID
+
+		if sess.Metadata["creditPackageID"] != "" {
+			transactionType = "credit_package"
+			if id, err := uuid.Parse(sess.Metadata["creditPackageID"]); err == nil {
+				creditPackageID = &id
+			}
+		} else if sess.Metadata["membershipPlanID"] != "" {
+			transactionType = "membership_subscription"
+			if id, err := uuid.Parse(sess.Metadata["membershipPlanID"]); err == nil {
+				membershipPlanID = &id
+			}
+		} else if sess.Metadata["programID"] != "" {
+			transactionType = "program_enrollment"
+			if id, err := uuid.Parse(sess.Metadata["programID"]); err == nil {
+				programID = &id
+			}
+		} else if sess.Metadata["eventID"] != "" {
+			transactionType = "event_registration"
+			if id, err := uuid.Parse(sess.Metadata["eventID"]); err == nil {
+				eventID = &id
+			}
+		} else if sess.Mode == stripe.CheckoutSessionModeSubscription {
+			transactionType = "membership_subscription"
+		} else if sess.Mode == stripe.CheckoutSessionModePayment {
+			// Try to determine type from line items by looking up price IDs
+			transactionType = "credit_package" // Default for one-time payments
+		}
+
+		// Calculate amounts
+		originalAmount := float64(sess.AmountTotal) / 100.0
+		discountAmount := 0.0
+		if sess.TotalDetails != nil && sess.TotalDetails.AmountDiscount > 0 {
+			discountAmount = float64(sess.TotalDetails.AmountDiscount) / 100.0
+		}
+		customerPaid := originalAmount - discountAmount
+
+		// Get receipt URL
+		var receiptURL string
+		if sess.PaymentIntent != nil && sess.PaymentIntent.LatestCharge != nil {
+			receiptURL = sess.PaymentIntent.LatestCharge.ReceiptURL
+		}
+
+		// Get Stripe customer ID
+		var stripeCustomerID string
+		if sess.Customer != nil {
+			stripeCustomerID = sess.Customer.ID
+
+			// Also update the user's stripe_customer_id in users table if not already set
+			updateQuery := `UPDATE users.users SET stripe_customer_id = $1
+				WHERE id = $2 AND (stripe_customer_id IS NULL OR stripe_customer_id = '')`
+			if _, err := h.db.ExecContext(ctx, updateQuery, stripeCustomerID, userID); err != nil {
+				log.Printf("[TRANSACTION-BACKFILL] Warning: could not update stripe_customer_id for user %s: %v", userID, err)
+			} else {
+				log.Printf("[TRANSACTION-BACKFILL] Updated stripe_customer_id for user %s: %s", userID, stripeCustomerID)
+			}
+		}
+
+		// Get subscription ID if applicable
+		var stripeSubscriptionID string
+		if sess.Subscription != nil {
+			stripeSubscriptionID = sess.Subscription.ID
+		}
+
+		// Create the transaction
+		transactionDate := time.Unix(sess.Created, 0)
+		_, createErr := h.trackingService.TrackPayment(ctx, tracking.TrackPaymentParams{
+			CustomerID:              userID,
+			CustomerEmail:           customerEmail,
+			CustomerName:            customerName,
+			TransactionType:         transactionType,
+			TransactionDate:         transactionDate,
+			OriginalAmount:          originalAmount,
+			DiscountAmount:          discountAmount,
+			SubsidyAmount:           0,
+			CustomerPaid:            customerPaid,
+			CreditPackageID:         creditPackageID,
+			MembershipPlanID:        membershipPlanID,
+			ProgramID:               programID,
+			EventID:                 eventID,
+			StripeCustomerID:        stripeCustomerID,
+			StripeSubscriptionID:    stripeSubscriptionID,
+			StripeCheckoutSessionID: sess.ID,
+			PaymentStatus:           "completed",
+			Currency:                string(sess.Currency),
+			ReceiptURL:              receiptURL,
+			Description:             fmt.Sprintf("Backfilled from Stripe session %s", sess.ID),
+		})
+
+		if createErr != nil {
+			log.Printf("[TRANSACTION-BACKFILL] Error creating transaction for session %s: %v", sess.ID, createErr)
+			errors++
+			results = append(results, map[string]interface{}{
+				"session_id": sess.ID,
+				"user_id":    userID,
+				"status":     "error",
+				"error":      createErr.Error(),
+			})
+		} else {
+			log.Printf("[TRANSACTION-BACKFILL] Created transaction for session %s, user %s, type %s, amount $%.2f",
+				sess.ID, userID, transactionType, customerPaid)
+			created++
+			results = append(results, map[string]interface{}{
+				"session_id":       sess.ID,
+				"user_id":          userID,
+				"transaction_type": transactionType,
+				"amount":           customerPaid,
+				"status":           "created",
+			})
+		}
+	}
+
+	if err := iter.Err(); err != nil {
+		log.Printf("[TRANSACTION-BACKFILL] Error iterating Stripe sessions: %v", err)
+		responses.RespondWithError(w, errLib.New("Failed to list Stripe sessions: "+err.Error(), http.StatusInternalServerError))
+		return
+	}
+
+	log.Printf("[TRANSACTION-BACKFILL] Backfill completed: %d created, %d skipped, %d errors", created, skipped, errors)
+
+	responses.RespondWithSuccess(w, map[string]interface{}{
+		"message":       "Transaction backfill completed",
+		"created":       created,
+		"skipped":       skipped,
+		"error_count":   errors,
+		"details":       results,
 	}, http.StatusOK)
 }

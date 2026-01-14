@@ -659,49 +659,72 @@ func (h *PaymentReportsHandler) BackfillMissingTransactions(w http.ResponseWrite
 			continue
 		}
 
-		// Get user details
+		// Get user details - skip if user doesn't exist (deleted account)
 		var customerEmail, customerName string
 		userQuery := "SELECT email, first_name, last_name FROM users.users WHERE id = $1"
 		var email sql.NullString
 		var firstName, lastName string
 		if err := h.db.QueryRowContext(ctx, userQuery, userID).Scan(&email, &firstName, &lastName); err != nil {
-			log.Printf("[TRANSACTION-BACKFILL] Warning: could not get user details for %s: %v", userID, err)
-		} else {
-			if email.Valid {
-				customerEmail = email.String
-			}
-			customerName = firstName + " " + lastName
+			log.Printf("[TRANSACTION-BACKFILL] Skipping session %s: user %s not found (deleted account)", sess.ID, userID)
+			skipped++
+			continue
 		}
+		if email.Valid {
+			customerEmail = email.String
+		}
+		customerName = firstName + " " + lastName
 
 		// Determine transaction type from metadata or line items
+		// Don't set foreign keys - they may reference deleted records
+		// Just track the transaction type for reporting purposes
 		transactionType := "unknown"
 		var creditPackageID, membershipPlanID, programID, eventID *uuid.UUID
 
 		if sess.Metadata["creditPackageID"] != "" {
 			transactionType = "credit_package"
+			// Validate credit package exists before setting FK
 			if id, err := uuid.Parse(sess.Metadata["creditPackageID"]); err == nil {
-				creditPackageID = &id
+				var exists bool
+				h.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM users.credit_packages WHERE id = $1)", id).Scan(&exists)
+				if exists {
+					creditPackageID = &id
+				}
 			}
 		} else if sess.Metadata["membershipPlanID"] != "" {
 			transactionType = "membership_subscription"
+			// Validate membership plan exists before setting FK
 			if id, err := uuid.Parse(sess.Metadata["membershipPlanID"]); err == nil {
-				membershipPlanID = &id
+				var exists bool
+				h.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM membership.membership_plans WHERE id = $1)", id).Scan(&exists)
+				if exists {
+					membershipPlanID = &id
+				}
 			}
 		} else if sess.Metadata["programID"] != "" {
 			transactionType = "program_enrollment"
+			// Validate program exists before setting FK
 			if id, err := uuid.Parse(sess.Metadata["programID"]); err == nil {
-				programID = &id
+				var exists bool
+				h.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM program.programs WHERE id = $1)", id).Scan(&exists)
+				if exists {
+					programID = &id
+				}
 			}
 		} else if sess.Metadata["eventID"] != "" {
 			transactionType = "event_registration"
+			// Validate event exists before setting FK
 			if id, err := uuid.Parse(sess.Metadata["eventID"]); err == nil {
-				eventID = &id
+				var exists bool
+				h.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM event.events WHERE id = $1)", id).Scan(&exists)
+				if exists {
+					eventID = &id
+				}
 			}
 		} else if sess.Mode == stripe.CheckoutSessionModeSubscription {
 			transactionType = "membership_subscription"
 		} else if sess.Mode == stripe.CheckoutSessionModePayment {
-			// Try to determine type from line items by looking up price IDs
-			transactionType = "credit_package" // Default for one-time payments
+			// Default for one-time payments without specific metadata
+			transactionType = "credit_package"
 		}
 
 		// Calculate amounts
@@ -711,6 +734,13 @@ func (h *PaymentReportsHandler) BackfillMissingTransactions(w http.ResponseWrite
 			discountAmount = float64(sess.TotalDetails.AmountDiscount) / 100.0
 		}
 		customerPaid := originalAmount - discountAmount
+
+		// Skip $0 or negative transactions (violates positive_amounts constraint)
+		if originalAmount <= 0 || customerPaid < 0 {
+			log.Printf("[TRANSACTION-BACKFILL] Skipping session %s: zero or negative amount ($%.2f)", sess.ID, originalAmount)
+			skipped++
+			continue
+		}
 
 		// Get receipt URL
 		var receiptURL string

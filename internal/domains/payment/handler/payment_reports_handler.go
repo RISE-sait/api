@@ -722,6 +722,15 @@ func (h *PaymentReportsHandler) BackfillMissingTransactions(w http.ResponseWrite
 		var stripeCustomerID string
 		if sess.Customer != nil {
 			stripeCustomerID = sess.Customer.ID
+
+			// Also update the user's stripe_customer_id in users table if not already set
+			updateQuery := `UPDATE users.users SET stripe_customer_id = $1
+				WHERE id = $2 AND (stripe_customer_id IS NULL OR stripe_customer_id = '')`
+			if _, err := h.db.ExecContext(ctx, updateQuery, stripeCustomerID, userID); err != nil {
+				log.Printf("[TRANSACTION-BACKFILL] Warning: could not update stripe_customer_id for user %s: %v", userID, err)
+			} else {
+				log.Printf("[TRANSACTION-BACKFILL] Updated stripe_customer_id for user %s: %s", userID, stripeCustomerID)
+			}
 		}
 
 		// Get subscription ID if applicable

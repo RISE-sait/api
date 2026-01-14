@@ -11,6 +11,7 @@ import (
 	"api/internal/di"
 	athleteDto "api/internal/domains/user/dto/athlete"
 	customerDto "api/internal/domains/user/dto/customer"
+	userValues "api/internal/domains/user/values"
 	contextUtils "api/utils/context"
 
 	customerRepo "api/internal/domains/user/persistence/repository"
@@ -206,6 +207,11 @@ func (h *CustomersHandler) RemoveAthleteFromTeam(w http.ResponseWriter, r *http.
 // @Param offset query int false "Number of customers to skip (default: 0)"
 // @Param search query string false "Search term to filter customers"
 // @Param parent_id query string false "Parent ID to filter customers (example: 123e4567-e89b-12d3-a456-426614174000)"
+// @Param membership_plan_id query string false "Filter by specific membership plan UUID"
+// @Param has_membership query string false "Filter by active membership status (true/false)"
+// @Param has_credits query string false "Filter by credit balance > 0 (true/false)"
+// @Param min_credits query int false "Filter by minimum credit balance"
+// @Param max_credits query int false "Filter by maximum credit balance"
 // @Success 200 {array} customer.Response "List of customers"
 // @Failure 400 "Bad Request: Invalid parameters"
 // @Failure 500 "Internal Server Error"
@@ -248,29 +254,93 @@ func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	// Optional filters
-	var parentID uuid.UUID
+	// Build filter params
+	filters := userValues.CustomerFilterParams{}
+
+	// Optional parent_id filter
 	if parentIdStr := query.Get("parent_id"); parentIdStr != "" {
 		id, err := validators.ParseUUID(parentIdStr)
 		if err != nil {
 			responseHandlers.RespondWithError(w, err)
 			return
 		}
-		parentID = id
+		filters.ParentID = id
 	}
 
-	searchTerm := query.Get("search")
-	log.Printf("Search term: %s", searchTerm)
+	// Search filter
+	filters.Search = query.Get("search")
+
+	// membership_plan_id filter
+	if membershipPlanIdStr := query.Get("membership_plan_id"); membershipPlanIdStr != "" {
+		id, err := validators.ParseUUID(membershipPlanIdStr)
+		if err != nil {
+			responseHandlers.RespondWithError(w, errLib.New("Invalid 'membership_plan_id' value", http.StatusBadRequest))
+			return
+		}
+		filters.MembershipPlanID = &id
+	}
+
+	// has_membership filter
+	if hasMembershipStr := query.Get("has_membership"); hasMembershipStr != "" {
+		if hasMembershipStr == "true" {
+			hasMembership := true
+			filters.HasMembership = &hasMembership
+		} else if hasMembershipStr == "false" {
+			hasMembership := false
+			filters.HasMembership = &hasMembership
+		} else {
+			responseHandlers.RespondWithError(w, errLib.New("Invalid 'has_membership' value, must be 'true' or 'false'", http.StatusBadRequest))
+			return
+		}
+	}
+
+	// has_credits filter
+	if hasCreditsStr := query.Get("has_credits"); hasCreditsStr != "" {
+		if hasCreditsStr == "true" {
+			hasCredits := true
+			filters.HasCredits = &hasCredits
+		} else if hasCreditsStr == "false" {
+			hasCredits := false
+			filters.HasCredits = &hasCredits
+		} else {
+			responseHandlers.RespondWithError(w, errLib.New("Invalid 'has_credits' value, must be 'true' or 'false'", http.StatusBadRequest))
+			return
+		}
+	}
+
+	// min_credits filter
+	if minCreditsStr := query.Get("min_credits"); minCreditsStr != "" {
+		minCredits, err := strconv.Atoi(minCreditsStr)
+		if err != nil || minCredits < 0 {
+			responseHandlers.RespondWithError(w, errLib.New("Invalid 'min_credits' value", http.StatusBadRequest))
+			return
+		}
+		minCreditsInt32 := int32(minCredits)
+		filters.MinCredits = &minCreditsInt32
+	}
+
+	// max_credits filter
+	if maxCreditsStr := query.Get("max_credits"); maxCreditsStr != "" {
+		maxCredits, err := strconv.Atoi(maxCreditsStr)
+		if err != nil || maxCredits < 0 {
+			responseHandlers.RespondWithError(w, errLib.New("Invalid 'max_credits' value", http.StatusBadRequest))
+			return
+		}
+		maxCreditsInt32 := int32(maxCredits)
+		filters.MaxCredits = &maxCreditsInt32
+	}
+
+	log.Printf("Search term: %s", filters.Search)
 
 	// Fetch paginated data
-	dbCustomers, err := h.CustomerRepo.GetCustomers(r.Context(), int32(limit), int32(offset), parentID, searchTerm)
+	dbCustomers, err := h.CustomerRepo.GetCustomers(r.Context(), int32(limit), int32(offset), filters)
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
 	// Fetch total count for pagination
-	totalCount, err := h.CustomerRepo.CountCustomers(r.Context(), parentID, searchTerm)
+	totalCount, err := h.CustomerRepo.CountCustomers(r.Context(), filters)
 	if err != nil {
 		responseHandlers.RespondWithError(w, errLib.New("Failed to count customers: "+err.Error(), http.StatusInternalServerError))
 		return

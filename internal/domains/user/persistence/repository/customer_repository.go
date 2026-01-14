@@ -35,20 +35,39 @@ func (r *CustomerRepository) WithTx(tx *sql.Tx) *CustomerRepository {
 	}
 }
 
-func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int32, parentID uuid.UUID, search string) ([]userValues.ReadValue, *errLib.CommonError) {
+func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int32, filters userValues.CustomerFilterParams) ([]userValues.ReadValue, *errLib.CommonError) {
 
-	dbCustomers, err := r.Queries.GetCustomers(ctx, db.GetCustomersParams{
+	params := db.GetCustomersParams{
 		ParentID: uuid.NullUUID{
-			UUID:  parentID,
-			Valid: parentID != uuid.Nil,
+			UUID:  filters.ParentID,
+			Valid: filters.ParentID != uuid.Nil,
 		},
 		Search: sql.NullString{
-			String: search,
-			Valid:  search != "",
+			String: filters.Search,
+			Valid:  filters.Search != "",
 		},
 		Offset: offset,
 		Limit:  limit,
-	})
+	}
+
+	// Set optional filter params
+	if filters.MembershipPlanID != nil {
+		params.MembershipPlanID = uuid.NullUUID{UUID: *filters.MembershipPlanID, Valid: true}
+	}
+	if filters.HasMembership != nil {
+		params.HasMembership = sql.NullBool{Bool: *filters.HasMembership, Valid: true}
+	}
+	if filters.HasCredits != nil {
+		params.HasCredits = sql.NullBool{Bool: *filters.HasCredits, Valid: true}
+	}
+	if filters.MinCredits != nil {
+		params.MinCredits = sql.NullInt32{Int32: *filters.MinCredits, Valid: true}
+	}
+	if filters.MaxCredits != nil {
+		params.MaxCredits = sql.NullInt32{Int32: *filters.MaxCredits, Valid: true}
+	}
+
+	dbCustomers, err := r.Queries.GetCustomers(ctx, params)
 
 	if err != nil {
 		log.Printf("Error getting dbCustomers: %s", err)
@@ -399,21 +418,36 @@ func (r *CustomerRepository) ListAthletes(ctx context.Context, limit, offset int
 
 	return athletes, nil
 }
-func (r *CustomerRepository) CountCustomers(ctx context.Context, parentID uuid.UUID, search string) (int64, *errLib.CommonError) {
-	searchArg := sql.NullString{Valid: false}
-	if search != "" {
-		searchArg = sql.NullString{String: search, Valid: true}
+func (r *CustomerRepository) CountCustomers(ctx context.Context, filters userValues.CustomerFilterParams) (int64, *errLib.CommonError) {
+	params := db.CountCustomersParams{
+		ParentID: uuid.NullUUID{
+			UUID:  filters.ParentID,
+			Valid: filters.ParentID != uuid.Nil,
+		},
+		Search: sql.NullString{
+			String: filters.Search,
+			Valid:  filters.Search != "",
+		},
 	}
 
-	parentArg := uuid.NullUUID{Valid: false}
-	if parentID != uuid.Nil {
-		parentArg = uuid.NullUUID{UUID: parentID, Valid: true}
+	// Set optional filter params
+	if filters.MembershipPlanID != nil {
+		params.MembershipPlanID = uuid.NullUUID{UUID: *filters.MembershipPlanID, Valid: true}
+	}
+	if filters.HasMembership != nil {
+		params.HasMembership = sql.NullBool{Bool: *filters.HasMembership, Valid: true}
+	}
+	if filters.HasCredits != nil {
+		params.HasCredits = sql.NullBool{Bool: *filters.HasCredits, Valid: true}
+	}
+	if filters.MinCredits != nil {
+		params.MinCredits = sql.NullInt32{Int32: *filters.MinCredits, Valid: true}
+	}
+	if filters.MaxCredits != nil {
+		params.MaxCredits = sql.NullInt32{Int32: *filters.MaxCredits, Valid: true}
 	}
 
-	count, err := r.Queries.CountCustomers(ctx, db.CountCustomersParams{
-		ParentID: parentArg,
-		Search:   searchArg,
-	})
+	count, err := r.Queries.CountCustomers(ctx, params)
 	if err != nil {
 		return 0, errLib.New("Failed to count customers: "+err.Error(), http.StatusInternalServerError)
 	}

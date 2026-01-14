@@ -249,6 +249,24 @@ func (s *PaymentTrackingService) BackfillTransactionURLs(transactionID uuid.UUID
 		if sess.PaymentIntent != nil && sess.PaymentIntent.LatestCharge != nil && sess.PaymentIntent.LatestCharge.ReceiptURL != "" {
 			receiptURL = sql.NullString{String: sess.PaymentIntent.LatestCharge.ReceiptURL, Valid: true}
 			log.Printf("[PAYMENT-BACKFILL] Found receipt URL for transaction %s via checkout session", tx.ID)
+
+			// For one-time payments (credit packages, etc.), get invoice from the charge's invoice
+			if sess.PaymentIntent.LatestCharge.Invoice != nil && sess.PaymentIntent.LatestCharge.Invoice.ID != "" {
+				inv, invErr := invoice.Get(sess.PaymentIntent.LatestCharge.Invoice.ID, nil)
+				if invErr != nil {
+					log.Printf("[PAYMENT-BACKFILL] Error fetching invoice %s for one-time payment: %v", sess.PaymentIntent.LatestCharge.Invoice.ID, invErr)
+				} else {
+					if inv.HostedInvoiceURL != "" {
+						invoiceURL = sql.NullString{String: inv.HostedInvoiceURL, Valid: true}
+					}
+					if inv.InvoicePDF != "" {
+						invoicePDFURL = sql.NullString{String: inv.InvoicePDF, Valid: true}
+					}
+					if invoiceURL.Valid {
+						log.Printf("[PAYMENT-BACKFILL] Found invoice URLs for transaction %s via one-time payment charge", tx.ID)
+					}
+				}
+			}
 		}
 
 		// For subscription payments, get invoice from the subscription's latest invoice

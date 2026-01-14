@@ -518,16 +518,37 @@ func (h *PaymentReportsHandler) BackfillPaymentURLs(w http.ResponseWriter, r *ht
 			}
 		}
 
-		// Fallback: Fetch receipt URL directly from PaymentIntent if we have it
-		if !receiptURL.Valid && tx.StripePaymentIntentID.Valid && tx.StripePaymentIntentID.String != "" {
+		// Fallback: Fetch receipt URL and invoice URLs directly from PaymentIntent if we have it
+		// This handles cases where checkout session has expired/been deleted
+		if tx.StripePaymentIntentID.Valid && tx.StripePaymentIntentID.String != "" && (!receiptURL.Valid || !invoiceURL.Valid) {
 			pi, piErr := paymentintent.Get(tx.StripePaymentIntentID.String, &stripe.PaymentIntentParams{
-				Expand: []*string{stripe.String("latest_charge")},
+				Expand: []*string{stripe.String("latest_charge"), stripe.String("latest_charge.invoice")},
 			})
 			if piErr != nil {
 				log.Printf("[PAYMENT-BACKFILL] Error fetching PaymentIntent %s: %v", tx.StripePaymentIntentID.String, piErr)
-			} else if pi.LatestCharge != nil && pi.LatestCharge.ReceiptURL != "" {
-				receiptURL = sql.NullString{String: pi.LatestCharge.ReceiptURL, Valid: true}
-				log.Printf("[PAYMENT-BACKFILL] Found receipt URL for transaction %s via payment intent", tx.ID)
+			} else if pi.LatestCharge != nil {
+				// Get receipt URL
+				if !receiptURL.Valid && pi.LatestCharge.ReceiptURL != "" {
+					receiptURL = sql.NullString{String: pi.LatestCharge.ReceiptURL, Valid: true}
+					log.Printf("[PAYMENT-BACKFILL] Found receipt URL for transaction %s via payment intent fallback", tx.ID)
+				}
+				// Get invoice URLs from the charge's invoice (for one-time payments)
+				if !invoiceURL.Valid && pi.LatestCharge.Invoice != nil && pi.LatestCharge.Invoice.ID != "" {
+					inv, invErr := invoice.Get(pi.LatestCharge.Invoice.ID, nil)
+					if invErr != nil {
+						log.Printf("[PAYMENT-BACKFILL] Error fetching invoice %s via payment intent fallback: %v", pi.LatestCharge.Invoice.ID, invErr)
+					} else {
+						if inv.HostedInvoiceURL != "" {
+							invoiceURL = sql.NullString{String: inv.HostedInvoiceURL, Valid: true}
+						}
+						if inv.InvoicePDF != "" {
+							invoicePDFURL = sql.NullString{String: inv.InvoicePDF, Valid: true}
+						}
+						if invoiceURL.Valid {
+							log.Printf("[PAYMENT-BACKFILL] Found invoice URLs for transaction %s via payment intent fallback", tx.ID)
+						}
+					}
+				}
 			}
 		}
 

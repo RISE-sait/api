@@ -83,3 +83,14 @@ type MembershipHistoryValue struct {
 	Interval              string
 	StripePriceID         string
 }
+
+// CustomerFilterParams holds filtering options for customer queries
+type CustomerFilterParams struct {
+	ParentID         uuid.UUID
+	Search           string
+	MembershipPlanID *uuid.UUID
+	HasMembership    *bool
+	HasCredits       *bool
+	MinCredits       *int32
+	MaxCredits       *int32
+}

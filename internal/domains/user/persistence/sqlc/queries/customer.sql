@@ -27,13 +27,15 @@ SELECT u.*,
        mp.name          AS membership_plan_name,
        cmp.start_date   AS membership_start_date,
        cmp.renewal_date AS membership_plan_renewal_date,
+       cmp.status       AS membership_status,
        a.points,
        a.wins,
        a.losses,
        a.assists,
        a.rebounds,
        a.steals,
-       a.photo_url
+       a.photo_url,
+       COALESCE(cc.credits, 0) AS credits
 FROM users.users u
          LEFT JOIN users.customer_membership_plans cmp ON (
     cmp.customer_id = u.id AND
@@ -44,6 +46,7 @@ FROM users.users u
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
          LEFT JOIN athletic.athletes a ON u.id = a.id
+         LEFT JOIN users.customer_credits cc ON cc.customer_id = u.id
 WHERE u.is_archived = FALSE
   AND (u.parent_id = $1 OR $1 IS NULL)
   AND (sqlc.narg('search')::varchar IS NULL
@@ -55,6 +58,20 @@ WHERE u.is_archived = FALSE
   AND NOT EXISTS (SELECT 1
                   FROM staff.staff s
                   WHERE s.id = u.id)
+  -- membership_plan_id filter
+  AND (sqlc.narg('membership_plan_id')::uuid IS NULL OR cmp.membership_plan_id = sqlc.narg('membership_plan_id'))
+  -- has_membership filter (active membership exists)
+  AND (sqlc.narg('has_membership')::boolean IS NULL
+    OR (sqlc.narg('has_membership') = true AND cmp.status = 'active')
+    OR (sqlc.narg('has_membership') = false AND (cmp.status IS NULL OR cmp.status != 'active')))
+  -- has_credits filter
+  AND (sqlc.narg('has_credits')::boolean IS NULL
+    OR (sqlc.narg('has_credits') = true AND COALESCE(cc.credits, 0) > 0)
+    OR (sqlc.narg('has_credits') = false AND COALESCE(cc.credits, 0) = 0))
+  -- min_credits filter
+  AND (sqlc.narg('min_credits')::int IS NULL OR COALESCE(cc.credits, 0) >= sqlc.narg('min_credits'))
+  -- max_credits filter
+  AND (sqlc.narg('max_credits')::int IS NULL OR COALESCE(cc.credits, 0) <= sqlc.narg('max_credits'))
 ORDER BY CASE WHEN cmp.status = 'active' THEN 0 ELSE 1 END, u.created_at DESC
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
@@ -123,6 +140,7 @@ FROM users.users u
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
          LEFT JOIN athletic.athletes a ON u.id = a.id
+         LEFT JOIN users.customer_credits cc ON cc.customer_id = u.id
 WHERE u.is_archived = FALSE
   AND (u.parent_id = $1 OR $1 IS NULL)
   AND (sqlc.narg('search')::varchar IS NULL
@@ -131,7 +149,21 @@ WHERE u.is_archived = FALSE
   OR u.email ILIKE sqlc.narg('search') || '%'
   OR u.phone ILIKE sqlc.narg('search') || '%'
   OR u.notes ILIKE sqlc.narg('search') || '%')
-  AND NOT EXISTS (SELECT 1 FROM staff.staff s WHERE s.id = u.id);
+  AND NOT EXISTS (SELECT 1 FROM staff.staff s WHERE s.id = u.id)
+  -- membership_plan_id filter
+  AND (sqlc.narg('membership_plan_id')::uuid IS NULL OR cmp.membership_plan_id = sqlc.narg('membership_plan_id'))
+  -- has_membership filter (active membership exists)
+  AND (sqlc.narg('has_membership')::boolean IS NULL
+    OR (sqlc.narg('has_membership') = true AND cmp.status = 'active')
+    OR (sqlc.narg('has_membership') = false AND (cmp.status IS NULL OR cmp.status != 'active')))
+  -- has_credits filter
+  AND (sqlc.narg('has_credits')::boolean IS NULL
+    OR (sqlc.narg('has_credits') = true AND COALESCE(cc.credits, 0) > 0)
+    OR (sqlc.narg('has_credits') = false AND COALESCE(cc.credits, 0) = 0))
+  -- min_credits filter
+  AND (sqlc.narg('min_credits')::int IS NULL OR COALESCE(cc.credits, 0) >= sqlc.narg('min_credits'))
+  -- max_credits filter
+  AND (sqlc.narg('max_credits')::int IS NULL OR COALESCE(cc.credits, 0) <= sqlc.narg('max_credits'));
 
 -- name: GetActiveMembershipInfo :one
 SELECT

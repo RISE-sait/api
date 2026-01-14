@@ -218,6 +218,16 @@ func (s *WebhookService) handleItemCheckoutComplete(ctx context.Context, checkou
 		// This is a credit package purchase
 		log.Printf("CREDIT PACKAGE PURCHASE DETECTED - Customer: %s, Package: %s (%s)", customerID, creditPackage.ID, creditPackage.Name)
 
+		// Store Stripe customer ID in database for future reference (needed for payment display in admin panel)
+		if fullSession.Customer != nil && fullSession.Customer.ID != "" {
+			if err := s.storeStripeCustomerID(customerID, fullSession.Customer.ID); err != nil {
+				log.Printf("WARNING: Failed to store Stripe customer ID for credit purchase: %v", err)
+				// Don't fail the entire process for this
+			} else {
+				log.Printf("Successfully stored Stripe customer ID %s for user %s", fullSession.Customer.ID, customerID)
+			}
+		}
+
 		// Add credits to customer balance
 		log.Printf("Adding %d credits to customer %s balance", creditPackage.CreditAllocation, customerID)
 		if err := s.CustomerCreditService.AddCredits(ctx, customerID, creditPackage.CreditAllocation, "Credit package purchase"); err != nil {

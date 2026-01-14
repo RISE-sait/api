@@ -49,6 +49,11 @@ WHERE stripe_subscription_id = $1
 ORDER BY transaction_date DESC
 LIMIT 1;
 
+-- name: GetPaymentTransactionByStripeCheckoutSession :one
+SELECT * FROM payments.payment_transactions
+WHERE stripe_checkout_session_id = $1
+LIMIT 1;
+
 -- name: ListPaymentTransactionsByCustomer :many
 SELECT * FROM payments.payment_transactions
 WHERE customer_id = $1

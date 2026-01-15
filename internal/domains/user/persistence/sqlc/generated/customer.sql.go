@@ -60,32 +60,36 @@ FROM users.users u
 WHERE u.is_archived = FALSE
   AND (u.parent_id = $1 OR $1 IS NULL)
   AND ($2::varchar IS NULL
-  OR u.first_name ILIKE $2 || '%'
-  OR u.last_name ILIKE $2 || '%'
-  OR u.email ILIKE $2 || '%'
-  OR u.phone ILIKE $2 || '%'
-  OR u.notes ILIKE $2 || '%')
+  OR u.first_name ILIKE '%' || $2 || '%'
+  OR u.last_name ILIKE '%' || $2 || '%'
+  OR u.first_name || ' ' || u.last_name ILIKE '%' || $2 || '%'
+  OR u.email ILIKE '%' || $2 || '%'
+  OR u.phone ILIKE '%' || $2 || '%'
+  OR u.notes ILIKE '%' || $2 || '%')
   AND NOT EXISTS (SELECT 1 FROM staff.staff s WHERE s.id = u.id)
   -- membership_plan_id filter
   AND ($3::uuid IS NULL OR cmp.membership_plan_id = $3)
+  -- membership_status filter
+  AND ($4::varchar IS NULL OR cmp.status::text = $4)
   -- has_membership filter (active membership exists)
-  AND ($4::boolean IS NULL
-    OR ($4 = true AND cmp.status = 'active')
-    OR ($4 = false AND (cmp.status IS NULL OR cmp.status != 'active')))
-  -- has_credits filter
   AND ($5::boolean IS NULL
-    OR ($5 = true AND COALESCE(cc.credits, 0) > 0)
-    OR ($5 = false AND COALESCE(cc.credits, 0) = 0))
+    OR ($5 = true AND cmp.status = 'active')
+    OR ($5 = false AND (cmp.status IS NULL OR cmp.status != 'active')))
+  -- has_credits filter
+  AND ($6::boolean IS NULL
+    OR ($6 = true AND COALESCE(cc.credits, 0) > 0)
+    OR ($6 = false AND COALESCE(cc.credits, 0) = 0))
   -- min_credits filter
-  AND ($6::int IS NULL OR COALESCE(cc.credits, 0) >= $6)
+  AND ($7::int IS NULL OR COALESCE(cc.credits, 0) >= $7)
   -- max_credits filter
-  AND ($7::int IS NULL OR COALESCE(cc.credits, 0) <= $7)
+  AND ($8::int IS NULL OR COALESCE(cc.credits, 0) <= $8)
 `
 
 type CountCustomersParams struct {
 	ParentID         uuid.NullUUID  `json:"parent_id"`
 	Search           sql.NullString `json:"search"`
 	MembershipPlanID uuid.NullUUID  `json:"membership_plan_id"`
+	MembershipStatus sql.NullString `json:"membership_status"`
 	HasMembership    sql.NullBool   `json:"has_membership"`
 	HasCredits       sql.NullBool   `json:"has_credits"`
 	MinCredits       sql.NullInt32  `json:"min_credits"`
@@ -97,6 +101,7 @@ func (q *Queries) CountCustomers(ctx context.Context, arg CountCustomersParams) 
 		arg.ParentID,
 		arg.Search,
 		arg.MembershipPlanID,
+		arg.MembershipStatus,
 		arg.HasMembership,
 		arg.HasCredits,
 		arg.MinCredits,
@@ -357,6 +362,7 @@ SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last
        mp.name          AS membership_plan_name,
        cmp.start_date   AS membership_start_date,
        cmp.renewal_date AS membership_plan_renewal_date,
+       cmp.status       AS membership_status,
        a.points,
        a.wins,
        a.losses,
@@ -388,50 +394,51 @@ type GetCustomerParams struct {
 }
 
 type GetCustomerRow struct {
-	ID                              uuid.UUID      `json:"id"`
-	HubspotID                       sql.NullString `json:"hubspot_id"`
-	CountryAlpha2Code               string         `json:"country_alpha2_code"`
-	Gender                          sql.NullString `json:"gender"`
-	FirstName                       string         `json:"first_name"`
-	LastName                        string         `json:"last_name"`
-	ParentID                        uuid.NullUUID  `json:"parent_id"`
-	Phone                           sql.NullString `json:"phone"`
-	Email                           sql.NullString `json:"email"`
-	HasMarketingEmailConsent        bool           `json:"has_marketing_email_consent"`
-	HasSmsConsent                   bool           `json:"has_sms_consent"`
-	CreatedAt                       time.Time      `json:"created_at"`
-	UpdatedAt                       time.Time      `json:"updated_at"`
-	Dob                             time.Time      `json:"dob"`
-	IsArchived                      bool           `json:"is_archived"`
-	SquareCustomerID                sql.NullString `json:"square_customer_id"`
-	StripeCustomerID                sql.NullString `json:"stripe_customer_id"`
-	Notes                           sql.NullString `json:"notes"`
-	DeletedAt                       sql.NullTime   `json:"deleted_at"`
-	ScheduledDeletionAt             sql.NullTime   `json:"scheduled_deletion_at"`
-	EmailVerified                   bool           `json:"email_verified"`
-	EmailVerificationToken          sql.NullString `json:"email_verification_token"`
-	EmailVerificationTokenExpiresAt sql.NullTime   `json:"email_verification_token_expires_at"`
-	EmailVerifiedAt                 sql.NullTime   `json:"email_verified_at"`
-	SuspendedAt                     sql.NullTime   `json:"suspended_at"`
-	SuspensionReason                sql.NullString `json:"suspension_reason"`
-	SuspendedBy                     uuid.NullUUID  `json:"suspended_by"`
-	SuspensionExpiresAt             sql.NullTime   `json:"suspension_expires_at"`
-	EmergencyContactName            sql.NullString `json:"emergency_contact_name"`
-	EmergencyContactPhone           sql.NullString `json:"emergency_contact_phone"`
-	EmergencyContactRelationship    sql.NullString `json:"emergency_contact_relationship"`
-	LastMobileLoginAt               sql.NullTime   `json:"last_mobile_login_at"`
-	MembershipName                  sql.NullString `json:"membership_name"`
-	MembershipPlanID                uuid.NullUUID  `json:"membership_plan_id"`
-	MembershipPlanName              sql.NullString `json:"membership_plan_name"`
-	MembershipStartDate             sql.NullTime   `json:"membership_start_date"`
-	MembershipPlanRenewalDate       sql.NullTime   `json:"membership_plan_renewal_date"`
-	Points                          sql.NullInt32  `json:"points"`
-	Wins                            sql.NullInt32  `json:"wins"`
-	Losses                          sql.NullInt32  `json:"losses"`
-	Assists                         sql.NullInt32  `json:"assists"`
-	Rebounds                        sql.NullInt32  `json:"rebounds"`
-	Steals                          sql.NullInt32  `json:"steals"`
-	PhotoUrl                        sql.NullString `json:"photo_url"`
+	ID                              uuid.UUID                      `json:"id"`
+	HubspotID                       sql.NullString                 `json:"hubspot_id"`
+	CountryAlpha2Code               string                         `json:"country_alpha2_code"`
+	Gender                          sql.NullString                 `json:"gender"`
+	FirstName                       string                         `json:"first_name"`
+	LastName                        string                         `json:"last_name"`
+	ParentID                        uuid.NullUUID                  `json:"parent_id"`
+	Phone                           sql.NullString                 `json:"phone"`
+	Email                           sql.NullString                 `json:"email"`
+	HasMarketingEmailConsent        bool                           `json:"has_marketing_email_consent"`
+	HasSmsConsent                   bool                           `json:"has_sms_consent"`
+	CreatedAt                       time.Time                      `json:"created_at"`
+	UpdatedAt                       time.Time                      `json:"updated_at"`
+	Dob                             time.Time                      `json:"dob"`
+	IsArchived                      bool                           `json:"is_archived"`
+	SquareCustomerID                sql.NullString                 `json:"square_customer_id"`
+	StripeCustomerID                sql.NullString                 `json:"stripe_customer_id"`
+	Notes                           sql.NullString                 `json:"notes"`
+	DeletedAt                       sql.NullTime                   `json:"deleted_at"`
+	ScheduledDeletionAt             sql.NullTime                   `json:"scheduled_deletion_at"`
+	EmailVerified                   bool                           `json:"email_verified"`
+	EmailVerificationToken          sql.NullString                 `json:"email_verification_token"`
+	EmailVerificationTokenExpiresAt sql.NullTime                   `json:"email_verification_token_expires_at"`
+	EmailVerifiedAt                 sql.NullTime                   `json:"email_verified_at"`
+	SuspendedAt                     sql.NullTime                   `json:"suspended_at"`
+	SuspensionReason                sql.NullString                 `json:"suspension_reason"`
+	SuspendedBy                     uuid.NullUUID                  `json:"suspended_by"`
+	SuspensionExpiresAt             sql.NullTime                   `json:"suspension_expires_at"`
+	EmergencyContactName            sql.NullString                 `json:"emergency_contact_name"`
+	EmergencyContactPhone           sql.NullString                 `json:"emergency_contact_phone"`
+	EmergencyContactRelationship    sql.NullString                 `json:"emergency_contact_relationship"`
+	LastMobileLoginAt               sql.NullTime                   `json:"last_mobile_login_at"`
+	MembershipName                  sql.NullString                 `json:"membership_name"`
+	MembershipPlanID                uuid.NullUUID                  `json:"membership_plan_id"`
+	MembershipPlanName              sql.NullString                 `json:"membership_plan_name"`
+	MembershipStartDate             sql.NullTime                   `json:"membership_start_date"`
+	MembershipPlanRenewalDate       sql.NullTime                   `json:"membership_plan_renewal_date"`
+	MembershipStatus                NullMembershipMembershipStatus `json:"membership_status"`
+	Points                          sql.NullInt32                  `json:"points"`
+	Wins                            sql.NullInt32                  `json:"wins"`
+	Losses                          sql.NullInt32                  `json:"losses"`
+	Assists                         sql.NullInt32                  `json:"assists"`
+	Rebounds                        sql.NullInt32                  `json:"rebounds"`
+	Steals                          sql.NullInt32                  `json:"steals"`
+	PhotoUrl                        sql.NullString                 `json:"photo_url"`
 }
 
 func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCustomerRow, error) {
@@ -475,6 +482,7 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 		&i.MembershipPlanName,
 		&i.MembershipStartDate,
 		&i.MembershipPlanRenewalDate,
+		&i.MembershipStatus,
 		&i.Points,
 		&i.Wins,
 		&i.Losses,
@@ -516,36 +524,40 @@ FROM users.users u
 WHERE u.is_archived = FALSE
   AND (u.parent_id = $1 OR $1 IS NULL)
   AND ($2::varchar IS NULL
-  OR u.first_name ILIKE $2 || '%'
-  OR u.last_name ILIKE $2 || '%'
-  OR u.email ILIKE $2 || '%'
-  OR u.phone ILIKE $2 || '%'
-  OR u.notes ILIKE $2 || '%')
+  OR u.first_name ILIKE '%' || $2 || '%'
+  OR u.last_name ILIKE '%' || $2 || '%'
+  OR u.first_name || ' ' || u.last_name ILIKE '%' || $2 || '%'
+  OR u.email ILIKE '%' || $2 || '%'
+  OR u.phone ILIKE '%' || $2 || '%'
+  OR u.notes ILIKE '%' || $2 || '%')
   AND NOT EXISTS (SELECT 1
                   FROM staff.staff s
                   WHERE s.id = u.id)
   -- membership_plan_id filter
   AND ($3::uuid IS NULL OR cmp.membership_plan_id = $3)
+  -- membership_status filter
+  AND ($4::varchar IS NULL OR cmp.status::text = $4)
   -- has_membership filter (active membership exists)
-  AND ($4::boolean IS NULL
-    OR ($4 = true AND cmp.status = 'active')
-    OR ($4 = false AND (cmp.status IS NULL OR cmp.status != 'active')))
-  -- has_credits filter
   AND ($5::boolean IS NULL
-    OR ($5 = true AND COALESCE(cc.credits, 0) > 0)
-    OR ($5 = false AND COALESCE(cc.credits, 0) = 0))
+    OR ($5 = true AND cmp.status = 'active')
+    OR ($5 = false AND (cmp.status IS NULL OR cmp.status != 'active')))
+  -- has_credits filter
+  AND ($6::boolean IS NULL
+    OR ($6 = true AND COALESCE(cc.credits, 0) > 0)
+    OR ($6 = false AND COALESCE(cc.credits, 0) = 0))
   -- min_credits filter
-  AND ($6::int IS NULL OR COALESCE(cc.credits, 0) >= $6)
+  AND ($7::int IS NULL OR COALESCE(cc.credits, 0) >= $7)
   -- max_credits filter
-  AND ($7::int IS NULL OR COALESCE(cc.credits, 0) <= $7)
+  AND ($8::int IS NULL OR COALESCE(cc.credits, 0) <= $8)
 ORDER BY CASE WHEN cmp.status = 'active' THEN 0 ELSE 1 END, u.created_at DESC
-LIMIT $9 OFFSET $8
+LIMIT $10 OFFSET $9
 `
 
 type GetCustomersParams struct {
 	ParentID         uuid.NullUUID  `json:"parent_id"`
 	Search           sql.NullString `json:"search"`
 	MembershipPlanID uuid.NullUUID  `json:"membership_plan_id"`
+	MembershipStatus sql.NullString `json:"membership_status"`
 	HasMembership    sql.NullBool   `json:"has_membership"`
 	HasCredits       sql.NullBool   `json:"has_credits"`
 	MinCredits       sql.NullInt32  `json:"min_credits"`
@@ -608,6 +620,7 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]G
 		arg.ParentID,
 		arg.Search,
 		arg.MembershipPlanID,
+		arg.MembershipStatus,
 		arg.HasMembership,
 		arg.HasCredits,
 		arg.MinCredits,

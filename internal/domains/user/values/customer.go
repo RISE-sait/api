@@ -12,6 +12,7 @@ type MembershipReadValue struct {
 	MembershipName        string
 	MembershipStartDate   time.Time
 	MembershipRenewalDate time.Time
+	Status                string
 }
 
 type MembershipPlansReadValue struct {
@@ -89,6 +90,7 @@ type CustomerFilterParams struct {
 	ParentID         uuid.UUID
 	Search           string
 	MembershipPlanID *uuid.UUID
+	MembershipStatus *string
 	HasMembership    *bool
 	HasCredits       *bool
 	MinCredits       *int32

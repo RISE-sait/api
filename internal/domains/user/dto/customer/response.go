@@ -35,6 +35,7 @@ type MembershipResponseDto struct {
 	MembershipPlanName    *string    `json:"membership_plan_name,omitempty"`
 	MembershipStartDate   *time.Time `json:"membership_start_date,omitempty"`
 	MembershipRenewalDate *time.Time `json:"membership_renewal_date,omitempty"`
+	Status                *string    `json:"status,omitempty"`
 }
 
 func UserReadValueToResponse(customer values.ReadValue) Response {
@@ -64,6 +65,7 @@ func UserReadValueToResponse(customer values.ReadValue) Response {
 			MembershipRenewalDate: &customer.MembershipInfo.MembershipRenewalDate,
 			MembershipPlanID:      &customer.MembershipInfo.MembershipPlanID,
 			MembershipPlanName:    &customer.MembershipInfo.MembershipPlanName,
+			Status:                &customer.MembershipInfo.Status,
 		}
 	}
 

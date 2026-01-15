@@ -326,6 +326,7 @@ const (
 	MembershipMembershipStatusInactive MembershipMembershipStatus = "inactive"
 	MembershipMembershipStatusCanceled MembershipMembershipStatus = "canceled"
 	MembershipMembershipStatusExpired  MembershipMembershipStatus = "expired"
+	MembershipMembershipStatusPastDue  MembershipMembershipStatus = "past_due"
 )
 
 func (e *MembershipMembershipStatus) Scan(src interface{}) error {
@@ -368,7 +369,8 @@ func (e MembershipMembershipStatus) Valid() bool {
 	case MembershipMembershipStatusActive,
 		MembershipMembershipStatusInactive,
 		MembershipMembershipStatusCanceled,
-		MembershipMembershipStatusExpired:
+		MembershipMembershipStatusExpired,
+		MembershipMembershipStatusPastDue:
 		return true
 	}
 	return false
@@ -380,6 +382,7 @@ func AllMembershipMembershipStatusValues() []MembershipMembershipStatus {
 		MembershipMembershipStatusInactive,
 		MembershipMembershipStatusCanceled,
 		MembershipMembershipStatusExpired,
+		MembershipMembershipStatusPastDue,
 	}
 }
 

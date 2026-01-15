@@ -280,6 +280,18 @@ func (h *CustomersHandler) GetCustomers(w http.ResponseWriter, r *http.Request) 
 		filters.MembershipPlanID = &id
 	}
 
+	// membership_status filter (active, inactive, canceled, expired, past_due)
+	if statusStr := query.Get("membership_status"); statusStr != "" {
+		validStatuses := map[string]bool{
+			"active": true, "inactive": true, "canceled": true, "expired": true, "past_due": true,
+		}
+		if !validStatuses[statusStr] {
+			responseHandlers.RespondWithError(w, errLib.New("Invalid 'membership_status' value, must be one of: active, inactive, canceled, expired, past_due", http.StatusBadRequest))
+			return
+		}
+		filters.MembershipStatus = &statusStr
+	}
+
 	// has_membership filter
 	if hasMembershipStr := query.Get("has_membership"); hasMembershipStr != "" {
 		if hasMembershipStr == "true" {

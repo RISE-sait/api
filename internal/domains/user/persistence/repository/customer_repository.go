@@ -54,6 +54,9 @@ func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int
 	if filters.MembershipPlanID != nil {
 		params.MembershipPlanID = uuid.NullUUID{UUID: *filters.MembershipPlanID, Valid: true}
 	}
+	if filters.MembershipStatus != nil {
+		params.MembershipStatus = sql.NullString{String: *filters.MembershipStatus, Valid: true}
+	}
 	if filters.HasMembership != nil {
 		params.HasMembership = sql.NullBool{Bool: *filters.HasMembership, Valid: true}
 	}
@@ -136,6 +139,7 @@ func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int
 				MembershipName:        dbCustomer.MembershipName.String,
 				MembershipStartDate:   dbCustomer.MembershipStartDate.Time,
 				MembershipRenewalDate: dbCustomer.MembershipPlanRenewalDate.Time,
+				Status:                string(dbCustomer.MembershipStatus.MembershipMembershipStatus),
 			}
 		}
 
@@ -242,6 +246,7 @@ func (r *CustomerRepository) GetCustomer(ctx context.Context, id uuid.UUID, emai
 			MembershipName:        dbCustomer.MembershipName.String,
 			MembershipStartDate:   dbCustomer.MembershipStartDate.Time,
 			MembershipRenewalDate: dbCustomer.MembershipPlanRenewalDate.Time,
+			Status:                string(dbCustomer.MembershipStatus.MembershipMembershipStatus),
 		}
 	}
 
@@ -433,6 +438,9 @@ func (r *CustomerRepository) CountCustomers(ctx context.Context, filters userVal
 	// Set optional filter params
 	if filters.MembershipPlanID != nil {
 		params.MembershipPlanID = uuid.NullUUID{UUID: *filters.MembershipPlanID, Valid: true}
+	}
+	if filters.MembershipStatus != nil {
+		params.MembershipStatus = sql.NullString{String: *filters.MembershipStatus, Valid: true}
 	}
 	if filters.HasMembership != nil {
 		params.HasMembership = sql.NullBool{Bool: *filters.HasMembership, Valid: true}

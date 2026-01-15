@@ -50,16 +50,19 @@ FROM users.users u
 WHERE u.is_archived = FALSE
   AND (u.parent_id = $1 OR $1 IS NULL)
   AND (sqlc.narg('search')::varchar IS NULL
-  OR u.first_name ILIKE sqlc.narg('search') || '%'
-  OR u.last_name ILIKE sqlc.narg('search') || '%'
-  OR u.email ILIKE sqlc.narg('search') || '%'
-  OR u.phone ILIKE sqlc.narg('search') || '%'
-  OR u.notes ILIKE sqlc.narg('search') || '%')
+  OR u.first_name ILIKE '%' || sqlc.narg('search') || '%'
+  OR u.last_name ILIKE '%' || sqlc.narg('search') || '%'
+  OR u.first_name || ' ' || u.last_name ILIKE '%' || sqlc.narg('search') || '%'
+  OR u.email ILIKE '%' || sqlc.narg('search') || '%'
+  OR u.phone ILIKE '%' || sqlc.narg('search') || '%'
+  OR u.notes ILIKE '%' || sqlc.narg('search') || '%')
   AND NOT EXISTS (SELECT 1
                   FROM staff.staff s
                   WHERE s.id = u.id)
   -- membership_plan_id filter
   AND (sqlc.narg('membership_plan_id')::uuid IS NULL OR cmp.membership_plan_id = sqlc.narg('membership_plan_id'))
+  -- membership_status filter
+  AND (sqlc.narg('membership_status')::varchar IS NULL OR cmp.status::text = sqlc.narg('membership_status'))
   -- has_membership filter (active membership exists)
   AND (sqlc.narg('has_membership')::boolean IS NULL
     OR (sqlc.narg('has_membership') = true AND cmp.status = 'active')
@@ -82,6 +85,7 @@ SELECT u.*,
        mp.name          AS membership_plan_name,
        cmp.start_date   AS membership_start_date,
        cmp.renewal_date AS membership_plan_renewal_date,
+       cmp.status       AS membership_status,
        a.points,
        a.wins,
        a.losses,
@@ -144,14 +148,17 @@ FROM users.users u
 WHERE u.is_archived = FALSE
   AND (u.parent_id = $1 OR $1 IS NULL)
   AND (sqlc.narg('search')::varchar IS NULL
-  OR u.first_name ILIKE sqlc.narg('search') || '%'
-  OR u.last_name ILIKE sqlc.narg('search') || '%'
-  OR u.email ILIKE sqlc.narg('search') || '%'
-  OR u.phone ILIKE sqlc.narg('search') || '%'
-  OR u.notes ILIKE sqlc.narg('search') || '%')
+  OR u.first_name ILIKE '%' || sqlc.narg('search') || '%'
+  OR u.last_name ILIKE '%' || sqlc.narg('search') || '%'
+  OR u.first_name || ' ' || u.last_name ILIKE '%' || sqlc.narg('search') || '%'
+  OR u.email ILIKE '%' || sqlc.narg('search') || '%'
+  OR u.phone ILIKE '%' || sqlc.narg('search') || '%'
+  OR u.notes ILIKE '%' || sqlc.narg('search') || '%')
   AND NOT EXISTS (SELECT 1 FROM staff.staff s WHERE s.id = u.id)
   -- membership_plan_id filter
   AND (sqlc.narg('membership_plan_id')::uuid IS NULL OR cmp.membership_plan_id = sqlc.narg('membership_plan_id'))
+  -- membership_status filter
+  AND (sqlc.narg('membership_status')::varchar IS NULL OR cmp.status::text = sqlc.narg('membership_status'))
   -- has_membership filter (active membership exists)
   AND (sqlc.narg('has_membership')::boolean IS NULL
     OR (sqlc.narg('has_membership') = true AND cmp.status = 'active')

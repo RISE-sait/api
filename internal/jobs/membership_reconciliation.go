@@ -40,7 +40,7 @@ func (j *MembershipReconciliationJob) Interval() time.Duration {
 func (j *MembershipReconciliationJob) Run(ctx context.Context) error {
 	log.Printf("[RECONCILIATION] Starting membership reconciliation")
 
-	// Get all customers with active or inactive memberships that use Stripe
+	// Get all customers with active, inactive, or past_due memberships that use Stripe
 	rows, err := j.db.QueryContext(ctx, `
 		SELECT
 			u.id as customer_id,
@@ -53,7 +53,7 @@ func (j *MembershipReconciliationJob) Run(ctx context.Context) error {
 		INNER JOIN users.customer_membership_plans cmp ON u.id = cmp.customer_id
 		WHERE u.stripe_customer_id IS NOT NULL
 		  AND cmp.subscription_source = 'stripe'
-		  AND cmp.status IN ('active', 'inactive')
+		  AND cmp.status IN ('active', 'inactive', 'past_due')
 		ORDER BY cmp.updated_at ASC
 		LIMIT 100 -- Process 100 at a time to avoid timeout
 	`)
@@ -184,7 +184,7 @@ func (j *MembershipReconciliationJob) mapStripeStatusToDBStatus(stripeStatus str
 	case "active", "trialing":
 		return "active"
 	case "past_due", "unpaid":
-		return "inactive"
+		return "past_due"
 	case "canceled", "incomplete", "incomplete_expired":
 		return "expired"
 	default:

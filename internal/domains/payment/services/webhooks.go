@@ -833,13 +833,13 @@ func (s *WebhookService) HandleSubscriptionUpdated(ctx context.Context, event st
 			dbStatus = "active"
 		case stripe.SubscriptionStatusPastDue:
 			log.Printf("[WEBHOOK] Subscription %s is past due", sub.ID)
-			dbStatus = "inactive" // Map past due to inactive
+			dbStatus = "past_due"
 		case stripe.SubscriptionStatusCanceled:
 			log.Printf("[WEBHOOK] Subscription %s is canceled", sub.ID)
 			dbStatus = "canceled"
 		case stripe.SubscriptionStatusUnpaid:
 			log.Printf("[WEBHOOK] Subscription %s is unpaid", sub.ID)
-			dbStatus = "inactive" // Map unpaid to inactive
+			dbStatus = "past_due" // Map unpaid to past_due (they owe money)
 		default:
 			log.Printf("[WEBHOOK] Unhandled subscription status: %s for subscription %s", sub.Status, sub.ID)
 			return nil
@@ -1040,21 +1040,21 @@ func (s *WebhookService) HandleInvoicePaymentFailed(ctx context.Context, event s
 
 	log.Printf("[WEBHOOK] Payment failed for user %s, handling payment failure", userID)
 
-	// Update membership status to inactive due to payment failure - target specific subscription if available
+	// Update membership status to past_due due to payment failure - target specific subscription if available
 	if subscriptionID != "none" {
-		if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByID(ctx, userID, subscriptionID, "inactive"); updateErr != nil {
+		if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByID(ctx, userID, subscriptionID, "past_due"); updateErr != nil {
 			log.Printf("[WEBHOOK] Failed to update membership status after payment failure: %v", updateErr)
 			return updateErr
 		}
 	} else {
 		// Fallback to updating all subscriptions if no subscription ID (shouldn't happen for subscription invoices)
-		if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatus(ctx, userID, "inactive"); updateErr != nil {
+		if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatus(ctx, userID, "past_due"); updateErr != nil {
 			log.Printf("[WEBHOOK] Failed to update membership status after payment failure: %v", updateErr)
 			return updateErr
 		}
 	}
 
-	log.Printf("[WEBHOOK] Successfully marked subscription %s as inactive for user %s after payment failure %s", subscriptionID, userID, invoice.ID)
+	log.Printf("[WEBHOOK] Successfully marked subscription %s as past_due for user %s after payment failure %s", subscriptionID, userID, invoice.ID)
 
 	// Send email notification about payment failure
 	go s.sendPaymentFailureEmail(userID, invoice.ID)

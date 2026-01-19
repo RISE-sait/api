@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -35,14 +36,20 @@ func NewMobileAnalyticsHandler(container *di.Container) *MobileAnalyticsHandler 
 func (h *MobileAnalyticsHandler) RecordMobileSession(w http.ResponseWriter, r *http.Request) {
 	userID, err := contextUtils.GetUserID(r.Context())
 	if err != nil {
+		log.Printf("[MobileSession] Failed to get user ID: %v", err)
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
+	log.Printf("[MobileSession] Recording login for user: %s", userID.String())
+
 	if err := h.repo.RecordMobileLogin(r.Context(), userID); err != nil {
+		log.Printf("[MobileSession] Failed to record login for user %s: %v", userID.String(), err)
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
+
+	log.Printf("[MobileSession] Successfully recorded login for user: %s", userID.String())
 
 	response := map[string]interface{}{
 		"message":   "Session recorded",

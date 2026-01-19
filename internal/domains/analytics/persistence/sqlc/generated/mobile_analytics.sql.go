@@ -146,13 +146,16 @@ func (q *Queries) GetRecentMobileLogins(ctx context.Context, arg GetRecentMobile
 	return items, nil
 }
 
-const recordMobileLogin = `-- name: RecordMobileLogin :exec
+const recordMobileLogin = `-- name: RecordMobileLogin :execrows
 UPDATE users.users
 SET last_mobile_login_at = CURRENT_TIMESTAMP
 WHERE id = $1
 `
 
-func (q *Queries) RecordMobileLogin(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, recordMobileLogin, id)
-	return err
+func (q *Queries) RecordMobileLogin(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, recordMobileLogin, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

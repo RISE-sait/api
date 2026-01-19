@@ -1,4 +1,4 @@
--- name: RecordMobileLogin :exec
+-- name: RecordMobileLogin :execrows
 UPDATE users.users
 SET last_mobile_login_at = CURRENT_TIMESTAMP
 WHERE id = $1;

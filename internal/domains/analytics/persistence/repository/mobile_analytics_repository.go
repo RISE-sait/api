@@ -23,9 +23,12 @@ func NewMobileAnalyticsRepository(container *di.Container) *MobileAnalyticsRepos
 }
 
 func (r *MobileAnalyticsRepository) RecordMobileLogin(ctx context.Context, userID uuid.UUID) *errLib.CommonError {
-	err := r.queries.RecordMobileLogin(ctx, userID)
+	rowsAffected, err := r.queries.RecordMobileLogin(ctx, userID)
 	if err != nil {
 		return errLib.New("Failed to record mobile login", 500)
+	}
+	if rowsAffected == 0 {
+		return errLib.New("No user found with the provided ID", 404)
 	}
 	return nil
 }

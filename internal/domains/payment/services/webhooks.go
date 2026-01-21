@@ -1056,6 +1056,9 @@ func (s *WebhookService) HandleInvoicePaymentFailed(ctx context.Context, event s
 
 	log.Printf("[WEBHOOK] Successfully marked subscription %s as past_due for user %s after payment failure %s", subscriptionID, userID, invoice.ID)
 
+	// Track the failed payment in the centralized payment system
+	go s.trackFailedPayment(&invoice, userID, time.Unix(event.Created, 0))
+
 	// Send email notification about payment failure
 	go s.sendPaymentFailureEmail(userID, invoice.ID)
 

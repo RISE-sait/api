@@ -459,3 +459,43 @@ func EventNotificationBody(firstName, subject, message string) string {
 	`, firstName, message)
 	return baseTemplate(subject, content)
 }
+
+func PaymentRequestBody(firstName string, amount float64, paymentURL string) string {
+	content := fmt.Sprintf(`
+		<p>Hey %s,</p>
+		<p>You have an outstanding balance that requires your attention.</p>
+
+		<div class="stat-box">
+			<p class="stat-number">$%.2f</p>
+			<p class="stat-label">Amount Due</p>
+		</div>
+
+		<p>Please complete your payment at your earliest convenience to keep your account in good standing.</p>
+
+		<p style="text-align: center; margin: 30px 0;">
+			<a href="%s" class="button">PAY NOW</a>
+		</p>
+
+		<p style="font-size: 13px; color: #666;">This is a secure payment link. If you have any questions about this charge, please contact us.</p>
+
+		<p style="margin-top: 30px;"><strong>— The Rise Team</strong></p>
+	`, firstName, amount, paymentURL)
+	return baseTemplate("Payment Request", content)
+}
+
+func PaymentReceivedBody(firstName string, amount float64) string {
+	content := fmt.Sprintf(`
+		<p>Hey %s,</p>
+		<p>Great news! We've received your payment.</p>
+
+		<div class="success-box">
+			<strong>✓ PAYMENT RECEIVED</strong>
+			<p style="margin: 10px 0 0 0;">Amount: $%.2f</p>
+		</div>
+
+		<p>Thank you for your payment. Your account is now up to date.</p>
+
+		<p style="margin-top: 30px;"><strong>— The Rise Team</strong></p>
+	`, firstName, amount)
+	return baseTemplate("Payment Received", content)
+}

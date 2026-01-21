@@ -89,6 +89,7 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 
 		// Payment & Reporting routes
 		"/admin/payments": RegisterPaymentReportsRoutes,
+		"/admin/collections": RegisterCollectionsRoutes,
 
 		// Webhooks
 		"/webhooks": RegisterWebhooksRoutes,
@@ -816,5 +817,27 @@ func RegisterWebsitePromoRoutes(container *di.Container) func(chi.Router) {
 			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Put("/{id}", h.UpdatePromoVideo)
 			r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Delete("/{id}", h.DeletePromoVideo)
 		})
+	}
+}
+
+// RegisterCollectionsRoutes registers debt collection routes for admin
+func RegisterCollectionsRoutes(container *di.Container) func(chi.Router) {
+	h := payment.NewCollectionsHandler(container)
+	return func(r chi.Router) {
+		// All routes require admin authentication
+		r.Use(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT))
+		r.Use(middlewares.RateLimitMiddleware(5, 10, 1*time.Minute)) // 5 rps, burst 10
+
+		// Get customer balance and payment methods
+		r.Get("/customers/{customer_id}/balance", h.GetCustomerBalance)
+		r.Get("/customers/{customer_id}/payment-methods", h.GetCustomerPaymentMethods)
+
+		// Collection actions
+		r.Post("/charge-card", h.ChargeCard)
+		r.Post("/send-payment-link", h.SendPaymentLink)
+		r.Post("/record-manual", h.RecordManualPayment)
+
+		// Collection history
+		r.Get("/attempts", h.GetCollectionAttempts)
 	}
 }

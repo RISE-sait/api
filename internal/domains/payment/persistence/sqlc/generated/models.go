@@ -327,6 +327,7 @@ const (
 	MembershipMembershipStatusInactive MembershipMembershipStatus = "inactive"
 	MembershipMembershipStatusCanceled MembershipMembershipStatus = "canceled"
 	MembershipMembershipStatusExpired  MembershipMembershipStatus = "expired"
+	MembershipMembershipStatusPastDue  MembershipMembershipStatus = "past_due"
 )
 
 func (e *MembershipMembershipStatus) Scan(src interface{}) error {
@@ -369,7 +370,8 @@ func (e MembershipMembershipStatus) Valid() bool {
 	case MembershipMembershipStatusActive,
 		MembershipMembershipStatusInactive,
 		MembershipMembershipStatusCanceled,
-		MembershipMembershipStatusExpired:
+		MembershipMembershipStatusExpired,
+		MembershipMembershipStatusPastDue:
 		return true
 	}
 	return false
@@ -381,6 +383,7 @@ func AllMembershipMembershipStatusValues() []MembershipMembershipStatus {
 		MembershipMembershipStatusInactive,
 		MembershipMembershipStatusCanceled,
 		MembershipMembershipStatusExpired,
+		MembershipMembershipStatusPastDue,
 	}
 }
 
@@ -827,6 +830,54 @@ type PaymentWebhookEvent struct {
 	ProcessedAt  sql.NullTime   `json:"processed_at"`
 	Status       sql.NullString `json:"status"`
 	ErrorMessage sql.NullString `json:"error_message"`
+}
+
+// Audit log of all payment collection attempts by admins
+type PaymentsCollectionAttempt struct {
+	ID              uuid.UUID       `json:"id"`
+	CustomerID      uuid.UUID       `json:"customer_id"`
+	AdminID         uuid.UUID       `json:"admin_id"`
+	AmountAttempted decimal.Decimal `json:"amount_attempted"`
+	AmountCollected sql.NullString  `json:"amount_collected"`
+	// Method used: card_charge, payment_link, or manual_entry
+	CollectionMethod string `json:"collection_method"`
+	// Details like masked card info or cash/check type
+	PaymentMethodDetails  sql.NullString `json:"payment_method_details"`
+	Status                string         `json:"status"`
+	FailureReason         sql.NullString `json:"failure_reason"`
+	StripePaymentIntentID sql.NullString `json:"stripe_payment_intent_id"`
+	StripePaymentLinkID   sql.NullString `json:"stripe_payment_link_id"`
+	StripeCustomerID      sql.NullString `json:"stripe_customer_id"`
+	MembershipPlanID      uuid.NullUUID  `json:"membership_plan_id"`
+	StripeSubscriptionID  sql.NullString `json:"stripe_subscription_id"`
+	Notes                 sql.NullString `json:"notes"`
+	PreviousBalance       sql.NullString `json:"previous_balance"`
+	NewBalance            sql.NullString `json:"new_balance"`
+	CreatedAt             time.Time      `json:"created_at"`
+	UpdatedAt             time.Time      `json:"updated_at"`
+	CompletedAt           sql.NullTime   `json:"completed_at"`
+}
+
+// Tracking of payment links sent to customers for collection
+type PaymentsPaymentLink struct {
+	ID                   uuid.UUID       `json:"id"`
+	CustomerID           uuid.UUID       `json:"customer_id"`
+	AdminID              uuid.UUID       `json:"admin_id"`
+	StripePaymentLinkID  string          `json:"stripe_payment_link_id"`
+	StripePaymentLinkUrl string          `json:"stripe_payment_link_url"`
+	Amount               decimal.Decimal `json:"amount"`
+	Description          sql.NullString  `json:"description"`
+	MembershipPlanID     uuid.NullUUID   `json:"membership_plan_id"`
+	CollectionAttemptID  uuid.NullUUID   `json:"collection_attempt_id"`
+	Status               string          `json:"status"`
+	SentVia              []string        `json:"sent_via"`
+	SentToEmail          sql.NullString  `json:"sent_to_email"`
+	SentToPhone          sql.NullString  `json:"sent_to_phone"`
+	CreatedAt            time.Time       `json:"created_at"`
+	SentAt               sql.NullTime    `json:"sent_at"`
+	OpenedAt             sql.NullTime    `json:"opened_at"`
+	CompletedAt          sql.NullTime    `json:"completed_at"`
+	ExpiresAt            sql.NullTime    `json:"expires_at"`
 }
 
 // Centralized tracking of all payment transactions including memberships, events, programs, and subsidies

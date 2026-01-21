@@ -831,21 +831,32 @@ func (h *PaymentReportsHandler) BackfillMissingTransactions(w http.ResponseWrite
 
 	log.Printf("[TRANSACTION-BACKFILL] Invoice backfill completed: %d created, %d skipped, %d errors", invoiceCreated, invoiceSkipped, invoiceErrors)
 
+	// Backfill failed/unpaid invoices
+	failedCreated, failedSkipped, failedErrors, failedResults := h.backfillFailedInvoices(ctx)
+
+	log.Printf("[TRANSACTION-BACKFILL] Failed invoice backfill completed: %d created, %d skipped, %d errors", failedCreated, failedSkipped, failedErrors)
+
 	responses.RespondWithSuccess(w, map[string]interface{}{
-		"message":                "Transaction backfill completed",
+		"message": "Transaction backfill completed",
 		"checkout_sessions": map[string]interface{}{
 			"created":     created,
 			"skipped":     skipped,
 			"error_count": errors,
 			"details":     results,
 		},
-		"invoices": map[string]interface{}{
+		"paid_invoices": map[string]interface{}{
 			"created":     invoiceCreated,
 			"skipped":     invoiceSkipped,
 			"error_count": invoiceErrors,
 			"details":     invoiceResults,
 		},
-		"total_created": created + invoiceCreated,
+		"failed_invoices": map[string]interface{}{
+			"created":     failedCreated,
+			"skipped":     failedSkipped,
+			"error_count": failedErrors,
+			"details":     failedResults,
+		},
+		"total_created": created + invoiceCreated + failedCreated,
 	}, http.StatusOK)
 }
 
@@ -1013,6 +1024,150 @@ func (h *PaymentReportsHandler) backfillFromInvoices(ctx context.Context) (creat
 	if err := iter.Err(); err != nil {
 		log.Printf("[INVOICE-BACKFILL] Error iterating Stripe invoices: %v", err)
 		errors++
+	}
+
+	return created, skipped, errors, results
+}
+
+// backfillFailedInvoices backfills failed/unpaid invoices from Stripe
+func (h *PaymentReportsHandler) backfillFailedInvoices(ctx context.Context) (created, skipped, errors int, results []map[string]interface{}) {
+	log.Printf("[FAILED-INVOICE-BACKFILL] Starting backfill of failed invoices from Stripe")
+
+	// Statuses that indicate failed/unpaid invoices
+	failedStatuses := []string{"open", "uncollectible"}
+
+	for _, status := range failedStatuses {
+		log.Printf("[FAILED-INVOICE-BACKFILL] Processing invoices with status: %s", status)
+
+		params := &stripe.InvoiceListParams{
+			Status: stripe.String(status),
+		}
+		params.Limit = stripe.Int64(100)
+		params.AddExpand("data.subscription")
+		params.AddExpand("data.customer")
+
+		iter := invoice.List(params)
+		for iter.Next() {
+			inv := iter.Invoice()
+
+			// Skip invoices without subscription
+			if inv.Subscription == nil || inv.Subscription.ID == "" {
+				skipped++
+				continue
+			}
+
+			// Check if transaction already exists
+			existingTx, _ := h.queries.GetPaymentTransactionByStripeInvoice(ctx, sql.NullString{
+				String: inv.ID,
+				Valid:  true,
+			})
+			if existingTx.ID != uuid.Nil {
+				log.Printf("[FAILED-INVOICE-BACKFILL] Skipping invoice %s: transaction already exists", inv.ID)
+				skipped++
+				continue
+			}
+
+			// Get customer ID from Stripe customer
+			var stripeCustomerID string
+			if inv.Customer != nil {
+				stripeCustomerID = inv.Customer.ID
+			}
+
+			if stripeCustomerID == "" {
+				log.Printf("[FAILED-INVOICE-BACKFILL] Skipping invoice %s: no customer ID", inv.ID)
+				skipped++
+				continue
+			}
+
+			// Look up user by Stripe customer ID
+			var userID uuid.UUID
+			query := "SELECT id FROM users.users WHERE stripe_customer_id = $1"
+			if err := h.db.QueryRowContext(ctx, query, stripeCustomerID).Scan(&userID); err != nil {
+				log.Printf("[FAILED-INVOICE-BACKFILL] Skipping invoice %s: user not found for Stripe customer %s", inv.ID, stripeCustomerID)
+				skipped++
+				continue
+			}
+
+			// Get user details
+			var customerEmail, customerName string
+			userQuery := "SELECT email, first_name, last_name FROM users.users WHERE id = $1"
+			var email sql.NullString
+			var firstName, lastName string
+			if err := h.db.QueryRowContext(ctx, userQuery, userID).Scan(&email, &firstName, &lastName); err != nil {
+				log.Printf("[FAILED-INVOICE-BACKFILL] Skipping invoice %s: could not get user details for %s", inv.ID, userID)
+				skipped++
+				continue
+			}
+			if email.Valid {
+				customerEmail = email.String
+			}
+			customerName = firstName + " " + lastName
+
+			// Get membership plan from subscription
+			var membershipPlanID *uuid.UUID
+			membershipQuery := "SELECT membership_plan_id FROM users.customer_membership_plans WHERE stripe_subscription_id = $1 LIMIT 1"
+			var planID uuid.UUID
+			if err := h.db.QueryRowContext(ctx, membershipQuery, inv.Subscription.ID).Scan(&planID); err == nil {
+				membershipPlanID = &planID
+			}
+
+			// For failed invoices, set amounts to 0 (to satisfy constraint) and store attempted amount in metadata
+			attemptedAmount := float64(inv.Total) / 100.0
+
+			// Create the transaction as failed
+			transactionDate := time.Unix(inv.Created, 0)
+			_, createErr := h.trackingService.TrackPayment(ctx, tracking.TrackPaymentParams{
+				CustomerID:           userID,
+				CustomerEmail:        customerEmail,
+				CustomerName:         customerName,
+				TransactionType:      "membership_renewal",
+				TransactionDate:      transactionDate,
+				OriginalAmount:       0, // Set to 0 for failed payments (constraint)
+				DiscountAmount:       0,
+				SubsidyAmount:        0,
+				CustomerPaid:         0, // Nothing was collected
+				MembershipPlanID:     membershipPlanID,
+				StripeCustomerID:     stripeCustomerID,
+				StripeSubscriptionID: inv.Subscription.ID,
+				StripeInvoiceID:      inv.ID,
+				PaymentStatus:        "failed",
+				Currency:             string(inv.Currency),
+				InvoiceURL:           inv.HostedInvoiceURL,
+				InvoicePDFURL:        inv.InvoicePDF,
+				Description:          fmt.Sprintf("Failed payment - $%.2f attempted (status: %s)", attemptedAmount, status),
+				Metadata: map[string]interface{}{
+					"attempted_amount": attemptedAmount,
+					"stripe_status":    status,
+				},
+			})
+
+			if createErr != nil {
+				log.Printf("[FAILED-INVOICE-BACKFILL] Error creating transaction for invoice %s: %v", inv.ID, createErr)
+				errors++
+				results = append(results, map[string]interface{}{
+					"invoice_id": inv.ID,
+					"user_id":    userID,
+					"status":     "error",
+					"error":      createErr.Error(),
+				})
+			} else {
+				log.Printf("[FAILED-INVOICE-BACKFILL] Created failed transaction for invoice %s, user %s, attempted $%.2f",
+					inv.ID, userID, attemptedAmount)
+				created++
+				results = append(results, map[string]interface{}{
+					"invoice_id":       inv.ID,
+					"user_id":          userID,
+					"attempted_amount": attemptedAmount,
+					"stripe_status":    status,
+					"status":           "created",
+				})
+			}
+		}
+
+		if err := iter.Err(); err != nil {
+			log.Printf("[FAILED-INVOICE-BACKFILL] Error iterating %s invoices: %v", status, err)
+			errors++
+		}
 	}
 
 	return created, skipped, errors, results

@@ -1,6 +1,7 @@
 package payment
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -823,13 +824,196 @@ func (h *PaymentReportsHandler) BackfillMissingTransactions(w http.ResponseWrite
 		return
 	}
 
-	log.Printf("[TRANSACTION-BACKFILL] Backfill completed: %d created, %d skipped, %d errors", created, skipped, errors)
+	log.Printf("[TRANSACTION-BACKFILL] Checkout session backfill completed: %d created, %d skipped, %d errors", created, skipped, errors)
+
+	// Now backfill from Stripe invoices (for subscription renewals)
+	invoiceCreated, invoiceSkipped, invoiceErrors, invoiceResults := h.backfillFromInvoices(ctx)
+
+	log.Printf("[TRANSACTION-BACKFILL] Invoice backfill completed: %d created, %d skipped, %d errors", invoiceCreated, invoiceSkipped, invoiceErrors)
 
 	responses.RespondWithSuccess(w, map[string]interface{}{
-		"message":       "Transaction backfill completed",
-		"created":       created,
-		"skipped":       skipped,
-		"error_count":   errors,
-		"details":       results,
+		"message":                "Transaction backfill completed",
+		"checkout_sessions": map[string]interface{}{
+			"created":     created,
+			"skipped":     skipped,
+			"error_count": errors,
+			"details":     results,
+		},
+		"invoices": map[string]interface{}{
+			"created":     invoiceCreated,
+			"skipped":     invoiceSkipped,
+			"error_count": invoiceErrors,
+			"details":     invoiceResults,
+		},
+		"total_created": created + invoiceCreated,
 	}, http.StatusOK)
+}
+
+// backfillFromInvoices backfills payment transactions from Stripe invoices
+// This captures subscription renewals that don't have checkout sessions
+func (h *PaymentReportsHandler) backfillFromInvoices(ctx context.Context) (created, skipped, errors int, results []map[string]interface{}) {
+	log.Printf("[INVOICE-BACKFILL] Starting backfill from Stripe invoices")
+
+	// List all paid invoices from Stripe
+	params := &stripe.InvoiceListParams{
+		Status: stripe.String("paid"),
+	}
+	params.Limit = stripe.Int64(100)
+	params.AddExpand("data.subscription")
+	params.AddExpand("data.customer")
+	params.AddExpand("data.charge")
+
+	iter := invoice.List(params)
+	for iter.Next() {
+		inv := iter.Invoice()
+
+		// Skip invoices without subscription (one-time payments handled by checkout sessions)
+		if inv.Subscription == nil || inv.Subscription.ID == "" {
+			skipped++
+			continue
+		}
+
+		// Check if transaction already exists for this invoice
+		existingTx, _ := h.queries.GetPaymentTransactionByStripeInvoice(ctx, sql.NullString{
+			String: inv.ID,
+			Valid:  true,
+		})
+		if existingTx.ID != uuid.Nil {
+			log.Printf("[INVOICE-BACKFILL] Skipping invoice %s: transaction already exists", inv.ID)
+			skipped++
+			continue
+		}
+
+		// Get customer ID from Stripe customer
+		var stripeCustomerID string
+		if inv.Customer != nil {
+			stripeCustomerID = inv.Customer.ID
+		}
+
+		if stripeCustomerID == "" {
+			log.Printf("[INVOICE-BACKFILL] Skipping invoice %s: no customer ID", inv.ID)
+			skipped++
+			continue
+		}
+
+		// Look up user by Stripe customer ID
+		var userID uuid.UUID
+		query := "SELECT id FROM users.users WHERE stripe_customer_id = $1"
+		if err := h.db.QueryRowContext(ctx, query, stripeCustomerID).Scan(&userID); err != nil {
+			log.Printf("[INVOICE-BACKFILL] Skipping invoice %s: user not found for Stripe customer %s", inv.ID, stripeCustomerID)
+			skipped++
+			continue
+		}
+
+		// Get user details
+		var customerEmail, customerName string
+		userQuery := "SELECT email, first_name, last_name FROM users.users WHERE id = $1"
+		var email sql.NullString
+		var firstName, lastName string
+		if err := h.db.QueryRowContext(ctx, userQuery, userID).Scan(&email, &firstName, &lastName); err != nil {
+			log.Printf("[INVOICE-BACKFILL] Skipping invoice %s: could not get user details for %s", inv.ID, userID)
+			skipped++
+			continue
+		}
+		if email.Valid {
+			customerEmail = email.String
+		}
+		customerName = firstName + " " + lastName
+
+		// Get membership plan from subscription
+		var membershipPlanID *uuid.UUID
+		membershipQuery := "SELECT membership_plan_id FROM users.customer_membership_plans WHERE stripe_subscription_id = $1 LIMIT 1"
+		var planID uuid.UUID
+		if err := h.db.QueryRowContext(ctx, membershipQuery, inv.Subscription.ID).Scan(&planID); err == nil {
+			membershipPlanID = &planID
+		}
+
+		// Determine transaction type - check if this is the first invoice (subscription) or a renewal
+		transactionType := "membership_renewal"
+		// If the invoice is from the same day as subscription creation, it's the initial subscription
+		if inv.Subscription.Created != 0 {
+			subCreated := time.Unix(inv.Subscription.Created, 0)
+			invCreated := time.Unix(inv.Created, 0)
+			// If invoice was created within 1 hour of subscription, it's the initial payment
+			if invCreated.Sub(subCreated) < time.Hour {
+				transactionType = "membership_subscription"
+			}
+		}
+
+		// Calculate amounts
+		originalAmount := float64(inv.Total) / 100.0
+		discountAmount := 0.0
+		if len(inv.TotalDiscountAmounts) > 0 {
+			for _, discount := range inv.TotalDiscountAmounts {
+				discountAmount += float64(discount.Amount) / 100.0
+			}
+		}
+		customerPaid := float64(inv.AmountPaid) / 100.0
+
+		// Skip $0 or negative transactions
+		if originalAmount <= 0 || customerPaid < 0 {
+			log.Printf("[INVOICE-BACKFILL] Skipping invoice %s: zero or negative amount ($%.2f)", inv.ID, originalAmount)
+			skipped++
+			continue
+		}
+
+		// Get receipt URL from charge
+		var receiptURL string
+		if inv.Charge != nil && inv.Charge.ReceiptURL != "" {
+			receiptURL = inv.Charge.ReceiptURL
+		}
+
+		// Create the transaction
+		transactionDate := time.Unix(inv.Created, 0)
+		_, createErr := h.trackingService.TrackPayment(ctx, tracking.TrackPaymentParams{
+			CustomerID:           userID,
+			CustomerEmail:        customerEmail,
+			CustomerName:         customerName,
+			TransactionType:      transactionType,
+			TransactionDate:      transactionDate,
+			OriginalAmount:       originalAmount,
+			DiscountAmount:       discountAmount,
+			SubsidyAmount:        0,
+			CustomerPaid:         customerPaid,
+			MembershipPlanID:     membershipPlanID,
+			StripeCustomerID:     stripeCustomerID,
+			StripeSubscriptionID: inv.Subscription.ID,
+			StripeInvoiceID:      inv.ID,
+			PaymentStatus:        "completed",
+			Currency:             string(inv.Currency),
+			InvoiceURL:           inv.HostedInvoiceURL,
+			InvoicePDFURL:        inv.InvoicePDF,
+			ReceiptURL:           receiptURL,
+			Description:          fmt.Sprintf("Backfilled from Stripe invoice %s", inv.ID),
+		})
+
+		if createErr != nil {
+			log.Printf("[INVOICE-BACKFILL] Error creating transaction for invoice %s: %v", inv.ID, createErr)
+			errors++
+			results = append(results, map[string]interface{}{
+				"invoice_id": inv.ID,
+				"user_id":    userID,
+				"status":     "error",
+				"error":      createErr.Error(),
+			})
+		} else {
+			log.Printf("[INVOICE-BACKFILL] Created transaction for invoice %s, user %s, type %s, amount $%.2f",
+				inv.ID, userID, transactionType, customerPaid)
+			created++
+			results = append(results, map[string]interface{}{
+				"invoice_id":       inv.ID,
+				"user_id":          userID,
+				"transaction_type": transactionType,
+				"amount":           customerPaid,
+				"status":           "created",
+			})
+		}
+	}
+
+	if err := iter.Err(); err != nil {
+		log.Printf("[INVOICE-BACKFILL] Error iterating Stripe invoices: %v", err)
+		errors++
+	}
+
+	return created, skipped, errors, results
 }

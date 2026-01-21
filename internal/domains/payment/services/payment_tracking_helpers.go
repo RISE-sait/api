@@ -268,6 +268,77 @@ func (s *WebhookService) trackMembershipSubscription(session *stripe.CheckoutSes
 	}
 }
 
+// trackFailedPayment tracks a failed payment attempt
+func (s *WebhookService) trackFailedPayment(invoice *stripe.Invoice, customerID uuid.UUID, transactionDate time.Time) {
+	ctx := context.Background()
+
+	// Get customer details
+	user, err := s.UserRepo.GetUserInfo(ctx, "", customerID)
+	if err != nil {
+		log.Printf("[PAYMENT-TRACKING] Failed to get user info for %s: %v", customerID, err)
+		return
+	}
+
+	customerEmail := ""
+	if user.Email != nil {
+		customerEmail = *user.Email
+	}
+	customerName := user.FirstName + " " + user.LastName
+
+	// Get subscription to find membership plan
+	var planID *uuid.UUID
+	if invoice.Subscription != nil && invoice.Subscription.ID != "" {
+		membership, mErr := s.container.Queries.UserDb.GetMembershipByStripeSubscriptionID(ctx, sql.NullString{
+			String: invoice.Subscription.ID,
+			Valid:  true,
+		})
+		if mErr == nil {
+			planID = &membership.MembershipPlanID
+		} else {
+			log.Printf("[PAYMENT-TRACKING] Could not find membership for subscription %s: %v", invoice.Subscription.ID, mErr)
+		}
+	}
+
+	// For failed payments, set all amounts to 0 to satisfy the constraint:
+	// customer_paid = original_amount - discount_amount - subsidy_amount
+	// Store the attempted amount in metadata for reference
+	attemptedAmount := float64(invoice.Total) / 100.0
+
+	var subscriptionID string
+	if invoice.Subscription != nil {
+		subscriptionID = invoice.Subscription.ID
+	}
+
+	_, trackingErr := s.PaymentTracking.TrackPayment(ctx, tracking.TrackPaymentParams{
+		CustomerID:           customerID,
+		CustomerEmail:        customerEmail,
+		CustomerName:         customerName,
+		TransactionType:      "membership_renewal",
+		TransactionDate:      transactionDate,
+		OriginalAmount:       0, // Set to 0 for failed payments (constraint requires customer_paid = original - discount - subsidy)
+		DiscountAmount:       0,
+		SubsidyAmount:        0,
+		CustomerPaid:         0, // Payment failed, nothing was collected
+		MembershipPlanID:     planID,
+		StripeCustomerID:     invoice.Customer.ID,
+		StripeSubscriptionID: subscriptionID,
+		StripeInvoiceID:      invoice.ID,
+		PaymentStatus:        "failed",
+		Currency:             string(invoice.Currency),
+		Description:          fmt.Sprintf("Failed payment attempt - $%.2f was attempted", attemptedAmount),
+		Metadata: map[string]interface{}{
+			"attempted_amount": attemptedAmount,
+			"failure_reason":   "Payment failed",
+		},
+	})
+
+	if trackingErr != nil {
+		log.Printf("[PAYMENT-TRACKING] Failed to track failed payment: %v", trackingErr)
+	} else {
+		log.Printf("[PAYMENT-TRACKING] Tracked failed payment for user %s, invoice %s (attempted: $%.2f)", customerID, invoice.ID, attemptedAmount)
+	}
+}
+
 // trackMembershipRenewal tracks a membership renewal payment from invoice
 func (s *WebhookService) trackMembershipRenewal(invoice *stripe.Invoice, customerID uuid.UUID, transactionDate time.Time) {
 	ctx := context.Background()

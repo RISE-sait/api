@@ -10,10 +10,6 @@ on:
 
 jobs:
   migrate:
-    if: >
-      ${{ github.event.workflow_run.conclusion == 'success' &&
-          github.event.workflow_run.head_branch == 'main' &&
-          contains(github.event.workflow_run.head_commit.modified, 'db/') }}
     runs-on: ubuntu-latest
 
     steps:

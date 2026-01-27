@@ -30,7 +30,7 @@ INSERT INTO users.users (hubspot_id, country_alpha2_code, email, dob, phone, has
 VALUES ($1, $2, $3, $4, $5,
         $6, $7, (SELECT pu.id from users.users pu WHERE $13 = pu.email), $8, $9,
         $10, $11, $12)
-RETURNING id, hubspot_id, country_alpha2_code, gender, first_name, last_name, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at, dob, is_archived, square_customer_id, stripe_customer_id, notes, deleted_at, scheduled_deletion_at, email_verified, email_verification_token, email_verification_token_expires_at, email_verified_at, suspended_at, suspension_reason, suspended_by, suspension_expires_at, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship
+RETURNING id, hubspot_id, country_alpha2_code, gender, first_name, last_name, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at, dob, is_archived, square_customer_id, stripe_customer_id, notes, deleted_at, scheduled_deletion_at, email_verified, email_verification_token, email_verification_token_expires_at, email_verified_at, suspended_at, suspension_reason, suspended_by, suspension_expires_at, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship, last_mobile_login_at, pending_email, pending_email_token, pending_email_token_expires_at, email_changed_at
 `
 
 type CreateUserParams struct {
@@ -98,6 +98,11 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (UsersUs
 		&i.EmergencyContactName,
 		&i.EmergencyContactPhone,
 		&i.EmergencyContactRelationship,
+		&i.LastMobileLoginAt,
+		&i.PendingEmail,
+		&i.PendingEmailToken,
+		&i.PendingEmailTokenExpiresAt,
+		&i.EmailChangedAt,
 	)
 	return i, err
 }
@@ -155,7 +160,7 @@ func (q *Queries) GetIsUserAParent(ctx context.Context, parentID uuid.NullUUID) 
 
 const getUserByIdOrEmail = `-- name: GetUserByIdOrEmail :one
 WITH u
-         as (SELECT id, hubspot_id, country_alpha2_code, gender, first_name, last_name, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at, dob, is_archived, square_customer_id, stripe_customer_id, notes, deleted_at, scheduled_deletion_at, email_verified, email_verification_token, email_verification_token_expires_at, email_verified_at, suspended_at, suspension_reason, suspended_by, suspension_expires_at, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship
+         as (SELECT id, hubspot_id, country_alpha2_code, gender, first_name, last_name, parent_id, phone, email, has_marketing_email_consent, has_sms_consent, created_at, updated_at, dob, is_archived, square_customer_id, stripe_customer_id, notes, deleted_at, scheduled_deletion_at, email_verified, email_verification_token, email_verification_token_expires_at, email_verified_at, suspended_at, suspension_reason, suspended_by, suspension_expires_at, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship, last_mobile_login_at, pending_email, pending_email_token, pending_email_token_expires_at, email_changed_at
              FROM users.users u2
              WHERE (u2.id = $1 OR $1 IS NULL)
                AND (u2.email = $2 OR $2 IS NULL)
@@ -165,7 +170,7 @@ WITH u
                     FROM users.customer_membership_plans
                     WHERE customer_id = (SELECT id FROM u)
                     ORDER BY customer_id, start_date DESC)
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at, u.suspended_at, u.suspension_reason, u.suspended_by, u.suspension_expires_at, u.emergency_contact_name, u.emergency_contact_phone, u.emergency_contact_relationship,
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at, u.suspended_at, u.suspension_reason, u.suspended_by, u.suspension_expires_at, u.emergency_contact_name, u.emergency_contact_phone, u.emergency_contact_relationship, u.last_mobile_login_at, u.pending_email, u.pending_email_token, u.pending_email_token_expires_at, u.email_changed_at,
        mp.name          as membership_plan_name,
        cmp.start_date   as membership_plan_start_date,
        cmp.renewal_date as membership_plan_renewal_date,
@@ -228,6 +233,11 @@ type GetUserByIdOrEmailRow struct {
 	EmergencyContactName            sql.NullString `json:"emergency_contact_name"`
 	EmergencyContactPhone           sql.NullString `json:"emergency_contact_phone"`
 	EmergencyContactRelationship    sql.NullString `json:"emergency_contact_relationship"`
+	LastMobileLoginAt               sql.NullTime   `json:"last_mobile_login_at"`
+	PendingEmail                    sql.NullString `json:"pending_email"`
+	PendingEmailToken               sql.NullString `json:"pending_email_token"`
+	PendingEmailTokenExpiresAt      sql.NullTime   `json:"pending_email_token_expires_at"`
+	EmailChangedAt                  sql.NullTime   `json:"email_changed_at"`
 	MembershipPlanName              sql.NullString `json:"membership_plan_name"`
 	MembershipPlanStartDate         sql.NullTime   `json:"membership_plan_start_date"`
 	MembershipPlanRenewalDate       sql.NullTime   `json:"membership_plan_renewal_date"`
@@ -280,6 +290,11 @@ func (q *Queries) GetUserByIdOrEmail(ctx context.Context, arg GetUserByIdOrEmail
 		&i.EmergencyContactName,
 		&i.EmergencyContactPhone,
 		&i.EmergencyContactRelationship,
+		&i.LastMobileLoginAt,
+		&i.PendingEmail,
+		&i.PendingEmailToken,
+		&i.PendingEmailTokenExpiresAt,
+		&i.EmailChangedAt,
 		&i.MembershipPlanName,
 		&i.MembershipPlanStartDate,
 		&i.MembershipPlanRenewalDate,

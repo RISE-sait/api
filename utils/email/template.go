@@ -499,3 +499,29 @@ func PaymentReceivedBody(firstName string, amount float64) string {
 	`, firstName, amount)
 	return baseTemplate("Payment Received", content)
 }
+
+func EmailChangeVerificationBody(firstName, newEmail, verificationURL string) string {
+	content := fmt.Sprintf(`
+		<p>Hey %s,</p>
+		<p>You've requested to change your email address to <strong>%s</strong>.</p>
+
+		<p style="text-align: center; margin: 30px 0;">
+			<a href="%s" class="button">VERIFY NEW EMAIL</a>
+		</p>
+
+		<p style="font-size: 13px; color: #666;">Or copy and paste this link into your browser:</p>
+		<p style="background-color: #f5f5f5; padding: 12px; border-radius: 4px; word-break: break-all; font-size: 12px; font-family: monospace;">
+			%s
+		</p>
+
+		<div class="alert-box">
+			<strong>⏰ HEADS UP:</strong>
+			<p style="margin: 10px 0 0 0;">This verification link expires in 24 hours. Your email will only be changed once you click the link above.</p>
+		</div>
+
+		<p style="font-size: 13px; color: #666;">If you didn't request this change, you can safely ignore this email and your current email will remain unchanged.</p>
+
+		<p style="margin-top: 30px;"><strong>— The Rise Team</strong></p>
+	`, firstName, newEmail, verificationURL, verificationURL)
+	return baseTemplate("Verify Your New Email", content)
+}

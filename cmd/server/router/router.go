@@ -17,6 +17,7 @@ import (
 	eventHandler "api/internal/domains/event/handler"
 	"api/internal/domains/game"
 	"api/internal/domains/identity/handler/authentication"
+	"api/internal/domains/identity/handler/email_change"
 	"api/internal/domains/identity/handler/email_verification"
 	"api/internal/domains/identity/handler/registration"
 	locationsHandler "api/internal/domains/location/handler"
@@ -120,9 +121,18 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 
 func RegisterUserRoutes(container *di.Container) func(chi.Router) {
 	h := userHandler.NewUsersHandlers(container)
+	emailChangeHandler := email_change.NewEmailChangeHandler(container)
 
 	return func(r chi.Router) {
 		r.With(middlewares.JWTAuthMiddleware(true)).Put("/{id}", h.UpdateUser)
+
+		// Email change routes
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/{id}/email/change", emailChangeHandler.InitiateEmailChange)
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/{id}/email/resend", emailChangeHandler.ResendEmailChangeVerification)
+		r.With(middlewares.JWTAuthMiddleware(true)).Delete("/{id}/email/cancel", emailChangeHandler.CancelEmailChange)
+
+		// Public endpoint for email change verification (token-based, no JWT required)
+		r.Post("/email/verify", emailChangeHandler.VerifyEmailChange)
 	}
 }
 

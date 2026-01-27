@@ -101,3 +101,24 @@ func (s *Service) EnableUser(ctx context.Context, userEmail string) *errLib.Comm
 	log.Printf("Successfully enabled Firebase user: %s (%s)", user.UID, userEmail)
 	return nil
 }
+
+// UpdateUserEmail updates a Firebase user's email address
+func (s *Service) UpdateUserEmail(ctx context.Context, currentEmail string, newEmail string) *errLib.CommonError {
+	// Get user by current email first
+	user, firebaseErr := s.FirebaseAuthClient.GetUserByEmail(ctx, currentEmail)
+	if firebaseErr != nil {
+		log.Printf("Failed to get Firebase user by email %s: %v", currentEmail, firebaseErr)
+		return errLib.New("Firebase user not found", http.StatusNotFound)
+	}
+
+	// Update the email
+	params := (&auth.UserToUpdate{}).Email(newEmail)
+	_, firebaseErr = s.FirebaseAuthClient.UpdateUser(ctx, user.UID, params)
+	if firebaseErr != nil {
+		log.Printf("Failed to update Firebase user email from %s to %s: %v", currentEmail, newEmail, firebaseErr)
+		return errLib.New("Failed to update Firebase user email", http.StatusInternalServerError)
+	}
+
+	log.Printf("Successfully updated Firebase user email from %s to %s", currentEmail, newEmail)
+	return nil
+}

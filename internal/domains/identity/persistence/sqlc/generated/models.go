@@ -326,6 +326,7 @@ const (
 	MembershipMembershipStatusInactive MembershipMembershipStatus = "inactive"
 	MembershipMembershipStatusCanceled MembershipMembershipStatus = "canceled"
 	MembershipMembershipStatusExpired  MembershipMembershipStatus = "expired"
+	MembershipMembershipStatusPastDue  MembershipMembershipStatus = "past_due"
 )
 
 func (e *MembershipMembershipStatus) Scan(src interface{}) error {
@@ -368,7 +369,8 @@ func (e MembershipMembershipStatus) Valid() bool {
 	case MembershipMembershipStatusActive,
 		MembershipMembershipStatusInactive,
 		MembershipMembershipStatusCanceled,
-		MembershipMembershipStatusExpired:
+		MembershipMembershipStatusExpired,
+		MembershipMembershipStatusPastDue:
 		return true
 	}
 	return false
@@ -380,6 +382,7 @@ func AllMembershipMembershipStatusValues() []MembershipMembershipStatus {
 		MembershipMembershipStatusInactive,
 		MembershipMembershipStatusCanceled,
 		MembershipMembershipStatusExpired,
+		MembershipMembershipStatusPastDue,
 	}
 }
 
@@ -549,6 +552,26 @@ type AthleticTeam struct {
 	IsExternal bool `json:"is_external"`
 }
 
+// Audit trail for credit refunds when customers are removed from events
+type AuditCreditRefundLog struct {
+	ID          uuid.UUID     `json:"id"`
+	CustomerID  uuid.UUID     `json:"customer_id"`
+	EventID     uuid.NullUUID `json:"event_id"`
+	PerformedBy uuid.UUID     `json:"performed_by"`
+	// Number of credits refunded to customer
+	CreditsRefunded int32 `json:"credits_refunded"`
+	// Snapshot of event name at time of refund
+	EventName    sql.NullString `json:"event_name"`
+	EventStartAt sql.NullTime   `json:"event_start_at"`
+	ProgramName  sql.NullString `json:"program_name"`
+	LocationName sql.NullString `json:"location_name"`
+	// Role of admin who processed the refund
+	StaffRole sql.NullString `json:"staff_role"`
+	Reason    sql.NullString `json:"reason"`
+	IpAddress sql.NullString `json:"ip_address"`
+	CreatedAt sql.NullTime   `json:"created_at"`
+}
+
 type AuditOutbox struct {
 	ID           uuid.UUID        `json:"id"`
 	SqlStatement string           `json:"sql_statement"`
@@ -606,23 +629,24 @@ type EventsCustomerEnrollment struct {
 }
 
 type EventsEvent struct {
-	ID                 uuid.UUID      `json:"id"`
-	LocationID         uuid.UUID      `json:"location_id"`
-	ProgramID          uuid.UUID      `json:"program_id"`
-	TeamID             uuid.NullUUID  `json:"team_id"`
-	StartAt            time.Time      `json:"start_at"`
-	EndAt              time.Time      `json:"end_at"`
-	CreatedBy          uuid.UUID      `json:"created_by"`
-	UpdatedBy          uuid.UUID      `json:"updated_by"`
-	IsCancelled        bool           `json:"is_cancelled"`
-	CancellationReason sql.NullString `json:"cancellation_reason"`
-	CreatedAt          time.Time      `json:"created_at"`
-	UpdatedAt          time.Time      `json:"updated_at"`
-	IsDateTimeModified bool           `json:"is_date_time_modified"`
-	RecurrenceID       uuid.NullUUID  `json:"recurrence_id"`
-	CourtID            uuid.NullUUID  `json:"court_id"`
-	PriceID            sql.NullString `json:"price_id"`
-	CreditCost         sql.NullInt32  `json:"credit_cost"`
+	ID                   uuid.UUID      `json:"id"`
+	LocationID           uuid.UUID      `json:"location_id"`
+	ProgramID            uuid.UUID      `json:"program_id"`
+	TeamID               uuid.NullUUID  `json:"team_id"`
+	StartAt              time.Time      `json:"start_at"`
+	EndAt                time.Time      `json:"end_at"`
+	CreatedBy            uuid.UUID      `json:"created_by"`
+	UpdatedBy            uuid.UUID      `json:"updated_by"`
+	IsCancelled          bool           `json:"is_cancelled"`
+	CancellationReason   sql.NullString `json:"cancellation_reason"`
+	CreatedAt            time.Time      `json:"created_at"`
+	UpdatedAt            time.Time      `json:"updated_at"`
+	IsDateTimeModified   bool           `json:"is_date_time_modified"`
+	RecurrenceID         uuid.NullUUID  `json:"recurrence_id"`
+	CourtID              uuid.NullUUID  `json:"court_id"`
+	PriceID              sql.NullString `json:"price_id"`
+	CreditCost           sql.NullInt32  `json:"credit_cost"`
+	RegistrationRequired bool           `json:"registration_required"`
 }
 
 type EventsEventMembershipAccess struct {
@@ -630,6 +654,25 @@ type EventsEventMembershipAccess struct {
 	EventID          uuid.UUID    `json:"event_id"`
 	MembershipPlanID uuid.UUID    `json:"membership_plan_id"`
 	CreatedAt        sql.NullTime `json:"created_at"`
+}
+
+// Tracks notifications sent to event attendees
+type EventsNotificationHistory struct {
+	ID      uuid.UUID `json:"id"`
+	EventID uuid.UUID `json:"event_id"`
+	SentBy  uuid.UUID `json:"sent_by"`
+	// Notification channel: email, push, or both
+	Channel string         `json:"channel"`
+	Subject sql.NullString `json:"subject"`
+	Message string         `json:"message"`
+	// Whether event details were automatically included in the message
+	IncludeEventDetails bool      `json:"include_event_details"`
+	RecipientCount      int32     `json:"recipient_count"`
+	EmailSuccessCount   int32     `json:"email_success_count"`
+	EmailFailureCount   int32     `json:"email_failure_count"`
+	PushSuccessCount    int32     `json:"push_success_count"`
+	PushFailureCount    int32     `json:"push_failure_count"`
+	CreatedAt           time.Time `json:"created_at"`
 }
 
 type EventsStaff struct {
@@ -781,10 +824,59 @@ type PaymentFailedWebhook struct {
 }
 
 type PaymentWebhookEvent struct {
-	EventID     string         `json:"event_id"`
-	EventType   string         `json:"event_type"`
-	ProcessedAt sql.NullTime   `json:"processed_at"`
-	Status      sql.NullString `json:"status"`
+	EventID      string         `json:"event_id"`
+	EventType    string         `json:"event_type"`
+	ProcessedAt  sql.NullTime   `json:"processed_at"`
+	Status       sql.NullString `json:"status"`
+	ErrorMessage sql.NullString `json:"error_message"`
+}
+
+// Audit log of all payment collection attempts by admins
+type PaymentsCollectionAttempt struct {
+	ID              uuid.UUID      `json:"id"`
+	CustomerID      uuid.UUID      `json:"customer_id"`
+	AdminID         uuid.UUID      `json:"admin_id"`
+	AmountAttempted string         `json:"amount_attempted"`
+	AmountCollected sql.NullString `json:"amount_collected"`
+	// Method used: card_charge, payment_link, or manual_entry
+	CollectionMethod string `json:"collection_method"`
+	// Details like masked card info or cash/check type
+	PaymentMethodDetails  sql.NullString `json:"payment_method_details"`
+	Status                string         `json:"status"`
+	FailureReason         sql.NullString `json:"failure_reason"`
+	StripePaymentIntentID sql.NullString `json:"stripe_payment_intent_id"`
+	StripePaymentLinkID   sql.NullString `json:"stripe_payment_link_id"`
+	StripeCustomerID      sql.NullString `json:"stripe_customer_id"`
+	MembershipPlanID      uuid.NullUUID  `json:"membership_plan_id"`
+	StripeSubscriptionID  sql.NullString `json:"stripe_subscription_id"`
+	Notes                 sql.NullString `json:"notes"`
+	PreviousBalance       sql.NullString `json:"previous_balance"`
+	NewBalance            sql.NullString `json:"new_balance"`
+	CreatedAt             time.Time      `json:"created_at"`
+	UpdatedAt             time.Time      `json:"updated_at"`
+	CompletedAt           sql.NullTime   `json:"completed_at"`
+}
+
+// Tracking of payment links sent to customers for collection
+type PaymentsPaymentLink struct {
+	ID                   uuid.UUID      `json:"id"`
+	CustomerID           uuid.UUID      `json:"customer_id"`
+	AdminID              uuid.UUID      `json:"admin_id"`
+	StripePaymentLinkID  string         `json:"stripe_payment_link_id"`
+	StripePaymentLinkUrl string         `json:"stripe_payment_link_url"`
+	Amount               string         `json:"amount"`
+	Description          sql.NullString `json:"description"`
+	MembershipPlanID     uuid.NullUUID  `json:"membership_plan_id"`
+	CollectionAttemptID  uuid.NullUUID  `json:"collection_attempt_id"`
+	Status               string         `json:"status"`
+	SentVia              []string       `json:"sent_via"`
+	SentToEmail          sql.NullString `json:"sent_to_email"`
+	SentToPhone          sql.NullString `json:"sent_to_phone"`
+	CreatedAt            time.Time      `json:"created_at"`
+	SentAt               sql.NullTime   `json:"sent_at"`
+	OpenedAt             sql.NullTime   `json:"opened_at"`
+	CompletedAt          sql.NullTime   `json:"completed_at"`
+	ExpiresAt            sql.NullTime   `json:"expires_at"`
 }
 
 // Centralized tracking of all payment transactions including memberships, events, programs, and subsidies
@@ -825,6 +917,12 @@ type PaymentsPaymentTransaction struct {
 	RefundedAt     sql.NullTime          `json:"refunded_at"`
 	CreatedAt      time.Time             `json:"created_at"`
 	UpdatedAt      time.Time             `json:"updated_at"`
+	// Stripe receipt URL for one-time payments (events, programs, credit packages)
+	ReceiptUrl sql.NullString `json:"receipt_url"`
+	// Stripe hosted invoice URL for subscription payments
+	InvoiceUrl sql.NullString `json:"invoice_url"`
+	// Stripe invoice PDF download URL for subscription payments
+	InvoicePdfUrl sql.NullString `json:"invoice_pdf_url"`
 }
 
 type PlaygroundSession struct {
@@ -1122,6 +1220,15 @@ type UsersUser struct {
 	EmergencyContactName         sql.NullString `json:"emergency_contact_name"`
 	EmergencyContactPhone        sql.NullString `json:"emergency_contact_phone"`
 	EmergencyContactRelationship sql.NullString `json:"emergency_contact_relationship"`
+	LastMobileLoginAt            sql.NullTime   `json:"last_mobile_login_at"`
+	// The new email address awaiting verification before it replaces the current email.
+	PendingEmail sql.NullString `json:"pending_email"`
+	// One-time token sent to new email for verification. NULL after change is complete.
+	PendingEmailToken sql.NullString `json:"pending_email_token"`
+	// Expiration time for email change token. Tokens are valid for 24 hours.
+	PendingEmailTokenExpiresAt sql.NullTime `json:"pending_email_token_expires_at"`
+	// Timestamp when the user last changed their email address.
+	EmailChangedAt sql.NullTime `json:"email_changed_at"`
 }
 
 // Tracks weekly credit consumption per customer for membership limit enforcement
@@ -1162,4 +1269,59 @@ type WaiverWaiverUpload struct {
 	Notes         sql.NullString `json:"notes"`
 	CreatedAt     sql.NullTime   `json:"created_at"`
 	UpdatedAt     sql.NullTime   `json:"updated_at"`
+}
+
+type WebsiteFeatureCard struct {
+	ID           uuid.UUID      `json:"id"`
+	Title        string         `json:"title"`
+	Description  sql.NullString `json:"description"`
+	ImageUrl     string         `json:"image_url"`
+	ButtonText   sql.NullString `json:"button_text"`
+	ButtonLink   sql.NullString `json:"button_link"`
+	DisplayOrder int32          `json:"display_order"`
+	IsActive     bool           `json:"is_active"`
+	StartDate    sql.NullTime   `json:"start_date"`
+	EndDate      sql.NullTime   `json:"end_date"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	CreatedBy    uuid.NullUUID  `json:"created_by"`
+	UpdatedBy    uuid.NullUUID  `json:"updated_by"`
+}
+
+type WebsiteHeroPromo struct {
+	ID              uuid.UUID      `json:"id"`
+	Title           string         `json:"title"`
+	Subtitle        sql.NullString `json:"subtitle"`
+	Description     sql.NullString `json:"description"`
+	MediaUrl        string         `json:"media_url"`
+	ButtonText      sql.NullString `json:"button_text"`
+	ButtonLink      sql.NullString `json:"button_link"`
+	DisplayOrder    int32          `json:"display_order"`
+	DurationSeconds int32          `json:"duration_seconds"`
+	IsActive        bool           `json:"is_active"`
+	StartDate       sql.NullTime   `json:"start_date"`
+	EndDate         sql.NullTime   `json:"end_date"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	CreatedBy       uuid.NullUUID  `json:"created_by"`
+	UpdatedBy       uuid.NullUUID  `json:"updated_by"`
+	MediaType       string         `json:"media_type"`
+	ThumbnailUrl    sql.NullString `json:"thumbnail_url"`
+}
+
+type WebsitePromoVideo struct {
+	ID           uuid.UUID      `json:"id"`
+	Title        string         `json:"title"`
+	Description  sql.NullString `json:"description"`
+	VideoUrl     string         `json:"video_url"`
+	ThumbnailUrl string         `json:"thumbnail_url"`
+	Category     sql.NullString `json:"category"`
+	DisplayOrder int32          `json:"display_order"`
+	IsActive     bool           `json:"is_active"`
+	StartDate    sql.NullTime   `json:"start_date"`
+	EndDate      sql.NullTime   `json:"end_date"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	CreatedBy    uuid.NullUUID  `json:"created_by"`
+	UpdatedBy    uuid.NullUUID  `json:"updated_by"`
 }

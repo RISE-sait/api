@@ -134,3 +134,14 @@ func SendAccountRecoveryEmail(to, resetURL string) error {
 	log.Printf("Account recovery email sent successfully to %s", to)
 	return nil
 }
+
+// SendEmailChangeVerification sends a verification link to the new email address for email change
+func SendEmailChangeVerification(to, firstName, newEmail, verificationURL string) *errLib.CommonError {
+	body := EmailChangeVerificationBody(firstName, newEmail, verificationURL)
+	if err := SendEmail(to, "Verify Your New Email - Rise", body); err != nil {
+		log.Println("failed to send email change verification email:", err.Message)
+		return err
+	}
+	log.Printf("Email change verification sent successfully to %s", to)
+	return nil
+}

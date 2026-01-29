@@ -173,7 +173,7 @@ func (j *AccountDeletionJob) permanentlyDeleteAccount(ctx context.Context, userI
 	}
 
 	// 11. Delete athlete record (if exists)
-	_, err = tx.ExecContext(ctx, `DELETE FROM users.athletes WHERE id = $1`, userID)
+	_, err = tx.ExecContext(ctx, `DELETE FROM athletic.athletes WHERE id = $1`, userID)
 	if err != nil {
 		log.Printf("[ACCOUNT-DELETION] Warning: Failed to delete athlete record for %s: %v", userID, err)
 	}

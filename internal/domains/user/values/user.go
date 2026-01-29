@@ -19,6 +19,7 @@ type ReadValue struct {
 	CreatedAt                    time.Time
 	UpdatedAt                    time.Time
 	IsArchived                   bool
+	ArchivedAt                   *time.Time
 	DeletedAt                    *time.Time
 	ScheduledDeletionAt          *time.Time
 	EmergencyContactName         *string

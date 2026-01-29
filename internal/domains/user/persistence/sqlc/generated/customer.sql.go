@@ -16,6 +16,7 @@ import (
 const archiveCustomer = `-- name: ArchiveCustomer :execrows
 UPDATE users.users
 SET is_archived = TRUE,
+    archived_at = current_timestamp,
     updated_at = current_timestamp
 WHERE id = $1
 `
@@ -356,7 +357,7 @@ func (q *Queries) GetAthletes(ctx context.Context, arg GetAthletesParams) ([]Get
 }
 
 const getCustomer = `-- name: GetCustomer :one
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at, u.suspended_at, u.suspension_reason, u.suspended_by, u.suspension_expires_at, u.emergency_contact_name, u.emergency_contact_phone, u.emergency_contact_relationship, u.last_mobile_login_at, u.pending_email, u.pending_email_token, u.pending_email_token_expires_at, u.email_changed_at,
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at, u.suspended_at, u.suspension_reason, u.suspended_by, u.suspension_expires_at, u.emergency_contact_name, u.emergency_contact_phone, u.emergency_contact_relationship, u.last_mobile_login_at, u.pending_email, u.pending_email_token, u.pending_email_token_expires_at, u.email_changed_at, u.archived_at,
        m.name           AS membership_name,
        mp.id            AS membership_plan_id,
        mp.name          AS membership_plan_name,
@@ -430,6 +431,7 @@ type GetCustomerRow struct {
 	PendingEmailToken               sql.NullString                 `json:"pending_email_token"`
 	PendingEmailTokenExpiresAt      sql.NullTime                   `json:"pending_email_token_expires_at"`
 	EmailChangedAt                  sql.NullTime                   `json:"email_changed_at"`
+	ArchivedAt                      sql.NullTime                   `json:"archived_at"`
 	MembershipName                  sql.NullString                 `json:"membership_name"`
 	MembershipPlanID                uuid.NullUUID                  `json:"membership_plan_id"`
 	MembershipPlanName              sql.NullString                 `json:"membership_plan_name"`
@@ -485,6 +487,7 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 		&i.PendingEmailToken,
 		&i.PendingEmailTokenExpiresAt,
 		&i.EmailChangedAt,
+		&i.ArchivedAt,
 		&i.MembershipName,
 		&i.MembershipPlanID,
 		&i.MembershipPlanName,
@@ -503,7 +506,7 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 }
 
 const getCustomers = `-- name: GetCustomers :many
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at, u.suspended_at, u.suspension_reason, u.suspended_by, u.suspension_expires_at, u.emergency_contact_name, u.emergency_contact_phone, u.emergency_contact_relationship, u.last_mobile_login_at, u.pending_email, u.pending_email_token, u.pending_email_token_expires_at, u.email_changed_at,
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at, u.suspended_at, u.suspension_reason, u.suspended_by, u.suspension_expires_at, u.emergency_contact_name, u.emergency_contact_phone, u.emergency_contact_relationship, u.last_mobile_login_at, u.pending_email, u.pending_email_token, u.pending_email_token_expires_at, u.email_changed_at, u.archived_at,
        m.name           AS membership_name,
        mp.id            AS membership_plan_id,
        mp.name          AS membership_plan_name,
@@ -611,6 +614,7 @@ type GetCustomersRow struct {
 	PendingEmailToken               sql.NullString                 `json:"pending_email_token"`
 	PendingEmailTokenExpiresAt      sql.NullTime                   `json:"pending_email_token_expires_at"`
 	EmailChangedAt                  sql.NullTime                   `json:"email_changed_at"`
+	ArchivedAt                      sql.NullTime                   `json:"archived_at"`
 	MembershipName                  sql.NullString                 `json:"membership_name"`
 	MembershipPlanID                uuid.NullUUID                  `json:"membership_plan_id"`
 	MembershipPlanName              sql.NullString                 `json:"membership_plan_name"`
@@ -684,6 +688,7 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]G
 			&i.PendingEmailToken,
 			&i.PendingEmailTokenExpiresAt,
 			&i.EmailChangedAt,
+			&i.ArchivedAt,
 			&i.MembershipName,
 			&i.MembershipPlanID,
 			&i.MembershipPlanName,
@@ -871,7 +876,7 @@ func (q *Queries) GetUserSuspendedMemberships(ctx context.Context, userID uuid.U
 }
 
 const listArchivedCustomers = `-- name: ListArchivedCustomers :many
-SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at, u.suspended_at, u.suspension_reason, u.suspended_by, u.suspension_expires_at, u.emergency_contact_name, u.emergency_contact_phone, u.emergency_contact_relationship, u.last_mobile_login_at, u.pending_email, u.pending_email_token, u.pending_email_token_expires_at, u.email_changed_at
+SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last_name, u.parent_id, u.phone, u.email, u.has_marketing_email_consent, u.has_sms_consent, u.created_at, u.updated_at, u.dob, u.is_archived, u.square_customer_id, u.stripe_customer_id, u.notes, u.deleted_at, u.scheduled_deletion_at, u.email_verified, u.email_verification_token, u.email_verification_token_expires_at, u.email_verified_at, u.suspended_at, u.suspension_reason, u.suspended_by, u.suspension_expires_at, u.emergency_contact_name, u.emergency_contact_phone, u.emergency_contact_relationship, u.last_mobile_login_at, u.pending_email, u.pending_email_token, u.pending_email_token_expires_at, u.email_changed_at, u.archived_at
 FROM users.users u
 WHERE u.is_archived = TRUE
 LIMIT $2 OFFSET $1
@@ -928,6 +933,7 @@ func (q *Queries) ListArchivedCustomers(ctx context.Context, arg ListArchivedCus
 			&i.PendingEmailToken,
 			&i.PendingEmailTokenExpiresAt,
 			&i.EmailChangedAt,
+			&i.ArchivedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1086,6 +1092,7 @@ func (q *Queries) SuspendUserMemberships(ctx context.Context, arg SuspendUserMem
 const unarchiveCustomer = `-- name: UnarchiveCustomer :execrows
 UPDATE users.users
 SET is_archived = FALSE,
+    archived_at = NULL,
     updated_at = current_timestamp
 WHERE id = $1
 `

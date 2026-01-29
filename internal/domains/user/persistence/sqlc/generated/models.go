@@ -1229,6 +1229,8 @@ type UsersUser struct {
 	PendingEmailTokenExpiresAt sql.NullTime `json:"pending_email_token_expires_at"`
 	// Timestamp when the user last changed their email address.
 	EmailChangedAt sql.NullTime `json:"email_changed_at"`
+	// Timestamp when account was archived. Archived accounts are permanently deleted after 30 days.
+	ArchivedAt sql.NullTime `json:"archived_at"`
 }
 
 // Tracks weekly credit consumption per customer for membership limit enforcement

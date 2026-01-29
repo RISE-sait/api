@@ -131,6 +131,10 @@ func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int
 			customer.LastMobileLoginAt = &dbCustomer.LastMobileLoginAt.Time
 		}
 
+		if dbCustomer.PendingEmail.Valid {
+			customer.PendingEmail = &dbCustomer.PendingEmail.String
+		}
+
 		if dbCustomer.MembershipName.Valid && dbCustomer.MembershipPlanName.Valid && dbCustomer.MembershipStartDate.Valid && dbCustomer.MembershipPlanID.Valid {
 
 			customer.MembershipInfo = &userValues.MembershipReadValue{
@@ -236,6 +240,10 @@ func (r *CustomerRepository) GetCustomer(ctx context.Context, id uuid.UUID, emai
 
 	if dbCustomer.LastMobileLoginAt.Valid {
 		customer.LastMobileLoginAt = &dbCustomer.LastMobileLoginAt.Time
+	}
+
+	if dbCustomer.PendingEmail.Valid {
+		customer.PendingEmail = &dbCustomer.PendingEmail.String
 	}
 
 	if dbCustomer.MembershipName.Valid && dbCustomer.MembershipPlanName.Valid && dbCustomer.MembershipStartDate.Valid && dbCustomer.MembershipPlanID.Valid {

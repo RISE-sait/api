@@ -26,8 +26,10 @@ type Response struct {
 	MembershipInfo               *MembershipResponseDto `json:"membership_info,omitempty"`
 	PhotoURL                     *string                `json:"photo_url,omitempty"`
 	IsArchived                   bool                   `json:"is_archived"`
+	ArchivedAt                   *time.Time             `json:"archived_at,omitempty"`
 	DeletedAt                    *time.Time             `json:"deleted_at,omitempty"`
 	ScheduledDeletionAt          *time.Time             `json:"scheduled_deletion_at,omitempty"`
+	DaysUntilDeletion            *int                   `json:"days_until_deletion,omitempty"`
 }
 
 type MembershipResponseDto struct {
@@ -56,9 +58,13 @@ func UserReadValueToResponse(customer values.ReadValue) Response {
 		LastMobileLoginAt:            customer.LastMobileLoginAt,
 		PendingEmail:                 customer.PendingEmail,
 		IsArchived:                   customer.IsArchived,
+		ArchivedAt:                   customer.ArchivedAt,
 		DeletedAt:                    customer.DeletedAt,
 		ScheduledDeletionAt:          customer.ScheduledDeletionAt,
 	}
+
+	// Calculate days until deletion
+	response.DaysUntilDeletion = calculateDaysUntilDeletion(customer)
 
 	if customer.MembershipInfo != nil {
 		response.MembershipInfo = &MembershipResponseDto{
@@ -76,6 +82,29 @@ func UserReadValueToResponse(customer values.ReadValue) Response {
 	}
 
 	return response
+}
+
+// calculateDaysUntilDeletion returns the number of days until the account is permanently deleted
+// Returns nil if the account is not scheduled for deletion
+func calculateDaysUntilDeletion(customer values.ReadValue) *int {
+	now := time.Now().UTC()
+	var deletionDate time.Time
+
+	// Check soft-deleted accounts first (they have explicit scheduled_deletion_at)
+	if customer.ScheduledDeletionAt != nil {
+		deletionDate = *customer.ScheduledDeletionAt
+	} else if customer.ArchivedAt != nil {
+		// Archived accounts are deleted 30 days after being archived
+		deletionDate = customer.ArchivedAt.Add(30 * 24 * time.Hour)
+	} else {
+		return nil
+	}
+
+	days := int(deletionDate.Sub(now).Hours() / 24)
+	if days < 0 {
+		days = 0
+	}
+	return &days
 }
 
 type MembershipHistoryResponse struct {

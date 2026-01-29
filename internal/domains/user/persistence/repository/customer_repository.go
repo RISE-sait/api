@@ -99,6 +99,10 @@ func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int
 			customer.ScheduledDeletionAt = &dbCustomer.ScheduledDeletionAt.Time
 		}
 
+		if dbCustomer.ArchivedAt.Valid {
+			customer.ArchivedAt = &dbCustomer.ArchivedAt.Time
+		}
+
 		if dbCustomer.HubspotID.Valid {
 			customer.HubspotID = &dbCustomer.HubspotID.String
 		}
@@ -208,6 +212,10 @@ func (r *CustomerRepository) GetCustomer(ctx context.Context, id uuid.UUID, emai
 
 	if dbCustomer.ScheduledDeletionAt.Valid {
 		customer.ScheduledDeletionAt = &dbCustomer.ScheduledDeletionAt.Time
+	}
+
+	if dbCustomer.ArchivedAt.Valid {
+		customer.ArchivedAt = &dbCustomer.ArchivedAt.Time
 	}
 
 	if dbCustomer.HubspotID.Valid {
@@ -611,6 +619,9 @@ func (r *CustomerRepository) ListArchivedCustomers(ctx context.Context, limit, o
 			IsArchived:  dbCustomer.IsArchived,
 		}
 
+		if dbCustomer.ArchivedAt.Valid {
+			customers[i].ArchivedAt = &dbCustomer.ArchivedAt.Time
+		}
 		if dbCustomer.HubspotID.Valid {
 			customers[i].HubspotID = &dbCustomer.HubspotID.String
 		}

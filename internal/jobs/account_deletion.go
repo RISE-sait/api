@@ -39,7 +39,27 @@ func (j *AccountDeletionJob) Interval() time.Duration {
 func (j *AccountDeletionJob) Run(ctx context.Context) error {
 	log.Printf("[ACCOUNT-DELETION] Starting account deletion check")
 
-	// Find accounts that have passed their scheduled deletion date
+	var (
+		deleted int
+		errors  int
+	)
+
+	// 1. Find soft-deleted accounts that have passed their scheduled deletion date
+	softDeletedCount, softDeletedErrors := j.deleteSoftDeletedAccounts(ctx)
+	deleted += softDeletedCount
+	errors += softDeletedErrors
+
+	// 2. Find archived accounts that have been archived for more than 30 days
+	archivedCount, archivedErrors := j.deleteArchivedAccounts(ctx)
+	deleted += archivedCount
+	errors += archivedErrors
+
+	log.Printf("[ACCOUNT-DELETION] Summary: deleted=%d, errors=%d", deleted, errors)
+	return nil
+}
+
+// deleteSoftDeletedAccounts deletes accounts that have passed their scheduled deletion date
+func (j *AccountDeletionJob) deleteSoftDeletedAccounts(ctx context.Context) (deleted int, errors int) {
 	rows, err := j.db.QueryContext(ctx, `
 		SELECT id, email, first_name, last_name, deleted_at, scheduled_deletion_at
 		FROM users.users
@@ -50,37 +70,32 @@ func (j *AccountDeletionJob) Run(ctx context.Context) error {
 		LIMIT 50
 	`)
 	if err != nil {
-		log.Printf("[ACCOUNT-DELETION] Failed to query accounts for deletion: %v", err)
-		return err
+		log.Printf("[ACCOUNT-DELETION] Failed to query soft-deleted accounts: %v", err)
+		return 0, 1
 	}
 	defer rows.Close()
 
-	var (
-		deleted int
-		errors  int
-	)
-
 	for rows.Next() {
 		var (
-			userID               uuid.UUID
-			email                sql.NullString
-			firstName            string
-			lastName             string
-			deletedAt            time.Time
-			scheduledDeletionAt  time.Time
+			userID              uuid.UUID
+			email               sql.NullString
+			firstName           string
+			lastName            string
+			deletedAt           time.Time
+			scheduledDeletionAt time.Time
 		)
 
 		if err := rows.Scan(&userID, &email, &firstName, &lastName, &deletedAt, &scheduledDeletionAt); err != nil {
-			log.Printf("[ACCOUNT-DELETION] Failed to scan row: %v", err)
+			log.Printf("[ACCOUNT-DELETION] Failed to scan soft-deleted row: %v", err)
 			errors++
 			continue
 		}
 
-		log.Printf("[ACCOUNT-DELETION] Processing permanent deletion for user %s (%s %s, scheduled: %s)",
+		log.Printf("[ACCOUNT-DELETION] Processing soft-deleted account %s (%s %s, scheduled: %s)",
 			userID, firstName, lastName, scheduledDeletionAt.Format(time.RFC3339))
 
 		if err := j.permanentlyDeleteAccount(ctx, userID, email.String); err != nil {
-			log.Printf("[ACCOUNT-DELETION] Failed to permanently delete account %s: %v", userID, err)
+			log.Printf("[ACCOUNT-DELETION] Failed to delete soft-deleted account %s: %v", userID, err)
 			errors++
 			continue
 		}
@@ -88,8 +103,54 @@ func (j *AccountDeletionJob) Run(ctx context.Context) error {
 		deleted++
 	}
 
-	log.Printf("[ACCOUNT-DELETION] Summary: deleted=%d, errors=%d", deleted, errors)
-	return nil
+	return deleted, errors
+}
+
+// deleteArchivedAccounts deletes accounts that have been archived for more than 30 days
+func (j *AccountDeletionJob) deleteArchivedAccounts(ctx context.Context) (deleted int, errors int) {
+	rows, err := j.db.QueryContext(ctx, `
+		SELECT id, email, first_name, last_name, archived_at
+		FROM users.users
+		WHERE is_archived = TRUE
+		  AND archived_at IS NOT NULL
+		  AND archived_at < CURRENT_TIMESTAMP - INTERVAL '30 days'
+		ORDER BY archived_at ASC
+		LIMIT 50
+	`)
+	if err != nil {
+		log.Printf("[ACCOUNT-DELETION] Failed to query archived accounts: %v", err)
+		return 0, 1
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			userID     uuid.UUID
+			email      sql.NullString
+			firstName  string
+			lastName   string
+			archivedAt time.Time
+		)
+
+		if err := rows.Scan(&userID, &email, &firstName, &lastName, &archivedAt); err != nil {
+			log.Printf("[ACCOUNT-DELETION] Failed to scan archived row: %v", err)
+			errors++
+			continue
+		}
+
+		log.Printf("[ACCOUNT-DELETION] Processing archived account %s (%s %s, archived: %s, 30 days passed)",
+			userID, firstName, lastName, archivedAt.Format(time.RFC3339))
+
+		if err := j.permanentlyDeleteAccount(ctx, userID, email.String); err != nil {
+			log.Printf("[ACCOUNT-DELETION] Failed to delete archived account %s: %v", userID, err)
+			errors++
+			continue
+		}
+
+		deleted++
+	}
+
+	return deleted, errors
 }
 
 // permanentlyDeleteAccount removes all user data from the database and Firebase

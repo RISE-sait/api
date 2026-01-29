@@ -222,12 +222,14 @@ ORDER BY cmp.start_date DESC;
 -- name: ArchiveCustomer :execrows
 UPDATE users.users
 SET is_archived = TRUE,
+    archived_at = current_timestamp,
     updated_at = current_timestamp
 WHERE id = sqlc.arg('id');
 
 -- name: UnarchiveCustomer :execrows
 UPDATE users.users
 SET is_archived = FALSE,
+    archived_at = NULL,
     updated_at = current_timestamp
 WHERE id = sqlc.arg('id');
 

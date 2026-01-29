@@ -22,6 +22,7 @@ type Response struct {
 	EmergencyContactPhone        *string                `json:"emergency_contact_phone,omitempty"`
 	EmergencyContactRelationship *string                `json:"emergency_contact_relationship,omitempty"`
 	LastMobileLoginAt            *time.Time             `json:"last_mobile_login_at,omitempty"`
+	PendingEmail                 *string                `json:"pending_email,omitempty"`
 	MembershipInfo               *MembershipResponseDto `json:"membership_info,omitempty"`
 	PhotoURL                     *string                `json:"photo_url,omitempty"`
 	IsArchived                   bool                   `json:"is_archived"`
@@ -53,6 +54,7 @@ func UserReadValueToResponse(customer values.ReadValue) Response {
 		EmergencyContactPhone:        customer.EmergencyContactPhone,
 		EmergencyContactRelationship: customer.EmergencyContactRelationship,
 		LastMobileLoginAt:            customer.LastMobileLoginAt,
+		PendingEmail:                 customer.PendingEmail,
 		IsArchived:                   customer.IsArchived,
 		DeletedAt:                    customer.DeletedAt,
 		ScheduledDeletionAt:          customer.ScheduledDeletionAt,

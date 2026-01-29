@@ -97,17 +97,18 @@ func (h *EmailChangeHandler) InitiateEmailChange(w http.ResponseWriter, r *http.
 		return
 	}
 
-	// Get user's first name for the email
-	firstName, pendingEmail, _, resendErr := h.EmailChangeService.ResendEmailChangeVerification(r.Context(), targetUserID)
+	// Get user's first name for the email (this also generates a new token)
+	firstName, pendingEmail, newToken, resendErr := h.EmailChangeService.ResendEmailChangeVerification(r.Context(), targetUserID)
 	if resendErr != nil {
-		// Don't fail the request, just log it - the token was already created
-		log.Printf("Warning: Could not get user info for email, but token was created: %v", resendErr)
+		// Don't fail the request, just log it - use the original token
+		log.Printf("Warning: Could not get user info for email, using original token: %v", resendErr)
 		firstName = "User"
 		pendingEmail = newEmail
+		newToken = token
 	}
 
-	// Generate verification URL and send email
-	verificationURL := h.EmailChangeService.GetEmailChangeVerificationURL(token, h.FrontendBaseURL)
+	// Generate verification URL and send email (use newToken since ResendEmailChangeVerification overwrites the original)
+	verificationURL := h.EmailChangeService.GetEmailChangeVerificationURL(newToken, h.FrontendBaseURL)
 	if emailErr := email.SendEmailChangeVerification(pendingEmail, firstName, pendingEmail, verificationURL); emailErr != nil {
 		log.Printf("Failed to send email change verification to %s: %v", pendingEmail, emailErr)
 		responseHandlers.RespondWithError(w, emailErr)

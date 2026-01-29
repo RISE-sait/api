@@ -1,13 +1,14 @@
 package jobs
 
 import (
+	"api/internal/di"
+	firebaseService "api/internal/domains/identity/service/firebase"
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"time"
 
-	"api/internal/di"
-	firebaseService "api/internal/domains/identity/service/firebase"
 	"github.com/google/uuid"
 )
 

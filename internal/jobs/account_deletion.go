@@ -216,15 +216,21 @@ func (j *AccountDeletionJob) permanentlyDeleteAccount(ctx context.Context, userI
 	}
 
 	// 8. Delete discount usage records
-	_, err = tx.ExecContext(ctx, `DELETE FROM discount.customer_discount_usage WHERE customer_id = $1`, userID)
+	_, err = tx.ExecContext(ctx, `DELETE FROM users.customer_discount_usage WHERE customer_id = $1`, userID)
 	if err != nil {
 		log.Printf("[ACCOUNT-DELETION] Warning: Failed to delete discount usage for %s: %v", userID, err)
 	}
 
 	// 9. Delete waiver signings
-	_, err = tx.ExecContext(ctx, `DELETE FROM users.waiver_signings WHERE user_id = $1`, userID)
+	_, err = tx.ExecContext(ctx, `DELETE FROM waiver.waiver_signing WHERE user_id = $1`, userID)
 	if err != nil {
 		log.Printf("[ACCOUNT-DELETION] Warning: Failed to delete waiver signings for %s: %v", userID, err)
+	}
+
+	// 9b. Delete waiver uploads
+	_, err = tx.ExecContext(ctx, `DELETE FROM waiver.waiver_uploads WHERE user_id = $1`, userID)
+	if err != nil {
+		log.Printf("[ACCOUNT-DELETION] Warning: Failed to delete waiver uploads for %s: %v", userID, err)
 	}
 
 	// 10. Delete subsidy records

@@ -191,8 +191,8 @@ func (j *AccountDeletionJob) permanentlyDeleteAccount(ctx context.Context, userI
 		log.Printf("[ACCOUNT-DELETION] Warning: Failed to delete weekly credit usage for %s: %v", userID, err)
 	}
 
-	// 4. Delete customer active credit packages
-	_, err = tx.ExecContext(ctx, `DELETE FROM users.customer_active_credit_packages WHERE customer_id = $1`, userID)
+	// 4. Delete customer active credit package
+	_, err = tx.ExecContext(ctx, `DELETE FROM users.customer_active_credit_package WHERE customer_id = $1`, userID)
 	if err != nil {
 		log.Printf("[ACCOUNT-DELETION] Warning: Failed to delete active credit packages for %s: %v", userID, err)
 	}

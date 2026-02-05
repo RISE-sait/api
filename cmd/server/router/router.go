@@ -10,6 +10,7 @@ import (
 	haircut "api/internal/domains/haircut/portfolio"
 
 	bookingsHandler "api/internal/domains/booking/handler"
+	careerHandler "api/internal/domains/career/handler"
 	courtHandler "api/internal/domains/court/handler"
 	creditPackageHandler "api/internal/domains/credit_package/handler"
 	discountHandler "api/internal/domains/discount/handler"
@@ -112,6 +113,10 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 
 		// Website promo routes (public + admin)
 		"/website": RegisterWebsitePromoRoutes,
+
+		// Career routes (job postings + applications)
+		"/jobs":         RegisterJobRoutes,
+		"/applications": RegisterApplicationRoutes,
 	}
 
 	for path, handler := range routeMappings {
@@ -849,5 +854,46 @@ func RegisterCollectionsRoutes(container *di.Container) func(chi.Router) {
 
 		// Collection history
 		r.Get("/attempts", h.GetCollectionAttempts)
+	}
+}
+
+// RegisterJobRoutes registers job posting routes (public + admin)
+func RegisterJobRoutes(container *di.Container) func(chi.Router) {
+	jobHandler := careerHandler.NewJobPostingHandler(container)
+	appHandler := careerHandler.NewJobApplicationHandler(container)
+
+	return func(r chi.Router) {
+		// Public routes
+		r.Get("/", jobHandler.ListPublishedJobs)
+		r.Get("/{id}", jobHandler.GetJobPosting)
+
+		// Public apply endpoint with rate limiting (1 per 10 seconds, burst 2)
+		r.With(middlewares.RateLimitMiddleware(0.1, 2, 10*time.Second)).Post("/{id}/apply", appHandler.SubmitApplication)
+
+		// Admin routes
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Get("/all", jobHandler.ListAllJobs)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/", jobHandler.CreateJobPosting)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Put("/{id}", jobHandler.UpdateJobPosting)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Patch("/{id}/status", jobHandler.UpdateJobStatus)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Delete("/{id}", jobHandler.DeleteJobPosting)
+
+		// Admin: list applications for a specific job
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Get("/{job_id}/applications", appHandler.ListApplicationsByJob)
+	}
+}
+
+// RegisterApplicationRoutes registers application management routes (admin only)
+func RegisterApplicationRoutes(container *di.Container) func(chi.Router) {
+	h := careerHandler.NewJobApplicationHandler(container)
+
+	return func(r chi.Router) {
+		// All application management routes are admin-only
+		r.Use(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT))
+
+		r.Get("/", h.ListAllApplications)
+		r.Get("/{id}", h.GetApplication)
+		r.Patch("/{id}/status", h.UpdateApplicationStatus)
+		r.Patch("/{id}/notes", h.UpdateApplicationNotes)
+		r.Patch("/{id}/rating", h.UpdateApplicationRating)
 	}
 }

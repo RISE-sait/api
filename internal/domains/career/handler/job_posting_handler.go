@@ -27,6 +27,14 @@ func NewJobPostingHandler(container *di.Container) *JobPostingHandler {
 	return &JobPostingHandler{Queries: container.Queries.CareersDb}
 }
 
+// ListPublishedJobs returns all published job postings.
+// @Summary List published job postings
+// @Description Returns all job postings with status "published" for public viewing
+// @Tags careers
+// @Produce json
+// @Success 200 {array} dto.JobPostingResponse "List of published job postings"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /jobs [get]
 func (h *JobPostingHandler) ListPublishedJobs(w http.ResponseWriter, r *http.Request) {
 	jobs, err := h.Queries.ListPublishedJobPostings(r.Context())
 	if err != nil {
@@ -41,6 +49,17 @@ func (h *JobPostingHandler) ListPublishedJobs(w http.ResponseWriter, r *http.Req
 	responseHandlers.RespondWithSuccess(w, resp, http.StatusOK)
 }
 
+// GetJobPosting retrieves a single job posting by ID.
+// @Summary Get job posting by ID
+// @Description Returns a job posting. Public users only see published postings; admins see all statuses.
+// @Tags careers
+// @Produce json
+// @Param id path string true "Job Posting ID" format(uuid)
+// @Success 200 {object} dto.JobPostingResponse "Job posting details"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
+// @Failure 404 {object} map[string]interface{} "Not Found: Job posting not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /jobs/{id} [get]
 func (h *JobPostingHandler) GetJobPosting(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, parseErr := validators.ParseUUID(idStr)
@@ -74,6 +93,17 @@ func (h *JobPostingHandler) GetJobPosting(w http.ResponseWriter, r *http.Request
 	responseHandlers.RespondWithSuccess(w, mapJobPostingToResponse(job), http.StatusOK)
 }
 
+// ListAllJobs returns all job postings regardless of status (admin only).
+// @Summary List all job postings
+// @Description Returns all job postings including drafts, closed, etc. Admin only.
+// @Tags careers
+// @Produce json
+// @Security Bearer
+// @Success 200 {array} dto.JobPostingResponse "List of all job postings"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /jobs/all [get]
 func (h *JobPostingHandler) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 	jobs, err := h.Queries.ListAllJobPostings(r.Context())
 	if err != nil {
@@ -88,6 +118,20 @@ func (h *JobPostingHandler) ListAllJobs(w http.ResponseWriter, r *http.Request) 
 	responseHandlers.RespondWithSuccess(w, resp, http.StatusOK)
 }
 
+// CreateJobPosting creates a new job posting (admin only).
+// @Summary Create job posting
+// @Description Creates a new job posting with draft status. Admin only.
+// @Tags careers
+// @Accept json
+// @Produce json
+// @Param job body dto.CreateJobPostingRequest true "Job posting details"
+// @Security Bearer
+// @Success 201 {object} dto.JobPostingResponse "Created job posting"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /jobs [post]
 func (h *JobPostingHandler) CreateJobPosting(w http.ResponseWriter, r *http.Request) {
 	var req dto.CreateJobPostingRequest
 	if parseErr := validators.ParseJSON(r.Body, &req); parseErr != nil {
@@ -156,6 +200,22 @@ func (h *JobPostingHandler) CreateJobPosting(w http.ResponseWriter, r *http.Requ
 	responseHandlers.RespondWithSuccess(w, mapJobPostingToResponse(job), http.StatusCreated)
 }
 
+// UpdateJobPosting updates an existing job posting (admin only).
+// @Summary Update job posting
+// @Description Updates job posting details. Admin only.
+// @Tags careers
+// @Accept json
+// @Produce json
+// @Param id path string true "Job Posting ID" format(uuid)
+// @Param job body dto.UpdateJobPostingRequest true "Updated job posting details"
+// @Security Bearer
+// @Success 200 {object} dto.JobPostingResponse "Updated job posting"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden"
+// @Failure 404 {object} map[string]interface{} "Not Found: Job posting not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /jobs/{id} [put]
 func (h *JobPostingHandler) UpdateJobPosting(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, parseErr := validators.ParseUUID(idStr)
@@ -228,6 +288,22 @@ func (h *JobPostingHandler) UpdateJobPosting(w http.ResponseWriter, r *http.Requ
 	responseHandlers.RespondWithSuccess(w, mapJobPostingToResponse(job), http.StatusOK)
 }
 
+// UpdateJobStatus updates the status of a job posting (admin only).
+// @Summary Update job posting status
+// @Description Updates job posting status (draft, published, closed). Admin only.
+// @Tags careers
+// @Accept json
+// @Produce json
+// @Param id path string true "Job Posting ID" format(uuid)
+// @Param status body dto.UpdateJobStatusRequest true "New status"
+// @Security Bearer
+// @Success 200 {object} dto.JobPostingResponse "Updated job posting"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden"
+// @Failure 404 {object} map[string]interface{} "Not Found: Job posting not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /jobs/{id}/status [patch]
 func (h *JobPostingHandler) UpdateJobStatus(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, parseErr := validators.ParseUUID(idStr)
@@ -263,6 +339,19 @@ func (h *JobPostingHandler) UpdateJobStatus(w http.ResponseWriter, r *http.Reque
 	responseHandlers.RespondWithSuccess(w, mapJobPostingToResponse(job), http.StatusOK)
 }
 
+// DeleteJobPosting deletes a job posting (admin only).
+// @Summary Delete job posting
+// @Description Permanently deletes a job posting. Admin only.
+// @Tags careers
+// @Param id path string true "Job Posting ID" format(uuid)
+// @Security Bearer
+// @Success 204 "Job posting deleted successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden"
+// @Failure 404 {object} map[string]interface{} "Not Found: Job posting not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /jobs/{id} [delete]
 func (h *JobPostingHandler) DeleteJobPosting(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, parseErr := validators.ParseUUID(idStr)

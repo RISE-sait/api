@@ -26,6 +26,27 @@ func NewJobApplicationHandler(container *di.Container) *JobApplicationHandler {
 	return &JobApplicationHandler{Queries: container.Queries.CareersDb}
 }
 
+// SubmitApplication submits a job application with resume upload.
+// @Summary Submit job application
+// @Description Submit an application for a published job posting with resume file upload
+// @Tags careers
+// @Accept multipart/form-data
+// @Produce json
+// @Param id path string true "Job Posting ID" format(uuid)
+// @Param first_name formData string true "Applicant first name"
+// @Param last_name formData string true "Applicant last name"
+// @Param email formData string true "Applicant email"
+// @Param resume formData file true "Resume file (PDF, DOC, DOCX)"
+// @Param phone formData string false "Phone number"
+// @Param cover_letter formData string false "Cover letter text"
+// @Param linkedin_url formData string false "LinkedIn profile URL"
+// @Param portfolio_url formData string false "Portfolio URL"
+// @Success 201 {object} dto.JobApplicationResponse "Application submitted successfully"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input or missing required fields"
+// @Failure 404 {object} map[string]interface{} "Not Found: Job posting not found or not accepting applications"
+// @Failure 429 {object} map[string]interface{} "Too Many Requests: Rate limit exceeded"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /jobs/{id}/apply [post]
 func (h *JobApplicationHandler) SubmitApplication(w http.ResponseWriter, r *http.Request) {
 	jobIdStr := chi.URLParam(r, "id")
 	jobID, parseErr := validators.ParseUUID(jobIdStr)
@@ -110,6 +131,19 @@ func (h *JobApplicationHandler) SubmitApplication(w http.ResponseWriter, r *http
 	responseHandlers.RespondWithSuccess(w, mapJobApplicationToResponse(application), http.StatusCreated)
 }
 
+// ListApplicationsByJob lists all applications for a specific job posting (admin only).
+// @Summary List applications by job
+// @Description Returns all applications for a specific job posting. Admin only.
+// @Tags careers
+// @Produce json
+// @Param job_id path string true "Job Posting ID" format(uuid)
+// @Security Bearer
+// @Success 200 {array} dto.JobApplicationResponse "List of applications"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /jobs/{job_id}/applications [get]
 func (h *JobApplicationHandler) ListApplicationsByJob(w http.ResponseWriter, r *http.Request) {
 	jobIdStr := chi.URLParam(r, "job_id")
 	jobID, parseErr := validators.ParseUUID(jobIdStr)
@@ -131,6 +165,17 @@ func (h *JobApplicationHandler) ListApplicationsByJob(w http.ResponseWriter, r *
 	responseHandlers.RespondWithSuccess(w, resp, http.StatusOK)
 }
 
+// ListAllApplications lists all job applications (admin only).
+// @Summary List all applications
+// @Description Returns all job applications across all job postings. Admin only.
+// @Tags careers
+// @Produce json
+// @Security Bearer
+// @Success 200 {array} dto.JobApplicationResponse "List of all applications"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /applications [get]
 func (h *JobApplicationHandler) ListAllApplications(w http.ResponseWriter, r *http.Request) {
 	apps, err := h.Queries.ListAllJobApplications(r.Context())
 	if err != nil {
@@ -145,6 +190,20 @@ func (h *JobApplicationHandler) ListAllApplications(w http.ResponseWriter, r *ht
 	responseHandlers.RespondWithSuccess(w, resp, http.StatusOK)
 }
 
+// GetApplication retrieves a single application by ID (admin only).
+// @Summary Get application by ID
+// @Description Returns a single job application with full details. Admin only.
+// @Tags careers
+// @Produce json
+// @Param id path string true "Application ID" format(uuid)
+// @Security Bearer
+// @Success 200 {object} dto.JobApplicationResponse "Application details"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid ID"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden"
+// @Failure 404 {object} map[string]interface{} "Not Found: Application not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /applications/{id} [get]
 func (h *JobApplicationHandler) GetApplication(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, parseErr := validators.ParseUUID(idStr)
@@ -166,6 +225,22 @@ func (h *JobApplicationHandler) GetApplication(w http.ResponseWriter, r *http.Re
 	responseHandlers.RespondWithSuccess(w, mapJobApplicationToResponse(app), http.StatusOK)
 }
 
+// UpdateApplicationStatus updates the status of an application (admin only).
+// @Summary Update application status
+// @Description Updates application status and sends notification email to applicant. Admin only.
+// @Tags careers
+// @Accept json
+// @Produce json
+// @Param id path string true "Application ID" format(uuid)
+// @Param status body dto.UpdateApplicationStatusRequest true "New status"
+// @Security Bearer
+// @Success 200 {object} dto.JobApplicationResponse "Updated application"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden"
+// @Failure 404 {object} map[string]interface{} "Not Found: Application not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /applications/{id}/status [patch]
 func (h *JobApplicationHandler) UpdateApplicationStatus(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, parseErr := validators.ParseUUID(idStr)
@@ -220,6 +295,22 @@ func (h *JobApplicationHandler) UpdateApplicationStatus(w http.ResponseWriter, r
 	responseHandlers.RespondWithSuccess(w, mapJobApplicationToResponse(app), http.StatusOK)
 }
 
+// UpdateApplicationNotes updates internal notes on an application (admin only).
+// @Summary Update application notes
+// @Description Updates internal notes for an application. Admin only.
+// @Tags careers
+// @Accept json
+// @Produce json
+// @Param id path string true "Application ID" format(uuid)
+// @Param notes body dto.UpdateApplicationNotesRequest true "Notes content"
+// @Security Bearer
+// @Success 200 {object} dto.JobApplicationResponse "Updated application"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden"
+// @Failure 404 {object} map[string]interface{} "Not Found: Application not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /applications/{id}/notes [patch]
 func (h *JobApplicationHandler) UpdateApplicationNotes(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, parseErr := validators.ParseUUID(idStr)
@@ -250,6 +341,22 @@ func (h *JobApplicationHandler) UpdateApplicationNotes(w http.ResponseWriter, r 
 	responseHandlers.RespondWithSuccess(w, mapJobApplicationToResponse(app), http.StatusOK)
 }
 
+// UpdateApplicationRating updates the rating of an application (admin only).
+// @Summary Update application rating
+// @Description Updates the rating (1-5) for an application. Admin only.
+// @Tags careers
+// @Accept json
+// @Produce json
+// @Param id path string true "Application ID" format(uuid)
+// @Param rating body dto.UpdateApplicationRatingRequest true "Rating value (1-5)"
+// @Security Bearer
+// @Success 200 {object} dto.JobApplicationResponse "Updated application"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid input"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden"
+// @Failure 404 {object} map[string]interface{} "Not Found: Application not found"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /applications/{id}/rating [patch]
 func (h *JobApplicationHandler) UpdateApplicationRating(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, parseErr := validators.ParseUUID(idStr)

@@ -1,5 +1,5 @@
--- Migration: Create parent_link_requests table for family linkage
--- This table tracks requests to link children to parents (new links and transfers)
+-- +goose Up
+-- +goose StatementBegin
 
 CREATE TABLE users.parent_link_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -75,3 +75,17 @@ COMMENT ON TABLE users.parent_link_requests IS 'Tracks parent-child link request
 COMMENT ON COLUMN users.parent_link_requests.initiated_by IS 'Who started the request: child or parent';
 COMMENT ON COLUMN users.parent_link_requests.verification_code IS 'Code sent to the non-initiating party for confirmation';
 COMMENT ON COLUMN users.parent_link_requests.old_parent_code IS 'For transfers: separate code sent to old parent for approval';
+
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+
+DROP INDEX IF EXISTS users.idx_parent_link_old_parent;
+DROP INDEX IF EXISTS users.idx_parent_link_new_parent;
+DROP INDEX IF EXISTS users.idx_parent_link_child_pending;
+DROP INDEX IF EXISTS users.idx_parent_link_old_parent_code;
+DROP INDEX IF EXISTS users.idx_parent_link_verification_code;
+DROP TABLE IF EXISTS users.parent_link_requests;
+
+-- +goose StatementEnd

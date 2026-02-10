@@ -16,3 +16,11 @@ type TeamNotification struct {
 	TeamID uuid.UUID              `json:"team_id"`
 	Data   map[string]interface{} `json:"data"`
 }
+
+// UserNotification is used to send notifications to a specific user
+// The notification service will automatically duplicate to the user's parent if they have one
+type UserNotification struct {
+	Title string                 `json:"title"`
+	Body  string                 `json:"body"`
+	Data  map[string]interface{} `json:"data"`
+}

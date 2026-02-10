@@ -33,11 +33,6 @@ CREATE TABLE users.parent_link_requests (
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-    -- Prevent duplicate pending requests per child
-    -- Uses NULLS NOT DISTINCT to treat NULL as equal for uniqueness
-    CONSTRAINT unique_pending_child_request
-        UNIQUE NULLS NOT DISTINCT (child_id, completed_at, cancelled_at),
-
     -- Child cannot be the same as either parent
     CONSTRAINT child_not_same_as_parent
         CHECK (child_id != new_parent_id AND (old_parent_id IS NULL OR child_id != old_parent_id)),
@@ -57,8 +52,8 @@ CREATE INDEX idx_parent_link_old_parent_code
     ON users.parent_link_requests(old_parent_code)
     WHERE completed_at IS NULL AND cancelled_at IS NULL AND old_parent_code IS NOT NULL;
 
--- Index for finding pending requests by child
-CREATE INDEX idx_parent_link_child_pending
+-- Prevent duplicate pending requests per child (only one active request at a time)
+CREATE UNIQUE INDEX unique_pending_child_request
     ON users.parent_link_requests(child_id)
     WHERE completed_at IS NULL AND cancelled_at IS NULL;
 
@@ -83,7 +78,7 @@ COMMENT ON COLUMN users.parent_link_requests.old_parent_code IS 'For transfers: 
 
 DROP INDEX IF EXISTS users.idx_parent_link_old_parent;
 DROP INDEX IF EXISTS users.idx_parent_link_new_parent;
-DROP INDEX IF EXISTS users.idx_parent_link_child_pending;
+DROP INDEX IF EXISTS users.unique_pending_child_request;
 DROP INDEX IF EXISTS users.idx_parent_link_old_parent_code;
 DROP INDEX IF EXISTS users.idx_parent_link_verification_code;
 DROP TABLE IF EXISTS users.parent_link_requests;

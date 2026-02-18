@@ -2,6 +2,7 @@ package game
 
 import (
 	"api/internal/di"
+	familyService "api/internal/domains/family/service"
 	dto "api/internal/domains/game/dto"
 	service "api/internal/domains/game/services"
 	"api/internal/domains/game/values"
@@ -18,11 +19,15 @@ import (
 )
 
 type Handler struct {
-	Service *service.Service
+	Service       *service.Service
+	FamilyService *familyService.Service
 }
 
 func NewHandler(container *di.Container) *Handler {
-	return &Handler{Service: service.NewService(container)}
+	return &Handler{
+		Service:       service.NewService(container),
+		FamilyService: familyService.NewService(container),
+	}
 }
 
 // CreateGame creates a new game record.
@@ -201,24 +206,18 @@ func (h *Handler) GetGames(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
 }
 
-// GetMyGames returns games associated with the authenticated user's team.
+// GetRoleGames returns games associated with the authenticated user's team.
 // Only coaches and athletes are supported. The user's team is derived from
 // their role and used to filter games.
-// @Tags games
-// @Security Bearer
-// @Produce json
-// @Success 200 {array} dto.ResponseDto "List of games for the current user"
-// @Failure 401 {object} map[string]interface{} "Unauthorized"
-// @Router /secure/games [get]
-// GetMyGames returns games associated with the authenticated user's team.
-// Only coaches and athletes are supported. The user's team is derived from
-// their role and used to filter games.
+// Parents can view their child's games by passing the child_id query parameter.
 // @Tags games
 // @Security Bearer
 // @Produce json
 // @Param filter query string false "Filter by time: upcoming, past, or live"
+// @Param child_id query string false "Child user ID (for parent viewing child's games)" format(uuid)
 // @Success 200 {array} dto.ResponseDto "List of games for the current user"
 // @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden: Not authorized to view child's games"
 // @Router /secure/games [get]
 func (h *Handler) GetRoleGames(w http.ResponseWriter, r *http.Request) {
 	role, err := contextUtils.GetUserRole(r.Context())
@@ -237,6 +236,26 @@ func (h *Handler) GetRoleGames(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
+	}
+
+	// Check if parent is requesting child's games
+	targetUserID := userID
+	targetRole := role
+	if childIDStr := r.URL.Query().Get("child_id"); childIDStr != "" {
+		childID, parseErr := validators.ParseUUID(childIDStr)
+		if parseErr != nil {
+			responseHandlers.RespondWithError(w, parseErr)
+			return
+		}
+
+		// Verify parent has access to this child
+		if verifyErr := h.FamilyService.VerifyParentChildAccess(r.Context(), userID, childID); verifyErr != nil {
+			responseHandlers.RespondWithError(w, verifyErr)
+			return
+		}
+
+		targetUserID = childID
+		targetRole = contextUtils.RoleAthlete // Children with games are athletes
 	}
 
 	query := r.URL.Query()
@@ -258,13 +277,13 @@ func (h *Handler) GetRoleGames(w http.ResponseWriter, r *http.Request) {
 	// Fetch games based on user role and filter
 	switch filter {
 	case "upcoming":
-		games, errC = h.Service.GetUserUpcomingGames(r.Context(), userID, role, int32(limit), int32(offset))
+		games, errC = h.Service.GetUserUpcomingGames(r.Context(), targetUserID, targetRole, int32(limit), int32(offset))
 	case "past":
-		games, errC = h.Service.GetUserPastGames(r.Context(), userID, role, int32(limit), int32(offset))
+		games, errC = h.Service.GetUserPastGames(r.Context(), targetUserID, targetRole, int32(limit), int32(offset))
 	case "live":
-		games, errC = h.Service.GetUserLiveGames(r.Context(), userID, role, int32(limit), int32(offset))
+		games, errC = h.Service.GetUserLiveGames(r.Context(), targetUserID, targetRole, int32(limit), int32(offset))
 	default:
-		games, errC = h.Service.GetUserGames(r.Context(), userID, role, int32(limit), int32(offset))
+		games, errC = h.Service.GetUserGames(r.Context(), targetUserID, targetRole, int32(limit), int32(offset))
 	}
 
 	if errC != nil {

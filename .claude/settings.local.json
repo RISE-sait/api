@@ -10,7 +10,8 @@
       "Bash(curl:*)",
       "Bash(cat:*)",
       "Bash(grep:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(go build:*)"
     ],
     "deny": [],
     "ask": []

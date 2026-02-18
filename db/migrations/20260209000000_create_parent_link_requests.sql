@@ -1,0 +1,92 @@
+-- +goose Up
+-- +goose StatementBegin
+
+CREATE TABLE users.parent_link_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    -- The child being linked/transferred
+    child_id UUID NOT NULL REFERENCES users.users(id) ON DELETE CASCADE,
+
+    -- The new parent being linked to
+    new_parent_id UUID NOT NULL REFERENCES users.users(id) ON DELETE CASCADE,
+
+    -- The old parent (only for transfers, NULL for new links)
+    old_parent_id UUID REFERENCES users.users(id) ON DELETE SET NULL,
+
+    -- Who initiated the request: 'child' or 'parent'
+    -- If 'child': verification code sent to new_parent
+    -- If 'parent': verification code sent to child
+    initiated_by VARCHAR(10) NOT NULL CHECK (initiated_by IN ('child', 'parent')),
+
+    -- Verification code for the non-initiating party
+    verification_code VARCHAR(6) NOT NULL,
+    verified_at TIMESTAMPTZ,
+
+    -- For transfers: old parent must also verify with separate code
+    old_parent_code VARCHAR(6),
+    old_parent_verified_at TIMESTAMPTZ,
+
+    -- Lifecycle timestamps
+    expires_at TIMESTAMPTZ NOT NULL,
+    completed_at TIMESTAMPTZ,
+    cancelled_at TIMESTAMPTZ,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    -- Child cannot be the same as either parent
+    CONSTRAINT child_not_same_as_parent
+        CHECK (child_id != new_parent_id AND (old_parent_id IS NULL OR child_id != old_parent_id)),
+
+    -- New parent cannot be the same as old parent
+    CONSTRAINT parents_must_differ
+        CHECK (old_parent_id IS NULL OR new_parent_id != old_parent_id)
+);
+
+-- Index on parent_id for GetChildrenByParentId queries
+CREATE INDEX idx_users_parent_id
+    ON users.users(parent_id)
+    WHERE parent_id IS NOT NULL;
+
+-- Unique index for verification code lookups (only active requests)
+CREATE UNIQUE INDEX idx_parent_link_verification_code
+    ON users.parent_link_requests(verification_code)
+    WHERE completed_at IS NULL AND cancelled_at IS NULL;
+
+-- Unique index for old parent code lookups (only active requests with old parent)
+CREATE UNIQUE INDEX idx_parent_link_old_parent_code
+    ON users.parent_link_requests(old_parent_code)
+    WHERE completed_at IS NULL AND cancelled_at IS NULL AND old_parent_code IS NOT NULL;
+
+-- Prevent duplicate pending requests per child (only one active request at a time)
+CREATE UNIQUE INDEX unique_pending_child_request
+    ON users.parent_link_requests(child_id)
+    WHERE completed_at IS NULL AND cancelled_at IS NULL;
+
+-- Index for finding requests involving a user (as new or old parent)
+CREATE INDEX idx_parent_link_new_parent
+    ON users.parent_link_requests(new_parent_id)
+    WHERE completed_at IS NULL AND cancelled_at IS NULL;
+
+CREATE INDEX idx_parent_link_old_parent
+    ON users.parent_link_requests(old_parent_id)
+    WHERE completed_at IS NULL AND cancelled_at IS NULL AND old_parent_id IS NOT NULL;
+
+COMMENT ON TABLE users.parent_link_requests IS 'Tracks parent-child link requests including transfers between parents';
+COMMENT ON COLUMN users.parent_link_requests.initiated_by IS 'Who started the request: child or parent';
+COMMENT ON COLUMN users.parent_link_requests.verification_code IS 'Code sent to the non-initiating party for confirmation';
+COMMENT ON COLUMN users.parent_link_requests.old_parent_code IS 'For transfers: separate code sent to old parent for approval';
+
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+
+DROP INDEX IF EXISTS users.idx_parent_link_old_parent;
+DROP INDEX IF EXISTS users.idx_parent_link_new_parent;
+DROP INDEX IF EXISTS users.unique_pending_child_request;
+DROP INDEX IF EXISTS users.idx_parent_link_old_parent_code;
+DROP INDEX IF EXISTS users.idx_parent_link_verification_code;
+DROP INDEX IF EXISTS users.idx_users_parent_id;
+DROP TABLE IF EXISTS users.parent_link_requests;
+
+-- +goose StatementEnd

@@ -4,6 +4,7 @@ import (
 	"api/config"
 	analyticsDb "api/internal/domains/analytics/persistence/sqlc/generated"
 	careersDb "api/internal/domains/career/persistence/sqlc/generated"
+	familyDb "api/internal/domains/family/persistence/sqlc/generated"
 	staffActivityLogsDb "api/internal/domains/audit/staff_activity_logs/persistence/sqlc/generated"
 	courtDb "api/internal/domains/court/persistence/sqlc/generated"
 	discountDb "api/internal/domains/discount/persistence/sqlc/generated"
@@ -60,6 +61,7 @@ type QueriesType struct {
 	SubsidyDb           *subsidyDb.Queries
 	AnalyticsDb         *analyticsDb.Queries
 	CareersDb           *careersDb.Queries
+	FamilyDb            *familyDb.Queries
 }
 
 // NewContainer initializes and returns a Container with database, queries, HubSpot, and Firebase services.
@@ -120,6 +122,7 @@ func initializeQueries(db *sql.DB) *QueriesType {
 		SubsidyDb:           subsidyDb.New(db),
 		AnalyticsDb:         analyticsDb.New(db),
 		CareersDb:           careersDb.New(db),
+		FamilyDb:            familyDb.New(db),
 	}
 }
 

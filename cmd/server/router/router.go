@@ -16,6 +16,7 @@ import (
 	discountHandler "api/internal/domains/discount/handler"
 	enrollmentHandler "api/internal/domains/enrollment/handler"
 	eventHandler "api/internal/domains/event/handler"
+	familyHandler "api/internal/domains/family/handler"
 	"api/internal/domains/game"
 	"api/internal/domains/identity/handler/authentication"
 	"api/internal/domains/identity/handler/email_change"
@@ -117,6 +118,9 @@ func RegisterRoutes(router *chi.Mux, container *di.Container) {
 		// Career routes (job postings + applications)
 		"/jobs":         RegisterJobRoutes,
 		"/applications": RegisterApplicationRoutes,
+
+		// Family routes (parent-child linking)
+		"/family": RegisterFamilyRoutes,
 	}
 
 	for path, handler := range routeMappings {
@@ -895,5 +899,27 @@ func RegisterApplicationRoutes(container *di.Container) func(chi.Router) {
 		r.Patch("/{id}/status", h.UpdateApplicationStatus)
 		r.Patch("/{id}/notes", h.UpdateApplicationNotes)
 		r.Patch("/{id}/rating", h.UpdateApplicationRating)
+	}
+}
+
+// RegisterFamilyRoutes registers parent-child linkage routes
+func RegisterFamilyRoutes(container *di.Container) func(chi.Router) {
+	h := familyHandler.NewFamilyHandler(container)
+
+	return func(r chi.Router) {
+		// Link request routes - authenticated users only
+		r.Route("/link", func(r chi.Router) {
+			r.Use(middlewares.JWTAuthMiddleware(true))
+			r.Post("/request", h.RequestLink)
+			r.With(middlewares.RateLimitMiddleware(0.5, 3, time.Minute)).Post("/confirm", h.ConfirmLink)
+			r.Delete("/request", h.CancelRequest)
+			r.Get("/requests", h.GetPendingRequests)
+		})
+
+		// Parent routes - authenticated users only
+		r.With(middlewares.JWTAuthMiddleware(true)).Get("/children", h.GetChildren)
+
+		// Admin routes - admin only for unlinking
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Delete("/admin/link/{id}", h.AdminUnlink)
 	}
 }

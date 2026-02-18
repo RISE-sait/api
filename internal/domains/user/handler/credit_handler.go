@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"api/internal/di"
+	familyService "api/internal/domains/family/service"
 	"api/internal/domains/user/services"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
@@ -18,21 +19,26 @@ import (
 type CreditHandler struct {
 	CreditService       *services.CustomerCreditService
 	WeeklyCreditService *services.CreditService
+	FamilyService       *familyService.Service
 }
 
 func NewCreditHandler(container *di.Container) *CreditHandler {
 	return &CreditHandler{
 		CreditService:       services.NewCustomerCreditService(container),
 		WeeklyCreditService: services.NewCreditService(container),
+		FamilyService:       familyService.NewService(container),
 	}
 }
 
 // GetCustomerCredits retrieves the current credit balance for the authenticated user
+// Parents can view their child's credits by passing the child_id query parameter.
 // @Tags credits
 // @Accept json
 // @Produce json
+// @Param child_id query string false "Child user ID (for parent viewing child's credits)" format(uuid)
 // @Success 200 {object} map[string]interface{} "Credit balance retrieved successfully"
 // @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden: Not authorized to view child's credits"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Security Bearer
 // @Router /secure/credits [get]
@@ -43,12 +49,30 @@ func (h *CreditHandler) GetCustomerCredits(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if credits, err := h.CreditService.GetCustomerCredits(r.Context(), customerID); err != nil {
+	// Check if parent is requesting child's credits
+	targetCustomerID := customerID
+	if childIDStr := r.URL.Query().Get("child_id"); childIDStr != "" {
+		childID, parseErr := validators.ParseUUID(childIDStr)
+		if parseErr != nil {
+			responseHandlers.RespondWithError(w, parseErr)
+			return
+		}
+
+		// Verify parent has access to this child
+		if verifyErr := h.FamilyService.VerifyParentChildAccess(r.Context(), customerID, childID); verifyErr != nil {
+			responseHandlers.RespondWithError(w, verifyErr)
+			return
+		}
+
+		targetCustomerID = childID
+	}
+
+	if credits, err := h.CreditService.GetCustomerCredits(r.Context(), targetCustomerID); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {
 		response := map[string]interface{}{
-			"customer_id": customerID,
+			"customer_id": targetCustomerID,
 			"credits":     credits,
 		}
 		responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
@@ -56,13 +80,16 @@ func (h *CreditHandler) GetCustomerCredits(w http.ResponseWriter, r *http.Reques
 }
 
 // GetCustomerCreditTransactions retrieves credit transaction history for the authenticated user
+// Parents can view their child's transactions by passing the child_id query parameter.
 // @Tags credits
 // @Accept json
 // @Produce json
 // @Param limit query int false "Number of items per page" minimum(1) maximum(100) default(20)
 // @Param offset query int false "Number of items to skip" minimum(0) default(0)
+// @Param child_id query string false "Child user ID (for parent viewing child's transactions)" format(uuid)
 // @Success 200 {object} map[string]interface{} "Credit transaction history retrieved successfully"
 // @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden: Not authorized to view child's transactions"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Security Bearer
 // @Router /secure/credits/transactions [get]
@@ -71,6 +98,24 @@ func (h *CreditHandler) GetCustomerCreditTransactions(w http.ResponseWriter, r *
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
+	}
+
+	// Check if parent is requesting child's transactions
+	targetCustomerID := customerID
+	if childIDStr := r.URL.Query().Get("child_id"); childIDStr != "" {
+		childID, parseErr := validators.ParseUUID(childIDStr)
+		if parseErr != nil {
+			responseHandlers.RespondWithError(w, parseErr)
+			return
+		}
+
+		// Verify parent has access to this child
+		if verifyErr := h.FamilyService.VerifyParentChildAccess(r.Context(), customerID, childID); verifyErr != nil {
+			responseHandlers.RespondWithError(w, verifyErr)
+			return
+		}
+
+		targetCustomerID = childID
 	}
 
 	// Parse pagination parameters
@@ -89,12 +134,12 @@ func (h *CreditHandler) GetCustomerCreditTransactions(w http.ResponseWriter, r *
 		}
 	}
 
-	if transactions, err := h.CreditService.GetCustomerCreditTransactions(r.Context(), customerID, int32(limit), int32(offset)); err != nil {
+	if transactions, err := h.CreditService.GetCustomerCreditTransactions(r.Context(), targetCustomerID, int32(limit), int32(offset)); err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	} else {
 		response := map[string]interface{}{
-			"customer_id":  customerID,
+			"customer_id":  targetCustomerID,
 			"transactions": transactions,
 			"limit":        limit,
 			"offset":       offset,
@@ -104,11 +149,14 @@ func (h *CreditHandler) GetCustomerCreditTransactions(w http.ResponseWriter, r *
 }
 
 // GetWeeklyUsage retrieves the current weekly credit usage and limits for the authenticated user
+// Parents can view their child's weekly usage by passing the child_id query parameter.
 // @Tags credits
 // @Accept json
 // @Produce json
+// @Param child_id query string false "Child user ID (for parent viewing child's weekly usage)" format(uuid)
 // @Success 200 {object} map[string]interface{} "Weekly usage retrieved successfully" example({"customer_id":"uuid","current_week_usage":1,"weekly_limit":2,"remaining_credits":1})
 // @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden: Not authorized to view child's weekly usage"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Security Bearer
 // @Router /secure/credits/weekly-usage [get]
@@ -119,14 +167,32 @@ func (h *CreditHandler) GetWeeklyUsage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	currentUsage, weeklyLimit, err := h.WeeklyCreditService.GetWeeklyUsage(r.Context(), customerID)
+	// Check if parent is requesting child's weekly usage
+	targetCustomerID := customerID
+	if childIDStr := r.URL.Query().Get("child_id"); childIDStr != "" {
+		childID, parseErr := validators.ParseUUID(childIDStr)
+		if parseErr != nil {
+			responseHandlers.RespondWithError(w, parseErr)
+			return
+		}
+
+		// Verify parent has access to this child
+		if verifyErr := h.FamilyService.VerifyParentChildAccess(r.Context(), customerID, childID); verifyErr != nil {
+			responseHandlers.RespondWithError(w, verifyErr)
+			return
+		}
+
+		targetCustomerID = childID
+	}
+
+	currentUsage, weeklyLimit, err := h.WeeklyCreditService.GetWeeklyUsage(r.Context(), targetCustomerID)
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
 
 	response := map[string]interface{}{
-		"customer_id":         customerID,
+		"customer_id":         targetCustomerID,
 		"current_week_usage":  currentUsage,
 		"weekly_limit":        weeklyLimit,
 		"remaining_credits":   nil,

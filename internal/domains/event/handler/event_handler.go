@@ -9,6 +9,7 @@ import (
 	"api/internal/di"
 	dto "api/internal/domains/event/dto"
 	"api/internal/domains/event/service"
+	familyService "api/internal/domains/family/service"
 	values "api/internal/domains/event/values"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
@@ -22,10 +23,14 @@ import (
 // EventsHandler provides HTTP handlers for managing events.
 type EventsHandler struct {
 	EventsService *service.Service
+	FamilyService *familyService.Service
 }
 
 func NewEventsHandler(container *di.Container) *EventsHandler {
-	return &EventsHandler{EventsService: service.NewEventService(container)}
+	return &EventsHandler{
+		EventsService: service.NewEventService(container),
+		FamilyService: familyService.NewService(container),
+	}
 }
 
 // GetEvents retrieves all events based on filter criteria.
@@ -253,6 +258,7 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 // GetRoleEvents retrieves events for the authenticated user by automatically
 // applying the participant_id filter based on the JWT claims. Returns events with
 // price_id (Stripe price ID), required_membership_plan_id, and credit_cost for enrollment.
+// Parents can view their child's events by passing the child_id query parameter.
 // @Tags events
 // @Security Bearer
 // @Produce json
@@ -262,8 +268,10 @@ func (h *EventsHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 // @Param before query string false "Filter events before this date (YYYY-MM-DD)"
 // @Param month query string false "Filter events by month (YYYY-MM)"
 // @Param day query string false "Filter events by day (YYYY-MM-DD)"
+// @Param child_id query string false "Child user ID (for parent viewing child's events)" format(uuid)
 // @Success 200 {object} map[string]interface{} "List of user specific events with pagination. Each event includes price_id, required_membership_plan_id, and credit_cost"
 // @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden: Not authorized to view child's events"
 // @Router /secure/events [get]
 func (h *EventsHandler) GetRoleEvents(w http.ResponseWriter, r *http.Request) {
 	role, err := contextUtils.GetUserRole(r.Context())
@@ -277,15 +285,34 @@ func (h *EventsHandler) GetRoleEvents(w http.ResponseWriter, r *http.Request) {
 		h.GetEvents(w, r)
 		return
 	}
-	// For other roles, we filter by participant_id
+
 	userID, err := contextUtils.GetUserID(r.Context())
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
 	}
+
+	// Check if parent is requesting child's events
+	targetUserID := userID
+	if childIDStr := r.URL.Query().Get("child_id"); childIDStr != "" {
+		childID, parseErr := validators.ParseUUID(childIDStr)
+		if parseErr != nil {
+			responseHandlers.RespondWithError(w, parseErr)
+			return
+		}
+
+		// Verify parent has access to this child
+		if verifyErr := h.FamilyService.VerifyParentChildAccess(r.Context(), userID, childID); verifyErr != nil {
+			responseHandlers.RespondWithError(w, verifyErr)
+			return
+		}
+
+		targetUserID = childID
+	}
+
 	// Add participant_id to the query parameters
 	q := r.URL.Query()
-	q.Set("participant_id", userID.String())
+	q.Set("participant_id", targetUserID.String())
 	r.URL.RawQuery = q.Encode()
 
 	h.GetEvents(w, r)

@@ -58,17 +58,17 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 // LoginAsChild authenticates a user and returns a JWT token.
-// @Summary Authenticate a user and return a JWT token
-// @Description Authenticates a user using Firebase token and returns a JWT token for the authenticated user
+// @Summary Authenticate as a linked user
+// @Description Authenticates a parent user and returns a JWT token for a linked user
 // @Tags authentication
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param id path string true "Child ID"
+// @Param id path string true "Linked user ID"
 // @Success 200 {object} dto.UserAuthenticationResponseDto "User authenticated successfully"
 // @Failure 400 {object} map[string]interface{} "Bad Request: Invalid Firebase token"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
-// @Router /auth/child/{id} [post]
+// @Router /auth/linked/{id} [post]
 func (h *Handlers) LoginAsChild(w http.ResponseWriter, r *http.Request) {
 
 	childIdStr := chi.URLParam(r, "id")

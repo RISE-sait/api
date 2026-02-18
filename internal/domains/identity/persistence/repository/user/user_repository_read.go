@@ -146,33 +146,28 @@ func addAthleteInfo(response *values.UserReadInfo, user dbIdentity.GetUserByIdOr
 	}
 }
 
-// i really don't like the way this is done, since it treats the roles as like a hierarchy, kinda?
-// its like if u have athlete info and theres parent info associated with u, then u are a parent.
-// but if u have staff info and parent info associated with u, then u are a staff.
-// i mean, it works since we treat them as mutually exclusive, but the mental model is a bit off.
 func setUserRole(ctx context.Context, r *UsersRepository, response *values.UserReadInfo, user dbIdentity.GetUserByIdOrEmailRow) {
-	switch {
-	case user.ParentID.Valid:
-		response.Role = "child"
-	case user.Wins.Valid:
-		response.Role = "athlete"
-	default:
-		determineStaffOrParentRole(ctx, r, response, user)
-	}
-}
-
-func determineStaffOrParentRole(ctx context.Context, r *UsersRepository, response *values.UserReadInfo, user dbIdentity.GetUserByIdOrEmailRow) {
+	// Staff role takes priority
 	if staffInfo, err := r.IdentityQueries.GetStaffById(ctx, user.ID); err == nil {
 		response.Role = staffInfo.RoleName
 		response.IsActiveStaff = &staffInfo.IsActive
+		return
 	}
 
-	if isParent, err := r.IdentityQueries.GetIsUserAParent(ctx, uuid.NullUUID{UUID: user.ID, Valid: true}); err == nil && isParent {
-		response.Role = "parent"
+	// All customers are athletes (including those with parent_id)
+	if user.Wins.Valid {
+		response.Role = "athlete"
+		return
 	}
 
-	if response.Role == "" && user.AccountType.Valid {
-		response.Role = strings.ToLower(user.AccountType.String)
+	// Fallback to account_type for safety
+	if user.AccountType.Valid {
+		acctType := strings.ToLower(user.AccountType.String)
+		// Map legacy types to athlete
+		if acctType == "child" || acctType == "parent" {
+			acctType = "athlete"
+		}
+		response.Role = acctType
 	}
 }
 

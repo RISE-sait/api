@@ -112,10 +112,8 @@ func extractRole(userRoleInfo *jwtLib.RoleInfo) (contextUtils.CtxRole, *errLib.C
 		contextUtils.RoleCoach,
 		contextUtils.RoleSuperAdmin,
 		contextUtils.RoleIT,
-		contextUtils.RoleParent,
 		contextUtils.RoleBarber,
 		contextUtils.RoleAthlete,
-		contextUtils.RoleChild,
 		contextUtils.RoleReceptionist,
 	}
 

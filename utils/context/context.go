@@ -21,8 +21,6 @@ const (
 	RoleIT           CtxRole = "IT"
 	RoleAdmin        CtxRole = "ADMIN"
 	RoleInstructor   CtxRole = "INSTRUCTOR"
-	RoleParent       CtxRole = "PARENT"
-	RoleChild        CtxRole = "CHILD"
 	RoleAthlete      CtxRole = "ATHLETE"
 	RoleCoach        CtxRole = "COACH"
 	RoleBarber       CtxRole = "BARBER"

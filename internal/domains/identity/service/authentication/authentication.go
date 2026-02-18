@@ -122,6 +122,9 @@ func (s *Service) AuthenticateChild(ctx context.Context, childId, parentID uuid.
 
 	jwtCustomClaims := jwtLib.CustomClaims{
 		UserID: childId,
+		RoleInfo: &jwtLib.RoleInfo{
+			Role: userInfo.Role,
+		},
 	}
 
 	jwtToken, err := jwtLib.SignJWT(jwtCustomClaims)

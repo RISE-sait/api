@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strings"
 
 	dbIdentity "api/internal/domains/identity/persistence/sqlc/generated"
 	values "api/internal/domains/identity/values"
@@ -168,6 +169,10 @@ func determineStaffOrParentRole(ctx context.Context, r *UsersRepository, respons
 
 	if isParent, err := r.IdentityQueries.GetIsUserAParent(ctx, uuid.NullUUID{UUID: user.ID, Valid: true}); err == nil && isParent {
 		response.Role = "parent"
+	}
+
+	if response.Role == "" && user.AccountType.Valid {
+		response.Role = strings.ToLower(user.AccountType.String)
 	}
 }
 

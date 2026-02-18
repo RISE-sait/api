@@ -19,7 +19,7 @@ func (dto *RequestLinkRequest) Validate() *errLib.CommonError {
 
 // ConfirmLinkRequest is used to confirm a link request with a verification code
 type ConfirmLinkRequest struct {
-	Code string `json:"code" validate:"required,len=6"`
+	Code string `json:"code" validate:"required,len=6,numeric"`
 }
 
 func (dto *ConfirmLinkRequest) Validate() *errLib.CommonError {

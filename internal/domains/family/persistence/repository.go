@@ -46,7 +46,12 @@ func (r *Repository) CreateLinkRequest(ctx context.Context, params db.CreateLink
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == databaseErrors.UniqueViolation {
-				return db.UsersParentLinkRequest{}, errLib.New("A pending link request already exists for this child", http.StatusConflict)
+				switch pqErr.Constraint {
+				case "idx_parent_link_verification_code", "idx_parent_link_old_parent_code":
+					return db.UsersParentLinkRequest{}, errLib.New("Verification code collision, please try again", http.StatusConflict)
+				default:
+					return db.UsersParentLinkRequest{}, errLib.New("A pending link request already exists for this child", http.StatusConflict)
+				}
 			}
 		}
 		log.Printf("Error creating link request: %v", err)
@@ -111,6 +116,9 @@ func (r *Repository) GetRequestById(ctx context.Context, id uuid.UUID) (db.Users
 func (r *Repository) MarkVerified(ctx context.Context, id uuid.UUID) (db.UsersParentLinkRequest, *errLib.CommonError) {
 	request, err := r.Queries.MarkVerified(ctx, id)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return db.UsersParentLinkRequest{}, errLib.New("Request already verified, completed, cancelled, or expired", http.StatusConflict)
+		}
 		log.Printf("Error marking request verified: %v", err)
 		return db.UsersParentLinkRequest{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
@@ -121,6 +129,9 @@ func (r *Repository) MarkVerified(ctx context.Context, id uuid.UUID) (db.UsersPa
 func (r *Repository) MarkOldParentVerified(ctx context.Context, id uuid.UUID) (db.UsersParentLinkRequest, *errLib.CommonError) {
 	request, err := r.Queries.MarkOldParentVerified(ctx, id)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return db.UsersParentLinkRequest{}, errLib.New("Request already verified, completed, cancelled, or expired", http.StatusConflict)
+		}
 		log.Printf("Error marking old parent verified: %v", err)
 		return db.UsersParentLinkRequest{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
@@ -131,6 +142,9 @@ func (r *Repository) MarkOldParentVerified(ctx context.Context, id uuid.UUID) (d
 func (r *Repository) CompleteRequest(ctx context.Context, id uuid.UUID) (db.UsersParentLinkRequest, *errLib.CommonError) {
 	request, err := r.Queries.CompleteRequest(ctx, id)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return db.UsersParentLinkRequest{}, errLib.New("Request already completed or cancelled", http.StatusConflict)
+		}
 		log.Printf("Error completing request: %v", err)
 		return db.UsersParentLinkRequest{}, errLib.New("Internal server error", http.StatusInternalServerError)
 	}
@@ -172,7 +186,7 @@ func (r *Repository) RemoveChildParent(ctx context.Context, childID uuid.UUID) *
 
 // GetChildrenByParentId gets all children for a parent
 func (r *Repository) GetChildrenByParentId(ctx context.Context, parentID uuid.UUID) ([]db.GetChildrenByParentIdRow, *errLib.CommonError) {
-	children, err := r.Queries.GetChildrenByParentId(ctx, uuid.NullUUID{UUID: parentID, Valid: true})
+	children, err := r.Queries.GetChildrenByParentId(ctx, parentID)
 	if err != nil {
 		log.Printf("Error getting children: %v", err)
 		return nil, errLib.New("Internal server error", http.StatusInternalServerError)

@@ -42,13 +42,18 @@ CREATE TABLE users.parent_link_requests (
         CHECK (old_parent_id IS NULL OR new_parent_id != old_parent_id)
 );
 
--- Index for efficient verification code lookups (only active requests)
-CREATE INDEX idx_parent_link_verification_code
+-- Index on parent_id for GetChildrenByParentId queries
+CREATE INDEX idx_users_parent_id
+    ON users.users(parent_id)
+    WHERE parent_id IS NOT NULL;
+
+-- Unique index for verification code lookups (only active requests)
+CREATE UNIQUE INDEX idx_parent_link_verification_code
     ON users.parent_link_requests(verification_code)
     WHERE completed_at IS NULL AND cancelled_at IS NULL;
 
--- Index for old parent code lookups (only active requests with old parent)
-CREATE INDEX idx_parent_link_old_parent_code
+-- Unique index for old parent code lookups (only active requests with old parent)
+CREATE UNIQUE INDEX idx_parent_link_old_parent_code
     ON users.parent_link_requests(old_parent_code)
     WHERE completed_at IS NULL AND cancelled_at IS NULL AND old_parent_code IS NOT NULL;
 
@@ -81,6 +86,7 @@ DROP INDEX IF EXISTS users.idx_parent_link_new_parent;
 DROP INDEX IF EXISTS users.unique_pending_child_request;
 DROP INDEX IF EXISTS users.idx_parent_link_old_parent_code;
 DROP INDEX IF EXISTS users.idx_parent_link_verification_code;
+DROP INDEX IF EXISTS users.idx_users_parent_id;
 DROP TABLE IF EXISTS users.parent_link_requests;
 
 -- +goose StatementEnd

@@ -142,6 +142,14 @@ func (s *Service) RequestLink(ctx context.Context, targetEmail string) (*dto.Req
 			log.Printf("Error generating old parent code: %v", codeErr)
 			return nil, errLib.New("Internal server error", http.StatusInternalServerError)
 		}
+		// Ensure old parent code differs from primary code
+		if code == verificationCode {
+			code, codeErr = generateCode()
+			if codeErr != nil {
+				log.Printf("Error regenerating old parent code: %v", codeErr)
+				return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+			}
+		}
 		oldParentCode = sql.NullString{String: code, Valid: true}
 	}
 
@@ -164,35 +172,45 @@ func (s *Service) RequestLink(ctx context.Context, targetEmail string) (*dto.Req
 	}
 
 	// Send verification emails
-	child, _ := s.repo.GetUserById(ctx, childID)
-	newParent, _ := s.repo.GetUserById(ctx, newParentID)
+	child, childErr := s.repo.GetUserById(ctx, childID)
+	if childErr != nil {
+		log.Printf("Error fetching child for email: %v", childErr)
+	}
+	newParent, parentErr := s.repo.GetUserById(ctx, newParentID)
+	if parentErr != nil {
+		log.Printf("Error fetching new parent for email: %v", parentErr)
+	}
 
-	if initiatedBy == "child" {
-		// Child initiated - send code to new parent
-		if newParent.Email.Valid {
-			go email.SendParentLinkRequestEmail(
-				newParent.Email.String,
-				newParent.FirstName,
-				child.FirstName+" "+child.LastName,
-				verificationCode,
-			)
-		}
-	} else {
-		// Parent initiated - send code to child
-		if child.Email.Valid {
-			go email.SendChildLinkRequestEmail(
-				child.Email.String,
-				child.FirstName,
-				newParent.FirstName+" "+newParent.LastName,
-				verificationCode,
-			)
+	if childErr == nil && parentErr == nil {
+		if initiatedBy == "child" {
+			// Child initiated - send code to new parent
+			if newParent.Email.Valid {
+				go email.SendParentLinkRequestEmail(
+					newParent.Email.String,
+					newParent.FirstName,
+					child.FirstName+" "+child.LastName,
+					verificationCode,
+				)
+			}
+		} else {
+			// Parent initiated - send code to child
+			if child.Email.Valid {
+				go email.SendChildLinkRequestEmail(
+					child.Email.String,
+					child.FirstName,
+					newParent.FirstName+" "+newParent.LastName,
+					verificationCode,
+				)
+			}
 		}
 	}
 
 	// If transfer, send code to old parent
 	if requiresOldParent && oldParentCode.Valid {
-		oldParent, _ := s.repo.GetUserById(ctx, oldParentID.UUID)
-		if oldParent.Email.Valid {
+		oldParent, oldParentErr := s.repo.GetUserById(ctx, oldParentID.UUID)
+		if oldParentErr != nil {
+			log.Printf("Error fetching old parent for email: %v", oldParentErr)
+		} else if oldParent.Email.Valid && childErr == nil && parentErr == nil {
 			go email.SendTransferApprovalEmail(
 				oldParent.Email.String,
 				oldParent.FirstName,
@@ -289,11 +307,17 @@ func (s *Service) ConfirmLink(ctx context.Context, code string) (*dto.ConfirmLin
 				return completeErr
 			}
 
-			child, _ := txRepo.GetUserById(ctx, updatedRequest.ChildID)
-			newParent, _ := txRepo.GetUserById(ctx, updatedRequest.NewParentID)
+			child, childErr := txRepo.GetUserById(ctx, updatedRequest.ChildID)
+			if childErr != nil {
+				log.Printf("Error fetching child for completion email: %v", childErr)
+			}
+			newParent, parentErr := txRepo.GetUserById(ctx, updatedRequest.NewParentID)
+			if parentErr != nil {
+				log.Printf("Error fetching new parent for completion email: %v", parentErr)
+			}
 
 			// Send completion emails
-			if child.Email.Valid {
+			if childErr == nil && parentErr == nil && child.Email.Valid {
 				go email.SendLinkCompleteEmail(
 					child.Email.String,
 					child.FirstName,
@@ -301,11 +325,16 @@ func (s *Service) ConfirmLink(ctx context.Context, code string) (*dto.ConfirmLin
 				)
 			}
 
+			childName := ""
+			if childErr == nil {
+				childName = child.FirstName + " " + child.LastName
+			}
+
 			response = &dto.ConfirmLinkResponse{
 				Message:   "Link complete! Parent-child relationship has been established.",
 				Status:    "complete",
-				ChildID:   child.ID.String(),
-				ChildName: child.FirstName + " " + child.LastName,
+				ChildID:   updatedRequest.ChildID.String(),
+				ChildName: childName,
 			}
 		} else {
 			// Still waiting for more verifications
@@ -349,17 +378,27 @@ func (s *Service) CancelRequest(ctx context.Context) *errLib.CommonError {
 		return errLib.New("No pending link request found", http.StatusNotFound)
 	}
 
-	// Cancel all pending requests where user is child or initiating parent
+	// Collect IDs of requests the user is allowed to cancel
+	var toCancel []uuid.UUID
 	for _, req := range requests {
-		// User can cancel if they're the child or the initiating new parent
 		if req.ChildID == callerID || (req.InitiatedBy == "parent" && req.NewParentID == callerID) {
-			if cancelErr := s.repo.CancelRequest(ctx, req.ID); cancelErr != nil {
-				return cancelErr
-			}
+			toCancel = append(toCancel, req.ID)
 		}
 	}
 
-	return nil
+	if len(toCancel) == 0 {
+		return errLib.New("No cancellable link request found", http.StatusNotFound)
+	}
+
+	// Cancel all in a single transaction
+	return s.executeInTx(ctx, func(txRepo *repo.Repository) *errLib.CommonError {
+		for _, id := range toCancel {
+			if cancelErr := txRepo.CancelRequest(ctx, id); cancelErr != nil {
+				return cancelErr
+			}
+		}
+		return nil
+	})
 }
 
 // GetPendingRequests gets all pending requests involving the user
@@ -394,29 +433,31 @@ func (s *Service) GetPendingRequests(ctx context.Context) ([]dto.PendingRequestR
 		}
 
 		var oldParentID *uuid.UUID
+		var oldParentName string
 		if req.OldParentID.Valid {
 			oldParentID = &req.OldParentID.UUID
+			oldParentName = nullStringToString(req.OldParentFirstName) + " " + nullStringToString(req.OldParentLastName)
 		}
 
 		result[i] = dto.PendingRequestResponse{
-			ID:                 req.ID,
-			ChildID:            req.ChildID,
-			ChildName:          req.ChildFirstName + " " + req.ChildLastName,
-			ChildEmail:         nullStringToString(req.ChildEmail),
-			NewParentID:        req.NewParentID,
-			NewParentName:      req.NewParentFirstName + " " + req.NewParentLastName,
-			NewParentEmail:     nullStringToString(req.NewParentEmail),
-			OldParentID:        oldParentID,
-			OldParentName:      nullStringToString(req.OldParentFirstName) + " " + nullStringToString(req.OldParentLastName),
-			OldParentEmail:     nullStringToString(req.OldParentEmail),
-			InitiatedBy:        req.InitiatedBy,
-			NewParentVerified:  req.VerifiedAt.Valid,
-			OldParentVerified:  req.OldParentVerifiedAt.Valid,
-			RequiresOldParent:  req.OldParentID.Valid,
-			ExpiresAt:          req.ExpiresAt,
-			CreatedAt:          req.CreatedAt,
-			UserRole:           userRole,
-			AwaitingUserAction: awaitingAction,
+			ID:                    req.ID,
+			ChildID:               req.ChildID,
+			ChildName:             req.ChildFirstName + " " + req.ChildLastName,
+			ChildEmail:            nullStringToString(req.ChildEmail),
+			NewParentID:           req.NewParentID,
+			NewParentName:         req.NewParentFirstName + " " + req.NewParentLastName,
+			NewParentEmail:        nullStringToString(req.NewParentEmail),
+			OldParentID:           oldParentID,
+			OldParentName:         oldParentName,
+			OldParentEmail:        nullStringToString(req.OldParentEmail),
+			InitiatedBy:           req.InitiatedBy,
+			CounterpartyVerified:  req.VerifiedAt.Valid,
+			OldParentVerified:     req.OldParentVerifiedAt.Valid,
+			RequiresOldParent:     req.OldParentID.Valid,
+			ExpiresAt:             req.ExpiresAt,
+			CreatedAt:             req.CreatedAt,
+			UserRole:              userRole,
+			AwaitingUserAction:    awaitingAction,
 		}
 	}
 
@@ -442,7 +483,7 @@ func (s *Service) GetChildren(ctx context.Context) ([]dto.ChildResponse, *errLib
 			FirstName: child.FirstName,
 			LastName:  child.LastName,
 			Email:     nullStringToString(child.Email),
-			LinkedAt:  child.CreatedAt,
+			LinkedAt:  child.LinkedAt,
 		}
 	}
 

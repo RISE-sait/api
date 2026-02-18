@@ -155,7 +155,7 @@ func (h *Handler) GetChildren(w http.ResponseWriter, r *http.Request) {
 // @Failure 401 {object} map[string]interface{} "Unauthorized"
 // @Failure 403 {object} map[string]interface{} "Forbidden: Admin only"
 // @Failure 404 {object} map[string]interface{} "User not found"
-// @Router /admin/family/link/{id} [delete]
+// @Router /family/admin/link/{id} [delete]
 func (h *Handler) AdminUnlink(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := validators.ParseUUID(idStr)

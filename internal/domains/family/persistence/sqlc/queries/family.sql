@@ -34,18 +34,28 @@ WHERE id = $1;
 UPDATE users.parent_link_requests
 SET verified_at = NOW()
 WHERE id = $1
+  AND verified_at IS NULL
+  AND completed_at IS NULL
+  AND cancelled_at IS NULL
+  AND expires_at > NOW()
 RETURNING *;
 
 -- name: MarkOldParentVerified :one
 UPDATE users.parent_link_requests
 SET old_parent_verified_at = NOW()
 WHERE id = $1
+  AND old_parent_verified_at IS NULL
+  AND completed_at IS NULL
+  AND cancelled_at IS NULL
+  AND expires_at > NOW()
 RETURNING *;
 
 -- name: CompleteRequest :one
 UPDATE users.parent_link_requests
 SET completed_at = NOW()
 WHERE id = $1
+  AND completed_at IS NULL
+  AND cancelled_at IS NULL
 RETURNING *;
 
 -- name: CancelRequest :exec
@@ -66,9 +76,15 @@ SET parent_id = NULL, updated_at = NOW()
 WHERE id = $1;
 
 -- name: GetChildrenByParentId :many
-SELECT id, first_name, last_name, email, created_at
-FROM users.users
-WHERE parent_id = $1 AND deleted_at IS NULL;
+SELECT u.id, u.first_name, u.last_name, u.email,
+       COALESCE(
+           (SELECT plr.completed_at FROM users.parent_link_requests plr
+            WHERE plr.child_id = u.id AND plr.new_parent_id = $1 AND plr.completed_at IS NOT NULL
+            ORDER BY plr.completed_at DESC LIMIT 1),
+           u.updated_at
+       ) as linked_at
+FROM users.users u
+WHERE u.parent_id = $1 AND u.deleted_at IS NULL;
 
 -- name: GetUserByEmail :one
 SELECT id, first_name, last_name, email, parent_id
@@ -81,7 +97,9 @@ FROM users.users
 WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: GetPendingRequestsForUser :many
-SELECT plr.*,
+SELECT plr.id, plr.child_id, plr.new_parent_id, plr.old_parent_id,
+       plr.initiated_by, plr.verified_at, plr.old_parent_verified_at,
+       plr.expires_at, plr.completed_at, plr.cancelled_at, plr.created_at,
        c.first_name as child_first_name,
        c.last_name as child_last_name,
        c.email as child_email,
@@ -92,16 +110,11 @@ SELECT plr.*,
        op.last_name as old_parent_last_name,
        op.email as old_parent_email
 FROM users.parent_link_requests plr
-JOIN users.users c ON c.id = plr.child_id
-JOIN users.users np ON np.id = plr.new_parent_id
-LEFT JOIN users.users op ON op.id = plr.old_parent_id
+JOIN users.users c ON c.id = plr.child_id AND c.deleted_at IS NULL
+JOIN users.users np ON np.id = plr.new_parent_id AND np.deleted_at IS NULL
+LEFT JOIN users.users op ON op.id = plr.old_parent_id AND op.deleted_at IS NULL
 WHERE (plr.child_id = $1 OR plr.new_parent_id = $1 OR plr.old_parent_id = $1)
   AND plr.completed_at IS NULL
   AND plr.cancelled_at IS NULL
   AND plr.expires_at > NOW()
 ORDER BY plr.created_at DESC;
-
--- name: IsUserChild :one
-SELECT parent_id IS NOT NULL as is_child
-FROM users.users
-WHERE id = $1 AND deleted_at IS NULL;

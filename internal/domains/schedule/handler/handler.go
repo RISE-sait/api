@@ -72,6 +72,7 @@ func (h *Handler) GetMySchedule(w http.ResponseWriter, r *http.Request) {
 	// Check if parent is requesting child's schedule
 	targetUserID := userID
 	targetRole := role
+	viewingChild := false
 	if childIDStr := r.URL.Query().Get("child_id"); childIDStr != "" {
 		childID, parseErr := validators.ParseUUID(childIDStr)
 		if parseErr != nil {
@@ -86,12 +87,13 @@ func (h *Handler) GetMySchedule(w http.ResponseWriter, r *http.Request) {
 		}
 
 		targetUserID = childID
-		targetRole = contextUtils.RoleChild // Treat as child for data filtering
+		targetRole = contextUtils.RoleAthlete // Children with games/practices are athletes
+		viewingChild = true
 	}
 
 	// Events
 	var eventRecords []eventValues.ReadEventValues
-	if role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin || role == contextUtils.RoleIT || role == contextUtils.RoleReceptionist {
+	if !viewingChild && (role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin || role == contextUtils.RoleIT || role == contextUtils.RoleReceptionist) {
 		eventRecords, err = h.eventSvc.GetEvents(ctx, eventValues.GetEventsFilter{})
 	} else {
 		// For coaches/athletes/children, get events they're enrolled in or assigned to
@@ -110,7 +112,7 @@ func (h *Handler) GetMySchedule(w http.ResponseWriter, r *http.Request) {
 
 	// Games
 	var gameRecords []gameValues.ReadGameValue
-	if role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin || role == contextUtils.RoleIT || role == contextUtils.RoleReceptionist {
+	if !viewingChild && (role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin || role == contextUtils.RoleIT || role == contextUtils.RoleReceptionist) {
 		gameRecords, err = h.gameSvc.GetGames(ctx, gameValues.GetGamesFilter{
 			Limit:  1000,
 			Offset: 0,
@@ -129,7 +131,7 @@ func (h *Handler) GetMySchedule(w http.ResponseWriter, r *http.Request) {
 
 	// Practices
 	var practiceRecords []practiceValues.ReadPracticeValue
-	if role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin || role == contextUtils.RoleIT || role == contextUtils.RoleReceptionist {
+	if !viewingChild && (role == contextUtils.RoleAdmin || role == contextUtils.RoleSuperAdmin || role == contextUtils.RoleIT || role == contextUtils.RoleReceptionist) {
 		practiceRecords, err = h.practiceSvc.GetPractices(ctx, uuid.Nil, 1000, 0)
 	} else {
 		practiceRecords, err = h.practiceSvc.GetUserPractices(ctx, targetUserID, targetRole, 1000, 0)

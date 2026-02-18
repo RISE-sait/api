@@ -206,16 +206,7 @@ func (h *Handler) GetGames(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
 }
 
-// GetMyGames returns games associated with the authenticated user's team.
-// Only coaches and athletes are supported. The user's team is derived from
-// their role and used to filter games.
-// @Tags games
-// @Security Bearer
-// @Produce json
-// @Success 200 {array} dto.ResponseDto "List of games for the current user"
-// @Failure 401 {object} map[string]interface{} "Unauthorized"
-// @Router /secure/games [get]
-// GetMyGames returns games associated with the authenticated user's team.
+// GetRoleGames returns games associated with the authenticated user's team.
 // Only coaches and athletes are supported. The user's team is derived from
 // their role and used to filter games.
 // Parents can view their child's games by passing the child_id query parameter.
@@ -264,7 +255,7 @@ func (h *Handler) GetRoleGames(w http.ResponseWriter, r *http.Request) {
 		}
 
 		targetUserID = childID
-		targetRole = contextUtils.RoleChild
+		targetRole = contextUtils.RoleAthlete // Children with games are athletes
 	}
 
 	query := r.URL.Query()

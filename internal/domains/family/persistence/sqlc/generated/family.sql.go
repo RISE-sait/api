@@ -30,6 +30,8 @@ const completeRequest = `-- name: CompleteRequest :one
 UPDATE users.parent_link_requests
 SET completed_at = NOW()
 WHERE id = $1
+  AND completed_at IS NULL
+  AND cancelled_at IS NULL
 RETURNING id, child_id, new_parent_id, old_parent_id, initiated_by, verification_code, verified_at, old_parent_code, old_parent_verified_at, expires_at, completed_at, cancelled_at, created_at
 `
 
@@ -102,9 +104,15 @@ func (q *Queries) CreateLinkRequest(ctx context.Context, arg CreateLinkRequestPa
 }
 
 const getChildrenByParentId = `-- name: GetChildrenByParentId :many
-SELECT id, first_name, last_name, email, created_at
-FROM users.users
-WHERE parent_id = $1 AND deleted_at IS NULL
+SELECT u.id, u.first_name, u.last_name, u.email,
+       COALESCE(
+           (SELECT plr.completed_at FROM users.parent_link_requests plr
+            WHERE plr.child_id = u.id AND plr.new_parent_id = $1 AND plr.completed_at IS NOT NULL
+            ORDER BY plr.completed_at DESC LIMIT 1),
+           u.updated_at
+       ) as linked_at
+FROM users.users u
+WHERE u.parent_id = $1 AND u.deleted_at IS NULL
 `
 
 type GetChildrenByParentIdRow struct {
@@ -112,11 +120,11 @@ type GetChildrenByParentIdRow struct {
 	FirstName string         `json:"first_name"`
 	LastName  string         `json:"last_name"`
 	Email     sql.NullString `json:"email"`
-	CreatedAt time.Time      `json:"created_at"`
+	LinkedAt  time.Time      `json:"linked_at"`
 }
 
-func (q *Queries) GetChildrenByParentId(ctx context.Context, parentID uuid.NullUUID) ([]GetChildrenByParentIdRow, error) {
-	rows, err := q.db.QueryContext(ctx, getChildrenByParentId, parentID)
+func (q *Queries) GetChildrenByParentId(ctx context.Context, newParentID uuid.UUID) ([]GetChildrenByParentIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getChildrenByParentId, newParentID)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +137,7 @@ func (q *Queries) GetChildrenByParentId(ctx context.Context, parentID uuid.NullU
 			&i.FirstName,
 			&i.LastName,
 			&i.Email,
-			&i.CreatedAt,
+			&i.LinkedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -174,7 +182,9 @@ func (q *Queries) GetPendingRequestByChildId(ctx context.Context, childID uuid.U
 }
 
 const getPendingRequestsForUser = `-- name: GetPendingRequestsForUser :many
-SELECT plr.id, plr.child_id, plr.new_parent_id, plr.old_parent_id, plr.initiated_by, plr.verification_code, plr.verified_at, plr.old_parent_code, plr.old_parent_verified_at, plr.expires_at, plr.completed_at, plr.cancelled_at, plr.created_at,
+SELECT plr.id, plr.child_id, plr.new_parent_id, plr.old_parent_id,
+       plr.initiated_by, plr.verified_at, plr.old_parent_verified_at,
+       plr.expires_at, plr.completed_at, plr.cancelled_at, plr.created_at,
        c.first_name as child_first_name,
        c.last_name as child_last_name,
        c.email as child_email,
@@ -185,9 +195,9 @@ SELECT plr.id, plr.child_id, plr.new_parent_id, plr.old_parent_id, plr.initiated
        op.last_name as old_parent_last_name,
        op.email as old_parent_email
 FROM users.parent_link_requests plr
-JOIN users.users c ON c.id = plr.child_id
-JOIN users.users np ON np.id = plr.new_parent_id
-LEFT JOIN users.users op ON op.id = plr.old_parent_id
+JOIN users.users c ON c.id = plr.child_id AND c.deleted_at IS NULL
+JOIN users.users np ON np.id = plr.new_parent_id AND np.deleted_at IS NULL
+LEFT JOIN users.users op ON op.id = plr.old_parent_id AND op.deleted_at IS NULL
 WHERE (plr.child_id = $1 OR plr.new_parent_id = $1 OR plr.old_parent_id = $1)
   AND plr.completed_at IS NULL
   AND plr.cancelled_at IS NULL
@@ -201,9 +211,7 @@ type GetPendingRequestsForUserRow struct {
 	NewParentID         uuid.UUID      `json:"new_parent_id"`
 	OldParentID         uuid.NullUUID  `json:"old_parent_id"`
 	InitiatedBy         string         `json:"initiated_by"`
-	VerificationCode    string         `json:"verification_code"`
 	VerifiedAt          sql.NullTime   `json:"verified_at"`
-	OldParentCode       sql.NullString `json:"old_parent_code"`
 	OldParentVerifiedAt sql.NullTime   `json:"old_parent_verified_at"`
 	ExpiresAt           time.Time      `json:"expires_at"`
 	CompletedAt         sql.NullTime   `json:"completed_at"`
@@ -235,9 +243,7 @@ func (q *Queries) GetPendingRequestsForUser(ctx context.Context, childID uuid.UU
 			&i.NewParentID,
 			&i.OldParentID,
 			&i.InitiatedBy,
-			&i.VerificationCode,
 			&i.VerifiedAt,
-			&i.OldParentCode,
 			&i.OldParentVerifiedAt,
 			&i.ExpiresAt,
 			&i.CompletedAt,
@@ -404,23 +410,14 @@ func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (GetUserByIdRow
 	return i, err
 }
 
-const isUserChild = `-- name: IsUserChild :one
-SELECT parent_id IS NOT NULL as is_child
-FROM users.users
-WHERE id = $1 AND deleted_at IS NULL
-`
-
-func (q *Queries) IsUserChild(ctx context.Context, id uuid.UUID) (interface{}, error) {
-	row := q.db.QueryRowContext(ctx, isUserChild, id)
-	var is_child interface{}
-	err := row.Scan(&is_child)
-	return is_child, err
-}
-
 const markOldParentVerified = `-- name: MarkOldParentVerified :one
 UPDATE users.parent_link_requests
 SET old_parent_verified_at = NOW()
 WHERE id = $1
+  AND old_parent_verified_at IS NULL
+  AND completed_at IS NULL
+  AND cancelled_at IS NULL
+  AND expires_at > NOW()
 RETURNING id, child_id, new_parent_id, old_parent_id, initiated_by, verification_code, verified_at, old_parent_code, old_parent_verified_at, expires_at, completed_at, cancelled_at, created_at
 `
 
@@ -449,6 +446,10 @@ const markVerified = `-- name: MarkVerified :one
 UPDATE users.parent_link_requests
 SET verified_at = NOW()
 WHERE id = $1
+  AND verified_at IS NULL
+  AND completed_at IS NULL
+  AND cancelled_at IS NULL
+  AND expires_at > NOW()
 RETURNING id, child_id, new_parent_id, old_parent_id, initiated_by, verification_code, verified_at, old_parent_code, old_parent_verified_at, expires_at, completed_at, cancelled_at, created_at
 `
 

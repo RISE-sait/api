@@ -911,7 +911,7 @@ func RegisterFamilyRoutes(container *di.Container) func(chi.Router) {
 		r.Route("/link", func(r chi.Router) {
 			r.Use(middlewares.JWTAuthMiddleware(true))
 			r.Post("/request", h.RequestLink)
-			r.Post("/confirm", h.ConfirmLink)
+			r.With(middlewares.RateLimitMiddleware(0.5, 3, time.Minute)).Post("/confirm", h.ConfirmLink)
 			r.Delete("/request", h.CancelRequest)
 			r.Get("/requests", h.GetPendingRequests)
 		})

@@ -62,7 +62,7 @@ func (s *Service) AuthenticateUser(ctx context.Context, idToken string) (string,
 	}
 
 	// Check if email is verified (except for staff who may have been manually created)
-	if userInfo.Role == "customer" || userInfo.Role == "athlete" || userInfo.Role == "parent" {
+	if userInfo.Role == "customer" || userInfo.Role == "athlete" {
 		isVerified, verifyErr := s.VerificationService.IsEmailVerified(ctx, userInfo.ID)
 		if verifyErr != nil {
 			log.Printf("Failed to check email verification status for user %s: %v", userInfo.ID, verifyErr)
@@ -111,7 +111,7 @@ func (s *Service) AuthenticateChild(ctx context.Context, childId, parentID uuid.
 	if isConnected, err := s.UserRepo.GetIsActualParentChild(ctx, childId, parentID); err != nil {
 		return "", userInfo, err
 	} else if !isConnected {
-		return "", userInfo, errLib.New("child is not associated with the parent", http.StatusNotFound)
+		return "", userInfo, errLib.New("user is not associated with the parent", http.StatusNotFound)
 	}
 
 	userInfo, err := s.UserRepo.GetUserInfo(ctx, "", childId)

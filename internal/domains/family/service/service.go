@@ -97,7 +97,7 @@ func (s *Service) RequestLink(ctx context.Context, targetEmail string) (*dto.Req
 		// Caller is a child (has a parent) - they want to link to a new parent
 		childID = caller.ID
 		newParentID = target.ID
-		initiatedBy = "child"
+		initiatedBy = "athlete"
 
 		// Check if target is also a child (has a parent)
 		if target.ParentID.Valid {
@@ -182,7 +182,7 @@ func (s *Service) RequestLink(ctx context.Context, targetEmail string) (*dto.Req
 	}
 
 	if childErr == nil && parentErr == nil {
-		if initiatedBy == "child" {
+		if initiatedBy == "athlete" {
 			// Child initiated - send code to new parent
 			if newParent.Email.Valid {
 				go email.SendParentLinkRequestEmail(
@@ -222,7 +222,7 @@ func (s *Service) RequestLink(ctx context.Context, targetEmail string) (*dto.Req
 	}
 
 	var message string
-	if initiatedBy == "child" {
+	if initiatedBy == "athlete" {
 		message = fmt.Sprintf("Verification code sent to %s", targetEmail)
 	} else {
 		message = fmt.Sprintf("Verification code sent to child at %s", targetEmail)
@@ -266,7 +266,7 @@ func (s *Service) ConfirmLink(ctx context.Context, code string) (*dto.ConfirmLin
 		}
 	} else {
 		// Primary verification
-		if request.InitiatedBy == "child" {
+		if request.InitiatedBy == "athlete" {
 			// Parent should be verifying
 			if request.NewParentID != callerID {
 				return nil, errLib.New("This verification code is not for you", http.StatusForbidden)
@@ -425,7 +425,7 @@ func (s *Service) GetPendingRequests(ctx context.Context) ([]dto.PendingRequestR
 		} else if req.NewParentID == callerID {
 			userRole = "new_parent"
 			// New parent awaits action if child initiated and not yet verified
-			awaitingAction = req.InitiatedBy == "child" && !req.VerifiedAt.Valid
+			awaitingAction = req.InitiatedBy == "athlete" && !req.VerifiedAt.Valid
 		} else if req.OldParentID.Valid && req.OldParentID.UUID == callerID {
 			userRole = "old_parent"
 			// Old parent awaits action if not yet verified

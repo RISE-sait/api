@@ -477,7 +477,7 @@ func RegisterAuthRoutes(container *di.Container) func(chi.Router) {
 
 	return func(r chi.Router) {
 		r.Post("/", h.Login)
-		r.With(middlewares.JWTAuthMiddleware(true)).Post("/child/{id}", h.LoginAsChild)
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/linked/{id}", h.LoginAsChild)
 
 		// Email verification routes (public endpoints)
 		r.Post("/verify-email", verificationHandler.VerifyEmail)

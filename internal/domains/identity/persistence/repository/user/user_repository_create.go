@@ -149,7 +149,7 @@ func (r *UsersRepository) CreateAthleteTx(ctx context.Context, tx *sql.Tx, input
 }
 
 func (r *UsersRepository) CreateParentTx(ctx context.Context, tx *sql.Tx, input values.ParentRegistrationRequestInfo) (values.UserReadInfo, *errLib.CommonError) {
-	return r.createCustomerTx(ctx, tx, dbIdentity.CreateUserParams{
+	customer, qErr := r.createCustomerTx(ctx, tx, dbIdentity.CreateUserParams{
 		Email:                        sql.NullString{String: input.Email, Valid: true},
 		HubspotID:                    sql.NullString{},
 		CountryAlpha2Code:            input.CountryCode,
@@ -163,10 +163,24 @@ func (r *UsersRepository) CreateParentTx(ctx context.Context, tx *sql.Tx, input 
 		EmergencyContactPhone:        sql.NullString{},
 		EmergencyContactRelationship: sql.NullString{},
 	}, "Parent")
+	if qErr != nil {
+		return values.UserReadInfo{}, qErr
+	}
+
+	if err := r.IdentityQueries.WithTx(tx).CreateAthlete(ctx, customer.ID); err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
+			return values.UserReadInfo{}, errLib.New("Athlete with that email already exists", http.StatusConflict)
+		}
+		log.Println(err.Error())
+		return values.UserReadInfo{}, errLib.New("Failed to insert athlete record", http.StatusInternalServerError)
+	}
+
+	return customer, nil
 }
 
 func (r *UsersRepository) CreateChildTx(ctx context.Context, tx *sql.Tx, input values.ChildRegistrationRequestInfo) (values.UserReadInfo, *errLib.CommonError) {
-	createdCustomer, err := r.createCustomerTx(ctx, tx, dbIdentity.CreateUserParams{
+	createdCustomer, qErr := r.createCustomerTx(ctx, tx, dbIdentity.CreateUserParams{
 		HubspotID:                    sql.NullString{},
 		CountryAlpha2Code:            input.CountryCode,
 		Dob:                          input.DOB,
@@ -178,10 +192,28 @@ func (r *UsersRepository) CreateChildTx(ctx context.Context, tx *sql.Tx, input v
 		EmergencyContactName:         sql.NullString{},
 		EmergencyContactPhone:        sql.NullString{},
 		EmergencyContactRelationship: sql.NullString{},
-	}, "Child")
-	if err != nil {
-		return values.UserReadInfo{}, err
+	}, "Athlete")
+	if qErr != nil {
+		return values.UserReadInfo{}, qErr
 	}
 
-	return createdCustomer, err
+	if err := r.IdentityQueries.WithTx(tx).CreateAthlete(ctx, createdCustomer.ID); err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == databaseErrors.UniqueViolation {
+			return values.UserReadInfo{}, errLib.New("Athlete with that email already exists", http.StatusConflict)
+		}
+		log.Println(err.Error())
+		return values.UserReadInfo{}, errLib.New("Failed to insert athlete record", http.StatusInternalServerError)
+	}
+
+	return values.UserReadInfo{
+		ID:          createdCustomer.ID,
+		DOB:         createdCustomer.DOB,
+		CountryCode: createdCustomer.CountryCode,
+		FirstName:   createdCustomer.FirstName,
+		LastName:    createdCustomer.LastName,
+		Email:       createdCustomer.Email,
+		Role:        "Athlete",
+		Phone:       createdCustomer.Phone,
+	}, nil
 }

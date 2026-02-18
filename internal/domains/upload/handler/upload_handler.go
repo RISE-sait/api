@@ -114,10 +114,6 @@ func (h *UploadHandler) UploadImage(w http.ResponseWriter, r *http.Request) {
 				roleFolder = "staff"
 			case "athlete":
 				roleFolder = "athletes"
-			case "parent":
-				roleFolder = "parents"
-			case "child":
-				roleFolder = "children"
 			default:
 				roleFolder = "users" // fallback for unknown roles
 			}

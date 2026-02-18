@@ -75,6 +75,271 @@ func AllAuditAuditStatusValues() []AuditAuditStatus {
 	}
 }
 
+type CareersApplicationStatus string
+
+const (
+	CareersApplicationStatusReceived  CareersApplicationStatus = "received"
+	CareersApplicationStatusReviewing CareersApplicationStatus = "reviewing"
+	CareersApplicationStatusInterview CareersApplicationStatus = "interview"
+	CareersApplicationStatusOffer     CareersApplicationStatus = "offer"
+	CareersApplicationStatusHired     CareersApplicationStatus = "hired"
+	CareersApplicationStatusRejected  CareersApplicationStatus = "rejected"
+	CareersApplicationStatusWithdrawn CareersApplicationStatus = "withdrawn"
+)
+
+func (e *CareersApplicationStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = CareersApplicationStatus(s)
+	case string:
+		*e = CareersApplicationStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for CareersApplicationStatus: %T", src)
+	}
+	return nil
+}
+
+type NullCareersApplicationStatus struct {
+	CareersApplicationStatus CareersApplicationStatus `json:"careers_application_status"`
+	Valid                    bool                     `json:"valid"` // Valid is true if CareersApplicationStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullCareersApplicationStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.CareersApplicationStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.CareersApplicationStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullCareersApplicationStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.CareersApplicationStatus), nil
+}
+
+func (e CareersApplicationStatus) Valid() bool {
+	switch e {
+	case CareersApplicationStatusReceived,
+		CareersApplicationStatusReviewing,
+		CareersApplicationStatusInterview,
+		CareersApplicationStatusOffer,
+		CareersApplicationStatusHired,
+		CareersApplicationStatusRejected,
+		CareersApplicationStatusWithdrawn:
+		return true
+	}
+	return false
+}
+
+func AllCareersApplicationStatusValues() []CareersApplicationStatus {
+	return []CareersApplicationStatus{
+		CareersApplicationStatusReceived,
+		CareersApplicationStatusReviewing,
+		CareersApplicationStatusInterview,
+		CareersApplicationStatusOffer,
+		CareersApplicationStatusHired,
+		CareersApplicationStatusRejected,
+		CareersApplicationStatusWithdrawn,
+	}
+}
+
+type CareersEmploymentType string
+
+const (
+	CareersEmploymentTypeFullTime   CareersEmploymentType = "full_time"
+	CareersEmploymentTypePartTime   CareersEmploymentType = "part_time"
+	CareersEmploymentTypeContract   CareersEmploymentType = "contract"
+	CareersEmploymentTypeInternship CareersEmploymentType = "internship"
+	CareersEmploymentTypeVolunteer  CareersEmploymentType = "volunteer"
+)
+
+func (e *CareersEmploymentType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = CareersEmploymentType(s)
+	case string:
+		*e = CareersEmploymentType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for CareersEmploymentType: %T", src)
+	}
+	return nil
+}
+
+type NullCareersEmploymentType struct {
+	CareersEmploymentType CareersEmploymentType `json:"careers_employment_type"`
+	Valid                 bool                  `json:"valid"` // Valid is true if CareersEmploymentType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullCareersEmploymentType) Scan(value interface{}) error {
+	if value == nil {
+		ns.CareersEmploymentType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.CareersEmploymentType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullCareersEmploymentType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.CareersEmploymentType), nil
+}
+
+func (e CareersEmploymentType) Valid() bool {
+	switch e {
+	case CareersEmploymentTypeFullTime,
+		CareersEmploymentTypePartTime,
+		CareersEmploymentTypeContract,
+		CareersEmploymentTypeInternship,
+		CareersEmploymentTypeVolunteer:
+		return true
+	}
+	return false
+}
+
+func AllCareersEmploymentTypeValues() []CareersEmploymentType {
+	return []CareersEmploymentType{
+		CareersEmploymentTypeFullTime,
+		CareersEmploymentTypePartTime,
+		CareersEmploymentTypeContract,
+		CareersEmploymentTypeInternship,
+		CareersEmploymentTypeVolunteer,
+	}
+}
+
+type CareersJobStatus string
+
+const (
+	CareersJobStatusDraft     CareersJobStatus = "draft"
+	CareersJobStatusPublished CareersJobStatus = "published"
+	CareersJobStatusClosed    CareersJobStatus = "closed"
+	CareersJobStatusArchived  CareersJobStatus = "archived"
+)
+
+func (e *CareersJobStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = CareersJobStatus(s)
+	case string:
+		*e = CareersJobStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for CareersJobStatus: %T", src)
+	}
+	return nil
+}
+
+type NullCareersJobStatus struct {
+	CareersJobStatus CareersJobStatus `json:"careers_job_status"`
+	Valid            bool             `json:"valid"` // Valid is true if CareersJobStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullCareersJobStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.CareersJobStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.CareersJobStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullCareersJobStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.CareersJobStatus), nil
+}
+
+func (e CareersJobStatus) Valid() bool {
+	switch e {
+	case CareersJobStatusDraft,
+		CareersJobStatusPublished,
+		CareersJobStatusClosed,
+		CareersJobStatusArchived:
+		return true
+	}
+	return false
+}
+
+func AllCareersJobStatusValues() []CareersJobStatus {
+	return []CareersJobStatus{
+		CareersJobStatusDraft,
+		CareersJobStatusPublished,
+		CareersJobStatusClosed,
+		CareersJobStatusArchived,
+	}
+}
+
+type CareersLocationType string
+
+const (
+	CareersLocationTypeOnSite CareersLocationType = "on_site"
+	CareersLocationTypeRemote CareersLocationType = "remote"
+	CareersLocationTypeHybrid CareersLocationType = "hybrid"
+)
+
+func (e *CareersLocationType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = CareersLocationType(s)
+	case string:
+		*e = CareersLocationType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for CareersLocationType: %T", src)
+	}
+	return nil
+}
+
+type NullCareersLocationType struct {
+	CareersLocationType CareersLocationType `json:"careers_location_type"`
+	Valid               bool                `json:"valid"` // Valid is true if CareersLocationType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullCareersLocationType) Scan(value interface{}) error {
+	if value == nil {
+		ns.CareersLocationType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.CareersLocationType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullCareersLocationType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.CareersLocationType), nil
+}
+
+func (e CareersLocationType) Valid() bool {
+	switch e {
+	case CareersLocationTypeOnSite,
+		CareersLocationTypeRemote,
+		CareersLocationTypeHybrid:
+		return true
+	}
+	return false
+}
+
+func AllCareersLocationTypeValues() []CareersLocationType {
+	return []CareersLocationType{
+		CareersLocationTypeOnSite,
+		CareersLocationTypeRemote,
+		CareersLocationTypeHybrid,
+	}
+}
+
 type CreditTransactionType string
 
 const (
@@ -584,6 +849,46 @@ type AuditStaffActivityLog struct {
 	StaffID             uuid.UUID `json:"staff_id"`
 	ActivityDescription string    `json:"activity_description"`
 	CreatedAt           time.Time `json:"created_at"`
+}
+
+type CareersJobApplication struct {
+	ID            uuid.UUID                `json:"id"`
+	JobID         uuid.UUID                `json:"job_id"`
+	FirstName     string                   `json:"first_name"`
+	LastName      string                   `json:"last_name"`
+	Email         string                   `json:"email"`
+	Phone         sql.NullString           `json:"phone"`
+	ResumeUrl     string                   `json:"resume_url"`
+	CoverLetter   sql.NullString           `json:"cover_letter"`
+	LinkedinUrl   sql.NullString           `json:"linkedin_url"`
+	PortfolioUrl  sql.NullString           `json:"portfolio_url"`
+	Status        CareersApplicationStatus `json:"status"`
+	InternalNotes sql.NullString           `json:"internal_notes"`
+	Rating        sql.NullInt32            `json:"rating"`
+	ReviewedBy    uuid.NullUUID            `json:"reviewed_by"`
+	CreatedAt     sql.NullTime             `json:"created_at"`
+	UpdatedAt     sql.NullTime             `json:"updated_at"`
+}
+
+type CareersJobPosting struct {
+	ID               uuid.UUID             `json:"id"`
+	Title            string                `json:"title"`
+	Position         string                `json:"position"`
+	EmploymentType   CareersEmploymentType `json:"employment_type"`
+	LocationType     CareersLocationType   `json:"location_type"`
+	Description      string                `json:"description"`
+	Responsibilities []string              `json:"responsibilities"`
+	Requirements     []string              `json:"requirements"`
+	NiceToHave       []string              `json:"nice_to_have"`
+	SalaryMin        sql.NullString        `json:"salary_min"`
+	SalaryMax        sql.NullString        `json:"salary_max"`
+	ShowSalary       bool                  `json:"show_salary"`
+	Status           CareersJobStatus      `json:"status"`
+	ClosingDate      sql.NullTime          `json:"closing_date"`
+	CreatedBy        uuid.NullUUID         `json:"created_by"`
+	PublishedAt      sql.NullTime          `json:"published_at"`
+	CreatedAt        sql.NullTime          `json:"created_at"`
+	UpdatedAt        sql.NullTime          `json:"updated_at"`
 }
 
 type Discount struct {
@@ -1162,6 +1467,26 @@ type UsersCustomerMembershipPlan struct {
 	StripeSubscriptionID    sql.NullString `json:"stripe_subscription_id"`
 }
 
+// Tracks parent-child link requests including transfers between parents
+type UsersParentLinkRequest struct {
+	ID          uuid.UUID     `json:"id"`
+	ChildID     uuid.UUID     `json:"child_id"`
+	NewParentID uuid.UUID     `json:"new_parent_id"`
+	OldParentID uuid.NullUUID `json:"old_parent_id"`
+	// Who started the request: child or parent
+	InitiatedBy string `json:"initiated_by"`
+	// Code sent to the non-initiating party for confirmation
+	VerificationCode string       `json:"verification_code"`
+	VerifiedAt       sql.NullTime `json:"verified_at"`
+	// For transfers: separate code sent to old parent for approval
+	OldParentCode       sql.NullString `json:"old_parent_code"`
+	OldParentVerifiedAt sql.NullTime   `json:"old_parent_verified_at"`
+	ExpiresAt           time.Time      `json:"expires_at"`
+	CompletedAt         sql.NullTime   `json:"completed_at"`
+	CancelledAt         sql.NullTime   `json:"cancelled_at"`
+	CreatedAt           time.Time      `json:"created_at"`
+}
+
 type UsersSubscriptionAutoCharging struct {
 	ID                       uuid.UUID      `json:"id"`
 	CustomerMembershipPlanID uuid.UUID      `json:"customer_membership_plan_id"`
@@ -1229,6 +1554,9 @@ type UsersUser struct {
 	PendingEmailTokenExpiresAt sql.NullTime `json:"pending_email_token_expires_at"`
 	// Timestamp when the user last changed their email address.
 	EmailChangedAt sql.NullTime `json:"email_changed_at"`
+	// Timestamp when account was archived. Archived accounts are permanently deleted after 30 days.
+	ArchivedAt  sql.NullTime   `json:"archived_at"`
+	AccountType sql.NullString `json:"account_type"`
 }
 
 // Tracks weekly credit consumption per customer for membership limit enforcement

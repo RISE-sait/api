@@ -15,6 +15,8 @@ import (
 	dbOutbox "api/internal/services/outbox/generated"
 
 	"github.com/lib/pq"
+
+	"strings"
 )
 
 func (r *UsersRepository) createCustomerTx(ctx context.Context, tx *sql.Tx, input dbIdentity.CreateUserParams, role string) (values.UserReadInfo, *errLib.CommonError) {
@@ -78,6 +80,8 @@ func (r *UsersRepository) createCustomerTx(ctx context.Context, tx *sql.Tx, inpu
 	if rows == 0 {
 		return values.UserReadInfo{}, errLib.New("Failed to insert to outbox", http.StatusInternalServerError)
 	}
+
+	input.AccountType = sql.NullString{String: strings.ToLower(role), Valid: role != ""}
 
 	user, err := queries.CreateUser(ctx, input)
 	if err != nil {

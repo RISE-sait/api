@@ -21,7 +21,17 @@ WHERE id = $1;
 -- name: CheckCustomerActiveMembership :one
 SELECT COUNT(*) as active_count
 FROM users.customer_membership_plans
-WHERE customer_id = $1 
-  AND membership_plan_id = $2 
+WHERE customer_id = $1
+  AND membership_plan_id = $2
   AND status = 'active'
   AND (renewal_date IS NULL OR renewal_date > NOW());
+
+-- name: GetMembershipPlanPriceInfo :one
+SELECT id, stripe_price_id, unit_amount, membership_id
+FROM membership.membership_plans
+WHERE id = $1;
+
+-- name: UpdateCustomerMembershipPlan :execrows
+UPDATE users.customer_membership_plans
+SET membership_plan_id = $1, updated_at = CURRENT_TIMESTAMP
+WHERE customer_id = $2 AND stripe_subscription_id = $3 AND status = 'active';

@@ -910,6 +910,147 @@ func (s *SubscriptionService) CancelSubscription(ctx context.Context, subscripti
 	return cancelledSub, nil
 }
 
+// AdminCancelSubscription cancels a subscription without ownership verification (admin-authorized)
+func (s *SubscriptionService) AdminCancelSubscription(ctx context.Context, subscriptionID string, cancelImmediately bool) (*stripe.Subscription, *errLib.CommonError) {
+	if strings.TrimSpace(subscriptionID) == "" {
+		return nil, errLib.New("subscription ID cannot be empty", http.StatusBadRequest)
+	}
+
+	if strings.ReplaceAll(stripe.Key, " ", "") == "" {
+		return nil, errLib.New("Stripe not initialized", http.StatusInternalServerError)
+	}
+
+	// Get subscription from Stripe (no ownership check — admin is authorized by middleware)
+	sub, stripeErr := subscription.Get(subscriptionID, nil)
+	if stripeErr != nil {
+		log.Printf("[STRIPE] Failed to get subscription %s: %v", subscriptionID, stripeErr)
+		return nil, errLib.New("Failed to retrieve subscription: "+stripeErr.Error(), http.StatusInternalServerError)
+	}
+
+	if sub.Status == stripe.SubscriptionStatusCanceled {
+		return sub, errLib.New("Subscription is already cancelled", http.StatusConflict)
+	}
+
+	var cancelledSub *stripe.Subscription
+
+	if cancelImmediately {
+		log.Printf("[STRIPE] Admin cancelling subscription %s immediately", subscriptionID)
+		params := &stripe.SubscriptionCancelParams{}
+		cancelledSub, stripeErr = subscription.Cancel(subscriptionID, params)
+	} else {
+		log.Printf("[STRIPE] Admin cancelling subscription %s at period end", subscriptionID)
+		params := &stripe.SubscriptionParams{
+			CancelAtPeriodEnd: stripe.Bool(true),
+			Metadata: map[string]string{
+				"cancelled_by": "admin",
+				"cancelled_at": time.Now().UTC().Format(time.RFC3339),
+			},
+		}
+		cancelledSub, stripeErr = subscription.Update(subscriptionID, params)
+	}
+	if stripeErr != nil {
+		log.Printf("[STRIPE] Failed to cancel subscription %s: %v", subscriptionID, stripeErr)
+		return nil, errLib.New("Failed to cancel subscription: "+stripeErr.Error(), http.StatusInternalServerError)
+	}
+
+	log.Printf("[STRIPE] Admin successfully cancelled subscription %s (immediate: %v) - New status: %s", subscriptionID, cancelImmediately, cancelledSub.Status)
+	return cancelledSub, nil
+}
+
+// UpgradeSubscription swaps a subscription to a more expensive plan with Stripe proration
+func (s *SubscriptionService) UpgradeSubscription(ctx context.Context, subscriptionID string, newPlanID string) (*stripe.Subscription, *errLib.CommonError) {
+	if strings.TrimSpace(subscriptionID) == "" {
+		return nil, errLib.New("subscription ID cannot be empty", http.StatusBadRequest)
+	}
+
+	if strings.ReplaceAll(stripe.Key, " ", "") == "" {
+		return nil, errLib.New("Stripe not initialized", http.StatusInternalServerError)
+	}
+
+	// Verify ownership — get subscription with customer check
+	sub, err := s.GetSubscription(ctx, subscriptionID)
+	if err != nil {
+		return nil, err
+	}
+
+	if sub.Status != stripe.SubscriptionStatusActive {
+		return nil, errLib.New("Only active subscriptions can be upgraded", http.StatusConflict)
+	}
+
+	if sub.Items == nil || len(sub.Items.Data) == 0 {
+		return nil, errLib.New("Subscription has no items", http.StatusInternalServerError)
+	}
+
+	// Look up the new plan's price info from our database
+	var newStripePriceID string
+	var newUnitAmount sql.NullInt32
+	query := "SELECT stripe_price_id, unit_amount FROM membership.membership_plans WHERE id = $1"
+	if dbErr := s.getDB().QueryRowContext(ctx, query, newPlanID).Scan(&newStripePriceID, &newUnitAmount); dbErr != nil {
+		if dbErr == sql.ErrNoRows {
+			return nil, errLib.New("New membership plan not found", http.StatusNotFound)
+		}
+		log.Printf("[STRIPE] Database error looking up new plan %s: %v", newPlanID, dbErr)
+		return nil, errLib.New("Failed to look up new plan", http.StatusInternalServerError)
+	}
+
+	if !newUnitAmount.Valid {
+		return nil, errLib.New("New plan has no price configured", http.StatusBadRequest)
+	}
+
+	// Look up the current plan's price from our database using the current subscription's price ID
+	currentPriceID := sub.Items.Data[0].Price.ID
+	var currentUnitAmount sql.NullInt32
+	currentQuery := "SELECT unit_amount FROM membership.membership_plans WHERE stripe_price_id = $1"
+	if dbErr := s.getDB().QueryRowContext(ctx, currentQuery, currentPriceID).Scan(&currentUnitAmount); dbErr != nil {
+		if dbErr == sql.ErrNoRows {
+			return nil, errLib.New("Current membership plan not found in database", http.StatusInternalServerError)
+		}
+		log.Printf("[STRIPE] Database error looking up current plan by price %s: %v", currentPriceID, dbErr)
+		return nil, errLib.New("Failed to look up current plan", http.StatusInternalServerError)
+	}
+
+	// Validate upgrade — new plan must cost more
+	if currentUnitAmount.Valid && newUnitAmount.Int32 <= currentUnitAmount.Int32 {
+		return nil, errLib.New("Can only upgrade to a more expensive plan", http.StatusBadRequest)
+	}
+
+	// Swap the subscription item's price with proration
+	existingItemID := sub.Items.Data[0].ID
+	params := &stripe.SubscriptionParams{
+		Items: []*stripe.SubscriptionItemsParams{
+			{
+				ID:    stripe.String(existingItemID),
+				Price: stripe.String(newStripePriceID),
+			},
+		},
+		ProrationBehavior: stripe.String("create_prorations"),
+		Metadata: map[string]string{
+			"upgraded_at":     time.Now().UTC().Format(time.RFC3339),
+			"previous_price":  currentPriceID,
+			"new_plan_id":     newPlanID,
+		},
+	}
+
+	updatedSub, stripeErr := subscription.Update(subscriptionID, params)
+	if stripeErr != nil {
+		log.Printf("[STRIPE] Failed to upgrade subscription %s: %v", subscriptionID, stripeErr)
+		return nil, errLib.New("Failed to upgrade subscription: "+stripeErr.Error(), http.StatusInternalServerError)
+	}
+
+	// Update the customer_membership_plans row to point to the new plan
+	userID, idErr := contextUtils.GetUserID(ctx)
+	if idErr == nil {
+		updateQuery := "UPDATE users.customer_membership_plans SET membership_plan_id = $1, updated_at = CURRENT_TIMESTAMP WHERE customer_id = $2 AND stripe_subscription_id = $3 AND status = 'active'"
+		if _, dbErr := s.getDB().ExecContext(ctx, updateQuery, newPlanID, userID, subscriptionID); dbErr != nil {
+			log.Printf("[STRIPE] Warning: Failed to update customer_membership_plans for subscription %s: %v", subscriptionID, dbErr)
+			// Don't fail the whole operation — webhook will sync this
+		}
+	}
+
+	log.Printf("[STRIPE] Successfully upgraded subscription %s from price %s to %s", subscriptionID, currentPriceID, newStripePriceID)
+	return updatedSub, nil
+}
+
 // PauseSubscription pauses a subscription for a specified duration
 func (s *SubscriptionService) PauseSubscription(ctx context.Context, subscriptionID string, resumeAt *time.Time) (*stripe.Subscription, *errLib.CommonError) {
 	if strings.TrimSpace(subscriptionID) == "" {

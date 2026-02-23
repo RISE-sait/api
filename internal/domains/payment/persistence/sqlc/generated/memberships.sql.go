@@ -16,8 +16,8 @@ import (
 const checkCustomerActiveMembership = `-- name: CheckCustomerActiveMembership :one
 SELECT COUNT(*) as active_count
 FROM users.customer_membership_plans
-WHERE customer_id = $1 
-  AND membership_plan_id = $2 
+WHERE customer_id = $1
+  AND membership_plan_id = $2
   AND status = 'active'
   AND (renewal_date IS NULL OR renewal_date > NOW())
 `
@@ -117,4 +117,49 @@ func (q *Queries) GetMembershipPlanJoiningRequirements(ctx context.Context, id u
 		&i.IsVisible,
 	)
 	return i, err
+}
+
+const getMembershipPlanPriceInfo = `-- name: GetMembershipPlanPriceInfo :one
+SELECT id, stripe_price_id, unit_amount, membership_id
+FROM membership.membership_plans
+WHERE id = $1
+`
+
+type GetMembershipPlanPriceInfoRow struct {
+	ID            uuid.UUID     `json:"id"`
+	StripePriceID string        `json:"stripe_price_id"`
+	UnitAmount    sql.NullInt32 `json:"unit_amount"`
+	MembershipID  uuid.UUID     `json:"membership_id"`
+}
+
+func (q *Queries) GetMembershipPlanPriceInfo(ctx context.Context, id uuid.UUID) (GetMembershipPlanPriceInfoRow, error) {
+	row := q.db.QueryRowContext(ctx, getMembershipPlanPriceInfo, id)
+	var i GetMembershipPlanPriceInfoRow
+	err := row.Scan(
+		&i.ID,
+		&i.StripePriceID,
+		&i.UnitAmount,
+		&i.MembershipID,
+	)
+	return i, err
+}
+
+const updateCustomerMembershipPlan = `-- name: UpdateCustomerMembershipPlan :execrows
+UPDATE users.customer_membership_plans
+SET membership_plan_id = $1, updated_at = CURRENT_TIMESTAMP
+WHERE customer_id = $2 AND stripe_subscription_id = $3 AND status = 'active'
+`
+
+type UpdateCustomerMembershipPlanParams struct {
+	MembershipPlanID     uuid.UUID      `json:"membership_plan_id"`
+	CustomerID           uuid.UUID      `json:"customer_id"`
+	StripeSubscriptionID sql.NullString `json:"stripe_subscription_id"`
+}
+
+func (q *Queries) UpdateCustomerMembershipPlan(ctx context.Context, arg UpdateCustomerMembershipPlanParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateCustomerMembershipPlan, arg.MembershipPlanID, arg.CustomerID, arg.StripeSubscriptionID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

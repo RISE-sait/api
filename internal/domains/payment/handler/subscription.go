@@ -9,6 +9,7 @@ import (
 	stripeService "api/internal/domains/payment/services/stripe"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
+	"api/internal/libs/validators"
 
 	"github.com/go-chi/chi"
 )
@@ -100,6 +101,135 @@ func (h *SubscriptionHandlers) CancelSubscription(w http.ResponseWriter, r *http
 		"cancel_at_period_end": cancelledSub.CancelAtPeriodEnd,
 		"current_period_end":   cancelledSub.CurrentPeriodEnd,
 		"message":              "Your subscription will cancel at the end of the current billing period. You will retain access until then.",
+	}
+
+	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
+}
+
+// AdminCancelSubscriptionAtPeriodEnd cancels a subscription at period end (admin only)
+// @Description Admin cancel a subscription at the end of the current billing period
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param id path string true "Subscription ID"
+// @Success 200 {object} map[string]interface{} "Cancellation scheduled"
+// @Failure 400 {object} map[string]interface{} "Bad Request"
+// @Failure 403 {object} map[string]interface{} "Forbidden"
+// @Failure 409 {object} map[string]interface{} "Conflict: Already cancelled"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Security Bearer
+// @Router /subscriptions/{id}/cancel [post]
+func (h *SubscriptionHandlers) AdminCancelSubscriptionAtPeriodEnd(w http.ResponseWriter, r *http.Request) {
+	subscriptionID := strings.TrimSpace(chi.URLParam(r, "id"))
+	if subscriptionID == "" {
+		responseHandlers.RespondWithError(w, errLib.New("subscription ID is required", http.StatusBadRequest))
+		return
+	}
+
+	cancelledSub, err := h.StripeService.AdminCancelSubscription(r.Context(), subscriptionID, false)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	response := map[string]interface{}{
+		"id":                   cancelledSub.ID,
+		"status":               cancelledSub.Status,
+		"canceled_at":          cancelledSub.CanceledAt,
+		"cancel_at_period_end": cancelledSub.CancelAtPeriodEnd,
+		"current_period_end":   cancelledSub.CurrentPeriodEnd,
+		"message":              "Subscription will cancel at the end of the current billing period.",
+	}
+
+	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
+}
+
+// AdminCancelSubscriptionImmediately cancels a subscription immediately (admin only)
+// @Description Admin cancel a subscription immediately
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param id path string true "Subscription ID"
+// @Success 200 {object} map[string]interface{} "Cancellation successful"
+// @Failure 400 {object} map[string]interface{} "Bad Request"
+// @Failure 403 {object} map[string]interface{} "Forbidden"
+// @Failure 409 {object} map[string]interface{} "Conflict: Already cancelled"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Security Bearer
+// @Router /subscriptions/{id}/cancel/immediate [post]
+func (h *SubscriptionHandlers) AdminCancelSubscriptionImmediately(w http.ResponseWriter, r *http.Request) {
+	subscriptionID := strings.TrimSpace(chi.URLParam(r, "id"))
+	if subscriptionID == "" {
+		responseHandlers.RespondWithError(w, errLib.New("subscription ID is required", http.StatusBadRequest))
+		return
+	}
+
+	cancelledSub, err := h.StripeService.AdminCancelSubscription(r.Context(), subscriptionID, true)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	response := map[string]interface{}{
+		"id":                   cancelledSub.ID,
+		"status":               cancelledSub.Status,
+		"canceled_at":          cancelledSub.CanceledAt,
+		"cancel_at_period_end": cancelledSub.CancelAtPeriodEnd,
+		"message":              "Subscription has been cancelled immediately.",
+	}
+
+	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
+}
+
+// UpgradeSubscription upgrades a subscription to a more expensive plan
+// @Description Upgrade a subscription to a higher-tier plan with Stripe proration
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param id path string true "Subscription ID"
+// @Param body body object true "Upgrade request with new_plan_id"
+// @Success 200 {object} map[string]interface{} "Upgrade successful"
+// @Failure 400 {object} map[string]interface{} "Bad Request: Invalid plan or downgrade attempted"
+// @Failure 403 {object} map[string]interface{} "Forbidden: Access denied"
+// @Failure 404 {object} map[string]interface{} "Not Found: Subscription or plan not found"
+// @Failure 409 {object} map[string]interface{} "Conflict: Subscription not active"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Security Bearer
+// @Router /subscriptions/{id}/upgrade [post]
+func (h *SubscriptionHandlers) UpgradeSubscription(w http.ResponseWriter, r *http.Request) {
+	subscriptionID := strings.TrimSpace(chi.URLParam(r, "id"))
+	if subscriptionID == "" {
+		responseHandlers.RespondWithError(w, errLib.New("subscription ID is required", http.StatusBadRequest))
+		return
+	}
+
+	var req struct {
+		NewPlanID string `json:"new_plan_id" validate:"required,uuid"`
+	}
+
+	if err := validators.ParseJSON(r.Body, &req); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	if err := validators.ValidateDto(&req); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	upgradedSub, err := h.StripeService.UpgradeSubscription(r.Context(), subscriptionID, req.NewPlanID)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	response := map[string]interface{}{
+		"id":                   upgradedSub.ID,
+		"status":               upgradedSub.Status,
+		"current_period_start": upgradedSub.CurrentPeriodStart,
+		"current_period_end":   upgradedSub.CurrentPeriodEnd,
+		"items":                upgradedSub.Items,
+		"message":              "Subscription upgraded successfully. Proration will be applied.",
 	}
 
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)

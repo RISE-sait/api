@@ -619,30 +619,21 @@ func RegisterSubscriptionRoutes(container *di.Container) func(chi.Router) {
 		// Apply security to subscription endpoints
 		r.Use(securityMw.SecurePaymentEndpoints)
 		r.Use(pciMw.EnforcePCICompliance)
-		
+
 		// Rate limit subscription endpoints - 30 requests per minute per user
 		r.Use(middlewares.RateLimitMiddleware(30.0/60.0, 5, time.Minute))
-		
-		// All subscription endpoints require authentication
-		r.Use(middlewares.JWTAuthMiddleware(true))
 
-		// Get all user subscriptions
-		r.Get("/", h.GetCustomerSubscriptions)
-		
-		// Get specific subscription
-		r.Get("/{id}", h.GetSubscription)
-		
-		// Cancel subscription
-		r.Post("/{id}/cancel", h.CancelSubscription)
-		
-		// Pause subscription
-		r.Post("/{id}/pause", h.PauseSubscription)
-		
-		// Resume subscription  
-		r.Post("/{id}/resume", h.ResumeSubscription)
-		
-		// Create customer portal session
-		r.Post("/portal", h.CreatePortalSession)
+		// Customer-facing routes (any authenticated user)
+		r.With(middlewares.JWTAuthMiddleware(true)).Get("/", h.GetCustomerSubscriptions)
+		r.With(middlewares.JWTAuthMiddleware(true)).Get("/{id}", h.GetSubscription)
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/{id}/upgrade", h.UpgradeSubscription)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/{id}/pause", h.PauseSubscription)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/{id}/resume", h.ResumeSubscription)
+		r.With(middlewares.JWTAuthMiddleware(true)).Post("/portal", h.CreatePortalSession)
+
+		// Admin-only cancel routes
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/{id}/cancel", h.AdminCancelSubscriptionAtPeriodEnd)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/{id}/cancel/immediate", h.AdminCancelSubscriptionImmediately)
 	}
 }
 

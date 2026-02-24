@@ -634,6 +634,10 @@ func RegisterSubscriptionRoutes(container *di.Container) func(chi.Router) {
 		// Admin-only cancel routes
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/{id}/cancel", h.AdminCancelSubscriptionAtPeriodEnd)
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/{id}/cancel/immediate", h.AdminCancelSubscriptionImmediately)
+
+		// Admin-only: send membership checkout link to customer
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/admin/send-checkout", h.AdminSendMembershipCheckout)
+		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Post("/admin/{id}/upgrade", h.AdminUpgradeSubscription)
 	}
 }
 

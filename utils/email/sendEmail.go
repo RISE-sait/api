@@ -145,3 +145,13 @@ func SendEmailChangeVerification(to, firstName, newEmail, verificationURL string
 	log.Printf("Email change verification sent successfully to %s", to)
 	return nil
 }
+
+// SendMembershipCheckoutLinkEmail sends a checkout link email to a customer for admin-initiated membership assignment
+func SendMembershipCheckoutLinkEmail(to, firstName, planName, checkoutURL string) {
+	body := MembershipCheckoutLinkBody(firstName, planName, checkoutURL)
+	if err := SendEmail(to, "Complete Your Membership - Rise", body); err != nil {
+		log.Println("failed to send membership checkout link email:", err.Message)
+	} else {
+		log.Printf("Membership checkout link email sent successfully to %s", to)
+	}
+}

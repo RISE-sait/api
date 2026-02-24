@@ -13,6 +13,7 @@ type MembershipReadValue struct {
 	MembershipStartDate   time.Time
 	MembershipRenewalDate time.Time
 	Status                string
+	StripeSubscriptionID  *string
 }
 
 type MembershipPlansReadValue struct {
@@ -83,6 +84,7 @@ type MembershipHistoryValue struct {
 	Currency              string
 	Interval              string
 	StripePriceID         string
+	StripeSubscriptionID  *string
 }
 
 // CustomerFilterParams holds filtering options for customer queries

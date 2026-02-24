@@ -256,7 +256,7 @@ func (r *CustomerRepository) GetCustomer(ctx context.Context, id uuid.UUID, emai
 
 	if dbCustomer.MembershipName.Valid && dbCustomer.MembershipPlanName.Valid && dbCustomer.MembershipStartDate.Valid && dbCustomer.MembershipPlanID.Valid {
 
-		customer.MembershipInfo = &userValues.MembershipReadValue{
+		membershipInfo := &userValues.MembershipReadValue{
 			MembershipPlanID:      dbCustomer.MembershipPlanID.UUID,
 			MembershipPlanName:    dbCustomer.MembershipPlanName.String,
 			MembershipName:        dbCustomer.MembershipName.String,
@@ -264,6 +264,10 @@ func (r *CustomerRepository) GetCustomer(ctx context.Context, id uuid.UUID, emai
 			MembershipRenewalDate: dbCustomer.MembershipPlanRenewalDate.Time,
 			Status:                string(dbCustomer.MembershipStatus.MembershipMembershipStatus),
 		}
+		if dbCustomer.StripeSubscriptionID.Valid {
+			membershipInfo.StripeSubscriptionID = &dbCustomer.StripeSubscriptionID.String
+		}
+		customer.MembershipInfo = membershipInfo
 	}
 
 	if dbCustomer.Rebounds.Valid && dbCustomer.Wins.Valid && dbCustomer.Points.Valid && dbCustomer.Steals.Valid && dbCustomer.Assists.Valid && dbCustomer.Losses.Valid {
@@ -537,7 +541,7 @@ func (r *CustomerRepository) ListMembershipHistory(ctx context.Context, customer
 			renewal = &row.RenewalDate.Time
 		}
 
-		results[i] = userValues.MembershipHistoryValue{
+		historyVal := userValues.MembershipHistoryValue{
 			ID:                    row.ID,
 			CustomerID:            row.CustomerID,
 			StartDate:             row.StartDate,
@@ -571,6 +575,10 @@ func (r *CustomerRepository) ListMembershipHistory(ctx context.Context, customer
 			}(row.Interval),
 			StripePriceID: row.StripePriceID,
 		}
+		if row.StripeSubscriptionID.Valid {
+			historyVal.StripeSubscriptionID = &row.StripeSubscriptionID.String
+		}
+		results[i] = historyVal
 	}
 
 	return results, nil

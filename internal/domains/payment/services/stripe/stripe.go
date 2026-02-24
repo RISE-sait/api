@@ -13,6 +13,7 @@ import (
 	errLib "api/internal/libs/errors"
 	contextUtils "api/utils/context"
 
+	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v81"
 	billingportal "github.com/stripe/stripe-go/v81/billingportal/session"
 	"github.com/stripe/stripe-go/v81/checkout/session"
@@ -701,6 +702,123 @@ func CreateSubscriptionWithMetadata(
 	}
 }
 
+// CreateSubscriptionCheckoutForCustomer creates a Stripe Checkout Session for a subscription
+// using an explicit customer user ID instead of extracting from JWT context.
+// This is used for admin-initiated checkouts where the admin picks the customer.
+func CreateSubscriptionCheckoutForCustomer(
+	customerUserID uuid.UUID,
+	stripePlanPriceID string,
+	stripeJoiningFeesID string,
+	metadata map[string]string,
+	successURL string,
+	cancelURL string,
+	existingCustomerID *string,
+) (string, *errLib.CommonError) {
+	// Create a timeout context for this operation
+	timeoutCtx, cancel := withCriticalTimeout(context.Background())
+	defer cancel()
+
+	// Check if Stripe is initialized
+	if strings.ReplaceAll(stripe.Key, " ", "") == "" {
+		return "", errLib.New("Stripe not initialized", http.StatusInternalServerError)
+	}
+
+	// Check if context is already cancelled or timed out
+	select {
+	case <-timeoutCtx.Done():
+		if timeoutCtx.Err() == context.DeadlineExceeded {
+			return "", errLib.New("Request timeout while creating subscription", http.StatusRequestTimeout)
+		}
+		return "", errLib.New("Request cancelled", http.StatusRequestTimeout)
+	default:
+	}
+
+	// Validate input
+	if stripePlanPriceID == "" {
+		return "", errLib.New("item stripe price ID cannot be empty", http.StatusBadRequest)
+	}
+
+	if successURL == "" {
+		return "", errLib.New("success URL cannot be empty", http.StatusBadRequest)
+	}
+
+	if cancelURL == "" {
+		return "", errLib.New("cancel URL cannot be empty", http.StatusBadRequest)
+	}
+
+	// Merge metadata with customer's userID
+	if metadata == nil {
+		metadata = make(map[string]string)
+	}
+	metadata["userID"] = customerUserID.String()
+
+	// Set up Checkout session with subscription mode
+	params := &stripe.CheckoutSessionParams{
+		Metadata: metadata,
+		SubscriptionData: &stripe.CheckoutSessionSubscriptionDataParams{
+			Metadata: metadata,
+		},
+		LineItems: []*stripe.CheckoutSessionLineItemParams{
+			{
+				Price:    stripe.String(stripePlanPriceID),
+				Quantity: stripe.Int64(1),
+			},
+		},
+		Mode:       stripe.String("subscription"),
+		SuccessURL: stripe.String(successURL),
+		CancelURL:  stripe.String(cancelURL),
+		AutomaticTax: &stripe.CheckoutSessionAutomaticTaxParams{
+			Enabled: stripe.Bool(true),
+		},
+	}
+
+	// Reuse existing customer if provided
+	if existingCustomerID != nil && *existingCustomerID != "" {
+		params.Customer = stripe.String(*existingCustomerID)
+		log.Printf("[STRIPE] Reusing existing customer: %s for user %s", *existingCustomerID, customerUserID)
+	} else {
+		log.Printf("[STRIPE] Creating new customer for user %s", customerUserID)
+	}
+
+	// Ask Stripe to expand line item pricing and subscription in response
+	params.AddExpand("line_items.data.price")
+	params.AddExpand("subscription")
+
+	// If there's a joining fee, add it as a second line item
+	if stripeJoiningFeesID != "" {
+		params.LineItems = append(params.LineItems, &stripe.CheckoutSessionLineItemParams{
+			Price:    stripe.String(stripeJoiningFeesID),
+			Quantity: stripe.Int64(1),
+		})
+	}
+
+	// Create Stripe session with timeout handling
+	type subscriptionResult struct {
+		session *stripe.CheckoutSession
+		err     error
+	}
+
+	resultChan := make(chan subscriptionResult, 1)
+
+	go func() {
+		s, err := session.New(params)
+		resultChan <- subscriptionResult{session: s, err: err}
+	}()
+
+	select {
+	case <-timeoutCtx.Done():
+		if timeoutCtx.Err() == context.DeadlineExceeded {
+			return "", errLib.New("Stripe API timeout while creating subscription", http.StatusRequestTimeout)
+		}
+		return "", errLib.New("Request cancelled during subscription creation", http.StatusRequestTimeout)
+	case result := <-resultChan:
+		if result.err != nil {
+			return "", errLib.New("Subscription setup failed: "+result.err.Error(), http.StatusInternalServerError)
+		}
+		return result.session.URL, nil
+	}
+}
+
 // CreateSubscriptionWithDiscountPercent creates a subscription checkout session
 // applying a percentage discount via a temporary coupon
 func CreateSubscriptionWithDiscountPercent(
@@ -955,6 +1073,102 @@ func (s *SubscriptionService) AdminCancelSubscription(ctx context.Context, subsc
 
 	log.Printf("[STRIPE] Admin successfully cancelled subscription %s (immediate: %v) - New status: %s", subscriptionID, cancelImmediately, cancelledSub.Status)
 	return cancelledSub, nil
+}
+
+// AdminUpgradeSubscription swaps a subscription to a more expensive plan without ownership verification (admin-authorized)
+func (s *SubscriptionService) AdminUpgradeSubscription(ctx context.Context, subscriptionID string, newPlanID string, customerID uuid.UUID) (*stripe.Subscription, *errLib.CommonError) {
+	if strings.TrimSpace(subscriptionID) == "" {
+		return nil, errLib.New("subscription ID cannot be empty", http.StatusBadRequest)
+	}
+
+	if strings.ReplaceAll(stripe.Key, " ", "") == "" {
+		return nil, errLib.New("Stripe not initialized", http.StatusInternalServerError)
+	}
+
+	// Get subscription from Stripe (no ownership check — admin is authorized by middleware)
+	sub, stripeErr := subscription.Get(subscriptionID, &stripe.SubscriptionParams{
+		Expand: []*string{
+			stripe.String("items.data.price"),
+		},
+	})
+	if stripeErr != nil {
+		log.Printf("[STRIPE] Failed to get subscription %s: %v", subscriptionID, stripeErr)
+		return nil, errLib.New("Failed to retrieve subscription: "+stripeErr.Error(), http.StatusInternalServerError)
+	}
+
+	if sub.Status != stripe.SubscriptionStatusActive {
+		return nil, errLib.New("Only active subscriptions can be upgraded", http.StatusConflict)
+	}
+
+	if sub.Items == nil || len(sub.Items.Data) == 0 {
+		return nil, errLib.New("Subscription has no items", http.StatusInternalServerError)
+	}
+
+	// Look up the new plan's price info from our database
+	var newStripePriceID string
+	var newUnitAmount sql.NullInt32
+	query := "SELECT stripe_price_id, unit_amount FROM membership.membership_plans WHERE id = $1"
+	if dbErr := s.getDB().QueryRowContext(ctx, query, newPlanID).Scan(&newStripePriceID, &newUnitAmount); dbErr != nil {
+		if dbErr == sql.ErrNoRows {
+			return nil, errLib.New("New membership plan not found", http.StatusNotFound)
+		}
+		log.Printf("[STRIPE] Database error looking up new plan %s: %v", newPlanID, dbErr)
+		return nil, errLib.New("Failed to look up new plan", http.StatusInternalServerError)
+	}
+
+	if !newUnitAmount.Valid {
+		return nil, errLib.New("New plan has no price configured", http.StatusBadRequest)
+	}
+
+	// Look up the current plan's price from our database
+	currentPriceID := sub.Items.Data[0].Price.ID
+	var currentUnitAmount sql.NullInt32
+	currentQuery := "SELECT unit_amount FROM membership.membership_plans WHERE stripe_price_id = $1"
+	if dbErr := s.getDB().QueryRowContext(ctx, currentQuery, currentPriceID).Scan(&currentUnitAmount); dbErr != nil {
+		if dbErr == sql.ErrNoRows {
+			return nil, errLib.New("Current membership plan not found in database", http.StatusInternalServerError)
+		}
+		log.Printf("[STRIPE] Database error looking up current plan by price %s: %v", currentPriceID, dbErr)
+		return nil, errLib.New("Failed to look up current plan", http.StatusInternalServerError)
+	}
+
+	// Validate upgrade — new plan must cost more
+	if currentUnitAmount.Valid && newUnitAmount.Int32 <= currentUnitAmount.Int32 {
+		return nil, errLib.New("Can only upgrade to a more expensive plan", http.StatusBadRequest)
+	}
+
+	// Swap the subscription item's price with proration
+	existingItemID := sub.Items.Data[0].ID
+	params := &stripe.SubscriptionParams{
+		Items: []*stripe.SubscriptionItemsParams{
+			{
+				ID:    stripe.String(existingItemID),
+				Price: stripe.String(newStripePriceID),
+			},
+		},
+		ProrationBehavior: stripe.String("create_prorations"),
+		Metadata: map[string]string{
+			"upgraded_at":    time.Now().UTC().Format(time.RFC3339),
+			"upgraded_by":    "admin",
+			"previous_price": currentPriceID,
+			"new_plan_id":    newPlanID,
+		},
+	}
+
+	updatedSub, updateErr := subscription.Update(subscriptionID, params)
+	if updateErr != nil {
+		log.Printf("[STRIPE] Failed to upgrade subscription %s: %v", subscriptionID, updateErr)
+		return nil, errLib.New("Failed to upgrade subscription: "+updateErr.Error(), http.StatusInternalServerError)
+	}
+
+	// Update the customer_membership_plans row using the explicit customer ID
+	updateQuery := "UPDATE users.customer_membership_plans SET membership_plan_id = $1, updated_at = CURRENT_TIMESTAMP WHERE customer_id = $2 AND stripe_subscription_id = $3 AND status = 'active'"
+	if _, dbErr := s.getDB().ExecContext(ctx, updateQuery, newPlanID, customerID, subscriptionID); dbErr != nil {
+		log.Printf("[STRIPE] Warning: Failed to update customer_membership_plans for subscription %s: %v", subscriptionID, dbErr)
+	}
+
+	log.Printf("[STRIPE] Admin successfully upgraded subscription %s from price %s to %s for customer %s", subscriptionID, currentPriceID, newStripePriceID, customerID)
+	return updatedSub, nil
 }
 
 // UpgradeSubscription swaps a subscription to a more expensive plan with Stripe proration

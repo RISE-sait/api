@@ -500,6 +500,39 @@ func PaymentReceivedBody(firstName string, amount float64) string {
 	return baseTemplate("Payment Received", content)
 }
 
+func MembershipCheckoutLinkBody(firstName, planName, checkoutURL string) string {
+	content := fmt.Sprintf(`
+		<p>Hey %s,</p>
+		<p>A Rise team member has set up a <strong>%s</strong> membership for you. Complete your payment to activate it.</p>
+
+		<div class="info-box">
+			<strong>MEMBERSHIP DETAILS:</strong>
+			<ul style="margin: 15px 0 0 0; padding-left: 20px; list-style: none;">
+				<li><strong>Plan:</strong> %s</li>
+			</ul>
+		</div>
+
+		<p style="text-align: center; margin: 30px 0;">
+			<a href="%s" class="button">COMPLETE PAYMENT</a>
+		</p>
+
+		<p style="font-size: 13px; color: #666;">Or copy and paste this link into your browser:</p>
+		<p style="background-color: #f5f5f5; padding: 12px; border-radius: 4px; word-break: break-all; font-size: 12px; font-family: monospace;">
+			%s
+		</p>
+
+		<div class="alert-box">
+			<strong>⏰ HEADS UP:</strong>
+			<p style="margin: 10px 0 0 0;">This checkout link will expire after 24 hours. Please complete your payment before then.</p>
+		</div>
+
+		<p>Questions? Contact us at the front desk.</p>
+
+		<p style="margin-top: 30px;"><strong>— The Rise Team</strong></p>
+	`, firstName, planName, planName, checkoutURL, checkoutURL)
+	return baseTemplate("Complete Your Membership", content)
+}
+
 func EmailChangeVerificationBody(firstName, newEmail, verificationURL string) string {
 	content := fmt.Sprintf(`
 		<p>Hey %s,</p>

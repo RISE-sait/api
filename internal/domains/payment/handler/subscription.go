@@ -6,21 +6,25 @@ import (
 	"time"
 
 	"api/internal/di"
+	service "api/internal/domains/payment/services"
 	stripeService "api/internal/domains/payment/services/stripe"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
 	"api/internal/libs/validators"
 
 	"github.com/go-chi/chi"
+	"github.com/google/uuid"
 )
 
 type SubscriptionHandlers struct {
-	StripeService *stripeService.SubscriptionService
+	StripeService   *stripeService.SubscriptionService
+	CheckoutService *service.Service
 }
 
 func NewSubscriptionHandlers(container *di.Container) *SubscriptionHandlers {
 	return &SubscriptionHandlers{
-		StripeService: stripeService.NewSubscriptionService(container),
+		StripeService:   stripeService.NewSubscriptionService(container),
+		CheckoutService: service.NewPurchaseService(container),
 	}
 }
 
@@ -397,6 +401,96 @@ func (h *SubscriptionHandlers) CreatePortalSession(w http.ResponseWriter, r *htt
 	response := map[string]interface{}{
 		"portal_url": portalURL,
 		"message":    "Portal session created successfully",
+	}
+
+	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
+}
+
+// AdminSendMembershipCheckout creates a checkout link for a customer and emails it to them
+func (h *SubscriptionHandlers) AdminSendMembershipCheckout(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		CustomerID       string `json:"customer_id" validate:"required,uuid"`
+		MembershipPlanID string `json:"membership_plan_id" validate:"required,uuid"`
+	}
+
+	if err := validators.ParseJSON(r.Body, &req); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	if err := validators.ValidateDto(&req); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	customerID, parseErr := uuid.Parse(req.CustomerID)
+	if parseErr != nil {
+		responseHandlers.RespondWithError(w, errLib.New("invalid customer_id", http.StatusBadRequest))
+		return
+	}
+
+	membershipPlanID, parseErr := uuid.Parse(req.MembershipPlanID)
+	if parseErr != nil {
+		responseHandlers.RespondWithError(w, errLib.New("invalid membership_plan_id", http.StatusBadRequest))
+		return
+	}
+
+	checkoutURL, err := h.CheckoutService.AdminSendMembershipCheckoutLink(r.Context(), customerID, membershipPlanID)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	response := map[string]interface{}{
+		"checkout_url": checkoutURL,
+		"message":      "Checkout link created and emailed to customer",
+	}
+
+	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
+}
+
+// AdminUpgradeSubscription upgrades a customer's subscription to a more expensive plan (admin only)
+func (h *SubscriptionHandlers) AdminUpgradeSubscription(w http.ResponseWriter, r *http.Request) {
+	subscriptionID := strings.TrimSpace(chi.URLParam(r, "id"))
+	if subscriptionID == "" {
+		responseHandlers.RespondWithError(w, errLib.New("subscription ID is required", http.StatusBadRequest))
+		return
+	}
+
+	var req struct {
+		NewPlanID  string `json:"new_plan_id" validate:"required,uuid"`
+		CustomerID string `json:"customer_id" validate:"required,uuid"`
+	}
+
+	if err := validators.ParseJSON(r.Body, &req); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	if err := validators.ValidateDto(&req); err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	customerID, parseErr := uuid.Parse(req.CustomerID)
+	if parseErr != nil {
+		responseHandlers.RespondWithError(w, errLib.New("invalid customer_id", http.StatusBadRequest))
+		return
+	}
+
+	upgradedSub, err := h.StripeService.AdminUpgradeSubscription(r.Context(), subscriptionID, req.NewPlanID, customerID)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	response := map[string]interface{}{
+		"id":                   upgradedSub.ID,
+		"status":               upgradedSub.Status,
+		"current_period_start": upgradedSub.CurrentPeriodStart,
+		"current_period_end":   upgradedSub.CurrentPeriodEnd,
+		"items":                upgradedSub.Items,
+		"message":              "Subscription upgraded successfully by admin. Proration will be applied.",
 	}
 
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)

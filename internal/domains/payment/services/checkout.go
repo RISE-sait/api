@@ -19,6 +19,7 @@ import (
 	errLib "api/internal/libs/errors"
 	contextUtils "api/utils/context"
 	discountService "api/internal/domains/discount/service"
+	email "api/utils/email"
 	"github.com/google/uuid"
 )
 
@@ -162,6 +163,71 @@ func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID u
 		// No joining fee - just regular subscription
 		return stripe.CreateSubscriptionWithMetadata(ctx, requirements.StripePriceID, "", stripeCouponID, metadata, successURL, cancelURL, existingCustomerID)
 	}
+}
+
+func (s *Service) AdminSendMembershipCheckoutLink(ctx context.Context, customerID uuid.UUID, membershipPlanID uuid.UUID) (string, *errLib.CommonError) {
+	// Check if customer already has an active membership for this plan
+	hasActiveMembership, err := s.CheckoutRepo.CheckCustomerHasActiveMembership(ctx, customerID, membershipPlanID)
+	if err != nil {
+		return "", err
+	}
+	if hasActiveMembership {
+		return "", errLib.New("Customer already has an active membership for this plan", http.StatusConflict)
+	}
+
+	// Get plan requirements (stripe price ID, joining fee, etc.)
+	requirements, err := s.CheckoutRepo.GetMembershipPlanJoiningRequirement(ctx, membershipPlanID)
+	if err != nil {
+		return "", err
+	}
+
+	// Get or recreate Stripe customer for the target customer
+	existingCustomerID, recoverErr := s.getOrRecreateStripeCustomer(ctx, customerID)
+	if recoverErr != nil {
+		return "", recoverErr
+	}
+
+	// Build metadata for webhook processing
+	metadata := map[string]string{
+		"userID":           customerID.String(),
+		"membershipPlanID": membershipPlanID.String(),
+		"admin_initiated":  "true",
+	}
+
+	successURL := "https://www.risesportscomplex.com/membership/success"
+	cancelURL := "https://www.risesportscomplex.com/membership/cancel"
+
+	// Create checkout session using the customer-explicit variant
+	var checkoutURL string
+	if requirements.StripeJoiningFeeID != "" {
+		checkoutURL, err = stripe.CreateSubscriptionCheckoutForCustomer(customerID, requirements.StripePriceID, requirements.StripeJoiningFeeID, metadata, successURL, cancelURL, existingCustomerID)
+	} else {
+		checkoutURL, err = stripe.CreateSubscriptionCheckoutForCustomer(customerID, requirements.StripePriceID, "", metadata, successURL, cancelURL, existingCustomerID)
+	}
+	if err != nil {
+		return "", err
+	}
+
+	// Fetch customer email and name for the email
+	var customerEmail, firstName sql.NullString
+	query := "SELECT email, first_name FROM users.users WHERE id = $1 AND deleted_at IS NULL"
+	if dbErr := s.DB.QueryRowContext(ctx, query, customerID).Scan(&customerEmail, &firstName); dbErr != nil {
+		log.Printf("[ADMIN-CHECKOUT] Failed to get customer info for %s: %v", customerID, dbErr)
+		return "", errLib.New("Customer not found", http.StatusNotFound)
+	}
+
+	if !customerEmail.Valid || customerEmail.String == "" {
+		return "", errLib.New("Customer does not have an email address", http.StatusBadRequest)
+	}
+
+	// Send email async
+	name := "there"
+	if firstName.Valid && firstName.String != "" {
+		name = firstName.String
+	}
+	go email.SendMembershipCheckoutLinkEmail(customerEmail.String, name, requirements.Name, checkoutURL)
+
+	return checkoutURL, nil
 }
 
 func (s *Service) CheckoutProgram(ctx context.Context, programID uuid.UUID, discountCode *string, successURL string, cancelURL string) (string, *errLib.CommonError) {

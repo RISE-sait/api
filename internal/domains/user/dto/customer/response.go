@@ -39,6 +39,7 @@ type MembershipResponseDto struct {
 	MembershipStartDate   *time.Time `json:"membership_start_date,omitempty"`
 	MembershipRenewalDate *time.Time `json:"membership_renewal_date,omitempty"`
 	Status                *string    `json:"status,omitempty"`
+	StripeSubscriptionID  *string    `json:"stripe_subscription_id,omitempty"`
 }
 
 func UserReadValueToResponse(customer values.ReadValue) Response {
@@ -74,6 +75,7 @@ func UserReadValueToResponse(customer values.ReadValue) Response {
 			MembershipPlanID:      &customer.MembershipInfo.MembershipPlanID,
 			MembershipPlanName:    &customer.MembershipInfo.MembershipPlanName,
 			Status:                &customer.MembershipInfo.Status,
+			StripeSubscriptionID:  customer.MembershipInfo.StripeSubscriptionID,
 		}
 	}
 
@@ -117,6 +119,7 @@ type MembershipHistoryResponse struct {
 	RenewalDate           *time.Time `json:"renewal_date,omitempty"`
 	NextPaymentDate       *time.Time `json:"next_payment_date,omitempty"`
 	Status                string     `json:"status"`
+	StripeSubscriptionID  *string    `json:"stripe_subscription_id,omitempty"`
 }
 
 func MembershipHistoryValueToResponse(v values.MembershipHistoryValue) MembershipHistoryResponse {
@@ -131,5 +134,6 @@ func MembershipHistoryValueToResponse(v values.MembershipHistoryValue) Membershi
 		NextPaymentDate:       v.NextPaymentDate,
 		Status:                v.Status,
 		MembsershipBenefits:   v.MembershipBenefits,
+		StripeSubscriptionID:  v.StripeSubscriptionID,
 	}
 }

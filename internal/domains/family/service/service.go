@@ -490,6 +490,78 @@ func (s *Service) GetChildren(ctx context.Context) ([]dto.ChildResponse, *errLib
 	return result, nil
 }
 
+// GetParent gets the parent for an authenticated child user
+func (s *Service) GetParent(ctx context.Context) (*dto.ParentResponse, *errLib.CommonError) {
+	callerID, err := contextUtils.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get caller's info to check parent_id
+	caller, err := s.repo.GetUserById(ctx, callerID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if user has a parent link
+	if !caller.ParentID.Valid || caller.ParentID.UUID == uuid.Nil {
+		return nil, errLib.New("No parent link found", http.StatusNotFound)
+	}
+
+	// Get parent's info
+	parent, err := s.repo.GetUserById(ctx, caller.ParentID.UUID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.ParentResponse{
+		ID:        parent.ID,
+		FirstName: parent.FirstName,
+		LastName:  parent.LastName,
+		Email:     nullStringToString(parent.Email),
+	}, nil
+}
+
+// GetSiblings gets all siblings for an authenticated child user
+func (s *Service) GetSiblings(ctx context.Context) ([]dto.SiblingResponse, *errLib.CommonError) {
+	callerID, err := contextUtils.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get caller's info to check parent_id
+	caller, err := s.repo.GetUserById(ctx, callerID)
+	if err != nil {
+		return nil, err
+	}
+
+	// If no parent link, return empty array (graceful handling)
+	if !caller.ParentID.Valid || caller.ParentID.UUID == uuid.Nil {
+		return []dto.SiblingResponse{}, nil
+	}
+
+	// Get all children of the same parent
+	allChildren, err := s.repo.GetChildrenByParentId(ctx, caller.ParentID.UUID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Filter out self and transform to DTOs
+	result := make([]dto.SiblingResponse, 0)
+	for _, child := range allChildren {
+		if child.ID != callerID {
+			result = append(result, dto.SiblingResponse{
+				ID:        child.ID,
+				FirstName: child.FirstName,
+				LastName:  child.LastName,
+				Email:     nullStringToString(child.Email),
+			})
+		}
+	}
+
+	return result, nil
+}
+
 // AdminUnlink removes a parent-child link (admin only)
 func (s *Service) AdminUnlink(ctx context.Context, childID uuid.UUID) *errLib.CommonError {
 	// Verify child exists and has a parent

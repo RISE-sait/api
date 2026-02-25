@@ -913,6 +913,8 @@ func RegisterFamilyRoutes(container *di.Container) func(chi.Router) {
 
 		// Parent routes - authenticated users only
 		r.With(middlewares.JWTAuthMiddleware(true)).Get("/children", h.GetChildren)
+		r.With(middlewares.JWTAuthMiddleware(true)).Get("/parent", h.GetParent)
+		r.With(middlewares.JWTAuthMiddleware(true)).Get("/siblings", h.GetSiblings)
 
 		// Admin routes - admin only for unlinking
 		r.With(middlewares.JWTAuthMiddleware(false, contextUtils.RoleAdmin, contextUtils.RoleSuperAdmin, contextUtils.RoleIT)).Delete("/admin/link/{id}", h.AdminUnlink)

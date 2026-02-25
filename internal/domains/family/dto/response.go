@@ -30,6 +30,22 @@ type ChildResponse struct {
 	LinkedAt  time.Time `json:"linked_at"`
 }
 
+// ParentResponse represents a parent in the child's view
+type ParentResponse struct {
+	ID        uuid.UUID `json:"id"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
+	Email     string    `json:"email,omitempty"`
+}
+
+// SiblingResponse represents a sibling in the child's view
+type SiblingResponse struct {
+	ID        uuid.UUID `json:"id"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
+	Email     string    `json:"email,omitempty"`
+}
+
 // PendingRequestResponse represents a pending link request
 type PendingRequestResponse struct {
 	ID                   uuid.UUID  `json:"id"`

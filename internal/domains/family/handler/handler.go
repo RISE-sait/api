@@ -144,6 +144,43 @@ func (h *Handler) GetChildren(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, children, http.StatusOK)
 }
 
+// GetParent gets the parent for the authenticated child user.
+// @Summary Get parent
+// @Description Gets the parent information for the authenticated child user
+// @Tags family
+// @Produce json
+// @Success 200 {object} dto.ParentResponse "Parent information"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 404 {object} map[string]interface{} "No parent link found"
+// @Router /family/parent [get]
+func (h *Handler) GetParent(w http.ResponseWriter, r *http.Request) {
+	parent, err := h.Service.GetParent(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	responseHandlers.RespondWithSuccess(w, parent, http.StatusOK)
+}
+
+// GetSiblings gets all siblings for the authenticated child user.
+// @Summary Get siblings
+// @Description Gets all siblings (other children of the same parent) for the authenticated child user
+// @Tags family
+// @Produce json
+// @Success 200 {array} dto.SiblingResponse "Siblings list (empty if no siblings or no parent link)"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Router /family/siblings [get]
+func (h *Handler) GetSiblings(w http.ResponseWriter, r *http.Request) {
+	siblings, err := h.Service.GetSiblings(r.Context())
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	responseHandlers.RespondWithSuccess(w, siblings, http.StatusOK)
+}
+
 // AdminUnlink removes a parent-child link (admin only).
 // @Summary Admin unlink parent-child
 // @Description Removes the parent-child link for a user (admin only)

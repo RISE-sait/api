@@ -141,13 +141,15 @@ func (r *CustomerRepository) GetCustomers(ctx context.Context, limit, offset int
 
 		if dbCustomer.MembershipName.Valid && dbCustomer.MembershipPlanName.Valid && dbCustomer.MembershipStartDate.Valid && dbCustomer.MembershipPlanID.Valid {
 
-			customer.MembershipInfo = &userValues.MembershipReadValue{
-				MembershipPlanID:      dbCustomer.MembershipPlanID.UUID,
-				MembershipPlanName:    dbCustomer.MembershipPlanName.String,
-				MembershipName:        dbCustomer.MembershipName.String,
-				MembershipStartDate:   dbCustomer.MembershipStartDate.Time,
-				MembershipRenewalDate: dbCustomer.MembershipPlanRenewalDate.Time,
-				Status:                string(dbCustomer.MembershipStatus.MembershipMembershipStatus),
+			customer.Memberships = []userValues.MembershipReadValue{
+				{
+					MembershipPlanID:      dbCustomer.MembershipPlanID.UUID,
+					MembershipPlanName:    dbCustomer.MembershipPlanName.String,
+					MembershipName:        dbCustomer.MembershipName.String,
+					MembershipStartDate:   dbCustomer.MembershipStartDate.Time,
+					MembershipRenewalDate: dbCustomer.MembershipPlanRenewalDate.Time,
+					Status:                string(dbCustomer.MembershipStatus.MembershipMembershipStatus),
+				},
 			}
 		}
 
@@ -256,7 +258,7 @@ func (r *CustomerRepository) GetCustomer(ctx context.Context, id uuid.UUID, emai
 
 	if dbCustomer.MembershipName.Valid && dbCustomer.MembershipPlanName.Valid && dbCustomer.MembershipStartDate.Valid && dbCustomer.MembershipPlanID.Valid {
 
-		membershipInfo := &userValues.MembershipReadValue{
+		membershipInfo := userValues.MembershipReadValue{
 			MembershipPlanID:      dbCustomer.MembershipPlanID.UUID,
 			MembershipPlanName:    dbCustomer.MembershipPlanName.String,
 			MembershipName:        dbCustomer.MembershipName.String,
@@ -267,7 +269,7 @@ func (r *CustomerRepository) GetCustomer(ctx context.Context, id uuid.UUID, emai
 		if dbCustomer.StripeSubscriptionID.Valid {
 			membershipInfo.StripeSubscriptionID = &dbCustomer.StripeSubscriptionID.String
 		}
-		customer.MembershipInfo = membershipInfo
+		customer.Memberships = []userValues.MembershipReadValue{membershipInfo}
 	}
 
 	if dbCustomer.Rebounds.Valid && dbCustomer.Wins.Valid && dbCustomer.Points.Valid && dbCustomer.Steals.Valid && dbCustomer.Assists.Valid && dbCustomer.Losses.Valid {
@@ -288,6 +290,32 @@ func (r *CustomerRepository) GetCustomer(ctx context.Context, id uuid.UUID, emai
 	}
 
 	return customer, nil
+}
+
+func (r *CustomerRepository) GetActiveCustomerMemberships(ctx context.Context, customerID uuid.UUID) ([]userValues.MembershipReadValue, *errLib.CommonError) {
+	rows, err := r.Queries.GetActiveCustomerMemberships(ctx, customerID)
+	if err != nil {
+		log.Printf("Error fetching active memberships for customer %s: %v", customerID, err)
+		return nil, errLib.New("internal error", http.StatusInternalServerError)
+	}
+
+	memberships := make([]userValues.MembershipReadValue, len(rows))
+	for i, row := range rows {
+		m := userValues.MembershipReadValue{
+			MembershipPlanID:      row.MembershipPlanID,
+			MembershipPlanName:    row.MembershipPlanName,
+			MembershipName:        row.MembershipName,
+			MembershipStartDate:   row.StartDate,
+			MembershipRenewalDate: row.RenewalDate.Time,
+			Status:                string(row.Status),
+		}
+		if row.StripeSubscriptionID.Valid {
+			m.StripeSubscriptionID = &row.StripeSubscriptionID.String
+		}
+		memberships[i] = m
+	}
+
+	return memberships, nil
 }
 
 func (r *CustomerRepository) UpdateAthleteTeam(ctx context.Context, athleteID, teamID uuid.UUID) *errLib.CommonError {

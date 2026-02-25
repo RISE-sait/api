@@ -23,7 +23,8 @@ type Response struct {
 	EmergencyContactRelationship *string                `json:"emergency_contact_relationship,omitempty"`
 	LastMobileLoginAt            *time.Time             `json:"last_mobile_login_at,omitempty"`
 	PendingEmail                 *string                `json:"pending_email,omitempty"`
-	MembershipInfo               *MembershipResponseDto `json:"membership_info,omitempty"`
+	MembershipInfo               *MembershipResponseDto  `json:"membership_info,omitempty"`
+	Memberships                  []MembershipResponseDto `json:"memberships,omitempty"`
 	PhotoURL                     *string                `json:"photo_url,omitempty"`
 	IsArchived                   bool                   `json:"is_archived"`
 	ArchivedAt                   *time.Time             `json:"archived_at,omitempty"`
@@ -67,15 +68,31 @@ func UserReadValueToResponse(customer values.ReadValue) Response {
 	// Calculate days until deletion
 	response.DaysUntilDeletion = calculateDaysUntilDeletion(customer)
 
-	if customer.MembershipInfo != nil {
+	if len(customer.Memberships) > 0 {
+		// Set membership_info to the primary (first) membership for backwards compatibility
+		primary := customer.Memberships[0]
 		response.MembershipInfo = &MembershipResponseDto{
-			MembershipName:        &customer.MembershipInfo.MembershipName,
-			MembershipStartDate:   &customer.MembershipInfo.MembershipStartDate,
-			MembershipRenewalDate: &customer.MembershipInfo.MembershipRenewalDate,
-			MembershipPlanID:      &customer.MembershipInfo.MembershipPlanID,
-			MembershipPlanName:    &customer.MembershipInfo.MembershipPlanName,
-			Status:                &customer.MembershipInfo.Status,
-			StripeSubscriptionID:  customer.MembershipInfo.StripeSubscriptionID,
+			MembershipName:        &primary.MembershipName,
+			MembershipStartDate:   &primary.MembershipStartDate,
+			MembershipRenewalDate: &primary.MembershipRenewalDate,
+			MembershipPlanID:      &primary.MembershipPlanID,
+			MembershipPlanName:    &primary.MembershipPlanName,
+			Status:                &primary.Status,
+			StripeSubscriptionID:  primary.StripeSubscriptionID,
+		}
+
+		// Map all memberships into the memberships array
+		response.Memberships = make([]MembershipResponseDto, len(customer.Memberships))
+		for i, m := range customer.Memberships {
+			response.Memberships[i] = MembershipResponseDto{
+				MembershipName:        &customer.Memberships[i].MembershipName,
+				MembershipStartDate:   &m.MembershipStartDate,
+				MembershipRenewalDate: &m.MembershipRenewalDate,
+				MembershipPlanID:      &m.MembershipPlanID,
+				MembershipPlanName:    &customer.Memberships[i].MembershipPlanName,
+				Status:                &customer.Memberships[i].Status,
+				StripeSubscriptionID:  m.StripeSubscriptionID,
+			}
 		}
 	}
 

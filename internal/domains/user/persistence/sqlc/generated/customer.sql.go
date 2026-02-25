@@ -50,9 +50,13 @@ SELECT COUNT(*)
 FROM users.users u
          LEFT JOIN users.customer_membership_plans cmp ON (
     cmp.customer_id = u.id AND
-    cmp.start_date = (SELECT MAX(start_date)
-                      FROM users.customer_membership_plans
-                      WHERE customer_id = u.id)
+    cmp.id = (SELECT id
+              FROM users.customer_membership_plans
+              WHERE customer_id = u.id
+              ORDER BY
+                  CASE WHEN status = 'active' THEN 0 ELSE 1 END,
+                  start_date DESC
+              LIMIT 1)
     )
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
@@ -225,6 +229,62 @@ func (q *Queries) ExtendMembershipRenewalDate(ctx context.Context, arg ExtendMem
 	return result.RowsAffected()
 }
 
+const getActiveCustomerMemberships = `-- name: GetActiveCustomerMemberships :many
+SELECT cmp.id, cmp.customer_id, cmp.start_date, cmp.renewal_date, cmp.status,
+       cmp.stripe_subscription_id, mp.id AS membership_plan_id,
+       m.name AS membership_name, mp.name AS membership_plan_name
+FROM users.customer_membership_plans cmp
+    JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
+    JOIN membership.memberships m ON m.id = mp.membership_id
+WHERE cmp.customer_id = $1 AND cmp.status = 'active'
+ORDER BY cmp.start_date DESC
+`
+
+type GetActiveCustomerMembershipsRow struct {
+	ID                   uuid.UUID                  `json:"id"`
+	CustomerID           uuid.UUID                  `json:"customer_id"`
+	StartDate            time.Time                  `json:"start_date"`
+	RenewalDate          sql.NullTime               `json:"renewal_date"`
+	Status               MembershipMembershipStatus `json:"status"`
+	StripeSubscriptionID sql.NullString             `json:"stripe_subscription_id"`
+	MembershipPlanID     uuid.UUID                  `json:"membership_plan_id"`
+	MembershipName       string                     `json:"membership_name"`
+	MembershipPlanName   string                     `json:"membership_plan_name"`
+}
+
+func (q *Queries) GetActiveCustomerMemberships(ctx context.Context, customerID uuid.UUID) ([]GetActiveCustomerMembershipsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getActiveCustomerMemberships, customerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetActiveCustomerMembershipsRow
+	for rows.Next() {
+		var i GetActiveCustomerMembershipsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CustomerID,
+			&i.StartDate,
+			&i.RenewalDate,
+			&i.Status,
+			&i.StripeSubscriptionID,
+			&i.MembershipPlanID,
+			&i.MembershipName,
+			&i.MembershipPlanName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getActiveMembershipInfo = `-- name: GetActiveMembershipInfo :one
 SELECT
     cmp.id,
@@ -375,9 +435,13 @@ SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last
 FROM users.users u
          LEFT JOIN users.customer_membership_plans cmp ON (
     cmp.customer_id = u.id AND
-    cmp.start_date = (SELECT MAX(start_date)
-                      FROM users.customer_membership_plans
-                      WHERE customer_id = u.id)
+    cmp.id = (SELECT id
+              FROM users.customer_membership_plans
+              WHERE customer_id = u.id
+              ORDER BY
+                  CASE WHEN status = 'active' THEN 0 ELSE 1 END,
+                  start_date DESC
+              LIMIT 1)
     )
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
@@ -529,9 +593,13 @@ SELECT u.id, u.hubspot_id, u.country_alpha2_code, u.gender, u.first_name, u.last
 FROM users.users u
          LEFT JOIN users.customer_membership_plans cmp ON (
     cmp.customer_id = u.id AND
-    cmp.start_date = (SELECT MAX(start_date)
-                      FROM users.customer_membership_plans
-                      WHERE customer_id = u.id)
+    cmp.id = (SELECT id
+              FROM users.customer_membership_plans
+              WHERE customer_id = u.id
+              ORDER BY
+                  CASE WHEN status = 'active' THEN 0 ELSE 1 END,
+                  start_date DESC
+              LIMIT 1)
     )
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id

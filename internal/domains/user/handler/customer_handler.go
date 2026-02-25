@@ -411,6 +411,12 @@ func (h *CustomersHandler) GetCustomerByID(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Fetch all active memberships for this customer
+	memberships, membErr := h.CustomerRepo.GetActiveCustomerMemberships(r.Context(), id)
+	if membErr == nil && len(memberships) > 0 {
+		customer.Memberships = memberships
+	}
+
 	response := customerDto.UserReadValueToResponse(customer)
 
 	responseHandlers.RespondWithSuccess(w, response, http.StatusOK)
@@ -432,6 +438,12 @@ func (h *CustomersHandler) GetCustomerByEmail(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		responseHandlers.RespondWithError(w, err)
 		return
+	}
+
+	// Fetch all active memberships for this customer
+	memberships, membErr := h.CustomerRepo.GetActiveCustomerMemberships(r.Context(), customer.ID)
+	if membErr == nil && len(memberships) > 0 {
+		customer.Memberships = memberships
 	}
 
 	response := customerDto.UserReadValueToResponse(customer)

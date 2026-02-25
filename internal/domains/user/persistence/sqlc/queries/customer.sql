@@ -39,9 +39,13 @@ SELECT u.*,
 FROM users.users u
          LEFT JOIN users.customer_membership_plans cmp ON (
     cmp.customer_id = u.id AND
-    cmp.start_date = (SELECT MAX(start_date)
-                      FROM users.customer_membership_plans
-                      WHERE customer_id = u.id)
+    cmp.id = (SELECT id
+              FROM users.customer_membership_plans
+              WHERE customer_id = u.id
+              ORDER BY
+                  CASE WHEN status = 'active' THEN 0 ELSE 1 END,
+                  start_date DESC
+              LIMIT 1)
     )
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
@@ -97,9 +101,13 @@ SELECT u.*,
 FROM users.users u
          LEFT JOIN users.customer_membership_plans cmp ON (
     cmp.customer_id = u.id AND
-    cmp.start_date = (SELECT MAX(start_date)
-                      FROM users.customer_membership_plans
-                      WHERE customer_id = u.id)
+    cmp.id = (SELECT id
+              FROM users.customer_membership_plans
+              WHERE customer_id = u.id
+              ORDER BY
+                  CASE WHEN status = 'active' THEN 0 ELSE 1 END,
+                  start_date DESC
+              LIMIT 1)
     )
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
@@ -138,9 +146,13 @@ SELECT COUNT(*)
 FROM users.users u
          LEFT JOIN users.customer_membership_plans cmp ON (
     cmp.customer_id = u.id AND
-    cmp.start_date = (SELECT MAX(start_date)
-                      FROM users.customer_membership_plans
-                      WHERE customer_id = u.id)
+    cmp.id = (SELECT id
+              FROM users.customer_membership_plans
+              WHERE customer_id = u.id
+              ORDER BY
+                  CASE WHEN status = 'active' THEN 0 ELSE 1 END,
+                  start_date DESC
+              LIMIT 1)
     )
          LEFT JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
          LEFT JOIN membership.memberships m ON m.id = mp.membership_id
@@ -221,6 +233,16 @@ FROM users.customer_membership_plans cmp
 WHERE cmp.customer_id = $1
 ORDER BY cmp.start_date DESC;
 
+-- name: GetActiveCustomerMemberships :many
+SELECT cmp.id, cmp.customer_id, cmp.start_date, cmp.renewal_date, cmp.status,
+       cmp.stripe_subscription_id, mp.id AS membership_plan_id,
+       m.name AS membership_name, mp.name AS membership_plan_name
+FROM users.customer_membership_plans cmp
+    JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
+    JOIN membership.memberships m ON m.id = mp.membership_id
+WHERE cmp.customer_id = $1 AND cmp.status = 'active'
+ORDER BY cmp.start_date DESC;
+
 -- name: ArchiveCustomer :execrows
 UPDATE users.users
 SET is_archived = TRUE,
@@ -250,7 +272,7 @@ DELETE FROM users.customer_membership_plans WHERE customer_id = $1;
 -- name: DeleteCustomerEnrollments :execrows
 DELETE FROM program.customer_enrollment WHERE customer_id = $1;
 
--- name: DeleteCustomerEventEnrollments :execrows  
+-- name: DeleteCustomerEventEnrollments :execrows
 DELETE FROM events.customer_enrollment WHERE customer_id = $1;
 
 -- Note: credit_transactions has ON DELETE CASCADE, so it will be cleaned automatically

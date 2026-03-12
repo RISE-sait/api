@@ -990,8 +990,14 @@ func (s *WebhookService) HandleInvoicePaymentSucceeded(ctx context.Context, even
 
 	log.Printf("[WEBHOOK] Successfully activated membership for user %s after invoice payment %s", userID, invoice.ID)
 
-	// Track payment in centralized system
-	go s.trackMembershipRenewal(&invoice, userID, time.Unix(event.Created, 0))
+	// Track payment in centralized system — but skip the initial subscription invoice
+	// because checkout.session.completed already tracks that via trackMembershipSubscription.
+	// Only track actual renewals to avoid duplicate payment records.
+	if invoice.BillingReason != stripe.InvoiceBillingReasonSubscriptionCreate {
+		go s.trackMembershipRenewal(&invoice, userID, time.Unix(event.Created, 0))
+	} else {
+		log.Printf("[WEBHOOK] Skipping payment tracking for initial subscription invoice %s (already tracked by checkout)", invoice.ID)
+	}
 
 	// Mark as complete
 	s.Idempotency.MarkEventComplete(event.ID)

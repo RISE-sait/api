@@ -299,9 +299,7 @@ func (s *WebhookService) trackFailedPayment(invoice *stripe.Invoice, customerID 
 		}
 	}
 
-	// For failed payments, set all amounts to 0 to satisfy the constraint:
-	// customer_paid = original_amount - discount_amount - subsidy_amount
-	// Store the attempted amount in metadata for reference
+	// Store the actual attempted amount so the UI shows what was attempted
 	attemptedAmount := float64(invoice.Total) / 100.0
 
 	var subscriptionID string
@@ -315,7 +313,7 @@ func (s *WebhookService) trackFailedPayment(invoice *stripe.Invoice, customerID 
 		CustomerName:         customerName,
 		TransactionType:      "membership_renewal",
 		TransactionDate:      transactionDate,
-		OriginalAmount:       0, // Set to 0 for failed payments (constraint requires customer_paid = original - discount - subsidy)
+		OriginalAmount:       attemptedAmount,
 		DiscountAmount:       0,
 		SubsidyAmount:        0,
 		CustomerPaid:         0, // Payment failed, nothing was collected
@@ -326,10 +324,6 @@ func (s *WebhookService) trackFailedPayment(invoice *stripe.Invoice, customerID 
 		PaymentStatus:        "failed",
 		Currency:             string(invoice.Currency),
 		Description:          fmt.Sprintf("Failed payment attempt - $%.2f was attempted", attemptedAmount),
-		Metadata: map[string]interface{}{
-			"attempted_amount": attemptedAmount,
-			"failure_reason":   "Payment failed",
-		},
 	})
 
 	if trackingErr != nil {

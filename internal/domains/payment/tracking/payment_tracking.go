@@ -75,11 +75,13 @@ type TrackPaymentParams struct {
 
 // TrackPayment creates a new payment transaction record
 func (s *PaymentTrackingService) TrackPayment(ctx context.Context, params TrackPaymentParams) (*db.PaymentsPaymentTransaction, error) {
-	// Validate payment calculation
-	expectedCustomerPaid := params.OriginalAmount - params.DiscountAmount - params.SubsidyAmount
-	if params.CustomerPaid != expectedCustomerPaid {
-		return nil, fmt.Errorf("invalid payment calculation: customer_paid (%.2f) != original (%.2f) - discount (%.2f) - subsidy (%.2f)",
-			params.CustomerPaid, params.OriginalAmount, params.DiscountAmount, params.SubsidyAmount)
+	// Validate payment calculation (skip for failed payments where customer_paid is 0)
+	if params.PaymentStatus != "failed" {
+		expectedCustomerPaid := params.OriginalAmount - params.DiscountAmount - params.SubsidyAmount
+		if params.CustomerPaid != expectedCustomerPaid {
+			return nil, fmt.Errorf("invalid payment calculation: customer_paid (%.2f) != original (%.2f) - discount (%.2f) - subsidy (%.2f)",
+				params.CustomerPaid, params.OriginalAmount, params.DiscountAmount, params.SubsidyAmount)
+		}
 	}
 
 	// Convert metadata to JSONB

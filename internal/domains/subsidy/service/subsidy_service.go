@@ -525,13 +525,17 @@ func (s *SubsidyService) RecordUsage(ctx context.Context, req *dto.RecordUsageRe
 			return errLib.New("Failed to record usage", http.StatusInternalServerError)
 		}
 
-		// Update subsidy total_amount_used
+		// Update subsidy total_amount_used (WHERE clause guards against over-deduction)
 		updatedSubsidy, updateErr := queries.UpdateSubsidyUsage(ctx, db.UpdateSubsidyUsageParams{
 			ID:              req.SubsidyID,
 			TotalAmountUsed: decimal.NewFromFloat(req.SubsidyApplied),
 		})
 
 		if updateErr != nil {
+			if updateErr == sql.ErrNoRows {
+				log.Printf("[SECURITY] Subsidy balance guard triggered: subsidy %s, attempted $%.2f", req.SubsidyID, req.SubsidyApplied)
+				return errLib.New("Insufficient subsidy balance", http.StatusBadRequest)
+			}
 			log.Printf("Failed to update subsidy usage: %v", updateErr)
 			return errLib.New("Failed to update subsidy", http.StatusInternalServerError)
 		}
@@ -603,7 +607,7 @@ func (s *SubsidyService) RecordUsage(ctx context.Context, req *dto.RecordUsageRe
 				StripeInvoiceID:      stringFromSQL(usage.StripeInvoiceID),
 				StripePaymentIntentID: stringFromSQL(usage.StripePaymentIntentID),
 				PaymentStatus:        "completed",
-				Currency:             "USD",
+				Currency:             "CAD",
 				Description:          stringFromSQL(usage.Description),
 			})
 			if trackingErr != nil {

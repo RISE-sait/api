@@ -15,6 +15,7 @@ import (
 	contextUtils "api/utils/context"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"github.com/stripe/stripe-go/v81"
 	billingportal "github.com/stripe/stripe-go/v81/billingportal/session"
 	"github.com/stripe/stripe-go/v81/checkout/session"
@@ -25,6 +26,54 @@ import (
 	"github.com/stripe/stripe-go/v81/subscription"
 	"github.com/stripe/stripe-go/v81/webhook"
 )
+
+// DefaultCurrency is the default currency for Stripe operations (matches Stripe account setting).
+const DefaultCurrency = "cad"
+
+// CentsToDollars converts Stripe cent amounts to dollars using exact decimal arithmetic.
+func CentsToDollars(cents int64) float64 {
+	return decimal.NewFromInt(cents).Div(decimal.NewFromInt(100)).InexactFloat64()
+}
+
+// DollarsToCents converts dollar amounts to Stripe cents using exact decimal arithmetic.
+func DollarsToCents(dollars float64) int64 {
+	return decimal.NewFromFloat(dollars).Mul(decimal.NewFromInt(100)).Round(0).IntPart()
+}
+
+// RetryStripeCall retries a Stripe API call with exponential backoff.
+// Skips retry on 4xx client errors (only retries 5xx and network errors).
+func RetryStripeCall(name string, maxRetries int, fn func() error) error {
+	retryDelay := time.Second
+	var lastErr error
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		err := fn()
+		if err == nil {
+			if attempt > 1 {
+				log.Printf("[STRIPE-RETRY] %s succeeded on attempt %d", name, attempt)
+			}
+			return nil
+		}
+
+		lastErr = err
+		log.Printf("[STRIPE-RETRY] %s attempt %d/%d failed: %v", name, attempt, maxRetries, err)
+
+		// Don't retry on client errors (4xx), only on server errors and network issues
+		if stripeErr, ok := err.(*stripe.Error); ok {
+			if stripeErr.HTTPStatusCode >= 400 && stripeErr.HTTPStatusCode < 500 {
+				log.Printf("[STRIPE-RETRY] %s: client error (HTTP %d), not retrying", name, stripeErr.HTTPStatusCode)
+				return err
+			}
+		}
+
+		if attempt < maxRetries {
+			time.Sleep(retryDelay)
+			retryDelay *= 2
+		}
+	}
+
+	return lastErr
+}
 
 // idempotencyKey builds a deterministic idempotency key for Stripe mutation calls.
 // Stripe deduplicates requests with the same key within 24 hours.
@@ -1532,7 +1581,7 @@ func CreateSubsidyCoupon(ctx context.Context, subsidyAmount float64) (string, *e
 	couponParams := &stripe.CouponParams{
 		Duration:  stripe.String(string(stripe.CouponDurationOnce)),
 		AmountOff: stripe.Int64(amountInCents),
-		Currency:  stripe.String("cad"),
+		Currency:  stripe.String(DefaultCurrency),
 		Name:      stripe.String(fmt.Sprintf("Subsidy Credit: $%.2f", subsidyAmount)),
 	}
 
@@ -1647,7 +1696,7 @@ func (s *ProductService) CreateProductWithRecurringPrice(
 		return "", "", errLib.New("unit amount must be positive", http.StatusBadRequest)
 	}
 	if strings.TrimSpace(currency) == "" {
-		currency = "cad"
+		currency = DefaultCurrency
 	}
 	if intervalCount <= 0 {
 		intervalCount = 1
@@ -1727,7 +1776,7 @@ func (s *ProductService) CreateProductWithOneTimePrice(
 		return "", "", errLib.New("unit amount must be positive", http.StatusBadRequest)
 	}
 	if strings.TrimSpace(currency) == "" {
-		currency = "cad"
+		currency = DefaultCurrency
 	}
 
 	// Check if Stripe is initialized
@@ -1787,7 +1836,7 @@ func (s *ProductService) CreateOneTimePrice(
 		return "", errLib.New("unit amount must be positive", http.StatusBadRequest)
 	}
 	if strings.TrimSpace(currency) == "" {
-		currency = "cad"
+		currency = DefaultCurrency
 	}
 
 	// Check if Stripe is initialized

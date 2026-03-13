@@ -2,6 +2,7 @@ package payment
 
 import (
 	"api/internal/domains/payment/tracking"
+	stripeService "api/internal/domains/payment/services/stripe"
 	creditPackageDTO "api/internal/domains/credit_package/dto"
 	"context"
 	"database/sql"
@@ -31,14 +32,14 @@ func (s *WebhookService) trackCreditPackagePurchase(session *stripe.CheckoutSess
 	customerName := user.FirstName + " " + user.LastName
 
 	// Calculate amounts from session
-	originalAmount := float64(session.AmountTotal) / 100.0
+	originalAmount := stripeService.CentsToDollars(session.AmountTotal)
 	customerPaid := originalAmount
 	subsidyAmount := 0.0
 	discountAmount := 0.0
 
 	// Check for discounts
 	if session.TotalDetails != nil && session.TotalDetails.AmountDiscount > 0 {
-		discountAmount = float64(session.TotalDetails.AmountDiscount) / 100.0
+		discountAmount = stripeService.CentsToDollars(session.TotalDetails.AmountDiscount)
 	}
 
 	// Extract credit package ID - creditPackage is of type *dto.CreditPackageResponse
@@ -96,14 +97,14 @@ func (s *WebhookService) trackProgramEnrollment(session *stripe.CheckoutSession,
 	customerName := user.FirstName + " " + user.LastName
 
 	// Calculate amounts from session
-	originalAmount := float64(session.AmountTotal) / 100.0
+	originalAmount := stripeService.CentsToDollars(session.AmountTotal)
 	customerPaid := originalAmount
 	subsidyAmount := 0.0
 	discountAmount := 0.0
 
 	// Check for discounts
 	if session.TotalDetails != nil && session.TotalDetails.AmountDiscount > 0 {
-		discountAmount = float64(session.TotalDetails.AmountDiscount) / 100.0
+		discountAmount = stripeService.CentsToDollars(session.TotalDetails.AmountDiscount)
 	}
 
 	_, trackingErr := s.PaymentTracking.TrackPayment(ctx, tracking.TrackPaymentParams{
@@ -148,14 +149,14 @@ func (s *WebhookService) trackEventRegistration(session *stripe.CheckoutSession,
 	customerName := user.FirstName + " " + user.LastName
 
 	// Calculate amounts from session
-	originalAmount := float64(session.AmountTotal) / 100.0
+	originalAmount := stripeService.CentsToDollars(session.AmountTotal)
 	customerPaid := originalAmount
 	subsidyAmount := 0.0
 	discountAmount := 0.0
 
 	// Check for discounts
 	if session.TotalDetails != nil && session.TotalDetails.AmountDiscount > 0 {
-		discountAmount = float64(session.TotalDetails.AmountDiscount) / 100.0
+		discountAmount = stripeService.CentsToDollars(session.TotalDetails.AmountDiscount)
 	}
 
 	_, trackingErr := s.PaymentTracking.TrackPayment(ctx, tracking.TrackPaymentParams{
@@ -207,7 +208,7 @@ func (s *WebhookService) trackMembershipSubscription(session *stripe.CheckoutSes
 	}
 
 	// Calculate amounts from session
-	originalAmount := float64(session.AmountTotal) / 100.0
+	originalAmount := stripeService.CentsToDollars(session.AmountTotal)
 	customerPaid := originalAmount
 	subsidyAmount := 0.0
 	discountAmount := 0.0
@@ -229,7 +230,7 @@ func (s *WebhookService) trackMembershipSubscription(session *stripe.CheckoutSes
 
 	// Check for discounts
 	if session.TotalDetails != nil && session.TotalDetails.AmountDiscount > 0 {
-		totalDiscount := float64(session.TotalDetails.AmountDiscount) / 100.0
+		totalDiscount := stripeService.CentsToDollars(session.TotalDetails.AmountDiscount)
 		// Separate subsidy from regular discounts
 		if subsidyAmount > 0 {
 			discountAmount = totalDiscount - subsidyAmount
@@ -300,7 +301,7 @@ func (s *WebhookService) trackFailedPayment(invoice *stripe.Invoice, customerID 
 	}
 
 	// Store the actual attempted amount so the UI shows what was attempted
-	attemptedAmount := float64(invoice.Total) / 100.0
+	attemptedAmount := stripeService.CentsToDollars(invoice.Total)
 
 	var subscriptionID string
 	if invoice.Subscription != nil {
@@ -365,15 +366,15 @@ func (s *WebhookService) trackMembershipRenewal(invoice *stripe.Invoice, custome
 	}
 
 	// Calculate amounts from invoice
-	originalAmount := float64(invoice.Total) / 100.0
-	customerPaid := float64(invoice.AmountPaid) / 100.0
+	originalAmount := stripeService.CentsToDollars(invoice.Total)
+	customerPaid := stripeService.CentsToDollars(invoice.AmountPaid)
 	subsidyAmount := 0.0
 	discountAmount := 0.0
 
 	// Check for discounts
 	if len(invoice.TotalDiscountAmounts) > 0 {
 		for _, discount := range invoice.TotalDiscountAmounts {
-			discountAmount += float64(discount.Amount) / 100.0
+			discountAmount += stripeService.CentsToDollars(discount.Amount)
 		}
 	}
 

@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"api/internal/domains/subsidy/dto"
+	stripeService "api/internal/domains/payment/services/stripe"
 	errLib "api/internal/libs/errors"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v81"
@@ -49,6 +51,13 @@ func (s *WebhookService) HandleInvoiceCreated(ctx context.Context, event stripe.
 		return errLib.New("Failed to parse invoice", http.StatusBadRequest)
 	}
 
+	// Extract customer metadata - in Stripe v81, customer is expanded
+	if invoice.Customer == nil {
+		log.Printf("[SUBSIDY] No customer info for invoice %s", invoice.ID)
+		s.Idempotency.MarkEventComplete(event.ID)
+		return nil
+	}
+
 	log.Printf("[SUBSIDY] Invoice created: %s for customer: %s", invoice.ID, invoice.Customer.ID)
 
 	// Check if invoice has a subscription ID directly in the parsed struct
@@ -70,13 +79,6 @@ func (s *WebhookService) HandleInvoiceCreated(ctx context.Context, event stripe.
 				log.Printf("[SUBSIDY] No subscription field in invoice (might be a one-time invoice)")
 			}
 		}
-	}
-
-	// Extract customer metadata - in Stripe v81, customer is expanded
-	if invoice.Customer == nil {
-		log.Printf("[SUBSIDY] No customer info for invoice %s", invoice.ID)
-		s.Idempotency.MarkEventComplete(event.ID)
-		return nil
 	}
 
 	// Check for subsidy in subscription metadata
@@ -177,9 +179,9 @@ func (s *WebhookService) HandleInvoiceCreated(ctx context.Context, event stripe.
 	}
 
 	// Calculate how much subsidy to apply
-	invoiceAmount := float64(invoice.AmountDue) / 100.0 // Convert cents to dollars
+	invoiceAmount := stripeService.CentsToDollars(invoice.AmountDue)
 	subsidyToApply := math.Min(invoiceAmount, subsidy.RemainingBalance)
-	subsidyInCents := int64(subsidyToApply * 100)
+	subsidyInCents := stripeService.DollarsToCents(subsidyToApply)
 
 	log.Printf("[SUBSIDY] Applying $%.2f subsidy to invoice %s (balance: $%.2f)",
 		subsidyToApply, invoice.ID, subsidy.RemainingBalance)
@@ -189,7 +191,7 @@ func (s *WebhookService) HandleInvoiceCreated(ctx context.Context, event stripe.
 		Customer: stripe.String(invoice.Customer.ID),
 		Invoice:  stripe.String(invoice.ID),
 		Amount:   stripe.Int64(-subsidyInCents), // NEGATIVE = credit
-		Currency: stripe.String("cad"),
+		Currency: stripe.String(invoiceCurrency(&invoice)),
 		Description: stripe.String(fmt.Sprintf("Subsidy Credit - %s (Balance: $%.2f)",
 			subsidy.Provider.Name, subsidy.RemainingBalance)),
 		Metadata: map[string]string{
@@ -198,7 +200,12 @@ func (s *WebhookService) HandleInvoiceCreated(ctx context.Context, event stripe.
 		},
 	}
 	itemParams.IdempotencyKey = stripe.String("subsidy-credit:" + event.ID + ":" + invoice.ID)
-	_, itemErr := invoiceitem.New(itemParams)
+	var itemErr error
+	stripeService.RetryStripeCall("invoiceitem.New(created)", 3, func() error {
+		_, err := invoiceitem.New(itemParams)
+		itemErr = err
+		return err
+	})
 
 	if itemErr != nil {
 		log.Printf("[SUBSIDY] Failed to add subsidy credit to invoice: %v", itemErr)
@@ -253,6 +260,13 @@ func (s *WebhookService) HandleInvoiceFinalized(ctx context.Context, event strip
 		return errLib.New("Failed to parse invoice", http.StatusBadRequest)
 	}
 
+	// Extract customer metadata
+	if invoice.Customer == nil {
+		log.Printf("[SUBSIDY] No customer info for invoice %s", invoice.ID)
+		s.Idempotency.MarkEventComplete(event.ID)
+		return nil
+	}
+
 	log.Printf("[SUBSIDY] Invoice finalized: %s for customer: %s", invoice.ID, invoice.Customer.ID)
 
 	// Check if invoice has a subscription ID directly in the parsed struct
@@ -260,13 +274,6 @@ func (s *WebhookService) HandleInvoiceFinalized(ctx context.Context, event strip
 	if invoice.Subscription != nil && invoice.Subscription.ID != "" {
 		subscriptionID = invoice.Subscription.ID
 		log.Printf("[SUBSIDY] Found subscription ID in finalized invoice: %s", subscriptionID)
-	}
-
-	// Extract customer metadata
-	if invoice.Customer == nil {
-		log.Printf("[SUBSIDY] No customer info for invoice %s", invoice.ID)
-		s.Idempotency.MarkEventComplete(event.ID)
-		return nil
 	}
 
 	// Check for subsidy in subscription metadata
@@ -360,9 +367,9 @@ func (s *WebhookService) HandleInvoiceFinalized(ctx context.Context, event strip
 	}
 
 	// Calculate how much subsidy to apply
-	invoiceAmount := float64(invoice.AmountDue) / 100.0
+	invoiceAmount := stripeService.CentsToDollars(invoice.AmountDue)
 	subsidyToApply := math.Min(invoiceAmount, subsidy.RemainingBalance)
-	subsidyInCents := int64(subsidyToApply * 100)
+	subsidyInCents := stripeService.DollarsToCents(subsidyToApply)
 
 	log.Printf("[SUBSIDY] Applying $%.2f subsidy to invoice %s (balance: $%.2f)",
 		subsidyToApply, invoice.ID, subsidy.RemainingBalance)
@@ -372,7 +379,7 @@ func (s *WebhookService) HandleInvoiceFinalized(ctx context.Context, event strip
 		Customer: stripe.String(invoice.Customer.ID),
 		Invoice:  stripe.String(invoice.ID),
 		Amount:   stripe.Int64(-subsidyInCents), // NEGATIVE = credit
-		Currency: stripe.String("cad"),
+		Currency: stripe.String(invoiceCurrency(&invoice)),
 		Description: stripe.String(fmt.Sprintf("Subsidy Credit - %s (Balance: $%.2f)",
 			subsidy.Provider.Name, subsidy.RemainingBalance)),
 		Metadata: map[string]string{
@@ -381,7 +388,12 @@ func (s *WebhookService) HandleInvoiceFinalized(ctx context.Context, event strip
 		},
 	}
 	finalizedItemParams.IdempotencyKey = stripe.String("subsidy-finalized:" + event.ID + ":" + invoice.ID)
-	_, itemErr := invoiceitem.New(finalizedItemParams)
+	var itemErr error
+	stripeService.RetryStripeCall("invoiceitem.New(finalized)", 3, func() error {
+		_, err := invoiceitem.New(finalizedItemParams)
+		itemErr = err
+		return err
+	})
 
 	if itemErr != nil {
 		log.Printf("[SUBSIDY] Failed to add subsidy credit to invoice: %v", itemErr)
@@ -569,11 +581,11 @@ func (s *WebhookService) HandleInvoicePaymentSucceededWithSubsidy(ctx context.Co
 		log.Printf("[SUBSIDY] Using subsidy amount from invoice metadata: $%.2f", subsidyApplied)
 	} else if len(invoice.TotalDiscountAmounts) > 0 {
 		for _, discount := range invoice.TotalDiscountAmounts {
-			subsidyApplied += float64(discount.Amount) / 100.0
+			subsidyApplied += stripeService.CentsToDollars(discount.Amount)
 		}
 		log.Printf("[SUBSIDY] Total discount on invoice: $%.2f", subsidyApplied)
 	} else if subsidyBalance > 0 {
-		invoiceTotal := float64(invoice.Total) / 100.0
+		invoiceTotal := stripeService.CentsToDollars(invoice.Total)
 		subsidyApplied = math.Min(invoiceTotal, subsidyBalance)
 		log.Printf("[SUBSIDY] No discount found, calculated subsidy from balance: $%.2f", subsidyApplied)
 	}
@@ -584,9 +596,9 @@ func (s *WebhookService) HandleInvoicePaymentSucceededWithSubsidy(ctx context.Co
 		return nil
 	}
 
-	// Record subsidy usage
-	originalAmount := (float64(invoice.AmountDue) + subsidyApplied*100) / 100.0
-	customerPaid := float64(invoice.AmountPaid) / 100.0
+	// Record subsidy usage — use decimal to avoid float rounding
+	originalAmount := stripeService.CentsToDollars(invoice.AmountDue) + subsidyApplied
+	customerPaid := stripeService.CentsToDollars(invoice.AmountPaid)
 
 	recordReq := &dto.RecordUsageRequest{
 		SubsidyID:            *subsidyID,
@@ -611,4 +623,12 @@ func (s *WebhookService) HandleInvoicePaymentSucceededWithSubsidy(ctx context.Co
 
 	s.Idempotency.MarkEventComplete(event.ID)
 	return nil
+}
+
+// invoiceCurrency returns the invoice's currency in lowercase, falling back to DefaultCurrency.
+func invoiceCurrency(invoice *stripe.Invoice) string {
+	if invoice.Currency != "" {
+		return strings.ToLower(string(invoice.Currency))
+	}
+	return stripeService.DefaultCurrency
 }

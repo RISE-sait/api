@@ -7,6 +7,7 @@ import (
 	enrollment "api/internal/domains/enrollment/service"
 	enrollmentRepo "api/internal/domains/enrollment/persistence/repository"
 	repository "api/internal/domains/payment/persistence/repositories"
+	stripeService "api/internal/domains/payment/services/stripe"
 	"api/internal/domains/payment/tracking"
 	discountService "api/internal/domains/discount/service"
 	"api/internal/domains/subsidy/dto"
@@ -623,7 +624,7 @@ func (s *WebhookService) processSubscriptionWithEndDate(subscriptionID string, t
 		return err
 	}
 
-	cancelAtUnix, cancelAtDateTime, err := s.calculateCancelAt(sub, int(totalBillingPeriods), eventCreatedAt)
+	cancelAtUnix, cancelAtDateTime, err := s.calculateCancelAt(sub, int(totalBillingPeriods), time.Unix(sub.StartDate, 0))
 	if err != nil {
 		log.Printf("ERROR: calculateCancelAt failed: %v", err)
 		return err
@@ -677,7 +678,12 @@ func (s *WebhookService) getExpandedSubscription(subscriptionID string) (*stripe
 		},
 	}
 
-	sub, err := subscription.Get(subscriptionID, params)
+	var sub *stripe.Subscription
+	err := stripeService.RetryStripeCall("getExpandedSubscription", 3, func() error {
+		var getErr error
+		sub, getErr = subscription.Get(subscriptionID, params)
+		return getErr
+	})
 	if err != nil {
 		return nil, errLib.New("Failed to get subscription: "+err.Error(), http.StatusInternalServerError)
 	}
@@ -726,44 +732,18 @@ func (s *WebhookService) calculateCancelAt(sub *stripe.Subscription, periods int
 }
 
 func (s *WebhookService) updateSubscriptionCancelAt(subscriptionID string, cancelAt int64) *errLib.CommonError {
-	// Retry logic for Stripe API calls
-	maxRetries := 3
-	retryDelay := time.Second
-	var lastErr error
-	
-	for attempt := 1; attempt <= maxRetries; attempt++ {
+	err := stripeService.RetryStripeCall("updateSubscriptionCancelAt", 3, func() error {
 		cancelParams := &stripe.SubscriptionParams{
 			CancelAt: stripe.Int64(cancelAt),
 		}
 		cancelParams.IdempotencyKey = stripe.String(fmt.Sprintf("sub-cancel-at:%s:%d", subscriptionID, cancelAt))
 		_, err := subscription.Update(subscriptionID, cancelParams)
-		
-		if err == nil {
-			if attempt > 1 {
-				log.Printf("Successfully updated subscription %s on attempt %d", subscriptionID, attempt)
-			}
-			return nil
-		}
-		
-		lastErr = err
-		log.Printf("Attempt %d/%d failed to update subscription %s: %v", attempt, maxRetries, subscriptionID, err)
-		
-		// Don't retry on client errors (4xx), only on server errors and network issues
-		if stripeErr, ok := err.(*stripe.Error); ok {
-			if stripeErr.HTTPStatusCode < 500 && stripeErr.HTTPStatusCode >= 400 {
-				log.Printf("Client error, not retrying: HTTP %d", stripeErr.HTTPStatusCode)
-				break
-			}
-		}
-		
-		if attempt < maxRetries {
-			log.Printf("Retrying in %v...", retryDelay)
-			time.Sleep(retryDelay)
-			retryDelay *= 2 // Exponential backoff
-		}
+		return err
+	})
+	if err != nil {
+		return errLib.New("Failed to set cancel date after retries: "+err.Error(), http.StatusInternalServerError)
 	}
-	
-	return errLib.New("Failed to set cancel date after retries: "+lastErr.Error(), http.StatusInternalServerError)
+	return nil
 }
 
 func (s *WebhookService) sendMembershipPurchaseEmail(userID, planID uuid.UUID) {
@@ -1583,14 +1563,15 @@ func (s *WebhookService) HandleSubscriptionResumed(ctx context.Context, event st
 		return nil
 	}
 
-	// Update membership status to active
+	// Update membership status to active and sync next billing date
 	eventTime := time.Unix(event.Created, 0)
-	if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByID(ctx, userID, sub.ID, "active", eventTime); updateErr != nil {
+	nextBillingDate := time.Unix(sub.CurrentPeriodEnd, 0)
+	if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByIDAndNextBilling(ctx, userID, sub.ID, "active", nextBillingDate, eventTime); updateErr != nil {
 		log.Printf("[WEBHOOK] Failed to update subscription status to active: %v", updateErr)
 		return updateErr
 	}
 
-	log.Printf("[WEBHOOK] Successfully resumed subscription %s for user %s", sub.ID, userID)
+	log.Printf("[WEBHOOK] Successfully resumed subscription %s for user %s (next billing: %s)", sub.ID, userID, nextBillingDate.Format(time.RFC3339))
 
 	s.Idempotency.MarkEventComplete(event.ID)
 	return nil

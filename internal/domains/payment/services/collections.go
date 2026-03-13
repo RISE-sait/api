@@ -9,6 +9,7 @@ import (
 
 	"api/internal/di"
 	db "api/internal/domains/payment/persistence/sqlc/generated"
+	stripeService "api/internal/domains/payment/services/stripe"
 	errLib "api/internal/libs/errors"
 	"api/utils/email"
 
@@ -203,7 +204,7 @@ func (s *CollectionsService) ChargeCard(ctx context.Context, adminID uuid.UUID, 
 	amountInCents := int64(req.Amount * 100)
 	piParams := &stripe.PaymentIntentParams{
 		Amount:        stripe.Int64(amountInCents),
-		Currency:      stripe.String("cad"),
+		Currency:      stripe.String(stripeService.DefaultCurrency),
 		Customer:      stripe.String(stripeCustomerID.String),
 		PaymentMethod: stripe.String(req.PaymentMethodID),
 		Confirm:       stripe.Bool(true),
@@ -346,7 +347,7 @@ func (s *CollectionsService) SendPaymentLink(ctx context.Context, adminID uuid.U
 	priceObj, priceErr := price.New(&stripe.PriceParams{
 		Product:    stripe.String(prod.ID),
 		UnitAmount: stripe.Int64(amountInCents),
-		Currency:   stripe.String("cad"),
+		Currency:   stripe.String(stripeService.DefaultCurrency),
 	})
 	if priceErr != nil {
 		log.Printf("[COLLECTIONS] Error creating Stripe price: %v", priceErr)

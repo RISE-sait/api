@@ -106,7 +106,7 @@ func (s *PaymentTrackingService) TrackPayment(ctx context.Context, params TrackP
 		params.PaymentStatus = "pending"
 	}
 	if params.Currency == "" {
-		params.Currency = "USD"
+		params.Currency = "CAD"
 	}
 
 	transaction, err := s.queries.CreatePaymentTransaction(ctx, db.CreatePaymentTransactionParams{

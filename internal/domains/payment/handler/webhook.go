@@ -7,6 +7,7 @@ import (
 	stripeService "api/internal/domains/payment/services/stripe"
 	errLib "api/internal/libs/errors"
 	responseHandlers "api/internal/libs/responses"
+	"context"
 	"io"
 	"log"
 	"net/http"
@@ -23,9 +24,9 @@ type WebhookHandlers struct {
 func NewWebhookHandlers(container *di.Container) *WebhookHandlers {
 	webhookService := service.NewWebhookService(container)
 	retryService := service.NewWebhookRetryService(webhookService)
-	
 
-	
+	retryService.Start(context.Background())
+
 	return &WebhookHandlers{
 		Service:      webhookService,
 		RetryService: retryService,

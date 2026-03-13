@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
+	"time"
 
 	"api/internal/di"
 	enrollment "api/internal/domains/enrollment/service"
@@ -23,6 +25,11 @@ import (
 	"github.com/google/uuid"
 )
 
+// checkoutLock tracks an in-flight checkout to prevent double-click duplicates
+type checkoutLock struct {
+	createdAt time.Time
+}
+
 type Service struct {
 	CheckoutRepo        *repository.CheckoutRepository
 	MembershipPlansRepo *membership.PlansRepository
@@ -32,10 +39,11 @@ type Service struct {
 	EventService        *eventService.Service
 	CreditService       *userServices.CustomerCreditService
 	DB                  *sql.DB
+	activeCheckouts     sync.Map // key: "customerID:type:itemID" → *checkoutLock
 }
 
 func NewPurchaseService(container *di.Container) *Service {
-	return &Service{
+	svc := &Service{
 		CheckoutRepo:        repository.NewCheckoutRepository(container),
 		MembershipPlansRepo: membership.NewMembershipPlansRepository(container),
 		DiscountService:     discountService.NewService(container),
@@ -45,6 +53,48 @@ func NewPurchaseService(container *di.Container) *Service {
 		CreditService:       userServices.NewCustomerCreditService(container),
 		DB:                  container.DB,
 	}
+
+	// Cleanup expired checkout locks every 5 minutes
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			svc.activeCheckouts.Range(func(key, value any) bool {
+				if lock, ok := value.(*checkoutLock); ok {
+					if time.Since(lock.createdAt) > 10*time.Minute {
+						svc.activeCheckouts.Delete(key)
+					}
+				}
+				return true
+			})
+		}
+	}()
+
+	return svc
+}
+
+// tryAcquireCheckoutLock attempts to acquire a checkout lock for the given key.
+// Returns nil on success or an error if a checkout is already in progress.
+func (s *Service) tryAcquireCheckoutLock(customerID uuid.UUID, checkoutType string, itemID uuid.UUID) *errLib.CommonError {
+	key := customerID.String() + ":" + checkoutType + ":" + itemID.String()
+	lock := &checkoutLock{createdAt: time.Now()}
+
+	if existing, loaded := s.activeCheckouts.LoadOrStore(key, lock); loaded {
+		// Check if the existing lock is expired (stale from a crashed request)
+		if existingLock, ok := existing.(*checkoutLock); ok && time.Since(existingLock.createdAt) > 10*time.Minute {
+			// Expired lock — replace it
+			s.activeCheckouts.Store(key, lock)
+			return nil
+		}
+		return errLib.New("A checkout is already in progress for this item. Please wait for it to complete.", http.StatusConflict)
+	}
+	return nil
+}
+
+// releaseCheckoutLock releases the checkout lock for the given key.
+func (s *Service) releaseCheckoutLock(customerID uuid.UUID, checkoutType string, itemID uuid.UUID) {
+	key := customerID.String() + ":" + checkoutType + ":" + itemID.String()
+	s.activeCheckouts.Delete(key)
 }
 
 // getExistingStripeCustomerID retrieves the existing Stripe customer ID for a user from the database
@@ -84,6 +134,12 @@ func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID u
 		return "", ctxErr
 	}
 
+	// Prevent double-click duplicate checkouts
+	if err := s.tryAcquireCheckoutLock(customerID, "membership", membershipPlanID); err != nil {
+		return "", err
+	}
+	defer s.releaseCheckoutLock(customerID, "membership", membershipPlanID)
+
 	// SECURITY: Check if customer already has an active membership for this plan
 	hasActiveMembership, err := s.CheckoutRepo.CheckCustomerHasActiveMembership(ctx, customerID, membershipPlanID)
 	if err != nil {
@@ -99,20 +155,20 @@ func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID u
 		return "", err
 	}
 
-	// Handle discount code if provided
+	// Handle discount code if provided — validate only, don't increment usage until checkout succeeds
 	var stripeCouponID *string
 	if discountCode != nil {
-		applied, err := s.DiscountService.ApplyDiscount(ctx, *discountCode, &membershipPlanID)
+		validated, err := s.DiscountService.ValidateDiscount(ctx, *discountCode, &membershipPlanID)
 		if err != nil {
 			return "", err
 		}
 
 		// Validate that discount applies to subscriptions
-		if applied.AppliesTo != "subscription" && applied.AppliesTo != "both" {
+		if validated.AppliesTo != "subscription" && validated.AppliesTo != "both" {
 			return "", errLib.New("This discount code does not apply to subscriptions", http.StatusBadRequest)
 		}
 
-		stripeCouponID = applied.StripeCouponID
+		stripeCouponID = validated.StripeCouponID
 	}
 
 	// Check if customer has active subsidy
@@ -128,7 +184,19 @@ func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID u
 		"membershipPlanID": membershipPlanID.String(),
 	}
 
+	// Store discount info in metadata so webhook can increment usage after successful payment
+	if discountCode != nil {
+		validated, _ := s.DiscountService.ValidateDiscount(ctx, *discountCode, &membershipPlanID)
+		metadata["discount_code"] = *discountCode
+		metadata["discount_id"] = validated.ID.String()
+	}
+
 	if subsidy != nil && subsidy.RemainingBalance > 0 {
+		// Reject if customer provided both a discount code and has an active subsidy
+		if discountCode != nil {
+			return "", errLib.New("Discount codes cannot be used with subsidized memberships. Your subsidy will be applied automatically.", http.StatusBadRequest)
+		}
+
 		metadata["has_subsidy"] = "true"
 		metadata["subsidy_id"] = subsidy.ID.String()
 		metadata["subsidy_balance"] = fmt.Sprintf("%.2f", subsidy.RemainingBalance)
@@ -140,7 +208,6 @@ func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID u
 		if couponErr != nil {
 			log.Printf("Warning: Failed to create subsidy coupon: %v", couponErr)
 		} else if subsidyCouponID != "" {
-			// Apply subsidy coupon (overrides any discount code if both exist)
 			stripeCouponID = &subsidyCouponID
 			log.Printf("Created subsidy coupon: %s for $%.2f", subsidyCouponID, subsidy.RemainingBalance)
 		}
@@ -150,6 +217,13 @@ func (s *Service) CheckoutMembershipPlan(ctx context.Context, membershipPlanID u
 	existingCustomerID, recoverErr := s.getOrRecreateStripeCustomer(ctx, customerID)
 	if recoverErr != nil {
 		return "", recoverErr
+	}
+
+	// Validate joining fee is one-time before creating checkout
+	if requirements.StripeJoiningFeeID != "" {
+		if err := stripe.ValidateOneTimePrice(requirements.StripeJoiningFeeID); err != nil {
+			return "", err
+		}
 	}
 
 	// Check if membership has any joining fee
@@ -197,6 +271,13 @@ func (s *Service) AdminSendMembershipCheckoutLink(ctx context.Context, customerI
 	successURL := "https://www.risesportscomplex.com/membership/success"
 	cancelURL := "https://www.risesportscomplex.com/membership/cancel"
 
+	// Validate joining fee is one-time before creating checkout
+	if requirements.StripeJoiningFeeID != "" {
+		if err := stripe.ValidateOneTimePrice(requirements.StripeJoiningFeeID); err != nil {
+			return "", err
+		}
+	}
+
 	// Create checkout session using the customer-explicit variant
 	var checkoutURL string
 	if requirements.StripeJoiningFeeID != "" {
@@ -236,6 +317,12 @@ func (s *Service) CheckoutProgram(ctx context.Context, programID uuid.UUID, disc
 		return "", ctxErr
 	}
 
+	// Prevent double-click duplicate checkouts
+	if err := s.tryAcquireCheckoutLock(customerID, "program", programID); err != nil {
+		return "", err
+	}
+	defer s.releaseCheckoutLock(customerID, "program", programID)
+
 	isPayPerEvent, priceID, err := s.CheckoutRepo.GetRegistrationPriceIdForCustomerByProgramID(ctx, programID)
 	if err != nil {
 		return "", err
@@ -245,20 +332,20 @@ func (s *Service) CheckoutProgram(ctx context.Context, programID uuid.UUID, disc
 		return "", errLib.New("program is not pay-per-event", http.StatusBadRequest)
 	}
 
-	// Handle discount code if provided
+	// Handle discount code if provided — validate only, don't increment usage until checkout succeeds
 	var stripeCouponID *string
 	if discountCode != nil {
-		applied, err := s.DiscountService.ApplyDiscount(ctx, *discountCode, nil)
+		validated, err := s.DiscountService.ValidateDiscount(ctx, *discountCode, nil)
 		if err != nil {
 			return "", err
 		}
 
 		// Validate that discount applies to one-time payments
-		if applied.AppliesTo != "one_time" && applied.AppliesTo != "both" {
+		if validated.AppliesTo != "one_time" && validated.AppliesTo != "both" {
 			return "", errLib.New("This discount code does not apply to one-time payments", http.StatusBadRequest)
 		}
 
-		stripeCouponID = applied.StripeCouponID
+		stripeCouponID = validated.StripeCouponID
 	}
 
 	// reserve seat so that the database can assume that the customer is enrolled
@@ -287,6 +374,12 @@ func (s *Service) CheckoutEvent(ctx context.Context, eventID uuid.UUID, discount
 		return "", ctxErr
 	}
 
+	// Prevent double-click duplicate checkouts
+	if err := s.tryAcquireCheckoutLock(customerID, "event", eventID); err != nil {
+		return "", err
+	}
+	defer s.releaseCheckoutLock(customerID, "event", eventID)
+
 	programID, err := s.CheckoutRepo.GetProgramIDOfEvent(ctx, eventID)
 	if err != nil {
 		return "", err
@@ -301,20 +394,20 @@ func (s *Service) CheckoutEvent(ctx context.Context, eventID uuid.UUID, discount
 		return "", errLib.New("event is pay-per-program", http.StatusBadRequest)
 	}
 
-	// Handle discount code if provided
+	// Handle discount code if provided — validate only, don't increment usage until checkout succeeds
 	var stripeCouponID *string
 	if discountCode != nil {
-		applied, err := s.DiscountService.ApplyDiscount(ctx, *discountCode, nil)
+		validated, err := s.DiscountService.ValidateDiscount(ctx, *discountCode, nil)
 		if err != nil {
 			return "", err
 		}
 
 		// Validate that discount applies to one-time payments
-		if applied.AppliesTo != "one_time" && applied.AppliesTo != "both" {
+		if validated.AppliesTo != "one_time" && validated.AppliesTo != "both" {
 			return "", errLib.New("This discount code does not apply to one-time payments", http.StatusBadRequest)
 		}
 
-		stripeCouponID = applied.StripeCouponID
+		stripeCouponID = validated.StripeCouponID
 	}
 
 	// reserve seat so that the database can assume that the customer is enrolled
@@ -417,6 +510,12 @@ func (s *Service) CheckoutEventWithCredits(ctx context.Context, eventID uuid.UUI
 		return ctxErr
 	}
 
+	// Prevent double-click duplicate checkouts
+	if err := s.tryAcquireCheckoutLock(customerID, "event-credits", eventID); err != nil {
+		return err
+	}
+	defer s.releaseCheckoutLock(customerID, "event-credits", eventID)
+
 	// Check enrollment options
 	options, err := s.CheckEventEnrollmentOptions(ctx, eventID)
 	if err != nil {
@@ -453,8 +552,20 @@ func (s *Service) CheckoutEventWithCredits(ctx context.Context, eventID uuid.UUI
 	if err := s.EnrollmentService.ReserveSeatInEvent(ctx, eventID, customerID); err != nil {
 		// Credits were deducted but seat reservation failed - need to refund
 		log.Printf("Seat reservation failed after credit deduction, attempting refund for customer %s, event %s", customerID, eventID)
-		if refundErr := s.CreditService.RefundCreditsForCancellation(ctx, eventID, customerID); refundErr != nil {
-			log.Printf("CRITICAL: Failed to refund credits after seat reservation failure: %v", refundErr)
+		var refundErr *errLib.CommonError
+		for attempt := 1; attempt <= 3; attempt++ {
+			refundErr = s.CreditService.RefundCreditsForCancellation(ctx, eventID, customerID)
+			if refundErr == nil {
+				log.Printf("Credit refund succeeded on attempt %d for customer %s, event %s", attempt, customerID, eventID)
+				break
+			}
+			log.Printf("Credit refund attempt %d/3 failed for customer %s, event %s: %v", attempt, customerID, eventID, refundErr)
+			if attempt < 3 {
+				time.Sleep(time.Duration(attempt) * 500 * time.Millisecond)
+			}
+		}
+		if refundErr != nil {
+			log.Printf("CRITICAL: All 3 refund attempts failed for customer %s, event %s: %v", customerID, eventID, refundErr)
 			// Queue the failed refund for manual recovery
 			s.queueFailedRefund(ctx, customerID, eventID, *options.CreditCost, refundErr)
 		}
@@ -476,6 +587,12 @@ func (s *Service) CheckoutEventEnhanced(ctx context.Context, eventID uuid.UUID, 
 	if ctxErr != nil {
 		return "", ctxErr
 	}
+
+	// Prevent double-click duplicate checkouts
+	if err := s.tryAcquireCheckoutLock(customerID, "event-enhanced", eventID); err != nil {
+		return "", err
+	}
+	defer s.releaseCheckoutLock(customerID, "event-enhanced", eventID)
 
 	// Check enrollment options
 	options, err := s.CheckEventEnrollmentOptions(ctx, eventID)
@@ -507,20 +624,20 @@ func (s *Service) CheckoutEventEnhanced(ctx context.Context, eventID uuid.UUID, 
 		return "", errLib.New("Event requires membership or is not available for purchase", http.StatusBadRequest)
 	}
 
-	// Handle discount code if provided
+	// Handle discount code if provided — validate only, don't increment usage until checkout succeeds
 	var stripeCouponID *string
 	if discountCode != nil {
-		applied, err := s.DiscountService.ApplyDiscount(ctx, *discountCode, nil)
+		validated, err := s.DiscountService.ValidateDiscount(ctx, *discountCode, nil)
 		if err != nil {
 			return "", err
 		}
 
 		// Validate that discount applies to one-time payments
-		if applied.AppliesTo != "one_time" && applied.AppliesTo != "both" {
+		if validated.AppliesTo != "one_time" && validated.AppliesTo != "both" {
 			return "", errLib.New("This discount code does not apply to one-time payments", http.StatusBadRequest)
 		}
 
-		stripeCouponID = applied.StripeCouponID
+		stripeCouponID = validated.StripeCouponID
 	}
 
 	// Proceed with existing Stripe checkout logic

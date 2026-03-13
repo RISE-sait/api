@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"api/internal/di"
@@ -24,6 +25,13 @@ import (
 	"github.com/stripe/stripe-go/v81/subscription"
 	"github.com/stripe/stripe-go/v81/webhook"
 )
+
+// idempotencyKey builds a deterministic idempotency key for Stripe mutation calls.
+// Stripe deduplicates requests with the same key within 24 hours.
+func idempotencyKey(parts ...string) *string {
+	key := strings.Join(parts, ":")
+	return &key
+}
 
 // init configures the Stripe client with proper timeouts when the package is imported
 func init() {
@@ -158,6 +166,9 @@ func CreateOneTimePayment(
 		params.PaymentIntentData.Metadata["stripeCouponID"] = *stripeCouponID
 	}
 
+	// Idempotency key prevents duplicate sessions on network retry
+	params.IdempotencyKey = idempotencyKey("checkout-onetime", userID.String(), itemStripePriceID)
+
 	// Create Stripe session with timeout handling
 	type sessionResult struct {
 		session *stripe.CheckoutSession
@@ -165,7 +176,7 @@ func CreateOneTimePayment(
 	}
 
 	resultChan := make(chan sessionResult, 1)
-	
+
 	go func() {
 		s, err := session.New(params)
 		resultChan <- sessionResult{session: s, err: err}
@@ -287,6 +298,9 @@ func CreateSubscriptionWithSetupFeeAndMetadata(
 	params.AddExpand("line_items.data.price")
 	params.AddExpand("subscription")
 
+	// Idempotency key prevents duplicate sessions on network retry
+	params.IdempotencyKey = idempotencyKey("checkout-sub-setup", userID.String(), stripePlanPriceID)
+
 	// Create Stripe session with timeout handling
 	type subscriptionResult struct {
 		session *stripe.CheckoutSession
@@ -404,6 +418,9 @@ func CreateSubscriptionWithSetupFee(
 	params.AddExpand("line_items.data.price")
 	params.AddExpand("subscription")
 
+	// Idempotency key prevents duplicate sessions on network retry
+	params.IdempotencyKey = idempotencyKey("checkout-sub-setupfee", userID.String(), stripePlanPriceID)
+
 	// Create Stripe session with timeout handling
 	type subscriptionResult struct {
 		session *stripe.CheckoutSession
@@ -411,7 +428,7 @@ func CreateSubscriptionWithSetupFee(
 	}
 
 	resultChan := make(chan subscriptionResult, 1)
-	
+
 	go func() {
 		s, err := session.New(params)
 		resultChan <- subscriptionResult{session: s, err: err}
@@ -538,6 +555,9 @@ func CreateSubscription(
 		params.SubscriptionData.Metadata["stripeCouponID"] = *stripeCouponID
 	}
 
+	// Idempotency key prevents duplicate sessions on network retry
+	params.IdempotencyKey = idempotencyKey("checkout-sub", userID.String(), stripePlanPriceID)
+
 	// Create Stripe session with timeout handling
 	type subscriptionResult struct {
 		session *stripe.CheckoutSession
@@ -545,7 +565,7 @@ func CreateSubscription(
 	}
 
 	resultChan := make(chan subscriptionResult, 1)
-	
+
 	go func() {
 		s, err := session.New(params)
 		resultChan <- subscriptionResult{session: s, err: err}
@@ -675,8 +695,11 @@ func CreateSubscriptionWithMetadata(
 		params.SubscriptionData.Metadata["stripeCouponID"] = *stripeCouponID
 	}
 
+	// Idempotency key prevents duplicate sessions on network retry
+	params.IdempotencyKey = idempotencyKey("checkout-sub-meta", userID.String(), stripePlanPriceID)
+
 	// Create Stripe session with timeout handling
-	type subscriptionResult struct{
+	type subscriptionResult struct {
 		session *stripe.CheckoutSession
 		err     error
 	}
@@ -696,7 +719,8 @@ func CreateSubscriptionWithMetadata(
 		return "", errLib.New("Request cancelled during subscription creation", http.StatusRequestTimeout)
 	case result := <-resultChan:
 		if result.err != nil {
-			return "", errLib.New("Subscription setup failed: "+result.err.Error(), http.StatusInternalServerError)
+			status, msg := classifyStripeError(result.err)
+			return "", errLib.New("Subscription setup failed: "+msg, status)
 		}
 		return result.session.URL, nil // Return URL to redirect client for payment
 	}
@@ -792,6 +816,9 @@ func CreateSubscriptionCheckoutForCustomer(
 		})
 	}
 
+	// Idempotency key prevents duplicate sessions on network retry
+	params.IdempotencyKey = idempotencyKey("checkout-admin", customerUserID.String(), stripePlanPriceID)
+
 	// Create Stripe session with timeout handling
 	type subscriptionResult struct {
 		session *stripe.CheckoutSession
@@ -813,7 +840,8 @@ func CreateSubscriptionCheckoutForCustomer(
 		return "", errLib.New("Request cancelled during subscription creation", http.StatusRequestTimeout)
 	case result := <-resultChan:
 		if result.err != nil {
-			return "", errLib.New("Subscription setup failed: "+result.err.Error(), http.StatusInternalServerError)
+			status, msg := classifyStripeError(result.err)
+			return "", errLib.New("Subscription setup failed: "+msg, status)
 		}
 		return result.session.URL, nil
 	}
@@ -1471,7 +1499,13 @@ func ValidateWebhookSignature(payload []byte, signature, secret string) (*stripe
 	return &event, nil
 }
 
-// CreateSubsidyCoupon creates a one-time fixed-amount coupon for subsidy application
+// subsidyCouponCache caches subsidy coupon IDs by amount-in-cents.
+// This prevents creating orphaned coupons on abandoned checkouts — the same coupon
+// is reused for the same subsidy amount.
+var subsidyCouponCache sync.Map
+
+// CreateSubsidyCoupon returns a one-time fixed-amount coupon for subsidy application.
+// Coupons are cached by amount so abandoned checkouts don't leak orphaned coupons.
 func CreateSubsidyCoupon(ctx context.Context, subsidyAmount float64) (string, *errLib.CommonError) {
 	if subsidyAmount <= 0 {
 		return "", errLib.New("Subsidy amount must be positive", http.StatusBadRequest)
@@ -1479,8 +1513,22 @@ func CreateSubsidyCoupon(ctx context.Context, subsidyAmount float64) (string, *e
 
 	// Convert subsidy amount to cents
 	amountInCents := int64(subsidyAmount * 100)
+	cacheKey := fmt.Sprintf("%d", amountInCents)
 
-	// Create a one-time coupon with the subsidy amount
+	// Check cache for existing coupon with this amount
+	if cached, ok := subsidyCouponCache.Load(cacheKey); ok {
+		couponID := cached.(string)
+		// Verify it still exists in Stripe (may have been deleted)
+		if _, getErr := coupon.Get(couponID, nil); getErr == nil {
+			log.Printf("[SUBSIDY] Reusing cached coupon %s for subsidy amount $%.2f", couponID, subsidyAmount)
+			return couponID, nil
+		}
+		// Coupon was deleted — remove from cache and create a new one
+		subsidyCouponCache.Delete(cacheKey)
+		log.Printf("[SUBSIDY] Cached coupon %s no longer valid, creating new one", couponID)
+	}
+
+	// Create a new coupon
 	couponParams := &stripe.CouponParams{
 		Duration:  stripe.String(string(stripe.CouponDurationOnce)),
 		AmountOff: stripe.Int64(amountInCents),
@@ -1491,11 +1539,63 @@ func CreateSubsidyCoupon(ctx context.Context, subsidyAmount float64) (string, *e
 	c, err := coupon.New(couponParams)
 	if err != nil {
 		log.Printf("[SUBSIDY] Failed to create subsidy coupon: %v", err)
-		return "", errLib.New("Failed to create subsidy coupon: "+err.Error(), http.StatusInternalServerError)
+		status, msg := classifyStripeError(err)
+		return "", errLib.New("Failed to create subsidy coupon: "+msg, status)
 	}
 
-	log.Printf("[SUBSIDY] Created Stripe coupon %s for subsidy amount $%.2f", c.ID, subsidyAmount)
+	// Cache the coupon ID
+	subsidyCouponCache.Store(cacheKey, c.ID)
+	log.Printf("[SUBSIDY] Created and cached Stripe coupon %s for subsidy amount $%.2f", c.ID, subsidyAmount)
 	return c.ID, nil
+}
+
+// classifyStripeError inspects a Stripe error and returns an appropriate HTTP status code and message.
+// This prevents returning HTTP 500 for client errors like rate limits (429) or auth failures (401).
+func classifyStripeError(err error) (int, string) {
+	if stripeErr, ok := err.(*stripe.Error); ok {
+		switch stripeErr.HTTPStatusCode {
+		case 400:
+			return http.StatusBadRequest, "Invalid request to payment provider: " + stripeErr.Msg
+		case 401:
+			return http.StatusInternalServerError, "Payment provider authentication error"
+		case 402:
+			return http.StatusPaymentRequired, "Payment failed: " + stripeErr.Msg
+		case 403:
+			return http.StatusForbidden, "Payment provider access denied"
+		case 404:
+			return http.StatusNotFound, "Payment resource not found: " + stripeErr.Msg
+		case 409:
+			return http.StatusConflict, "Payment conflict: " + stripeErr.Msg
+		case 429:
+			return http.StatusTooManyRequests, "Payment provider rate limit exceeded, please try again shortly"
+		default:
+			if stripeErr.HTTPStatusCode >= 500 {
+				return http.StatusBadGateway, "Payment provider is temporarily unavailable"
+			}
+			return stripeErr.HTTPStatusCode, stripeErr.Msg
+		}
+	}
+	return http.StatusInternalServerError, "Payment processing error: " + err.Error()
+}
+
+// ValidateOneTimePrice validates that a Stripe price ID refers to a one-time (non-recurring) price.
+// This prevents misconfigured recurring prices from being used as joining fees.
+func ValidateOneTimePrice(priceID string) *errLib.CommonError {
+	if priceID == "" {
+		return nil
+	}
+
+	p, err := price.Get(priceID, nil)
+	if err != nil {
+		status, msg := classifyStripeError(err)
+		return errLib.New("Failed to validate joining fee price: "+msg, status)
+	}
+
+	if p.Type == stripe.PriceTypeRecurring {
+		return errLib.New("Joining fee price is misconfigured as recurring — it must be a one-time price", http.StatusBadRequest)
+	}
+
+	return nil
 }
 
 // PriceService handles Stripe price operations

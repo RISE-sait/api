@@ -8,6 +8,7 @@ import (
 	enrollmentRepo "api/internal/domains/enrollment/persistence/repository"
 	repository "api/internal/domains/payment/persistence/repositories"
 	"api/internal/domains/payment/tracking"
+	discountService "api/internal/domains/discount/service"
 	"api/internal/domains/subsidy/dto"
 	subsidyService "api/internal/domains/subsidy/service"
 	userServices "api/internal/domains/user/services"
@@ -19,6 +20,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"runtime"
 	"strings"
 	"time"
 
@@ -44,11 +46,27 @@ type WebhookService struct {
 	CustomerCreditService  *userServices.CustomerCreditService
 	CreditPackageRepo      *creditPackageRepo.CreditPackageRepository
 	SubsidyService         *subsidyService.SubsidyService
+	DiscountService        *discountService.Service
 	PaymentTracking        *tracking.PaymentTrackingService
 	Idempotency            *WebhookIdempotency
 	logger                 *logger.StructuredLogger
 	db                     *sql.DB
 	container              *di.Container
+}
+
+// safeGo runs a function in a goroutine with panic recovery.
+// If the goroutine panics, the stack trace is logged instead of silently killing the goroutine.
+func safeGo(name string, fn func()) {
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				buf := make([]byte, 4096)
+				n := runtime.Stack(buf, false)
+				log.Printf("[PANIC] goroutine %q panicked: %v\n%s", name, r, buf[:n])
+			}
+		}()
+		fn()
+	}()
 }
 
 func NewWebhookService(container *di.Container) *WebhookService {
@@ -62,6 +80,7 @@ func NewWebhookService(container *di.Container) *WebhookService {
 		CustomerCreditService:  userServices.NewCustomerCreditService(container),
 		CreditPackageRepo:      creditPackageRepo.NewCreditPackageRepository(container),
 		SubsidyService:         subsidyService.NewSubsidyService(container),
+		DiscountService:        discountService.NewService(container),
 		PaymentTracking:        tracking.NewPaymentTrackingService(container),
 		Idempotency:            NewWebhookIdempotencyWithDB(container.DB, 24*time.Hour, 10000), // Database-backed with cache
 		logger:                 logger.WithComponent("stripe-webhooks"),
@@ -81,7 +100,12 @@ func (s *WebhookService) HandleCheckoutSessionCompleted(ctx context.Context, eve
 	})
 
 	// Atomically claim the event - prevents race conditions with concurrent webhook deliveries
-	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+	claimed, claimErr := s.Idempotency.TryClaimEvent(event.ID, string(event.Type))
+	if claimErr != nil {
+		log.Printf("[IDEMPOTENCY] DB error claiming event %s, failing closed: %v", event.ID, claimErr)
+		return errLib.New("Idempotency check unavailable, will retry", http.StatusInternalServerError)
+	}
+	if !claimed {
 		webhookLogger.Info("Event already claimed by another process, skipping")
 		return nil
 	}
@@ -243,7 +267,7 @@ func (s *WebhookService) handleItemCheckoutComplete(ctx context.Context, checkou
 		}
 
 		// Track payment in centralized system
-		go s.trackCreditPackagePurchase(fullSession, customerID, creditPackage, eventCreatedAt, receiptURL)
+		safeGo("trackCreditPackagePurchase", func() { s.trackCreditPackagePurchase(fullSession, customerID, creditPackage, eventCreatedAt, receiptURL) })
 
 		log.Printf("CREDIT PACKAGE PURCHASE COMPLETE - Customer %s: +%d credits, %d/week limit", customerID, creditPackage.CreditAllocation, creditPackage.WeeklyCreditLimit)
 		return nil
@@ -256,7 +280,7 @@ func (s *WebhookService) handleItemCheckoutComplete(ctx context.Context, checkou
 			return errLib.New(fmt.Sprintf("failed to update program reservation (customer: %s, program: %s): %v", customerID, programID, err), http.StatusInternalServerError)
 		}
 		// Track payment in centralized system
-		go s.trackProgramEnrollment(fullSession, customerID, programID, eventCreatedAt, receiptURL)
+		safeGo("trackProgramEnrollment", func() { s.trackProgramEnrollment(fullSession, customerID, programID, eventCreatedAt, receiptURL) })
 	case eventID != uuid.Nil:
 		log.Printf("Updating event reservation for user %s and event %s", customerID, eventID)
 		if err = s.EnrollmentService.UpdateReservationStatusInEvent(ctx, eventID, customerID, dbEnrollment.PaymentStatusPaid); err != nil {
@@ -264,8 +288,11 @@ func (s *WebhookService) handleItemCheckoutComplete(ctx context.Context, checkou
 			return errLib.New(fmt.Sprintf("failed to update event reservation (customer: %s, event: %s): %v", customerID, eventID, err), http.StatusInternalServerError)
 		}
 		// Track payment in centralized system
-		go s.trackEventRegistration(fullSession, customerID, eventID, eventCreatedAt, receiptURL)
+		safeGo("trackEventRegistration", func() { s.trackEventRegistration(fullSession, customerID, eventID, eventCreatedAt, receiptURL) })
 	}
+
+	// Increment discount usage now that checkout succeeded
+	s.incrementDiscountUsageFromMetadata(ctx, fullSession.Metadata, customerID)
 
 	log.Println("handleItemCheckoutComplete completed")
 	return nil
@@ -414,11 +441,36 @@ func (s *WebhookService) handleSubscriptionCheckoutComplete(ctx context.Context,
 		}
 	}
 
+	// Increment discount usage now that checkout succeeded
+	s.incrementDiscountUsageFromMetadata(ctx, fullSession.Metadata, userID)
+
 	// Track payment in centralized system
-	go s.trackMembershipSubscription(fullSession, userID, planID, eventCreatedAt)
+	safeGo("trackMembershipSubscription", func() { s.trackMembershipSubscription(fullSession, userID, planID, eventCreatedAt) })
 
 	s.sendMembershipPurchaseEmail(userID, planID)
 	return nil
+}
+
+// incrementDiscountUsageFromMetadata increments discount usage if discount metadata is present in the checkout session.
+// Called after a successful checkout to ensure usage is only counted when payment actually happened.
+func (s *WebhookService) incrementDiscountUsageFromMetadata(ctx context.Context, metadata map[string]string, customerID uuid.UUID) {
+	if metadata == nil {
+		return
+	}
+	discountIDStr, exists := metadata["discount_id"]
+	if !exists || discountIDStr == "" {
+		return
+	}
+	discountID, parseErr := uuid.Parse(discountIDStr)
+	if parseErr != nil {
+		log.Printf("[DISCOUNT] Failed to parse discount_id from metadata: %v", parseErr)
+		return
+	}
+	if err := s.DiscountService.IncrementUsage(ctx, customerID, discountID); err != nil {
+		log.Printf("[DISCOUNT] WARNING: Failed to increment discount usage for customer %s, discount %s: %v", customerID, discountID, err)
+	} else {
+		log.Printf("[DISCOUNT] Incremented usage for discount %s after successful checkout for customer %s", discountID, customerID)
+	}
 }
 
 // recordSubsidyUsageFromCheckout records subsidy usage based on checkout session metadata
@@ -680,12 +732,11 @@ func (s *WebhookService) updateSubscriptionCancelAt(subscriptionID string, cance
 	var lastErr error
 	
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		_, err := subscription.Update(
-			subscriptionID,
-			&stripe.SubscriptionParams{
-				CancelAt: stripe.Int64(cancelAt),
-			},
-		)
+		cancelParams := &stripe.SubscriptionParams{
+			CancelAt: stripe.Int64(cancelAt),
+		}
+		cancelParams.IdempotencyKey = stripe.String(fmt.Sprintf("sub-cancel-at:%s:%d", subscriptionID, cancelAt))
+		_, err := subscription.Update(subscriptionID, cancelParams)
 		
 		if err == nil {
 			if attempt > 1 {
@@ -743,7 +794,12 @@ func (s *WebhookService) sendMembershipPurchaseEmail(userID, planID uuid.UUID) {
 // HandleSubscriptionCreated processes subscription.created events
 func (s *WebhookService) HandleSubscriptionCreated(ctx context.Context, event stripe.Event) *errLib.CommonError {
 	// Atomically claim the event - prevents race conditions
-	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+	claimed, claimErr := s.Idempotency.TryClaimEvent(event.ID, string(event.Type))
+	if claimErr != nil {
+		log.Printf("[IDEMPOTENCY] DB error claiming event %s, failing closed: %v", event.ID, claimErr)
+		return errLib.New("Idempotency check unavailable, will retry", http.StatusInternalServerError)
+	}
+	if !claimed {
 		log.Printf("Event %s already claimed by another process, skipping", event.ID)
 		return nil
 	}
@@ -786,7 +842,12 @@ func (s *WebhookService) HandleSubscriptionCreated(ctx context.Context, event st
 // HandleSubscriptionUpdated processes subscription.updated events
 func (s *WebhookService) HandleSubscriptionUpdated(ctx context.Context, event stripe.Event) *errLib.CommonError {
 	// Atomically claim the event - prevents race conditions
-	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+	claimed, claimErr := s.Idempotency.TryClaimEvent(event.ID, string(event.Type))
+	if claimErr != nil {
+		log.Printf("[IDEMPOTENCY] DB error claiming event %s, failing closed: %v", event.ID, claimErr)
+		return errLib.New("Idempotency check unavailable, will retry", http.StatusInternalServerError)
+	}
+	if !claimed {
 		log.Printf("Event %s already claimed by another process, skipping", event.ID)
 		return nil
 	}
@@ -847,7 +908,8 @@ func (s *WebhookService) HandleSubscriptionUpdated(ctx context.Context, event st
 	}
 
 	// Update membership status in database - use subscription ID to target only this specific subscription
-	if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByID(ctx, userID, sub.ID, dbStatus); updateErr != nil {
+	eventTime := time.Unix(event.Created, 0)
+	if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByID(ctx, userID, sub.ID, dbStatus, eventTime); updateErr != nil {
 		log.Printf("[WEBHOOK] Failed to update subscription status in database: %v", updateErr)
 		return updateErr
 	}
@@ -862,7 +924,12 @@ func (s *WebhookService) HandleSubscriptionUpdated(ctx context.Context, event st
 // HandleSubscriptionDeleted processes subscription.deleted events
 func (s *WebhookService) HandleSubscriptionDeleted(ctx context.Context, event stripe.Event) *errLib.CommonError {
 	// Atomically claim the event - prevents race conditions
-	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+	claimed, claimErr := s.Idempotency.TryClaimEvent(event.ID, string(event.Type))
+	if claimErr != nil {
+		log.Printf("[IDEMPOTENCY] DB error claiming event %s, failing closed: %v", event.ID, claimErr)
+		return errLib.New("Idempotency check unavailable, will retry", http.StatusInternalServerError)
+	}
+	if !claimed {
 		log.Printf("Event %s already claimed by another process, skipping", event.ID)
 		return nil
 	}
@@ -899,7 +966,8 @@ func (s *WebhookService) HandleSubscriptionDeleted(ctx context.Context, event st
 	log.Printf("[WEBHOOK] Found user %s for Stripe customer %s, marking subscription %s as expired", userID, stripeCustomerID, sub.ID)
 
 	// Update membership status to expired in database - ONLY for this specific subscription
-	if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByID(ctx, userID, sub.ID, "expired"); updateErr != nil {
+	eventTime := time.Unix(event.Created, 0)
+	if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByID(ctx, userID, sub.ID, "expired", eventTime); updateErr != nil {
 		log.Printf("[WEBHOOK] Failed to mark membership as expired: %v", updateErr)
 		return updateErr
 	}
@@ -914,7 +982,12 @@ func (s *WebhookService) HandleSubscriptionDeleted(ctx context.Context, event st
 // HandleInvoicePaymentSucceeded processes invoice.payment_succeeded events
 func (s *WebhookService) HandleInvoicePaymentSucceeded(ctx context.Context, event stripe.Event) *errLib.CommonError {
 	// Atomically claim the event - prevents race conditions
-	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+	claimed, claimErr := s.Idempotency.TryClaimEvent(event.ID, string(event.Type))
+	if claimErr != nil {
+		log.Printf("[IDEMPOTENCY] DB error claiming event %s, failing closed: %v", event.ID, claimErr)
+		return errLib.New("Idempotency check unavailable, will retry", http.StatusInternalServerError)
+	}
+	if !claimed {
 		log.Printf("Event %s already claimed by another process, skipping", event.ID)
 		return nil
 	}
@@ -959,13 +1032,14 @@ func (s *WebhookService) HandleInvoicePaymentSucceeded(ctx context.Context, even
 	log.Printf("[WEBHOOK] Found user %s for Stripe customer %s, processing payment", userID, customerID)
 
 	// If this is a subscription invoice, get the next billing date from Stripe
+	eventTime := time.Unix(event.Created, 0)
 	if subscriptionID != "" {
 		// Get subscription details to find the next billing date
 		sub, subErr := subscription.Get(subscriptionID, nil)
 		if subErr != nil {
 			log.Printf("[WEBHOOK] Failed to get subscription details for %s: %v", subscriptionID, subErr)
 			// Fall back to just updating status - use subscription ID for specificity
-			if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByID(ctx, userID, subscriptionID, "active"); updateErr != nil {
+			if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByID(ctx, userID, subscriptionID, "active", eventTime); updateErr != nil {
 				log.Printf("[WEBHOOK] Failed to activate membership after successful payment: %v", updateErr)
 				return updateErr
 			}
@@ -973,19 +1047,16 @@ func (s *WebhookService) HandleInvoicePaymentSucceeded(ctx context.Context, even
 			// Update both status and next billing date - target specific subscription
 			nextBillingDate := time.Unix(sub.CurrentPeriodEnd, 0)
 			log.Printf("[WEBHOOK] Updating membership: status=active, next_billing=%s for subscription %s", nextBillingDate.Format(time.RFC3339), subscriptionID)
-			if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByIDAndNextBilling(ctx, userID, subscriptionID, "active", nextBillingDate); updateErr != nil {
+			if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByIDAndNextBilling(ctx, userID, subscriptionID, "active", nextBillingDate, eventTime); updateErr != nil {
 				log.Printf("[WEBHOOK] Failed to update membership after successful payment: %v", updateErr)
 				return updateErr
 			}
 			log.Printf("[WEBHOOK] Successfully updated next_billing_date to %s", nextBillingDate.Format(time.RFC3339))
 		}
 	} else {
-		// Non-subscription invoice - should not happen for membership payments
-		log.Printf("[WEBHOOK] No subscription ID for invoice %s, updating all active subscriptions", invoice.ID)
-		if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatus(ctx, userID, "active"); updateErr != nil {
-			log.Printf("[WEBHOOK] Failed to activate membership after successful payment: %v", updateErr)
-			return updateErr
-		}
+		// No subscription ID — log warning and skip rather than updating all subscriptions
+		// (updating all would break multi-plan customers by setting every plan to same status)
+		log.Printf("[WEBHOOK] WARNING: No subscription ID for invoice %s, skipping membership status update to avoid affecting other subscriptions", invoice.ID)
 	}
 
 	log.Printf("[WEBHOOK] Successfully activated membership for user %s after invoice payment %s", userID, invoice.ID)
@@ -994,7 +1065,7 @@ func (s *WebhookService) HandleInvoicePaymentSucceeded(ctx context.Context, even
 	// because checkout.session.completed already tracks that via trackMembershipSubscription.
 	// Only track actual renewals to avoid duplicate payment records.
 	if invoice.BillingReason != stripe.InvoiceBillingReasonSubscriptionCreate {
-		go s.trackMembershipRenewal(&invoice, userID, time.Unix(event.Created, 0))
+		safeGo("trackMembershipRenewal", func() { s.trackMembershipRenewal(&invoice, userID, eventTime) })
 	} else {
 		log.Printf("[WEBHOOK] Skipping payment tracking for initial subscription invoice %s (already tracked by checkout)", invoice.ID)
 	}
@@ -1007,7 +1078,12 @@ func (s *WebhookService) HandleInvoicePaymentSucceeded(ctx context.Context, even
 // HandleInvoicePaymentFailed processes invoice.payment_failed events
 func (s *WebhookService) HandleInvoicePaymentFailed(ctx context.Context, event stripe.Event) *errLib.CommonError {
 	// Atomically claim the event - prevents race conditions
-	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+	claimed, claimErr := s.Idempotency.TryClaimEvent(event.ID, string(event.Type))
+	if claimErr != nil {
+		log.Printf("[IDEMPOTENCY] DB error claiming event %s, failing closed: %v", event.ID, claimErr)
+		return errLib.New("Idempotency check unavailable, will retry", http.StatusInternalServerError)
+	}
+	if !claimed {
 		log.Printf("Event %s already claimed by another process, skipping", event.ID)
 		return nil
 	}
@@ -1063,10 +1139,10 @@ func (s *WebhookService) HandleInvoicePaymentFailed(ctx context.Context, event s
 	log.Printf("[WEBHOOK] Successfully marked subscription %s as past_due for user %s after payment failure %s", subscriptionID, userID, invoice.ID)
 
 	// Track the failed payment in the centralized payment system
-	go s.trackFailedPayment(&invoice, userID, time.Unix(event.Created, 0))
+	safeGo("trackFailedPayment", func() { s.trackFailedPayment(&invoice, userID, time.Unix(event.Created, 0)) })
 
 	// Send email notification about payment failure
-	go s.sendPaymentFailureEmail(userID, invoice.ID)
+	safeGo("sendPaymentFailureEmail", func() { s.sendPaymentFailureEmail(userID, invoice.ID) })
 
 	// Mark as complete
 	s.Idempotency.MarkEventComplete(event.ID)
@@ -1085,8 +1161,8 @@ func (s *WebhookService) allocateCreditsForMembership(ctx context.Context, custo
 func (s *WebhookService) queueSubscriptionCancelUpdate(subscriptionID string, cancelAtUnix int64) {
 	log.Printf("[CANCEL_QUEUE] Queueing subscription cancel date update: subscription=%s, cancel_at=%d", subscriptionID, cancelAtUnix)
 
-	// For now, we'll just retry asynchronously with exponential backoff
-	go func() {
+	// Retry asynchronously with exponential backoff
+	safeGo("queueSubscriptionCancelUpdate", func() {
 		maxRetries := 3
 		baseDelay := 5 * time.Second
 
@@ -1104,7 +1180,7 @@ func (s *WebhookService) queueSubscriptionCancelUpdate(subscriptionID string, ca
 		}
 
 		log.Printf("[CANCEL_QUEUE] CRITICAL: All retries failed for subscription %s cancel date update. Manual intervention required.", subscriptionID)
-	}()
+	})
 }
 
 // sendPaymentFailureEmail sends an email notification when a payment fails
@@ -1296,7 +1372,12 @@ func (s *WebhookService) sendEnhancedWebhookAlert(event stripe.Event, checkSessi
 // This is sent ~3 days before a subscription renews, useful for sending reminder emails
 func (s *WebhookService) HandleInvoiceUpcoming(ctx context.Context, event stripe.Event) *errLib.CommonError {
 	// Atomically claim the event
-	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+	claimed, claimErr := s.Idempotency.TryClaimEvent(event.ID, string(event.Type))
+	if claimErr != nil {
+		log.Printf("[IDEMPOTENCY] DB error claiming event %s, failing closed: %v", event.ID, claimErr)
+		return errLib.New("Idempotency check unavailable, will retry", http.StatusInternalServerError)
+	}
+	if !claimed {
 		log.Printf("Event %s already claimed, skipping", event.ID)
 		return nil
 	}
@@ -1330,7 +1411,7 @@ func (s *WebhookService) HandleInvoiceUpcoming(ctx context.Context, event stripe
 	}
 
 	// Send renewal reminder email
-	go s.sendRenewalReminderEmail(userID, invoice.AmountDue, time.Unix(invoice.DueDate, 0))
+	safeGo("sendRenewalReminderEmail", func() { s.sendRenewalReminderEmail(userID, invoice.AmountDue, time.Unix(invoice.DueDate, 0)) })
 
 	log.Printf("[WEBHOOK] Processed upcoming invoice for user %s, amount: %d cents", userID, invoice.AmountDue)
 
@@ -1342,7 +1423,12 @@ func (s *WebhookService) HandleInvoiceUpcoming(ctx context.Context, event stripe
 // Useful for logging when customers add new payment methods
 func (s *WebhookService) HandlePaymentMethodAttached(ctx context.Context, event stripe.Event) *errLib.CommonError {
 	// Atomically claim the event
-	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+	claimed, claimErr := s.Idempotency.TryClaimEvent(event.ID, string(event.Type))
+	if claimErr != nil {
+		log.Printf("[IDEMPOTENCY] DB error claiming event %s, failing closed: %v", event.ID, claimErr)
+		return errLib.New("Idempotency check unavailable, will retry", http.StatusInternalServerError)
+	}
+	if !claimed {
 		log.Printf("Event %s already claimed, skipping", event.ID)
 		return nil
 	}
@@ -1369,7 +1455,7 @@ func (s *WebhookService) HandlePaymentMethodAttached(ctx context.Context, event 
 
 			// If this customer had failed payments, they may have updated their payment method
 			// Consider reactivating their subscription or sending a confirmation email
-			go s.sendPaymentMethodUpdatedEmail(userID)
+			safeGo("sendPaymentMethodUpdatedEmail", func() { s.sendPaymentMethodUpdatedEmail(userID) })
 		}
 	}
 
@@ -1380,7 +1466,12 @@ func (s *WebhookService) HandlePaymentMethodAttached(ctx context.Context, event 
 // HandlePaymentMethodDetached handles payment_method.detached events
 func (s *WebhookService) HandlePaymentMethodDetached(ctx context.Context, event stripe.Event) *errLib.CommonError {
 	// Atomically claim the event
-	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+	claimed, claimErr := s.Idempotency.TryClaimEvent(event.ID, string(event.Type))
+	if claimErr != nil {
+		log.Printf("[IDEMPOTENCY] DB error claiming event %s, failing closed: %v", event.ID, claimErr)
+		return errLib.New("Idempotency check unavailable, will retry", http.StatusInternalServerError)
+	}
+	if !claimed {
 		log.Printf("Event %s already claimed, skipping", event.ID)
 		return nil
 	}
@@ -1400,7 +1491,12 @@ func (s *WebhookService) HandlePaymentMethodDetached(ctx context.Context, event 
 // HandleSubscriptionPaused handles customer.subscription.paused events
 func (s *WebhookService) HandleSubscriptionPaused(ctx context.Context, event stripe.Event) *errLib.CommonError {
 	// Atomically claim the event
-	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+	claimed, claimErr := s.Idempotency.TryClaimEvent(event.ID, string(event.Type))
+	if claimErr != nil {
+		log.Printf("[IDEMPOTENCY] DB error claiming event %s, failing closed: %v", event.ID, claimErr)
+		return errLib.New("Idempotency check unavailable, will retry", http.StatusInternalServerError)
+	}
+	if !claimed {
 		log.Printf("Event %s already claimed, skipping", event.ID)
 		return nil
 	}
@@ -1434,7 +1530,8 @@ func (s *WebhookService) HandleSubscriptionPaused(ctx context.Context, event str
 	}
 
 	// Update membership status to paused
-	if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByID(ctx, userID, sub.ID, "paused"); updateErr != nil {
+	eventTime := time.Unix(event.Created, 0)
+	if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByID(ctx, userID, sub.ID, "paused", eventTime); updateErr != nil {
 		log.Printf("[WEBHOOK] Failed to update subscription status to paused: %v", updateErr)
 		return updateErr
 	}
@@ -1448,7 +1545,12 @@ func (s *WebhookService) HandleSubscriptionPaused(ctx context.Context, event str
 // HandleSubscriptionResumed handles customer.subscription.resumed events
 func (s *WebhookService) HandleSubscriptionResumed(ctx context.Context, event stripe.Event) *errLib.CommonError {
 	// Atomically claim the event
-	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+	claimed, claimErr := s.Idempotency.TryClaimEvent(event.ID, string(event.Type))
+	if claimErr != nil {
+		log.Printf("[IDEMPOTENCY] DB error claiming event %s, failing closed: %v", event.ID, claimErr)
+		return errLib.New("Idempotency check unavailable, will retry", http.StatusInternalServerError)
+	}
+	if !claimed {
 		log.Printf("Event %s already claimed, skipping", event.ID)
 		return nil
 	}
@@ -1482,7 +1584,8 @@ func (s *WebhookService) HandleSubscriptionResumed(ctx context.Context, event st
 	}
 
 	// Update membership status to active
-	if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByID(ctx, userID, sub.ID, "active"); updateErr != nil {
+	eventTime := time.Unix(event.Created, 0)
+	if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByID(ctx, userID, sub.ID, "active", eventTime); updateErr != nil {
 		log.Printf("[WEBHOOK] Failed to update subscription status to active: %v", updateErr)
 		return updateErr
 	}
@@ -1497,7 +1600,12 @@ func (s *WebhookService) HandleSubscriptionResumed(ctx context.Context, event st
 // Useful for tracking email changes and keeping user data in sync
 func (s *WebhookService) HandleCustomerUpdated(ctx context.Context, event stripe.Event) *errLib.CommonError {
 	// Atomically claim the event
-	if !s.Idempotency.TryClaimEvent(event.ID, string(event.Type)) {
+	claimed, claimErr := s.Idempotency.TryClaimEvent(event.ID, string(event.Type))
+	if claimErr != nil {
+		log.Printf("[IDEMPOTENCY] DB error claiming event %s, failing closed: %v", event.ID, claimErr)
+		return errLib.New("Idempotency check unavailable, will retry", http.StatusInternalServerError)
+	}
+	if !claimed {
 		log.Printf("Event %s already claimed, skipping", event.ID)
 		return nil
 	}

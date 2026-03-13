@@ -241,7 +241,7 @@ func (r *WebhookRetryService) processRetryAttempt(attempt *RetryAttempt) {
 	case "customer.subscription.deleted":
 		err = r.webhookService.HandleSubscriptionDeleted(ctx, attempt.Event)
 	case "invoice.payment_succeeded":
-		err = r.webhookService.HandleInvoicePaymentSucceeded(ctx, attempt.Event)
+		err = r.webhookService.HandleInvoicePaymentSucceededWithSubsidy(ctx, attempt.Event)
 	case "invoice.payment_failed":
 		err = r.webhookService.HandleInvoicePaymentFailed(ctx, attempt.Event)
 	default:

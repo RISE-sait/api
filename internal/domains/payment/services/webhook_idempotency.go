@@ -68,10 +68,11 @@ func (w *WebhookIdempotency) IsProcessed(eventID string) bool {
 }
 
 // TryClaimEvent atomically attempts to claim an event for processing.
-// Returns true if this caller successfully claimed the event (should process it).
-// Returns false if the event was already claimed by another process.
-// This prevents race conditions where two concurrent handlers both pass IsProcessed check.
-func (w *WebhookIdempotency) TryClaimEvent(eventID, eventType string) bool {
+// Returns (true, nil) if this caller successfully claimed the event (should process it).
+// Returns (false, nil) if the event was already claimed by another process.
+// Returns (false, error) if the idempotency check failed (DB unreachable) — caller should
+// return an error so Stripe retries the webhook later (fail closed).
+func (w *WebhookIdempotency) TryClaimEvent(eventID, eventType string) (bool, error) {
 	// First check in-memory cache (fast path for recently processed)
 	w.mutex.RLock()
 	processedAt, exists := w.cache[eventID]
@@ -79,12 +80,17 @@ func (w *WebhookIdempotency) TryClaimEvent(eventID, eventType string) bool {
 
 	if exists && time.Since(processedAt) <= w.maxCacheAge {
 		log.Printf("[IDEMPOTENCY] Event %s already in cache, rejecting claim", eventID)
-		return false
+		return false, nil
 	}
 
 	// Use database atomic insert to claim the event
 	if w.db != nil {
-		claimed := w.tryClaimInDB(eventID, eventType)
+		claimed, err := w.tryClaimInDB(eventID, eventType)
+		if err != nil {
+			// Fail closed: if we can't check, reject and let Stripe retry
+			log.Printf("[IDEMPOTENCY] FAIL CLOSED: DB error claiming event %s, rejecting to prevent duplicates: %v", eventID, err)
+			return false, err
+		}
 		if claimed {
 			// Successfully claimed - add to cache
 			w.mutex.Lock()
@@ -94,7 +100,7 @@ func (w *WebhookIdempotency) TryClaimEvent(eventID, eventType string) bool {
 			w.cache[eventID] = time.Now()
 			w.mutex.Unlock()
 		}
-		return claimed
+		return claimed, nil
 	}
 
 	// No database - use cache-only with mutex protection
@@ -103,7 +109,7 @@ func (w *WebhookIdempotency) TryClaimEvent(eventID, eventType string) bool {
 
 	// Double-check after acquiring write lock
 	if _, exists := w.cache[eventID]; exists {
-		return false
+		return false, nil
 	}
 
 	// Claim it
@@ -111,11 +117,12 @@ func (w *WebhookIdempotency) TryClaimEvent(eventID, eventType string) bool {
 		w.removeOldestEntries(w.maxCacheSize / 4)
 	}
 	w.cache[eventID] = time.Now()
-	return true
+	return true, nil
 }
 
-// tryClaimInDB atomically attempts to insert the event and returns whether it succeeded
-func (w *WebhookIdempotency) tryClaimInDB(eventID, eventType string) bool {
+// tryClaimInDB atomically attempts to insert the event.
+// Returns (true, nil) on success, (false, nil) if already claimed, (false, error) on DB failure.
+func (w *WebhookIdempotency) tryClaimInDB(eventID, eventType string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -128,23 +135,22 @@ func (w *WebhookIdempotency) tryClaimInDB(eventID, eventType string) bool {
 	result, err := w.db.ExecContext(ctx, query, eventID, eventType)
 	if err != nil {
 		log.Printf("[IDEMPOTENCY] Failed to claim event %s in DB: %v", eventID, err)
-		// On DB error, check if it exists to decide
-		return !w.isProcessedInDB(eventID)
+		return false, err
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		log.Printf("[IDEMPOTENCY] Failed to get rows affected for event %s: %v", eventID, err)
-		return false
+		return false, err
 	}
 
 	if rowsAffected > 0 {
 		log.Printf("[IDEMPOTENCY] Successfully claimed event %s", eventID)
-		return true
+		return true, nil
 	}
 
 	log.Printf("[IDEMPOTENCY] Event %s already claimed by another process", eventID)
-	return false
+	return false, nil
 }
 
 // MarkEventComplete updates the event status to processed after successful handling
@@ -196,8 +202,8 @@ func (w *WebhookIdempotency) isProcessedInDB(eventID string) bool {
 
 	err := w.db.QueryRowContext(ctx, query, eventID).Scan(&isProcessed)
 	if err != nil {
-		log.Printf("[IDEMPOTENCY] Failed to check DB for event %s: %v", eventID, err)
-		return false // Fail open - better to risk duplicate than block
+		log.Printf("[IDEMPOTENCY] Failed to check DB for event %s: %v — failing closed (assuming processed)", eventID, err)
+		return true // Fail closed - better to skip than risk duplicate payment
 	}
 
 	// If found in DB, add to cache

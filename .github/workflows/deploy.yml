@@ -6,7 +6,26 @@ on:
       - main  # Deploy only when changes are pushed to main
 
 jobs:
+  migrate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Build Docker Image
+        run: |
+          docker build -t api-go-server:latest -f migrate.Dockerfile .
+
+      - name: Run Migrations
+        run: |
+          docker run --rm -e DATABASE_URL="${{ secrets.DATABASE_URL }}" api-go-server:latest up
+
   deploy:
+    needs: migrate
     runs-on: ubuntu-latest
 
     steps:
@@ -47,4 +66,4 @@ jobs:
             --image us-west2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/rise-api:$GITHUB_SHA \
             --region us-west2 \
             --platform managed \
-            --allow-unauthenticated 
+            --allow-unauthenticated

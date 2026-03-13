@@ -262,8 +262,9 @@ func (s *Service) IncrementUsage(ctx context.Context, customerID, discountID uui
 	return s.repo.IncrementUsage(ctx, customerID, discountID)
 }
 
-// ApplyDiscount validates and records usage of a discount code for the current customer
-func (s *Service) ApplyDiscount(ctx context.Context, name string, membershipPlanID *uuid.UUID) (values.ReadValues, *errLib.CommonError) {
+// ValidateDiscount validates a discount code without incrementing usage.
+// Use this at checkout creation time when payment hasn't happened yet.
+func (s *Service) ValidateDiscount(ctx context.Context, name string, membershipPlanID *uuid.UUID) (values.ReadValues, *errLib.CommonError) {
 	discount, err := s.repo.GetByNameActive(ctx, name)
 	if err != nil {
 		return values.ReadValues{}, err
@@ -307,6 +308,22 @@ func (s *Service) ApplyDiscount(ctx context.Context, name string, membershipPlan
 				return values.ReadValues{}, errLib.New("discount not valid for this membership plan", http.StatusForbidden)
 			}
 		}
+	}
+
+	return discount, nil
+}
+
+// ApplyDiscount validates and records usage of a discount code for the current customer.
+// This increments usage immediately — use ValidateDiscount instead if payment hasn't happened yet.
+func (s *Service) ApplyDiscount(ctx context.Context, name string, membershipPlanID *uuid.UUID) (values.ReadValues, *errLib.CommonError) {
+	discount, err := s.ValidateDiscount(ctx, name, membershipPlanID)
+	if err != nil {
+		return values.ReadValues{}, err
+	}
+
+	customerID, ctxErr := contextUtils.GetUserID(ctx)
+	if ctxErr != nil {
+		return values.ReadValues{}, ctxErr
 	}
 
 	if err := s.repo.IncrementUsage(ctx, customerID, discount.ID); err != nil {

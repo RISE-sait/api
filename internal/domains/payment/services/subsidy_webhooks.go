@@ -7,6 +7,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"time"
 
 	"api/internal/domains/subsidy/dto"
 	errLib "api/internal/libs/errors"
@@ -15,16 +16,8 @@ import (
 	"github.com/stripe/stripe-go/v81"
 	invoicepkg "github.com/stripe/stripe-go/v81/invoice"
 	"github.com/stripe/stripe-go/v81/invoiceitem"
+	"github.com/stripe/stripe-go/v81/subscription"
 )
-
-// getMapKeys returns the keys of a map for debugging
-func getMapKeys(m map[string]interface{}) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	return keys
-}
 
 // getUserIDByStripeCustomerID retrieves userID from database using Stripe customer ID
 func (s *WebhookService) getUserIDByStripeCustomerID(ctx context.Context, stripeCustomerID string) (uuid.UUID, error) {
@@ -39,9 +32,14 @@ func (s *WebhookService) getUserIDByStripeCustomerID(ctx context.Context, stripe
 
 // HandleInvoiceCreated applies subsidy credit to invoices BEFORE customer is charged
 func (s *WebhookService) HandleInvoiceCreated(ctx context.Context, event stripe.Event) *errLib.CommonError {
-	// Idempotency check
-	if s.Idempotency.IsProcessed(event.ID) {
-		log.Printf("[SUBSIDY] Event %s already processed, skipping", event.ID)
+	// Atomic idempotency claim
+	claimed, claimErr := s.Idempotency.TryClaimEvent(event.ID, string(event.Type))
+	if claimErr != nil {
+		log.Printf("[IDEMPOTENCY] DB error claiming event %s, failing closed: %v", event.ID, claimErr)
+		return errLib.New("Idempotency check unavailable, will retry", http.StatusInternalServerError)
+	}
+	if !claimed {
+		log.Printf("[SUBSIDY] Event %s already claimed, skipping", event.ID)
 		return nil
 	}
 
@@ -61,7 +59,7 @@ func (s *WebhookService) HandleInvoiceCreated(ctx context.Context, event stripe.
 	} else {
 		log.Printf("[SUBSIDY] Invoice.Subscription is nil or empty, checking raw data...")
 		// Try raw data as fallback
-		var rawInvoiceData map[string]interface{}
+		var rawInvoiceData map[string]any
 		if err := json.Unmarshal(event.Data.Raw, &rawInvoiceData); err == nil {
 			if subID, ok := rawInvoiceData["subscription"]; ok && subID != nil {
 				if subIDStr, ok := subID.(string); ok && subIDStr != "" {
@@ -77,7 +75,7 @@ func (s *WebhookService) HandleInvoiceCreated(ctx context.Context, event stripe.
 	// Extract customer metadata - in Stripe v81, customer is expanded
 	if invoice.Customer == nil {
 		log.Printf("[SUBSIDY] No customer info for invoice %s", invoice.ID)
-		s.Idempotency.MarkAsProcessed(event.ID)
+		s.Idempotency.MarkEventComplete(event.ID)
 		return nil
 	}
 
@@ -132,7 +130,7 @@ func (s *WebhookService) HandleInvoiceCreated(ctx context.Context, event stripe.
 		}
 	}
 
-	// NEW: Fallback to database lookup by Stripe customer ID if still no userID
+	// Fallback to database lookup by Stripe customer ID if still no userID
 	if userID == uuid.Nil && invoice.Customer != nil && invoice.Customer.ID != "" {
 		log.Printf("[SUBSIDY] Looking up userID by Stripe customer ID: %s", invoice.Customer.ID)
 		uid, err := s.getUserIDByStripeCustomerID(ctx, invoice.Customer.ID)
@@ -160,7 +158,7 @@ func (s *WebhookService) HandleInvoiceCreated(ctx context.Context, event stripe.
 
 	if subsidyID == nil {
 		log.Printf("[SUBSIDY] No subsidy for invoice %s", invoice.ID)
-		s.Idempotency.MarkAsProcessed(event.ID)
+		s.Idempotency.MarkEventComplete(event.ID)
 		return nil
 	}
 
@@ -168,13 +166,13 @@ func (s *WebhookService) HandleInvoiceCreated(ctx context.Context, event stripe.
 	subsidy, err := s.SubsidyService.GetSubsidy(ctx, *subsidyID)
 	if err != nil {
 		log.Printf("[SUBSIDY] Error getting subsidy: %v", err)
-		s.Idempotency.MarkAsProcessed(event.ID)
+		s.Idempotency.MarkEventComplete(event.ID)
 		return nil // Don't fail invoice creation
 	}
 
 	if subsidy.RemainingBalance <= 0 {
 		log.Printf("[SUBSIDY] Subsidy %s depleted, skipping", subsidyID)
-		s.Idempotency.MarkAsProcessed(event.ID)
+		s.Idempotency.MarkEventComplete(event.ID)
 		return nil
 	}
 
@@ -187,7 +185,7 @@ func (s *WebhookService) HandleInvoiceCreated(ctx context.Context, event stripe.
 		subsidyToApply, invoice.ID, subsidy.RemainingBalance)
 
 	// Add negative line item to invoice (credit)
-	_, itemErr := invoiceitem.New(&stripe.InvoiceItemParams{
+	itemParams := &stripe.InvoiceItemParams{
 		Customer: stripe.String(invoice.Customer.ID),
 		Invoice:  stripe.String(invoice.ID),
 		Amount:   stripe.Int64(-subsidyInCents), // NEGATIVE = credit
@@ -198,11 +196,13 @@ func (s *WebhookService) HandleInvoiceCreated(ctx context.Context, event stripe.
 			"subsidy_id":      subsidyID.String(),
 			"subsidy_applied": fmt.Sprintf("%.2f", subsidyToApply),
 		},
-	})
+	}
+	itemParams.IdempotencyKey = stripe.String("subsidy-credit:" + event.ID + ":" + invoice.ID)
+	_, itemErr := invoiceitem.New(itemParams)
 
 	if itemErr != nil {
 		log.Printf("[SUBSIDY] Failed to add subsidy credit to invoice: %v", itemErr)
-		s.Idempotency.MarkAsProcessed(event.ID)
+		s.Idempotency.MarkEventComplete(event.ID)
 		return nil // Don't fail invoice - proceed with normal amount
 	}
 
@@ -210,7 +210,7 @@ func (s *WebhookService) HandleInvoiceCreated(ctx context.Context, event stripe.
 		subsidyToApply, invoice.ID)
 
 	// Update invoice metadata with subsidy info so invoice.payment_succeeded can record usage
-	_, updateErr := invoicepkg.Update(invoice.ID, &stripe.InvoiceParams{
+	invoiceUpdateParams := &stripe.InvoiceParams{
 		Metadata: map[string]string{
 			"has_subsidy":     "true",
 			"subsidy_id":      subsidyID.String(),
@@ -218,7 +218,9 @@ func (s *WebhookService) HandleInvoiceCreated(ctx context.Context, event stripe.
 			"subsidy_applied": fmt.Sprintf("%.2f", subsidyToApply),
 			"userID":          userID.String(),
 		},
-	})
+	}
+	invoiceUpdateParams.IdempotencyKey = stripe.String("subsidy-meta:" + event.ID + ":" + invoice.ID)
+	_, updateErr := invoicepkg.Update(invoice.ID, invoiceUpdateParams)
 
 	if updateErr != nil {
 		log.Printf("[SUBSIDY] Warning: Failed to update invoice metadata: %v", updateErr)
@@ -227,16 +229,21 @@ func (s *WebhookService) HandleInvoiceCreated(ctx context.Context, event stripe.
 		log.Printf("[SUBSIDY] Updated invoice metadata with subsidy info for usage recording")
 	}
 
-	s.Idempotency.MarkAsProcessed(event.ID)
+	s.Idempotency.MarkEventComplete(event.ID)
 	return nil
 }
 
 // HandleInvoiceFinalized applies subsidy credit at invoice finalization
 // This fires AFTER subscription is linked and AFTER customer metadata is set, but BEFORE payment
 func (s *WebhookService) HandleInvoiceFinalized(ctx context.Context, event stripe.Event) *errLib.CommonError {
-	// Idempotency check
-	if s.Idempotency.IsProcessed(event.ID) {
-		log.Printf("[SUBSIDY] Event %s already processed, skipping", event.ID)
+	// Atomic idempotency claim
+	claimed, claimErr := s.Idempotency.TryClaimEvent(event.ID, string(event.Type))
+	if claimErr != nil {
+		log.Printf("[IDEMPOTENCY] DB error claiming event %s, failing closed: %v", event.ID, claimErr)
+		return errLib.New("Idempotency check unavailable, will retry", http.StatusInternalServerError)
+	}
+	if !claimed {
+		log.Printf("[SUBSIDY] Event %s already claimed, skipping", event.ID)
 		return nil
 	}
 
@@ -258,7 +265,7 @@ func (s *WebhookService) HandleInvoiceFinalized(ctx context.Context, event strip
 	// Extract customer metadata
 	if invoice.Customer == nil {
 		log.Printf("[SUBSIDY] No customer info for invoice %s", invoice.ID)
-		s.Idempotency.MarkAsProcessed(event.ID)
+		s.Idempotency.MarkEventComplete(event.ID)
 		return nil
 	}
 
@@ -310,7 +317,7 @@ func (s *WebhookService) HandleInvoiceFinalized(ctx context.Context, event strip
 		}
 	}
 
-	// NEW: Fallback to database lookup by Stripe customer ID if still no userID
+	// Fallback to database lookup by Stripe customer ID if still no userID
 	if userID == uuid.Nil && invoice.Customer != nil && invoice.Customer.ID != "" {
 		log.Printf("[SUBSIDY] Looking up userID by Stripe customer ID: %s", invoice.Customer.ID)
 		uid, err := s.getUserIDByStripeCustomerID(ctx, invoice.Customer.ID)
@@ -334,7 +341,7 @@ func (s *WebhookService) HandleInvoiceFinalized(ctx context.Context, event strip
 
 	if subsidyID == nil {
 		log.Printf("[SUBSIDY] No subsidy for invoice %s", invoice.ID)
-		s.Idempotency.MarkAsProcessed(event.ID)
+		s.Idempotency.MarkEventComplete(event.ID)
 		return nil
 	}
 
@@ -342,13 +349,13 @@ func (s *WebhookService) HandleInvoiceFinalized(ctx context.Context, event strip
 	subsidy, err := s.SubsidyService.GetSubsidy(ctx, *subsidyID)
 	if err != nil {
 		log.Printf("[SUBSIDY] Error getting subsidy: %v", err)
-		s.Idempotency.MarkAsProcessed(event.ID)
+		s.Idempotency.MarkEventComplete(event.ID)
 		return nil // Don't fail invoice
 	}
 
 	if subsidy.RemainingBalance <= 0 {
 		log.Printf("[SUBSIDY] Subsidy %s depleted, skipping", subsidyID)
-		s.Idempotency.MarkAsProcessed(event.ID)
+		s.Idempotency.MarkEventComplete(event.ID)
 		return nil
 	}
 
@@ -361,7 +368,7 @@ func (s *WebhookService) HandleInvoiceFinalized(ctx context.Context, event strip
 		subsidyToApply, invoice.ID, subsidy.RemainingBalance)
 
 	// Add negative line item to invoice (credit)
-	_, itemErr := invoiceitem.New(&stripe.InvoiceItemParams{
+	finalizedItemParams := &stripe.InvoiceItemParams{
 		Customer: stripe.String(invoice.Customer.ID),
 		Invoice:  stripe.String(invoice.ID),
 		Amount:   stripe.Int64(-subsidyInCents), // NEGATIVE = credit
@@ -372,70 +379,150 @@ func (s *WebhookService) HandleInvoiceFinalized(ctx context.Context, event strip
 			"subsidy_id":      subsidyID.String(),
 			"subsidy_applied": fmt.Sprintf("%.2f", subsidyToApply),
 		},
-	})
+	}
+	finalizedItemParams.IdempotencyKey = stripe.String("subsidy-finalized:" + event.ID + ":" + invoice.ID)
+	_, itemErr := invoiceitem.New(finalizedItemParams)
 
 	if itemErr != nil {
 		log.Printf("[SUBSIDY] Failed to add subsidy credit to invoice: %v", itemErr)
-		s.Idempotency.MarkAsProcessed(event.ID)
+		s.Idempotency.MarkEventComplete(event.ID)
 		return nil // Don't fail invoice
 	}
 
 	log.Printf("[SUBSIDY] Successfully applied $%.2f subsidy credit to invoice %s",
 		subsidyToApply, invoice.ID)
 
-	s.Idempotency.MarkAsProcessed(event.ID)
+	s.Idempotency.MarkEventComplete(event.ID)
 	return nil
 }
 
-// HandleInvoicePaymentSucceededWithSubsidy records subsidy usage after successful payment
+// HandleInvoicePaymentSucceededWithSubsidy handles invoice.payment_succeeded for ALL customers.
+// It ALWAYS runs core payment logic (status update, next_billing_date, tracking),
+// then additionally records subsidy usage if the customer has a subsidy.
 func (s *WebhookService) HandleInvoicePaymentSucceededWithSubsidy(ctx context.Context, event stripe.Event) *errLib.CommonError {
-	// Idempotency check
-	if s.Idempotency.IsProcessed(event.ID) {
-		log.Printf("[SUBSIDY] Event %s already processed, skipping", event.ID)
+	// Atomic idempotency claim
+	claimed, claimErr := s.Idempotency.TryClaimEvent(event.ID, string(event.Type))
+	if claimErr != nil {
+		log.Printf("[IDEMPOTENCY] DB error claiming event %s, failing closed: %v", event.ID, claimErr)
+		return errLib.New("Idempotency check unavailable, will retry", http.StatusInternalServerError)
+	}
+	if !claimed {
+		log.Printf("[WEBHOOK] Event %s already claimed, skipping", event.ID)
 		return nil
 	}
 
 	var invoice stripe.Invoice
 	if err := json.Unmarshal(event.Data.Raw, &invoice); err != nil {
-		log.Printf("[SUBSIDY] Failed to parse invoice.payment_succeeded: %v", err)
+		log.Printf("[WEBHOOK] Failed to parse invoice.payment_succeeded: %v", err)
 		return errLib.New("Failed to parse invoice", http.StatusBadRequest)
 	}
 
-	log.Printf("[SUBSIDY] Invoice payment succeeded: %s", invoice.ID)
-	log.Printf("[SUBSIDY] Invoice.Subscription: %v", invoice.Subscription)
+	log.Printf("[WEBHOOK] Invoice payment succeeded: %s", invoice.ID)
 
-	// Get subscription ID to fetch metadata
+	// Get subscription ID
 	var subscriptionID string
 	if invoice.Subscription != nil && invoice.Subscription.ID != "" {
 		subscriptionID = invoice.Subscription.ID
-		log.Printf("[SUBSIDY] Found subscription ID in invoice: %s", subscriptionID)
+		log.Printf("[WEBHOOK] Found subscription ID in invoice: %s", subscriptionID)
 	} else {
-		log.Printf("[SUBSIDY] Invoice.Subscription is nil, checking raw data...")
 		// Try to extract from raw data
-		var rawInvoiceData map[string]interface{}
+		var rawInvoiceData map[string]any
 		if err := json.Unmarshal(event.Data.Raw, &rawInvoiceData); err == nil {
 			if subID, ok := rawInvoiceData["subscription"]; ok && subID != nil {
 				if subIDStr, ok := subID.(string); ok && subIDStr != "" {
 					subscriptionID = subIDStr
-					log.Printf("[SUBSIDY] Found subscription ID in raw data: %s", subscriptionID)
+					log.Printf("[WEBHOOK] Found subscription ID in raw data: %s", subscriptionID)
 				}
 			}
 		}
 	}
 
-	// Extract user ID and subsidy info from subscription metadata
+	// --- CORE LOGIC: runs for ALL customers ---
+
+	// Look up user by Stripe customer ID
+	customerID := ""
+	if invoice.Customer != nil {
+		customerID = invoice.Customer.ID
+	}
+
+	if customerID == "" {
+		log.Printf("[WEBHOOK] No customer ID found for invoice %s", invoice.ID)
+		s.Idempotency.MarkEventComplete(event.ID)
+		return nil
+	}
+
 	var userID uuid.UUID
+
+	// Try database lookup first (most reliable)
+	uid, err := s.getUserIDByStripeCustomerID(ctx, customerID)
+	if err == nil {
+		userID = uid
+		log.Printf("[WEBHOOK] Found user %s for Stripe customer %s", userID, customerID)
+	}
+
+	// Fallback: try customer metadata
+	if userID == uuid.Nil && invoice.Customer != nil {
+		if userIDStr, exists := invoice.Customer.Metadata["userID"]; exists {
+			if uid, err := uuid.Parse(userIDStr); err == nil {
+				userID = uid
+				log.Printf("[WEBHOOK] Found userID in customer metadata: %s", userID)
+			}
+		}
+	}
+
+	if userID == uuid.Nil {
+		log.Printf("[WEBHOOK] No userID for invoice %s, skipping", invoice.ID)
+		s.Idempotency.MarkEventComplete(event.ID)
+		return nil
+	}
+
+	// Update membership status and next_billing_date
+	eventTime := time.Unix(event.Created, 0)
+	if subscriptionID != "" {
+		sub, subErr := subscription.Get(subscriptionID, nil)
+		if subErr != nil {
+			log.Printf("[WEBHOOK] Failed to get subscription details for %s: %v", subscriptionID, subErr)
+			// Fall back to just updating status by subscription ID
+			if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByID(ctx, userID, subscriptionID, "active", eventTime); updateErr != nil {
+				log.Printf("[WEBHOOK] Failed to activate membership: %v", updateErr)
+				return updateErr
+			}
+		} else {
+			nextBillingDate := time.Unix(sub.CurrentPeriodEnd, 0)
+			log.Printf("[WEBHOOK] Updating membership: status=active, next_billing=%s for subscription %s", nextBillingDate.Format(time.RFC3339), subscriptionID)
+			if updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatusByIDAndNextBilling(ctx, userID, subscriptionID, "active", nextBillingDate, eventTime); updateErr != nil {
+				log.Printf("[WEBHOOK] Failed to update membership: %v", updateErr)
+				return updateErr
+			}
+			log.Printf("[WEBHOOK] Successfully updated next_billing_date to %s", nextBillingDate.Format(time.RFC3339))
+		}
+	} else {
+		// No subscription ID — log warning and skip rather than updating all subscriptions
+		log.Printf("[WEBHOOK] WARNING: No subscription ID for invoice %s, skipping membership status update to avoid affecting other subscriptions", invoice.ID)
+	}
+
+	log.Printf("[WEBHOOK] Successfully activated membership for user %s after invoice payment %s", userID, invoice.ID)
+
+	// Track payment — skip initial subscription invoice (already tracked by checkout)
+	if invoice.BillingReason != stripe.InvoiceBillingReasonSubscriptionCreate {
+		safeGo("trackMembershipRenewal", func() { s.trackMembershipRenewal(&invoice, userID, eventTime) })
+	} else {
+		log.Printf("[WEBHOOK] Skipping payment tracking for initial subscription invoice %s (already tracked by checkout)", invoice.ID)
+	}
+
+	// --- SUBSIDY LOGIC: only runs if customer has a subsidy ---
+
 	var subsidyID *uuid.UUID
 	var subsidyBalance float64
 	var subsidyAppliedFromMetadata float64
 
-	// FIRST: Check invoice metadata (set by invoice.created for recurring invoices)
+	// Check invoice metadata (set by invoice.created handler)
 	if invoice.Metadata != nil {
-		log.Printf("[SUBSIDY] Invoice metadata: %v", invoice.Metadata)
 		if hasSubsidy, exists := invoice.Metadata["has_subsidy"]; exists && hasSubsidy == "true" {
+			log.Printf("[SUBSIDY] Invoice metadata: %v", invoice.Metadata)
 			if sidStr, exists := invoice.Metadata["subsidy_id"]; exists {
-				sid, err := uuid.Parse(sidStr)
-				if err == nil {
+				sid, parseErr := uuid.Parse(sidStr)
+				if parseErr == nil {
 					subsidyID = &sid
 					log.Printf("[SUBSIDY] Found subsidy ID in invoice metadata: %s", subsidyID)
 				}
@@ -446,36 +533,18 @@ func (s *WebhookService) HandleInvoicePaymentSucceededWithSubsidy(ctx context.Co
 			if appliedStr, exists := invoice.Metadata["subsidy_applied"]; exists {
 				fmt.Sscanf(appliedStr, "%f", &subsidyAppliedFromMetadata)
 			}
-			if userIDStr, exists := invoice.Metadata["userID"]; exists {
-				uid, err := uuid.Parse(userIDStr)
-				if err == nil {
-					userID = uid
-					log.Printf("[SUBSIDY] Found userID in invoice metadata: %s", userID)
-				}
-			}
 		}
 	}
 
-	// SECOND: Fallback to subscription metadata if invoice metadata doesn't have subsidy info
+	// Fallback to subscription metadata
 	if subscriptionID != "" && subsidyID == nil {
 		log.Printf("[SUBSIDY] Fetching subscription metadata for: %s", subscriptionID)
 		sub, subErr := s.getExpandedSubscription(subscriptionID)
 		if subErr == nil && sub != nil {
-			log.Printf("[SUBSIDY] Subscription metadata: %v", sub.Metadata)
-
-			// Get userID from subscription metadata
-			if userIDStr, exists := sub.Metadata["userID"]; exists {
-				uid, err := uuid.Parse(userIDStr)
-				if err == nil {
-					userID = uid
-				}
-			}
-
-			// Get subsidy info from subscription metadata
 			if hasSubsidy, exists := sub.Metadata["has_subsidy"]; exists && hasSubsidy == "true" {
 				if sidStr, exists := sub.Metadata["subsidy_id"]; exists {
-					sid, err := uuid.Parse(sidStr)
-					if err == nil {
+					sid, parseErr := uuid.Parse(sidStr)
+					if parseErr == nil {
 						subsidyID = &sid
 					}
 				}
@@ -486,55 +555,24 @@ func (s *WebhookService) HandleInvoicePaymentSucceededWithSubsidy(ctx context.Co
 		}
 	}
 
-	// Fallback: try customer metadata for userID
-	if userID == uuid.Nil && invoice.Customer != nil {
-		if userIDStr, exists := invoice.Customer.Metadata["userID"]; exists {
-			uid, err := uuid.Parse(userIDStr)
-			if err == nil {
-				userID = uid
-			}
-		}
-	}
-
-	// NEW: Fallback to database lookup by Stripe customer ID if still no userID
-	if userID == uuid.Nil && invoice.Customer != nil && invoice.Customer.ID != "" {
-		log.Printf("[SUBSIDY] Looking up userID by Stripe customer ID: %s", invoice.Customer.ID)
-		uid, err := s.getUserIDByStripeCustomerID(ctx, invoice.Customer.ID)
-		if err == nil {
-			userID = uid
-			log.Printf("[SUBSIDY] Found userID from database: %s", userID)
-		} else {
-			log.Printf("[SUBSIDY] Failed to find userID by Stripe customer ID: %v", err)
-		}
-	}
-
-	if userID == uuid.Nil {
-		log.Printf("[SUBSIDY] No userID for invoice %s", invoice.ID)
-		s.Idempotency.MarkAsProcessed(event.ID)
-		return nil
-	}
-
+	// No subsidy — we're done (core logic already ran above)
 	if subsidyID == nil {
-		log.Printf("[SUBSIDY] No subsidy for invoice %s", invoice.ID)
-		s.Idempotency.MarkAsProcessed(event.ID)
+		log.Printf("[WEBHOOK] No subsidy for invoice %s, core logic complete", invoice.ID)
+		s.Idempotency.MarkEventComplete(event.ID)
 		return nil
 	}
 
-	// Calculate subsidy amount from invoice metadata (most accurate) or discount/total
+	// Calculate subsidy amount
 	var subsidyApplied float64
-
-	// FIRST: Use metadata if available (set by invoice.created)
 	if subsidyAppliedFromMetadata > 0 {
 		subsidyApplied = subsidyAppliedFromMetadata
 		log.Printf("[SUBSIDY] Using subsidy amount from invoice metadata: $%.2f", subsidyApplied)
 	} else if len(invoice.TotalDiscountAmounts) > 0 {
-		// SECOND: Calculate from invoice discounts
 		for _, discount := range invoice.TotalDiscountAmounts {
 			subsidyApplied += float64(discount.Amount) / 100.0
 		}
 		log.Printf("[SUBSIDY] Total discount on invoice: $%.2f", subsidyApplied)
 	} else if subsidyBalance > 0 {
-		// THIRD: Fallback to balance calculation
 		invoiceTotal := float64(invoice.Total) / 100.0
 		subsidyApplied = math.Min(invoiceTotal, subsidyBalance)
 		log.Printf("[SUBSIDY] No discount found, calculated subsidy from balance: $%.2f", subsidyApplied)
@@ -542,18 +580,13 @@ func (s *WebhookService) HandleInvoicePaymentSucceededWithSubsidy(ctx context.Co
 
 	if subsidyApplied == 0 {
 		log.Printf("[SUBSIDY] No subsidy discount applied to invoice %s", invoice.ID)
-		s.Idempotency.MarkAsProcessed(event.ID)
+		s.Idempotency.MarkEventComplete(event.ID)
 		return nil
 	}
 
-	// Calculate amounts
+	// Record subsidy usage
 	originalAmount := (float64(invoice.AmountDue) + subsidyApplied*100) / 100.0
 	customerPaid := float64(invoice.AmountPaid) / 100.0
-
-	// Record subsidy usage - reuse subscriptionID from earlier
-	if subscriptionID == "" && invoice.Subscription != nil {
-		subscriptionID = invoice.Subscription.ID
-	}
 
 	recordReq := &dto.RecordUsageRequest{
 		SubsidyID:            *subsidyID,
@@ -567,22 +600,15 @@ func (s *WebhookService) HandleInvoicePaymentSucceededWithSubsidy(ctx context.Co
 		Description:          fmt.Sprintf("Membership payment - Invoice %s", invoice.Number),
 	}
 
-	_, err := s.SubsidyService.RecordUsage(ctx, recordReq)
-	if err != nil {
-		log.Printf("[SUBSIDY] Failed to record subsidy usage: %v", err)
-		// Don't fail the webhook - payment was successful
+	_, recordErr := s.SubsidyService.RecordUsage(ctx, recordReq)
+	if recordErr != nil {
+		log.Printf("[SUBSIDY] Failed to record subsidy usage: %v", recordErr)
+		// Don't fail the webhook - payment was successful and core logic already ran
 	} else {
 		log.Printf("[SUBSIDY] Recorded subsidy usage: $%.2f applied, $%.2f paid by customer",
 			subsidyApplied, customerPaid)
 	}
 
-	// Update membership status (existing logic)
-	updateErr := s.EnrollmentRepo.UpdateStripeSubscriptionStatus(ctx, userID, "active")
-	if updateErr != nil {
-		log.Printf("[SUBSIDY] Failed to activate membership: %v", updateErr)
-		return updateErr
-	}
-
-	s.Idempotency.MarkAsProcessed(event.ID)
+	s.Idempotency.MarkEventComplete(event.ID)
 	return nil
 }

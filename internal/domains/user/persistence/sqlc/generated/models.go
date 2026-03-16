@@ -592,6 +592,7 @@ const (
 	MembershipMembershipStatusCanceled MembershipMembershipStatus = "canceled"
 	MembershipMembershipStatusExpired  MembershipMembershipStatus = "expired"
 	MembershipMembershipStatusPastDue  MembershipMembershipStatus = "past_due"
+	MembershipMembershipStatusPaused   MembershipMembershipStatus = "paused"
 )
 
 func (e *MembershipMembershipStatus) Scan(src interface{}) error {
@@ -635,7 +636,8 @@ func (e MembershipMembershipStatus) Valid() bool {
 		MembershipMembershipStatusInactive,
 		MembershipMembershipStatusCanceled,
 		MembershipMembershipStatusExpired,
-		MembershipMembershipStatusPastDue:
+		MembershipMembershipStatusPastDue,
+		MembershipMembershipStatusPaused:
 		return true
 	}
 	return false
@@ -648,6 +650,7 @@ func AllMembershipMembershipStatusValues() []MembershipMembershipStatus {
 		MembershipMembershipStatusCanceled,
 		MembershipMembershipStatusExpired,
 		MembershipMembershipStatusPastDue,
+		MembershipMembershipStatusPaused,
 	}
 }
 
@@ -1465,6 +1468,8 @@ type UsersCustomerMembershipPlan struct {
 	// Whether billing is paused due to suspension. When true, arrears will accrue.
 	SuspensionBillingPaused bool           `json:"suspension_billing_paused"`
 	StripeSubscriptionID    sql.NullString `json:"stripe_subscription_id"`
+	// Timestamp of the most recently processed Stripe event for this subscription. Used to reject out-of-order webhook events.
+	LastStripeEventAt sql.NullTime `json:"last_stripe_event_at"`
 }
 
 // Tracks parent-child link requests including transfers between parents

@@ -793,7 +793,7 @@ func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]G
 }
 
 const getMembershipByStripeSubscriptionID = `-- name: GetMembershipByStripeSubscriptionID :one
-SELECT id, customer_id, membership_plan_id, start_date, renewal_date, status, created_at, updated_at, photo_url, square_subscription_id, subscription_status, next_billing_date, subscription_created_at, subscription_source, suspended_at, suspension_billing_paused, stripe_subscription_id
+SELECT id, customer_id, membership_plan_id, start_date, renewal_date, status, created_at, updated_at, photo_url, square_subscription_id, subscription_status, next_billing_date, subscription_created_at, subscription_source, suspended_at, suspension_billing_paused, stripe_subscription_id, last_stripe_event_at
 FROM users.customer_membership_plans
 WHERE square_subscription_id = $1
 LIMIT 1
@@ -820,6 +820,7 @@ func (q *Queries) GetMembershipByStripeSubscriptionID(ctx context.Context, subsc
 		&i.SuspendedAt,
 		&i.SuspensionBillingPaused,
 		&i.StripeSubscriptionID,
+		&i.LastStripeEventAt,
 	)
 	return i, err
 }
@@ -855,7 +856,7 @@ func (q *Queries) GetSuspensionInfo(ctx context.Context, userID uuid.UUID) (GetS
 }
 
 const getUserActiveMemberships = `-- name: GetUserActiveMemberships :many
-SELECT id, customer_id, membership_plan_id, start_date, renewal_date, status, created_at, updated_at, photo_url, square_subscription_id, subscription_status, next_billing_date, subscription_created_at, subscription_source, suspended_at, suspension_billing_paused, stripe_subscription_id
+SELECT id, customer_id, membership_plan_id, start_date, renewal_date, status, created_at, updated_at, photo_url, square_subscription_id, subscription_status, next_billing_date, subscription_created_at, subscription_source, suspended_at, suspension_billing_paused, stripe_subscription_id, last_stripe_event_at
 FROM users.customer_membership_plans
 WHERE customer_id = $1
   AND status = 'active'
@@ -888,6 +889,7 @@ func (q *Queries) GetUserActiveMemberships(ctx context.Context, userID uuid.UUID
 			&i.SuspendedAt,
 			&i.SuspensionBillingPaused,
 			&i.StripeSubscriptionID,
+			&i.LastStripeEventAt,
 		); err != nil {
 			return nil, err
 		}
@@ -903,7 +905,7 @@ func (q *Queries) GetUserActiveMemberships(ctx context.Context, userID uuid.UUID
 }
 
 const getUserSuspendedMemberships = `-- name: GetUserSuspendedMemberships :many
-SELECT id, customer_id, membership_plan_id, start_date, renewal_date, status, created_at, updated_at, photo_url, square_subscription_id, subscription_status, next_billing_date, subscription_created_at, subscription_source, suspended_at, suspension_billing_paused, stripe_subscription_id
+SELECT id, customer_id, membership_plan_id, start_date, renewal_date, status, created_at, updated_at, photo_url, square_subscription_id, subscription_status, next_billing_date, subscription_created_at, subscription_source, suspended_at, suspension_billing_paused, stripe_subscription_id, last_stripe_event_at
 FROM users.customer_membership_plans
 WHERE customer_id = $1
   AND suspended_at IS NOT NULL
@@ -936,6 +938,7 @@ func (q *Queries) GetUserSuspendedMemberships(ctx context.Context, userID uuid.U
 			&i.SuspendedAt,
 			&i.SuspensionBillingPaused,
 			&i.StripeSubscriptionID,
+			&i.LastStripeEventAt,
 		); err != nil {
 			return nil, err
 		}

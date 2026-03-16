@@ -877,10 +877,12 @@ func CreateSubscriptionWithDiscountPercent(
 		return "", errLib.New("success URL cannot be empty", http.StatusBadRequest)
 	}
 
-	c, cuErr := coupon.New(&stripe.CouponParams{
+	couponParams := &stripe.CouponParams{
 		Duration:   stripe.String(string(stripe.CouponDurationOnce)),
 		PercentOff: stripe.Float64(float64(discountPercent)),
-	})
+	}
+	couponParams.IdempotencyKey = idempotencyKey("coupon-percent", userID.String(), fmt.Sprintf("%d", discountPercent), stripePlanPriceID)
+	c, cuErr := coupon.New(couponParams)
 	if cuErr != nil {
 		return "", errLib.New("failed to create coupon: "+cuErr.Error(), http.StatusInternalServerError)
 	}
@@ -1032,6 +1034,7 @@ func (s *SubscriptionService) CancelSubscription(ctx context.Context, subscripti
 		// For immediate cancellation, use subscription.Cancel()
 		log.Printf("[STRIPE] Attempting to cancel subscription %s immediately", subscriptionID)
 		params := &stripe.SubscriptionCancelParams{}
+		params.IdempotencyKey = idempotencyKey("cancel-sub-immediate", subscriptionID)
 		cancelledSub, stripeErr = subscription.Cancel(subscriptionID, params)
 		if stripeErr == nil {
 			log.Printf("[STRIPE] Stripe API returned cancelled subscription with status: %s", cancelledSub.Status)
@@ -1045,6 +1048,7 @@ func (s *SubscriptionService) CancelSubscription(ctx context.Context, subscripti
 				"cancelled_at": time.Now().UTC().Format(time.RFC3339),
 			},
 		}
+		params.IdempotencyKey = idempotencyKey("cancel-sub-period-end", subscriptionID)
 		cancelledSub, stripeErr = subscription.Update(subscriptionID, params)
 	}
 	if stripeErr != nil {
@@ -1082,6 +1086,7 @@ func (s *SubscriptionService) AdminCancelSubscription(ctx context.Context, subsc
 	if cancelImmediately {
 		log.Printf("[STRIPE] Admin cancelling subscription %s immediately", subscriptionID)
 		params := &stripe.SubscriptionCancelParams{}
+		params.IdempotencyKey = idempotencyKey("admin-cancel-sub-immediate", subscriptionID)
 		cancelledSub, stripeErr = subscription.Cancel(subscriptionID, params)
 	} else {
 		log.Printf("[STRIPE] Admin cancelling subscription %s at period end", subscriptionID)
@@ -1092,6 +1097,7 @@ func (s *SubscriptionService) AdminCancelSubscription(ctx context.Context, subsc
 				"cancelled_at": time.Now().UTC().Format(time.RFC3339),
 			},
 		}
+		params.IdempotencyKey = idempotencyKey("admin-cancel-sub-period-end", subscriptionID)
 		cancelledSub, stripeErr = subscription.Update(subscriptionID, params)
 	}
 	if stripeErr != nil {
@@ -1182,6 +1188,7 @@ func (s *SubscriptionService) AdminUpgradeSubscription(ctx context.Context, subs
 			"new_plan_id":    newPlanID,
 		},
 	}
+	params.IdempotencyKey = idempotencyKey("admin-upgrade-sub", subscriptionID, newPlanID)
 
 	updatedSub, updateErr := subscription.Update(subscriptionID, params)
 	if updateErr != nil {
@@ -1272,6 +1279,7 @@ func (s *SubscriptionService) UpgradeSubscription(ctx context.Context, subscript
 			"new_plan_id":     newPlanID,
 		},
 	}
+	params.IdempotencyKey = idempotencyKey("upgrade-sub", subscriptionID, newPlanID)
 
 	updatedSub, stripeErr := subscription.Update(subscriptionID, params)
 	if stripeErr != nil {
@@ -1326,6 +1334,7 @@ func (s *SubscriptionService) PauseSubscription(ctx context.Context, subscriptio
 			"paused_at": time.Now().UTC().Format(time.RFC3339),
 		},
 	}
+	params.IdempotencyKey = idempotencyKey("pause-sub", subscriptionID)
 
 	pausedSub, stripeErr := subscription.Update(subscriptionID, params)
 	if stripeErr != nil {
@@ -1361,6 +1370,7 @@ func (s *SubscriptionService) ResumeSubscription(ctx context.Context, subscripti
 			"resumed_at": time.Now().UTC().Format(time.RFC3339),
 		},
 	}
+	params.IdempotencyKey = idempotencyKey("resume-sub", subscriptionID)
 
 	resumedSub, stripeErr := subscription.Update(subscriptionID, params)
 	if stripeErr != nil {

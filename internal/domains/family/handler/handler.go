@@ -182,6 +182,16 @@ func (h *Handler) GetSiblings(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetChildDetail gets detailed profile for a specific child.
+// @Summary Get child detail
+// @Description Gets detailed profile for a specific child, including membership, team, and program enrollments
+// @Tags family
+// @Produce json
+// @Param childId path string true "Child user ID"
+// @Success 200 {object} dto.ChildDetailResponse "Child detail"
+// @Failure 400 {object} map[string]interface{} "Invalid child ID"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 404 {object} map[string]interface{} "Child not found or not linked"
+// @Router /family/children/{childId} [get]
 func (h *Handler) GetChildDetail(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "childId")
 	id, err := validators.ParseUUID(idStr)

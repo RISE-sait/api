@@ -55,7 +55,7 @@ func NewPurchaseService(container *di.Container) *Service {
 	}
 
 	// Cleanup expired checkout locks every 5 minutes
-	go func() {
+	safeGo("checkout-lock-cleanup", func() {
 		ticker := time.NewTicker(5 * time.Minute)
 		defer ticker.Stop()
 		for range ticker.C {
@@ -68,7 +68,7 @@ func NewPurchaseService(container *di.Container) *Service {
 				return true
 			})
 		}
-	}()
+	})
 
 	return svc
 }
@@ -306,7 +306,9 @@ func (s *Service) AdminSendMembershipCheckoutLink(ctx context.Context, customerI
 	if firstName.Valid && firstName.String != "" {
 		name = firstName.String
 	}
-	go email.SendMembershipCheckoutLinkEmail(customerEmail.String, name, requirements.Name, checkoutURL)
+	safeGo("admin-checkout-email", func() {
+		email.SendMembershipCheckoutLinkEmail(customerEmail.String, name, requirements.Name, checkoutURL)
+	})
 
 	return checkoutURL, nil
 }

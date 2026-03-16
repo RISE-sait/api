@@ -181,6 +181,24 @@ func (h *Handler) GetSiblings(w http.ResponseWriter, r *http.Request) {
 	responseHandlers.RespondWithSuccess(w, siblings, http.StatusOK)
 }
 
+// GetChildDetail gets detailed profile for a specific child.
+func (h *Handler) GetChildDetail(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "childId")
+	id, err := validators.ParseUUID(idStr)
+	if err != nil {
+		responseHandlers.RespondWithError(w, err)
+		return
+	}
+
+	result, svcErr := h.Service.GetChildDetail(r.Context(), id)
+	if svcErr != nil {
+		responseHandlers.RespondWithError(w, svcErr)
+		return
+	}
+
+	responseHandlers.RespondWithSuccess(w, result, http.StatusOK)
+}
+
 // AdminUnlink removes a parent-child link (admin only).
 // @Summary Admin unlink parent-child
 // @Description Removes the parent-child link for a user (admin only)

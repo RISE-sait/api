@@ -230,6 +230,29 @@ func (r *Repository) GetPendingRequestsForUser(ctx context.Context, userID uuid.
 	return requests, nil
 }
 
+// GetChildDetailById gets detailed child profile by ID
+func (r *Repository) GetChildDetailById(ctx context.Context, childID uuid.UUID) (db.GetChildDetailByIdRow, *errLib.CommonError) {
+	row, err := r.Queries.GetChildDetailById(ctx, childID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return db.GetChildDetailByIdRow{}, errLib.New("Child not found", http.StatusNotFound)
+		}
+		log.Printf("Error getting child detail: %v", err)
+		return db.GetChildDetailByIdRow{}, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+	return row, nil
+}
+
+// GetChildProgramEnrollments gets active program enrollments for a child
+func (r *Repository) GetChildProgramEnrollments(ctx context.Context, childID uuid.UUID) ([]db.GetChildProgramEnrollmentsRow, *errLib.CommonError) {
+	rows, err := r.Queries.GetChildProgramEnrollments(ctx, childID)
+	if err != nil {
+		log.Printf("Error getting child program enrollments: %v", err)
+		return nil, errLib.New("Internal server error", http.StatusInternalServerError)
+	}
+	return rows, nil
+}
+
 // IsExpired checks if a request has expired
 func IsExpired(request db.UsersParentLinkRequest) bool {
 	return request.ExpiresAt.Before(time.Now())

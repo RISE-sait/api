@@ -913,6 +913,7 @@ func RegisterFamilyRoutes(container *di.Container) func(chi.Router) {
 
 		// Parent routes - authenticated users only
 		r.With(middlewares.JWTAuthMiddleware(true)).Get("/children", h.GetChildren)
+		r.With(middlewares.JWTAuthMiddleware(true)).Get("/children/{childId}", h.GetChildDetail)
 		r.With(middlewares.JWTAuthMiddleware(true)).Get("/parent", h.GetParent)
 		r.With(middlewares.JWTAuthMiddleware(true)).Get("/siblings", h.GetSiblings)
 

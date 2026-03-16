@@ -46,6 +46,31 @@ type SiblingResponse struct {
 	Email     string    `json:"email,omitempty"`
 }
 
+// ProgramEnrollmentResponse represents a program enrollment for a child
+type ProgramEnrollmentResponse struct {
+	ProgramID   uuid.UUID `json:"program_id"`
+	ProgramName string    `json:"program_name"`
+	ProgramType string    `json:"program_type"`
+}
+
+// ChildDetailResponse represents a detailed child profile
+type ChildDetailResponse struct {
+	ID                  uuid.UUID                   `json:"id"`
+	FirstName           string                      `json:"first_name"`
+	LastName            string                      `json:"last_name"`
+	Email               string                      `json:"email,omitempty"`
+	Dob                 string                      `json:"dob"`
+	CountryCode         string                      `json:"country_code"`
+	PhotoUrl            string                      `json:"photo_url,omitempty"`
+	TeamID              *uuid.UUID                  `json:"team_id,omitempty"`
+	TeamName            string                      `json:"team_name,omitempty"`
+	MembershipName      string                      `json:"membership_name,omitempty"`
+	MembershipStatus    string                      `json:"membership_status,omitempty"`
+	MembershipStartDate *time.Time                  `json:"membership_start_date,omitempty"`
+	Programs            []ProgramEnrollmentResponse `json:"programs"`
+	LinkedAt            time.Time                   `json:"linked_at"`
+}
+
 // PendingRequestResponse represents a pending link request
 type PendingRequestResponse struct {
 	ID                   uuid.UUID  `json:"id"`

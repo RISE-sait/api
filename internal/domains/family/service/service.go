@@ -562,6 +562,70 @@ func (s *Service) GetSiblings(ctx context.Context) ([]dto.SiblingResponse, *errL
 	return result, nil
 }
 
+// GetChildDetail gets detailed profile for a specific child
+func (s *Service) GetChildDetail(ctx context.Context, childID uuid.UUID) (*dto.ChildDetailResponse, *errLib.CommonError) {
+	parentID, err := contextUtils.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify the caller is this child's parent
+	if err := s.VerifyParentChildAccess(ctx, parentID, childID); err != nil {
+		return nil, err
+	}
+
+	// Get child detail
+	child, err := s.repo.GetChildDetailById(ctx, childID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get program enrollments
+	enrollments, err := s.repo.GetChildProgramEnrollments(ctx, childID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build programs slice (always non-nil)
+	programs := make([]dto.ProgramEnrollmentResponse, len(enrollments))
+	for i, e := range enrollments {
+		programs[i] = dto.ProgramEnrollmentResponse{
+			ProgramID:   e.ProgramID,
+			ProgramName: e.ProgramName,
+			ProgramType: e.ProgramType,
+		}
+	}
+
+	// Build response
+	response := &dto.ChildDetailResponse{
+		ID:          child.ID,
+		FirstName:   child.FirstName,
+		LastName:    child.LastName,
+		Email:       nullStringToString(child.Email),
+		Dob:         child.Dob.Format("2006-01-02"),
+		CountryCode: child.CountryAlpha2Code,
+		PhotoUrl:    nullStringToString(child.PhotoUrl),
+		Programs:    programs,
+		LinkedAt:    child.LinkedAt,
+	}
+
+	if child.TeamID.Valid {
+		response.TeamID = &child.TeamID.UUID
+		response.TeamName = nullStringToString(child.TeamName)
+	}
+
+	if child.MembershipStatus.Valid {
+		response.MembershipName = nullStringToString(child.MembershipName)
+		response.MembershipStatus = string(child.MembershipStatus.MembershipMembershipStatus)
+	}
+
+	if child.MembershipStartDate.Valid {
+		response.MembershipStartDate = &child.MembershipStartDate.Time
+	}
+
+	return response, nil
+}
+
 // AdminUnlink removes a parent-child link (admin only)
 func (s *Service) AdminUnlink(ctx context.Context, childID uuid.UUID) *errLib.CommonError {
 	// Verify child exists and has a parent

@@ -118,3 +118,54 @@ WHERE (plr.child_id = $1 OR plr.new_parent_id = $1 OR plr.old_parent_id = $1)
   AND plr.cancelled_at IS NULL
   AND plr.expires_at > NOW()
 ORDER BY plr.created_at DESC;
+
+-- name: GetChildDetailById :one
+WITH latest_membership AS (
+    SELECT DISTINCT ON (cmp.customer_id)
+        cmp.customer_id,
+        m.name AS membership_name,
+        cmp.status AS membership_status,
+        cmp.start_date AS membership_start_date
+    FROM users.customer_membership_plans cmp
+    JOIN membership.membership_plans mp ON mp.id = cmp.membership_plan_id
+    JOIN membership.memberships m ON m.id = mp.membership_id
+    WHERE cmp.customer_id = $1
+    ORDER BY cmp.customer_id,
+        CASE WHEN cmp.status = 'active' THEN 0 ELSE 1 END,
+        cmp.start_date DESC
+)
+SELECT
+    u.id,
+    u.first_name,
+    u.last_name,
+    u.email,
+    u.dob,
+    u.country_alpha2_code,
+    a.photo_url,
+    a.team_id,
+    t.name AS team_name,
+    lm.membership_name,
+    lm.membership_status,
+    lm.membership_start_date,
+    COALESCE(
+        (SELECT plr.completed_at FROM users.parent_link_requests plr
+         WHERE plr.child_id = u.id AND plr.new_parent_id = u.parent_id AND plr.completed_at IS NOT NULL
+         ORDER BY plr.completed_at DESC LIMIT 1),
+        u.updated_at
+    ) as linked_at
+FROM users.users u
+LEFT JOIN athletic.athletes a ON a.id = u.id
+LEFT JOIN athletic.teams t ON t.id = a.team_id
+LEFT JOIN latest_membership lm ON lm.customer_id = u.id
+WHERE u.id = $1 AND u.deleted_at IS NULL;
+
+-- name: GetChildProgramEnrollments :many
+SELECT
+    p.id AS program_id,
+    p.name AS program_name,
+    p.type AS program_type
+FROM program.customer_enrollment ce
+JOIN program.programs p ON p.id = ce.program_id
+WHERE ce.customer_id = $1
+  AND ce.is_cancelled = false
+  AND ce.payment_status = 'paid';

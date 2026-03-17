@@ -352,7 +352,7 @@ WHERE u.id = sqlc.arg('user_id');
 -- name: GetMembershipByStripeSubscriptionID :one
 SELECT *
 FROM users.customer_membership_plans
-WHERE square_subscription_id = sqlc.arg('subscription_id')
+WHERE stripe_subscription_id = sqlc.arg('subscription_id')
 LIMIT 1;
 
 -- name: CountActiveMembers :one

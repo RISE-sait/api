@@ -122,15 +122,18 @@ func (w *WebhookIdempotency) TryClaimEvent(eventID, eventType string) (bool, err
 
 // tryClaimInDB atomically attempts to insert the event.
 // Returns (true, nil) on success, (false, nil) if already claimed, (false, error) on DB failure.
+// If a previous attempt failed (status='failed'), the event can be re-claimed for retry.
 func (w *WebhookIdempotency) tryClaimInDB(eventID, eventType string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Use INSERT with ON CONFLICT DO NOTHING and check rows affected
-	// This is atomic - only one concurrent caller can successfully insert
+	// Use INSERT with ON CONFLICT to atomically claim the event.
+	// If the event previously failed, allow re-claiming so Stripe retries can succeed.
 	query := `INSERT INTO payment.webhook_events (event_id, event_type, processed_at, status)
 		VALUES ($1, $2, NOW(), 'processing')
-		ON CONFLICT (event_id) DO NOTHING`
+		ON CONFLICT (event_id) DO UPDATE
+			SET status = 'processing', processed_at = NOW()
+			WHERE payment.webhook_events.status = 'failed'`
 
 	result, err := w.db.ExecContext(ctx, query, eventID, eventType)
 	if err != nil {

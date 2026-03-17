@@ -505,7 +505,10 @@ func (s *WebhookService) HandleInvoicePaymentSucceededWithSubsidy(ctx context.Co
 
 	// Track payment — skip initial subscription invoice (already tracked by checkout)
 	if invoice.BillingReason != stripe.InvoiceBillingReasonSubscriptionCreate {
-		safeGo("trackMembershipRenewal", func() { s.trackMembershipRenewal(&invoice, userID, eventTime) })
+		if trackErr := s.trackMembershipRenewal(&invoice, userID, eventTime); trackErr != nil {
+			s.Idempotency.MarkEventFailed(event.ID, trackErr.Error())
+			return trackErr
+		}
 	} else {
 		log.Printf("[WEBHOOK] Skipping payment tracking for initial subscription invoice %s (already tracked by checkout)", invoice.ID)
 	}

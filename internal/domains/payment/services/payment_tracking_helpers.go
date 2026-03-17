@@ -3,10 +3,12 @@ package payment
 import (
 	"api/internal/domains/payment/tracking"
 	creditPackageDTO "api/internal/domains/credit_package/dto"
+	errLib "api/internal/libs/errors"
 	"context"
 	"database/sql"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/google/uuid"
@@ -333,15 +335,24 @@ func (s *WebhookService) trackFailedPayment(invoice *stripe.Invoice, customerID 
 	}
 }
 
-// trackMembershipRenewal tracks a membership renewal payment from invoice
-func (s *WebhookService) trackMembershipRenewal(invoice *stripe.Invoice, customerID uuid.UUID, transactionDate time.Time) {
+// trackMembershipRenewal tracks a membership renewal payment from invoice.
+// Returns an error so the webhook can fail and Stripe will retry.
+func (s *WebhookService) trackMembershipRenewal(invoice *stripe.Invoice, customerID uuid.UUID, transactionDate time.Time) *errLib.CommonError {
 	ctx := context.Background()
+
+	// Check if already tracked (handles retry after partial failure where INSERT succeeded
+	// but the response was lost, e.g. due to network issue between DB and app)
+	existingTx, _ := s.PaymentTracking.GetPaymentByStripeInvoice(ctx, invoice.ID)
+	if existingTx != nil {
+		log.Printf("[PAYMENT-TRACKING] Invoice %s already tracked (transaction %s), skipping", invoice.ID, existingTx.ID)
+		return nil
+	}
 
 	// Get customer details
 	user, err := s.UserRepo.GetUserInfo(ctx, "", customerID)
 	if err != nil {
 		log.Printf("[PAYMENT-TRACKING] Failed to get user info for %s: %v", customerID, err)
-		return
+		return errLib.New("Failed to get user info for payment tracking", http.StatusInternalServerError)
 	}
 
 	customerEmail := ""
@@ -405,5 +416,8 @@ func (s *WebhookService) trackMembershipRenewal(invoice *stripe.Invoice, custome
 
 	if trackingErr != nil {
 		log.Printf("[PAYMENT-TRACKING] Failed to track membership renewal: %v", trackingErr)
+		return errLib.New("Failed to track payment", http.StatusInternalServerError)
 	}
+
+	return nil
 }

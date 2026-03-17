@@ -69,7 +69,7 @@ func (r *CustomerEnrollmentRepository) UpdateStripeSubscriptionStatusByID(ctx co
 func (r *CustomerEnrollmentRepository) GetStripeSubscriptionByCustomerID(ctx context.Context, customerID uuid.UUID) (*uuid.UUID, *errLib.CommonError) {
 	query := `SELECT membership_plan_id
 			  FROM users.customer_membership_plans
-			  WHERE customer_id = $1 AND subscription_source = 'subscription'
+			  WHERE customer_id = $1 AND subscription_source = 'stripe'
 			  ORDER BY created_at DESC
 			  LIMIT 1`
 
